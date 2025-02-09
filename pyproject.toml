@@ -32,3 +32,22 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["src/televiz"]
 addopts = "-v -Werror::DeprecationWarning"
+
+[tool.ruff]
+# https://docs.astral.sh/ruff/settings/
+line-length = 120        # Default, compatible with Black
+target-version = "py312" # Or your project's Python version
+indent-width = 4         # Default, compatible with Black
+
+# Formatting options (optional - Ruff's formatter is Black-compatible by default)
+[tool.ruff.format]
+quote-style = "double" # Or "single"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "C", "B"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"src/televiz/test_*.py" = ["D", "F401"] # ignore docstring rules in tests

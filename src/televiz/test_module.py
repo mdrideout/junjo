@@ -1,5 +1,6 @@
 import pytest
-from televiz.module import my_function, MyClass  # Import from the *installed* package
+
+from televiz.module import MyClass, my_function  # Import from the *installed* package
 
 
 def test_my_function():

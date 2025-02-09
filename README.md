@@ -47,3 +47,9 @@ $ source .venv/bin/activate
 # Install optional development dependencies
 $ uv pip install -e ".[dev]"
 ```
+
+#### Code Style
+
+This project utilizes [ruff](https://astral.sh/ruff) for linting and auto formatting. The VSCode settings.json in this project helps with additional formatting.
+
+- [Ruff VSCode Extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
