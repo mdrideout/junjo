@@ -34,3 +34,16 @@ TeleViz prioritizes the following capabilities above all else to ensure these th
 1. Type safety (pydantic)
 1. Asyncio and concurrency
 
+
+# Contributing
+
+This project was made with the [uv](https://github.com/astral-sh/uv) python package manager in place of pip.
+
+```bash
+# Setup and activate the virtual environment
+$ uv venv .venv
+$ source .venv/bin/activate
+
+# Install optional development dependencies
+$ uv pip install -e ".[dev]"
+```

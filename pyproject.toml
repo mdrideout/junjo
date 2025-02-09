@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "televiz"
+version = "0.1.0"
+description = "A simple graph execution and state machine library for building AI agentic workflows."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Matthew Rideout", email = "boon4376@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["sphinx", "furo", "pytest", "ruff~=0.9.5", "sphinx-rtd-theme", "mypy"]
+
+[tool.mypy]
+files = ["src"]
+strict = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/televiz"]
+addopts = "-v -Werror::DeprecationWarning"
