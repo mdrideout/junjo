@@ -1,0 +1,12 @@
+# examples/dev/pyproject.toml
+[project]
+name = "televiz-dev-example"
+version = "0.1.0"
+description = "Development example for televiz"
+dependencies = [
+  "televiz @ { path = '../../src', develop = true }", # KEY: Local path dependency!
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
