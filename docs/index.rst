@@ -5,6 +5,7 @@
 
    getting_started
    api
+   concepts/index
 
 Welcome to TeleViz!
 ====================
@@ -20,3 +21,9 @@ API Reference
 -------------
 
 See the :doc:`api` page for the full API reference.
+
+
+Concepts
+--------
+
+See the :doc:`concepts/index` page for an overview of concepts.

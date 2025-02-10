@@ -48,8 +48,16 @@ $ source .venv/bin/activate
 $ uv pip install -e ".[dev]"
 ```
 
-#### Code Style
+### Code Linting and Formatting
 
 This project utilizes [ruff](https://astral.sh/ruff) for linting and auto formatting. The VSCode settings.json in this project helps with additional formatting.
 
 - [Ruff VSCode Extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+
+### Building The Sphinx Docs
+
+```bash
+# Execute the build command to preview the new docs.
+# They will appear in a .gitignored folder docs/_build
+$ sphinx-build -b html docs docs/_build
+```
