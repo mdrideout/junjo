@@ -44,7 +44,7 @@ async def main():
         edges=[
             Edge(tail=node1, head=node2),
             Edge(tail=node2, head=node3, condition=condition1),
-            Edge(tail=node2, head=final_node), # TODO: Test that excluding this and failing condition1 throws an exception
+            Edge(tail=node2, head=final_node),
             Edge(tail=node3, head=final_node),
         ]
     )
