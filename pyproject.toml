@@ -17,7 +17,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-dependencies = []
+dependencies = [
+    "nanoid>=2.0.0",
+]
 
 [project.optional-dependencies]
 dev = ["sphinx", "furo", "pytest", "ruff~=0.9.5", "sphinx-rtd-theme", "mypy"]
@@ -47,7 +49,7 @@ line-ending = "lf"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "C", "B"]
-ignore = []
+ignore = ["B006"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/televiz/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
