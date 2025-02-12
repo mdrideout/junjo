@@ -5,11 +5,11 @@ Installation
 
 .. code-block:: bash
 
-    pip install televiz
+    pip install junjo
 
 Basic Usage
 ===========
 
 .. code-block:: python
 
-    import televiz
+    import junjo

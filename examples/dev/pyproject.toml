@@ -1,10 +1,10 @@
 # examples/dev/pyproject.toml
 [project]
-name = "televiz-dev-example"
+name = "junjo-dev-example"
 version = "0.1.0"
-description = "Development example for televiz"
+description = "Development example for junjo"
 dependencies = [
-  "televiz @ { path = '../../src', develop = true }", # KEY: Local path dependency!
+  "junjo @ { path = '../../src', develop = true }", # KEY: Local path dependency!
 ]
 
 [build-system]

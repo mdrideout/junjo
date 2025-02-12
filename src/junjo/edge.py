@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from televiz.node import Node
+from junjo.node import Node
 
 
 class Edge:

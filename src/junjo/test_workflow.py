@@ -1,10 +1,10 @@
 import unittest
 from typing import Any
 
-from televiz.edge import Edge
-from televiz.graph import Graph
-from televiz.node import Node
-from televiz.workflow import Workflow
+from junjo.edge import Edge
+from junjo.graph import Graph
+from junjo.node import Node
+from junjo.workflow import Workflow
 
 
 class MockNode(Node):

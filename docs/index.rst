@@ -7,7 +7,7 @@
    api
    concepts/index
 
-Welcome to TeleViz!
+Welcome to Junjo!
 ====================
 
 This is a simple graph execution and state machine library for building AI agentic workflows.

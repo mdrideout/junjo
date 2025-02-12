@@ -1,6 +1,6 @@
 from typing import Any
 
-from televiz.graph import Graph
+from junjo.graph import Graph
 
 
 class Workflow:

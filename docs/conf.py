@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../src"))  # Path to your source code
 
-project = "televiz"
+project = "junjo"
 copyright = "2025, Matthew Rideout"
 author = "Matthew Rideout"
 
@@ -24,7 +24,7 @@ extensions = [
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
-html_title = "TeleViz Docs"
+html_title = "Junjo Docs"
 
 # Furo theme options (see: https://pradyunsg.me/furo/customisation/)
 html_theme_options = {

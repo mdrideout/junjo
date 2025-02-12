@@ -1,6 +1,5 @@
 import pytest
-
-from televiz.node import Node
+from junjo.node import Node
 
 
 def test_node_inputs_kwargs():

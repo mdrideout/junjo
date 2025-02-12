@@ -8,7 +8,7 @@
 Concepts
 ========
 
-This section covers the core concepts of TeleViz.
+This section covers the core concepts of Junjo.
 
 Nodes
 -----

@@ -1,6 +1,6 @@
 from typing import Any
 
-from televiz.node import Node
+from junjo.node import Node
 
 from .edge import Edge  # Assuming Transition is in a 'transition.py' file
 

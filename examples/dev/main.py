@@ -1,8 +1,8 @@
 from typing import Any
 
-from televiz.edge import Edge
-from televiz.node import Node
-from televiz.workflow import Graph, Workflow
+from junjo.edge import Edge
+from junjo.node import Node
+from junjo.workflow import Graph, Workflow
 
 # Run With
 # python -m examples.dev.main

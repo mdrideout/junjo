@@ -2,9 +2,9 @@ import unittest
 from typing import Any
 from unittest.mock import AsyncMock
 
-from televiz.edge import Edge
-from televiz.graph import Graph
-from televiz.node import Node
+from junjo.edge import Edge
+from junjo.graph import Graph
+from junjo.node import Node
 
 
 class MockNode(Node):

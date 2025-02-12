@@ -3,7 +3,7 @@
 API Reference
 =============
 
-.. automodule:: televiz
+.. automodule:: junjo
    :members:
    :undoc-members:
    :show-inheritance:

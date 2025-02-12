@@ -6,7 +6,7 @@ from nanoid import generate
 
 class Node(ABC):
     """
-    Base class for all nodes in the televiz graph.
+    Base class for all nodes in the junjo graph.
 
     This class provides the basic structure and interface for nodes,
     including input/output handling, execution, and validation.

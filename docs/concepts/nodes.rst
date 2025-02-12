@@ -1,7 +1,7 @@
 Nodes
 =====
 
-This page provides detailed information about nodes in TeleViz.
+This page provides detailed information about nodes in Junjo.
 
 .. contents:: Table of Contents
    :depth: 2
@@ -9,7 +9,7 @@ This page provides detailed information about nodes in TeleViz.
 Introduction
 ------------
 
-Nodes are the fundamental building blocks of the TeleViz graph execution framework. Each node represents a discrete unit of computation or capability in the application.
+Nodes are the fundamental building blocks of the Junjo graph execution framework. Each node represents a discrete unit of computation or capability in the application.
 
 Nodes can be chained together into a dynamic graph structure. See the :doc:`graph` page for more information.
 
@@ -24,7 +24,7 @@ Example
 Here is an example of a simple node:
 
 ```python
-from televiz.node import Node
+from junjo.node import Node
 
 class MyNode(Node):
     async def execute(self):
