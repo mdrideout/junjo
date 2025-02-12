@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "televiz"
+name = "junjo"
 version = "0.1.0"
 description = "A simple graph execution and state machine library for building AI agentic workflows."
 readme = "README.md"
@@ -17,9 +17,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-dependencies = [
-    "nanoid>=2.0.0",
-]
+dependencies = ["nanoid>=2.0.0"]
 
 [project.optional-dependencies]
 dev = ["sphinx", "furo", "pytest", "ruff~=0.9.5", "sphinx-rtd-theme", "mypy"]
@@ -32,7 +30,7 @@ strict = true
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["src/televiz"]
+testpaths = ["src/junjo"]
 addopts = "-v -Werror::DeprecationWarning"
 
 [tool.ruff]
@@ -52,4 +50,4 @@ select = ["E", "F", "W", "I", "UP", "C", "B"]
 ignore = ["B006"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/televiz/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
+"src/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
