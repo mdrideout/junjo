@@ -6,6 +6,7 @@ from junjo.workflow import Graph, Workflow
 
 # Run With
 # python -m examples.dev.main
+# uv run -m examples.dev.main
 
 async def main():
     """The main entry point for the application."""
@@ -48,6 +49,7 @@ async def main():
             Edge(tail=node3, head=final_node),
         ]
     )
+    print(workflow_graph.to_mermaid())
 
     workflow = Workflow(workflow_graph)
     await workflow.execute()

@@ -22,7 +22,6 @@ class Node(ABC):
         """
         super().__init__()  # Good practice, even if not strictly necessary now
         self._id = generate()
-        self._name: str
         self._inputs: dict[str, Any] = {}
         self._outputs: dict[str, Any] = {}
 

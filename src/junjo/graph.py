@@ -26,3 +26,29 @@ class Graph:
                 raise ValueError("No valid transition found for node '{current_node}'")
 
             return resolved_edge
+
+    def to_mermaid(self) -> str:
+        """Generates a Mermaid diagram string from the graph."""
+        mermaid_str = "graph LR\n"
+
+        # Add nodes
+        nodes = {
+            id(node): node for node in [self.source, self.sink] +
+            [e.tail for e in self.edges] +
+            [e.head for e in self.edges]
+        }
+
+        for node_id, node in nodes.items():
+            node_label = node.__class__.__name__  # Or a custom label from node.name
+            mermaid_str += f"    {node_id}[{node_label}]\n"
+
+        # Add edges
+        for edge in self.edges:
+            tail_id = id(edge.tail)
+            head_id = id(edge.head)
+            edge_label = ""
+            if edge.condition:
+                edge_label = "|Condition|"  # Or a more descriptive label
+            mermaid_str += f"    {tail_id} --> {edge_label}{head_id}\n"
+
+        return mermaid_str
