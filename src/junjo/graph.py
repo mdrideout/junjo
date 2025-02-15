@@ -52,3 +52,41 @@ class Graph:
             mermaid_str += f"    {tail_id} --> {edge_label}{head_id}\n"
 
         return mermaid_str
+
+    def to_dot_notation(self) -> str:
+        """Converts the graph to DOT notation."""
+
+        dot_str = "digraph G {\n"  # Start of DOT graph
+        dot_str += "  node [shape=box, style=\"rounded\", fontsize=10];\n" #Added node styling
+        dot_str += "  ranksep=0.5; nodesep=1.0;\n" # Adjust spacing between ranks and nodes
+        dot_str += "  margin=1.0;\n" # Adjust graph margin
+
+
+        # Add nodes
+        nodes = {id(node): node for node in [self.source, self.sink] +
+                 [e.tail for e in self.edges] + [e.head for e in self.edges]}
+        for node_id, node in nodes.items():
+            node_label = node.__class__.__name__  # Or a custom label from node.name
+            dot_str += f'    "{node_id}" [label="{node_label}"];\n'
+
+        # Add edges
+        for edge in self.edges:
+            tail_id = id(edge.tail)
+            head_id = id(edge.head)
+            condition_str = self._format_condition(edge.condition)
+            style = "dashed" if condition_str else "solid"  # Dotted for conditional, solid otherwise
+            dot_str += f'    "{tail_id}" -> "{head_id}" [label="{condition_str}", style="{style}"];\n'
+
+
+        dot_str += "}\n"  # End of DOT graph
+        return dot_str
+
+    def _format_condition(self, condition):
+        """Helper function to format the condition into a human-readable string."""
+        if condition is None:
+            return ""
+        elif callable(condition): # Handles function conditions
+            return condition.__name__ #Use the function's name as a label
+        else:
+            return str(condition) #Handles other condition types (e.g., strings, booleans)
+

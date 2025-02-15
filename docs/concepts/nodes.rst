@@ -3,9 +3,6 @@ Nodes
 
 This page provides detailed information about nodes in Junjo.
 
-.. contents:: Table of Contents
-   :depth: 2
-
 Introduction
 ------------
 
@@ -23,10 +20,11 @@ Example
 
 Here is an example of a simple node:
 
-```python
-from junjo.node import Node
+.. code-block:: python
 
-class MyNode(Node):
-    async def execute(self):
-        # Your execution logic here
-        pass
+    from junjo.node import Node
+
+    class MyNode(Node):
+        async def execute(self):
+            # Your execution logic here
+            pass

@@ -1,6 +1,7 @@
 from typing import Any
 
 from junjo.edge import Edge
+from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
 from junjo.workflow import Graph, Workflow
 
@@ -49,7 +50,10 @@ async def main():
             Edge(tail=node3, head=final_node),
         ]
     )
+
     print(workflow_graph.to_mermaid())
+    print(workflow_graph.to_dot_notation())
+    graph_to_graphviz_image(workflow_graph)
 
     workflow = Workflow(workflow_graph)
     await workflow.execute()

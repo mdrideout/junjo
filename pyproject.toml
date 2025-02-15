@@ -21,6 +21,7 @@ dependencies = ["nanoid>=2.0.0"]
 
 [project.optional-dependencies]
 dev = ["sphinx", "furo", "pytest", "ruff~=0.9.5", "sphinx-rtd-theme", "mypy"]
+graphviz = ["graphviz"]
 
 [tool.mypy]
 files = ["src"]

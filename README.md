@@ -45,7 +45,22 @@ $ uv venv .venv
 $ source .venv/bin/activate
 
 # Install optional development dependencies
-$ uv pip install -e ".[dev]"
+$ uv pip install -e ".[dev,graphviz]"
+```
+
+### Graphviz
+
+This project can render junjo Graph objects as images. However, it requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image).
+
+```bash
+# Install Graphvis on MacOS with homebrew
+$ brew install graphviz
+```
+
+```python
+# Generate an image from a Graph
+from junjo.graphviz.utils import graph_to_graphviz_image
+graph_to_graphviz_image(workflow_graph)
 ```
 
 ### Code Linting and Formatting
@@ -57,6 +72,9 @@ This project utilizes [ruff](https://astral.sh/ruff) for linting and auto format
 ### Building The Sphinx Docs
 
 ```bash
+# 1. ensure optional development dependencies are installed (see above)
+# 2. ensure the virtual environment is activated (see above)
+
 # Execute the build command to preview the new docs.
 # They will appear in a .gitignored folder docs/_build
 $ sphinx-build -b html docs docs/_build

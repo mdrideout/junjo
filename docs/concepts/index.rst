@@ -1,6 +1,7 @@
 .. toctree::
    :maxdepth: 2
    :caption: Concepts:
+   :hidden:
 
    nodes
    graph
