@@ -1,5 +1,8 @@
-from typing import Any
 
+
+from pydantic import BaseModel
+
+from examples.dev.store import GraphState, GraphStateActions, GraphStore
 from junjo.edge import Edge
 from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
@@ -12,42 +15,79 @@ from junjo.workflow import Graph, Workflow
 async def main():
     """The main entry point for the application."""
 
-    class MyNode(Node):
-        async def execute(self):
-            self._outputs["result"] = self._inputs["a"] + self._inputs["b"]
-            print(f"MyNode Result: {self._outputs['result']}")
+    # Store Testing
+    # Instantiate the GraphStore
+    graph_store = GraphStore()
 
-    class MyNode2(Node):
-        async def execute(self):
-            self._outputs["result"] = self._inputs["c"] * self._inputs["d"]
-            print(f"MyNode2 Result: {self._outputs['result']}")
+    # Subscribe to state changes
+    def on_state_change(new_state: GraphState):
+        print("State changed:", new_state.model_dump())
+    unsubscribe = graph_store.subscribe(on_state_change)
 
-    class MyNode3(Node):
-        async def execute(self):
-            self._outputs["result"] = self._inputs["e"] - self._inputs["f"]
-            print(f"MyNode3 Result: {self._outputs['result']}")
+    # Dispatch a change to the store
+    graph_store.dispatch(action=GraphStateActions.INCREMENT)
+    graph_store.dispatch(action=GraphStateActions.SET_COUNTER, payload=5)
+    graph_store.dispatch(action=GraphStateActions.SET_LOADING, payload=True)
+    graph_store.dispatch(action=GraphStateActions.DECREMENT)
+    graph_store.dispatch(action=GraphStateActions.SET_LOADING, payload=False)
 
-    class FinalNode(Node):
-        async def execute(self):
-            print("Final Node Executed")
-
-    node1 = MyNode(a=1, b=2)
-    node2 = MyNode2(c=3, d=4)
-    node3 = MyNode3(e=5, f=6)
-    final_node = FinalNode()
+    # Cleanup
+    unsubscribe()
 
 
-    def condition1(current_node: Node, next_node: Node, context: dict[str, Any]) -> bool:
-        return context.get("result", 0) > 10
+
+    # Graph Testing
+    class MyInput(BaseModel):
+        text: str
+
+    class MyOutput(BaseModel):
+        text_lengths: dict[str, int]
+
+
+    # TODO: Update node to pass an action to the node that
+    # allows the state to be updated with the result of the logic function
+
+    async def logic_fn(data: MyInput) -> MyOutput:
+        # Some asynchronous processing or I/O could happen here.
+        # For demonstration, we'll just return the length of the input text.
+        await asyncio.sleep(0.25)  # Simulate async delay
+        return MyOutput(text_lengths={data.text: len(data.text)})
+
+    async def final_logic_fn(data: MyInput) -> MyOutput:
+        # Some asynchronous processing or I/O could happen here.
+        # For demonstration, we'll just return the length of the input text.
+        await asyncio.sleep(0.25)
+        return MyOutput(text_lengths={f"Final {data.text})": len(data.text)})
+
+
+    node1 = Node[MyInput, MyOutput](
+        logic=logic_fn
+    )
+
+    final_node = Node[MyInput, MyOutput](
+        # Inline logic function
+        logic=final_logic_fn
+    )
+
+
+
+
+
+
+
+
+
+    # def condition1(current_node: Node, next_node: Node, context: dict[str, Any]) -> bool:
+    #     return context.get("result", 0) > 10
 
     workflow_graph = Graph(
         source=node1,
         sink=final_node,
         edges=[
-            Edge(tail=node1, head=node2),
-            Edge(tail=node2, head=node3, condition=condition1),
-            Edge(tail=node2, head=final_node),
-            Edge(tail=node3, head=final_node),
+            Edge(tail=node1, head=final_node),
+            # Edge(tail=node2, head=node3, condition=condition1),
+            # Edge(tail=node2, head=final_node),
+            # Edge(tail=node3, head=final_node),
         ]
     )
 
