@@ -1,10 +1,11 @@
 import abc
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
 StateT = TypeVar("StateT", bound=BaseModel)
+StoreT = TypeVar("StoreT", bound="BaseStore")
 
 class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
@@ -12,18 +13,10 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     Subclasses must provide an initial_state property.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, initial_state: StateT) -> None:
         # Use the subclass's initial_state property to set up the store
-        self._state: StateT = self.initial_state
+        self._state: StateT = initial_state
         self._subscribers: list[Callable[[StateT], None]] = []
-
-    @property
-    @abc.abstractmethod
-    def initial_state(self) -> StateT:
-        """
-        Must be implemented to provide the initial Pydantic state instance.
-        """
-        raise NotImplementedError
 
     def subscribe(self, listener: Callable[[StateT], None]) -> Callable[[], None]:
         """
@@ -56,7 +49,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                 subscriber(self._state)
 
 
-def state_action(func):
+def state_action(func: Callable[..., StateT]) -> Callable[..., StateT]:
     """
     A decorator for store state update functions.
 
@@ -65,7 +58,7 @@ def state_action(func):
     2. `_update_state_and_notify` is called to update the store and notify subscribers.
     """
 
-    def wrapper(self: BaseStore[StateT], *args, **kwargs) -> StateT:
+    def wrapper(self: BaseStore[StateT], *args: Any, **kwargs: Any) -> StateT:
         new_state = func(self, *args, **kwargs)
         if not isinstance(new_state, self._state.__class__):  # Check against current state's type
             raise TypeError(f"Action method must return a {self._state.__class__.__name__} object.")

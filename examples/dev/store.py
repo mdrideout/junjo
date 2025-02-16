@@ -5,33 +5,30 @@ from pydantic import BaseModel
 from junjo.store.store import BaseStore, state_action
 
 
-class GraphState(BaseModel):
-    counter: int = 0
-    loading: bool = False
+class MyGraphState(BaseModel):
+    items: list[str]
+    counter: int
+    includeWarning: bool
 
-class GraphStore(BaseStore[GraphState]):
+class MyGraphStore(BaseStore[MyGraphState]):
     """
-    A concrete store for GraphState.
+    A concrete store for MyGraphState.
     """
-
-    @property
-    def initial_state(self) -> GraphState:
-        return GraphState(counter=0, loading=False)
 
     @state_action
-    def increment(self, payload: Any = None) -> GraphState:
+    def increment(self, payload: Any = None) -> MyGraphState:
         return self._state.model_copy(update={"counter": self._state.counter + 1})
 
     @state_action
-    def decrement(self, payload: Any = None) -> GraphState:
+    def decrement(self, payload: Any = None) -> MyGraphState:
         return self._state.model_copy(update={"counter": self._state.counter - 1})
 
     @state_action
-    def set_counter(self, payload: int) -> GraphState:
+    def set_counter(self, payload: int) -> MyGraphState:
         return self._state.model_copy(update={"counter": payload})
 
     @state_action
-    def set_loading(self, payload: bool) -> GraphState:
+    def set_loading(self, payload: bool) -> MyGraphState:
         return self._state.model_copy(update={"loading": payload})
 
     @state_action

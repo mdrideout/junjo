@@ -1,12 +1,12 @@
 
 
-from pydantic import BaseModel
 
-from examples.dev.store import GraphState, GraphStore
+from examples.dev.store import MyGraphState, MyGraphStore
 from junjo.edge import Edge
-from junjo.graphviz.utils import graph_to_graphviz_image
-from junjo.node import Node
-from junjo.workflow import Graph, Workflow
+from junjo.graph import Graph
+from junjo.node import BaseNode
+from junjo.workflow import Workflow
+from junjo.workflow_context import WorkflowContextManager
 
 # Run With
 # python -m examples.dev.main
@@ -15,88 +15,97 @@ from junjo.workflow import Graph, Workflow
 async def main():
     """The main entry point for the application."""
 
+    # Setup a workflow context
+    context = WorkflowContextManager()
+
     # Store Testing
     # Instantiate the GraphStore
-    graph_store = GraphStore()
+    initial_state = MyGraphState(items=["apple", "banana", "cherry"], counter=0, includeWarning=False)
+    graph_store = MyGraphStore(initial_state=initial_state)
 
     # Subscribe to state changes
-    def on_state_change(new_state: GraphState):
+    def on_state_change(new_state: MyGraphState):
         print("State changed:", new_state.model_dump())
     unsubscribe = graph_store.subscribe(on_state_change)
 
-    # Perform state updates to the store
-    graph_store.increment()
-    graph_store.set_counter(10)
-    graph_store.set_loading(True)
-    graph_store.decrement()
-    graph_store.set_loading(False)
-    graph_store.add_ten()
+    # # Perform state updates to the store
+    # graph_store.increment()
+    # graph_store.set_counter(10)
+    # graph_store.set_loading(True)
+    # graph_store.decrement()
+    # graph_store.set_loading(False)
+    # graph_store.add_ten()
+
+
+    # Example decoupled service function
+    async def count_items(items: list[str]) -> int:
+        print("Running count_items...")
+
+        count = len(items)
+        return count
+
+    class CountNode(BaseNode[MyGraphState, MyGraphStore]):
+        """Workflow node that counts items"""
+
+        async def service(self, store: MyGraphStore) -> MyGraphState:
+            state = store.get_state()
+            print("Running CountNode service from initial state: ", state.model_dump())
+
+            items = state.items
+            count = await count_items(items)
+            return store.set_counter(count)
+
+
+    class FinalNode(BaseNode[MyGraphState, MyGraphStore]):
+        """Workflow node that prints the final state"""
+
+        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
+            print("Running FinalNode service from initial state: ", state.model_dump())
+            return state
+
+    count_node = CountNode()
+    final_node = FinalNode()
+
+    # Construct a Graph
+    graph = Graph(
+        source=count_node,
+        sink=final_node,
+        edges=[
+            Edge(tail=count_node, head=final_node),
+        ]
+    )
+
+    workflow = Workflow(graph=graph, initial_store=graph_store)
+    print("Executing the workflow with initial store state: ", workflow.get_state)
+    await workflow.execute()
+    final_state = workflow.get_state
+    print(f"Final state: {final_state}")
 
     # Cleanup
     unsubscribe()
-
-    # Graph Testing
-    class MyInput(BaseModel):
-        text: str
-
-    class MyOutput(BaseModel):
-        text_lengths: dict[str, int]
-
-
-    # TODO: Update node to pass an action to the node that
-    # allows the state to be updated with the result of the logic function
-
-    async def logic_fn(data: MyInput) -> MyOutput:
-        # Some asynchronous processing or I/O could happen here.
-        # For demonstration, we'll just return the length of the input text.
-        await asyncio.sleep(0.25)  # Simulate async delay
-        return MyOutput(text_lengths={data.text: len(data.text)})
-
-    async def final_logic_fn(data: MyInput) -> MyOutput:
-        # Some asynchronous processing or I/O could happen here.
-        # For demonstration, we'll just return the length of the input text.
-        await asyncio.sleep(0.25)
-        return MyOutput(text_lengths={f"Final {data.text})": len(data.text)})
-
-
-    node1 = Node[MyInput, MyOutput](
-        logic=logic_fn
-    )
-
-    final_node = Node[MyInput, MyOutput](
-        # Inline logic function
-        logic=final_logic_fn
-    )
-
-
-
-
-
-
-
 
 
     # def condition1(current_node: Node, next_node: Node, context: dict[str, Any]) -> bool:
     #     return context.get("result", 0) > 10
 
-    workflow_graph = Graph(
-        source=node1,
-        sink=final_node,
-        edges=[
-            Edge(tail=node1, head=final_node),
-            # Edge(tail=node2, head=node3, condition=condition1),
-            # Edge(tail=node2, head=final_node),
-            # Edge(tail=node3, head=final_node),
-        ]
-    )
+    # workflow_graph = Graph(
+    #     source=node1,
+    #     sink=final_node,
+    #     edges=[
+    #         Edge(tail=node1, head=final_node),
+    #         # Edge(tail=node2, head=node3, condition=condition1),
+    #         # Edge(tail=node2, head=final_node),
+    #         # Edge(tail=node3, head=final_node),
+    #     ]
+    # )
 
-    print(workflow_graph.to_mermaid())
-    print(workflow_graph.to_dot_notation())
-    graph_to_graphviz_image(workflow_graph)
+    # print(workflow_graph.to_mermaid())
+    # print(workflow_graph.to_dot_notation())
+    # graph_to_graphviz_image(workflow_graph)
 
-    workflow = Workflow(workflow_graph)
-    await workflow.execute()
-    print(f"Final Context: {workflow.context}")
+    # workflow = Workflow(workflow_graph)
+    # await workflow.execute()
+    # print(f"Final Context: {workflow.context}")
 
 if __name__ == "__main__":
     import asyncio

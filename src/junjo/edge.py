@@ -1,7 +1,6 @@
 from collections.abc import Callable
-from typing import Any
 
-from junjo.node import Node
+from junjo.node import BaseNode
 
 
 class Edge:
@@ -14,9 +13,9 @@ class Edge:
 
     def __init__(
         self,
-        tail: Node,
-        head: Node,
-        condition: Callable[[Node, Node, dict[str, Any]], bool] | None = None,
+        tail: BaseNode,
+        head: BaseNode,
+        condition: Callable[[BaseNode, BaseNode], bool] | None = None,
     ):
         """
         Initializes the Edge.
@@ -37,7 +36,7 @@ class Edge:
         self.head = head
         self.condition = condition
 
-    def next_node(self, context: dict[str, Any]) -> Node | None:
+    def next_node(self) -> BaseNode | None:
         """
         Determines the next node in the workflow based on the edge's condition.
 
@@ -50,4 +49,4 @@ class Edge:
         if self.condition is None:
             return self.head
         else:
-            return self.head if self.condition(self.tail, self.head, context) else None
+            return self.head if self.condition(self.tail, self.head) else None
