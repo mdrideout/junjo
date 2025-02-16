@@ -1,36 +1,29 @@
 import abc
-from collections.abc import Callable, Iterable
-from enum import Enum
-from typing import Any, Generic, TypeVar
+from collections.abc import Callable
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
-# -----------------------------------------
-# Type Definitions
-# -----------------------------------------
 StateT = TypeVar("StateT", bound=BaseModel)
-ActionEnumT = TypeVar("ActionEnumT", bound=Enum)
 
-# A reducer has the signature: (state, payload) -> new_state
-Reducer = Callable[[StateT, Any], StateT]
-
-# A generic type alias that takes two type parameters
-# ActionMap: TypeAlias = dict[ActionEnumT, Reducer]
-Subscribers = list[Callable[[StateT], None]]
-
-class _BaseStore(Generic[StateT, ActionEnumT]):
+class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
-    A minimal, Redux-like store for a Pydantic state, with typed Enum actions.
+    An abstract base for a "store" that manages a Pydantic state.
+    Subclasses must provide an initial_state property.
     """
 
-    def __init__(
-        self,
-        initial_state: StateT,
-        action_map: dict[ActionEnumT, Reducer],
-    ):
-        self._state: StateT = initial_state
-        self._action_map: dict[ActionEnumT, Reducer] = action_map
+    def __init__(self) -> None:
+        # Use the subclass's initial_state property to set up the store
+        self._state: StateT = self.initial_state
         self._subscribers: list[Callable[[StateT], None]] = []
+
+    @property
+    @abc.abstractmethod
+    def initial_state(self) -> StateT:
+        """
+        Must be implemented to provide the initial Pydantic state instance.
+        """
+        raise NotImplementedError
 
     def subscribe(self, listener: Callable[[StateT], None]) -> Callable[[], None]:
         """
@@ -43,90 +36,39 @@ class _BaseStore(Generic[StateT, ActionEnumT]):
             self._subscribers.remove(listener)
         return unsubscribe
 
-    def dispatch(self, action: ActionEnumT, payload: Any = None) -> None:
+    def get_state(self) -> StateT:
         """
-        Dispatch an action by Enum member, plus an optional payload.
-        Example usage:
-            store.dispatch(action=MyEnum.SOME_ACTION, payload=123)
+        Return the current state.
         """
-        if action not in self._action_map:
-            raise ValueError(f"Unknown action: {action!r}")
+        return self._state
 
-        reducer = self._action_map[action]
-        new_state = reducer(self._state.model_copy(), payload)
+    def _update_state_and_notify(self, new_state: StateT) -> None:
+        """
+        Update state and notify.
 
-        # If state changed, notify subscribers
+        If state has changed:
+        - Updates state
+        - Notifies subscribers
+        """
         if new_state != self._state:
             self._state = new_state
             for subscriber in self._subscribers:
                 subscriber(self._state)
 
-    def get_state(self) -> StateT:
-        """Return the current state."""
-        return self._state
 
-    @property
-    def actions(self) -> Iterable[ActionEnumT]:  # Corrected type hint
-        """Returns an iterable of the actions enum members."""
-        return self._action_map.keys()
+def state_action(func):
+    """Decorator to mark methods as state actions.
 
-
-def _create_store(
-    name: str,
-    initial_state: StateT,
-    reducers: dict[ActionEnumT, Reducer]
-) -> tuple[StateT, dict[ActionEnumT, Reducer]]:
-    """
-    Emulate Redux Toolkit's createSlice in Python, but with typed Enum keys.
-    Returns (initial_state, action_map).
-    """
-    action_map: dict[ActionEnumT, Reducer] = {}
-
-    for action_enum, reducer_fn in reducers.items():
-        def make_handler(fn: Reducer, a_enum: ActionEnumT):
-            def handler(state: StateT, payload: Any) -> StateT:
-                return fn(state, payload)
-            handler.__name__ = f"{name}_{a_enum.value}"
-            return handler
-
-        action_map[action_enum] = make_handler(reducer_fn, action_enum)
-
-    return (initial_state, action_map)
-
-
-class StateStore(_BaseStore[StateT, ActionEnumT], metaclass=abc.ABCMeta):
-    """
-    An abstract state store that requires subclasses to define:
-    - `name` (string)
-    - `initial_state` (Pydantic model instance)
-    - `reducers` (dict[ActionEnumMember, function(state, payload)->new_state])
-    Then automatically wires them up via _create_store.
+    Ensures that:
+    1. The decorated method returns a new state object of the correct type.
+    2. `_update_state` is called to update the store and notify subscribers.
     """
 
-    @property
-    @abc.abstractmethod
-    def name(self) -> str:
-        """Return the name of this store (e.g. 'graph_store')."""
-        raise NotImplementedError
+    def wrapper(self: BaseStore[StateT], *args, **kwargs) -> StateT:
+        new_state = func(self, *args, **kwargs)
+        if not isinstance(new_state, self._state.__class__):  # Check against current state's type
+            raise TypeError(f"Action method must return a {self._state.__class__.__name__} object.")
+        self._update_state_and_notify(new_state)
+        return new_state
 
-    @property
-    @abc.abstractmethod
-    def initial_state(self) -> StateT:
-        """Return the initial Pydantic state."""
-        raise NotImplementedError
-
-    @property
-    @abc.abstractmethod
-    def reducers(self) -> dict[ActionEnumT, Reducer]:
-        """
-        Return {ActionEnumMember: function(state, payload) -> newState}.
-        """
-        raise NotImplementedError
-
-    def __init__(self) -> None:
-        init_state, action_map = _create_store(
-            self.name,
-            self.initial_state,
-            self.reducers
-        )
-        super().__init__(init_state, action_map)
+    return wrapper

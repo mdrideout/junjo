@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 
-from examples.dev.store import GraphState, GraphStateActions, GraphStore
+from examples.dev.store import GraphState, GraphStore
 from junjo.edge import Edge
 from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
@@ -24,17 +24,16 @@ async def main():
         print("State changed:", new_state.model_dump())
     unsubscribe = graph_store.subscribe(on_state_change)
 
-    # Dispatch a change to the store
-    graph_store.dispatch(action=GraphStateActions.INCREMENT)
-    graph_store.dispatch(action=GraphStateActions.SET_COUNTER, payload=5)
-    graph_store.dispatch(action=GraphStateActions.SET_LOADING, payload=True)
-    graph_store.dispatch(action=GraphStateActions.DECREMENT)
-    graph_store.dispatch(action=GraphStateActions.SET_LOADING, payload=False)
+    # Perform state updates to the store
+    graph_store.increment()
+    graph_store.set_counter(10)
+    graph_store.set_loading(True)
+    graph_store.decrement()
+    graph_store.set_loading(False)
+    graph_store.add_ten()
 
     # Cleanup
     unsubscribe()
-
-
 
     # Graph Testing
     class MyInput(BaseModel):
