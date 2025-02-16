@@ -17,13 +17,18 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-dependencies = [
-    "nanoid>=2.0.0",
-    "pydantic>=2.10.6",
-]
+dependencies = ["nanoid>=2.0.0", "pydantic>=2.10.6"]
 
 [project.optional-dependencies]
-dev = ["sphinx", "furo", "pytest", "ruff~=0.9.5", "sphinx-rtd-theme", "mypy"]
+dev = [
+    "sphinx",
+    "furo",
+    "pytest",
+    "pytest-asyncio",
+    "ruff~=0.9.5",
+    "sphinx-rtd-theme",
+    "mypy",
+]
 graphviz = ["graphviz"]
 
 [tool.mypy]

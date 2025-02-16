@@ -28,7 +28,6 @@ async def main():
         print("State changed:", new_state.model_dump())
     unsubscribe = graph_store.subscribe(on_state_change)
 
-
     # Example service function
     async def count_items(items: list[str]) -> int:
         print("Running count_items...")
@@ -68,13 +67,13 @@ async def main():
     def count_over_10(current_node: Node, next_node: Node, state: MyGraphState) -> bool:
         return state.counter > 10
 
-    # Create nodes
+    # Instantiate nodes
     count_node = CountNode()
     increment_node = IncrementNode()
     set_warning_node = SetWarningNode()
     final_node = FinalNode()
 
-    # Construct a Graph
+    # Construct a graph
     graph = Graph(
         source=count_node,
         sink=final_node,
