@@ -57,11 +57,12 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
 
 def state_action(func):
-    """Decorator to mark methods as state actions.
+    """
+    A decorator for store state update functions.
 
     Ensures that:
     1. The decorated method returns a new state object of the correct type.
-    2. `_update_state` is called to update the store and notify subscribers.
+    2. `_update_state_and_notify` is called to update the store and notify subscribers.
     """
 
     def wrapper(self: BaseStore[StateT], *args, **kwargs) -> StateT:
