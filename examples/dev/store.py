@@ -8,7 +8,7 @@ from junjo.store.store import BaseStore, state_action
 class MyGraphState(BaseModel):
     items: list[str]
     counter: int
-    includeWarning: bool
+    warning: bool
 
 class MyGraphStore(BaseStore[MyGraphState]):
     """
@@ -28,8 +28,8 @@ class MyGraphStore(BaseStore[MyGraphState]):
         return self._state.model_copy(update={"counter": payload})
 
     @state_action
-    def set_loading(self, payload: bool) -> MyGraphState:
-        return self._state.model_copy(update={"loading": payload})
+    def set_warning(self, payload: bool) -> MyGraphState:
+        return self._state.model_copy(update={"warning": payload})
 
     @state_action
     def add_ten(self, payload: Any = None):

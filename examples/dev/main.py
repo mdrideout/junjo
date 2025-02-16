@@ -4,7 +4,8 @@
 from examples.dev.store import MyGraphState, MyGraphStore
 from junjo.edge import Edge
 from junjo.graph import Graph
-from junjo.node import BaseNode
+from junjo.graphviz.utils import graph_to_graphviz_image
+from junjo.node import Node
 from junjo.workflow import Workflow
 from junjo.workflow_context import WorkflowContextManager
 
@@ -19,7 +20,7 @@ async def main():
     WorkflowContextManager()
 
     # Initialize a store
-    initial_state = MyGraphState(items=["apple", "banana", "cherry"], counter=0, includeWarning=False)
+    initial_state = MyGraphState(items=["apple", "banana", "cherry"], counter=0, warning=False)
     graph_store = MyGraphStore(initial_state=initial_state)
 
     # Subscribe to state changes
@@ -35,7 +36,7 @@ async def main():
         count = len(items)
         return count
 
-    class CountNode(BaseNode[MyGraphState, MyGraphStore]):
+    class CountNode(Node[MyGraphState, MyGraphStore]):
         """Workflow node that counts items"""
 
         async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
@@ -45,15 +46,32 @@ async def main():
             count = await count_items(items)
             return store.set_counter(count)
 
+    class IncrementNode(Node[MyGraphState, MyGraphStore]):
+        """Workflow node that increments the counter"""
 
-    class FinalNode(BaseNode[MyGraphState, MyGraphStore]):
+        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
+            return store.set_counter(12)
+
+    class SetWarningNode(Node[MyGraphState, MyGraphStore]):
+        """Workflow node that sets the warning flag"""
+
+        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
+            return store.set_warning(True)
+
+    class FinalNode(Node[MyGraphState, MyGraphStore]):
         """Workflow node that prints the final state"""
 
         async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
             print("Running FinalNode service from initial state: ", state.model_dump())
             return state
 
+    def count_over_10(current_node: Node, next_node: Node, state: MyGraphState) -> bool:
+        return state.counter > 10
+
+    # Create nodes
     count_node = CountNode()
+    increment_node = IncrementNode()
+    set_warning_node = SetWarningNode()
     final_node = FinalNode()
 
     # Construct a Graph
@@ -61,9 +79,16 @@ async def main():
         source=count_node,
         sink=final_node,
         edges=[
-            Edge(tail=count_node, head=final_node),
+            Edge(tail=count_node, head=increment_node),
+            Edge(tail=increment_node, head=set_warning_node, condition=count_over_10),
+            Edge(tail=set_warning_node, head=final_node),
+            Edge(tail=increment_node, head=final_node),
         ]
     )
+
+    print(graph.to_mermaid())
+    print(graph.to_dot_notation())
+    graph_to_graphviz_image(graph)
 
     workflow = Workflow(graph=graph, initial_store=graph_store)
     print("Executing the workflow with initial store state: ", workflow.get_state)
@@ -73,29 +98,6 @@ async def main():
 
     # Cleanup
     unsubscribe()
-
-
-    # def condition1(current_node: Node, next_node: Node, context: dict[str, Any]) -> bool:
-    #     return context.get("result", 0) > 10
-
-    # workflow_graph = Graph(
-    #     source=node1,
-    #     sink=final_node,
-    #     edges=[
-    #         Edge(tail=node1, head=final_node),
-    #         # Edge(tail=node2, head=node3, condition=condition1),
-    #         # Edge(tail=node2, head=final_node),
-    #         # Edge(tail=node3, head=final_node),
-    #     ]
-    # )
-
-    # print(workflow_graph.to_mermaid())
-    # print(workflow_graph.to_dot_notation())
-    # graph_to_graphviz_image(workflow_graph)
-
-    # workflow = Workflow(workflow_graph)
-    # await workflow.execute()
-    # print(f"Final Context: {workflow.context}")
 
 if __name__ == "__main__":
     import asyncio

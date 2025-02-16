@@ -8,7 +8,7 @@ from junjo.store.store import BaseStore, StateT, StoreT
 from junjo.workflow_context import WorkflowContextManager
 
 
-class BaseNode(Generic[StateT, StoreT], ABC):
+class Node(Generic[StateT, StoreT], ABC):
     """
     Base class for all nodes in the junjo graph.
 
@@ -51,16 +51,22 @@ class BaseNode(Generic[StateT, StoreT], ABC):
         # Validate service function params: store
         type_hints = get_type_hints(self.service)
         if "store" not in type_hints:
-            raise ValueError(f"Service function must have a 'store' parameter of type {BaseStore}")
+            raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
         if not issubclass(type_hints["store"], BaseStore):
-            raise ValueError(f"Service function must have a 'store' parameter of type {BaseStore}")
+            raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
 
 
         # Validate service function params: state
         if "state" not in type_hints:
-            raise ValueError(f"Service function must have a 'state' parameter of type {BaseModel}")
+            raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
         if not issubclass(type_hints["state"], BaseModel):
-            raise ValueError(f"Service function must have a 'state' parameter of type {BaseModel}")
+            raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
+
+        # Validate the return type of the service function
+        if "return" not in type_hints:
+            raise ValueError(f"Service function must have a return type of {StateT}")
+        if not issubclass(type_hints["return"], BaseModel):
+            raise ValueError(f"Service function must have a return type of {StateT}")
 
 
         # Get and validate the store from context

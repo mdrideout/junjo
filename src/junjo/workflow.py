@@ -53,12 +53,7 @@ class Workflow(Generic[StateT, StoreT]):
         """
         Executes the workflow.
         """
-
-        # Set the initial context
-
-
         current_node = self.graph.source
-
         while current_node != self.graph.sink: # Check if the sink node has been reached.
             try:
                 await current_node._execute(self.workflow_id)
@@ -69,7 +64,7 @@ class Workflow(Generic[StateT, StoreT]):
                     raise ValueError(f"Node '{current_node}' exceeded maximum execution count. Check for loops.")
 
                 # Get the next node in the workflow.
-                current_node = self.graph.get_next_node(current_node)
+                current_node = self.graph.get_next_node(self.workflow_id, current_node)
 
             except Exception as e:
                 print(f"Error executing node: {e}")
