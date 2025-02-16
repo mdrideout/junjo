@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Generic
+from typing import Generic, get_type_hints
 
 from nanoid import generate
+from pydantic import BaseModel
 
-from junjo.store.store import StateT, StoreT
+from junjo.store.store import BaseStore, StateT, StoreT
 from junjo.workflow_context import WorkflowContextManager
 
 # ServiceFn = Callable[[StateT], StateT]
@@ -20,12 +21,10 @@ class BaseNode(Generic[StateT, StoreT], ABC):
 
     def __init__(
         self,
-        # service: ServiceFn
     ):
         """Initialize the node"""
         super().__init__()
         self._id = generate()
-        # self.service = service
 
     def __repr__(self):
         """Returns a string representation of the node."""
@@ -37,7 +36,7 @@ class BaseNode(Generic[StateT, StoreT], ABC):
         return self._id
 
     @abstractmethod
-    async def service(self, store: StoreT) -> StateT:
+    async def service(self, state: StateT, store: StoreT) -> StateT:
         """The main logic of the node."""
         raise NotImplementedError
 
@@ -50,18 +49,34 @@ class BaseNode(Generic[StateT, StoreT], ABC):
         if not callable(self.service):
             raise ValueError("Service function must be callable")
 
-        # Validate the store parameter for StoreT
-        if not hasattr(self.service, "__annotations__") or "store" not in self.service.__annotations__:
-            raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
+        # Validate service function params: store
+        type_hints = get_type_hints(self.service)
+        if "store" not in type_hints:
+            raise ValueError(f"Service function must have a 'store' parameter of type {BaseStore}")
+        if not issubclass(type_hints["store"], BaseStore):
+            raise ValueError(f"Service function must have a 'store' parameter of type {BaseStore}")
 
-        # Get the current store
+
+        # Validate service function params: state
+        if "state" not in type_hints:
+            raise ValueError(f"Service function must have a 'state' parameter of type {BaseModel}")
+        if not issubclass(type_hints["state"], BaseModel):
+            raise ValueError(f"Service function must have a 'state' parameter of type {BaseModel}")
+
+
+        # Get and validate the store from context
         store = WorkflowContextManager.get_store(workflow_id)
         if store is None:
             raise ValueError("Store is not available")
 
+        # Get and validate the state from the store
+        state = store.get_state()
+        if state is None:
+            raise ValueError("State is not available")
+
         # Execute the service
         try:
-            result = await self.service(store)
+            result = await self.service(state, store)
         except Exception as e:
             print(f"Error executing service: {e}")
             return

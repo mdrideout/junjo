@@ -47,8 +47,7 @@ async def main():
     class CountNode(BaseNode[MyGraphState, MyGraphStore]):
         """Workflow node that counts items"""
 
-        async def service(self, store: MyGraphStore) -> MyGraphState:
-            state = store.get_state()
+        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
             print("Running CountNode service from initial state: ", state.model_dump())
 
             items = state.items
