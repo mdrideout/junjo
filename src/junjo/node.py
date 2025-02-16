@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from junjo.store.store import BaseStore, StateT, StoreT
 from junjo.workflow_context import WorkflowContextManager
 
-# ServiceFn = Callable[[StateT], StateT]
 
 class BaseNode(Generic[StateT, StoreT], ABC):
     """
@@ -76,48 +75,10 @@ class BaseNode(Generic[StateT, StoreT], ABC):
 
         # Execute the service
         try:
-            result = await self.service(state, store)
+            await self.service(state, store)
         except Exception as e:
             print(f"Error executing service: {e}")
             return
-
-    # async def execute(self) -> None:
-    #     """
-    #     Executes the node's logic.
-
-    #     This method should perform the primary logic of the node,
-    #     setting output values as necessary.
-    #     """
-
-    #     # Validate the service function has the appropriate signature
-    #     if not callable(self.service):
-    #         raise ValueError("Service function must be callable")
-
-    #     # Validate has a state parameter for StateT
-    #     if not hasattr(self.service, "__annotations__") or "state" not in self.service.__annotations__:
-    #         raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
-
-    #     # Get the current state
-    #     state = self.get_state()
-
-    #     # Execute the service
-    #     try:
-    #         result = await self.service(state)
-    #     except Exception as e:
-    #         print(f"Error executing service: {e}")
-    #         return
-
-    #     # Validate the result
-    #     try:
-    #         validated_result = self.state.model_validate(result)
-    #     except ValidationError as e:
-    #         print(f"Service result does not match state model: {e}")
-    #         return
-
-    #     # Update the state
-    #     self.state = self.state.model_copy(update=validated_result.model_dump())
-
-
 
 
 
