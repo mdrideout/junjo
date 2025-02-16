@@ -15,11 +15,10 @@ from junjo.workflow_context import WorkflowContextManager
 async def main():
     """The main entry point for the application."""
 
-    # Setup a workflow context
-    context = WorkflowContextManager()
+    # Initialize a workflow context manager
+    WorkflowContextManager()
 
-    # Store Testing
-    # Instantiate the GraphStore
+    # Initialize a store
     initial_state = MyGraphState(items=["apple", "banana", "cherry"], counter=0, includeWarning=False)
     graph_store = MyGraphStore(initial_state=initial_state)
 
@@ -28,16 +27,8 @@ async def main():
         print("State changed:", new_state.model_dump())
     unsubscribe = graph_store.subscribe(on_state_change)
 
-    # # Perform state updates to the store
-    # graph_store.increment()
-    # graph_store.set_counter(10)
-    # graph_store.set_loading(True)
-    # graph_store.decrement()
-    # graph_store.set_loading(False)
-    # graph_store.add_ten()
 
-
-    # Example decoupled service function
+    # Example service function
     async def count_items(items: list[str]) -> int:
         print("Running count_items...")
 
