@@ -6,7 +6,7 @@ from junjo.edge import Edge
 from junjo.graph import Graph
 from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
-from junjo.telemetry.telemetry_manager import TelemetryManager
+from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
 from junjo.workflow_context import WorkflowContextManager
 
@@ -90,7 +90,7 @@ async def main():
     print(graph.to_dot_notation())
     graph_to_graphviz_image(graph)
 
-    workflow = Workflow(graph=graph, initial_store=graph_store, telemetry_manager=TelemetryManager(verbose_logging=True))
+    workflow = Workflow(graph=graph, initial_store=graph_store, hook_manager=HookManager(verbose_logging=True))
     print("Executing the workflow with initial store state: ", workflow.get_state)
     await workflow.execute()
     final_state = workflow.get_state
