@@ -1,10 +1,12 @@
-# Welcome to React Router!
+# Welcome to Junjo UI!
+
+The telemetry and tracing user interface for [junjo, the AI graph workflow library for python](https://github.com/mdrideout/junjo).
+
+- [Tailwind UI Kit Docs](https://catalyst.tailwindui.com/docs/sidebar-layout)
+
+## Built with React Router V7
 
 A modern, production-ready template for building full-stack React applications using React Router.
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
 
 - 🚀 Server-side rendering
 - ⚡️ Hot Module Replacement (HMR)
