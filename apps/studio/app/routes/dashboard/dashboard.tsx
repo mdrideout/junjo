@@ -1,6 +1,6 @@
-import { Outlet } from "react-router";
-import { requireSession } from "~/auth/require-session";
-import type { Route } from "./+types/dashboard";
+import { Outlet } from 'react-router'
+import { requireSession } from '~/auth/utils'
+import type { Route } from './+types/dashboard'
 
 export default function Dashboard() {
   return (
@@ -8,7 +8,7 @@ export default function Dashboard() {
       <h1>Dashboard</h1>
       <Outlet />
     </div>
-  );
+  )
 }
 
 /**
@@ -22,6 +22,6 @@ export default function Dashboard() {
  * @returns
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireSession(request);
-  return null;
+  await requireSession(request)
+  return null
 }

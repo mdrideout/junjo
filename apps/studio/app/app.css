@@ -1,8 +1,9 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-logo: "Audiowide", impact, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+  --font-logo: 'Audiowide', impact, sans-serif;
 }
 
 html,
@@ -20,10 +21,12 @@ h3,
 h4,
 h5,
 h6 {
-  @apply font-logo;
+  @apply font-semibold;
   margin-bottom: 0.5rem;
 }
+
 h1 {
+  @apply font-logo font-normal;
   @apply text-4xl;
 }
 h2 {
@@ -40,4 +43,33 @@ h5 {
 }
 h6 {
   @apply text-base;
+}
+
+ol,
+ul {
+  @apply pl-4;
+}
+
+ol {
+  @apply list-decimal;
+}
+
+ul {
+  @apply list-disc;
+}
+
+ol ol,
+ul ul,
+ol ul,
+ul ol {
+  @apply ml-4;
+}
+
+li {
+  @apply mb-2;
+}
+
+input,
+textarea {
+  @apply border border-gray-300 dark:border-gray-700 rounded-md px-1;
 }

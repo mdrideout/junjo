@@ -1,16 +1,12 @@
-/**
- * User class
- *
- * This class is used to represent the user object in the application.
- */
-class User {
-  id: string;
-  email: string;
-  name: string;
+import { z } from 'zod'
 
-  constructor(id: string, email: string, name: string) {
-    this.id = id;
-    this.email = email;
-    this.name = name;
-  }
-}
+// Zod schema for User
+export const UserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+})
+export type User = z.infer<typeof UserSchema>
+
+// Zod schema for User Database
+export const UserDatabaseSchema = z.array(UserSchema)
+export type UserDatabase = z.infer<typeof UserDatabaseSchema>

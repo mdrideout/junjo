@@ -4,3 +4,6 @@
 # React Router
 /.react-router/
 /build/
+
+# The User's Database (json file)
+**/users-db.json

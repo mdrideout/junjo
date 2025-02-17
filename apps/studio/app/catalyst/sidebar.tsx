@@ -4,8 +4,8 @@ import * as Headless from '@headlessui/react'
 import clsx from 'clsx'
 import { LayoutGroup, motion } from 'framer-motion'
 import React, { forwardRef, useId } from 'react'
-import { TouchTarget } from './button'
-import { Link } from './link'
+import { TouchTarget } from '~/catalyst/button'
+import { Link } from '~/catalyst/link'
 
 export function Sidebar({ className, ...props }: React.ComponentPropsWithoutRef<'nav'>) {
   return <nav {...props} className={clsx(className, 'flex h-full min-h-0 flex-col')} />
@@ -65,9 +65,12 @@ export function SidebarSpacer({ className, ...props }: React.ComponentPropsWitho
   return <div aria-hidden="true" {...props} className={clsx(className, 'mt-8 flex-1')} />
 }
 
-export function SidebarHeading({ className, ...props }: React.ComponentPropsWithoutRef<'h3'>) {
+export function SidebarHeading({ className, ...props }: React.ComponentPropsWithoutRef<'h5'>) {
   return (
-    <h3 {...props} className={clsx(className, 'mb-1 px-2 text-xs/6 font-medium text-zinc-500 dark:text-zinc-400')} />
+    <h5
+      {...props}
+      className={clsx(className, 'uppercase mb-1 px-2 text-xs/6 font-medium text-zinc-500 dark:text-zinc-400')}
+    />
   )
 }
 
