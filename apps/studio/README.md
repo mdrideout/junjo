@@ -1,8 +1,8 @@
-# Welcome to Junjo UI!
+# Junjo UI
 
 The telemetry and tracing user interface for [junjo, the AI graph workflow library for python](https://github.com/mdrideout/junjo).
 
-- [Tailwind UI Kit Docs](https://catalyst.tailwindui.com/docs/sidebar-layout)
+
 
 ## Built with React Router V7
 
@@ -15,6 +15,7 @@ A modern, production-ready template for building full-stack React applications u
 - 🔒 TypeScript by default
 - 🎉 TailwindCSS for styling
 - 📖 [React Router docs](https://reactrouter.com/)
+- CSS [Tailwind UI Kit Docs](https://catalyst.tailwindui.com/docs/sidebar-layout)
 
 ## Getting Started
 
