@@ -24,10 +24,14 @@ export default function PasswordHashingForm() {
       </p>
       <p>Create hashes of passwords to utilize inside the users-db.json file.</p>
       <fetcher.Form method="post" action="/api/hash-password" className="mb-2">
-        <label>
-          Password:
-          <input type="password" name="password" required className="mx-1" />
-        </label>
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          required
+          className="bg-slate-300 text-black py-1 px-2 rounded-sm mr-2"
+        />
+
         <button type="submit" className="bg-gray-200 hover:bg-gray-300 m-1 px-2 rounded-md cursor-pointer">
           Hash Password
         </button>

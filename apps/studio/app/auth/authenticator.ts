@@ -1,31 +1,38 @@
-import { Authenticator } from "remix-auth";
-import { FormStrategy } from "remix-auth-form";
-import invariant from "tiny-invariant";
+import { Authenticator } from 'remix-auth'
+import { FormStrategy } from 'remix-auth-form'
+import type { User } from './user'
+import { authenticateEmailPassword } from './utils'
 
-export let authenticator = new Authenticator<User | null>();
+export let authenticator = new Authenticator<User>()
 
 authenticator.use(
   new FormStrategy(async ({ form, request }) => {
-    // Here you can use `form` to access and input values from the form.
-    // and also use `request` to access more data
-    let username = form.get("username"); // or email... etc
-    let password = form.get("password");
+    // Use `form` to access and input values from the form.
+    // Use `request` to access more data
+    let email = form.get('email')
+    let password = form.get('password')
 
-    // You can validate the inputs however you want
-    invariant(typeof username === "string", "username must be a string");
-    invariant(username.length > 0, "username must not be empty");
+    // Validate the inputs
+    if (!email || !password) {
+      throw new Error('Email and password are required')
+    }
 
-    invariant(typeof password === "string", "password must be a string");
-    invariant(password.length > 0, "password must not be empty");
+    if (typeof email !== 'string') {
+      throw new Error('Invalid email address')
+    }
 
-    // And if you have a password you should hash it
-    let hashedPassword = await password;
+    if (typeof password !== 'string' || password.length < 1) {
+      throw new Error('Invalid password')
+    }
 
-    // And finally, you can find, or create, the user
-    // TODO: Function to find and return the matching user, or reject
-    let user = null;
+    // Authenticate the email / password
+    const user = await authenticateEmailPassword(email, password, request)
+    if (!user) {
+      throw new Error('Invalid email / password combination')
+    }
 
     // And return the user as the Authenticator expects it
-    return user;
-  })
-);
+    return user
+  }),
+  'email-pass'
+)

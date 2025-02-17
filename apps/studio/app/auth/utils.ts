@@ -2,7 +2,9 @@ import bcrypt from 'bcryptjs'
 import path from 'path'
 import { redirect } from 'react-router'
 import fs from 'fs/promises'
-import { UserDatabaseSchema, type UserDatabase } from './user'
+import { UserDatabaseSchema, type User, type UserDatabase } from './user'
+import { getSession } from '~/sessions.server'
+import { authenticator } from './authenticator'
 
 const saltRounds = 10
 
@@ -17,26 +19,25 @@ const saltRounds = 10
  * @returns
  */
 export async function requireSession(request: Request) {
-  console.log('Server session check for user running...')
-  console.warn('TODO: Implement authentication.')
-
-  const user = null
-
-  if (!user) {
+  // Check for a user session
+  const session = await getSession(request.headers.get('Cookie'))
+  if (!session.has('userId')) {
     throw redirect('/sign-in')
   }
-  return user
+
+  return
 }
 
 /**
  * Is Authenticated
  */
-export function isAuthenticated(request: Request): boolean {
-  console.log('Client session check for user running...')
+export async function isAuthenticated(request: Request): Promise<boolean> {
+  const session = await getSession(request.headers.get('Cookie'))
+  if (!session.has('userId')) {
+    return false
+  }
 
-  const user = null
-
-  return !!user
+  return true
 }
 
 /**
@@ -99,4 +100,33 @@ export async function hashPassword(password: string): Promise<string> {
 export async function comparePassword(password: string, hashedPassword: string): Promise<boolean> {
   const match = await bcrypt.compare(password, hashedPassword)
   return match
+}
+
+/**
+ * Authenticate Email / Pass Credentials
+ *
+ * Authenticates a user by email and password against the users database.
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<User>} The authenticated user or null.
+ * @throws {Error} If the user is not found or the password is incorrect.
+ */
+export async function authenticateEmailPassword(
+  email: string,
+  password: string,
+  request: Request
+): Promise<User | null> {
+  const users = await loadUserDatabase(request)
+  const user = users.find((u) => u.email === email)
+
+  if (!user) {
+    throw new Error('Invalid email / password combination.')
+  }
+
+  const match = await comparePassword(password, user.password)
+  if (!match) {
+    throw new Error('Invalid email / password combination.')
+  }
+
+  return user
 }

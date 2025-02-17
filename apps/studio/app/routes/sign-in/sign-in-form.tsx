@@ -1,43 +1,65 @@
-import { data, Form, redirect } from 'react-router'
-import { authenticator } from '~/auth/authenticator'
-import type { Route } from './+types/sign-in'
+import { Form, useActionData } from 'react-router'
+
+interface SignInFormResponse {
+  error: string
+}
 
 export default function SignInForm() {
+  const data = useActionData<SignInFormResponse>()
+
+  // Form Data
+  let error = data?.error
+
   return (
-    <Form method="post">
-      <input type="hidden" name="actionType" value="signIn" />
-      <input type="email" name="email" required className="bg-slate-300 text-black m-1 px-1 rounded-sm" />
-      <input
-        type="password"
-        name="password"
-        autoComplete="current-password"
-        required
-        className="bg-slate-300 text-black m-1 px-1 rounded-sm"
-      />
-      <button>Sign In</button>
-    </Form>
+    <>
+      <Form method="post">
+        <div className="flex flex-col gap-y-2 w-xs">
+          <input type="hidden" name="actionType" value="signIn" />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email address"
+            required
+            className="bg-slate-300 text-black py-1 px-2 rounded-sm"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            autoComplete="current-password"
+            required
+            className="bg-slate-300 text-black py-1 px-2 rounded-sm"
+          />
+          <button className="py-1 px-2 bg-gray-200 hover:bg-gray-300 cursor-pointer rounded-md font-bold">
+            Sign In
+          </button>
+          {error ? <div className="text-red-700 text-center text-sm">{error}</div> : null}
+        </div>
+      </Form>
+    </>
   )
 }
 
-// Handle the form action
-export async function action({ request }: Route.ActionArgs) {
-  // we call the method with the name of the strategy we want to use and the
-  // request object
-  let user = await authenticator.authenticate('form', request)
+// /**
+//  * Sign in form loader
+//  *
+//  * Redirects to the dashboard if the user is already signed in.
+//  * @param param0
+//  * @returns
+//  */
+// export async function loader({ request }: Route.LoaderArgs) {
+//   const session = await getSession(request.headers.get('Cookie'))
 
-  let session = await sessionStorage.getSession(request.headers.get('cookie'))
-  session.set('user', user)
+//   if (session.has('userId')) {
+//     return redirect('/dashboard')
+//   }
 
-  throw redirect('/', {
-    headers: { 'Set-Cookie': await sessionStorage.commitSession(session) },
-  })
-}
-
-// Finally, we need to export a loader function to check if the user is already
-// authenticated and redirect them to the dashboard
-export async function loader({ request }: Route.LoaderArgs) {
-  let session = await sessionStorage.getSession(request.headers.get('cookie'))
-  let user = session.get('user')
-  if (user) throw redirect('/')
-  return data(null)
-}
+//   return data(
+//     { error: session.get('error') },
+//     {
+//       headers: {
+//         'Set-Cookie': await commitSession(session),
+//       },
+//     }
+//   )
+// }

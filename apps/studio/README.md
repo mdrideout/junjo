@@ -2,7 +2,13 @@
 
 The telemetry and tracing user interface for [junjo, the AI graph workflow library for python](https://github.com/mdrideout/junjo).
 
+### Managing Users
 
+1.  Locate the `app/auth/db/users-db.example.json` file in the root of this project.
+2.  Copy and rename the file to `users-db.json`  
+    *This should not be checked into the repository, and is included on the .gitignore list.*
+3.  Add new user email and hashed password combinations.
+4.  Create password hashes using the `app/auth/utils.ts` `hashPassword()` function
 
 ## Built with React Router V7
 

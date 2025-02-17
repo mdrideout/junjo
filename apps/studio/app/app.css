@@ -68,8 +68,3 @@ ul ol {
 li {
   @apply mb-2;
 }
-
-input,
-textarea {
-  @apply border border-gray-300 dark:border-gray-700 rounded-md px-1;
-}
