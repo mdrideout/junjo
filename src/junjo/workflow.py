@@ -4,7 +4,7 @@ from typing import Generic
 from nanoid import generate
 
 from junjo.graph import Graph
-from junjo.store.store import BaseStore, StateT, StoreT
+from junjo.store import BaseStore, StateT, StoreT
 from junjo.workflow_context import WorkflowContextManager
 
 

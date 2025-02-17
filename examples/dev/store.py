@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from junjo.store.store import BaseStore, state_action
+from junjo.store import BaseStore, state_action
 
 
 class MyGraphState(BaseModel):

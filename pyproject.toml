@@ -39,7 +39,7 @@ strict = true
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["src/junjo"]
+testpaths = ["tests"]
 addopts = "-v -Werror::DeprecationWarning"
 
 [tool.ruff]
@@ -59,4 +59,4 @@ select = ["E", "F", "W", "I", "UP", "C", "B"]
 ignore = ["B006"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
+"tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests

@@ -2,7 +2,7 @@
 from contextvars import ContextVar
 from typing import Generic
 
-from junjo.store.store import BaseStore, StoreT
+from junjo.store import BaseStore, StoreT
 
 StoreContextDict = dict[str, StoreT]
 

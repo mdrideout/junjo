@@ -4,7 +4,7 @@ from typing import Generic, get_type_hints
 from nanoid import generate
 from pydantic import BaseModel
 
-from junjo.store.store import BaseStore, StateT, StoreT
+from junjo.store import BaseStore, StateT, StoreT
 from junjo.workflow_context import WorkflowContextManager
 
 

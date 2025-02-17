@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
 from junjo.node import Node
-from junjo.store.store import StateT
+from junjo.store import StateT
 from junjo.workflow_context import WorkflowContextManager
 
 
