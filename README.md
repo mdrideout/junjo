@@ -1,6 +1,8 @@
-# Junjo
+# Junjo 順序
 
-A simply python agentic graph execution framework optimized for telemetry and visualization.
+> Japanese Translation: order, sequence, procedure
+
+Junjo is a simple AI Graph Workflow framework for python. It is optimized for telemetry, eval-driven-development (test driven prompt engineering), and type safety with Pydantic.
 
 #### Why?
 
