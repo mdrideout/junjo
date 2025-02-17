@@ -44,6 +44,30 @@ class Node(Generic[StateT, StoreT], ABC):
         Validate the node and execute its service function.
         """
 
+        # Validate the service function
+        self._validate_service_function()
+
+        # Get and validate the store from context
+        store = WorkflowContextManager.get_store(workflow_id)
+        if store is None:
+            raise ValueError("Store is not available")
+
+        # Get and validate the state from the store
+        state = store.get_state()
+        if state is None:
+            raise ValueError("State is not available")
+
+        # Execute the service
+        try:
+            await self.service(state, store)
+        except Exception as e:
+            print(f"Error executing service: {e}")
+            return
+
+
+    def _validate_service_function(self) -> None:
+        """Validate the service function of the node."""
+
         # Validate the service function has the appropriate signature
         if not callable(self.service):
             raise ValueError("Service function must be callable")
@@ -67,24 +91,4 @@ class Node(Generic[StateT, StoreT], ABC):
             raise ValueError(f"Service function must have a return type of {StateT}")
         if not issubclass(type_hints["return"], BaseModel):
             raise ValueError(f"Service function must have a return type of {StateT}")
-
-
-        # Get and validate the store from context
-        store = WorkflowContextManager.get_store(workflow_id)
-        if store is None:
-            raise ValueError("Store is not available")
-
-        # Get and validate the state from the store
-        state = store.get_state()
-        if state is None:
-            raise ValueError("State is not available")
-
-        # Execute the service
-        try:
-            await self.service(state, store)
-        except Exception as e:
-            print(f"Error executing service: {e}")
-            return
-
-
 
