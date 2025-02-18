@@ -1,5 +1,13 @@
 
 from junjo.node import Node
+from junjo.react_flow.schemas import (
+    ReactFlowEdge,
+    ReactFlowJsonObject,
+    ReactFlowNode,
+    ReactFlowNodeData,
+    ReactFlowPosition,
+    ReactFlowViewport,
+)
 
 from .edge import Edge  # Assuming Transition is in a 'transition.py' file
 
@@ -79,6 +87,36 @@ class Graph:
 
         dot_str += "}\n"  # End of DOT graph
         return dot_str
+
+    def to_react_flow(self) -> ReactFlowJsonObject:
+        """Converts the graph to a ReactFlowJsonObject."""
+        nodes: list[ReactFlowNode] = []
+        edges: list[ReactFlowEdge] = []
+
+        # Add nodes
+        all_nodes = {id(node): node for node in [self.source, self.sink] +
+                     [e.tail for e in self.edges] + [e.head for e in self.edges]}
+        for node_id, node in all_nodes.items():
+            nodes.append(ReactFlowNode(
+                id=str(node_id),
+                data=ReactFlowNodeData(label=node.__class__.__name__),
+                position=ReactFlowPosition(x=0, y=0)  # You might want to calculate actual positions
+            ))
+
+        # Add edges
+        for edge in self.edges:
+            tail_id = id(edge.tail)
+            head_id = id(edge.head)
+            edges.append(ReactFlowEdge(
+                id=f"{tail_id}-{head_id}",
+                source=str(tail_id),
+                target=str(head_id),
+                label=edge.condition.__name__ if edge.condition else None
+            ))
+
+        viewport = ReactFlowViewport(x=0, y=0, zoom=1)
+        return ReactFlowJsonObject(nodes=nodes, edges=edges, viewport=viewport)
+
 
     def _format_condition(self, condition):
         """Helper function to format the condition into a human-readable string."""

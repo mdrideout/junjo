@@ -17,7 +17,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-dependencies = ["nanoid>=2.0.0", "pydantic>=2.10.6"]
+dependencies = [
+    "nanoid>=2.0.0",
+ "pydantic>=2.10.6",
+ "tortoise-orm>=0.24.0",
+]
 
 [project.optional-dependencies]
 dev = [

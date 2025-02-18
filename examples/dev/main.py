@@ -2,6 +2,7 @@
 
 
 from examples.dev.store import MyGraphState, MyGraphStore
+from junjo.app import JunjoApp
 from junjo.edge import Edge
 from junjo.graph import Graph
 from junjo.graphviz.utils import graph_to_graphviz_image
@@ -16,6 +17,10 @@ from junjo.workflow_context import WorkflowContextManager
 
 async def main():
     """The main entry point for the application."""
+
+    # Initialize Junjo
+    junjo = JunjoApp(project_name="Junjo Example", sqlite_url="sqlite://:memory:")
+    await junjo.init()
 
     # Initialize a workflow context manager
     WorkflowContextManager()
@@ -86,8 +91,9 @@ async def main():
         ]
     )
 
-    print(graph.to_mermaid())
-    print(graph.to_dot_notation())
+    print(f"ReactFlow:\n{graph.to_react_flow().model_dump_json()}\n")
+    print(f"Mermaid:\n{graph.to_mermaid()}")
+    print(f"Graphviz:\n{graph.to_dot_notation()}")
     graph_to_graphviz_image(graph)
 
     workflow = Workflow(graph=graph, initial_store=graph_store, hook_manager=HookManager(verbose_logging=True))
@@ -98,6 +104,8 @@ async def main():
 
     # Cleanup
     unsubscribe()
+
+    return
 
 if __name__ == "__main__":
     import asyncio
