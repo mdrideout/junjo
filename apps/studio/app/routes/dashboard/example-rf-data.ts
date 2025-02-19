@@ -11,7 +11,7 @@ export const initialNodes = [
   },
   {
     id: '4347436000',
-    data: { label: 'SetWarningNode' },
+    data: { label: 'SetWarningNode This is more text.' },
     position: { x: 0.0, y: 0.0 },
   },
   {

@@ -4,10 +4,10 @@ import type { Route } from './+types/dashboard'
 
 export default function Dashboard() {
   return (
-    <div>
-      <h1>Dashboard</h1>
+    <>
+      <h1 className="pt-4 px-5.5">Dashboard</h1>
       <Outlet />
-    </div>
+    </>
   )
 }
 
