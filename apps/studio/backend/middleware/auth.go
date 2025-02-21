@@ -11,7 +11,7 @@ import (
 )
 
 // Auth Routes To Skip
-var authRoutesToSkip = []string{"/ping", "/sign-in"}
+var authRoutesToSkip = []string{"/ping", "/sign-in", "/hash-password"}
 
 // Auth is a middleware function that verifies the ID token in the Authorization header
 func Auth() echo.MiddlewareFunc {
