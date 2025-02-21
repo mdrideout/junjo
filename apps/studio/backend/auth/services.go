@@ -45,3 +45,8 @@ func SignOut(c echo.Context) error {
 	// For stateless JWT, sign out is handled on the client side by deleting the token
 	return c.NoContent(http.StatusOK)
 }
+
+func AuthTest(c echo.Context) error {
+	user := c.Get("user").(*JWTCustomClaims)
+	return c.JSON(http.StatusOK, user)
+}
