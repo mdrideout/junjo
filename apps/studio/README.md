@@ -8,6 +8,7 @@ Repository for the FE + BE of the telemetry UI application.
 
 ## Backend
 
-- NestJS
-- Drizzle ORM
-- Better-SQlite3
+- Go Echo Server
+- JWT auth middleware
+- JSON auth database
+- sqlc for queries to the sqlite data
