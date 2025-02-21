@@ -7,4 +7,5 @@ import (
 func InitRoutes(e *echo.Echo) {
 	e.POST("/sign-in", SignIn)
 	e.POST("/sign-out", SignOut)
+	e.GET("/auth-test", AuthTest)
 }
