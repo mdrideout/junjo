@@ -1,0 +1,31 @@
+services:
+  jui-be:
+    container_name: jui-be
+    restart: unless-stopped
+    build:
+      context: ./backend
+      target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
+    volumes:
+      - ./backend:/app-dev
+    ports:
+      - "1323:1323"
+    networks:
+      - caddy-proxy-network
+
+  jui-fe:
+    container_name: jui-fe
+    build: ./frontend # Build from frontend Dockerfile
+    volumes:
+      - frontend-modules:/app/node_modules # Named volume for node_modules
+      - ./frontend:/app # Mount the frontend code
+    ports:
+      - 5173:5173 # Expose frontend port - host
+      - 4951:5173 # Expose frontend port - hmr (map hmr port to host port)
+
+volumes:
+  frontend-modules:
+  sqlite-db:
+
+networks:
+  caddy-proxy-network:
+    external: true # Server shared network
