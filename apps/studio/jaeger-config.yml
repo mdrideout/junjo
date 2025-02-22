@@ -1,0 +1,52 @@
+service:
+  extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]  # Export to the configured storage
+  telemetry:
+    resource:
+      service.name: jaeger
+    metrics:
+      level: detailed
+    logs:
+      level: info
+
+extensions:
+  healthcheckv2:
+    use_v2: true
+    http:
+
+  jaeger_query:
+    storage:
+      traces: badger_store  # Reference the backend name defined below
+    ui:
+      # config_file: ./cmd/jaeger/config-ui.json # Optional UI customization
+      # I am choosing to remove config_file and log_access, as these are less common to need.
+
+  jaeger_storage:
+    backends:
+      badger_store:  # Give the BadgerDB backend a name
+        badger:
+          directories:
+            keys: "/tmp/jaeger"  # Use the mounted volume
+            values: "/tmp/jaeger"  # Use the mounted volume
+          ephemeral: false
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+    send_batch_size: 1000
+    timeout: 10s
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: badger_store  # Reference the backend name
+
+# You could ALSO add a 'logging' exporter here for debugging, if needed.
