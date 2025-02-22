@@ -42,6 +42,14 @@ func main() {
 	// Other Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	// CORS middleware
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173"}, // Update this to your frontend's URL
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+	}))
+
+	// Auth Middleware
 	e.Use(m.Auth()) // Auth guard all routes
 
 	// ROUTES
