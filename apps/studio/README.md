@@ -30,6 +30,22 @@ $ air
 $ go run main.go
 ```
 
+### With Docker
+
+Docker compose can be used to launch the frontend and backend together, with hot reloading for local development.
+
+> Ensure the project root `.env` file contains `BUILD_TARGET=development`
+
+> TIP: `docker compose down -v` is required if node modules or go modules change (installed / uninstalled)
+
+```bash
+# Start the frontend and backend
+$ docker compose up --build
+
+# Close and clear volumes
+$ docker compose down -v
+```
+
 ## Authentication
 
 The backend is uses a JWT based authentication guard. The users database is a JSON file of email addresses and passwords. Do not check this file into the github repository.
