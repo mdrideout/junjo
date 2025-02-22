@@ -1,8 +1,13 @@
 package auth
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -26,20 +31,23 @@ func SignIn(c echo.Context) error {
 	// Log the credentials
 	c.Logger().Printf("Email: %s, Password: %s", req.Email, req.Password)
 
-	// TODO: Implement proper user authentication against database
-	// This is just an example
-	if req.Email == "boon4376@gmail.com" && req.Password == "password" {
-		token, err := GenerateJWT(req.Email)
-		if err != nil {
-			log.Printf("failed to generate token: %v", err)
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate token")
-		}
-		return c.JSON(http.StatusOK, map[string]string{
-			"token": token,
-		})
+	// Validate user credentials
+	user, err := ValidateCredentials(req.Email, req.Password)
+	if err != nil {
+		log.Printf("failed to validate credentials: %v", err)
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
 	}
 
-	return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
+	// Generate JWT token
+	token, err := GenerateJWT(user.Email)
+	if err != nil {
+		log.Printf("failed to generate token: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate token")
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"token": token,
+	})
 }
 
 func SignOut(c echo.Context) error {
@@ -74,4 +82,61 @@ func HashPassword(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"hashedPassword": string(hashedPassword),
 	})
+}
+
+func LoadUsersJsonDb() ([]User, error) {
+	// Get the current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct the relative path to the JSON file
+	filePath := filepath.Join(cwd, "user_db", "users-db.json")
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []User
+	if err := json.Unmarshal(bytes, &users); err != nil {
+		return nil, err
+	}
+
+	for _, user := range users {
+		if user.Email == "" || user.Password == "" {
+			return nil, errors.New("users json db contains invalid data: ensure fields properly conform to the []User struct")
+		}
+	}
+
+	return users, nil
+}
+
+func ComparePasswords(hashedPassword, plainPassword string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
+}
+
+func ValidateCredentials(email, password string) (*User, error) {
+	users, err := LoadUsersJsonDb()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, user := range users {
+		if user.Email == email {
+			if err := ComparePasswords(user.Password, password); err == nil {
+				return &user, nil
+			}
+			break
+		}
+	}
+
+	return nil, errors.New("invalid credentials")
 }

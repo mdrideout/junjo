@@ -29,3 +29,26 @@ $ air
 # Build / run the backend
 $ go run main.go
 ```
+
+## Authentication
+
+The backend is uses a JWT based authentication guard. The users database is a JSON file of email addresses and passwords. Do not check this file into the github repository.
+
+#### Managing Users
+
+1.  Locate the `backend/user_db/users-db.example.json` file.
+2.  Copy and rename the file to `users-db.json`  
+    *This should not be checked into the repository, and is included on the .gitignore list.*
+3.  Add new user email and hashed password combinations.
+4.  Create password hashes using the `backend/auth/services.go` `HashPassword()` function
+    1. *An API endpoint for this is available out of the box, but should be disabled for production.*
+    2. GET `http://localhost:1323/hash-password`
+
+```bash
+# Example password hashing for the users-db.json file
+$ curl --location 'http://localhost:1323/hash-password' \
+--header 'Content-Type: application/json' \
+--data '{
+    "password": "password"
+}'
+```
