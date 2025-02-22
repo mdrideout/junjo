@@ -23,7 +23,7 @@ func GenerateJWT(email string) (string, error) {
 	claims := &JWTCustomClaims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -48,6 +48,10 @@ func ValidateJWT(tokenString string) (*JWTCustomClaims, error) {
 	}
 
 	if claims, ok := token.Claims.(*JWTCustomClaims); ok && token.Valid {
+		// Check if the token is expired
+		if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
+			return nil, errors.New("token has expired")
+		}
 		return claims, nil
 	}
 

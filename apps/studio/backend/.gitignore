@@ -7,4 +7,8 @@ vendor
 *.out
 .vscode
 
+# Ignore environment file
 .env
+
+# Ignore the user db file
+*/users-db.json

@@ -38,8 +38,7 @@ func Auth() echo.MiddlewareFunc {
 			// Validate token
 			claims, err := auth.ValidateJWT(tokenString)
 			if err != nil {
-				log.Printf("failed to validate token: %v", err)
-				return echo.NewHTTPError(http.StatusUnauthorized, "token validation failed")
+				return echo.NewHTTPError(http.StatusUnauthorized, err)
 			}
 
 			// Set claims in context
