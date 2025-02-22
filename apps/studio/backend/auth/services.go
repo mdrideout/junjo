@@ -28,9 +28,6 @@ func SignIn(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	// Log the credentials
-	c.Logger().Printf("Email: %s, Password: %s", req.Email, req.Password)
-
 	// Validate user credentials
 	user, err := ValidateCredentials(req.Email, req.Password)
 	if err != nil {

@@ -41,7 +41,7 @@ The backend is uses a JWT based authentication guard. The users database is a JS
     *This should not be checked into the repository, and is included on the .gitignore list.*
 3.  Add new user email and hashed password combinations.
 4.  Create password hashes using the `backend/auth/services.go` `HashPassword()` function
-    1. *An API endpoint for this is available out of the box, but should be disabled for production.*
+    1. *An API endpoint for this is available out of the box, but should be auth-guarded for production.*
     2. GET `http://localhost:1323/hash-password`
 
 ```bash

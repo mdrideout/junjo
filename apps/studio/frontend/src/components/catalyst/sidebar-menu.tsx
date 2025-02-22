@@ -1,6 +1,7 @@
 import {
   AvatarIcon,
   DashboardIcon,
+  ExitIcon,
   ExternalLinkIcon,
   GitHubLogoIcon,
   HomeIcon,
@@ -9,8 +10,12 @@ import {
 } from '@radix-ui/react-icons'
 import { Link } from './link'
 import { Sidebar, SidebarBody, SidebarHeading, SidebarItem, SidebarLabel, SidebarSection } from './sidebar'
+import { AuthContext } from '../../auth/auth-context'
+import { useContext } from 'react'
 
 export default function SidebarMenu() {
+  const { isAuthenticated } = useContext(AuthContext)
+
   return (
     <Sidebar>
       <SidebarBody>
@@ -39,6 +44,12 @@ export default function SidebarMenu() {
             <AvatarIcon />
             <SidebarLabel>Users</SidebarLabel>
           </SidebarItem>
+          {isAuthenticated && (
+            <SidebarItem href="/sign-out">
+              <ExitIcon />
+              <SidebarLabel>Sign out</SidebarLabel>
+            </SidebarItem>
+          )}
         </SidebarSection>
         <SidebarSection>
           <SidebarHeading>Resources</SidebarHeading>
