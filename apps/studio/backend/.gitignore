@@ -6,6 +6,7 @@ vendor
 *.iml
 *.out
 .vscode
+tmp
 
 # Ignore environment file
 .env
