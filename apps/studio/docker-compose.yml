@@ -6,25 +6,46 @@ services:
       context: ./backend
       target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
-      - ./backend:/app-dev
+      - ./backend:/app-dev # Mount the backend code for hot reloading
+      - junjo_sqlite_data:/data # Shared SQLite volume
     ports:
       - "1323:1323"
     networks:
       - caddy-proxy-network
+    depends_on:
+      - jui-jaeger
 
   jui-fe:
     container_name: jui-fe
     build: ./frontend # Build from frontend Dockerfile
     volumes:
       - frontend-modules:/app/node_modules # Named volume for node_modules
-      - ./frontend:/app # Mount the frontend code
+      - ./frontend:/app # Mount the frontend code for hot reloading
     ports:
       - 5173:5173 # Expose frontend port - host
-      - 4951:5173 # Expose frontend port - hmr (map hmr port to host port)
+      - 4951:5173 # Expose frontend port - Vite hmr (map hmr port to host port)
+    depends_on:
+      - jui-be
+
+  jui-jaeger:
+    image: jaegertracing/jaeger:2.3.0
+    container_name: jui-jaeger
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317" # OTLP gRPC (Direct from Junjo)
+      - "4318:4318" # OTLP HTTP
+    volumes:
+      - jaeger_badger_data:/tmp/jaeger # Mount the volume for BadgerDB data
+      - ./jaeger-config.yml:/etc/jaeger.yml # Mount the configuration file
+    environment:
+      - CONFIG_FILE=/etc/jaeger.yml # Tell Jaeger to use it
+    networks:
+      - caddy-proxy-network
 
 volumes:
   frontend-modules:
-  sqlite-db:
+  junjo_sqlite_data:
+  jaeger_badger_data:
 
 networks:
   caddy-proxy-network:

@@ -15,6 +15,17 @@ Repository for the FE + BE of the telemetry UI application.
 
 ## Running The Dev Environment
 
+Docker is required for local development so your developer experience mirrors how things work in production.
+
+- **hot reloading** is still supported in both the *frontend* and *backend*. 
+
+### Caddy Server
+Caddy is utilized as a reverse proxy to facilitate authentication guarded access to various services.
+- This runs in local development mode as part of the development environment build
+- It is expected that your virutal machine will have it's own Caddy service running, therefore it is excluded from production builds.
+
+## **TODO:** Remove the without docker instructions.
+
 #### .env requirements
 
 - `/backend` .env
