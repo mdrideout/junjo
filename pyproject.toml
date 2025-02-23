@@ -19,8 +19,10 @@ classifiers = [
 
 dependencies = [
     "nanoid>=2.0.0",
- "pydantic>=2.10.6",
- "tortoise-orm>=0.24.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
+    "opentelemetry-sdk>=1.30.0",
+    "pydantic>=2.10.6",
+    "tortoise-orm>=0.24.0",
 ]
 
 [project.optional-dependencies]

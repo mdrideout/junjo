@@ -89,7 +89,7 @@ class Workflow(Generic[StateT, StoreT]):
 
                 # Break the loop if the current node is the final node.
                 if current_node == self.graph.sink:
-                    print("Workflow completed.")
+                    print("Sink has executed. Exiting loop.")
                     break
 
                 # Get the next node in the workflow.
