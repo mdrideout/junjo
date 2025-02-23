@@ -8,12 +8,17 @@ class JunjoDatabase:
     @staticmethod
     async def init_db(sqlite_url: str):
         """Initialize the database."""
-        print("Initializing junjo database connection...")
-        await Tortoise.init(
-            db_url=sqlite_url,
-            modules={'models': ['junjo.database.tortoise']}
-        )
-        await Tortoise.generate_schemas()
+        try:
+            print("Initializing junjo database connection...")
+            await Tortoise.init(
+                db_url=sqlite_url,
+                modules={'models': ['junjo.database.tortoise']}
+            )
+            await Tortoise.generate_schemas()
+            print("Database initialized.")
+        except Exception as e:
+            print(f"Error initializing database: {e}")
+            raise e
 
 class WorkflowModel(Model):
     id = fields.IntField(pk=True)

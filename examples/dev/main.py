@@ -1,11 +1,12 @@
 
 
 
+from tortoise import Tortoise
+
 from examples.dev.store import MyGraphState, MyGraphStore
 from junjo.app import JunjoApp
 from junjo.edge import Edge
 from junjo.graph import Graph
-from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
 from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
@@ -91,19 +92,23 @@ async def main():
         ]
     )
 
-    print(f"ReactFlow:\n{graph.to_react_flow().model_dump_json()}\n")
-    print(f"Mermaid:\n{graph.to_mermaid()}")
-    print(f"Graphviz:\n{graph.to_dot_notation()}")
-    graph_to_graphviz_image(graph)
+    # print(f"ReactFlow:\n{graph.to_react_flow().model_dump_json()}\n")
+    # print(f"Mermaid:\n{graph.to_mermaid()}")
+    # print(f"Graphviz:\n{graph.to_dot_notation()}")
+    # graph_to_graphviz_image(graph)
 
     workflow = Workflow(graph=graph, initial_store=graph_store, hook_manager=HookManager(verbose_logging=True))
     print("Executing the workflow with initial store state: ", workflow.get_state)
-    await workflow.execute()
+    # await workflow.execute()
     final_state = workflow.get_state
     print(f"Final state: {final_state}")
 
     # Cleanup
     unsubscribe()
+
+    await Tortoise.close_connections()
+
+    print("Done. Tortoise closed.")
 
     return
 

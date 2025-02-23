@@ -63,7 +63,7 @@ class Workflow(Generic[StateT, StoreT]):
             workflow_start_time = time.time()
 
         current_node = self.graph.source
-        while current_node != self.graph.sink: # Check if the sink node has been reached.
+        while True:
             try:
                 # Execute node before hooks
                 if self.hook_manager is not None:
@@ -87,6 +87,11 @@ class Workflow(Generic[StateT, StoreT]):
                 if self.node_execution_counter[current_node.id] > self.max_iterations:
                     raise ValueError(f"Node '{current_node}' exceeded maximum execution count. Check for loops.")
 
+                # Break the loop if the current node is the final node.
+                if current_node == self.graph.sink:
+                    print("Workflow completed.")
+                    break
+
                 # Get the next node in the workflow.
                 current_node = self.graph.get_next_node(self.workflow_id, current_node)
 
@@ -102,3 +107,5 @@ class Workflow(Generic[StateT, StoreT]):
                 self.get_state,
                 workflow_end_time - workflow_start_time
             )
+
+        return
