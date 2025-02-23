@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -18,6 +20,9 @@ func SignIn(c echo.Context) error {
 		Email    string `json:"email" validate:"required,email"`
 		Password string `json:"password" validate:"required"`
 	}
+
+	// Log the request
+	log.Printf("request: %v", c.Request())
 
 	var req SigninRequest
 	if err := c.Bind(&req); err != nil {
@@ -35,26 +40,60 @@ func SignIn(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
 	}
 
-	// Generate JWT token
-	token, err := GenerateJWT(user.Email)
+	// Create the session
+	sess, err := session.Get("session", c)
 	if err != nil {
-		log.Printf("failed to generate token: %v", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate token")
+		log.Printf("failed to get session: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	sess.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   true, // HTTPS in production
+		SameSite: http.SameSiteStrictMode,
+	}
+	sess.Values["userEmail"] = user.Email
+	if err := sess.Save(c.Request(), c.Response()); err != nil {
+		log.Printf("failed to save session: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save session")
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
-		"token": token,
+		"message": "signed in",
 	})
 }
 
 func SignOut(c echo.Context) error {
-	// For stateless JWT, sign out is handled on the client side by deleting the token
-	return c.NoContent(http.StatusOK)
+	// Destroy the session
+	sess, err := session.Get("session", c)
+	if err != nil {
+		log.Printf("failed to get session: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	sess.Options.MaxAge = -1
+	if err := sess.Save(c.Request(), c.Response()); err != nil {
+		log.Printf("failed to save session: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save session")
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "signed out",
+	})
 }
 
 func AuthTest(c echo.Context) error {
-	user := c.Get("user").(*JWTCustomClaims)
-	return c.JSON(http.StatusOK, user)
+	userEmail, err := GetUserEmailFromSession(c)
+	if err != nil {
+		log.Printf("failed to get userEmail from session: %v", err)
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"userEmail": userEmail,
+	})
 }
 
 func HashPassword(c echo.Context) error {

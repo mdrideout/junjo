@@ -1,59 +1,21 @@
 package auth
 
 import (
-	"errors"
-	"os"
-	"time"
+	"net/http"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo-contrib/session"
+	"github.com/labstack/echo/v4"
 )
 
-type JWTCustomClaims struct {
-	Email string `json:"email"`
-	jwt.RegisteredClaims
-}
-
-// GenerateJWT creates a new JWT token
-func GenerateJWT(email string) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return "", errors.New("JWT_SECRET environment variable is not set")
-	}
-
-	claims := &JWTCustomClaims{
-		Email: email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-}
-
-// ValidateJWT validates the JWT token and returns the claims
-func ValidateJWT(tokenString string) (*JWTCustomClaims, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return nil, errors.New("JWT_SECRET environment variable is not set")
-	}
-
-	token, err := jwt.ParseWithClaims(tokenString, &JWTCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
-	})
-
+func GetUserEmailFromSession(c echo.Context) (string, error) {
+	sess, err := session.Get("session", c)
 	if err != nil {
-		return nil, err
+		return "", err // Session error (e.g., invalid cookie)
 	}
 
-	if claims, ok := token.Claims.(*JWTCustomClaims); ok && token.Valid {
-		// Check if the token is expired
-		if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
-			return nil, errors.New("token has expired")
-		}
-		return claims, nil
+	userEmail, ok := sess.Values["userEmail"].(string)
+	if !ok {
+		return "", http.ErrNoCookie // No userEmail in session (not logged in)
 	}
-
-	return nil, jwt.ErrSignatureInvalid
+	return userEmail, nil
 }

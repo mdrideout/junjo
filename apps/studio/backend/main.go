@@ -10,7 +10,9 @@ import (
 	m "junjo-ui-backend/middleware"
 	u "junjo-ui-backend/utils"
 
+	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -45,16 +47,39 @@ func main() {
 
 	// CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5173"}, // Update this to your frontend's URL
-		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowOrigins:     []string{"http://localhost:5173"}, // Frontend URL (TODO: May need to add jaeger too)
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderXCSRFToken},
+		AllowCredentials: true,
+	}))
+
+	// Session Middleware
+	e.Use(session.Middleware(sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))))
+
+	// CSRF Middleware (Echo's built-in CSRF)
+	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLookup:    "header:X-CSRF-Token,cookie:csrf", // Look in header AND cookie
+		CookieName:     "csrf",
+		CookiePath:     "/",
+		CookieSecure:   true, // HTTPS in production
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteStrictMode,
+		ContextKey:     "csrf", // Key to access CSRF token in handlers
+		Skipper: func(c echo.Context) bool {
+			if c.Request().Method == http.MethodOptions || c.Path() == "/sign-in" {
+				return true // Skip CSRF check for OPTIONS and /sign-in
+			}
+			return false
+		},
 	}))
 
 	// Auth Middleware
-	e.Use(m.Auth()) // Auth guard all routes
+	e.Use(m.Auth()) // Auth guard all routes by default
 
 	// ROUTES
 	auth.InitRoutes(e)
 
+	// Ping route
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
 	})

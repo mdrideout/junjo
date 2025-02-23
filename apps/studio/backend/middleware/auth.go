@@ -1,9 +1,7 @@
-package middlware
+package middleware
 
 import (
-	"log"
 	"net/http"
-	"strings"
 
 	"junjo-ui-backend/auth"
 
@@ -11,39 +9,28 @@ import (
 )
 
 // Auth Routes To Skip
-var authRoutesToSkip = []string{"/ping", "/sign-in", "/hash-password"}
+var authRoutesToSkip = []string{"/ping", "/sign-in", "/csrf", "/hash-password"}
 
-// Auth is a middleware function that verifies the ID token in the Authorization header
+// Auth is a middleware function that checks for a valid session.
 func Auth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Check if the current route should be skipped
+			// --- Check for Skipped Routes ---
 			for _, route := range authRoutesToSkip {
 				if c.Path() == route {
-					// Log the excluded route
-					log.Printf("SKIPPING AUTH FOR: %s\n", route)
-					return next(c) // Skip authentication and proceed
+					return next(c) // Skip authentication
 				}
 			}
 
-			// Get token from header
-			authHeader := c.Request().Header.Get("Authorization")
-			if authHeader == "" {
-				return echo.NewHTTPError(http.StatusUnauthorized, "missing authorization header")
-			}
-
-			// Remove "Bearer " prefix
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-			// Validate token
-			claims, err := auth.ValidateJWT(tokenString)
+			// --- Check for Session ---
+			userEmail, err := auth.GetUserEmailFromSession(c) // Use the GetUserEmailFromSession function
 			if err != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, err)
+				// No valid session.  Return an unauthorized error.
+				return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized: No valid session")
 			}
 
-			// Set claims in context
-			c.Set("user", claims)
-
+			// --- Session is Valid: Set User ID in Context ---
+			c.Set("userEmail", userEmail) // Set the user ID (email in this case) in the context
 			return next(c)
 		}
 	}
