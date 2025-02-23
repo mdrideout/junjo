@@ -31,14 +31,14 @@ services:
     image: jaegertracing/jaeger:2.3.0
     container_name: jui-jaeger
     ports:
-      - "16686:16686" # Jaeger UI (use localhost/jaeger to test authenticated access)
-      - "4317:4317" # OTLP gRPC (Direct from Junjo)
+      # - "16686:16686" # Jaeger UI (use localhost/jaeger to test authenticated access)
+      - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
     volumes:
-      - jaeger_badger_data:/tmp/jaeger # Mount the volume for BadgerDB data
-      - ./jaeger-config.yml:/etc/jaeger.yml # Mount the configuration file
-    environment:
-      - CONFIG_FILE=/etc/jaeger.yml # Tell Jaeger to use it
+      - jaeger_badger_store:/jaeger/jaeger_badger_store # Mount the volume for BadgerDB data
+      - jaeger_badger_store_archive:/jaeger/jaeger_badger_store_archive # Mount the volume for BadgerDB archive data
+      - ./jaeger:/jaeger # Mount the jaeger directory to make the config files available
+    command: --config /jaeger/config.yml
     networks:
       - caddy-proxy-network
 
@@ -63,7 +63,8 @@ services:
 volumes:
   frontend-modules:
   junjo_sqlite_data:
-  jaeger_badger_data:
+  jaeger_badger_store:
+  jaeger_badger_store_archive:
   caddy_data:
   caddy_config:
 

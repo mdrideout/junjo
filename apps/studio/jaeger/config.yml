@@ -18,21 +18,27 @@ extensions:
     use_v2: true
     http:
 
-  jaeger_query:
-    storage:
-      traces: badger_store  # Reference the backend name defined below
-    ui:
-      # config_file: ./cmd/jaeger/config-ui.json # Optional UI customization
-      # I am choosing to remove config_file and log_access, as these are less common to need.
-
   jaeger_storage:
     backends:
-      badger_store:  # Give the BadgerDB backend a name
+      jaeger_badger_store:  # Give the BadgerDB backend a name
         badger:
           directories:
-            keys: "/tmp/jaeger"  # Use the mounted volume
-            values: "/tmp/jaeger"  # Use the mounted volume
+            keys: "/tmp/jaeger"
+            values: "/tmp/jaeger"
           ephemeral: false
+      jaeger_badger_store_archive:  # Give the BadgerDB backend a name
+        badger:
+          directories:
+            keys: "/tmp/jaeger_archive/"
+            values: "/tmp/jaeger_archive/"
+          ephemeral: false
+
+  jaeger_query:
+    storage:
+      traces: jaeger_badger_store  # Reference the backend name defined below
+      traces_archive: jaeger_badger_store_archive  # Reference the backend name defined below
+    # ui:
+    #   config_file: /jaeger/ui-config.json # Copied via docker-compose.yml
 
 receivers:
   otlp:
@@ -47,6 +53,6 @@ processors:
 
 exporters:
   jaeger_storage_exporter:
-    trace_storage: badger_store  # Reference the backend name
+    trace_storage: jaeger_badger_store  # Reference the backend name
 
 # You could ALSO add a 'logging' exporter here for debugging, if needed.
