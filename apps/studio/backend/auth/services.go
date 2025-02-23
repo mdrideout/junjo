@@ -48,7 +48,6 @@ func SignIn(c echo.Context) error {
 	}
 
 	sess.Options = &sessions.Options{
-		Path:     "/",
 		MaxAge:   86400 * 7, // 7 days
 		HttpOnly: true,
 		Secure:   true, // HTTPS in production

@@ -1,5 +1,6 @@
 import {
   AvatarIcon,
+  BarChartIcon,
   DashboardIcon,
   ExitIcon,
   ExternalLinkIcon,
@@ -28,27 +29,40 @@ export default function SidebarMenu() {
           </Link>
         </div>
         <SidebarSection>
-          <SidebarItem href="/">
-            <HomeIcon />
-            <SidebarLabel>Home</SidebarLabel>
-          </SidebarItem>
-          <SidebarItem href="/dashboard">
-            <DashboardIcon />
-            <SidebarLabel>Dashboard</SidebarLabel>
-          </SidebarItem>
-          <SidebarItem href="/dashboard/logs">
-            <RowsIcon />
-            <SidebarLabel>Logs</SidebarLabel>
-          </SidebarItem>
-          <SidebarItem href="/users">
-            <AvatarIcon />
-            <SidebarLabel>Users</SidebarLabel>
-          </SidebarItem>
-          {isAuthenticated && (
-            <SidebarItem href="/sign-out">
-              <ExitIcon />
-              <SidebarLabel>Sign out</SidebarLabel>
+          {!isAuthenticated && (
+            <SidebarItem href="/sign-in">
+              <AvatarIcon />
+              <SidebarLabel>Sign in</SidebarLabel>
             </SidebarItem>
+          )}
+
+          {isAuthenticated && (
+            <>
+              <SidebarItem href="/">
+                <DashboardIcon />
+                <SidebarLabel>Dashboard</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="//localhost/jaeger" target="_blank">
+                <BarChartIcon />
+                <SidebarLabel>
+                  <div className="flex items-center gap-x-2">
+                    Jaeger <ExternalLinkIcon className="size-3" />
+                  </div>
+                </SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/logs">
+                <RowsIcon />
+                <SidebarLabel>Logs</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/users">
+                <AvatarIcon />
+                <SidebarLabel>Users</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/sign-out">
+                <ExitIcon />
+                <SidebarLabel>Sign out</SidebarLabel>
+              </SidebarItem>
+            </>
           )}
         </SidebarSection>
         <SidebarSection>
