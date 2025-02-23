@@ -4,16 +4,25 @@
 # based on the path of the request.
 #
 #
+# :80 {
+#     handle jui-jaeger:16686 {
+#         forward_auth jui-be:1323 {
+#             uri /auth/validate
+#             copy_headers Cookie
+
+#             handle_response 401 {
+#                 redir /login 302
+#             }
+#             handle_response 403 {
+#                 redir /login 302
+#             }
+#         }
+#         reverse_proxy jui-jaeger:16686
+#     }
+# }
+
 :80 {
-    # Jaeger UI at /jaeger/*
-    handle /jaeger/* {
-        uri strip_prefix /jaeger  # Remove /jaeger before proxying
-        reverse_proxy jui-jaeger:16686
-        forward_auth jui-be:1323 { # Forward the header to the backend for validation
-            uri /auth/validate
-            header_up Cookie {header Cookie}
-        }
-    }
+    reverse_proxy jui-jaeger:16686
 }
 
 # IF HTTPS IS NEEDED LOCALLY

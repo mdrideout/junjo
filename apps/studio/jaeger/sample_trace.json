@@ -1,0 +1,81 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "ip",
+            "value": {
+              "stringValue": "192.168.1.100"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "api-service"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "spans": [
+            {
+              "traceId": "1234567890abcdef0000000000000000",
+              "spanId": "0000000000000001",
+              "name": "request",
+              "kind": "SPAN_KIND_SERVER",
+              "startTimeUnixNano": "1541734485000000000",
+              "endTimeUnixNano": "1541734486000000000",
+              "attributes": [
+                {
+                  "key": "http.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "http.url",
+                  "value": {
+                    "stringValue": "/api/users"
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1541734485500000000",
+                  "name": "log",
+                  "attributes": [
+                    {
+                      "key": "event",
+                      "value": {
+                        "stringValue": "request_received"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "traceId": "1234567890abcdef0000000000000000",
+              "spanId": "0000000000000002",
+              "parentId": "0000000000000001",
+              "name": "db-query",
+              "kind": "SPAN_KIND_CLIENT",
+              "startTimeUnixNano": "1541734485200000000",
+              "endTimeUnixNano": "1541734485500000000",
+              "attributes": [
+                {
+                  "key": "db.statement",
+                  "value": {
+                    "stringValue": "SELECT * FROM users"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
