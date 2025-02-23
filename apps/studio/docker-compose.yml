@@ -31,7 +31,7 @@ services:
     image: jaegertracing/jaeger:2.3.0
     container_name: jui-jaeger
     ports:
-      - "16686:16686" # Jaeger UI
+      - "16686:16686" # Jaeger UI (use localhost/jaeger to test authenticated access)
       - "4317:4317" # OTLP gRPC (Direct from Junjo)
       - "4318:4318" # OTLP HTTP
     volumes:
@@ -42,10 +42,30 @@ services:
     networks:
       - caddy-proxy-network
 
+  jui-caddy:
+    build:
+      context: ./caddy
+    container_name: jui-caddy
+    ports:
+      - "80:80" # For HTTP -> HTTPS redirect (optional in dev)
+      - "443:443" # For HTTPS
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
+      - caddy_data:/data # Persist Caddy data (certificates)
+      - caddy_config:/config # Persist Caddy config (optional in dev)
+    networks:
+      - caddy-proxy-network
+    depends_on:
+      - jui-be
+      - jui-fe
+      - jui-jaeger
+
 volumes:
   frontend-modules:
   junjo_sqlite_data:
   jaeger_badger_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   caddy-proxy-network:

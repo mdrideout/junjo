@@ -57,6 +57,15 @@ $ docker compose up --build
 $ docker compose down -v
 ```
 
+#### Accessing Services
+
+- Frontend: https://localhost:5173
+- Backend API: https://localhost:1323/
+- Jaeger UI: https://localhost/jaeger 
+  - This is routed through Caddy reverse proxy forward_auth for authentication via the Backend API's cookie header validation
+
+
+
 ## Authentication
 
 The backend is uses a JWT based authentication guard. The users database is a JSON file of email addresses and passwords. Do not check this file into the github repository.
