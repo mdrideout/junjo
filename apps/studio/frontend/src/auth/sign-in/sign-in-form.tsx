@@ -22,11 +22,13 @@ export default function SignInForm() {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
+    // Perform sign in
     try {
       const response = await fetch('http://localhost:1323/sign-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -38,9 +40,25 @@ export default function SignInForm() {
         throw new Error('Sign-in failed')
       }
 
+      // Get CSRF Token
+      const csrfResponse = await fetch('http://localhost:1323/csrf', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      if (!csrfResponse.ok) {
+        const data = await csrfResponse.json()
+
+        if (data.message) {
+          throw new Error(data.message)
+        }
+        throw new Error('CSRF failed')
+      }
+
       const data = await response.json()
       const token = data.token
       login(token)
+
       navigate('/')
     } catch (err: any) {
       setError(err.message)

@@ -1,24 +1,20 @@
-import { ReactNode, useContext, useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { ReactNode, useContext } from 'react'
 import { AuthContext } from '../auth/auth-context'
+import SignIn from '../auth/sign-in/SignIn'
 
 interface AuthGuardProps {
   children: ReactNode
 }
 
 const AuthGuard = ({ children }: AuthGuardProps) => {
-  const { isAuthenticated, getToken } = useContext(AuthContext)
-  const navigate = useNavigate()
+  const { isAuthenticated, loading } = useContext(AuthContext)
 
-  useEffect(() => {
-    const token = getToken()
-    if (!token) {
-      navigate('/sign-in')
-    }
-  }, [isAuthenticated, getToken, navigate])
+  if (loading) {
+    return <div className="text-center">Loading...</div>
+  }
 
   if (!isAuthenticated) {
-    return null
+    return <SignIn />
   }
 
   return <>{children}</>
