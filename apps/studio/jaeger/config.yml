@@ -37,6 +37,7 @@ extensions:
     storage:
       traces: jaeger_badger_store  # Reference the backend name defined below
       traces_archive: jaeger_badger_store_archive  # Reference the backend name defined below
+    base_path: /jaeger
     # ui:
     #   config_file: /jaeger/ui-config.json # Copied via docker-compose.yml
 

@@ -60,7 +60,6 @@ func main() {
 	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
 		TokenLookup:    "header:X-CSRF-Token,cookie:csrf", // Look in header AND cookie
 		CookieName:     "csrf",
-		CookiePath:     "/",
 		CookieSecure:   true, // HTTPS in production
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,

@@ -22,7 +22,23 @@
 # }
 
 :80 {
-    reverse_proxy jui-jaeger:16686
+    @jaegerPath path /jaeger*
+
+    handle @jaegerPath {
+        forward_auth jui-be:1323 {
+            uri /auth-test
+            copy_headers Cookie
+
+            @bad status 4xx
+			handle_response @bad {
+				redir http://localhost:5173/sign-in 302
+			}
+        }
+        # If auth succeeds (200 response), forward the request to the Jaeger UI.
+        reverse_proxy jui-jaeger:16686
+    }
+
+    
 }
 
 # IF HTTPS IS NEEDED LOCALLY
