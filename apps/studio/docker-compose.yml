@@ -31,7 +31,7 @@ services:
     image: jaegertracing/jaeger:2.3.0
     container_name: jui-jaeger
     ports:
-      # - "16686:16686" # Jaeger UI (use localhost/jaeger to test authenticated access)
+      # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
     volumes:

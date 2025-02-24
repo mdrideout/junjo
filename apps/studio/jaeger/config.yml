@@ -39,13 +39,15 @@ extensions:
       traces_archive: jaeger_badger_store_archive  # Reference the backend name defined below
     base_path: /jaeger
     # ui:
-    #   config_file: /jaeger/ui-config.json # Copied via docker-compose.yml
+    #   config_file: /jaeger/ui-config.json # Copied via docker-compose.yml # Currently not needed.
 
 receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:
