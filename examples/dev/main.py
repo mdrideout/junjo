@@ -10,7 +10,6 @@ from junjo.graph import Graph
 from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
 from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.opentelemetry_hooks import OpenTelemetryHooks
 from junjo.workflow import Workflow
 from junjo.workflow_context import WorkflowContextManager
 
@@ -20,10 +19,6 @@ from junjo.workflow_context import WorkflowContextManager
 
 async def main():
     """The main entry point for the application."""
-
-    # Init Otel
-    OpenTelemetryHooks(service_name="Junjo Example", jaeger_host="localhost", jaeger_port=4317)
-
     # Initialize Junjo
     junjo = JunjoApp(project_name="Junjo Example", sqlite_url="sqlite://:memory:")
     await junjo.init()
@@ -102,9 +97,13 @@ async def main():
     print(f"Graphviz:\n{graph.to_dot_notation()}")
     graph_to_graphviz_image(graph)
 
-    workflow = Workflow(graph=graph, initial_store=graph_store, hook_manager=HookManager(verbose_logging=True))
+    workflow = Workflow(
+        graph=graph,
+        initial_store=graph_store,
+        hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
+    )
     print("Executing the workflow with initial store state: ", workflow.get_state)
-    # await workflow.execute()
+    await workflow.execute()
     final_state = workflow.get_state
     print(f"Final state: {final_state}")
 

@@ -67,7 +67,7 @@ class Workflow(Generic[StateT, StoreT]):
             try:
                 # Execute node before hooks
                 if self.hook_manager is not None:
-                    self.hook_manager.run_before_node_execute_hooks(current_node.id, self.get_state)
+                    self.hook_manager.run_before_node_execute_hooks(self.workflow_id, current_node.id, self.get_state)
                     node_start_time = time.time()
 
                 # Execute the current node.
