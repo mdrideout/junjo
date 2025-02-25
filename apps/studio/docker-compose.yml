@@ -7,7 +7,7 @@ services:
       target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
       - ./backend:/app-dev # Mount the backend code for hot reloading
-      - junjo_sqlite_data:/data # Shared SQLite volume
+      - ./sqlite:/data/sqlite # Shared SQLite volume
     ports:
       - "1323:1323"
     networks:
