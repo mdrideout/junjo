@@ -35,10 +35,11 @@ services:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
     volumes:
-      - jaeger_badger_store:/jaeger/jaeger_badger_store # Mount the volume for BadgerDB data
-      - jaeger_badger_store_archive:/jaeger/jaeger_badger_store_archive # Mount the volume for BadgerDB archive data
-      - ./jaeger:/jaeger # Mount the jaeger directory to make the config files available
+      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
+      - jaeger_badger_store:/data/jaeger/badger/jaeger
+      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
     command: --config /jaeger/config.yml
+    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
     networks:
       - caddy-proxy-network
 
