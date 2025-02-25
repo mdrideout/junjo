@@ -1,7 +1,6 @@
 
 
 
-from tortoise import Tortoise
 
 from examples.dev.store import MyGraphState, MyGraphStore
 from junjo.app import JunjoApp
@@ -110,9 +109,7 @@ async def main():
     # Cleanup
     unsubscribe()
 
-    await Tortoise.close_connections()
-
-    print("Done. Tortoise closed.")
+    print("Done.")
 
     return
 

@@ -3,18 +3,6 @@ revision = 1
 requires-python = ">=3.12"
 
 [[package]]
-name = "aiosqlite"
-version = "0.20.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/3a/22ff5415bf4d296c1e92b07fd746ad42c96781f13295a074d58e77747848/aiosqlite-0.20.0.tar.gz", hash = "sha256:6d35c8c256637f4672f843c31021464090805bf925385ac39473fb16eaaca3d7", size = 21691 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/c4/c93eb22025a2de6b83263dfe3d7df2e19138e345bca6f18dba7394120930/aiosqlite-0.20.0-py3-none-any.whl", hash = "sha256:36a1deaca0cac40ebe32aac9977a6e2bbc7f5189f23f4a54d5908986729e5bd6", size = 15564 },
-]
-
-[[package]]
 name = "alabaster"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -230,15 +218,6 @@ wheels = [
 ]
 
 [[package]]
-name = "iso8601"
-version = "2.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b9/f3/ef59cee614d5e0accf6fd0cbba025b93b272e626ca89fb70a3e9187c5d15/iso8601-2.1.0.tar.gz", hash = "sha256:6b1d3829ee8921c4301998c909f7829fa9ed3cbdac0d3b16af2d743aed1ba8df", size = 6522 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/0c/f37b6a241f0759b7653ffa7213889d89ad49a2b76eb2ddf3b57b2738c347/iso8601-2.1.0-py3-none-any.whl", hash = "sha256:aac4145c4dcb66ad8b648a02830f5e2ff6c24af20f4f482689be402db2429242", size = 7545 },
-]
-
-[[package]]
 name = "jinja2"
 version = "3.1.5"
 source = { registry = "https://pypi.org/simple" }
@@ -259,7 +238,6 @@ dependencies = [
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
-    { name = "tortoise-orm" },
 ]
 
 [package.optional-dependencies]
@@ -290,7 +268,6 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = "~=0.9.5" },
     { name = "sphinx", marker = "extra == 'dev'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'" },
-    { name = "tortoise-orm", specifier = ">=0.24.0" },
 ]
 provides-extras = ["dev", "graphviz"]
 
@@ -552,15 +529,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pypika-tortoise"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7d/7b/74dce3354d81988f1d69b689f20b28c3e92f2dcc0c46975bdafd3eb37b18/pypika_tortoise-0.5.0.tar.gz", hash = "sha256:ed0f56761868dc222c03e477578638590b972280b03c7c45cd93345b18b61f58", size = 39701 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/bc/830cfe07a84a9ff75d2ae96696b933744b7f20ef40ad69b002b8cf9265e3/pypika_tortoise-0.5.0-py3-none-any.whl", hash = "sha256:dbdc47eb52ce17407b05ce9f8560ce93b856d7b28beb01971d956b017846691f", size = 45915 },
-]
-
-[[package]]
 name = "pytest"
 version = "8.3.4"
 source = { registry = "https://pypi.org/simple" }
@@ -585,15 +553,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f2/a8/ecbc8ede70921dd2f544ab1cadd3ff3bf842af27f87bbdea774c7baa1d38/pytest_asyncio-0.25.3.tar.gz", hash = "sha256:fc1da2cf9f125ada7e710b4ddad05518d4cee187ae9412e9ac9271003497f07a", size = 54239 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/67/17/3493c5624e48fd97156ebaec380dcaafee9506d7e2c46218ceebbb57d7de/pytest_asyncio-0.25.3-py3-none-any.whl", hash = "sha256:9e89518e0f9bd08928f97a3482fdc4e244df17529460bc038291ccaf8f85c7c3", size = 19467 },
-]
-
-[[package]]
-name = "pytz"
-version = "2025.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5f/57/df1c9157c8d5a05117e455d66fd7cf6dbc46974f832b1058ed4856785d8a/pytz-2025.1.tar.gz", hash = "sha256:c2db42be2a2518b28e65f9207c4d05e6ff547d1efa4086469ef855e4ab70178e", size = 319617 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/38/ac33370d784287baa1c3d538978b5e2ea064d4c1b93ffbd12826c190dd10/pytz-2025.1-py2.py3-none-any.whl", hash = "sha256:89dd22dca55b46eac6eda23b2d72721bf1bdfef212645d81513ef5d03038de57", size = 507930 },
 ]
 
 [[package]]
@@ -771,21 +730,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/3b/44/6716b257b0aa6bfd51a1b31665d1c205fb12cb5ad56de752dfa15657de2f/sphinxcontrib_serializinghtml-2.0.0.tar.gz", hash = "sha256:e9d912827f872c029017a53f0ef2180b327c3f7fd23c87229f7a8e8b70031d4d", size = 16080 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/52/a7/d2782e4e3f77c8450f727ba74a8f12756d5ba823d81b941f1b04da9d033a/sphinxcontrib_serializinghtml-2.0.0-py3-none-any.whl", hash = "sha256:6e2cb0eef194e10c27ec0023bfeb25badbbb5868244cf5bc5bdc04e4464bf331", size = 92072 },
-]
-
-[[package]]
-name = "tortoise-orm"
-version = "0.24.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "aiosqlite" },
-    { name = "iso8601" },
-    { name = "pypika-tortoise" },
-    { name = "pytz" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/64/81/973b629f8a70fc928343f4f8be6121023b6c6f0ee0ae45695955db82af47/tortoise_orm-0.24.0.tar.gz", hash = "sha256:ae0704a93ea27931724fc899e57268c8081afce3b32b110b00037ec206553e7d", size = 143958 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/88/313395d3ae15f24b18496c4f8077404ee0336eea2a9c648466c406f053b3/tortoise_orm-0.24.0-py3-none-any.whl", hash = "sha256:ee3b72b226767293b24c5c4906ae5f027d7cc84496cd503352c918564b4fd687", size = 164094 },
 ]
 
 [[package]]
