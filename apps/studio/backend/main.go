@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"junjo-ui-backend/auth"
+	"junjo-ui-backend/db"
 	m "junjo-ui-backend/middleware"
 	u "junjo-ui-backend/utils"
 
@@ -33,8 +34,9 @@ func main() {
 	host := "0.0.0.0"
 	serverHostPort := host + ":" + port
 
-	// // Database
-	// db.Connect()
+	// Database
+	db.Connect()
+	defer db.Close()
 
 	// Initialize Echo
 	e := echo.New()
