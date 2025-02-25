@@ -8,8 +8,9 @@ import (
 	"database/sql"
 )
 
-type Author struct {
-	ID   int64
-	Name string
-	Bio  sql.NullString
+type Workflow struct {
+	ID        int64
+	Name      string
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
 }

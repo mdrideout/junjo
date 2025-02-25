@@ -7,67 +7,91 @@ package db_gen
 
 import (
 	"context"
-	"database/sql"
 )
 
-const createAuthor = `-- name: CreateAuthor :one
-INSERT INTO authors (
-  name, bio
-) VALUES (
-  ?, ?
-)
-RETURNING id, name, bio
+const createWorkflow = `-- name: CreateWorkflow :one
+INSERT INTO
+  workflows (id, name)
+VALUES
+  (?, ?) RETURNING id, name, created_at, updated_at
 `
 
-type CreateAuthorParams struct {
+type CreateWorkflowParams struct {
+	ID   int64
 	Name string
-	Bio  sql.NullString
 }
 
-func (q *Queries) CreateAuthor(ctx context.Context, arg CreateAuthorParams) (Author, error) {
-	row := q.db.QueryRowContext(ctx, createAuthor, arg.Name, arg.Bio)
-	var i Author
-	err := row.Scan(&i.ID, &i.Name, &i.Bio)
+func (q *Queries) CreateWorkflow(ctx context.Context, arg CreateWorkflowParams) (Workflow, error) {
+	row := q.db.QueryRowContext(ctx, createWorkflow, arg.ID, arg.Name)
+	var i Workflow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
-const deleteAuthor = `-- name: DeleteAuthor :exec
-DELETE FROM authors
-WHERE id = ?
+const deleteWorkflow = `-- name: DeleteWorkflow :exec
+DELETE FROM
+  workflows
+WHERE
+  id = ?
 `
 
-func (q *Queries) DeleteAuthor(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteAuthor, id)
+func (q *Queries) DeleteWorkflow(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteWorkflow, id)
 	return err
 }
 
-const getAuthor = `-- name: GetAuthor :one
-SELECT id, name, bio FROM authors
-WHERE id = ? LIMIT 1
+const getWorkflow = `-- name: GetWorkflow :one
+SELECT
+  id, name, created_at, updated_at
+FROM
+  workflows
+WHERE
+  id = ?
+LIMIT
+  1
 `
 
-func (q *Queries) GetAuthor(ctx context.Context, id int64) (Author, error) {
-	row := q.db.QueryRowContext(ctx, getAuthor, id)
-	var i Author
-	err := row.Scan(&i.ID, &i.Name, &i.Bio)
+func (q *Queries) GetWorkflow(ctx context.Context, id int64) (Workflow, error) {
+	row := q.db.QueryRowContext(ctx, getWorkflow, id)
+	var i Workflow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
-const listAuthors = `-- name: ListAuthors :many
-SELECT id, name, bio FROM authors
-ORDER BY name
+const listWorkflows = `-- name: ListWorkflows :many
+SELECT
+  id, name, created_at, updated_at
+FROM
+  workflows
+ORDER BY
+  name
 `
 
-func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
-	rows, err := q.db.QueryContext(ctx, listAuthors)
+func (q *Queries) ListWorkflows(ctx context.Context) ([]Workflow, error) {
+	rows, err := q.db.QueryContext(ctx, listWorkflows)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Author
+	var items []Workflow
 	for rows.Next() {
-		var i Author
-		if err := rows.Scan(&i.ID, &i.Name, &i.Bio); err != nil {
+		var i Workflow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -81,23 +105,29 @@ func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
 	return items, nil
 }
 
-const updateAuthor = `-- name: UpdateAuthor :one
-UPDATE authors
-set name = ?,
-bio = ?
-WHERE id = ?
-RETURNING id, name, bio
+const updateWorkflow = `-- name: UpdateWorkflow :one
+UPDATE
+  workflows
+set
+  name = ?,
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = ? RETURNING id, name, created_at, updated_at
 `
 
-type UpdateAuthorParams struct {
+type UpdateWorkflowParams struct {
 	Name string
-	Bio  sql.NullString
 	ID   int64
 }
 
-func (q *Queries) UpdateAuthor(ctx context.Context, arg UpdateAuthorParams) (Author, error) {
-	row := q.db.QueryRowContext(ctx, updateAuthor, arg.Name, arg.Bio, arg.ID)
-	var i Author
-	err := row.Scan(&i.ID, &i.Name, &i.Bio)
+func (q *Queries) UpdateWorkflow(ctx context.Context, arg UpdateWorkflowParams) (Workflow, error) {
+	row := q.db.QueryRowContext(ctx, updateWorkflow, arg.Name, arg.ID)
+	var i Workflow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
