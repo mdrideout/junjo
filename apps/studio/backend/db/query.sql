@@ -20,7 +20,7 @@ ORDER BY
 
 -- name: CreateWorkflowLog :one
 INSERT INTO
-  workflow_logs (id, exec_id, name, event_time_nano, type)
+  workflow_logs (id, exec_id, event_time_nano, type, state)
 VALUES
   (?, ?, ?, ?, ?) RETURNING *;
 
