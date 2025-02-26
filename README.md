@@ -81,3 +81,13 @@ This project utilizes [ruff](https://astral.sh/ruff) for linting and auto format
 # They will appear in a .gitignored folder docs/_build
 $ sphinx-build -b html docs docs/_build
 ```
+
+## Code Generation
+
+### Protobuf schema generation
+
+1. Requires the optional `dev` dependencies to be installed via `uv pip install -e ".[dev]"`
+2. Requires [protoc](https://grpc.io/docs/protoc-installation/) which can be installed into your developer environment host machine ([instructions](https://grpc.io/docs/protoc-installation/)).
+3. Copy the .proto files from the junjo-ui project to `src/telemetry/junjo_ui/proto`
+4. Run `make proto` from the project root to generate the `proto_gen` files for the client
+5. Update any required changes to the `src/telemetry/junjo_ui/client.py` file (type changes, fields, etc.)
