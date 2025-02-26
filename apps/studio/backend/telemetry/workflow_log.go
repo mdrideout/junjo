@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	gonanoid "github.com/matoous/go-nanoid/v2" // Import nanoid package
@@ -23,12 +24,22 @@ func (s *server) CreateWorkflowLog(ctx context.Context, req *pb.CreateWorkflowLo
 		return nil, status.Errorf(codes.Internal, "failed to generate ID: %v", err)
 	}
 
+	// Convert the state JSON string to json.RawMessage
+	// This is necessary because we are storing the state as a JSONB type in the database
+	// This is a workaround because the sqlc code generator does not support JSONB types
+	// Validate and convert the state JSON string to json.RawMessage.
+	stateStr := req.GetState()
+	if !json.Valid([]byte(stateStr)) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid JSON provided in state")
+	}
+	state := json.RawMessage(stateStr)
+
 	_, err = s.queries.CreateWorkflowLog(ctx, db.CreateWorkflowLogParams{
 		ID:            id,
 		ExecID:        req.GetExecId(),
-		Name:          req.GetName(),
 		Type:          req.GetType(),
 		EventTimeNano: req.GetEventTimeNano(),
+		State:         state,
 	})
 	if err != nil {
 		log.Printf("Error creating workflow: %v", err)
