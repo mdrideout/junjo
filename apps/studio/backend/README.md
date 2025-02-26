@@ -29,3 +29,7 @@ This server receives telemetry from the junjo library via gRPC. The following in
 # Run the makefile to generate the code
 $ make proto
 ```
+
+#### NOTE:
+
+`.proto` files between junjo and junjo-ui must match.
