@@ -7,7 +7,7 @@ from nanoid import generate
 from junjo.graph import Graph
 from junjo.store import BaseStore, StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.junjo_ui.client import JunjoUiClient
+from junjo.telemetry.junjo_ui.client import JunjoUiClient, WorkflowLogType
 from junjo.workflow_context import WorkflowContextManager
 
 
@@ -60,12 +60,19 @@ class Workflow(Generic[StateT, StoreT]):
         """
         # Execute workflow before hooks
         if self.hook_manager is not None:
+            workflow_start_time = time.time()
+            workflow_start_time_ns = time.time_ns()
 
             # TEST Junjo UI Client
-            JunjoUiClient().create_workflow(self.workflow_id, "Test DEMO Workflow")
+            exec_id = self.workflow_id
+            name = "Test DEMO Workflow"
+            type = WorkflowLogType.START
+            event_time_nano = workflow_start_time_ns
+            JunjoUiClient().create_workflow_log(exec_id, name, type, event_time_nano)
 
+            # Execute the before workflow hooks
             self.hook_manager.run_before_workflow_execute_hooks(self.workflow_id)
-            workflow_start_time = time.time()
+
 
         current_node = self.graph.source
         while True:
@@ -107,6 +114,16 @@ class Workflow(Generic[StateT, StoreT]):
         # Execute workflow after hooks
         if self.hook_manager is not None:
             workflow_end_time = time.time()
+            workflow_end_time_ns = time.time_ns()
+
+            # TEST Junjo UI Client
+            exec_id = self.workflow_id
+            name = "Test DEMO Workflow"
+            type = WorkflowLogType.END
+            event_time_nano = workflow_end_time_ns
+            JunjoUiClient().create_workflow_log(exec_id, name, type, event_time_nano)
+
+            # Execute the after workflow hooks
             self.hook_manager.run_after_workflow_execute_hooks(
                 self.workflow_id,
                 self.get_state,

@@ -11,10 +11,12 @@ proto:
 		--pyi_out=$(PROTO_OUT_DIR) \
 		$(PROTO_SRC_DIR)/*.proto
 
-	# Post-process the generated workflow_pb2_grpc.py for relative imports
-	# (Example using sed on macOS — note the slightly different -i syntax on Linux vs Mac)
-	sed -i '' 's#import workflow_pb2 as workflow__pb2#from . import workflow_pb2 as workflow__pb2#' \
-		$(PROTO_OUT_DIR)/workflow_pb2_grpc.py
+	# Post-process every _pb2_grpc.py file for relative imports.
+	# Adjust the sed -i option as needed for your OS.
+	@for file in $(PROTO_OUT_DIR)/*_pb2_grpc.py; do \
+		echo "Fixing imports in $$file"; \
+		sed -i '' 's/^import \(.*_pb2\) as \(.*\)/from . import \1 as \2/' $$file; \
+	done
 
 clean:
 	rm -rf $(PROTO_OUT_DIR)/*
