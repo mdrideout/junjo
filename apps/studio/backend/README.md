@@ -1,6 +1,12 @@
 # Junjo-UI Backend
 
-This is the backend GO Echo server container of the Junjo-UI setup.
+This is the backend GO application running in a docker container of the Junjo-UI setup.
+
+**Servers:** The GO backend runs two servers.
+
+- GO Echo server: React UI application API requests
+- gRPC server: Receives and handles telemetry from the junjo library
+
 
 ## Code Generation
 
