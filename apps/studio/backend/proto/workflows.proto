@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package workflows;
 
-option go_package = ".;pb"; // Adjust to your project
+option go_package = ".;proto_gen"; // Adjust to your project
 
 import "google/protobuf/empty.proto"; // Import Empty
 

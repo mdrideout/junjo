@@ -37,9 +37,18 @@ func Connect() {
 
 	fmt.Println("Successfully connected to the SQLite database!")
 
-	// create tables with the embedded schema
-	if _, err := DB.ExecContext(ctx, ddl); err != nil {
-		log.Fatalf("Failed to execute schema: %v", err)
+	// Check if the table already exists
+	var tableName string
+	err = DB.QueryRowContext(ctx, "SELECT name FROM sqlite_master WHERE type='table' AND name='workflows';").Scan(&tableName)
+	if err != nil && err != sql.ErrNoRows {
+		log.Fatalf("Failed to check if table exists: %v", err)
+	}
+
+	// Create tables with the embedded schema if they do not exist
+	if tableName == "" {
+		if _, err := DB.ExecContext(ctx, ddl); err != nil {
+			log.Fatalf("Failed to execute schema: %v", err)
+		}
 	}
 }
 
