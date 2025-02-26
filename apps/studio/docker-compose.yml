@@ -9,7 +9,8 @@ services:
       - ./backend:/app-dev # Mount the backend code for hot reloading
       - ./sqlite:/data/sqlite # Shared SQLite volume
     ports:
-      - "1323:1323"
+      - "1323:1323" # Echo API server port
+      - "50051:50051" # gRPC telemetry server port
     networks:
       - caddy-proxy-network
     depends_on:
