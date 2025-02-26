@@ -8,7 +8,7 @@ Repository for the FE + BE of the telemetry UI application.
 
 ## Backend
 
-- Go Echo Server
+- GO echo API and grpc telemetry server [docs](/backend/README.md)
 - JWT auth middleware
 - JSON auth database
 - sqlc for queries to the sqlite data
