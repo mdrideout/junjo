@@ -1,38 +1,31 @@
--- name: GetWorkflow :one
+-- name: GetWorkflowLog :one
 SELECT
   *
 FROM
-  workflows
+  workflow_logs
 WHERE
   id = ?
 LIMIT
   1;
 
--- name: ListWorkflows :many
+-- name: ListWorkflowLogs :many
 SELECT
   *
 FROM
-  workflows
+  workflow_logs
+WHERE
+  exec_id = ? -- Added WHERE clause to filter by exec_id
 ORDER BY
-  name;
+  event_time_nano DESC;
 
--- name: CreateWorkflow :one
+-- name: CreateWorkflowLog :one
 INSERT INTO
-  workflows (id, name)
+  workflow_logs (id, exec_id, name, event_time_nano, type)
 VALUES
-  (?, ?) RETURNING *;
+  (?, ?, ?, ?, ?) RETURNING *;
 
--- name: UpdateWorkflow :one
-UPDATE
-  workflows
-set
-  name = ?,
-  updated_at = CURRENT_TIMESTAMP
-WHERE
-  id = ? RETURNING *;
-
--- name: DeleteWorkflow :exec
+-- name: DeleteWorkflowLogByExec :exec
 DELETE FROM
-  workflows
+  workflow_logs
 WHERE
-  id = ?;
+  exec_id = ?;
