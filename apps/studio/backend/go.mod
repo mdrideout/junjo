@@ -8,6 +8,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.2
 	github.com/labstack/echo/v4 v4.13.3
+	github.com/matoous/go-nanoid/v2 v2.1.0
 	golang.org/x/crypto v0.33.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
