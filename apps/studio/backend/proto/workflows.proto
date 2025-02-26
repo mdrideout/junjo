@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package workflows;
+
+option go_package = ".;pb"; // Adjust to your project
+
+import "google/protobuf/empty.proto"; // Import Empty
+
+service WorkflowService {
+  rpc CreateWorkflow (CreateWorkflowRequest) returns (google.protobuf.Empty); // Return Empty
+}
+
+message CreateWorkflowRequest {
+  int64 id = 1;
+  string name = 2;
+}
+
+// No CreateWorkflowResponse needed
