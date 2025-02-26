@@ -9,6 +9,7 @@ import (
 	"junjo-ui-backend/auth"
 	"junjo-ui-backend/db"
 	m "junjo-ui-backend/middleware"
+	"junjo-ui-backend/telemetry"
 	u "junjo-ui-backend/utils"
 
 	"github.com/gorilla/sessions"
@@ -73,6 +74,19 @@ func main() {
 			return false
 		},
 	}))
+
+	// --- gRPC Server Setup (Start in a Goroutine) ---
+	grpcServer, lis, err := telemetry.NewGRPCServer(db.DB)
+	if err != nil {
+		log.Fatalf("failed to create gRPC server: %v", err)
+	}
+
+	go func() { // Start the gRPC server in a separate goroutine!
+		log.Printf("gRPC server listening at %v", lis.Addr())
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("failed to serve gRPC: %v", err)
+		}
+	}()
 
 	// Auth Middleware
 	e.Use(m.Auth()) // Auth guard all routes by default
