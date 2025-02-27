@@ -39,7 +39,7 @@ func Connect() {
 
 	// Check if the table already exists
 	var tableName string
-	err = DB.QueryRowContext(ctx, "SELECT name FROM sqlite_master WHERE type='table' AND name='workflows';").Scan(&tableName)
+	err = DB.QueryRowContext(ctx, "SELECT name FROM sqlite_master WHERE type='table' AND name='workflow_logs';").Scan(&tableName)
 	if err != nil && err != sql.ErrNoRows {
 		log.Fatalf("Failed to check if table exists: %v", err)
 	}
