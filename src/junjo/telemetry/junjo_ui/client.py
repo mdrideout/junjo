@@ -3,7 +3,7 @@ from enum import StrEnum
 import grpc
 from google.protobuf.empty_pb2 import Empty
 
-from .proto_gen import workflow_log_pb2, workflow_log_pb2_grpc
+from .proto_gen import workflow_log_pb2, workflow_log_pb2_grpc, workflow_metadata_pb2, workflow_metadata_pb2_grpc
 
 
 class WorkflowLogType(StrEnum):
@@ -21,7 +21,8 @@ class JunjoUiClient:
         Initialize a gRPC channel and stub for the given host/port.
         """
         self.channel = grpc.insecure_channel(f"{host}:{port}")
-        self.stub = workflow_log_pb2_grpc.WorkflowLogServiceStub(self.channel)
+        self.workflow_log_stub = workflow_log_pb2_grpc.WorkflowLogServiceStub(self.channel)
+        self.workflow_metadata_stub = workflow_metadata_pb2_grpc.WorkflowMetadataServiceStub(self.channel)
 
     def create_workflow_log(self,
             exec_id: str,
@@ -47,6 +48,29 @@ class JunjoUiClient:
             state=state
         )
 
-        # stub.CreateWorkflow returns an Empty object.
-        response: Empty = self.stub.CreateWorkflowLog(request)
+        response: Empty = self.workflow_log_stub.CreateWorkflowLog(request)
         print("CreateWorkflow RPC succeeded. Response is:", response)
+
+    def create_workflow_metadata(self,
+            exec_id: str,
+            name: str,
+            structure: str
+        ) -> None:
+        """
+        Make a CreateWorkflowMetadata gRPC call.
+
+        Args:
+            exec_id: The id of the workflow execution
+            name: The name of the workflow
+            structure: The workflow structure as a JSON string
+
+        """
+        print("Sending grpc request to create workflow metadata with id:", exec_id)
+        request = workflow_metadata_pb2.CreateWorkflowMetadataRequest(
+            exec_id=exec_id,
+            name=name,
+            structure=structure
+        )
+
+        response: Empty = self.workflow_metadata_stub.CreateWorkflowMetadata(request)
+        print("CreateWorkflowMetadata RPC succeeded. Response is:", response)

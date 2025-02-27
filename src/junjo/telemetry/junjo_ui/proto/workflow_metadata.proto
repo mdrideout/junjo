@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package workflows;
+
+import "google/protobuf/empty.proto";
+
+service WorkflowMetadataService {
+  rpc CreateWorkflowMetadata (CreateWorkflowMetadataRequest) returns (google.protobuf.Empty); // Return Empty
+}
+
+message CreateWorkflowMetadataRequest {
+  string exec_id = 1;
+  string name = 2;
+  string structure = 3; // JSON data as a string
+}

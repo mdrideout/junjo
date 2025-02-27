@@ -1,4 +1,6 @@
 
+import json
+
 from junjo.node import Node
 from junjo.react_flow.schemas import (
     ReactFlowEdge,
@@ -116,6 +118,47 @@ class Graph:
 
         viewport = ReactFlowViewport(x=0, y=0, zoom=1)
         return ReactFlowJsonObject(nodes=nodes, edges=edges, viewport=viewport)
+
+    def serialize_to_json_string(self) -> str:
+        """
+        Converts the graph to a neutral unopinionated serialized JSON string.
+
+        Returns:
+            dict: A JSON-serializable dictionary containing the graph structure
+        """
+        # Collect all nodes
+        all_nodes = {id(node): node for node in [self.source, self.sink] +
+                    [e.tail for e in self.edges] + [e.head for e in self.edges]}
+
+        # Create nodes list
+        nodes = [
+            {
+                "id": str(node_id),
+                "type": node.__class__.__name__,
+                "label": node.__class__.__name__
+            }
+            for node_id, node in all_nodes.items()
+        ]
+
+        # Create edges list
+        edges = [
+            {
+                "id": f"{id(edge.tail)}-{id(edge.head)}",
+                "source": str(id(edge.tail)),
+                "target": str(id(edge.head)),
+                "condition": edge.condition.__name__ if edge.condition else None
+            }
+            for edge in self.edges
+        ]
+
+        graph_dict = {
+            "v": 1,
+            "nodes": nodes,
+            "edges": edges
+        }
+
+        return json.dumps(graph_dict)
+
 
 
     def _format_condition(self, condition):

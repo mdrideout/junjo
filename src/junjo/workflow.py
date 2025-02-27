@@ -69,7 +69,14 @@ class Workflow(Generic[StateT, StoreT]):
             workflow_start_time = time.time()
             workflow_start_time_ns = time.time_ns()
 
-            # TEST Junjo UI Client
+            # TEST Junjo UI Client - Workflow Metadata
+            exec_id = self.workflow_id
+            name = "Workflow Name Here"
+            structure = self.graph.serialize_to_json_string()
+            print("Sending structure to Junjo UI Client:", structure)
+            JunjoUiClient().create_workflow_metadata(exec_id, name, structure)
+
+            # TEST Junjo UI Client - Workflow Log Start
             exec_id = self.workflow_id
             type = WorkflowLogType.START
             event_time_nano = workflow_start_time_ns
@@ -123,7 +130,7 @@ class Workflow(Generic[StateT, StoreT]):
             workflow_end_time = time.time()
             workflow_end_time_ns = time.time_ns()
 
-            # TEST Junjo UI Client
+            # TEST Junjo UI Client - Workflow Log End
             exec_id = self.workflow_id
             type = WorkflowLogType.END
             event_time_nano = workflow_end_time_ns
