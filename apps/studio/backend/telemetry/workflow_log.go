@@ -30,7 +30,7 @@ func (s *server) CreateWorkflowLog(ctx context.Context, req *pb.CreateWorkflowLo
 	// Validate and convert the state JSON string to json.RawMessage.
 	stateStr := req.GetState()
 	if !json.Valid([]byte(stateStr)) {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid JSON provided in state. Value: %s", stateStr)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid JSON provided for state: %s", stateStr)
 	}
 	state := json.RawMessage(stateStr)
 
@@ -42,8 +42,8 @@ func (s *server) CreateWorkflowLog(ctx context.Context, req *pb.CreateWorkflowLo
 		State:         state,
 	})
 	if err != nil {
-		log.Printf("Error creating workflow: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to create workflow: %v", err)
+		log.Printf("Error creating workflow_log: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to create workflow_log: %v", err)
 	}
 	return &emptypb.Empty{}, nil
 }
