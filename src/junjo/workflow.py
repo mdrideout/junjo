@@ -43,7 +43,7 @@ class Workflow(Generic[StateT, StoreT]):
         WorkflowContextManager.set_store(self.workflow_id, initial_store)
 
     @property
-    def get_store(self) -> StoreT | None:
+    def get_store(self) -> BaseStore | None:
         """Returns the current store from the context var."""
         store = WorkflowContextManager.get_store(self.workflow_id)
         return store
@@ -53,6 +53,12 @@ class Workflow(Generic[StateT, StoreT]):
         """Returns the current store state from the context var."""
         store = WorkflowContextManager.get_store(self.workflow_id)
         return store.get_state() if store else None
+
+    @property
+    def get_state_json(self) -> str:
+        """Returns the current store state as a JSON string from the context var."""
+        store = WorkflowContextManager.get_store(self.workflow_id)
+        return store.get_state_json()
 
     async def execute(self):
         """
@@ -65,10 +71,11 @@ class Workflow(Generic[StateT, StoreT]):
 
             # TEST Junjo UI Client
             exec_id = self.workflow_id
-            name = "Test DEMO Workflow"
             type = WorkflowLogType.START
             event_time_nano = workflow_start_time_ns
-            JunjoUiClient().create_workflow_log(exec_id, name, type, event_time_nano)
+            state_json = self.get_state_json
+            print("Sending state_json to Junjo UI Client:", state_json)
+            JunjoUiClient().create_workflow_log(exec_id, type, event_time_nano, state_json)
 
             # Execute the before workflow hooks
             self.hook_manager.run_before_workflow_execute_hooks(self.workflow_id)
@@ -118,10 +125,10 @@ class Workflow(Generic[StateT, StoreT]):
 
             # TEST Junjo UI Client
             exec_id = self.workflow_id
-            name = "Test DEMO Workflow"
             type = WorkflowLogType.END
             event_time_nano = workflow_end_time_ns
-            JunjoUiClient().create_workflow_log(exec_id, name, type, event_time_nano)
+            state_json = self.get_state_json
+            JunjoUiClient().create_workflow_log(exec_id, type, event_time_nano, state_json)
 
             # Execute the after workflow hooks
             self.hook_manager.run_after_workflow_execute_hooks(

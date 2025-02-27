@@ -36,7 +36,7 @@ class WorkflowContextManager(Generic[StoreT]):
         cls._store_dict_var.set(store_dict)
 
     @classmethod
-    def get_store(cls, workflow_id: str) -> StoreT | None:
+    def get_store(cls, workflow_id: str) -> BaseStore:
         """
         Returns the store for a workflow.
 
@@ -47,7 +47,11 @@ class WorkflowContextManager(Generic[StoreT]):
             The store for the workflow.
         """
         store_dict = cls._store_dict_var.get()
-        return store_dict.get(workflow_id)
+        store = store_dict.get(workflow_id)
+        if store is None:
+            raise ValueError(f"Store not found for workflow {workflow_id}")
+
+        return store
 
     @classmethod
     def remove_store(cls, workflow_id: str) -> None:

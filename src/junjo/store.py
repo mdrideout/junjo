@@ -35,6 +35,12 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         """
         return self._state
 
+    def get_state_json(self) -> str:
+        """
+        Return the current state as a JSON string.
+        """
+        return self._state.model_dump_json()
+
     def _update_state_and_notify(self, new_state: StateT) -> None:
         """
         Update state and notify.

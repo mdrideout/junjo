@@ -10,7 +10,7 @@ service WorkflowLogService {
 
 message CreateWorkflowLogRequest {
   string exec_id = 1;
-  string name = 2;
-  string type = 3;
-  int64 event_time_nano = 4;
+  string type = 2;
+  int64 event_time_nano = 3;
+  string state = 5; // JSON data as a string
 }

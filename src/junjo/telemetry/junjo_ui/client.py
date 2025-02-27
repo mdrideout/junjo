@@ -23,23 +23,28 @@ class JunjoUiClient:
         self.channel = grpc.insecure_channel(f"{host}:{port}")
         self.stub = workflow_log_pb2_grpc.WorkflowLogServiceStub(self.channel)
 
-    def create_workflow_log(self, exec_id: str, name: str, type: WorkflowLogType, event_time_nano: int) -> None:
+    def create_workflow_log(self,
+            exec_id: str,
+            type: WorkflowLogType,
+            event_time_nano: int,
+            state: str
+        ) -> None:
         """
         Make a CreateWorkflow gRPC call.
 
         Args:
             exec_id: The id of the workflow execution (same for start and end)
-            name: The name of the workflow (human readable)
             type: The type of the workflow log ("start" or "end")
             event_time_nano: The time of the event in nanoseconds
+            state: The state of the workflow execution
 
         """
         print("Sending grpc request to create workflow with id:", exec_id)
         request = workflow_log_pb2.CreateWorkflowLogRequest(
             exec_id=exec_id,
-            name=name,
             type=type,
-            event_time_nano=event_time_nano
+            event_time_nano=event_time_nano,
+            state=state
         )
 
         # stub.CreateWorkflow returns an Empty object.
