@@ -6,7 +6,7 @@
  */
 export default function UsersExplanation() {
   return (
-    <div className="bg-gray-600 p-4 rounded-lg max-w-xl">
+    <div className="bg-zinc-600 p-4 rounded-lg max-w-xl">
       <h6>Managing Users</h6>
       <ol className="mb-4">
         <li>

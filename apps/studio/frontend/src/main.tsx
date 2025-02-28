@@ -8,7 +8,8 @@ import SignIn from './auth/sign-in/SignIn.tsx'
 import AuthGuard from './guards/AuthGuard.tsx'
 import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
-import WorkflowsPage from './workflows/components/WorkflowsPage.tsx'
+import WorkflowLogPage from './workflow-logs/WorkflowLogPage.tsx'
+import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,13 +28,14 @@ createRoot(document.getElementById('root')!).render(
               }
             />
             <Route
-              path="/workflows"
+              path="/logs"
               element={
                 <AuthGuard>
-                  <WorkflowsPage />
+                  <WorkflowListPage />
                 </AuthGuard>
               }
             />
+            <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
           </Route>
         </Routes>
       </AuthProvider>

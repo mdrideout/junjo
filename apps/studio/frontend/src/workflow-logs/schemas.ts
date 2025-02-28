@@ -25,4 +25,4 @@ export const WorkflowMetadatumSchema = z.object({
 export type WorkflowMetadatum = z.infer<typeof WorkflowMetadatumSchema>
 
 // Schema for multiple metadata / response
-export const WorkflowMetadataResponseSchema = z.array(WorkflowMetadatumSchema)
+export const WorkflowMetadataListResponseSchema = z.array(WorkflowMetadatumSchema)

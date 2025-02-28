@@ -42,14 +42,6 @@ export default function SidebarMenu() {
                 <DashboardIcon />
                 <SidebarLabel>Dashboard</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="//localhost/jaeger" target="_blank">
-                <BarChartIcon />
-                <SidebarLabel>
-                  <div className="flex items-center gap-x-2">
-                    Jaeger <ExternalLinkIcon className="size-3" />
-                  </div>
-                </SidebarLabel>
-              </SidebarItem>
               <SidebarItem href="/logs">
                 <RowsIcon />
                 <SidebarLabel>Logs</SidebarLabel>
@@ -58,6 +50,15 @@ export default function SidebarMenu() {
                 <AvatarIcon />
                 <SidebarLabel>Users</SidebarLabel>
               </SidebarItem>
+              <SidebarItem href="//localhost/jaeger" target="_blank">
+                <BarChartIcon />
+                <SidebarLabel>
+                  <div className="flex items-center gap-x-2">
+                    Jaeger <ExternalLinkIcon className="size-3" />
+                  </div>
+                </SidebarLabel>
+              </SidebarItem>
+
               <SidebarItem href="/sign-out">
                 <ExitIcon />
                 <SidebarLabel>Sign out</SidebarLabel>

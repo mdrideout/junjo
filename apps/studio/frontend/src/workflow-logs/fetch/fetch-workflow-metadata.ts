@@ -1,4 +1,4 @@
-import { WorkflowMetadataResponseSchema, WorkflowMetadatum } from '../schemas'
+import { WorkflowMetadataListResponseSchema, WorkflowMetadatum } from '../schemas'
 
 /**
  * Fetch Workflow Metadata
@@ -7,7 +7,7 @@ import { WorkflowMetadataResponseSchema, WorkflowMetadatum } from '../schemas'
  * @param exec_id
  * @returns
  */
-export const fetchWorkflowMetadata = async (): Promise<WorkflowMetadatum[]> => {
+export const fetchWorkflowMetadataList = async (): Promise<WorkflowMetadatum[]> => {
   const response = await fetch(`http://localhost:1323/workflow-metadata`, {
     method: 'GET',
     credentials: 'include',
@@ -17,7 +17,7 @@ export const fetchWorkflowMetadata = async (): Promise<WorkflowMetadatum[]> => {
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch workflow metadata: ${response.statusText}`)
+    throw new Error(`Failed to fetch workflow metadata list: ${response.statusText}`)
   }
 
   const data = await response.json()
@@ -25,7 +25,7 @@ export const fetchWorkflowMetadata = async (): Promise<WorkflowMetadatum[]> => {
 
   // Validate the response data against our schema
   try {
-    return WorkflowMetadataResponseSchema.parse(data)
+    return WorkflowMetadataListResponseSchema.parse(data)
   } catch (error) {
     console.error('Data validation error:', error)
     throw new Error('Invalid data received from server')
