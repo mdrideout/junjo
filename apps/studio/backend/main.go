@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"junjo-ui-backend/api"
 	"junjo-ui-backend/auth"
 	"junjo-ui-backend/db"
 	m "junjo-ui-backend/middleware"
@@ -93,6 +94,7 @@ func main() {
 
 	// ROUTES
 	auth.InitRoutes(e)
+	api.InitRoutes(e)
 
 	// Ping route
 	e.GET("/ping", func(c echo.Context) error {
