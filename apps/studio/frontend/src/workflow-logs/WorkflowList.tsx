@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react'
 import { WorkflowMetadatum } from './schemas'
 import { fetchWorkflowMetadataList } from './fetch/fetch-workflow-metadata'
 import { useNavigate } from 'react-router'
+import { useMetadataStore } from './store/workflow_metadata_store'
 
 export default function WorkflowsList() {
   const navigate = useNavigate()
-  const [workflowMetadataList, setWorkflowMetadataList] = useState<WorkflowMetadatum[]>([])
+
+  const { metadata, setMetadata } = useMetadataStore((state) => ({
+    metadata: state.metadata,
+    setMetadata: state.setMetadata,
+  }))
 
   useEffect(() => {
     const run = async () => {
       try {
         const list = await fetchWorkflowMetadataList()
-        setWorkflowMetadataList(list)
+        setMetadata(list)
       } catch (error) {
         console.error('Failed to fetch workflow logs:', error)
       } finally {
@@ -21,6 +26,8 @@ export default function WorkflowsList() {
 
     run()
   }, [])
+
+  const workflowMetadataList = Object.values(metadata) as WorkflowMetadatum[]
 
   return (
     <table className="text-left">

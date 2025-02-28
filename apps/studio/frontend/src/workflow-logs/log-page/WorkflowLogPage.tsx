@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { WorkflowLog } from './schemas'
-import { fetchWorkflowLogs } from './fetch/fetch-workflow-logs'
+import { WorkflowLog } from '../schemas'
+import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
 import { Link, useParams } from 'react-router'
-import ErrorPage from '../components/errors/ErrorPage'
+import ErrorPage from '../../components/errors/ErrorPage'
+import WorkflowStructure from './WorkflowStructure'
 
 export default function WorkflowLogPage() {
   const { ExecID } = useParams()
@@ -85,6 +86,9 @@ export default function WorkflowLogPage() {
             )
           })}
         </div>
+        <div className="h-10"></div>
+        <strong>Workflow Graph:</strong>
+        <WorkflowStructure ExecID={ExecID} />
       </div>
     </div>
   )

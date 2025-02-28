@@ -21,7 +21,6 @@ export const fetchWorkflowMetadataList = async (): Promise<WorkflowMetadatum[]> 
   }
 
   const data = await response.json()
-  console.log('Received data: ', data)
 
   // Validate the response data against our schema
   try {
