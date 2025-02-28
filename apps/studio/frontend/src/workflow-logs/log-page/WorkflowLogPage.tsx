@@ -4,6 +4,7 @@ import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
 import { Link, useParams } from 'react-router'
 import ErrorPage from '../../components/errors/ErrorPage'
 import WorkflowStructure from './WorkflowStructure'
+import { decodeBase64Json } from '../../util/decode-base64-json'
 
 export default function WorkflowLogPage() {
   const { ExecID } = useParams()
@@ -60,7 +61,7 @@ export default function WorkflowLogPage() {
           {workflowLogs.map((log) => {
             // Decode the base64 encoded state into stringified json,
             // then format the JSON string with 2 spaces for indentation
-            const displayState = JSON.stringify(JSON.parse(atob(log.State)), null, 2)
+            const displayState = JSON.stringify(decodeBase64Json(log.State), null, 2)
 
             return (
               <div key={log.ID} className={''}>
