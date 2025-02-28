@@ -42,4 +42,6 @@ WHERE
 SELECT
   *
 FROM
-  workflow_metadata;
+  workflow_metadata
+ORDER BY
+  created_at DESC;

@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
-import { WorkflowLog } from '../schemas'
-import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
-import { fetchWorkflowMetadata } from '../fetch/fetch-workflow-metadata'
+import { WorkflowLog } from './schemas'
+import { fetchWorkflowLogs } from './fetch/fetch-workflow-logs'
+import { Link, useParams } from 'react-router'
+import ErrorPage from '../components/errors/ErrorPage'
 
-export default function WorkflowsPage() {
-  // Fetch workflow logs
+export default function WorkflowLogPage() {
+  const { ExecID } = useParams()
   const [workflowLogs, setWorkflowLogs] = useState<WorkflowLog[]>([])
 
   useEffect(() => {
+    if (!ExecID) return
+
     const run = async () => {
       try {
-        const metadata = await fetchWorkflowMetadata()
-        const logs = await fetchWorkflowLogs('msjAutbVsovocbHU7Ozdh')
+        const logs = await fetchWorkflowLogs(ExecID)
         setWorkflowLogs(logs)
       } catch (error) {
         console.error('Failed to fetch workflow logs:', error)
@@ -23,10 +25,20 @@ export default function WorkflowsPage() {
     run()
   }, [])
 
+  if (!ExecID) {
+    return <ErrorPage title={'404: Not Found'} message={'No workflows found with this execution id.'} />
+  }
+
   return (
-    <>
-      <div className={'p-5'}>
-        <h1>LOGS</h1>
+    <div className={'p-5'}>
+      <div className={'mb-3 flex gap-x-3'}>
+        <Link to={'/logs'} className={'hover:underline'}>
+          logs
+        </Link>{' '}
+        <div>&gt;</div> <div>{ExecID}</div>
+      </div>
+      <hr className={'my-5'} />
+      <div className={''}>
         <div className="flex gap-5">
           {workflowLogs.map((log) => {
             // Decode the base64 encoded state into stringified json,
@@ -35,12 +47,12 @@ export default function WorkflowsPage() {
 
             return (
               <div key={log.ID} className={''}>
-                <p>
+                {/* <p>
                   <strong>Log ID:</strong> {log.ID}
                 </p>
                 <p>
                   <strong>Execution ID:</strong> {log.ExecID}
-                </p>
+                </p> */}
                 <p>
                   <strong>Nano time number:</strong> {log.EventTimeNano}
                 </p>
@@ -58,6 +70,6 @@ export default function WorkflowsPage() {
           })}
         </div>
       </div>
-    </>
+    </div>
   )
 }
