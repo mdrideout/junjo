@@ -8,7 +8,7 @@ import SignIn from './auth/sign-in/SignIn.tsx'
 import AuthGuard from './guards/AuthGuard.tsx'
 import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
-import WorkflowLogPage from './workflow-logs/WorkflowLogPage.tsx'
+import WorkflowLogPage from './workflow-logs/log-page/WorkflowLogPage.tsx'
 import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
