@@ -16,7 +16,7 @@ FROM
 WHERE
   exec_id = ? -- Added WHERE clause to filter by exec_id
 ORDER BY
-  event_time_nano DESC;
+  event_time_nano ASC;
 
 -- name: CreateWorkflowLog :one
 INSERT INTO
