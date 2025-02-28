@@ -5,7 +5,6 @@ import {
   ExitIcon,
   ExternalLinkIcon,
   GitHubLogoIcon,
-  HomeIcon,
   RocketIcon,
   RowsIcon,
 } from '@radix-ui/react-icons'
