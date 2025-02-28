@@ -41,3 +41,28 @@ func GetWorkflowLogs(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, logs)
 }
+
+func GetWorkflowMetadata(c echo.Context) error {
+	c.Logger().Printf("Running GetWorkflowMetadata function")
+
+	// Get database queries instance
+	queries := db_gen.New(db.DB)
+
+	// Call ListWorkflowMetadata
+	metadata, err := queries.ListWorkflowMetadata(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch workflow metadata",
+		})
+	}
+
+	// Log the metadata fetched
+	c.Logger().Printf("Fetched %d workflow metadata records", len(metadata))
+
+	// If no metadata found, return empty array
+	if len(metadata) == 0 {
+		return c.JSON(http.StatusOK, []string{})
+	}
+
+	return c.JSON(http.StatusOK, metadata)
+}

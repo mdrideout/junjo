@@ -8,6 +8,7 @@ import SignIn from './auth/sign-in/SignIn.tsx'
 import AuthGuard from './guards/AuthGuard.tsx'
 import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
+import WorkflowsPage from './workflows/components/WorkflowsPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -22,6 +23,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <AuthGuard>
                   <Dashboard />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/workflows"
+              element={
+                <AuthGuard>
+                  <WorkflowsPage />
                 </AuthGuard>
               }
             />
