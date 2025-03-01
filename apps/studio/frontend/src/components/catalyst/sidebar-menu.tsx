@@ -23,7 +23,7 @@ export default function SidebarMenu() {
         <div className="mb-2 flex">
           <Link href="#" aria-label="Home">
             <div className="mb-2">
-              <div className="font-logo text-3xl ml-2.5 mb-1.5">junjo-ui</div>
+              <div className="font-logo text-3xl ml-2.5 mb-1.5">junjo-server</div>
               <div>Simple AI Graph Workflows</div>
             </div>
           </Link>
@@ -80,11 +80,11 @@ export default function SidebarMenu() {
               </div>
             </SidebarLabel>
           </SidebarItem>
-          <SidebarItem href="https://github.com/mdrideout/junjo-ui" target="_blank">
+          <SidebarItem href="https://github.com/mdrideout/junjo-server" target="_blank">
             <GitHubLogoIcon />
             <SidebarLabel>
               <div className="flex items-center gap-x-2">
-                junjo-ui github <ExternalLinkIcon className="size-3" />
+                junjo-server github <ExternalLinkIcon className="size-3" />
               </div>
             </SidebarLabel>
           </SidebarItem>

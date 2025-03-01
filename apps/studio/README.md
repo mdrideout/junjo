@@ -1,4 +1,4 @@
-# Junjo UI
+# Junjo Server
 
 Repository for the FE + BE of the telemetry UI application.
 
@@ -24,24 +24,12 @@ Caddy is utilized as a reverse proxy to facilitate authentication guarded access
 - This runs in local development mode as part of the development environment build
 - It is expected that your virutal machine will have it's own Caddy service running, therefore it is excluded from production builds.
 
-## **TODO:** Remove the without docker instructions.
-
 #### .env requirements
 
 - `/backend` .env
 - `/frontend` .env
 
-### Without Docker
-
-```bash
-# Start the backend with hot reloading
-$ air
-
-# Build / run the backend
-$ go run main.go
-```
-
-### With Docker
+#### Docker Commands
 
 Docker compose can be used to launch the frontend and backend together, with hot reloading for local development.
 

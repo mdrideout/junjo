@@ -1,6 +1,6 @@
 # GO API & Telemetry Server
 
-This is the backend GO application running in a docker container of the Junjo-UI setup.
+This is the backend GO application running in a docker container of the junjo-server setup.
 
 **Servers:** This GO application runs two servers.
 
@@ -32,4 +32,4 @@ $ make proto
 
 #### NOTE:
 
-`.proto` files between junjo and junjo-ui must match.
+`.proto` files between junjo and junjo-server must match.

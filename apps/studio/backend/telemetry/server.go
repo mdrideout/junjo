@@ -10,8 +10,8 @@ import (
 
 	"database/sql"
 
-	db "junjo-ui-backend/db_gen"    // Import your sqlc code
-	pb "junjo-ui-backend/proto_gen" // Import generated protobuf code
+	db "junjo-server/db_gen"    // Import your sqlc code
+	pb "junjo-server/proto_gen" // Import generated protobuf code
 
 	_ "modernc.org/sqlite" // SQLite driver
 )

@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"os"
 
-	"junjo-ui-backend/api"
-	"junjo-ui-backend/auth"
-	"junjo-ui-backend/db"
-	m "junjo-ui-backend/middleware"
-	"junjo-ui-backend/telemetry"
-	u "junjo-ui-backend/utils"
+	"junjo-server/api"
+	"junjo-server/auth"
+	"junjo-server/db"
+	m "junjo-server/middleware"
+	"junjo-server/telemetry"
+	u "junjo-server/utils"
 
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"

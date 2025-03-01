@@ -2,8 +2,8 @@ package api
 
 import (
 	"database/sql"
-	"junjo-ui-backend/db"
-	"junjo-ui-backend/db_gen"
+	"junjo-server/db"
+	"junjo-server/db_gen"
 	"net/http"
 
 	"github.com/labstack/echo/v4"

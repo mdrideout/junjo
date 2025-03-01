@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"junjo-ui-backend/auth"
+	"junjo-server/auth"
 
 	"github.com/labstack/echo/v4"
 )
