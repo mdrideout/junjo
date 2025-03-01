@@ -1,4 +1,5 @@
 import {
+  ArrowRightIcon,
   AvatarIcon,
   BarChartIcon,
   DashboardIcon,
@@ -40,6 +41,10 @@ export default function SidebarMenu() {
               <SidebarItem href="/">
                 <DashboardIcon />
                 <SidebarLabel>Dashboard</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/rf-layout-1">
+                <ArrowRightIcon />
+                <SidebarLabel>React Flow Example</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/logs">
                 <RowsIcon />

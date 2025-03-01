@@ -11,6 +11,7 @@ import SignOut from './auth/sign-out/SignOut.tsx'
 import WorkflowLogPage from './workflow-logs/log-page/WorkflowLogPage.tsx'
 import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import ReactFlowLayout1 from './react-flow/react-flow-layout-1.tsx'
 
 const queryClient = new QueryClient()
 
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
                   </AuthGuard>
                 }
               />
+              <Route path="/rf-layout-1" element={<ReactFlowLayout1 />} />
               <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
             </Route>
           </Routes>
