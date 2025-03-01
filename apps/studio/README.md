@@ -1,6 +1,11 @@
 # Junjo Server
 
-Repository for the FE + BE of the telemetry UI application.
+This repository contains everything that runs the Junjo telemetry server and user interface.
+
+- Go Echo API and gRPC server
+- Jaeger server
+- Caddy reverse proxy
+- React frontend
 
 ## Frontend
 
