@@ -1,4 +1,4 @@
-module junjo-ui-backend
+module junjo-server
 
 go 1.24.0
 
