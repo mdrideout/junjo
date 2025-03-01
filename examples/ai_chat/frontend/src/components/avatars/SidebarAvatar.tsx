@@ -1,0 +1,22 @@
+type SidebarAvatarProps = {
+  gender: 'male' | 'female'
+}
+
+export default function SidebarAvatar(props: SidebarAvatarProps) {
+  const { gender } = props
+
+  const isMale = gender === 'male'
+
+  const buttonClasses = `flex items-center rounded-full gap-x-2 transition-all duration-200 cursor-pointer ${
+    isMale
+      ? 'hover:shadow-[0_0_10px_2px_rgb(81,161,252)] hover:bg-blue-500' // Blue glow and background for male
+      : 'hover:shadow-[0_0_10px_2px_rgb(244,114,182)] hover:bg-pink-500' // Pink glow and background for female
+  }`
+
+  return (
+    <button className={buttonClasses}>
+      <div className={'rounded-full bg-zinc-400 border border-zinc-100 size-5'}></div>
+      <div className="font-semibold text-sm">{isMale ? 'John Doe' : 'Mary Swanson'}</div>
+    </button>
+  )
+}
