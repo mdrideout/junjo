@@ -1,5 +1,5 @@
 import { Node, Edge, Position } from '@xyflow/react'
-import dagre, { type GraphLabel, type LayoutConfig } from '@dagrejs/dagre'
+import dagre from '@dagrejs/dagre'
 
 export enum ReactFlowGraphDirection {
   LR = 'LR',
