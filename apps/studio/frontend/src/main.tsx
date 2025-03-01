@@ -12,6 +12,7 @@ import WorkflowLogPage from './workflow-logs/log-page/WorkflowLogPage.tsx'
 import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ReactFlowLayout1 from './react-flow/react-flow-layout-1.tsx'
+import { ReactFlowProvider } from '@xyflow/react'
 
 const queryClient = new QueryClient()
 
@@ -19,32 +20,34 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/sign-in" element={<SignIn />} />
-              <Route path="/sign-out" element={<SignOut />} />
-              <Route
-                path="/"
-                element={
-                  <AuthGuard>
-                    <Dashboard />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/logs"
-                element={
-                  <AuthGuard>
-                    <WorkflowListPage />
-                  </AuthGuard>
-                }
-              />
-              <Route path="/rf-layout-1" element={<ReactFlowLayout1 />} />
-              <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
-            </Route>
-          </Routes>
-        </AuthProvider>
+        <ReactFlowProvider>
+          <AuthProvider>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/sign-out" element={<SignOut />} />
+                <Route
+                  path="/"
+                  element={
+                    <AuthGuard>
+                      <Dashboard />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs"
+                  element={
+                    <AuthGuard>
+                      <WorkflowListPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route path="/rf-layout-1" element={<ReactFlowLayout1 />} />
+                <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </ReactFlowProvider>
       </QueryClientProvider>
     </BrowserRouter>
   </StrictMode>,

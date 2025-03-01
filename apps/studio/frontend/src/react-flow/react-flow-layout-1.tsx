@@ -14,7 +14,7 @@ import { useCallback } from 'react'
 import { initialNodes, initialEdges } from './example-rf-data'
 import layoutGraphWithDagre, { ReactFlowGraphDirection } from './dagre-layout-util'
 
-export default function ReactFlowLayout2() {
+export default function ReactFlowLayout1() {
   // Perform initial layout
   const { nodes: layoutedNodes, edges: layoutedEdges } = layoutGraphWithDagre({
     nodes: initialNodes,

@@ -1,11 +1,6 @@
 import { Node, Edge, Position } from '@xyflow/react'
 import dagre, { type GraphLabel, type LayoutConfig } from '@dagrejs/dagre'
 
-// Constants
-const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}))
-const nodeWidth = 150
-const nodeHeight = 40
-
 export enum ReactFlowGraphDirection {
   LR = 'LR',
   TB = 'TB',
@@ -38,10 +33,18 @@ export interface LayoutGraphWithDagreResult {
  * @returns
  */
 export default function layoutGraphWithDagre(props: LayoutGraphWithDagreProps): LayoutGraphWithDagreResult {
-  const { nodes, edges, direction = ReactFlowGraphDirection.LR } = props
+  const { nodes, edges, direction = ReactFlowGraphDirection.TB } = props
 
+  // Construct a new graph instance
+  const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}))
+
+  // Size constants
+  const nodeWidth = 150
+  const nodeHeight = 40
+
+  // Determine direction
   const isHorizontal = direction === ReactFlowGraphDirection.LR
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 300, ranksep: 40 })
+  dagreGraph.setGraph({ rankdir: direction?.valueOf(), nodesep: 300, ranksep: 40 })
 
   nodes.forEach((node) => {
     node.style = {
