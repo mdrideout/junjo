@@ -20,7 +20,7 @@ export const WorkflowMetadatumSchema = z.object({
   ExecID: z.string(),
   Name: z.string(),
   CreatedAt: z.string(), // Time values come as ISO strings from the API
-  Structure: z.any(), // Using any for the interface{} equivalent
+  Structure: z.string(), // Provided as a base64 encoded JSON strings
 })
 export type WorkflowMetadatum = z.infer<typeof WorkflowMetadatumSchema>
 

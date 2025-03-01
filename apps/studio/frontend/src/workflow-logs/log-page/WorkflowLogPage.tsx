@@ -1,34 +1,38 @@
-import { useEffect, useState } from 'react'
 import { WorkflowLog } from '../schemas'
-import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
 import { Link, useParams } from 'react-router'
 import ErrorPage from '../../components/errors/ErrorPage'
 import WorkflowStructure from './WorkflowStructure'
 import { decodeBase64Json } from '../../util/decode-base64-json'
+import { useQuery } from '@tanstack/react-query'
+import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
 
 export default function WorkflowLogPage() {
   const { ExecID } = useParams()
-  const [workflowLogs, setWorkflowLogs] = useState<WorkflowLog[]>([])
 
-  useEffect(() => {
-    if (!ExecID) return
+  // useQuery<DataType, ErrorType>
+  const {
+    data: workflowLogs,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<WorkflowLog[], Error>({
+    queryKey: ['workflowLogs', ExecID],
+    queryFn: () => fetchWorkflowLogs(ExecID!),
+    enabled: !!ExecID,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
 
-    const run = async () => {
-      try {
-        const logs = await fetchWorkflowLogs(ExecID)
-        setWorkflowLogs(logs)
-      } catch (error) {
-        console.error('Failed to fetch workflow logs:', error)
-      } finally {
-        // TODO
-      }
-    }
+  if (isLoading) {
+    return null
+  }
 
-    run()
-  }, [])
+  if (isError) {
+    console.log('Error', error)
+    return <ErrorPage title={'404: Not Found'} message={`No workflow logs found for id: ${ExecID}`} />
+  }
 
-  if (!ExecID) {
-    return <ErrorPage title={'404: Not Found'} message={'No workflows found with this execution id.'} />
+  if (!ExecID || !workflowLogs || workflowLogs.length === 0) {
+    return <div>No metadata found.</div>
   }
 
   // Human readable start ingest time

@@ -10,35 +10,40 @@ import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
 import WorkflowLogPage from './workflow-logs/log-page/WorkflowLogPage.tsx'
 import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/sign-in" element={<SignIn />} />
-            <Route path="/sign-out" element={<SignOut />} />
-            <Route
-              path="/"
-              element={
-                <AuthGuard>
-                  <Dashboard />
-                </AuthGuard>
-              }
-            />
-            <Route
-              path="/logs"
-              element={
-                <AuthGuard>
-                  <WorkflowListPage />
-                </AuthGuard>
-              }
-            />
-            <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/sign-out" element={<SignOut />} />
+              <Route
+                path="/"
+                element={
+                  <AuthGuard>
+                    <Dashboard />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/logs"
+                element={
+                  <AuthGuard>
+                    <WorkflowListPage />
+                  </AuthGuard>
+                }
+              />
+              <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   </StrictMode>,
 )
