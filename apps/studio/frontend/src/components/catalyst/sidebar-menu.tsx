@@ -1,5 +1,4 @@
 import {
-  ArrowRightIcon,
   AvatarIcon,
   BarChartIcon,
   DashboardIcon,
@@ -13,6 +12,7 @@ import { Link } from './link'
 import { Sidebar, SidebarBody, SidebarHeading, SidebarItem, SidebarLabel, SidebarSection } from './sidebar'
 import { AuthContext } from '../../auth/auth-context'
 import { useContext } from 'react'
+import junjoLogo from '../../assets/junjo-logo.svg'
 
 export default function SidebarMenu() {
   const { isAuthenticated } = useContext(AuthContext)
@@ -22,9 +22,9 @@ export default function SidebarMenu() {
       <SidebarBody>
         <div className="mb-2 flex">
           <Link href="#" aria-label="Home">
-            <div className="mb-2">
-              <div className="font-logo text-3xl ml-2.5 mb-1.5">junjo-server</div>
-              <div>Simple AI Graph Workflows</div>
+            <div className="flex items-center gap-x-3 mb-2">
+              <img src={junjoLogo} alt="Junjo Logo (Karp)" className="h-12 w-12 text-red" />
+              <div className="font-logo text-4xl -mt-[2px]">j u n j o</div>
             </div>
           </Link>
         </div>
@@ -41,10 +41,6 @@ export default function SidebarMenu() {
               <SidebarItem href="/">
                 <DashboardIcon />
                 <SidebarLabel>Dashboard</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/rf-layout-1">
-                <ArrowRightIcon />
-                <SidebarLabel>React Flow Example</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/logs">
                 <RowsIcon />

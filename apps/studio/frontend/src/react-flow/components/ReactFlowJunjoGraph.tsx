@@ -11,8 +11,8 @@ import {
   type Edge,
 } from '@xyflow/react'
 
-import layoutGraphWithDagre, { ReactFlowGraphDirection } from './dagre-layout-util'
-import { JunjoGraph } from '../junjo-graph/junjo-graph'
+import layoutGraphWithDagre, { ReactFlowGraphDirection } from '../dagre-layout-util'
+import { JunjoGraph } from '../../junjo-graph/junjo-graph'
 import { useCallback, useState } from 'react'
 
 export type ReactFlowJunjoGraphProps = {
