@@ -2,7 +2,7 @@
 
 
 
-from examples.dev.store import MyGraphState, MyGraphStore
+from examples.base.store import MyGraphState, MyGraphStore
 from junjo.app import JunjoApp
 from junjo.edge import Edge
 from junjo.graph import Graph
