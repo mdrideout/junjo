@@ -14,9 +14,21 @@ This is a more complete example of Junjo, showcasing:
 ## Run the example
 
 ```bash
-# Start the frontend
+# FRONTEND (from ./frontend)
+# Ensure all packages are installed
+$ npm i
+
+# Start the frontend 
 $ npm run dev
 
+
+# BACKEND (from ./backend)
+# Make sure the backend virtual environment is activated
+$ source .venv/bin/activate
+
+# Ensure all packages are installed
+$ uv pip install -e .
+
 # Start the backend
-$ ...
+$ fastapi dev main.py
 ```
