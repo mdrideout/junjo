@@ -2,7 +2,7 @@ import { ReactFlowGraphDirection } from '../react-flow/dagre-layout-util'
 import { ReactFlowInitialData } from '../react-flow/schemas'
 import { JunjoGraphError } from './errors'
 import { JEdge, JGraph, JGraphSchema, JNode } from './schemas'
-import { Edge as RFEdge, Node as RFNode, Position as RFPosition } from '@xyflow/react' // Import correct types
+import { Edge as RFEdge, Node as RFNode } from '@xyflow/react' // Import correct types
 
 export class JunjoGraph {
   private graph: JGraph
@@ -92,6 +92,7 @@ export class JunjoGraph {
       source: edge.source,
       target: edge.target,
       label: edge.condition, // Label will display the condition
+      style: { strokeDasharray: edge.condition ? '5, 3' : '' }, // Conditional dotted line
     }))
 
     return { direction, nodes, edges }

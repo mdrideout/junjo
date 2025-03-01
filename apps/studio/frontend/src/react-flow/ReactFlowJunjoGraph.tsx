@@ -4,21 +4,16 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   Background,
-  ConnectionLineType,
   OnEdgesChange,
   OnNodesChange,
   ReactFlow,
-  useEdgesState,
-  useNodesState,
-  useReactFlow,
   type Node,
   type Edge,
-  FitViewOptions,
 } from '@xyflow/react'
 
 import layoutGraphWithDagre, { ReactFlowGraphDirection } from './dagre-layout-util'
 import { JunjoGraph } from '../junjo-graph/junjo-graph'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 export type ReactFlowJunjoGraphProps = {
   junjoGraph: JunjoGraph
