@@ -172,7 +172,7 @@ cython_debug/
 .pypirc
 
 # Protobuf generated code
-src/junjo/telemetry/junjo_ui/proto_gen/**.*
+src/junjo/telemetry/junjo_server/proto_gen/**.*
 
 # Keep the init
-!src/junjo/telemetry/junjo_ui/proto_gen/__init__.py
+!src/junjo/telemetry/junjo_server/proto_gen/__init__.py

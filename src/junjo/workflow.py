@@ -7,7 +7,7 @@ from nanoid import generate
 from junjo.graph import Graph
 from junjo.store import BaseStore, StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.junjo_ui.client import JunjoUiClient, WorkflowLogType
+from junjo.telemetry.junjo_server.client import JunjoUiClient, WorkflowLogType
 from junjo.workflow_context import WorkflowContextManager
 
 

@@ -1,7 +1,7 @@
 .PHONY: proto clean
 
-PROTO_SRC_DIR := ./src/junjo/telemetry/junjo_ui/proto
-PROTO_OUT_DIR := ./src/junjo/telemetry/junjo_ui/proto_gen
+PROTO_SRC_DIR := ./src/junjo/telemetry/junjo_server/proto
+PROTO_OUT_DIR := ./src/junjo/telemetry/junjo_server/proto_gen
 
 proto:
 	python -m grpc_tools.protoc \
