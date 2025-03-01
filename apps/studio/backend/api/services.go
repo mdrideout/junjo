@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"junjo-ui-backend/db"
 	"junjo-ui-backend/db_gen"
 	"net/http"
@@ -63,6 +64,42 @@ func GetWorkflowMetadata(c echo.Context) error {
 	if len(metadata) == 0 {
 		return c.JSON(http.StatusOK, []string{})
 	}
+
+	return c.JSON(http.StatusOK, metadata)
+}
+
+func GetWorkflowMetadataByExecID(c echo.Context) error {
+	c.Logger().Printf("Running GetWorkflowMetadataByExecID function")
+
+	// Get execId from query parameters
+	execID := c.Param("execID")
+	if execID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "execId is required",
+		})
+	}
+
+	// Get database queries instance
+	queries := db_gen.New(db.DB)
+
+	// Call GetWorkflowMetadataByExecID
+	metadata, err := queries.GetWorkflowMetadataByExecID(c.Request().Context(), execID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "No metadata found for execId: " + execID,
+			})
+		}
+
+		c.Logger().Printf("Error: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error":   "Failed to fetch workflow metadata",
+			"details": err.Error(),
+		})
+	}
+
+	// Log the metadata fetched
+	c.Logger().Printf("Fetched metadata for execId: %s", execID)
 
 	return c.JSON(http.StatusOK, metadata)
 }

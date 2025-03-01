@@ -1,33 +1,35 @@
-import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { WorkflowMetadatum } from './schemas'
-import { fetchWorkflowMetadataList } from './fetch/fetch-workflow-metadata'
 import { useNavigate } from 'react-router'
-import { useMetadataStore } from './store/workflow_metadata_store'
+import { fetchWorkflowMetadataList } from './fetch/fetch-workflow-metadata'
 
 export default function WorkflowsList() {
   const navigate = useNavigate()
 
-  const { metadata, setMetadata } = useMetadataStore((state) => ({
-    metadata: state.metadata,
-    setMetadata: state.setMetadata,
-  }))
+  // useQuery<DataType, ErrorType>
+  const {
+    data: metadataList,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<WorkflowMetadatum[], Error>({
+    queryKey: ['workflowMetadataList'],
+    queryFn: fetchWorkflowMetadataList,
+    select: (data) => data,
+    // refetchInterval: 1000 * 3,
+  })
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const list = await fetchWorkflowMetadataList()
-        setMetadata(list)
-      } catch (error) {
-        console.error('Failed to fetch workflow logs:', error)
-      } finally {
-        // TODO
-      }
-    }
+  if (isLoading) {
+    return <div>Loading metadata list...</div>
+  }
 
-    run()
-  }, [])
+  if (isError) {
+    return <div>Error: {error.message}</div>
+  }
 
-  const workflowMetadataList = Object.values(metadata) as WorkflowMetadatum[]
+  if (!metadataList) {
+    return <div>No metadata found.</div>
+  }
 
   return (
     <table className="text-left">
@@ -39,7 +41,7 @@ export default function WorkflowsList() {
         </tr>
       </thead>
       <tbody>
-        {workflowMetadataList.map((item) => {
+        {metadataList.map((item) => {
           // Make date human readable
           const date = new Date(item.CreatedAt)
           item.CreatedAt = date.toLocaleString()
