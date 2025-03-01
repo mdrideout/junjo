@@ -47,7 +47,7 @@ export default function WorkflowLogPage() {
   return (
     <div className={'p-5'}>
       <div className={'px-2'}>
-        <div className={'mb-1 flex gap-x-3'}>
+        <div className={'mb-1 flex gap-x-3 font-bold'}>
           <Link to={'/logs'} className={'hover:underline'}>
             Logs
           </Link>{' '}
