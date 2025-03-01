@@ -49,7 +49,7 @@ export default function WorkflowLogPage() {
       <div className={'px-2'}>
         <div className={'mb-1 flex gap-x-3'}>
           <Link to={'/logs'} className={'hover:underline'}>
-            logs
+            Logs
           </Link>{' '}
           <div>&rarr;</div>
           <div>{ExecID}</div>
@@ -92,7 +92,7 @@ export default function WorkflowLogPage() {
           })}
         </div>
         <div className="h-10"></div>
-        <strong>Workflow Graph:</strong>
+        <strong>Graph Structure:</strong>
         <WorkflowStructure ExecID={ExecID} />
       </div>
     </div>

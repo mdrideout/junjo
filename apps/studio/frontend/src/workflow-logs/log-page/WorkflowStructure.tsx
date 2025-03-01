@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { decodeBase64Json } from '../../util/decode-base64-json'
 import { fetchWorkflowMetadata } from '../fetch/fetch-workflow-metadata'
 import { WorkflowMetadatum } from '../schemas'
+import { JunjoGraph } from '../../junjo-graph/junjo-graph'
+import ReactFlowJunjoGraph from '../../react-flow/ReactFlowJunjoGraph'
+import { ReactFlowGraphDirection } from '../../react-flow/dagre-layout-util'
 
 export type WorkflowStructureProps = {
   ExecID: string
@@ -15,7 +17,6 @@ export type WorkflowStructureProps = {
 export default function WorkflowStructure(props: WorkflowStructureProps) {
   const { ExecID } = props
 
-  // useQuery<DataType, ErrorType>
   const {
     data: metadata,
     isLoading,
@@ -40,12 +41,20 @@ export default function WorkflowStructure(props: WorkflowStructureProps) {
     return <div>No metadata found.</div>
   }
 
-  const decodeStructure = decodeBase64Json(metadata.Structure)
-  const displayStructure = JSON.stringify(decodeStructure, null, 2)
+  // Create a JunjoGraph instance
+  const junjoGraph = JunjoGraph.fromBase64Json(metadata.Structure)
+  const json = junjoGraph.toJson()
 
   return (
-    <div>
-      <pre>{displayStructure}</pre>
+    <div className="flex">
+      <div>
+        <pre>{json}</pre>
+      </div>
+      <div className="grow">
+        <div className={'h-[500px]'}>
+          <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.TB} />
+        </div>
+      </div>
     </div>
   )
 }

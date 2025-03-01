@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import WorkflowList from './WorkflowList'
 
 /**
@@ -7,10 +8,21 @@ import WorkflowList from './WorkflowList'
  * @returns
  */
 export default function WorkflowListPage() {
+  // Human readable start ingest time
+  const date = new Date()
+  const readableDate = date.toLocaleString()
+
   return (
     <div className={'p-5'}>
-      <h1>workflow logs</h1>
-      <div className="h-2"></div>
+      <div className={'px-2'}>
+        <div className={'mb-1 flex gap-x-3'}>
+          <Link to={'/logs'} className={'hover:underline'}>
+            Logs
+          </Link>{' '}
+        </div>
+        <div className={'text-zinc-400 text-xs'}>{readableDate}</div>
+      </div>
+      <hr className={'my-6'} />
       <WorkflowList />
     </div>
   )
