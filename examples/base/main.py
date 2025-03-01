@@ -12,9 +12,6 @@ from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
 from junjo.workflow_context import WorkflowContextManager
 
-# Run With
-# python -m examples.dev.main
-# uv run -m examples.dev.main
 
 async def main():
     """The main entry point for the application."""
