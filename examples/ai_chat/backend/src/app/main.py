@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.contact.routes import contact_router
 from app.db.db_config import engine, init_db
 from app.log.config import setup_logging
 
@@ -29,7 +30,5 @@ app = FastAPI(lifespan=lifespan)
 def read_root():
     return {"Hello": "World"}
 
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
+# Add routers
+app.include_router(contact_router)

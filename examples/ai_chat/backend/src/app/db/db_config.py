@@ -46,7 +46,7 @@ async def init_db():
 
     # Import table models here
     # Tables will not get created unless they are imported here
-    from app.db.partner.model import ContactsTable  # noqa: F401
+    from app.contact.model import ContactsTable  # noqa: F401
 
     async with engine.begin() as conn:
         # Create tables if they don't exist
