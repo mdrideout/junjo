@@ -28,7 +28,7 @@ export default function NewContactButton(props: NewContactButtonProps) {
           onClick={() => createContact(gender)}
           className="flex items-center gap-x-2 justify-center font-bold w-full cursor-pointer border border-blue-300 rounded-md bg-gradient-to-b from-blue-600 to-blue-700 hover:to-blue-800 text-white leading-none px-3 py-2"
         >
-          <div>{error ? 'Error, Try Again' : 'New Girlfriend'}</div>
+          <div>{error ? 'Error, Try Again' : 'New Boyfriend'}</div>
           <div className={`${isLoading ? 'animate-rotate' : ''}`}>🙋‍♂️</div>
         </button>
       )
