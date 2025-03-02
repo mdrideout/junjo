@@ -1,12 +1,18 @@
 {
-  "python.defaultInterpreterPath": ".venv/bin/python", // Or .venv\\Scripts\\python.exe (Windows)
-  "python.analysis.extraPaths": ["./src"], // Keep this, it's helpful
-  "python.analysis.packageIndexDepths": [
-    {
-      "name": "app",
-      "depth": 1,
-      "includeAllSymbols": true
+  "[python]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "astral-sh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll": "explicit"
     }
-  ],
-  "python.analysis.sourceRoot": "src"
+  },
+  "ruff.enable": true,
+  "python.defaultInterpreterPath": ".venv/bin/python",
+  "python.testing.pytestArgs": ["./src"],
+  "python.analysis.extraPaths": ["./src"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }

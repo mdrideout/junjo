@@ -1,4 +1,4 @@
-from app.contact import model, schemas
+from app.db.models.contact import model, schemas
 from app.db.db_config import async_session  # You'll need to define this
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,7 +28,6 @@ class ContactRepository:
         except SQLAlchemyError as e:
             raise e
 
-
     @staticmethod
     async def read(id: str) -> schemas.ContactRead | None:
         try:
@@ -41,7 +40,6 @@ class ContactRepository:
         except SQLAlchemyError as e:
             raise e
 
-
     @staticmethod
     async def read_all(skip: int = 0, limit: int = 100) -> list[schemas.ContactRead]:
         try:
@@ -51,7 +49,6 @@ class ContactRepository:
                 return [schemas.ContactRead.from_orm(db_contact) for db_contact in db_contacts]
         except SQLAlchemyError as e:
             raise e
-
 
     @staticmethod
     async def delete(id: str) -> bool:
@@ -66,4 +63,3 @@ class ContactRepository:
                 return True
         except SQLAlchemyError as e:
             raise e
-

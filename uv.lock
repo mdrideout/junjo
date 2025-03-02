@@ -67,6 +67,11 @@ dependencies = [
     { name = "sqlalchemy" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.21.0" },
@@ -78,6 +83,9 @@ requires-dist = [
     { name = "nanoid", specifier = ">=2.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.38" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.9.5" }]
 
 [[package]]
 name = "babel"
