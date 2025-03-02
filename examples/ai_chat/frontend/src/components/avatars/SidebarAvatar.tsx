@@ -1,11 +1,13 @@
-type SidebarAvatarProps = {
-  gender: 'male' | 'female'
+import { ContactRead, GenderEnum } from '../../api/contact/schemas'
+
+interface SidebarAvatarProps {
+  contact: ContactRead
 }
 
 export default function SidebarAvatar(props: SidebarAvatarProps) {
-  const { gender } = props
+  const { gender, first_name, last_name } = props.contact
 
-  const isMale = gender === 'male'
+  const isMale = gender === GenderEnum.MALE
 
   const buttonClasses = `flex items-center rounded-full gap-x-2 transition-all duration-200 cursor-pointer ${
     isMale
@@ -16,7 +18,9 @@ export default function SidebarAvatar(props: SidebarAvatarProps) {
   return (
     <button className={buttonClasses}>
       <div className={'rounded-full bg-zinc-400 border border-zinc-100 size-5'}></div>
-      <div className="font-semibold text-sm">{isMale ? 'John Doe' : 'Mary Swanson'}</div>
+      <div className="font-semibold text-sm">
+        {first_name} {last_name}
+      </div>
     </button>
   )
 }
