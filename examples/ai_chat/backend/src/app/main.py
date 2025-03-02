@@ -1,10 +1,14 @@
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from app.contact.routes import contact_router
 from app.db.db_config import engine, init_db
 from app.log.config import setup_logging
+
+# Load the environment variables
+load_dotenv()
 
 # Set up logging
 setup_logging()
