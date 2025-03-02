@@ -23,9 +23,10 @@ async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> Contac
     # Create schema as a string
     json_schema = ContactCreate.model_json_schema(mode="serialization")
     schema_string = json.dumps(json_schema)
+    prompt = prompt=contact_create_prompt_gemini(schema_string, request.gender)
 
     # Test the gemini request
-    gemini_tool = GeminiTool(prompt=contact_create_prompt_gemini(schema_string), model="gemini-1.5-flash-002")
+    gemini_tool = GeminiTool(prompt=prompt, model="gemini-1.5-flash-8b-001")
     gemini_result = await gemini_tool.schema_request(ContactCreateGeminiSchema)
     logger.info(f"Gemini result: {gemini_result}")
 

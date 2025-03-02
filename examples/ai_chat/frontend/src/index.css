@@ -66,3 +66,17 @@ ul ol {
 li {
   @apply mb-2;
 }
+
+/* Animations */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-rotate {
+  animation: rotate 1s linear infinite; /* Linear for constant speed */
+}

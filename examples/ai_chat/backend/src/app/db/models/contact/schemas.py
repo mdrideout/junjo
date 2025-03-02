@@ -5,9 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class GenderEnum(Enum):
-    MALE = "male"
-    FEMALE = "female"
-    OTHER = "other"
+    MALE = "MALE"
+    FEMALE = "FEMALE"
 
 
 class ContactCreate(BaseModel):

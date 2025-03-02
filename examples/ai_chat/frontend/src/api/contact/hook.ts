@@ -1,0 +1,33 @@
+import { useState } from 'react'
+import { useContactStore } from '../../api/contact/store'
+import { createContact } from '../../api/contact/fetch'
+import { GenderEnum } from './schemas'
+
+interface UseCreateContactResult {
+  isLoading: boolean
+  error: string | null
+  createContact: (gender: GenderEnum) => Promise<void> // Added createContact function
+}
+
+const useCreateAndUpsertContact = (): UseCreateContactResult => {
+  const { upsertContacts } = useContactStore()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const createContactAndUpsert = async (gender: GenderEnum) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const newContact = await createContact({ gender })
+      upsertContacts([newContact])
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { isLoading, error, createContact: createContactAndUpsert }
+}
+
+export default useCreateAndUpsertContact
