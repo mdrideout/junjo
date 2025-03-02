@@ -1,0 +1,12 @@
+{
+  "python.defaultInterpreterPath": ".venv/bin/python", // Or .venv\\Scripts\\python.exe (Windows)
+  "python.analysis.extraPaths": ["./src"], // Keep this, it's helpful
+  "python.analysis.packageIndexDepths": [
+    {
+      "name": "app",
+      "depth": 1,
+      "includeAllSymbols": true
+    }
+  ],
+  "python.analysis.sourceRoot": "src"
+}
