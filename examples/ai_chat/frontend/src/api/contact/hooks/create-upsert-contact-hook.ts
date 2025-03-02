@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useContactStore } from '../../api/contact/store'
-import { createContact } from '../../api/contact/fetch'
-import { GenderEnum } from './schemas'
+import { createContact } from '../fetch'
+import { GenderEnum } from '../schemas'
+import { useContactStore } from '../store'
 
 interface UseCreateContactResult {
   isLoading: boolean

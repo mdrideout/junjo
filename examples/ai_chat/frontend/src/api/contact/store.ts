@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 
 interface ContactState {
   contact: Partial<{ [id: string]: ContactRead }>
+  lastFetch: number | null
 
   upsertContacts: (list: ContactRead[]) => void
   deleteContact: (id: string) => void
@@ -13,6 +14,7 @@ interface ContactState {
 export const useContactStore = create<ContactState>()(
   devtools((set) => ({
     contact: {},
+    lastFetch: null,
 
     upsertContacts: (list: ContactRead[]) =>
       set((state) => {

@@ -1,7 +1,8 @@
-from app.db.models.contact.repository import ContactRepository
-from app.db.models.contact.schemas import ContactCreate, ContactRead
 from fastapi import APIRouter
 from loguru import logger
+
+from app.db.models.contact.repository import ContactRepository
+from app.db.models.contact.schemas import ContactCreate, ContactRead
 
 contact_router = APIRouter(prefix="/api/contact")
 
@@ -17,4 +18,14 @@ async def post_contact(request: ContactCreate) -> ContactRead:
     # Call the repository service to create the contact
     result = await ContactRepository.create(request)
 
+    return result
+
+@contact_router.get("/")
+async def get_contacts() -> list[ContactRead]:
+    """
+    Get all contacts.
+    """
+    logger.info("Getting all contacts")
+
+    result = await ContactRepository.read_all()
     return result
