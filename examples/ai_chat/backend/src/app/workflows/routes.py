@@ -5,7 +5,7 @@ from loguru import logger
 
 from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.db.models.contact.repository import ContactRepository
-from app.db.models.contact.schemas import ContactCreate, ContactCreateGeminiSchema, ContactRead
+from app.db.models.contact.schemas import ContactCreate, ContactRead
 from app.workflows.contact_create.prompt_gemini import contact_create_prompt_gemini
 from app.workflows.contact_create.schemas import ContactCreateWorkflowRequest
 
@@ -27,7 +27,7 @@ async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> Contac
 
     # Test the gemini request
     gemini_tool = GeminiTool(prompt=prompt, model="gemini-1.5-flash-8b-001")
-    gemini_result = await gemini_tool.schema_request(ContactCreateGeminiSchema)
+    gemini_result = await gemini_tool.schema_request(ContactCreate)
     logger.info(f"Gemini result: {gemini_result}")
 
     # Convert it to the ContactCreate model

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class GenderEnum(Enum):
@@ -10,21 +10,6 @@ class GenderEnum(Enum):
 
 
 class ContactCreate(BaseModel):
-    gender: GenderEnum
-    first_name: str = Field(..., min_length=2, max_length=50)
-    last_name: str = Field(..., min_length=2, max_length=50)
-    age: int = Field(..., ge=18, lt=130)
-    weight_lbs: float = Field(..., ge=75, lt=500)
-    us_state: str = Field(..., max_length=50)
-    city: str = Field(..., max_length=100)
-    bio: str = Field(..., max_length=1000)
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ContactCreateGeminiSchema(BaseModel):
-    """A clone of the Create model for Gemini, which does not support the Field extras."""
-
     gender: GenderEnum
     first_name: str
     last_name: str

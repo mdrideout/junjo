@@ -1,12 +1,22 @@
-from app.db.models.contact import model, schemas
-from app.db.db_config import async_session  # You'll need to define this
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+
+from app.db.db_config import async_session  # You'll need to define this
+from app.db.models.chat.repository import ChatRepository
+from app.db.models.chat_members.repository import ChatMembersRepository
+from app.db.models.chat_members.schemas import ChatMemberCreate
+from app.db.models.contact import model, schemas
 
 
 class ContactRepository:
     @staticmethod
     async def create(contact: schemas.ContactCreate) -> schemas.ContactRead:
+        """
+        Creats a new contact in the database and sets up requisite entries inside:
+            - chats
+
+        By default, all new contacts should have a chat established.
+        """
         try:
             db_obj = model.ContactsTable(
                 gender=contact.gender,
@@ -23,6 +33,16 @@ class ContactRepository:
                 session.add(db_obj)
                 await session.commit()
                 await session.refresh(db_obj)
+
+                # Create a new chat
+                new_chat = await ChatRepository.create()
+
+                # Add the contact as a member to the new chat
+                new_chat_member = ChatMemberCreate(
+                    chat_id=new_chat.id,
+                    contact_id=db_obj.id,
+                )
+                await ChatMembersRepository.create(new_chat_member)
 
             return schemas.ContactRead.model_validate(db_obj)
         except SQLAlchemyError as e:

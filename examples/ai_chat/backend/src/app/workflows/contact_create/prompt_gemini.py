@@ -3,10 +3,16 @@ from app.db.models.contact.schemas import GenderEnum
 
 def contact_create_prompt_gemini(schema: str, gender: GenderEnum) -> str:
     return f"""
-Create a {gender.value.lower()} dating app profile.
+Create a realistic {gender.value.lower()} dating app profile modeled after Tinder profiles.
 
-The intent is to have a dating partner with a unique to chat with.
+You will be creating many of these, so try to make this one unique.
 
-Adhere to the following schema for field limitations:
+Requirements:
+- Age is at least 18 and less than 100
+- Weight is over 70 lbs and under 500 lbs
+- Keep the bio to under 200 tokens
+- Do not abbreviate city or state
+
+Output JSON according to the following schema:
 {schema}
 """.strip()

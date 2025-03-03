@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { zodHandlePythonDatetime } from '../../util/zod-utils'
 
 // Native enum for GenderEnum
 export enum GenderEnum {
@@ -9,30 +10,8 @@ export enum GenderEnum {
 // Zod schema for ContactRead
 export const ContactReadSchema = z.object({
   id: z.string(),
-  created_at: z
-    .string()
-    .refine(
-      (val) => {
-        // Check if the string matches the expected format YYYY-MM-DDTHH:mm:ss
-        return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(val)
-      },
-      {
-        message: 'Invalid date format. Expected YYYY-MM-DDTHH:mm:ss',
-      }
-    )
-    .transform((val) => new Date(val)), // Convert to Date object
-  updated_at: z
-    .string()
-    .refine(
-      (val) => {
-        // Check if the string matches the expected format YYYY-MM-DDTHH:mm:ss
-        return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(val)
-      },
-      {
-        message: 'Invalid date format. Expected YYYY-MM-DDTHH:mm:ss',
-      }
-    )
-    .transform((val) => new Date(val)), // Convert to Date object
+  created_at: zodHandlePythonDatetime('created_at'),
+  updated_at: zodHandlePythonDatetime('updated_at'),
   gender: z.nativeEnum(GenderEnum),
   first_name: z.string(),
   last_name: z.string(),

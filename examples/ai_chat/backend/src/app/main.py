@@ -5,7 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.db_config import engine, init_db
+from app.db.models.chat.routes import chat_router
+from app.db.models.chat_members.routes import chat_members_router
 from app.db.models.contact.routes import contact_router
+from app.db.models.message.routes import message_router
 from app.log.config import setup_logging
 from app.workflows.routes import workflows_router
 
@@ -49,5 +52,8 @@ def read_root():
     return {"Hello": "World"}
 
 # Add routers
+app.include_router(chat_router)  # Chat API Router)
+app.include_router(chat_members_router)  # Chat API Router
 app.include_router(contact_router)  # Contact API Router
+app.include_router(message_router)  # Message API Router
 app.include_router(workflows_router)  # Workflow API Router

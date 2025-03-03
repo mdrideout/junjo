@@ -29,3 +29,12 @@ async def get_contacts() -> list[ContactRead]:
 
     result = await ContactRepository.read_all()
     return result
+
+@contact_router.delete("/{contact_id}")
+async def delete_contact(contact_id: int) -> None:
+    """
+    Delete a contact
+
+    This will cascade delete the chat, messages, and chat_members
+    """
+    raise NotImplementedError("Not implemented")

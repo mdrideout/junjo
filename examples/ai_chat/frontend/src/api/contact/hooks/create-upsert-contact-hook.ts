@@ -18,6 +18,7 @@ const useCreateAndUpsertContact = (): UseCreateContactResult => {
     setIsLoading(true)
     setError(null)
     try {
+      // Create and upsert the new contact into state
       const newContact = await createContact({ gender })
       upsertContacts([newContact])
     } catch (error: any) {

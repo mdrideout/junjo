@@ -1,13 +1,18 @@
 import { ContactRead, GenderEnum } from '../../api/contact/schemas'
+import { useContactStore } from '../../api/contact/store'
 
 interface SidebarAvatarProps {
-  contact: ContactRead
+  contact_id: string
 }
 
 export default function SidebarAvatar(props: SidebarAvatarProps) {
-  const { gender, first_name, last_name } = props.contact
+  const { contact_id } = props
 
-  const isMale = gender === GenderEnum.MALE
+  // Get contact from store
+  const contact = useContactStore((state) => state.contact[contact_id])
+  if (!contact) return null
+
+  const isMale = contact.gender === GenderEnum.MALE
 
   const buttonClasses = `flex items-center rounded-full gap-x-2 transition-all duration-200 cursor-pointer ${
     isMale
@@ -19,7 +24,7 @@ export default function SidebarAvatar(props: SidebarAvatarProps) {
     <button className={buttonClasses}>
       <div className={'rounded-full bg-zinc-400 border border-zinc-100 size-5'}></div>
       <div className="font-semibold text-sm">
-        {first_name} {last_name}
+        {contact.first_name} {contact.last_name}
       </div>
     </button>
   )

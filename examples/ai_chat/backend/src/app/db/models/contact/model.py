@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from app.db.base import SQABase
-from app.db.models.contact.schemas import GenderEnum
 from nanoid import generate
 from sqlalchemy import CheckConstraint, String, func
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import SQABase
+from app.db.models.contact.schemas import GenderEnum
 
 
 # SQLAlchemy model
