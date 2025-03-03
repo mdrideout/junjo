@@ -23,7 +23,11 @@ export default function SidebarMenu() {
         <div className="mb-2 flex">
           <Link href="#" aria-label="Home">
             <div className="flex items-center gap-x-3 mb-2">
-              <img src={junjoLogo} alt="Junjo Logo (Karp)" className="h-12 w-12 text-red" />
+              <img
+                src={junjoLogo}
+                alt="Junjo Logo (Karp)"
+                className="h-12 w-12 text-red dark:bg-zinc-50 dark:p-1 dark:mr-1 rounded-full"
+              />
               <div className="font-logo text-4xl -mt-[2px]">j u n j o</div>
             </div>
           </Link>
