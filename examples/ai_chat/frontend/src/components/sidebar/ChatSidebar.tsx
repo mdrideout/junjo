@@ -48,11 +48,10 @@ export default function ChatSidebar() {
 
           return (
             <div key={chat.id} className={'mb-5'}>
-              <div>{chat.id}</div>
-              <div>{readableStart}</div>
               {chat.members.map((member) => (
                 <SidebarAvatar key={chat.id} contact_id={member.contact_id} />
               ))}
+              <div className={'text-xs text-zinc-400 ml-7'}>{readableStart}</div>
             </div>
           )
         })}
