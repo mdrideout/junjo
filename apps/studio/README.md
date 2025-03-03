@@ -52,7 +52,7 @@ $ docker compose down -v
 
 #### Accessing Services
 
-- Frontend: https://localhost:5173
+- Frontend: https://localhost:5151
 - Backend API: https://localhost:1323/
 - Jaeger UI: https://localhost/jaeger 
   - This is routed through Caddy reverse proxy forward_auth for authentication via the Backend API's cookie header validation

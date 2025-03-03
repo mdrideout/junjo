@@ -51,7 +51,7 @@ func main() {
 
 	// CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:5173"}, // Frontend URL (TODO: May need to add jaeger too)
+		AllowOrigins:     []string{"http://localhost:5151"}, // Frontend URL (TODO: May need to add jaeger too)
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderXCSRFToken},
 		AllowCredentials: true,

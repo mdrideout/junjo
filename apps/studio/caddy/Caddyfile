@@ -33,7 +33,7 @@
             # Redirect to the FE app sign-in page if the auth service returns a 4xx status
             @bad status 4xx
 			handle_response @bad {
-				redir http://localhost:5173/sign-in 302
+				redir http://localhost:5151/sign-in 302
 			}
         }
 
@@ -55,7 +55,7 @@
 # Optional config - requires changes to the /etc/hosts file to work locally
 # # Custom local domains:
 # app.localhost {
-#     reverse_proxy jui-fe:5173
+#     reverse_proxy jui-fe:5151
 # }
 
 # jaeger.localhost {
