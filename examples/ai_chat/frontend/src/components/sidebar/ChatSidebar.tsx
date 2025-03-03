@@ -18,14 +18,19 @@ export default function ChatSidebar() {
         <div className={'h-2'}></div>
         <NewContactButton gender={GenderEnum.MALE} />
       </div>
+
       {error && (
         <div className={'mb-5'}>
           <div className={'text-red-500 mb-1'}>Error fetching contacts.</div>
-          <button className={'bg-blue-500 text-white rounded-md px-3 py-1 leading-none'} onClick={() => refetch()}>
+          <button
+            className={'bg-blue-500 hover:bg-blue-700 text-white rounded-md px-3 py-1 leading-none cursor-pointer'}
+            onClick={() => refetch()}
+          >
             Retry
           </button>
         </div>
       )}
+      {sortedContacts.length == 0 && <div className={'opacity-30 text-center'}>so lonely...</div>}
       <div className={'flex flex-col gap-y-4 pl-1'}>
         {sortedContacts.map((contact) => (
           <SidebarAvatar key={contact.id} contact={contact} />
