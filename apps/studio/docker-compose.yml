@@ -23,8 +23,8 @@ services:
       - frontend-modules:/app/node_modules # Named volume for node_modules
       - ./frontend:/app # Mount the frontend code for hot reloading
     ports:
-      - 5173:5173 # Expose frontend port - host
-      - 4951:5173 # Expose frontend port - Vite hmr (map hmr port to host port)
+      - 5151:5151 # Expose frontend port - host
+      - 5152:5151 # Expose frontend port - Vite hmr (map hmr port to host port)
     depends_on:
       - jui-be
 
