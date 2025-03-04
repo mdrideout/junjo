@@ -53,18 +53,20 @@ export default function ChatWindow(props: ChatWindowProps) {
   }, [messagesList, atBottom])
 
   return (
-    <div ref={chatWindowRef} className="grow overflow-y-scroll bg-zinc-900 px-5 flex flex-col gap-y-5">
-      <div className={'h-1'}></div>
-      {messagesList.map((message) => {
-        const isSender = message.contact_id === null
+    <div className="grow overflow-hidden bg-zinc-900 flex flex-col justify-end">
+      <div ref={chatWindowRef} className={'grow overflow-y-scroll'}>
+        <div className={'h-1'}></div>
+        {messagesList.map((message) => {
+          const isSender = message.contact_id === null
 
-        if (isSender) {
-          return <ChatSendBubble message={message} />
-        } else {
-          return <ChatReceiveBubble />
-        }
-      })}
-      <div className={'h-1'}></div>
+          if (isSender) {
+            return <ChatSendBubble message={message} />
+          } else {
+            return <ChatReceiveBubble />
+          }
+        })}
+        <div className={'h-1'}></div>
+      </div>
     </div>
   )
 }
