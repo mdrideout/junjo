@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class MessageCreate(BaseModel):
+    chat_id: str
     contact_id: str | None
     message: str
 

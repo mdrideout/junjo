@@ -80,3 +80,7 @@ li {
 .animate-rotate {
   animation: rotate 1s linear infinite; /* Linear for constant speed */
 }
+
+.safe-word-break {
+  word-break: break-word;
+}

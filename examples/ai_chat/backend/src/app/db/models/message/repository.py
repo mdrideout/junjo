@@ -12,7 +12,8 @@ class MessageRepository:
     async def create(message: schemas.MessageCreate) -> schemas.MessageRead:
         try:
             db_obj = model.MessagesTable(
-                sender_id=message.contact_id,
+                contact_id=message.contact_id,
+                chat_id=message.chat_id,
                 message=message.message,
             )
 
@@ -21,7 +22,7 @@ class MessageRepository:
                 await session.commit()
                 await session.refresh(db_obj)
 
-            return schemas.MessageRead.from_orm(db_obj)
+            return schemas.MessageRead.model_validate(db_obj)
         except SQLAlchemyError as e:
             raise e
 
@@ -33,7 +34,7 @@ class MessageRepository:
                 db_obj = (await session.execute(stmt)).scalar_one_or_none()
                 if db_obj is None:
                     return None
-                return schemas.MessageRead.from_orm(db_obj)
+                return schemas.MessageRead.model_validate(db_obj)
         except SQLAlchemyError as e:
             raise e
 
@@ -44,7 +45,7 @@ class MessageRepository:
             async with async_session() as session:
                 stmt = select(model.MessagesTable).offset(skip).limit(limit)
                 db_messages = (await session.execute(stmt)).scalars().all()
-                return [schemas.MessageRead.from_orm(db_message) for db_message in db_messages]
+                return [schemas.MessageRead.model_validate(db_message) for db_message in db_messages]
         except SQLAlchemyError as e:
             raise e
 

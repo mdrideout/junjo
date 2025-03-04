@@ -15,8 +15,8 @@ function App() {
         </div>
         <div className="bg-zinc-700 rounded-3xl grow flex flex-col border-l border-r border-zinc-700">
           <ChatHeader chat_id={chat_id} />
-          <ChatWindow />
-          <ChatForm />
+          <ChatWindow chat_id={chat_id} />
+          <ChatForm chat_id={chat_id} />
         </div>
       </div>
     </div>

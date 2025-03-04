@@ -3,22 +3,28 @@ import { devtools } from 'zustand/middleware'
 import { MessageRead } from './schemas'
 
 interface MessageState {
-  messages: Partial<{ [id: string]: MessageRead }>
+  messages: Partial<{ [chat_id: string]: { [message_id: string]: MessageRead } }>
 
-  upsertMessages: (messages: MessageRead[]) => void
+  upsertMessages: (chat_id: string, messages: MessageRead[]) => void
 }
 
-export const useChatsWithMembersStore = create<MessageState>()(
+export const useMessagesStore = create<MessageState>()(
   devtools((set) => ({
     messages: {},
 
-    upsertMessages: (list: MessageRead[]) =>
+    upsertMessages: (chat_id: string, list: MessageRead[]) =>
       set((state) => {
-        const newMessages = { ...state.messages }
+        const chatIdMessages = state.messages[chat_id] || {}
+        const newMessages = { ...chatIdMessages }
         list.forEach((item) => {
           newMessages[item.id] = item
         })
-        return { messages: newMessages }
+
+        state.messages[chat_id] = newMessages
+
+        return {
+          messages: { ...state.messages },
+        }
       }),
   }))
 )

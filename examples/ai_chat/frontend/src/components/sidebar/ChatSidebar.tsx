@@ -4,12 +4,13 @@ import NewContactButton from './NewContactButton'
 import useGetChatsWithMembers from '../../api/chat/hook'
 import { useChatsWithMembersStore } from '../../api/chat/store'
 import useGetContacts from '../../api/contact/hooks/get-contacts-hook'
-import { Link } from 'react-router'
+import { Link, useParams } from 'react-router'
 
 /**
  * Chat Sidebar
  */
 export default function ChatSidebar() {
+  const { chat_id } = useParams()
   const { error: contactsError, refetch: refetchContacts } = useGetContacts()
   const { error: chatsWithMembersError, refetch: refetchChatsWithMembers } = useGetChatsWithMembers()
   const { chats } = useChatsWithMembersStore()
@@ -19,7 +20,17 @@ export default function ChatSidebar() {
     await refetchChatsWithMembers()
   }
 
-  console.log('Rendering with chats: ', chats)
+  // Helper function to format the date
+  const formatDate = (date: Date): string => {
+    const month = date.toLocaleString('default', { month: 'short' })
+    const day = date.getDate()
+    let hours = date.getHours()
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    const ampm = hours >= 12 ? 'pm' : 'am'
+    hours = hours % 12
+    hours = hours ? hours : 12 // the hour '0' should be '12'
+    return `${month} ${day}, ${hours}:${minutes}${ampm}`
+  }
 
   return (
     <>
@@ -41,21 +52,24 @@ export default function ChatSidebar() {
         </div>
       )}
       {chats.length === 0 && <div className={'opacity-30 text-center'}>so lonely...</div>}
-      <div className={'flex flex-col gap-y-4 pl-1'}>
+      <div className={'flex flex-col gap-y-5 px-1'}>
         {chats.map((chat) => {
           // Create a human readable date
           const lastMessageTime = new Date(chat.last_message_time)
-          const readableStart = lastMessageTime.toLocaleString()
+          const dateString = formatDate(lastMessageTime)
+          const isActive = chat.id == chat_id
 
           return (
-            <div key={chat.id} className={'mb-5'}>
-              <Link to={`/${chat.id}`}>
-                {chat.members.map((member) => (
-                  <SidebarAvatar key={chat.id} contact_id={member.contact_id} />
-                ))}
-                <div className={'text-xs text-zinc-400 ml-7'}>{readableStart}</div>
-              </Link>
-            </div>
+            <Link key={chat.id} to={`/${chat.id}`}>
+              {chat.members.map((member) => (
+                <SidebarAvatar
+                  key={chat.id}
+                  lastMessage={dateString}
+                  contact_id={member.contact_id}
+                  isActive={isActive}
+                />
+              ))}
+            </Link>
           )
         })}
       </div>

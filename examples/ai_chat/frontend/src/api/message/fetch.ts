@@ -1,9 +1,15 @@
 import { MessageRead, MessageReadSchema } from './schemas'
 
-export const sendMessage = async (message: string): Promise<MessageRead> => {
-  const response = await fetch(`http://127.0.0.1:8000/workflows/contact`, {
+export interface SendMessageRequest {
+  chat_id: string
+  message: string
+}
+
+export const sendMessage = async (props: SendMessageRequest): Promise<MessageRead> => {
+  const { chat_id, message } = props
+  const response = await fetch(`http://127.0.0.1:8000/workflows/send-message/${chat_id}`, {
     method: 'POST',
-    body: JSON.stringify({ message: message }),
+    body: JSON.stringify({ contact_id: null, chat_id, message }),
     mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
