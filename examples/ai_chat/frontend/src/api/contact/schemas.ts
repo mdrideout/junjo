@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { zodHandlePythonDatetime } from '../../util/zod-utils'
+import { ChatWithMembersReadSchema } from '../chat/schemas'
 
 // Native enum for GenderEnum
 export enum GenderEnum {
@@ -22,3 +23,9 @@ export const ContactReadSchema = z.object({
   bio: z.string(),
 })
 export type ContactRead = z.infer<typeof ContactReadSchema>
+
+export const CreateSetupContactResponseSchema = z.object({
+  contact: ContactReadSchema,
+  chat_with_members: ChatWithMembersReadSchema,
+})
+export type CreateSetupContactResponse = z.infer<typeof CreateSetupContactResponseSchema>

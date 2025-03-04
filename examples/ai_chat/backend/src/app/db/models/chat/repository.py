@@ -9,20 +9,23 @@ from app.db.models.chat_members.model import ChatMembersTable
 
 
 class ChatRepository:
-    @staticmethod
-    async def create() -> schemas.ChatRead:
-        """Creates a new chat record."""
-        try:
-            db_obj = model.ChatsTable()  # No need for constructor args as only has defaults
 
-            async with async_session() as session:
-                session.add(db_obj)
-                await session.commit()
-                await session.refresh(db_obj)
+    # CREATE IS HANDLED BY CONTACT_SETUP
+    # DO NOT NEED TO CREATE CHATS IN ISOLATION
+    # @staticmethod
+    # async def create() -> schemas.ChatRead:
+    #     """Creates a new chat record."""
+    #     try:
+    #         db_obj = model.ChatsTable()  # No need for constructor args as only has defaults
 
-            return schemas.ChatRead.model_validate(db_obj)
-        except SQLAlchemyError as e:
-            raise e
+    #         async with async_session() as session:
+    #             session.add(db_obj)
+    #             await session.commit()
+    #             await session.refresh(db_obj)
+
+    #         return schemas.ChatRead.model_validate(db_obj)
+    #     except SQLAlchemyError as e:
+    #         raise e
 
     @staticmethod
     async def read(id: str) -> schemas.ChatRead | None:

@@ -9,20 +9,21 @@ from app.db.models.chat.schemas import ChatRead, ChatWithMembersRead
 chat_router = APIRouter(prefix="/api/chat")
 
 
-@chat_router.post("/")
-async def post_chat() -> ChatRead:
-    """
-    Create a new chat.
-    """
-    logger.info("Creating new chat")
+# Should be handled by  the setup flow
+# @chat_router.post("/")
+# async def post_chat() -> ChatRead:
+#     """
+#     Create a new chat.
+#     """
+#     logger.info("Creating new chat")
 
-    try:
-        # Call the repository service to create the chat
-        result = await ChatRepository.create()
+#     try:
+#         # Call the repository service to create the chat
+#         result = await ChatRepository.create()
 
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+#         return result
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @chat_router.get("/")

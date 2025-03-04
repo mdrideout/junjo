@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { createContact } from '../fetch'
+import { createSetupContact } from '../fetch'
 import { GenderEnum } from '../schemas'
 import { useContactStore } from '../store'
+import { useChatsWithMembersStore } from '../../chat/store'
 
 interface UseCreateContactResult {
   isLoading: boolean
@@ -11,6 +12,7 @@ interface UseCreateContactResult {
 
 const useCreateAndUpsertContact = (): UseCreateContactResult => {
   const { upsertContacts } = useContactStore()
+  const { upsertChat } = useChatsWithMembersStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,8 +21,9 @@ const useCreateAndUpsertContact = (): UseCreateContactResult => {
     setError(null)
     try {
       // Create and upsert the new contact into state
-      const newContact = await createContact({ gender })
-      upsertContacts([newContact])
+      const response = await createSetupContact({ gender })
+      upsertContacts([response.contact])
+      upsertChat(response.chat_with_members)
     } catch (error: any) {
       setError(error.message)
     } finally {

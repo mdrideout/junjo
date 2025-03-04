@@ -1,4 +1,3 @@
-import useGetChatsWithMembers from '../../api/chat/hook'
 import useCreateAndUpsertContact from '../../api/contact/hooks/create-upsert-contact-hook'
 import { GenderEnum } from '../../api/contact/schemas'
 
@@ -9,17 +8,10 @@ export interface NewContactButtonProps {
 export default function NewContactButton(props: NewContactButtonProps) {
   const { gender } = props
   const { isLoading, error, createContact } = useCreateAndUpsertContact()
-  const { refetch: refetchChatsWithMembers } = useGetChatsWithMembers()
 
   async function handleOnClick(gender: GenderEnum) {
     // Create and upsert the contact
     await createContact(gender)
-
-    // // Delay by 200ms
-    // await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Refresh the chats list
-    await refetchChatsWithMembers()
   }
 
   switch (gender) {

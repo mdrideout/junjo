@@ -24,12 +24,12 @@ async def post_chat_member(request: ChatMemberCreate) -> ChatMemberRead:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-@chat_members_router.get("/chat/{chat_id}")
-async def get_chat_members_by_chat_id(chat_id: str) -> list[ChatMemberRead]:
-    """
-    Get all members of a specific chat
-    """
-    logger.info(f"Getting chat members by chat id: {chat_id}")
+# @chat_members_router.get("/chat/{chat_id}")
+# async def get_chat_members_by_chat_id(chat_id: str) -> list[ChatMemberRead]:
+#     """
+#     Get all members of a specific chat
+#     """
+#     logger.info(f"Getting chat members by chat id: {chat_id}")
 
-    result = await ChatMembersRepository.read_by_chat_id(chat_id)
-    return result
+#     result = await ChatMembersRepository.read_by_chat_id(chat_id)
+#     return result

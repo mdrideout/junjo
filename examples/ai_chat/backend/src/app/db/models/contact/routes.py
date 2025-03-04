@@ -2,23 +2,24 @@ from fastapi import APIRouter
 from loguru import logger
 
 from app.db.models.contact.repository import ContactRepository
-from app.db.models.contact.schemas import ContactCreate, ContactRead
+from app.db.models.contact.schemas import ContactRead
 
 contact_router = APIRouter(prefix="/api/contact")
 
 
-@contact_router.post("/")
-async def post_contact(request: ContactCreate) -> ContactRead:
-    """
-    Create a new contact directly.
-    """
+# Should only be created through setup workflow
+# @contact_router.post("/")
+# async def post_contact(request: ContactCreate) -> ContactRead:
+#     """
+#     Create a new contact directly.
+#     """
 
-    logger.info(f"Creating new contact with request: {request}")
+#     logger.info(f"Creating new contact with request: {request}")
 
-    # Call the repository service to create the contact
-    result = await ContactRepository.create(request)
+#     # Call the repository service to create the contact
+#     result = await ContactRepository.create(request)
 
-    return result
+#     return result
 
 @contact_router.get("/")
 async def get_contacts() -> list[ContactRead]:

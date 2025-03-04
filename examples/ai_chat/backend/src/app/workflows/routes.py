@@ -4,8 +4,9 @@ from fastapi import APIRouter
 from loguru import logger
 
 from app.ai_services.gemini.gemini_tool import GeminiTool
-from app.db.models.contact.repository import ContactRepository
-from app.db.models.contact.schemas import ContactCreate, ContactRead
+from app.db.models.contact.schemas import ContactCreate
+from app.db.queries.create_setup_contact.repository import CreateSetupContactRepository
+from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
 from app.workflows.contact_create.prompt_gemini import contact_create_prompt_gemini
 from app.workflows.contact_create.schemas import ContactCreateWorkflowRequest
 
@@ -13,7 +14,7 @@ workflows_router = APIRouter(prefix="/workflows")
 
 
 @workflows_router.post("/contact")
-async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> ContactRead:
+async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> CreateSetupContactResponse:
     """
     Create a new contact via the LLM workflow.
     """
@@ -34,6 +35,6 @@ async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> Contac
     create_model = ContactCreate.model_validate(gemini_result)
 
     # Insert it into the database
-    result = await ContactRepository.create(create_model)
+    result = await CreateSetupContactRepository.create_setup_contact(create_model)
 
     return result

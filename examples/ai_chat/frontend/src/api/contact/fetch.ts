@@ -1,11 +1,17 @@
 import { z } from 'zod'
-import { ContactRead, ContactReadSchema, GenderEnum } from './schemas'
+import {
+  ContactRead,
+  ContactReadSchema,
+  CreateSetupContactResponse,
+  CreateSetupContactResponseSchema,
+  GenderEnum,
+} from './schemas'
 
 export interface CreateContactRequest {
   gender: GenderEnum
 }
 
-export const createContact = async (request: CreateContactRequest): Promise<ContactRead> => {
+export const createSetupContact = async (request: CreateContactRequest): Promise<CreateSetupContactResponse> => {
   const response = await fetch(`http://127.0.0.1:8000/workflows/contact`, {
     method: 'POST',
     body: JSON.stringify(request),
@@ -23,7 +29,7 @@ export const createContact = async (request: CreateContactRequest): Promise<Cont
 
   try {
     // Validate the response data against our schema
-    return ContactReadSchema.parse(data)
+    return CreateSetupContactResponseSchema.parse(data)
   } catch (error) {
     console.error('Data validation error:', error)
     throw new Error('Invalid data received from server')
