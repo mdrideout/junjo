@@ -30,3 +30,27 @@ export const sendMessage = async (props: SendMessageRequest): Promise<MessageRea
     throw new Error('Invalid data received from server')
   }
 }
+
+export const fetchChatMessages = async (chat_id: string): Promise<MessageRead[]> => {
+  const response = await fetch(`http://127.0.0.1:8000/api/message/${chat_id}`, {
+    method: 'GET',
+    mode: 'cors',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch chat messages: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+
+  try {
+    // Validate the response data against our schema
+    return MessageReadSchema.array().parse(data)
+  } catch (error) {
+    console.error('Data validation error:', error)
+    throw new Error('Invalid data received from server')
+  }
+}

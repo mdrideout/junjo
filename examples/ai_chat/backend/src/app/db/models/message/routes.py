@@ -33,3 +33,13 @@ async def get_messages() -> list[MessageRead]:
 
     result = await MessageRepository.read_all()
     return result
+
+@message_router.get("/{chat_id}")
+async def get_messages_for_chat(chat_id: str) -> list[MessageRead]:
+    """
+    Get all messages for a chat.
+    """
+    logger.info(f"Getting all messages for chat {chat_id}")
+
+    result = await MessageRepository.read_all_by_chat_id(chat_id)
+    return result

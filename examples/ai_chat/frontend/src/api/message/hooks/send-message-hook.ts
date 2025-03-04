@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { sendMessage, SendMessageRequest } from './fetch'
-import { useMessagesStore } from './store'
+import { sendMessage, SendMessageRequest } from '../fetch'
+import { useMessagesStore } from '../store'
 
 interface UseSendMessageResult {
   isLoading: boolean

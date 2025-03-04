@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useSendMessage from '../api/message/hook'
+import useSendMessage from '../api/message/hooks/send-message-hook'
 
 export interface ChatFormProps {
   chat_id: string | undefined

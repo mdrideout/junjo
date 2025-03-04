@@ -40,12 +40,39 @@ class MessageRepository:
 
 
     @staticmethod
-    async def read_all(skip: int = 0, limit: int = 100) -> list[schemas.MessageRead]:
+    async def read_all(skip: int = 0, limit: int | None = None) -> list[schemas.MessageRead]:
         try:
             async with async_session() as session:
-                stmt = select(model.MessagesTable).offset(skip).limit(limit)
+                stmt = select(model.MessagesTable).offset(skip).order_by(model.MessagesTable.created_at.asc())
+
+                if limit is not None:
+                    stmt = stmt.limit(limit)
+
                 db_messages = (await session.execute(stmt)).scalars().all()
                 return [schemas.MessageRead.model_validate(db_message) for db_message in db_messages]
+        except SQLAlchemyError as e:
+            raise e
+
+    @staticmethod
+    async def read_all_by_chat_id(chat_id: str, skip: int = 0, limit: int | None = None) -> list[schemas.MessageRead]:
+        try:
+            async with async_session() as session:
+                stmt = (
+                    select(model.MessagesTable)
+                    .where(model.MessagesTable.chat_id == chat_id)
+                    .order_by(model.MessagesTable.created_at.asc())
+                    .offset(skip)
+                )
+
+                if limit is not None:
+                    stmt = stmt.limit(limit)
+
+
+                db_messages = (await session.execute(stmt)).scalars().all()
+                return [
+                    schemas.MessageRead.model_validate(db_message)
+                    for db_message in db_messages
+                ]
         except SQLAlchemyError as e:
             raise e
 
