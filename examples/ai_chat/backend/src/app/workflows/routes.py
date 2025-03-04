@@ -1,14 +1,17 @@
 import json
+from datetime import datetime
 
 from fastapi import APIRouter
 from loguru import logger
 
 from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.db.models.contact.schemas import ContactCreate
+from app.db.models.message.schemas import MessageRead
 from app.db.queries.create_setup_contact.repository import CreateSetupContactRepository
 from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
 from app.workflows.contact_create.prompt_gemini import contact_create_prompt_gemini
 from app.workflows.contact_create.schemas import ContactCreateWorkflowRequest
+from app.workflows.message.schemas import SendMessageSchema
 
 workflows_router = APIRouter(prefix="/workflows")
 
@@ -38,3 +41,27 @@ async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> Create
     result = await CreateSetupContactRepository.create_setup_contact(create_model)
 
     return result
+
+
+@workflows_router.post("/send-message/{chat_id}")
+async def post_message_workflow(request: SendMessageSchema) -> MessageRead:
+    """
+    Create a new message via the LLM workflow.
+    """
+
+    logger.info("Creating new message via LLM workflow")
+
+    # TODO: Insert user's message into DB
+    # TODO: Trigger workflow
+    # TODO: Client polls for updates to the chat_id
+
+    # Create a mock MessageRead
+    mock_read = MessageRead(
+        id="mock_id",
+        created_at=datetime.now(),
+        contact_id=None,
+        chat_id="mock_chat_id",
+        message=request.message,
+    )
+    return mock_read
+

@@ -22,7 +22,7 @@ export const createSetupContact = async (request: CreateContactRequest): Promise
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch workflow logs: ${response.statusText}`)
+    throw new Error(`Failed to create setup contact: ${response.statusText}`)
   }
 
   const data = await response.json()

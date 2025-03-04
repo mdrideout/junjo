@@ -14,6 +14,7 @@ class MessageRead(BaseModel):
     id: str
     created_at: datetime
     contact_id: str | None
+    chat_id: str
     message: str
 
     model_config = ConfigDict(from_attributes=True)

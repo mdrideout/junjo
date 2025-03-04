@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import useCreateAndUpsertContact from '../../api/contact/hooks/create-upsert-contact-hook'
 import { GenderEnum } from '../../api/contact/schemas'
 
@@ -7,11 +8,17 @@ export interface NewContactButtonProps {
 
 export default function NewContactButton(props: NewContactButtonProps) {
   const { gender } = props
+  const navigate = useNavigate()
   const { isLoading, error, createContact } = useCreateAndUpsertContact()
 
   async function handleOnClick(gender: GenderEnum) {
     // Create and upsert the contact
-    await createContact(gender)
+    try {
+      const chat_id = await createContact(gender)
+      navigate(`/${chat_id}`)
+    } catch (e) {
+      // do nothing
+    }
   }
 
   switch (gender) {

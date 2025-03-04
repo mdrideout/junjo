@@ -2,8 +2,11 @@ import ChatForm from './components/ChatForm'
 import ChatHeader from './components/ChatHeader'
 import ChatSidebar from './components/sidebar/ChatSidebar'
 import ChatWindow from './components/ChatWindow'
+import { useParams } from 'react-router'
 
 function App() {
+  const { chat_id } = useParams()
+
   return (
     <div className={'h-dvh w-dvw p-5'}>
       <div className={'w-full h-full max-w-5xl flex gap-x-5 m-auto'}>
@@ -11,7 +14,7 @@ function App() {
           <ChatSidebar />
         </div>
         <div className="bg-zinc-700 rounded-3xl grow flex flex-col border-l border-r border-zinc-700">
-          <ChatHeader />
+          <ChatHeader chat_id={chat_id} />
           <ChatWindow />
           <ChatForm />
         </div>

@@ -7,7 +7,7 @@ import { useChatsWithMembersStore } from '../../chat/store'
 interface UseCreateContactResult {
   isLoading: boolean
   error: string | null
-  createContact: (gender: GenderEnum) => Promise<void> // Added createContact function
+  createContact: (gender: GenderEnum) => Promise<string> // Added createContact function
 }
 
 const useCreateAndUpsertContact = (): UseCreateContactResult => {
@@ -16,7 +16,7 @@ const useCreateAndUpsertContact = (): UseCreateContactResult => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const createContactAndUpsert = async (gender: GenderEnum) => {
+  const createContactAndUpsert = async (gender: GenderEnum): Promise<string> => {
     setIsLoading(true)
     setError(null)
     try {
@@ -24,8 +24,11 @@ const useCreateAndUpsertContact = (): UseCreateContactResult => {
       const response = await createSetupContact({ gender })
       upsertContacts([response.contact])
       upsertChat(response.chat_with_members)
+
+      return response.chat_with_members.id
     } catch (error: any) {
       setError(error.message)
+      throw error
     } finally {
       setIsLoading(false)
     }

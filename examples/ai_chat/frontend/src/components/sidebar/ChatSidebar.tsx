@@ -4,6 +4,7 @@ import NewContactButton from './NewContactButton'
 import useGetChatsWithMembers from '../../api/chat/hook'
 import { useChatsWithMembersStore } from '../../api/chat/store'
 import useGetContacts from '../../api/contact/hooks/get-contacts-hook'
+import { Link } from 'react-router'
 
 /**
  * Chat Sidebar
@@ -48,10 +49,12 @@ export default function ChatSidebar() {
 
           return (
             <div key={chat.id} className={'mb-5'}>
-              {chat.members.map((member) => (
-                <SidebarAvatar key={chat.id} contact_id={member.contact_id} />
-              ))}
-              <div className={'text-xs text-zinc-400 ml-7'}>{readableStart}</div>
+              <Link to={`/${chat.id}`}>
+                {chat.members.map((member) => (
+                  <SidebarAvatar key={chat.id} contact_id={member.contact_id} />
+                ))}
+                <div className={'text-xs text-zinc-400 ml-7'}>{readableStart}</div>
+              </Link>
             </div>
           )
         })}
