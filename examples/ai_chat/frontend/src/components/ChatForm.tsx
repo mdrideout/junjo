@@ -36,33 +36,36 @@ export default function ChatForm(props: ChatFormProps) {
   return (
     <div>
       {error && <div className={'text-red-500 text-sm font-bold px-4 pt-2'}>{error}</div>}
-      {chat_id && (
-        <form onSubmit={handleSubmit} className="p-4 grid grid-cols-[auto_100px] gap-x-2 items-end">
-          <div>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className={
-                'w-full rounded-md bg-zinc-300 text-zinc-800 px-3 py-3 leading-tight border-0 ring-0 outline-0'
-              }
-              rows={3}
-              placeholder="Send a chat..."
-            />
-          </div>
-          <div className="h-full pb-1.5">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`w-full h-full cursor-pointer border border-blue-300 rounded-md bg-gradient-to-b from-blue-600 to-blue-700 hover:to-blue-800 text-white leading-none px-3 py-1 ${
-                isLoading ? 'opacity-50' : ''
-              }`}
-            >
-              {isLoading ? '...' : 'Send'}
-            </button>
-          </div>
-        </form>
-      )}
+
+      <form onSubmit={handleSubmit} className="p-4 grid grid-cols-[auto_100px] gap-x-2 items-end">
+        {chat_id && (
+          <>
+            <div>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={
+                  'w-full rounded-md bg-zinc-300 text-zinc-800 px-3 py-3 leading-tight border-0 ring-0 outline-0'
+                }
+                rows={3}
+                placeholder="Send a chat..."
+              />
+            </div>
+            <div className="h-full pb-1.5">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full h-full cursor-pointer border border-blue-300 rounded-md bg-gradient-to-b from-blue-600 to-blue-700 hover:to-blue-800 text-white leading-none px-3 py-1 ${
+                  isLoading ? 'opacity-50' : ''
+                }`}
+              >
+                {isLoading ? '...' : 'Send'}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
     </div>
   )
 }

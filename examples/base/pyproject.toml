@@ -1,12 +1,13 @@
 # examples/dev/pyproject.toml
 [project]
-name = "junjo-dev-example"
+name = "app"
 version = "0.1.0"
 description = "Development example for junjo"
+requires-python = ">=3.11"
 dependencies = [
-  "junjo @ { path = '../../src', develop = true }", # KEY: Local path dependency!
+  "junjo @ file:../../"
 ]
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"

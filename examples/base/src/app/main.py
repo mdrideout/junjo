@@ -1,12 +1,7 @@
-
-
-
-
-from examples.base.store import MyGraphState, MyGraphStore
+from examples.base.src.app.store import MyGraphState, MyGraphStore
 from junjo.app import JunjoApp
 from junjo.edge import Edge
 from junjo.graph import Graph
-from junjo.graphviz.utils import graph_to_graphviz_image
 from junjo.node import Node
 from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
@@ -91,7 +86,6 @@ async def main():
     print(f"ReactFlow:\n{graph.to_react_flow().model_dump_json()}\n")
     print(f"Mermaid:\n{graph.to_mermaid()}")
     print(f"Graphviz:\n{graph.to_dot_notation()}")
-    graph_to_graphviz_image(graph)
 
     workflow = Workflow(
         graph=graph,
