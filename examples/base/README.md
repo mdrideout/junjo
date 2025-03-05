@@ -8,9 +8,9 @@ It shows junjo being instantiated, a simple graph with a condition, and telemetr
 
 It is recommend you develop this example from this directory, with the activated venv, and not the junjo root.
 
-### Run the example
+### Run the example (from this directory)
 
-- **This is designed to be run from the junjo root. Relative imports will not work running it from this directory.**
+- **This example has been configured to work nested in the junjo project `examples/base` directory.**
 - The graph will run, logging node executions and state changes.
 - If Junjo Server is running, it will receive telemetry.
 
@@ -28,6 +28,6 @@ $ source .venv/bin/activate
 $ uv pip install -e .
 
 # Run from this directory
-$ python -m examples.base.src.app.main
-$ uv run -m examples.base.src.app.main
+$ python -m src.base.main
+$ uv run -m src.base.main
 ```

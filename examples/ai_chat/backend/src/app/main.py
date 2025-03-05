@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from junjo.app import JunjoApp
 
 from app.db.db_config import engine, init_db
 from app.db.models.chat.routes import chat_router
@@ -34,6 +35,9 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI app
 app = FastAPI(lifespan=lifespan)
+
+# Initialize Junjo
+junjo = JunjoApp(project_name="ai_chat")
 
 origins = [
     "http://localhost:5173",

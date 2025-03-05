@@ -13,6 +13,7 @@ dependencies = [
     "loguru>=0.7.3",
     "nanoid>=2.0.0",
     "sqlalchemy>=2.0.38",
+    "junjo",                       # TODO: Convert to github link when package is published
 ]
 
 [tool.ruff]
@@ -35,6 +36,4 @@ ignore = ["B006"]
 "tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
 
 [dependency-groups]
-dev = [
-    "ruff>=0.9.5",
-]
+dev = ["ruff>=0.9.5"]

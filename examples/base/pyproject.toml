@@ -1,11 +1,10 @@
-# examples/dev/pyproject.toml
 [project]
-name = "app"
+name = "base"
 version = "0.1.0"
 description = "Development example for junjo"
 requires-python = ">=3.11"
 dependencies = [
-  "junjo @ file:../../"
+  "junjo", # TODO: Convert to github link when package is published
 ]
 
 [build-system]

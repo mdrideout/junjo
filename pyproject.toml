@@ -69,4 +69,7 @@ ignore = ["B006"]
 "tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
 
 [tool.uv.workspace]
-members = ["examples/ai_chat/backend"]
+members = ["examples/ai_chat/backend", "examples/base"]
+
+[tool.uv.sources]
+junjo = { workspace = true }

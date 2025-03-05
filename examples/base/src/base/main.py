@@ -1,4 +1,4 @@
-from examples.base.src.app.store import MyGraphState, MyGraphStore
+from base.store import MyGraphState, MyGraphStore
 from junjo.app import JunjoApp
 from junjo.edge import Edge
 from junjo.graph import Graph
