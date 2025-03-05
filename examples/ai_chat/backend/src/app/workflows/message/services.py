@@ -6,7 +6,7 @@ from loguru import logger
 
 from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.db.models.chat_members.repository import ChatMembersRepository
-from app.db.models.contact.schemas import GenderEnum
+from app.db.models.contact.repository import ContactRepository
 from app.db.models.message.repository import MessageRepository
 from app.db.models.message.schemas import MessageCreate, MessageRead
 from app.workflows.message.prompt_gemini import message_response_prompt_gemini
@@ -31,10 +31,21 @@ async def create_message_response(message: MessageRead):
 
     # Get the first member (for now, in case there are more)
     member = members[0]
+    member_contact_id = member.contact_id
+
+    if not member_contact_id:
+        raise Exception("No contact ID found")
+
+    # Get this contact's information
+    contact = await ContactRepository.read(member_contact_id)
+    logger.info(f"Contact: {contact}")
+
+    if not contact:
+        raise Exception("No contact found")
 
     # Create the message response...
     # Construct the prompt
-    prompt = message_response_prompt_gemini(message.message, GenderEnum.FEMALE)
+    prompt = message_response_prompt_gemini(message.message, contact.gender)
 
     # Create a request to gemini
     gemini_tool = GeminiTool(prompt=prompt, model="gemini-1.5-flash-8b-001")
