@@ -34,6 +34,17 @@ async def get_messages() -> list[MessageRead]:
     result = await MessageRepository.read_all()
     return result
 
+@message_router.get("/newer-than/{chat_id}/{message_id}")
+async def get_messages_newer_than(chat_id: str, message_id: str) -> list[MessageRead]:
+    """
+    Get all messages newer than a message.
+    """
+    logger.info(f"Getting all messages newer than {message_id}")
+
+    result = await MessageRepository.read_all_by_chat_id_newer_than_message_id(chat_id, message_id)
+    return result
+
+
 @message_router.get("/{chat_id}")
 async def get_messages_for_chat(chat_id: str) -> list[MessageRead]:
     """
@@ -43,3 +54,6 @@ async def get_messages_for_chat(chat_id: str) -> list[MessageRead]:
 
     result = await MessageRepository.read_all_by_chat_id(chat_id)
     return result
+
+
+

@@ -5,6 +5,7 @@ import useGetChatsWithMembers from '../../api/chat/hook'
 import { useChatsWithMembersStore } from '../../api/chat/store'
 import useGetContacts from '../../api/contact/hooks/get-contacts-hook'
 import { Link, useParams } from 'react-router'
+import { formatDateForChat } from '../../util/date-utils'
 
 /**
  * Chat Sidebar
@@ -18,18 +19,6 @@ export default function ChatSidebar() {
   async function handleRefetch() {
     await refetchContacts()
     await refetchChatsWithMembers()
-  }
-
-  // Helper function to format the date
-  const formatDate = (date: Date): string => {
-    const month = date.toLocaleString('default', { month: 'short' })
-    const day = date.getDate()
-    let hours = date.getHours()
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    const ampm = hours >= 12 ? 'pm' : 'am'
-    hours = hours % 12
-    hours = hours ? hours : 12 // the hour '0' should be '12'
-    return `${month} ${day}, ${hours}:${minutes}${ampm}`
   }
 
   return (
@@ -56,7 +45,7 @@ export default function ChatSidebar() {
         {chats.map((chat) => {
           // Create a human readable date
           const lastMessageTime = new Date(chat.last_message_time)
-          const dateString = formatDate(lastMessageTime)
+          const dateString = formatDateForChat(lastMessageTime)
           const isActive = chat.id == chat_id
 
           return (

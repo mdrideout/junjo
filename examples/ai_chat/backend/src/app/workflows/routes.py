@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from fastapi import APIRouter
@@ -11,6 +12,7 @@ from app.db.queries.create_setup_contact.repository import CreateSetupContactRep
 from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
 from app.workflows.contact_create.prompt_gemini import contact_create_prompt_gemini
 from app.workflows.contact_create.schemas import ContactCreateWorkflowRequest
+from app.workflows.message.services import create_message_response
 
 workflows_router = APIRouter(prefix="/workflows")
 
@@ -26,9 +28,9 @@ async def post_contact_workflow(request: ContactCreateWorkflowRequest) -> Create
     # Create schema as a string
     json_schema = ContactCreate.model_json_schema(mode="serialization")
     schema_string = json.dumps(json_schema)
-    prompt = prompt=contact_create_prompt_gemini(schema_string, request.gender)
+    prompt = contact_create_prompt_gemini(schema_string, request.gender)
 
-    # Test the gemini request
+    # Create a request to gemini
     gemini_tool = GeminiTool(prompt=prompt, model="gemini-1.5-flash-8b-001")
     gemini_result = await gemini_tool.schema_request(ContactCreate)
     logger.info(f"Gemini result: {gemini_result}")
@@ -53,8 +55,9 @@ async def post_message_workflow(request: MessageCreate) -> MessageRead:
     # Insert user's message into DB
     user_message = await MessageRepository.create(request)
 
-    # TODO: Trigger workflow
-    # TODO: Client polls for updates to the chat_id
+    # Create the message response in the background
+    asyncio.create_task(create_message_response(user_message))
 
+    # Return the submitted message
     return user_message
 
