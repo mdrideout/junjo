@@ -54,14 +54,9 @@ class Node(Generic[StoreT], ABC):
         if store is None:
             raise ValueError("Store is not available")
 
-        # Get and validate the state from the store
-        state = store.get_state()
-        if state is None:
-            raise ValueError("State is not available")
-
         # Execute the service
         try:
-            await self.service(store)
+            await self.service(store) # (cannot know store is StoreT here? it works...)
         except Exception as e:
             print(f"Error executing service: {e}")
             return
@@ -80,17 +75,4 @@ class Node(Generic[StoreT], ABC):
             raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
         if not issubclass(type_hints["store"], BaseStore):
             raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
-
-
-        # # Validate service function params: state
-        # if "state" not in type_hints:
-        #     raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
-        # if not issubclass(type_hints["state"], BaseModel):
-        #     raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
-
-        # # Validate the return type of the service function
-        # if "return" not in type_hints:
-        #     raise ValueError(f"Service function must have a return type of {StateT}")
-        # if not issubclass(type_hints["return"], BaseModel):
-        #     raise ValueError(f"Service function must have a return type of {StateT}")
 

@@ -23,6 +23,18 @@ class Graph:
         self.sink = sink
         self.edges = edges
 
+    # TODO: This needs work because it currently requires a workflow id to complete
+    # def validate_graph(self):
+    #     """Validate that it is possible to get to the sink from the source."""
+    #     current_node = self.source
+    #     while current_node != self.sink:
+    #         try:
+    #             current_node = self.get_next_node(current_node)
+    #         except ValueError:
+    #             return False
+    #     return True
+
+
     def get_next_node(self, workflow_id: str, current_node: Node) -> Node:
         matching_edges = [edge for edge in self.edges if edge.tail == current_node]
         resolved_edges = [edge for edge in matching_edges if edge.next_node(workflow_id) is not None]

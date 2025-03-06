@@ -31,8 +31,6 @@ class Edge:
                        current workflow context, and return True if the transition
                        is valid, False otherwise.
         """
-        # if tail == head:
-        #     raise ValueError("tail and head cannot be the same.")
 
         self.tail = tail
         self.head = head
