@@ -2,19 +2,17 @@ from abc import ABC, abstractmethod
 from typing import Generic, get_type_hints
 
 from nanoid import generate
-from pydantic import BaseModel
 
-from junjo.store import BaseStore, StateT, StoreT
+from junjo.store import BaseStore, StoreT
 from junjo.workflow_context import WorkflowContextManager
 
 
-class Node(Generic[StateT, StoreT], ABC):
+class Node(Generic[StoreT], ABC):
     """
     Base class for all nodes in the junjo graph.
 
-    The Node acts as a type contract for inputs and outputs at this stage of the workflow.
-    - The Node defines types for input and output
-    - The logic function is expected to accept this input, and produce the output
+    The Workflow passes the store to the node's service function.
+    - The Node's 
     - The action function is expected to carry out side effects on the output
     """
 
@@ -35,8 +33,12 @@ class Node(Generic[StateT, StoreT], ABC):
         return self._id
 
     @abstractmethod
-    async def service(self, state: StateT, store: StoreT) -> StateT:
-        """The main logic of the node."""
+    async def service(self, store: StoreT) -> None:
+        """The main logic of the node.
+
+        Args
+            :param store: The store will be passed to this node during execution
+        """
         raise NotImplementedError
 
     async def _execute(self, workflow_id: str) -> None:
@@ -59,7 +61,7 @@ class Node(Generic[StateT, StoreT], ABC):
 
         # Execute the service
         try:
-            await self.service(state, store)
+            await self.service(store)
         except Exception as e:
             print(f"Error executing service: {e}")
             return
@@ -80,15 +82,15 @@ class Node(Generic[StateT, StoreT], ABC):
             raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
 
 
-        # Validate service function params: state
-        if "state" not in type_hints:
-            raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
-        if not issubclass(type_hints["state"], BaseModel):
-            raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
+        # # Validate service function params: state
+        # if "state" not in type_hints:
+        #     raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
+        # if not issubclass(type_hints["state"], BaseModel):
+        #     raise ValueError(f"Service function must have a 'state' parameter of type {StateT}")
 
-        # Validate the return type of the service function
-        if "return" not in type_hints:
-            raise ValueError(f"Service function must have a return type of {StateT}")
-        if not issubclass(type_hints["return"], BaseModel):
-            raise ValueError(f"Service function must have a return type of {StateT}")
+        # # Validate the return type of the service function
+        # if "return" not in type_hints:
+        #     raise ValueError(f"Service function must have a return type of {StateT}")
+        # if not issubclass(type_hints["return"], BaseModel):
+        #     raise ValueError(f"Service function must have a return type of {StateT}")
 

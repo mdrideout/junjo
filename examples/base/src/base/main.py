@@ -33,36 +33,42 @@ async def main():
         count = len(items)
         return count
 
-    class CountNode(Node[MyGraphState, MyGraphStore]):
+    class CountNode(Node[MyGraphStore]):
         """Workflow node that counts items"""
 
-        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
+        async def service(self, store: MyGraphStore) -> None:
+            state = store.get_state()
             print("Running CountNode service from initial state: ", state.model_dump())
-
+            state = store.get_state()
             items = state.items
             count = await count_items(items)
-            return store.set_counter(count)
+            store.set_counter(count)
+            return
 
-    class IncrementNode(Node[MyGraphState, MyGraphStore]):
+    class IncrementNode(Node[MyGraphStore]):
         """Workflow node that increments the counter"""
 
-        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
-            return store.set_counter(12)
+        async def service(self, store: MyGraphStore) -> None:
+            store.set_counter(12)
+            return
 
-    class SetWarningNode(Node[MyGraphState, MyGraphStore]):
+    class SetWarningNode(Node[MyGraphStore]):
         """Workflow node that sets the warning flag"""
 
-        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
-            return store.set_warning(True)
+        async def service(self, store: MyGraphStore) -> None:
+            store.set_warning(True)
+            return
 
-    class FinalNode(Node[MyGraphState, MyGraphStore]):
+    class FinalNode(Node[MyGraphStore]):
         """Workflow node that prints the final state"""
 
-        async def service(self, state: MyGraphState, store: MyGraphStore) -> MyGraphState:
+        async def service(self, store: MyGraphStore) -> None:
+            state = store.get_state()
             print("Running FinalNode service from initial state: ", state.model_dump())
-            return state
+            return
 
-    def count_over_10(current_node: Node, next_node: Node, state: MyGraphState) -> bool:
+    def count_over_10(current_node: Node, next_node: Node, store: MyGraphStore) -> bool:
+        state = store.get_state()
         return state.counter > 10
 
     # Instantiate nodes

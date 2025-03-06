@@ -23,4 +23,3 @@ class MessageRead(BaseModel):
 
 class MessageDelete(BaseModel):
     id: str
-

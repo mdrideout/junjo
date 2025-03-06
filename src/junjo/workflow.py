@@ -64,6 +64,8 @@ class Workflow(Generic[StateT, StoreT]):
         """
         Executes the workflow.
         """
+        # TODO: Test that the sink node can be reached
+
         # Execute workflow before hooks
         if self.hook_manager is not None:
             workflow_start_time = time.time()
@@ -97,6 +99,7 @@ class Workflow(Generic[StateT, StoreT]):
                     node_start_time = time.time()
 
                 # Execute the current node.
+                print("Executing node:", current_node.id)
                 await current_node._execute(self.workflow_id)
 
                 # Execute node after hooks
@@ -111,7 +114,7 @@ class Workflow(Generic[StateT, StoreT]):
                 # Increment the execution counter for the current node.
                 self.node_execution_counter[current_node.id] = self.node_execution_counter.get(current_node.id, 0) + 1
                 if self.node_execution_counter[current_node.id] > self.max_iterations:
-                    raise ValueError(f"Node '{current_node}' exceeded maximum execution count. Check for loops.")
+                    raise ValueError(f"Node '{current_node}' exceeded maximum execution count. Check for loops in your graph. Ensure it transitions to the sink node.")
 
                 # Break the loop if the current node is the final node.
                 if current_node == self.graph.sink:

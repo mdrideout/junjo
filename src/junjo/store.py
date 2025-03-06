@@ -31,9 +31,11 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
     def get_state(self) -> StateT:
         """
-        Return the current state.
+        Return a shallow copy of the current state.
+        (Follows immutability principle)
         """
-        return self._state
+        return self._state.model_copy()
+
 
     def get_state_json(self) -> str:
         """

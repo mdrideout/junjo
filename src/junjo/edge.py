@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
 from junjo.node import Node
-from junjo.store import StateT
+from junjo.store import StoreT
 from junjo.workflow_context import WorkflowContextManager
 
 
@@ -17,7 +17,7 @@ class Edge:
         self,
         tail: Node,
         head: Node,
-        condition: Callable[[Node, Node, StateT], bool] | None = None,
+        condition: Callable[[Node, Node, StoreT], bool] | None = None,
     ):
         """
         Initializes the Edge.
@@ -31,8 +31,8 @@ class Edge:
                        current workflow context, and return True if the transition
                        is valid, False otherwise.
         """
-        if tail == head:
-            raise ValueError("tail and head cannot be the same.")
+        # if tail == head:
+        #     raise ValueError("tail and head cannot be the same.")
 
         self.tail = tail
         self.head = head

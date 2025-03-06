@@ -1,6 +1,8 @@
 
 from contextvars import ContextVar
 
+from junjo.workflow_context import WorkflowContextManager
+
 
 class JunjoApp:
     """A class to hold the configuration of a Junjo project."""
@@ -10,6 +12,10 @@ class JunjoApp:
 
     def __init__(self, project_name: str):
         """Initialize the JunjoConfig by setting context variables."""
+        # Setup the workflow context manager
+        WorkflowContextManager()
+
+        # Set the context variables
         self._project_name.set(project_name)
 
 
