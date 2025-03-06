@@ -55,13 +55,16 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                 subscriber(self._state)
 
 
-def state_action(func: Callable[..., StateT]) -> Callable[..., StateT]:
+def immutable_update(func: Callable[..., StateT]) -> Callable[..., StateT]:
     """
     A decorator for store state update functions.
 
     Ensures that:
     1. The decorated method returns a new state object of the correct type.
     2. `_update_state_and_notify` is called to update the store and notify subscribers.
+
+    TODO: Add runtime warnings and lint warnings via static analysis for 
+    state mutations that do not follow the immutable update rule
     """
 
     def wrapper(self: BaseStore[StateT], *args: Any, **kwargs: Any) -> StateT:

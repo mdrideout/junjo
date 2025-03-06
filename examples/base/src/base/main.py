@@ -11,7 +11,7 @@ from junjo.workflow_context import WorkflowContextManager
 async def main():
     """The main entry point for the application."""
     # Initialize Junjo
-    junjo = JunjoApp(project_name="Junjo Example", sqlite_url="sqlite://:memory:")
+    junjo = JunjoApp(project_name="Junjo Base Example")
     await junjo.init()
 
     # Initialize a workflow context manager

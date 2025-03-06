@@ -10,9 +10,9 @@ from app.db.models.message.repository import MessageRepository
 from app.db.models.message.schemas import MessageCreate, MessageRead
 from app.db.queries.create_setup_contact.repository import CreateSetupContactRepository
 from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
-from app.workflows.contact_create.prompt_gemini import contact_create_prompt_gemini
-from app.workflows.contact_create.schemas import ContactCreateWorkflowRequest
-from app.workflows.message.services import create_message_response
+from app.workflows_basic.contact_create.prompt_gemini import contact_create_prompt_gemini
+from app.workflows_basic.contact_create.schemas import ContactCreateWorkflowRequest
+from app.workflows_basic.message.services import create_message_response
 
 workflows_router = APIRouter(prefix="/workflows")
 

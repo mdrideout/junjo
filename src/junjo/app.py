@@ -8,7 +8,7 @@ class JunjoApp:
     # Context variables
     _project_name: ContextVar[str] = ContextVar("project_name")
 
-    def __init__(self, project_name: str, sqlite_url: str | None = None):
+    def __init__(self, project_name: str):
         """Initialize the JunjoConfig by setting context variables."""
         self._project_name.set(project_name)
 

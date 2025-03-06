@@ -12,7 +12,7 @@ from app.db.models.contact.routes import contact_router
 from app.db.models.message.routes import message_router
 from app.db.queries.routes import queries_router
 from app.log.config import setup_logging
-from app.workflows.routes import workflows_router
+from app.workflows_basic.routes import workflows_router
 
 # Load the environment variables
 load_dotenv()
@@ -24,6 +24,10 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    # Initialize Junjo
+    junjo = JunjoApp(project_name="AI Chat Demo")
+    await junjo.init()
+
     # Initialize the database
     await init_db()
     yield
@@ -36,8 +40,7 @@ async def lifespan(app: FastAPI):
 # Create the FastAPI app
 app = FastAPI(lifespan=lifespan)
 
-# Initialize Junjo
-junjo = JunjoApp(project_name="ai_chat")
+
 
 origins = [
     "http://localhost:5173",

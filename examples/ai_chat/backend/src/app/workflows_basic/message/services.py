@@ -9,7 +9,7 @@ from app.db.models.chat_members.repository import ChatMembersRepository
 from app.db.models.contact.repository import ContactRepository
 from app.db.models.message.repository import MessageRepository
 from app.db.models.message.schemas import MessageCreate, MessageRead
-from app.workflows.message.prompt_gemini import message_response_prompt_gemini
+from app.workflows_basic.message.prompt_gemini import message_response_prompt_gemini
 
 
 async def create_message_response(message: MessageRead):
