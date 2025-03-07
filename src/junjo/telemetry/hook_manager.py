@@ -65,6 +65,7 @@ class HookManager:
             duration_ms = duration * 1000
             print(f"After Executing: {node_id} | State: {state}\n(Duration: {duration_ms:.5f}ms)\n")
 
+
         self.add_before_workflow_execute_hook(log_before_workflow_execute)
         self.add_after_workflow_execute_hook(log_after_workflow_execute)
         self.add_before_node_execute_hook(log_before_node_execute)

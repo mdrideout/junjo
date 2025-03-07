@@ -25,6 +25,6 @@ async def handle_message_workflow(message: MessageCreate) -> None:
     print("Executing the workflow with initial store state: ", workflow.get_state)
     await workflow.execute()
     final_state = workflow.get_state
-    print(f"Final state: {final_state}")
+    print("Done")
 
     return

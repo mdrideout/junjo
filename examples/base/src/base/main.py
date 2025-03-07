@@ -96,7 +96,7 @@ async def main():
     workflow = Workflow(
         graph=graph,
         initial_store=graph_store,
-        hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
+        hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
     )
     print("Executing the workflow with initial store state: ", workflow.get_state)
     await workflow.execute()
