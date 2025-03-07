@@ -1,3 +1,4 @@
 /tmp/
 .env
 sqlite/
+.DS_Store
