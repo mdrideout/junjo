@@ -33,7 +33,7 @@ func GetWorkflowLogs(c echo.Context) error {
 
 	// Log the logs fetched
 	c.Logger().Printf("Fetched %d logs for execId: %s", len(logs), execID)
-	c.Logger().Printf("Logs: %+v", logs)
+	// c.Logger().Printf("Logs: %+v", logs)
 
 	// If no logs found, return empty array
 	if len(logs) == 0 {
