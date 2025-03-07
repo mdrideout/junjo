@@ -12,3 +12,11 @@ class MessageService:
         saved_message = await MessageRepository.create(message)
 
         return saved_message
+
+    @staticmethod
+    async def get_chat_messages(chat_id: str) -> list[MessageRead]:
+        """Business logic to handle getting chat messages from the database."""
+
+        messages = await MessageRepository.read_all_by_chat_id(chat_id)
+
+        return messages
