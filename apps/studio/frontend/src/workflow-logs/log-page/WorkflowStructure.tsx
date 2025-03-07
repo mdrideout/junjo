@@ -47,12 +47,12 @@ export default function WorkflowStructure(props: WorkflowStructureProps) {
 
   return (
     <div className="flex">
-      <div>
+      {/* <div>
         <pre>{json}</pre>
-      </div>
+      </div> */}
       <div className="grow">
         <div className={'h-[500px]'}>
-          <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.TB} />
+          <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.LR} />
         </div>
       </div>
     </div>

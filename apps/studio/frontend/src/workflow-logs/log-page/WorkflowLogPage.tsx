@@ -5,6 +5,8 @@ import WorkflowStructure from './WorkflowStructure'
 import { decodeBase64Json } from '../../util/decode-base64-json'
 import { useQuery } from '@tanstack/react-query'
 import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
+import JsonView from '@uiw/react-json-view'
+import { lightTheme } from '@uiw/react-json-view/light'
 
 export default function WorkflowLogPage() {
   const { ExecID } = useParams()
@@ -43,6 +45,13 @@ export default function WorkflowLogPage() {
   const durationNano = workflowLogs[1]?.EventTimeNano - workflowLogs[0]?.EventTimeNano
   const durationMs = durationNano / 1e6
   const durationMsRounded = Math.round(durationMs * 100) / 100
+
+  // console.log('Workflow logs: ', workflowLogs)
+  // const jsonLogs0 = decodeBase64Json(workflowLogs[0].State)
+  // const jsonLogs1 = decodeBase64Json(workflowLogs[1].State)
+
+  // const diffed = diff(jsonLogs0, jsonLogs1)
+  // console.log('Diff: ', diffed)
 
   return (
     <div className={'p-5'}>
@@ -84,9 +93,28 @@ export default function WorkflowLogPage() {
                 <p>
                   <strong>{log.Type}</strong>
                 </p>
-                <div>
+                <JsonView
+                  value={decodeBase64Json(log.State)}
+                  collapsed={3}
+                  shouldExpandNodeInitially={(isExpanded, { value, keys, level }) => {
+                    // Collapse arrays more than 1 level deep (not root arrays)
+                    const isArray = Array.isArray(value)
+                    if (isArray && level > 1) {
+                      const arrayLength = Object.keys(value).length
+
+                      // Only hide if the array length is greater than 1
+                      if (arrayLength > 1) {
+                        return true
+                      }
+                    }
+
+                    return isExpanded
+                  }}
+                  style={lightTheme}
+                />
+                {/* <div>
                   <pre>{displayState}</pre>
-                </div>
+                </div> */}
               </div>
             )
           })}
