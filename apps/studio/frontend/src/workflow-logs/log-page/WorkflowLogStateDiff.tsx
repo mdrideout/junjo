@@ -51,7 +51,7 @@ const TabButton = ({
 export default function WorkflowLogStateDiff(props: WorkflowLogStateDiffProps) {
   const { jsonLogs0, jsonLogs1 } = props
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
-  const [jsonViewData, setJsonViewData] = useState<object>(jsonLogs0)
+  const [jsonViewData, setJsonViewData] = useState<object>(jsonLogs1)
   const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(1)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
@@ -130,6 +130,7 @@ export default function WorkflowLogStateDiff(props: WorkflowLogStateDiffProps) {
           }}
           style={displayTheme}
         >
+          {/* Zero width whitespace char */}
           <JsonView.Quote>&#8203;</JsonView.Quote>
           <JsonView.Arrow>
             <TriangleDownIcon className={'size-4 leading-0'} />

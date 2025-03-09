@@ -45,25 +45,28 @@ export default function WorkflowLogPage() {
   const durationMs = durationNano / 1e6
   const durationMsRounded = Math.round(durationMs * 100) / 100
 
-  // Test changes to start state
-  const jsonLogs0 = {
-    ...decodeBase64Json(workflowLogs[0].State),
-    ...{ test_start_string: 'start string value', test_start_obj: { key: 'value', key2: 100 } },
-  }
+  // // Test changes to start state
+  // const jsonLogs0 = {
+  //   ...decodeBase64Json(workflowLogs[0].State),
+  //   ...{ test_start_string: 'start string value', test_start_obj: { key: 'value', key2: 100 } },
+  // }
 
-  // Test changes to end state
-  let receivedMessage = decodeBase64Json(workflowLogs[1].State).received_message ?? {}
-  receivedMessage['test_add'] = {
-    new: 'this is a new property',
-    test: 55,
-  }
+  // // Test changes to end state
+  // let receivedMessage = decodeBase64Json(workflowLogs[1].State).received_message ?? {}
+  // receivedMessage['test_add'] = {
+  //   new: 'this is a new property',
+  //   test: 55,
+  // }
 
-  // Manual updates for testing
-  const jsonLogs1 = {
-    ...decodeBase64Json(workflowLogs[1].State),
-    ...{ receivedMessage },
-    ...{ contact: 'Test new contact' },
-  }
+  // // Manual updates for testing
+  // const jsonLogs1 = {
+  //   ...decodeBase64Json(workflowLogs[1].State),
+  //   ...{ receivedMessage },
+  //   ...{ contact: 'Test new contact' },
+  // }
+
+  const startLogs = decodeBase64Json(workflowLogs[0].State)
+  const endLogs = decodeBase64Json(workflowLogs[1].State)
 
   return (
     <div className={'p-5'}>
@@ -83,7 +86,7 @@ export default function WorkflowLogPage() {
 
       <WorkflowStructure ExecID={ExecID} />
       {workflowLogs.length === 0 && <p>No logs found for this workflow.</p>}
-      <WorkflowLogStateDiff jsonLogs0={jsonLogs0} jsonLogs1={jsonLogs1} />
+      <WorkflowLogStateDiff jsonLogs0={startLogs} jsonLogs1={endLogs} />
 
       <div className="h-10"></div>
     </div>
