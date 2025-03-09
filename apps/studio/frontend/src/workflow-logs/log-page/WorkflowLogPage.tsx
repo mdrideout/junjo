@@ -83,12 +83,9 @@ export default function WorkflowLogPage() {
         </div>
       </div>
       <hr className={'my-6'} />
-
-      <WorkflowStructure ExecID={ExecID} />
       {workflowLogs.length === 0 && <p>No logs found for this workflow.</p>}
+      <WorkflowStructure ExecID={ExecID} />
       <WorkflowLogStateDiff jsonLogs0={startLogs} jsonLogs1={endLogs} />
-
-      <div className="h-10"></div>
     </div>
   )
 }
