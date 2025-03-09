@@ -16,6 +16,7 @@
     "@tanstack/react-query": "^5.66.11",
     "@uiw/react-json-view": "^2.0.0-alpha.30",
     "@xyflow/react": "^12.4.3",
+    "deep-object-diff": "^1.1.9",
     "framer-motion": "^12.4.4",
     "jwt-decode": "^4.0.0",
     "react": "^19.0.0",

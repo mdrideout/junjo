@@ -5,8 +5,7 @@ import WorkflowStructure from './WorkflowStructure'
 import { decodeBase64Json } from '../../util/decode-base64-json'
 import { useQuery } from '@tanstack/react-query'
 import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
-import JsonView from '@uiw/react-json-view'
-import { lightTheme } from '@uiw/react-json-view/light'
+import WorkflowLogStateDiff from './WorkflowLogStateDiff'
 
 export default function WorkflowLogPage() {
   const { ExecID } = useParams()
@@ -46,12 +45,25 @@ export default function WorkflowLogPage() {
   const durationMs = durationNano / 1e6
   const durationMsRounded = Math.round(durationMs * 100) / 100
 
-  // console.log('Workflow logs: ', workflowLogs)
-  // const jsonLogs0 = decodeBase64Json(workflowLogs[0].State)
-  // const jsonLogs1 = decodeBase64Json(workflowLogs[1].State)
+  // Test changes to start state
+  const jsonLogs0 = {
+    ...decodeBase64Json(workflowLogs[0].State),
+    ...{ test_start_string: 'start string value', test_start_obj: { key: 'value', key2: 100 } },
+  }
 
-  // const diffed = diff(jsonLogs0, jsonLogs1)
-  // console.log('Diff: ', diffed)
+  // Test changes to end state
+  let receivedMessage = decodeBase64Json(workflowLogs[1].State).received_message ?? {}
+  receivedMessage['test_add'] = {
+    new: 'this is a new property',
+    test: 55,
+  }
+
+  // Manual updates for testing
+  const jsonLogs1 = {
+    ...decodeBase64Json(workflowLogs[1].State),
+    ...{ receivedMessage },
+    ...{ contact: 'Test new contact' },
+  }
 
   return (
     <div className={'p-5'}>
@@ -68,61 +80,12 @@ export default function WorkflowLogPage() {
         </div>
       </div>
       <hr className={'my-6'} />
-      <div className={'px-2'}>
-        <div className="flex gap-10">
-          {workflowLogs.length === 0 && <p>No logs found for this workflow.</p>}
-          {workflowLogs.map((log) => {
-            // Decode the base64 encoded state into stringified json,
-            // then format the JSON string with 2 spaces for indentation
-            const displayState = JSON.stringify(decodeBase64Json(log.State), null, 2)
 
-            return (
-              <div key={log.ID} className={''}>
-                {/* <p>
-                  <strong>Log ID:</strong> {log.ID}
-                </p>
-                <p>
-                  <strong>Execution ID:</strong> {log.ExecID}
-                </p>
-                <p>
-                  <strong>Nano time number:</strong> {log.EventTimeNano}
-                </p>
-                <p>
-                  <strong>Ingest time:</strong> {log.IngestionTime}
-                </p> */}
-                <p>
-                  <strong>{log.Type}</strong>
-                </p>
-                <JsonView
-                  value={decodeBase64Json(log.State)}
-                  collapsed={3}
-                  shouldExpandNodeInitially={(isExpanded, { value, keys, level }) => {
-                    // Collapse arrays more than 1 level deep (not root arrays)
-                    const isArray = Array.isArray(value)
-                    if (isArray && level > 1) {
-                      const arrayLength = Object.keys(value).length
+      <WorkflowStructure ExecID={ExecID} />
+      {workflowLogs.length === 0 && <p>No logs found for this workflow.</p>}
+      <WorkflowLogStateDiff jsonLogs0={jsonLogs0} jsonLogs1={jsonLogs1} />
 
-                      // Only hide if the array length is greater than 1
-                      if (arrayLength > 1) {
-                        return true
-                      }
-                    }
-
-                    return isExpanded
-                  }}
-                  style={lightTheme}
-                />
-                {/* <div>
-                  <pre>{displayState}</pre>
-                </div> */}
-              </div>
-            )
-          })}
-        </div>
-        <div className="h-10"></div>
-        <strong>Graph Structure:</strong>
-        <WorkflowStructure ExecID={ExecID} />
-      </div>
+      <div className="h-10"></div>
     </div>
   )
 }

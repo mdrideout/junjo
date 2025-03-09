@@ -68,3 +68,22 @@ ul ol {
 li {
   @apply mb-2;
 }
+
+/* Workflow Logs JSON Rendering */
+.workflow-logs-json-container {
+  @apply py-2;
+
+  .w-json-view-container {
+    background-color: transparent !important;
+  }
+
+  .w-rjv-inner,
+  .w-rjv-line,
+  .w-rjv-wrap {
+    @apply py-0.5;
+  }
+
+  .w-rjv-object-key {
+    @apply font-bold cursor-pointer;
+  }
+}
