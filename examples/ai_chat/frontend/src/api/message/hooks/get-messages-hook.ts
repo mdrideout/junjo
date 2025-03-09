@@ -57,7 +57,7 @@ const useGetMessages = (): UseGetMessagesResult => {
       }
 
       await getNewerMessages(pollingChatId.current, pollingMessageId.current)
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await new Promise((resolve) => setTimeout(resolve, 12000))
       recursiveFetch()
     }
 

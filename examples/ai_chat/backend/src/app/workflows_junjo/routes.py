@@ -1,6 +1,6 @@
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from loguru import logger
 
 from app.db.models.message.schemas import MessageCreate
@@ -37,7 +37,7 @@ workflows_junjo_router = APIRouter(prefix="/workflows-junjo")
 
 
 @workflows_junjo_router.post("/handle-message/{chat_id}")
-async def post_message_workflow(request: MessageCreate) -> None:
+async def post_message_workflow(request: MessageCreate) -> dict:
     """
     Kick off the junjo handle message workflow
     """
@@ -46,5 +46,9 @@ async def post_message_workflow(request: MessageCreate) -> None:
     # Kick off the workflow in a background task:
     asyncio.create_task(handle_message_workflow(request))
 
-    return
+    return {
+        "status": status.HTTP_202_ACCEPTED,
+        "message": "Workflow initiated successfully in the background.",
+    }
+
 

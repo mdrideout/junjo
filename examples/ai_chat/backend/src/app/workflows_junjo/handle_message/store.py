@@ -10,7 +10,7 @@ class MessageWorkflowState(BaseModel):
     received_message: MessageCreate
     conversation_history: list[MessageRead] = []
     contact: ContactRead | None = None
-    response_message: MessageCreate | None = None
+    response_message: MessageRead | None = None
 
 
 
@@ -35,4 +35,8 @@ class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
     @immutable_update
     def set_contact(self, payload: ContactRead) -> MessageWorkflowState:
         return self._state.model_copy(update={"contact": payload})
+
+    @immutable_update
+    def set_response_message(self, payload: MessageRead) -> MessageWorkflowState:
+        return self._state.model_copy(update={"response_message": payload})
 

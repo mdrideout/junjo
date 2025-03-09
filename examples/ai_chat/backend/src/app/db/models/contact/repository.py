@@ -51,7 +51,7 @@ class ContactRepository:
             async with async_session() as session:
                 stmt = select(model.ContactsTable).offset(skip).limit(limit)
                 db_contacts = (await session.execute(stmt)).scalars().all()
-                return [schemas.ContactRead.from_orm(db_contact) for db_contact in db_contacts]
+                return [schemas.ContactRead.model_validate(db_contact) for db_contact in db_contacts]
         except SQLAlchemyError as e:
             raise e
 
