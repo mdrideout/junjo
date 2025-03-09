@@ -6,7 +6,6 @@ import { fetchWorkflowMetadataList } from './fetch/fetch-workflow-metadata'
 export default function WorkflowsList() {
   const navigate = useNavigate()
 
-  // useQuery<DataType, ErrorType>
   const {
     data: metadataList,
     isLoading,
