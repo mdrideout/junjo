@@ -4,6 +4,8 @@ import { WorkflowMetadatum } from '../schemas'
 import { JunjoGraph } from '../../junjo-graph/junjo-graph'
 import ReactFlowJunjoGraph from '../../react-flow/components/ReactFlowJunjoGraph'
 import { ReactFlowGraphDirection } from '../../react-flow/dagre-layout-util'
+import { Resizable } from 'react-resizable'
+import { useState } from 'react'
 
 export type WorkflowStructureProps = {
   ExecID: string
@@ -16,6 +18,15 @@ export type WorkflowStructureProps = {
  */
 export default function WorkflowStructure(props: WorkflowStructureProps) {
   const { ExecID } = props
+
+  const [width, setWidth] = useState(200)
+  const [height, setHeight] = useState(150)
+
+  const onResize = (event, { node, size, handle }) => {
+    console.log('Changing size: ', size)
+    setWidth(size.width)
+    setHeight(size.height)
+  }
 
   const {
     data: metadata,
@@ -43,18 +54,10 @@ export default function WorkflowStructure(props: WorkflowStructureProps) {
 
   // Create a JunjoGraph instance
   const junjoGraph = JunjoGraph.fromBase64Json(metadata.Structure)
-  const json = junjoGraph.toJson()
 
   return (
-    <div className="flex">
-      {/* <div>
-        <pre>{json}</pre>
-      </div> */}
-      <div className="grow">
-        <div className={'h-[500px]'}>
-          <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.LR} />
-        </div>
-      </div>
+    <div className={`w-full h-[60px] mb-5`}>
+      <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.LR} />
     </div>
   )
 }

@@ -59,11 +59,11 @@ export default function ReactFlowJunjoGraph(props: ReactFlowJunjoGraphProps) {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      defaultViewport={{ zoom: 1.0, x: 20, y: 20 }}
-      style={{ backgroundColor: 'transparent', color: '#000' }}
+      defaultViewport={{ zoom: 1.0, x: 10, y: 10 }}
+      style={{ backgroundColor: '#f4f4f5', color: '#000', borderRadius: '6px' }}
       proOptions={{ hideAttribution: true }}
     >
-      <Background />
+      <Background color="transparent" />
     </ReactFlow>
   )
 }
