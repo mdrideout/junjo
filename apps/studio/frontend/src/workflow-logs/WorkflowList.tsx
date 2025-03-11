@@ -34,8 +34,8 @@ export default function WorkflowsList() {
     <table className="text-left">
       <thead>
         <tr>
+          <th className={'px-4 py-1'}>Workflow</th>
           <th className={'px-4 py-1'}>Execution ID</th>
-          <th className={'px-4 py-1'}>Name</th>
           <th className={'px-4 py-1'}>Created At</th>
         </tr>
       </thead>
@@ -49,12 +49,12 @@ export default function WorkflowsList() {
             <tr
               key={item.ID}
               className={
-                'last-of-type:border-0 border-b border-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
+                'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
               }
               onClick={() => navigate(`${item.ExecID}`)}
             >
+              <td className={'px-4 py-1.5'}>{item.WorkflowName}</td>
               <td className={'px-4 py-1.5'}>{item.ExecID}</td>
-              <td className={'px-4 py-1.5'}>{item.Name}</td>
               <td className={'px-4 py-1.5'}>{item.CreatedAt}</td>
             </tr>
           )

@@ -18,7 +18,8 @@ export const WorkflowLogsResponseSchema = z.array(WorkflowLogSchema)
 export const WorkflowMetadatumSchema = z.object({
   ID: z.string(),
   ExecID: z.string(),
-  Name: z.string(),
+  AppName: z.string(),
+  WorkflowName: z.string(),
   CreatedAt: z.string(), // Time values come as ISO strings from the API
   Structure: z.string(), // Provided as a base64 encoded JSON strings
 })

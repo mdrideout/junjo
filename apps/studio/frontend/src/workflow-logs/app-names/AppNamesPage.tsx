@@ -1,15 +1,13 @@
-import { Link, useParams } from 'react-router'
-import WorkflowList from './WorkflowList'
+import { Link } from 'react-router'
+import AppNamesList from './AppNamesList'
 
 /**
- * Workflow List Page
+ * App Names Page
  *
- * Lists the workflow runs that have taken place.
+ * Lists the unique app names in the database.
  * @returns
  */
-export default function WorkflowListPage() {
-  const { AppName } = useParams()
-
+export default function AppNamesPage() {
   // Human readable start ingest time
   const date = new Date()
   const readableDate = date.toLocaleString()
@@ -20,14 +18,12 @@ export default function WorkflowListPage() {
         <div className={'mb-1 flex gap-x-3 font-bold'}>
           <Link to={'/logs'} className={'hover:underline'}>
             Logs
-          </Link>
-          <div>&rarr;</div>
-          <div>{AppName}</div>
+          </Link>{' '}
         </div>
         <div className={'text-zinc-400 text-xs'}>{readableDate}</div>
       </div>
       <hr className={'my-6'} />
-      <WorkflowList />
+      <AppNamesList />
     </div>
   )
 }

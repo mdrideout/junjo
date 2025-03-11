@@ -20,9 +20,9 @@ LIMIT
 
 -- name: CreateWorkflowMetadata :one
 INSERT INTO
-  workflow_metadata (id, exec_id, name, structure)
+  workflow_metadata (id, exec_id, app_name, workflow_name, structure)
 VALUES
-  (?, ?, ?, ?) RETURNING *;
+  (?, ?, ?, ?, ?) RETURNING *;
 
 -- name: UpdateWorkflowMetadata :one
 UPDATE
@@ -45,3 +45,9 @@ FROM
   workflow_metadata
 ORDER BY
   created_at DESC;
+
+-- name: ListUniqueAppNames :many
+SELECT
+  DISTINCT app_name
+FROM
+  workflow_metadata;

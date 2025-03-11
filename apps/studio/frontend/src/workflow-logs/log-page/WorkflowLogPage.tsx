@@ -6,10 +6,10 @@ import { decodeBase64Json } from '../../util/decode-base64-json'
 import { useQuery } from '@tanstack/react-query'
 import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
 import WorkflowLogStateDiff from './WorkflowLogStateDiff'
-import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons'
+import LogPageNavButtons from './LogPageNavButtons'
 
 export default function WorkflowLogPage() {
-  const { ExecID } = useParams()
+  const { AppName, ExecID } = useParams()
 
   // useQuery<DataType, ErrorType>
   const {
@@ -52,27 +52,16 @@ export default function WorkflowLogPage() {
   return (
     <div className={'p-5'}>
       <div className={'px-2'}>
-        <div className={'flex gap-x-3 items-center'}>
-          <div className={'flex flex-col gap-y-1'}>
-            <button
-              className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer'}
-              onClick={() => console.log('TODO: Navigate')}
-            >
-              <ArrowUpIcon />
-            </button>
-
-            <button
-              className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer'}
-              onClick={() => console.log('TODO: Navigate')}
-            >
-              <ArrowDownIcon />
-            </button>
-          </div>
+        <div className={'flex gap-x-3 items-center justify-between'}>
           <div>
             <div className={'mb-1 flex gap-x-3 font-bold'}>
               <Link to={'/logs'} className={'hover:underline'}>
                 Logs
-              </Link>{' '}
+              </Link>
+              <div>&rarr;</div>
+              <Link to={`/logs/${AppName}`} className={'hover:underline'}>
+                {AppName}
+              </Link>
               <div>&rarr;</div>
               <div>{ExecID}</div>
             </div>
@@ -80,6 +69,7 @@ export default function WorkflowLogPage() {
               {readableStart} &mdash; {durationMsRounded} ms
             </div>
           </div>
+          <LogPageNavButtons ExecID={ExecID} />
         </div>
       </div>
       <hr className={'my-6'} />

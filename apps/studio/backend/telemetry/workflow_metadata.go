@@ -35,10 +35,11 @@ func (s *server) CreateWorkflowMetadata(ctx context.Context, req *pb.CreateWorkf
 	structure := json.RawMessage(structureStr)
 
 	_, err = s.queries.CreateWorkflowMetadata(ctx, db.CreateWorkflowMetadataParams{
-		ID:        id,
-		ExecID:    req.GetExecId(),
-		Name:      req.GetName(),
-		Structure: structure,
+		ID:           id,
+		ExecID:       req.GetExecId(),
+		AppName:      req.GetAppName(),
+		WorkflowName: req.GetWorkflowName(),
+		Structure:    structure,
 	})
 	if err != nil {
 		log.Printf("Error creating workflow_metadata: %v", err)

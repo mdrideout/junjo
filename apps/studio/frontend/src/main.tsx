@@ -12,6 +12,7 @@ import WorkflowLogPage from './workflow-logs/log-page/WorkflowLogPage.tsx'
 import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactFlowProvider } from '@xyflow/react'
+import AppNamesPage from './workflow-logs/app-names/AppNamesPage.tsx'
 
 const queryClient = new QueryClient()
 
@@ -37,11 +38,26 @@ createRoot(document.getElementById('root')!).render(
                   path="/logs"
                   element={
                     <AuthGuard>
+                      <AppNamesPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs/:AppName"
+                  element={
+                    <AuthGuard>
                       <WorkflowListPage />
                     </AuthGuard>
                   }
                 />
-                <Route path="/logs/:ExecID" element={<WorkflowLogPage />} />
+                <Route
+                  path="/logs/:AppName/:ExecID"
+                  element={
+                    <AuthGuard>
+                      <WorkflowLogPage />
+                    </AuthGuard>
+                  }
+                />
               </Route>
             </Routes>
           </AuthProvider>

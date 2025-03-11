@@ -103,3 +103,21 @@ func GetWorkflowMetadataByExecID(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, metadata)
 }
+
+// Get Unique App Names
+func GetUniqueAppNames(c echo.Context) error {
+	c.Logger().Printf("Running GetUniqueAppNames function")
+
+	queries := db_gen.New(db.DB) // Get database queries instance
+
+	appNames, err := queries.ListUniqueAppNames(c.Request().Context())
+	if err != nil {
+		c.Logger().Errorf("Error querying unique app names: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch unique app names",
+		})
+	}
+
+	c.Logger().Printf("Fetched %d unique app names", len(appNames))
+	return c.JSON(http.StatusOK, appNames)
+}
