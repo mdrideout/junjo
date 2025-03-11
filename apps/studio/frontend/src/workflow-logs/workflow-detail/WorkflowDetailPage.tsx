@@ -5,10 +5,10 @@ import WorkflowStructure from './WorkflowStructure'
 import { decodeBase64Json } from '../../util/decode-base64-json'
 import { useQuery } from '@tanstack/react-query'
 import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
-import WorkflowLogStateDiff from './WorkflowLogStateDiff'
+import WorkflowLogStateDiff from './WorkflowDetailStateDiff'
 import LogPageNavButtons from './LogPageNavButtons'
 
-export default function WorkflowLogPage() {
+export default function WorkflowDetailPage() {
   const { AppName, ExecID } = useParams()
 
   // useQuery<DataType, ErrorType>
@@ -19,8 +19,8 @@ export default function WorkflowLogPage() {
     error,
   } = useQuery<WorkflowLog[], Error>({
     queryKey: ['workflowLogs', ExecID],
-    queryFn: () => fetchWorkflowLogs(ExecID!),
     enabled: !!ExecID,
+    queryFn: () => fetchWorkflowLogs(ExecID!),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 

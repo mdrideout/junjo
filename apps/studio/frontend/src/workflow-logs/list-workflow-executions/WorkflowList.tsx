@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { WorkflowMetadatum } from './schemas'
+import { WorkflowMetadatum } from '../schemas'
 import { useNavigate } from 'react-router'
-import { fetchWorkflowMetadataList } from './fetch/fetch-workflow-metadata'
+import { fetchWorkflowMetadataList } from '../fetch/fetch-workflow-metadata'
+import { useParams } from 'react-router'
 
 export default function WorkflowsList() {
+  const { AppName } = useParams()
   const navigate = useNavigate()
 
   const {
@@ -12,8 +14,9 @@ export default function WorkflowsList() {
     isError,
     error,
   } = useQuery<WorkflowMetadatum[], Error>({
-    queryKey: ['workflowMetadataList'],
-    queryFn: fetchWorkflowMetadataList,
+    queryKey: ['workflowMetadataList', AppName],
+    enabled: !!AppName,
+    queryFn: () => fetchWorkflowMetadataList(AppName!),
     select: (data) => data,
     // refetchInterval: 1000 * 3,
   })
@@ -31,7 +34,7 @@ export default function WorkflowsList() {
   }
 
   return (
-    <table className="text-left">
+    <table className="text-left text-sm">
       <thead>
         <tr>
           <th className={'px-4 py-1'}>Workflow</th>

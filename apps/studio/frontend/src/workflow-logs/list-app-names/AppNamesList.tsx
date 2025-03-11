@@ -30,7 +30,7 @@ export default function AppNamesList() {
   }
 
   return (
-    <table className="text-left w-full">
+    <table className="text-left text-sm w-full">
       <thead>
         <tr>
           <th className={'px-4 py-1'}>Apps</th>

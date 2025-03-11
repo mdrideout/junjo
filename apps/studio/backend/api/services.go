@@ -104,6 +104,42 @@ func GetWorkflowMetadataByExecID(c echo.Context) error {
 	return c.JSON(http.StatusOK, metadata)
 }
 
+func GetWorkflowMetadataByAppName(c echo.Context) error {
+	c.Logger().Printf("Running GetWorkflowMetadataByAppName function")
+
+	// Get AppName from query parameters
+	AppName := c.Param("AppName")
+	if AppName == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "AppName is required",
+		})
+	}
+
+	// Get database queries instance
+	queries := db_gen.New(db.DB)
+
+	// Call GetWorkflowMetadataByAppName
+	metadata, err := queries.GetWorkflowMetadataByAppName(c.Request().Context(), AppName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "No metadata found for AppName: " + AppName,
+			})
+		}
+
+		c.Logger().Printf("Error: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error":   "Failed to fetch workflow metadata",
+			"details": err.Error(),
+		})
+	}
+
+	// Log the metadata fetched
+	c.Logger().Printf("Fetched metadata for AppName: %s", AppName)
+
+	return c.JSON(http.StatusOK, metadata)
+}
+
 // Get Unique App Names
 func GetUniqueAppNames(c echo.Context) error {
 	c.Logger().Printf("Running GetUniqueAppNames function")

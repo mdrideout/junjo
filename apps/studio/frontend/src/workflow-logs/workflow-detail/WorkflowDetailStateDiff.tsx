@@ -12,7 +12,7 @@ enum DiffTabOptions {
   DETAILED = 'Detailed',
 }
 
-interface WorkflowLogStateDiffProps {
+interface WorkflowDetailStateDiffProps {
   jsonLogs0: object
   jsonLogs1: object
 }
@@ -48,7 +48,7 @@ const TabButton = ({
  * @param props
  * @returns
  */
-export default function WorkflowLogStateDiff(props: WorkflowLogStateDiffProps) {
+export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { jsonLogs0, jsonLogs1 } = props
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
   const [jsonViewData, setJsonViewData] = useState<object>(jsonLogs1)
