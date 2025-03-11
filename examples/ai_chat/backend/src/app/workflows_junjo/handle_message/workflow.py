@@ -16,6 +16,7 @@ async def handle_message_workflow(message: MessageCreate) -> None:
 
     # Create the workflow
     workflow = Workflow(
+        workflow_name="Handle Message Workflow",
         graph=handle_message_graph,
         initial_store=store,
         hook_manager=HookManager(verbose_logging=True, open_telemetry=True),

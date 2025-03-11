@@ -30,8 +30,7 @@ WorkflowContextManager()
 async def lifespan(app: FastAPI):
     # Startup
     # Initialize Junjo
-    junjo = JunjoApp(project_name="AI Chat Demo")
-    await junjo.init()
+    JunjoApp(app_name="AI Chat Demo")
 
     # Initialize the database
     await init_db()

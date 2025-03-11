@@ -1,3 +1,5 @@
+import asyncio
+
 from junjo.node import Node
 
 from app.db.models.message.services import MessageService
@@ -17,5 +19,9 @@ class SaveMessageNode(Node[MessageWorkflowStore]):
 
         # Append the saved message to state
         store.append_conversation_history(saved_message)
+
+        # Create a 1 second artificial delay
+        await asyncio.sleep(1)
+
 
         return

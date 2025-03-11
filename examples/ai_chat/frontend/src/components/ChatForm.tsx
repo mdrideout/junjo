@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useSendMessage from '../api/message/hooks/send-message-hook'
+import useGetMessages from '../api/message/hooks/get-messages-hook'
 
 export interface ChatFormProps {
   chat_id: string | undefined
@@ -9,6 +10,7 @@ export default function ChatForm(props: ChatFormProps) {
   const { chat_id } = props
   const [message, setMessage] = useState('')
   const { isLoading, error, sendMessage } = useSendMessage()
+  const { getChatMessages } = useGetMessages()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,6 +19,12 @@ export default function ChatForm(props: ChatFormProps) {
     try {
       await sendMessage({ chat_id, message })
       setMessage('') // Clear the input field after sending
+
+      // Await a delay
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
+      // Fetch chat messages
+      await getChatMessages(chat_id)
     } catch (err: any) {
       console.error('Error sending message:', err)
       // Handle the error appropriately, e.g., display an error message to the user.

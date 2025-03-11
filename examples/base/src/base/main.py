@@ -11,7 +11,7 @@ from junjo.workflow_context import WorkflowContextManager
 async def main():
     """The main entry point for the application."""
     # Initialize Junjo
-    junjo = JunjoApp(project_name="Junjo Base Example")
+    junjo = JunjoApp(app_name="Junjo Base Example")
     await junjo.init()
 
     # Initialize a workflow context manager
@@ -94,6 +94,7 @@ async def main():
     print(f"Graphviz:\n{graph.to_dot_notation()}")
 
     workflow = Workflow(
+        workflow_name="demo_base_workflow",
         graph=graph,
         initial_store=graph_store,
         hook_manager=HookManager(verbose_logging=False, open_telemetry=True),

@@ -10,6 +10,7 @@ service WorkflowMetadataService {
 
 message CreateWorkflowMetadataRequest {
   string exec_id = 1;
-  string name = 2;
-  string structure = 3; // JSON data as a string
+  string app_name = 2;
+  string workflow_name = 3;
+  string structure = 4; // JSON data as a string
 }

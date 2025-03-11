@@ -1,31 +1,29 @@
+from typing import Optional
 
-from contextvars import ContextVar
-
-from junjo.workflow_context import WorkflowContextManager
+from junjo.workflow_context import WorkflowContextManager  # Assuming this exists
 
 
 class JunjoApp:
-    """A class to hold the configuration of a Junjo project."""
+    _instance: Optional["JunjoApp"] = None
+    _app_name: str = ""  # Class-level attribute for app_name
 
-    # Context variables
-    _project_name: ContextVar[str] = ContextVar("project_name")
+    def __new__(cls, app_name: str | None = None):
+        if cls._instance is None:
+            if app_name is None:
+                raise ValueError("app_name must be provided on first initialization")
+            cls._instance = super().__new__(cls)
+            cls._instance._app_name = app_name.strip()  # Initialize directly
+            WorkflowContextManager()  # Initialize here, if necessary and ONLY once.
+        elif app_name is not None and app_name.strip() != cls._instance._app_name:
+            print("Warning: app_name cannot be changed once set")
+        return cls._instance
 
-    def __init__(self, project_name: str):
-        """Initialize the JunjoConfig by setting context variables."""
-        # Setup the workflow context manager
-        WorkflowContextManager()
-
-        # Set the context variables
-        self._project_name.set(project_name)
-
-
-    async def init(self):
-        """Perform initialization tasks required at startup."""
+    def __init__(self, app_name: str | None = None):
+        # The constructor will always be called.  The key is
+        # it does almost nothing. This is important, because we
+        # always get the same instance after the first call.
         pass
 
-    @property
-    def project_name(self) -> str:
-        """Get the project name."""
-        return self._project_name.get()
-
-
+    @property  # Make app_name a read-only property
+    def app_name(self) -> str:
+        return self._app_name

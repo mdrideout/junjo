@@ -53,7 +53,8 @@ class JunjoUiClient:
 
     def create_workflow_metadata(self,
             exec_id: str,
-            name: str,
+            app_name: str,
+            workflow_name: str,
             structure: str
         ) -> None:
         """
@@ -61,14 +62,16 @@ class JunjoUiClient:
 
         Args:
             exec_id: The id of the workflow execution
-            name: The name of the workflow
+            app_name: The name of the application
+            workflow_name: The name of the workflow
             structure: The workflow structure as a JSON string
 
         """
         print("Sending grpc request to create workflow metadata with id:", exec_id)
         request = workflow_metadata_pb2.CreateWorkflowMetadataRequest(
             exec_id=exec_id,
-            name=name,
+            app_name=app_name,
+            workflow_name=workflow_name,
             structure=structure
         )
 

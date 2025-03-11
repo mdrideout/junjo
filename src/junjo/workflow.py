@@ -4,6 +4,7 @@ from typing import Generic
 
 from nanoid import generate
 
+from junjo.app import JunjoApp
 from junjo.graph import Graph
 from junjo.store import BaseStore, StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
@@ -18,15 +19,18 @@ class Workflow(Generic[StateT, StoreT]):
 
     def __init__(
             self,
+            workflow_name: str,
             graph: Graph,
             initial_store: BaseStore,
             max_iterations: int = 100,
-            hook_manager: HookManager | None = None
+            hook_manager: HookManager | None = None,
+            parent_workflow_id: str | None = None
     ):
         """
         Initializes the Workflow.
 
         Args:
+            name: The name of the workflow
             graph: The workflow graph.
             context: The initial workflow context (a dictionary).
             max_iterations: The maximum number of times a node can be
@@ -34,10 +38,12 @@ class Workflow(Generic[StateT, StoreT]):
 
         """
         self.workflow_id = generate()
+        self.workflow_name = workflow_name.strip()
         self.graph = graph
         self.max_iterations = max_iterations
         self.node_execution_counter: dict[str, int] = {}
         self.hook_manager = hook_manager
+        self.parent_workflow_id = parent_workflow_id
 
         # Set up a store for this workflow
         WorkflowContextManager.set_store(self.workflow_id, initial_store)
@@ -73,10 +79,16 @@ class Workflow(Generic[StateT, StoreT]):
 
             # TEST Junjo UI Client - Workflow Metadata
             exec_id = self.workflow_id
-            name = "Workflow Name Here"
+            app_name = JunjoApp().app_name
+            workflow_name = self.workflow_name
             structure = self.graph.serialize_to_json_string()
             print("Sending structure to Junjo UI Client:", structure)
-            JunjoUiClient().create_workflow_metadata(exec_id, name, structure)
+            JunjoUiClient().create_workflow_metadata(
+                exec_id,
+                app_name,
+                workflow_name,
+                structure,
+            )
 
             # TEST Junjo UI Client - Workflow Log Start
             exec_id = self.workflow_id
@@ -114,7 +126,10 @@ class Workflow(Generic[StateT, StoreT]):
                 # Increment the execution counter for the current node.
                 self.node_execution_counter[current_node.id] = self.node_execution_counter.get(current_node.id, 0) + 1
                 if self.node_execution_counter[current_node.id] > self.max_iterations:
-                    raise ValueError(f"Node '{current_node}' exceeded maximum execution count. Check for loops in your graph. Ensure it transitions to the sink node.")
+                    raise ValueError(
+                        f"Node '{current_node}' exceeded maximum execution count. \
+                        Check for loops in your graph. Ensure it transitions to the sink node."
+                    )
 
                 # Break the loop if the current node is the final node.
                 if current_node == self.graph.sink:
