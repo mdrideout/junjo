@@ -34,7 +34,7 @@ const TabButton = ({
   tabChangeHandler: (tab: DiffTabOptions) => void
 }) => {
   const getButtonClass = () => {
-    return `leading-tight px-2 py-1 hover:bg-zinc-100 text-sm font-medium border-b transition-all duration-200 ${activeTab === tab ? 'border-zinc-600 ' : 'border-transparent'}`
+    return `leading-tight px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm font-medium border-b transition-all duration-200 cursor-pointer ${activeTab === tab ? 'border-zinc-600 ' : 'border-transparent'}`
   }
   return (
     <button className={getButtonClass()} onClick={() => tabChangeHandler(tab)}>
