@@ -6,8 +6,8 @@ import { WorkflowMetadataListResponseSchema, WorkflowMetadatum, WorkflowMetadatu
  * Returns a list of workflow metadata (workflows that have run).
  * @returns
  */
-export const fetchWorkflowMetadataList = async (): Promise<WorkflowMetadatum[]> => {
-  const response = await fetch(`http://localhost:1323/workflow-metadata`, {
+export const fetchWorkflowMetadataList = async (AppName: string): Promise<WorkflowMetadatum[]> => {
+  const response = await fetch(`http://localhost:1323/app-names/${AppName}/workflow-executions`, {
     method: 'GET',
     credentials: 'include',
     headers: {

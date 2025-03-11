@@ -18,6 +18,14 @@ WHERE
 LIMIT
   1;
 
+-- name: GetWorkflowMetadataByAppName :many
+SELECT
+  *
+FROM
+  workflow_metadata
+WHERE
+  app_name = ?;
+
 -- name: CreateWorkflowMetadata :one
 INSERT INTO
   workflow_metadata (id, exec_id, app_name, workflow_name, structure)

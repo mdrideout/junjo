@@ -19,8 +19,9 @@ export default function LogPageNavButtons(props: LogPageNavButtonsProps) {
     isError,
     error,
   } = useQuery<WorkflowMetadatum[], Error>({
-    queryKey: ['workflowMetadataList'],
-    queryFn: fetchWorkflowMetadataList,
+    queryKey: ['workflowMetadataList', AppName],
+    enabled: !!AppName,
+    queryFn: () => fetchWorkflowMetadataList(AppName!),
     select: (data) => data,
     // refetchInterval: 1000 * 3,
   })

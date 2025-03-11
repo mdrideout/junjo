@@ -8,11 +8,11 @@ import SignIn from './auth/sign-in/SignIn.tsx'
 import AuthGuard from './guards/AuthGuard.tsx'
 import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
-import WorkflowLogPage from './workflow-logs/log-page/WorkflowLogPage.tsx'
-import WorkflowListPage from './workflow-logs/WorkflowListPage.tsx'
+import WorkflowDetailPage from './workflow-logs/workflow-detail/WorkflowDetailPage.tsx'
+import WorkflowListPage from './workflow-logs/list-workflow-executions/WorkflowListPage.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactFlowProvider } from '@xyflow/react'
-import AppNamesPage from './workflow-logs/app-names/AppNamesPage.tsx'
+import AppNamesPage from './workflow-logs/list-app-names/AppNamesPage.tsx'
 
 const queryClient = new QueryClient()
 
@@ -54,7 +54,7 @@ createRoot(document.getElementById('root')!).render(
                   path="/logs/:AppName/:ExecID"
                   element={
                     <AuthGuard>
-                      <WorkflowLogPage />
+                      <WorkflowDetailPage />
                     </AuthGuard>
                   }
                 />

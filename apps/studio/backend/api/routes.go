@@ -9,4 +9,5 @@ func InitRoutes(e *echo.Echo) {
 	e.GET("/workflow-metadata", GetWorkflowMetadata)
 	e.GET("/workflow-metadata/:execID", GetWorkflowMetadataByExecID)
 	e.GET("/app-names", GetUniqueAppNames)
+	e.GET("/app-names/:AppName/workflow-executions", GetWorkflowMetadataByAppName)
 }
