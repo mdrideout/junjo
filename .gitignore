@@ -176,3 +176,6 @@ src/junjo/telemetry/junjo_server/proto_gen/**.*
 
 # Keep the init
 !src/junjo/telemetry/junjo_server/proto_gen/__init__.py
+
+# Misc
+.DS_Store

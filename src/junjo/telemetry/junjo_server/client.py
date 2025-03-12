@@ -55,6 +55,7 @@ class JunjoUiClient:
             exec_id: str,
             app_name: str,
             workflow_name: str,
+            event_time_nano: int,
             structure: str
         ) -> None:
         """
@@ -64,6 +65,7 @@ class JunjoUiClient:
             exec_id: The id of the workflow execution
             app_name: The name of the application
             workflow_name: The name of the workflow
+            event_time_nano: The time of the event in nanoseconds
             structure: The workflow structure as a JSON string
 
         """
@@ -72,6 +74,7 @@ class JunjoUiClient:
             exec_id=exec_id,
             app_name=app_name,
             workflow_name=workflow_name,
+            event_time_nano=event_time_nano,
             structure=structure
         )
 

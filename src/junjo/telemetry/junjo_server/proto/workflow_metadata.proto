@@ -12,5 +12,6 @@ message CreateWorkflowMetadataRequest {
   string exec_id = 1;
   string app_name = 2;
   string workflow_name = 3;
-  string structure = 4; // JSON data as a string
+  int64 event_time_nano = 4;
+  string structure = 5; // JSON data as a string
 }

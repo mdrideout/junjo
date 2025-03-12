@@ -19,9 +19,9 @@ class JunjoApp:
         return cls._instance
 
     def __init__(self, app_name: str | None = None):
-        # The constructor will always be called.  The key is
-        # it does almost nothing. This is important, because we
-        # always get the same instance after the first call.
+        # The constructor will always be called.
+        # Even though this does nothing, it is conventional
+        # to include it.
         pass
 
     @property  # Make app_name a read-only property
