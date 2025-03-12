@@ -7,7 +7,7 @@ import { RootState } from '../../../root-store/store'
 export const useFetchWorkflowExecution = (ExecID: string | undefined) => {
   const dispatch = useAppDispatch()
   const workflowExecution = useAppSelector((state: RootState) => selectWorkflowExecution(state, ExecID ?? ''))
-  const isLoading = !!workflowExecution
+  const isLoading = workflowExecution === undefined
   const [error, setError] = useState<boolean>(false)
 
   useEffect(() => {
