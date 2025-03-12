@@ -1,8 +1,6 @@
 import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons'
-import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
-import { WorkflowMetadatum } from '../../schemas'
-import { fetchWorkflowMetadataList } from '../../fetch/fetch-workflow-metadata'
+import { useFetchWorkflowExecutions } from '../../hooks/useFetchWorkflowExecutions'
 
 interface LogPageNavButtonsProps {
   ExecID: string
@@ -12,38 +10,26 @@ export default function LogPageNavButtons(props: LogPageNavButtonsProps) {
   const { ExecID } = props
   const { AppName } = useParams()
   const navigate = useNavigate()
+  const { workflowExecutions, isLoading, error } = useFetchWorkflowExecutions(AppName)
 
-  const {
-    data: metadataList,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<WorkflowMetadatum[], Error>({
-    queryKey: ['workflowMetadataList', AppName],
-    enabled: !!AppName,
-    queryFn: () => fetchWorkflowMetadataList(AppName!),
-    select: (data) => data,
-    // refetchInterval: 1000 * 3,
-  })
-
-  if (isLoading || isError || error || !metadataList) {
+  if (isLoading || error || workflowExecutions.length === 0) {
     return null
   }
 
-  const thisExecIDIndex = metadataList.findIndex((item) => item.ExecID === ExecID)
+  const thisExecIDIndex = workflowExecutions.findIndex((item) => item.ExecID === ExecID)
   const disablePrev = thisExecIDIndex === 0
-  const disableNext = thisExecIDIndex === metadataList.length - 1
+  const disableNext = thisExecIDIndex === workflowExecutions.length - 1
 
   const handlePrevClick = () => {
     if (!disablePrev) {
-      const prevExecID = metadataList[thisExecIDIndex - 1].ExecID
+      const prevExecID = workflowExecutions[thisExecIDIndex - 1].ExecID
       navigate(`/logs/${AppName}/${prevExecID}`)
     }
   }
 
   const handleNextClick = () => {
     if (!disableNext) {
-      const nextExecID = metadataList[thisExecIDIndex + 1].ExecID
+      const nextExecID = workflowExecutions[thisExecIDIndex + 1].ExecID
       navigate(`/logs/${AppName}/${nextExecID}`)
     }
   }

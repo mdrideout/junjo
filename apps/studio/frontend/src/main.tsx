@@ -10,62 +10,57 @@ import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
 import WorkflowDetailPage from './features/workflow-logs/components/workflow-detail/WorkflowDetailPage.tsx'
 import WorkflowListPage from './features/workflow-logs/components/list-workflow-executions/WorkflowListPage.tsx'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactFlowProvider } from '@xyflow/react'
 import AppNamesPage from './features/workflow-logs/components/list-app-names/AppNamesPage.tsx'
 import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
 
-const queryClient = new QueryClient()
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <ReactFlowProvider>
-            <AuthProvider>
-              <Routes>
-                <Route element={<AppLayout />}>
-                  <Route path="/sign-in" element={<SignIn />} />
-                  <Route path="/sign-out" element={<SignOut />} />
-                  <Route
-                    path="/"
-                    element={
-                      <AuthGuard>
-                        <Dashboard />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="/logs"
-                    element={
-                      <AuthGuard>
-                        <AppNamesPage />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="/logs/:AppName"
-                    element={
-                      <AuthGuard>
-                        <WorkflowListPage />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="/logs/:AppName/:ExecID"
-                    element={
-                      <AuthGuard>
-                        <WorkflowDetailPage />
-                      </AuthGuard>
-                    }
-                  />
-                </Route>
-              </Routes>
-            </AuthProvider>
-          </ReactFlowProvider>
-        </QueryClientProvider>
+        <ReactFlowProvider>
+          <AuthProvider>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/sign-out" element={<SignOut />} />
+                <Route
+                  path="/"
+                  element={
+                    <AuthGuard>
+                      <Dashboard />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs"
+                  element={
+                    <AuthGuard>
+                      <AppNamesPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs/:AppName"
+                  element={
+                    <AuthGuard>
+                      <WorkflowListPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs/:AppName/:ExecID"
+                  element={
+                    <AuthGuard>
+                      <WorkflowDetailPage />
+                    </AuthGuard>
+                  }
+                />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </ReactFlowProvider>
       </Provider>
     </BrowserRouter>
   </StrictMode>,

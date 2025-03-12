@@ -4,6 +4,8 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
+import { WorkflowLog } from '../../schemas'
+import { decodeBase64Json } from '../../../../util/decode-base64-json'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -13,8 +15,8 @@ enum DiffTabOptions {
 }
 
 interface WorkflowDetailStateDiffProps {
-  jsonLogs0: object
-  jsonLogs1: object
+  startLog: WorkflowLog
+  endLog: WorkflowLog
 }
 
 /**
@@ -49,17 +51,21 @@ const TabButton = ({
  * @returns
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
-  const { jsonLogs0, jsonLogs1 } = props
+  const { startLog, endLog } = props
+
+  // Extract JSON
+  const startJsonState = decodeBase64Json(startLog.State)
+  const endJsonState = decodeBase64Json(endLog.State)
+
+  // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
-  const [jsonViewData, setJsonViewData] = useState<object>(jsonLogs1)
+  const [jsonViewData, setJsonViewData] = useState<object>(endJsonState)
   const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(2)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
-  console.log('Re-rendering with jsonViewData: ', jsonViewData)
-
   // Diffs
-  const objdiff = diff(jsonLogs0, jsonLogs1)
-  const deepObject = detailedDiff(jsonLogs0, jsonLogs1)
+  const objdiff = diff(startJsonState, endJsonState)
+  const deepObject = detailedDiff(startJsonState, endJsonState)
 
   // Theme decider
   const displayTheme = prefersDarkMode ? vscodeTheme : lightTheme
@@ -77,6 +83,9 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     return () => mediaQuery.removeEventListener('change', listener)
   }, [])
 
+  // Set the initial json view
+  useEffect
+
   // Handle tab changes
   const tabChangeHandler = (tab: DiffTabOptions) => {
     setActiveTab(tab)
@@ -84,11 +93,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     // Set the display values
     switch (tab) {
       case DiffTabOptions.BEFORE:
-        setJsonViewData(jsonLogs0)
+        setJsonViewData(startJsonState)
         setJsonViewCollapsedLevel(2)
         break
       case DiffTabOptions.AFTER:
-        setJsonViewData(jsonLogs1)
+        setJsonViewData(endJsonState)
         setJsonViewCollapsedLevel(2)
         break
       case DiffTabOptions.CHANGES:
@@ -114,9 +123,10 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       </div>
       <div className={'workflow-logs-json-container'}>
         <JsonView
+          key={JSON.stringify(jsonViewData)}
           value={jsonViewData}
           collapsed={jsonViewCollapsedLevel}
-          shouldExpandNodeInitially={(isExpanded, { value, keys, level }) => {
+          shouldExpandNodeInitially={(isExpanded, { value, level }) => {
             // Collapse arrays more than 1 level deep (not root arrays)
             const isArray = Array.isArray(value)
             if (isArray && level > 1) {

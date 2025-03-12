@@ -2,7 +2,7 @@
 
 import { green, bold } from 'colorette' // For colorful output
 
-export default function viteJunjoPlugin(options = {}) {
+export default function viteJunjoPlugin() {
   return {
     name: 'vite-junjo-plugin',
     configureServer(server: any) {
