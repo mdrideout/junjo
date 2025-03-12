@@ -63,6 +63,10 @@ $ docker compose down -v
 
 The backend is uses a JWT based authentication guard. The users database is a JSON file of email addresses and passwords. Do not check this file into the github repository.
 
+#### Environment Var: SESSION_SECRET
+
+TODO: Document how this is utilized for signing the sessions.
+
 #### Managing Users
 
 1.  Locate the `backend/user_db/users-db.example.json` file.

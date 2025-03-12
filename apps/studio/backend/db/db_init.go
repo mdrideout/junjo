@@ -11,13 +11,17 @@ import (
 )
 
 // embed the schema files
-//
+
+//go:embed node_logs/schema.sql
+var nodeLogsSchema string
+
 //go:embed workflow_logs/schema.sql
 var workflowLogsSchema string
 
 //go:embed workflow_metadata/schema.sql
 var workflowMetadataSchema string
 
+// Database
 var DB *sql.DB
 
 // Connect initializes the database connection
@@ -48,8 +52,8 @@ func Connect() {
 	}
 
 	// Set synchronous to NORMAL. This improves performance by reducing the fsync calls.
-	// It offers a balance between speed and data safety.  In NORMAL mode, fsync operations
-	// happen less frequently.
+	// It offers a balance between speed and data safety.
+	// In NORMAL mode, fsync operations happen less frequently.
 	_, err = DB.ExecContext(ctx, "PRAGMA synchronous = NORMAL")
 	if err != nil {
 		log.Fatalf("Failed to set synchronous mode: %v", err)
@@ -64,6 +68,7 @@ func Connect() {
 // initializeTables creates tables if they don't exist
 func initializeTables(ctx context.Context) error {
 	tables := map[string]string{
+		"node_logs":         nodeLogsSchema,
 		"workflow_logs":     workflowLogsSchema,
 		"workflow_metadata": workflowMetadataSchema,
 	}

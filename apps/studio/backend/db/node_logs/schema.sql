@@ -1,4 +1,4 @@
-CREATE TABLE workflow_logs (
+CREATE TABLE node_logs (
   id text PRIMARY KEY NOT NULL UNIQUE,
   exec_id text NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('start', 'end')),
