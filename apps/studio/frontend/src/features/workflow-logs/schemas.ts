@@ -6,8 +6,8 @@ export const WorkflowLogSchema = z.object({
   ExecID: z.string(),
   Type: z.string(),
   EventTimeNano: z.number(),
-  IngestionTime: z.string(),
-  State: z.any(),
+  IngestionTime: z.string(), // ISO string
+  State: z.string(), // Provided as a base64 encoded JSON string
 })
 export type WorkflowLog = z.infer<typeof WorkflowLogSchema>
 
@@ -20,8 +20,9 @@ export const WorkflowMetadatumSchema = z.object({
   ExecID: z.string(),
   AppName: z.string(),
   WorkflowName: z.string(),
-  CreatedAt: z.string(), // Time values come as ISO strings from the API
-  Structure: z.string(), // Provided as a base64 encoded JSON strings
+  EventTimeNano: z.number(),
+  IngestionTime: z.string(), // ISO string
+  Structure: z.string(), // Provided as a base64 encoded JSON string
 })
 export type WorkflowMetadatum = z.infer<typeof WorkflowMetadatumSchema>
 

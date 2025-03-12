@@ -26,7 +26,7 @@ export default function WorkflowsList() {
       <tbody>
         {workflowExecutions.map((item) => {
           // Make date human readable
-          const date = new Date(item.CreatedAt)
+          const date = new Date(item.IngestionTime)
           const dateString = date.toLocaleString()
 
           return (

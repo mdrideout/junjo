@@ -26,13 +26,20 @@ FROM
 WHERE
   app_name = ?
 ORDER BY
-  created_at DESC;
+  event_time_nano DESC;
 
 -- name: CreateWorkflowMetadata :one
 INSERT INTO
-  workflow_metadata (id, exec_id, app_name, workflow_name, structure)
+  workflow_metadata (
+    id,
+    exec_id,
+    app_name,
+    workflow_name,
+    event_time_nano,
+    structure
+  )
 VALUES
-  (?, ?, ?, ?, ?) RETURNING *;
+  (?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: UpdateWorkflowMetadata :one
 UPDATE
@@ -54,7 +61,7 @@ SELECT
 FROM
   workflow_metadata
 ORDER BY
-  created_at DESC;
+  event_time_nano DESC;
 
 -- name: ListUniqueAppNames :many
 SELECT
