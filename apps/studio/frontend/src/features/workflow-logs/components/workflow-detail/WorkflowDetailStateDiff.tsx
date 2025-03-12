@@ -52,8 +52,10 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   const { jsonLogs0, jsonLogs1 } = props
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
   const [jsonViewData, setJsonViewData] = useState<object>(jsonLogs1)
-  const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(1)
+  const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(2)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
+
+  console.log('Re-rendering with jsonViewData: ', jsonViewData)
 
   // Diffs
   const objdiff = diff(jsonLogs0, jsonLogs1)
@@ -83,11 +85,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     switch (tab) {
       case DiffTabOptions.BEFORE:
         setJsonViewData(jsonLogs0)
-        setJsonViewCollapsedLevel(1)
+        setJsonViewCollapsedLevel(2)
         break
       case DiffTabOptions.AFTER:
         setJsonViewData(jsonLogs1)
-        setJsonViewCollapsedLevel(1)
+        setJsonViewCollapsedLevel(2)
         break
       case DiffTabOptions.CHANGES:
         setJsonViewData(objdiff)

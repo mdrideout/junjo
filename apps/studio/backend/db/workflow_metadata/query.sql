@@ -24,7 +24,9 @@ SELECT
 FROM
   workflow_metadata
 WHERE
-  app_name = ?;
+  app_name = ?
+ORDER BY
+  created_at DESC;
 
 -- name: CreateWorkflowMetadata :one
 INSERT INTO

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { WorkflowMetadatum } from '../schemas'
+import { WorkflowMetadatum } from '../../schemas'
 import { useNavigate } from 'react-router'
-import { fetchWorkflowMetadataList } from '../fetch/fetch-workflow-metadata'
+import { fetchWorkflowMetadataList } from '../../fetch/fetch-workflow-metadata'
 import { useParams } from 'react-router'
 
 export default function WorkflowsList() {
