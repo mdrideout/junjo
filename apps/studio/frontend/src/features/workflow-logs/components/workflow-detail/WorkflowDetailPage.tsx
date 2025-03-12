@@ -1,10 +1,10 @@
-import { WorkflowLog } from '../schemas'
+import { WorkflowLog } from '../../schemas'
 import { Link, useParams } from 'react-router'
-import ErrorPage from '../../components/errors/ErrorPage'
+import ErrorPage from '../../../../components/errors/ErrorPage'
 import WorkflowStructure from './WorkflowStructure'
-import { decodeBase64Json } from '../../util/decode-base64-json'
+import { decodeBase64Json } from '../../../../util/decode-base64-json'
 import { useQuery } from '@tanstack/react-query'
-import { fetchWorkflowLogs } from '../fetch/fetch-workflow-logs'
+import { fetchWorkflowLogs } from '../../fetch/fetch-workflow-logs'
 import WorkflowLogStateDiff from './WorkflowDetailStateDiff'
 import LogPageNavButtons from './LogPageNavButtons'
 
@@ -48,6 +48,8 @@ export default function WorkflowDetailPage() {
 
   const startLogs = decodeBase64Json(workflowLogs[0].State)
   const endLogs = decodeBase64Json(workflowLogs[1].State)
+
+  console.log('End Logs: ', endLogs)
 
   return (
     <div className={'p-5'}>

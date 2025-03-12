@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchWorkflowMetadata } from '../fetch/fetch-workflow-metadata'
-import { WorkflowMetadatum } from '../schemas'
-import { JunjoGraph } from '../../junjo-graph/junjo-graph'
-import ReactFlowJunjoGraph from '../../react-flow/components/ReactFlowJunjoGraph'
-import { ReactFlowGraphDirection } from '../../react-flow/dagre-layout-util'
+import { fetchWorkflowMetadata } from '../../fetch/fetch-workflow-metadata'
+import { WorkflowMetadatum } from '../../schemas'
+import { JunjoGraph } from '../../../../junjo-graph/junjo-graph'
+import ReactFlowJunjoGraph from '../../../../react-flow/components/ReactFlowJunjoGraph'
+import { ReactFlowGraphDirection } from '../../../../react-flow/dagre-layout-util'
 
 export type WorkflowStructureProps = {
   ExecID: string

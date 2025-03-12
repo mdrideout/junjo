@@ -1,8 +1,8 @@
 import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
-import { WorkflowMetadatum } from '../schemas'
-import { fetchWorkflowMetadataList } from '../fetch/fetch-workflow-metadata'
+import { WorkflowMetadatum } from '../../schemas'
+import { fetchWorkflowMetadataList } from '../../fetch/fetch-workflow-metadata'
 
 interface LogPageNavButtonsProps {
   ExecID: string
