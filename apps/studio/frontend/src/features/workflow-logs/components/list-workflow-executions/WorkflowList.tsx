@@ -1,36 +1,17 @@
-import { useQuery } from '@tanstack/react-query'
-import { WorkflowMetadatum } from '../../schemas'
-import { useNavigate } from 'react-router'
-import { fetchWorkflowMetadataList } from '../../fetch/fetch-workflow-metadata'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
+import { useFetchWorkflowExecutions } from '../../hooks/useFetchWorkflowExecutions'
 
 export default function WorkflowsList() {
-  const { AppName } = useParams()
+  const { AppName } = useParams<{ AppName: string }>()
   const navigate = useNavigate()
-
-  const {
-    data: metadataList,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<WorkflowMetadatum[], Error>({
-    queryKey: ['workflowMetadataList', AppName],
-    enabled: !!AppName,
-    queryFn: () => fetchWorkflowMetadataList(AppName!),
-    select: (data) => data,
-    // refetchInterval: 1000 * 3,
-  })
+  const { workflowExecutions, isLoading, error } = useFetchWorkflowExecutions(AppName)
 
   if (isLoading) {
-    return <div>Loading metadata list...</div>
+    return null
   }
 
-  if (isError) {
-    return <div>Error: {error.message}</div>
-  }
-
-  if (!metadataList) {
-    return <div>No metadata found.</div>
+  if (error) {
+    return <div>Error loading workflow executions.</div>
   }
 
   return (
@@ -43,10 +24,10 @@ export default function WorkflowsList() {
         </tr>
       </thead>
       <tbody>
-        {metadataList.map((item) => {
+        {workflowExecutions.map((item) => {
           // Make date human readable
           const date = new Date(item.CreatedAt)
-          item.CreatedAt = date.toLocaleString()
+          const dateString = date.toLocaleString()
 
           return (
             <tr
@@ -58,7 +39,7 @@ export default function WorkflowsList() {
             >
               <td className={'px-4 py-1.5'}>{item.WorkflowName}</td>
               <td className={'px-4 py-1.5'}>{item.ExecID}</td>
-              <td className={'px-4 py-1.5'}>{item.CreatedAt}</td>
+              <td className={'px-4 py-1.5'}>{dateString}</td>
             </tr>
           )
         })}
