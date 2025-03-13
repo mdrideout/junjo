@@ -17,6 +17,7 @@ import (
 )
 
 type server struct {
+	pb.UnimplementedNodeLogServiceServer
 	pb.UnimplementedWorkflowLogServiceServer
 	pb.UnimplementedWorkflowMetadataServiceServer
 	queries *db.Queries
@@ -38,6 +39,7 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 	grpcServer := grpc.NewServer()
 
 	// Register services
+	pb.RegisterNodeLogServiceServer(grpcServer, &server{queries: queries})
 	pb.RegisterWorkflowLogServiceServer(grpcServer, &server{queries: queries})
 	pb.RegisterWorkflowMetadataServiceServer(grpcServer, &server{queries: queries})
 	reflection.Register(grpcServer)
