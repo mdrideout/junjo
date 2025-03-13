@@ -8,7 +8,7 @@ from junjo.app import JunjoApp
 from junjo.graph import Graph
 from junjo.store import BaseStore, StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.junjo_server.client import JunjoUiClient, WorkflowLogType
+from junjo.telemetry.junjo_server.client import JunjoLogType, JunjoUiClient
 from junjo.workflow_context import WorkflowContextManager
 
 
@@ -94,7 +94,7 @@ class Workflow(Generic[StateT, StoreT]):
 
             # TEST Junjo UI Client - Workflow Log Start
             exec_id = self.workflow_id
-            type = WorkflowLogType.START
+            type = JunjoLogType.START
             state_json = self.get_state_json
             print("Sending state_json to Junjo UI Client:", state_json)
             JunjoUiClient().create_workflow_log(exec_id, type, event_time_nano, state_json)
@@ -108,6 +108,15 @@ class Workflow(Generic[StateT, StoreT]):
             try:
                 # Execute node before hooks
                 if self.hook_manager is not None:
+
+                    # TEST Junjo UI Client - Node Log Start
+                    JunjoUiClient().create_node_log(
+                        exec_id=self.workflow_id,
+                        type=JunjoLogType.START,
+                        event_time_nano=time.time_ns(),
+                        state=self.get_state_json
+                    )
+
                     self.hook_manager.run_before_node_execute_hooks(self.workflow_id, current_node.id, self.get_state)
                     node_start_time = time.time()
 
@@ -117,6 +126,15 @@ class Workflow(Generic[StateT, StoreT]):
 
                 # Execute node after hooks
                 if self.hook_manager is not None:
+
+                    # TEST Junjo UI Client - Node Log End
+                    JunjoUiClient().create_node_log(
+                        exec_id=self.workflow_id,
+                        type=JunjoLogType.END,
+                        event_time_nano=time.time_ns(),
+                        state=self.get_state_json
+                    )
+
                     node_end_time = time.time()
                     self.hook_manager.run_after_node_execute_hooks(
                         current_node.id,
@@ -151,7 +169,7 @@ class Workflow(Generic[StateT, StoreT]):
 
             # TEST Junjo UI Client - Workflow Log End
             exec_id = self.workflow_id
-            type = WorkflowLogType.END
+            type = JunjoLogType.END
             event_time_nano = workflow_end_time_ns
             state_json = self.get_state_json
             JunjoUiClient().create_workflow_log(exec_id, type, event_time_nano, state_json)
