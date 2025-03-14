@@ -4,6 +4,7 @@ import WorkflowStructure from './WorkflowStructure'
 import WorkflowLogStateDiff from './WorkflowDetailStateDiff'
 import LogPageNavButtons from './LogPageNavButtons'
 import { useFetchWorkflowLogs } from '../../hooks/useFetchWorkflowLogs'
+import NodeLogsList from '../node-logs/NodeLogsList'
 
 export default function WorkflowDetailPage() {
   const { AppName, ExecID } = useParams()
@@ -55,7 +56,10 @@ export default function WorkflowDetailPage() {
       <hr className={'my-6'} />
       {workflowLogs.length === 0 && <p>No logs found for this workflow.</p>}
       <WorkflowStructure ExecID={ExecID} />
-      <WorkflowLogStateDiff startLog={workflowLogs[0]} endLog={workflowLogs[1]} />
+      <div className={'flex gap-x-5 justify-between'}>
+        <NodeLogsList ExecID={ExecID} />
+        <WorkflowLogStateDiff startLog={workflowLogs[0]} endLog={workflowLogs[1]} />
+      </div>
     </div>
   )
 }

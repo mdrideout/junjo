@@ -1,18 +1,20 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
-import { WorkflowLog, WorkflowMetadatum } from '../schemas'
+import { NodeLog, WorkflowLog, WorkflowMetadatum } from '../schemas'
 
 interface LogState {
   appNames: string[]
   workflowExecutions: WorkflowMetadatum[]
   workflowLogs: { [execId: string]: WorkflowLog[] | undefined }
+  nodeLogs: { [ExecID: string]: NodeLog[] | undefined }
 }
 
 const initialState: LogState = {
   appNames: [],
   workflowExecutions: [],
   workflowLogs: {},
+  nodeLogs: {},
 }
 
 export const logSlice = createSlice({
@@ -36,6 +38,9 @@ export const logSlice = createSlice({
     setWorkflowLogs: (state, action: PayloadAction<{ execId: string; logs: WorkflowLog[] }>) => {
       state.workflowLogs[action.payload.execId] = action.payload.logs
     },
+    setNodeLogs: (state, action: PayloadAction<{ ExecID: string; logs: NodeLog[] }>) => {
+      state.nodeLogs[action.payload.ExecID] = action.payload.logs
+    },
   },
 })
 
@@ -47,6 +52,7 @@ export const selectWorkflowExecutions = (state: RootState) => state.logState.wor
 export const selectWorkflowExecution = (state: RootState, ExecID: string) =>
   state.logState.workflowExecutions.find((exec) => exec.ExecID === ExecID)
 export const selectWorkflowLogs = (state: RootState, ExecID: string) => state.logState.workflowLogs[ExecID]
+export const selectNodeLogs = (state: RootState, ExecID: string) => state.logState.nodeLogs[ExecID]
 
 // Reducer
 export default logSlice.reducer

@@ -5,6 +5,7 @@ import (
 )
 
 func InitRoutes(e *echo.Echo) {
+	e.GET("/node-logs/:execID", GetNodeLogs)
 	e.GET("/workflow-logs/:execID", GetWorkflowLogs)
 	e.GET("/workflow-metadata", GetWorkflowMetadata)
 	e.GET("/workflow-metadata/:execID", GetWorkflowMetadataByExecID)
