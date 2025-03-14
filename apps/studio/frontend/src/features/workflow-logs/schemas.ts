@@ -14,6 +14,20 @@ export type WorkflowLog = z.infer<typeof WorkflowLogSchema>
 // Schema for multiple logs / response
 export const WorkflowLogsResponseSchema = z.array(WorkflowLogSchema)
 
+// Zod schema for node log validation
+export const NodeLogSchema = z.object({
+  ID: z.string(),
+  ExecID: z.string(),
+  Type: z.string(),
+  EventTimeNano: z.number(),
+  IngestionTime: z.string(), // ISO string
+  State: z.string(), // Provided as a base64 encoded JSON string
+})
+export type NodeLog = z.infer<typeof NodeLogSchema>
+
+// Schema for multiple logs / response
+export const NodeLogsResponseSchema = z.array(NodeLogSchema)
+
 // Zod schema for workflow metadata validation
 export const WorkflowMetadatumSchema = z.object({
   ID: z.string(),

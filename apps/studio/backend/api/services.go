@@ -9,6 +9,40 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func GetNodeLogs(c echo.Context) error {
+	c.Logger().Printf("Running GetNodeLogs function")
+
+	// Get execId from query parameters
+	execID := c.Param("execID")
+	if execID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "execId is required",
+		})
+	}
+
+	// Get database queries instance
+	queries := db_gen.New(db.DB)
+
+	// Call ListNodeLogs
+	logs, err := queries.ListNodeLogs(c.Request().Context(), execID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch Node logs",
+		})
+	}
+
+	// Log the logs fetched
+	c.Logger().Printf("Fetched %d logs for execId: %s", len(logs), execID)
+	// c.Logger().Printf("Logs: %+v", logs)
+
+	// If no logs found, return empty array
+	if len(logs) == 0 {
+		return c.JSON(http.StatusOK, []string{})
+	}
+
+	return c.JSON(http.StatusOK, logs)
+}
+
 func GetWorkflowLogs(c echo.Context) error {
 	c.Logger().Printf("Running GetWorkflowLogs function")
 
