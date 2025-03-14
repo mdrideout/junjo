@@ -34,7 +34,6 @@ export default function NodeLogsList(props: NodeLogsListProps) {
             // Make date human readable
             // const date = new Date(item.IngestionTime)
             // const dateString = date.toLocaleString()
-
             return (
               <tr
                 key={item.ID}
