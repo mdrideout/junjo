@@ -3,6 +3,8 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Generic, TypeVar
 
+from pydantic import ValidationError
+
 from junjo.node import Node
 from junjo.state import BaseState
 
@@ -73,6 +75,17 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         - Validates that each updated field is valid for StateT.
         - If there's a change, notifies subscribers outside the lock.
         """
+        # Validate the update dictionary against the state's model OUTSIDE the lock
+        try:
+            self._state.__class__.model_validate(
+                {**self._state.model_dump(), **update}
+            )
+        except ValidationError as e:
+            raise ValueError(
+                f"Invalid state update in node {node.name}. \
+                  Check that you are updating a valid state property and type: {e}"
+            ) from e
+
         subscribers_to_notify: list[Subscriber] = []
         async with self._lock:
             # Create a new instance with partial updates, deep=True for true immutability
