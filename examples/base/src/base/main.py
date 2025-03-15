@@ -5,17 +5,12 @@ from junjo.graph import Graph
 from junjo.node import Node
 from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
-from junjo.workflow_context import WorkflowContextManager
 
 
 async def main():
     """The main entry point for the application."""
     # Initialize Junjo
-    junjo = JunjoApp(app_name="Junjo Base Example")
-    await junjo.init()
-
-    # Initialize a workflow context manager
-    WorkflowContextManager()
+    JunjoApp(app_name="Base Junjo Example")
 
     # Initialize a store
     initial_state = MyGraphState(items=["apple", "banana", "cherry"], counter=0, warning=False)
@@ -24,7 +19,7 @@ async def main():
     # Subscribe to state changes
     def on_state_change(new_state: MyGraphState):
         print("State changed:", new_state.model_dump())
-    unsubscribe = graph_store.subscribe(on_state_change)
+    unsubscribe = await graph_store.subscribe(on_state_change)
 
     # Example service function
     async def count_items(items: list[str]) -> int:
@@ -37,9 +32,8 @@ async def main():
         """Workflow node that counts items"""
 
         async def service(self, store: MyGraphStore) -> None:
-            state = store.get_state()
+            state = await store.get_state()
             print("Running CountNode service from initial state: ", state.model_dump())
-            state = store.get_state()
             items = state.items
             count = await count_items(items)
             store.set_counter(count)
@@ -63,12 +57,12 @@ async def main():
         """Workflow node that prints the final state"""
 
         async def service(self, store: MyGraphStore) -> None:
-            state = store.get_state()
+            state = await store.get_state()
             print("Running FinalNode service from initial state: ", state.model_dump())
             return
 
-    def count_over_10(current_node: Node, next_node: Node, store: MyGraphStore) -> bool:
-        state = store.get_state()
+    async def count_over_10(current_node: Node, next_node: Node, store: MyGraphStore) -> bool:
+        state = await store.get_state()
         return state.counter > 10
 
     # Instantiate nodes
@@ -96,7 +90,7 @@ async def main():
     workflow = Workflow(
         workflow_name="demo_base_workflow",
         graph=graph,
-        initial_store=graph_store,
+        store=graph_store,
         hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
     )
     print("Executing the workflow with initial store state: ", workflow.get_state)
