@@ -11,6 +11,14 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.trace import Span
 
+from junjo.app import JunjoApp
+from junjo.telemetry.hook_schema import (
+    SpanCloseSchemaNode,
+    SpanCloseSchemaWorkflow,
+    SpanOpenSchemaNode,
+    SpanOpenSchemaWorkflow,
+)
+
 
 class OpenTelemetryHooks:
     """
@@ -21,7 +29,7 @@ class OpenTelemetryHooks:
         """Initializes the OpenTelemetry hooks."""
 
         resource = Resource(attributes={
-            SERVICE_NAME: "test_service_name"
+            SERVICE_NAME: JunjoApp().app_name
         })
 
         tracer_provider = TracerProvider(resource=resource)
@@ -48,30 +56,34 @@ class OpenTelemetryHooks:
         self._node_spans: dict[str, tuple[Span, AbstractContextManager]] = {}
 
 
-    def before_workflow_execute(self, workflow_id: str):
+    def before_workflow_execute(self, args: SpanOpenSchemaWorkflow):
         """
         Start a new workflow span, activate it, and store it so node spans will become children.
         """
-        workflow_span = self._tracer.start_span(name=f"workflow-{workflow_id}")
+        workflow_span = self._tracer.start_span(name=args.junjo_name)
+        workflow_span.set_attribute("junjo.span_type", args.junjo_span_type)
+        workflow_span.set_attribute("junjo.id", args.junjo_id)
+        workflow_span.set_attribute("junjo.state_start", args.junjo_state_start)
+        workflow_span.set_attribute("junjo.graph_json", args.junjo_graph_json)
+
         # Manually activate the workflow span. `token` is used to exit later.
         workflow_token = trace.use_span(workflow_span, end_on_exit=False)
         workflow_token.__enter__()
 
         # Store so we can finish and deactivate in after_workflow_execute.
-        self._workflow_spans[workflow_id] = (workflow_span, workflow_token)
+        self._workflow_spans[args.junjo_id] = (workflow_span, workflow_token)
 
 
-    def after_workflow_execute(self, workflow_id: str, state: dict, duration: float):
+    def after_workflow_execute(self, args: SpanCloseSchemaWorkflow):
         """
         Finish the workflow span, set attributes (duration, etc.), and deactivate the span.
         """
-        span_token_tuple = self._workflow_spans.pop(workflow_id, None)
+        span_token_tuple = self._workflow_spans.pop(args.junjo_id, None)
         if span_token_tuple is not None:
             workflow_span, workflow_token = span_token_tuple
 
             # Record interesting workflow attributes
-            workflow_span.set_attribute("workflow.id", workflow_id)
-            workflow_span.set_attribute("workflow.duration", duration)
+            workflow_span.set_attribute("junjo.state_end", args.junjo_state_end)
 
             # Deactivate the span
             workflow_token.__exit__(None, None, None)
@@ -79,29 +91,30 @@ class OpenTelemetryHooks:
             workflow_span.end()
 
 
-    def before_node_execute(self, workflow_id: str, node_id: str, state: dict):
+    def before_node_execute(self, args: SpanOpenSchemaNode):
         """
         Start a new node span as a child of the *currently active* workflow span
         (assuming 'before_workflow_execute' activated the workflow span).
         """
-        node_span = self._tracer.start_span(name=f"node-{node_id}")
+        node_span = self._tracer.start_span(name=args.junjo_name)
+        node_span.set_attribute("junjo.span_type", args.junjo_span_type)
+        node_span.set_attribute("junjo.workflow_id", args.junjo_workflow_id)
+
         node_token = trace.use_span(node_span, end_on_exit=False)
         node_token.__enter__()
+        self._node_spans[args.junjo_id] = (node_span, node_token)
 
-        self._node_spans[node_id] = (node_span, node_token)
 
-
-    def after_node_execute(self, node_id: str, state: dict, duration: float):
+    def after_node_execute(self, args: SpanCloseSchemaNode):
         """
         Finish the node span, record attributes, and exit the node context.
         """
-        span_token_tuple = self._node_spans.pop(node_id, None)
+        span_token_tuple = self._node_spans.pop(args.junjo_id, None)
         if span_token_tuple is not None:
             node_span, node_token = span_token_tuple
 
             # Optionally record node details
-            node_span.set_attribute("node.id", node_id)
-            node_span.set_attribute("node.duration", duration)
+            node_span.set_attribute("junjo.state_patch", args.junjo_state_patch)
 
             # Exit context and end the span
             node_token.__exit__(None, None, None)

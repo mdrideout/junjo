@@ -54,7 +54,7 @@ class Graph:
 
         # Add nodes
         nodes = {
-            id(node): node for node in [self.source, self.sink] +
+            node.id: node for node in [self.source, self.sink] +
             [e.tail for e in self.edges] +
             [e.head for e in self.edges]
         }
@@ -65,8 +65,8 @@ class Graph:
 
         # Add edges
         for edge in self.edges:
-            tail_id = id(edge.tail)
-            head_id = id(edge.head)
+            tail_id = edge.tail.id
+            head_id = edge.head.id
             edge_label = ""
             if edge.condition:
                 edge_label = "|Condition|"  # Or a more descriptive label
@@ -84,7 +84,7 @@ class Graph:
 
 
         # Add nodes
-        nodes = {id(node): node for node in [self.source, self.sink] +
+        nodes = {node.id: node for node in [self.source, self.sink] +
                  [e.tail for e in self.edges] + [e.head for e in self.edges]}
         for node_id, node in nodes.items():
             node_label = node.__class__.__name__  # Or a custom label from node.name
@@ -92,8 +92,8 @@ class Graph:
 
         # Add edges
         for edge in self.edges:
-            tail_id = id(edge.tail)
-            head_id = id(edge.head)
+            tail_id = edge.tail.id
+            head_id = edge.head.id
             condition_str = self._format_condition(edge.condition)
             style = "dashed" if condition_str else "solid"  # Dotted for conditional, solid otherwise
             dot_str += f'    "{tail_id}" -> "{head_id}" [label="{condition_str}", style="{style}"];\n'
@@ -108,23 +108,23 @@ class Graph:
         edges: list[ReactFlowEdge] = []
 
         # Add nodes
-        all_nodes = {id(node): node for node in [self.source, self.sink] +
+        all_nodes = {node.id: node for node in [self.source, self.sink] +
                      [e.tail for e in self.edges] + [e.head for e in self.edges]}
         for node_id, node in all_nodes.items():
             nodes.append(ReactFlowNode(
-                id=str(node_id),
+                id=node_id,
                 data=ReactFlowNodeData(label=node.__class__.__name__),
-                position=ReactFlowPosition(x=0, y=0)  # You might want to calculate actual positions
+                position=ReactFlowPosition(x=0, y=0)  # The frontend can calculate these dynamically
             ))
 
         # Add edges
         for edge in self.edges:
-            tail_id = id(edge.tail)
-            head_id = id(edge.head)
+            tail_id = edge.tail.id
+            head_id = edge.head.id
             edges.append(ReactFlowEdge(
                 id=f"{tail_id}-{head_id}",
-                source=str(tail_id),
-                target=str(head_id),
+                source=tail_id,
+                target=head_id,
                 label=edge.condition.__name__ if edge.condition else None
             ))
 
@@ -139,13 +139,13 @@ class Graph:
             dict: A JSON-serializable dictionary containing the graph structure
         """
         # Collect all nodes
-        all_nodes = {id(node): node for node in [self.source, self.sink] +
+        all_nodes = {node.id: node for node in [self.source, self.sink] +
                     [e.tail for e in self.edges] + [e.head for e in self.edges]}
 
         # Create nodes list
         nodes = [
             {
-                "id": str(node_id),
+                "id": node_id,
                 "type": node.__class__.__name__,
                 "label": node.__class__.__name__
             }
@@ -155,9 +155,9 @@ class Graph:
         # Create edges list
         edges = [
             {
-                "id": f"{id(edge.tail)}-{id(edge.head)}",
-                "source": str(id(edge.tail)),
-                "target": str(id(edge.head)),
+                "id": f"{edge.tail.id}_{edge.head.id}",
+                "source": str(edge.tail.id),
+                "target": str(edge.head.id),
                 "condition": edge.condition.__name__ if edge.condition else None
             }
             for edge in self.edges

@@ -32,6 +32,11 @@ class Node(Generic[StoreT], ABC):
         """Returns the unique identifier for the node."""
         return self._id
 
+    @property
+    def name(self) -> str:
+        """Returns the name of the node class instance."""
+        return self.__class__.__name__
+
     @abstractmethod
     async def service(self, store: StoreT) -> None:
         """The main logic of the node.

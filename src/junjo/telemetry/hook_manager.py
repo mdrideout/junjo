@@ -1,6 +1,11 @@
 from collections.abc import Callable
-from typing import Any
 
+from junjo.telemetry.hook_schema import (
+    SpanCloseSchemaNode,
+    SpanCloseSchemaWorkflow,
+    SpanOpenSchemaNode,
+    SpanOpenSchemaWorkflow,
+)
 from junjo.telemetry.opentelemetry_hooks import OpenTelemetryHooks
 
 
@@ -19,51 +24,49 @@ class HookManager:
 
 
     # Workflow Execution Hooks
-    def add_before_workflow_execute_hook(self, hook: Callable[[str], None]):
+    def add_before_workflow_execute_hook(self, hook: Callable[[SpanOpenSchemaWorkflow], None]):
         self.before_workflow_execute_hooks.append(hook)
 
-    def add_after_workflow_execute_hook(self, hook: Callable[[str, Any, float], None]):
+    def add_after_workflow_execute_hook(self, hook: Callable[[SpanCloseSchemaWorkflow], None]):
         self.after_workflow_execute_hooks.append(hook)
 
-    def run_before_workflow_execute_hooks(self, workflow_id: str):
+    def run_before_workflow_execute_hooks(self, args: SpanOpenSchemaWorkflow):
         for hook in self.before_workflow_execute_hooks:
-            hook(workflow_id)
+            hook(args)
 
-    def run_after_workflow_execute_hooks(self, workflow_id: str, state: Any, duration: float):
+    def run_after_workflow_execute_hooks(self, args: SpanCloseSchemaWorkflow):
         for hook in self.after_workflow_execute_hooks:
-            hook(workflow_id, state, duration)
+            hook(args)
 
 
     # Node Execution Hooks
-    def add_before_node_execute_hook(self, hook: Callable[[str, str, Any], None]):
+    def add_before_node_execute_hook(self, hook: Callable[[SpanOpenSchemaNode], None]):
         self.before_node_execute_hooks.append(hook)
 
-    def add_after_node_execute_hook(self, hook: Callable[[str, Any, float], None]):
+    def add_after_node_execute_hook(self, hook: Callable[[SpanCloseSchemaNode], None]):
         self.after_node_execute_hooks.append(hook)
 
-    def run_before_node_execute_hooks(self, workflow_id: str, node_id: str, state: Any):
+    def run_before_node_execute_hooks(self, args: SpanOpenSchemaNode):
         for hook in self.before_node_execute_hooks:
-            hook(workflow_id, node_id, state)
+            hook(args)
 
-    def run_after_node_execute_hooks(self, node_id: str, state: Any, duration: float):
+    def run_after_node_execute_hooks(self, args: SpanCloseSchemaNode):
         for hook in self.after_node_execute_hooks:
-            hook(node_id, state, duration)
+            hook(args)
 
     def register_verbose_hooks(self) -> None:
         """Verbose hooks introduce verbose logging into the workflow execution lifecycle."""
-        def log_before_workflow_execute(workflow_id: str):
-            print(f"\nBefore Executing Workflow: {workflow_id}")
+        def log_before_workflow_execute(args: SpanOpenSchemaWorkflow):
+            print(f"\nBefore Executing Workflow: {args.junjo_id}")
 
-        def log_after_workflow_execute(workflow_id: str, state: Any, duration: float):
-            duration_ms = duration * 1000
-            print(f"After Executing Workflow: {workflow_id} | State: {state}\n(Duration: {duration_ms:.5f}ms)\n")
+        def log_after_workflow_execute(args: SpanCloseSchemaWorkflow):
+            print(f"After Executing Workflow: {args.junjo_id}")
 
-        def log_before_node_execute(workflow_id: str, node_id: str, state: Any):
-            print(f"\nBefore Executing: {node_id} (workflow: {workflow_id}) | State: {state}")
+        def log_before_node_execute(args: SpanOpenSchemaNode):
+            print(f"\nBefore Executing: {args.junjo_id} (workflow: {args.junjo_workflow_id})")
 
-        def log_after_node_execute(node_id: str, state: Any, duration: float):
-            duration_ms = duration * 1000
-            print(f"After Executing: {node_id} | State: {state}\n(Duration: {duration_ms:.5f}ms)\n")
+        def log_after_node_execute(args: SpanCloseSchemaNode):
+            print(f"After Executing: {args.junjo_id}")
 
 
         self.add_before_workflow_execute_hook(log_before_workflow_execute)
