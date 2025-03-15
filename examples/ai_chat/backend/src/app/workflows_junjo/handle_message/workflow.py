@@ -18,14 +18,14 @@ async def handle_message_workflow(message: MessageCreate) -> None:
     workflow = Workflow(
         workflow_name="Handle Message Workflow",
         graph=handle_message_graph,
-        initial_store=store,
+        store=store,
         hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
     )
 
     # Execute the workflow
-    print("Executing the workflow with initial store state: ", workflow.get_state)
+    print("Executing the workflow with initial store state: ", await workflow.get_state())
     await workflow.execute()
-    final_state = workflow.get_state
+    final_state = await workflow.get_state()
     print("Done")
 
     return

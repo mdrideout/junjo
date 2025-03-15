@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import Generic, get_type_hints
+from typing import TYPE_CHECKING, Generic, TypeVar
 
+from jsonpatch import JsonPatch
 from nanoid import generate
 
-from junjo.store import BaseStore, StoreT
-from junjo.workflow_context import WorkflowContextManager
+if TYPE_CHECKING:
+    from junjo.store import BaseStore
 
+StoreT = TypeVar("StoreT", bound="BaseStore")
 
 class Node(Generic[StoreT], ABC):
     """
     Base class for all nodes in the junjo graph.
 
-    The Workflow passes the store to the node's service function.
-    - The Node's 
+    - The Workflow passes the store to the node's _execute function
     - The action function is expected to carry out side effects on the output
     """
 
@@ -22,6 +23,7 @@ class Node(Generic[StoreT], ABC):
         """Initialize the node"""
         super().__init__()
         self._id = generate()
+        self._patches: list[JsonPatch] = []
 
     def __repr__(self):
         """Returns a string representation of the node."""
@@ -37,6 +39,15 @@ class Node(Generic[StoreT], ABC):
         """Returns the name of the node class instance."""
         return self.__class__.__name__
 
+    @property
+    def patches(self) -> list[JsonPatch]:
+        """Returns the list of patches that have been applied to the state by this node."""
+        return self._patches
+
+    def add_patch(self, patch: JsonPatch) -> None:
+        """Adds a patch to the list of patches."""
+        self._patches.append(patch)
+
     @abstractmethod
     async def service(self, store: StoreT) -> None:
         """The main logic of the node.
@@ -46,18 +57,10 @@ class Node(Generic[StoreT], ABC):
         """
         raise NotImplementedError
 
-    async def _execute(self, workflow_id: str) -> None:
+    async def _execute(self, store: StoreT) -> None:
         """
         Validate the node and execute its service function.
         """
-
-        # Validate the service function
-        self._validate_service_function()
-
-        # Get and validate the store from context
-        store = WorkflowContextManager.get_store(workflow_id)
-        if store is None:
-            raise ValueError("Store is not available")
 
         # Execute the service
         try:
@@ -65,19 +68,3 @@ class Node(Generic[StoreT], ABC):
         except Exception as e:
             print(f"Error executing service: {e}")
             return
-
-
-    def _validate_service_function(self) -> None:
-        """Validate the service function of the node."""
-
-        # Validate the service function has the appropriate signature
-        if not callable(self.service):
-            raise ValueError("Service function must be callable")
-
-        # Validate service function params: store
-        type_hints = get_type_hints(self.service)
-        if "store" not in type_hints:
-            raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
-        if not issubclass(type_hints["store"], BaseStore):
-            raise ValueError(f"Service function must have a 'store' parameter of type {StoreT}")
-

@@ -19,6 +19,7 @@ classifiers = [
 
 dependencies = [
     "grpcio>=1.70.0",
+    "jsonpatch>=1.33",
     "nanoid>=2.0.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
     "opentelemetry-sdk>=1.30.0",
@@ -47,7 +48,10 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v -Werror::DeprecationWarning"
+addopts = [
+    "-v",                          # Verbose output
+    "-Werror::DeprecationWarning", # Treat deprecation warnings as errors
+]
 
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/

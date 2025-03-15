@@ -10,6 +10,7 @@ from junjo.react_flow.schemas import (
     ReactFlowPosition,
     ReactFlowViewport,
 )
+from junjo.store import BaseStore
 
 from .edge import Edge  # Assuming Transition is in a 'transition.py' file
 
@@ -35,14 +36,14 @@ class Graph:
     #     return True
 
 
-    def get_next_node(self, workflow_id: str, current_node: Node) -> Node:
+    async def get_next_node(self, store: BaseStore, current_node: Node) -> Node:
         matching_edges = [edge for edge in self.edges if edge.tail == current_node]
-        resolved_edges = [edge for edge in matching_edges if edge.next_node(workflow_id) is not None]
+        resolved_edges = [edge for edge in matching_edges if await edge.next_node(store) is not None]
 
         if len(resolved_edges) == 0:
             raise ValueError(f"No valid transition found for node '{current_node}'.")
         else:
-            resolved_edge = resolved_edges[0].next_node(workflow_id)
+            resolved_edge = await resolved_edges[0].next_node(store)
             if resolved_edge is None:
                 raise ValueError("No valid transition found for node '{current_node}'")
 

@@ -4,7 +4,7 @@ from typing import Generic
 from nanoid import generate
 
 from junjo.graph import Graph
-from junjo.store import BaseStore, StateT, StoreT
+from junjo.store import StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
 from junjo.telemetry.hook_schema import (
     SpanCloseSchemaNode,
@@ -12,7 +12,6 @@ from junjo.telemetry.hook_schema import (
     SpanOpenSchemaNode,
     SpanOpenSchemaWorkflow,
 )
-from junjo.workflow_context import WorkflowContextManager
 
 
 class Workflow(Generic[StateT, StoreT]):
@@ -24,7 +23,7 @@ class Workflow(Generic[StateT, StoreT]):
             self,
             workflow_name: str,
             graph: Graph,
-            initial_store: BaseStore,
+            store: StoreT,
             max_iterations: int = 100,
             hook_manager: HookManager | None = None,
             parent_workflow_id: str | None = None
@@ -48,26 +47,18 @@ class Workflow(Generic[StateT, StoreT]):
         self.hook_manager = hook_manager
         self.parent_workflow_id = parent_workflow_id
 
-        # Set up a store for this workflow
-        WorkflowContextManager.set_store(self.workflow_id, initial_store)
+        # Private store (immutable interactions only)
+        self._store = store
 
     @property
-    def get_store(self) -> BaseStore | None:
-        """Returns the current store from the context var."""
-        store = WorkflowContextManager.get_store(self.workflow_id)
-        return store
+    def store(self) -> StoreT:
+        return self._store
 
-    @property
-    def get_state(self) -> StateT | None:
-        """Returns the current store state from the context var."""
-        store = WorkflowContextManager.get_store(self.workflow_id)
-        return store.get_state() if store else None
+    async def get_state(self) -> StateT:
+        return await self._store.get_state()
 
-    @property
-    def get_state_json(self) -> str:
-        """Returns the current store state as a JSON string from the context var."""
-        store = WorkflowContextManager.get_store(self.workflow_id)
-        return store.get_state_json()
+    async def get_state_json(self) -> str:
+        return await self._store.get_state_json()
 
     async def execute(self):
         """
@@ -77,34 +68,12 @@ class Workflow(Generic[StateT, StoreT]):
 
         # Execute workflow before hooks
         if self.hook_manager is not None:
-            # workflow_start_time_ns = time.time_ns()
-            # # TEST Junjo UI Client - Workflow Metadata
-            # exec_id = self.workflow_id
-            # app_name = JunjoApp().app_name
-            # workflow_name = self.workflow_name
-            # event_time_nano = workflow_start_time_ns
-            # structure = self.graph.serialize_to_json_string()
-            # print("Sending structure to Junjo UI Client:", structure)
-            # JunjoUiClient().create_workflow_metadata(
-            #     exec_id,
-            #     app_name,
-            #     workflow_name,
-            #     event_time_nano,
-            #     structure,
-            # )
-
-            # # TEST Junjo UI Client - Workflow Log Start
-            # exec_id = self.workflow_id
-            # type = JunjoLogType.START
-            # state_json = self.get_state_json
-            # print("Sending state_json to Junjo UI Client:", state_json)
-            # JunjoUiClient().create_workflow_log(exec_id, type, event_time_nano, state_json)
 
             # Execute the before workflow hooks
             before_workflow_hook_args = SpanOpenSchemaWorkflow(
                 junjo_id=self.workflow_id,
                 junjo_name=self.workflow_name,
-                junjo_state_start=self.get_state_json,
+                junjo_state_start=await self.get_state_json(),
                 junjo_graph_json=self.graph.serialize_to_json_string(),
             )
             self.hook_manager.run_before_workflow_execute_hooks(before_workflow_hook_args)
@@ -116,14 +85,6 @@ class Workflow(Generic[StateT, StoreT]):
                 # Execute node before hooks
                 if self.hook_manager is not None:
 
-                    # # TEST Junjo UI Client - Node Log Start
-                    # JunjoUiClient().create_node_log(
-                    #     exec_id=self.workflow_id,
-                    #     type=JunjoLogType.START,
-                    #     event_time_nano=time.time_ns(),
-                    #     state=self.get_state_json
-                    # )
-
                     span_open_node_args = SpanOpenSchemaNode(
                         junjo_id=current_node.id,
                         junjo_workflow_id=self.workflow_id,
@@ -133,18 +94,10 @@ class Workflow(Generic[StateT, StoreT]):
 
                 # Execute the current node.
                 print("Executing node:", current_node.id)
-                await current_node._execute(self.workflow_id)
+                await current_node._execute(self.store)
 
                 # Execute node after hooks
                 if self.hook_manager is not None:
-
-                    # # TEST Junjo UI Client - Node Log End
-                    # JunjoUiClient().create_node_log(
-                    #     exec_id=self.workflow_id,
-                    #     type=JunjoLogType.END,
-                    #     event_time_nano=time.time_ns(),
-                    #     state=self.get_state_json
-                    # )
 
                     span_close_node_args = SpanCloseSchemaNode(
                         junjo_id=current_node.id,
@@ -166,7 +119,7 @@ class Workflow(Generic[StateT, StoreT]):
                     break
 
                 # Get the next node in the workflow.
-                current_node = self.graph.get_next_node(self.workflow_id, current_node)
+                current_node = await self.graph.get_next_node(self.store, current_node)
 
             except Exception as e:
                 print(f"Error executing node: {e}")
@@ -174,18 +127,11 @@ class Workflow(Generic[StateT, StoreT]):
 
         # Execute workflow after hooks
         if self.hook_manager is not None:
-            # workflow_end_time_ns = time.time_ns()
-            # # TEST Junjo UI Client - Workflow Log End
-            # exec_id = self.workflow_id
-            # type = JunjoLogType.END
-            # event_time_nano = workflow_end_time_ns
-            # state_json = self.get_state_json
-            # JunjoUiClient().create_workflow_log(exec_id, type, event_time_nano, state_json)
 
             # Execute the after workflow hooks
             after_workflow_hook_args = SpanCloseSchemaWorkflow(
                junjo_id=self.workflow_id,
-               junjo_state_end=self.get_state_json,
+               junjo_state_end=await self.get_state_json(),
             )
             self.hook_manager.run_after_workflow_execute_hooks(
                 after_workflow_hook_args

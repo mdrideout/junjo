@@ -1,8 +1,7 @@
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 from junjo.node import Node
-from junjo.store import StoreT
-from junjo.workflow_context import WorkflowContextManager
+from junjo.store import BaseStore, StoreT
 
 
 class Edge:
@@ -17,7 +16,7 @@ class Edge:
         self,
         tail: Node,
         head: Node,
-        condition: Callable[[Node, Node, StoreT], bool] | None = None,
+        condition: Callable[[Node, Node, StoreT], Awaitable[bool] | bool] | None = None,
     ):
         """
         Initializes the Edge.
@@ -36,7 +35,7 @@ class Edge:
         self.head = head
         self.condition = condition
 
-    def next_node(self, workflow_id: str) -> Node | None:
+    async def next_node(self, store: BaseStore) -> Node | None:
         """
         Determines the next node in the workflow based on the edge's condition.
 
@@ -49,11 +48,7 @@ class Edge:
         if self.condition is None:
             return self.head
         else:
-            store = WorkflowContextManager.get_store(workflow_id)
-            if store is None:
-                raise ValueError("Store is not available in the context.")
-
-            state = store.get_state()
+            state = await store.get_state()
             if state is None:
                 raise ValueError("State is not available in the store.")
 

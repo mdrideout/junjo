@@ -11,8 +11,8 @@ from app.workflows_junjo.handle_message.store import MessageWorkflowStore
 class CreateResponseNode(Node[MessageWorkflowStore]):
     """Create a response message based on the data loaded into state."""
 
-    async def service(self, store: MessageWorkflowStore) -> None:
-        state = store.get_state()
+    async def service(self, store) -> None:
+        state = await store.get_state()
 
         contact = state.contact
         if contact is None:
@@ -38,6 +38,6 @@ class CreateResponseNode(Node[MessageWorkflowStore]):
         response = await MessageRepository.create(message_create)
 
         # Update state
-        store.set_response_message(response)
+        await store.set_response_message(self, response)
 
         return

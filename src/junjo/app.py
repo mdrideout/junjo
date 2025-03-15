@@ -1,7 +1,5 @@
 from typing import Optional
 
-from junjo.workflow_context import WorkflowContextManager  # Assuming this exists
-
 
 class JunjoApp:
     _instance: Optional["JunjoApp"] = None
@@ -13,7 +11,6 @@ class JunjoApp:
                 raise ValueError("app_name must be provided on first initialization")
             cls._instance = super().__new__(cls)
             cls._instance._app_name = app_name.strip()  # Initialize directly
-            WorkflowContextManager()  # Initialize here, if necessary and ONLY once.
         elif app_name is not None and app_name.strip() != cls._instance._app_name:
             print("Warning: app_name cannot be changed once set")
         return cls._instance

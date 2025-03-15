@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from junjo.app import JunjoApp
-from junjo.workflow_context import WorkflowContextManager
 
 from app.db.db_config import engine, init_db
 from app.db.models.chat.routes import chat_router
@@ -21,9 +20,6 @@ load_dotenv()
 
 # Set up logging
 setup_logging()
-
-# Initialize a workflow context manager
-WorkflowContextManager()
 
 # Dependency to manage the lifespan of the application
 @asynccontextmanager

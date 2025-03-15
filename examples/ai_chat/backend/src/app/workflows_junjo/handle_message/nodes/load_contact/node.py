@@ -8,8 +8,8 @@ from app.workflows_junjo.handle_message.store import MessageWorkflowStore
 class LoadContactNode(Node[MessageWorkflowStore]):
     """Load conversation contact from the database and set it to state."""
 
-    async def service(self, store: MessageWorkflowStore) -> None:
-        state = store.get_state()
+    async def service(self, store) -> None:
+        state = await store.get_state()
 
         logger.info("Fetching contact for state...")
 
@@ -19,6 +19,6 @@ class LoadContactNode(Node[MessageWorkflowStore]):
         logger.info(f"Fetched contact: {contact}")
 
         # Set the conversation contact to state
-        store.set_contact(contact)
+        await store.set_contact(self, contact)
 
         return

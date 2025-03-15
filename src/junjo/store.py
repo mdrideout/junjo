@@ -1,11 +1,16 @@
 import abc
-from collections.abc import Callable
-from typing import Any, Generic, TypeVar
+import asyncio
+from collections.abc import Awaitable, Callable
+from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from junjo.node import Node
+from junjo.state import BaseState
 
-StateT = TypeVar("StateT", bound=BaseModel)
+StateT = TypeVar("StateT", bound=BaseState)
 StoreT = TypeVar("StoreT", bound="BaseStore")
+
+# Type alias: each subscriber can be either a sync callable or an async callable (returns an Awaitable).
+Subscriber = Callable[[StateT], None] | Callable[[StateT], Awaitable[None]]
 
 class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
@@ -14,66 +19,81 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
 
     def __init__(self, initial_state: StateT) -> None:
-        # Use the subclass's initial_state property to set up the store
+        # Use an asyncio.Lock for concurrency control in an async environment
+        self._lock = asyncio.Lock()
+
+        # The current state of the store
         self._state: StateT = initial_state
-        self._subscribers: list[Callable[[StateT], None]] = []
 
-    def subscribe(self, listener: Callable[[StateT], None]) -> Callable[[], None]:
-        """
-        Register a listener to be called whenever the state changes.
-        Returns an unsubscribe function.
-        """
-        self._subscribers.append(listener)
+        # Each subscriber can be a synchronous or asynchronous function
+        self._subscribers: list[Subscriber] = []
 
-        def unsubscribe() -> None:
-            self._subscribers.remove(listener)
+    async def subscribe(self, listener: Subscriber) -> Callable[[], Awaitable[None]]:
+        """
+        Register a listener (sync or async callable) to be called whenever the state changes.
+        Returns an *async* unsubscribe function that, when awaited, removes this listener.
+        """
+
+        async with self._lock:
+            self._subscribers.append(listener)
+
+        async def unsubscribe() -> None:
+            """
+            Async function to remove the listener from the subscriber list.
+            We lock again to ensure concurrency safety.
+            """
+            async with self._lock:
+                if listener in self._subscribers:
+                    self._subscribers.remove(listener)
+
         return unsubscribe
 
-    def get_state(self) -> StateT:
+    async def get_state(self) -> StateT:
         """
         Return a shallow copy of the current state.
         (Follows immutability principle)
         """
-        return self._state.model_copy()
+        async with self._lock:
+            # Return a separate copy of the Pydantic model so outside code doesn't mutate the store
+            return self._state.model_copy()
 
 
-    def get_state_json(self) -> str:
+    async def get_state_json(self) -> str:
         """
         Return the current state as a JSON string.
         """
-        return self._state.model_dump_json()
+        async with self._lock:
+            return self._state.model_dump_json()
 
-    def _update_state_and_notify(self, new_state: StateT) -> None:
+    async def set_state(self, node: Node, update: dict,) -> None:
         """
-        Update state and notify.
-
-        If state has changed:
-        - Updates state
-        - Notifies subscribers
+        Public API to partially update the store state with a dict of changes.
+        - Immutable update with a deep state copy
+        - Merges the current state with `updates` using `model_copy(update=...)`.
+        - Validates that each updated field is valid for StateT.
+        - If there's a change, notifies subscribers outside the lock.
         """
-        if new_state != self._state:
-            self._state = new_state
-            for subscriber in self._subscribers:
-                subscriber(self._state)
+        subscribers_to_notify: list[Subscriber] = []
+        async with self._lock:
+            # Create a new instance with partial updates, deep=True for true immutability
+            new_state = self._state.model_copy(update=update, deep=True)
 
+            # Only notify if something actually changed
+            if new_state != self._state:
+                self._state = new_state
+                subscribers_to_notify = list(self._subscribers)
 
-def immutable_update(func: Callable[..., StateT]) -> Callable[..., StateT]:
-    """
-    A decorator for store state update functions.
+        # Notify subscribers outside the lock
+        if subscribers_to_notify:
+            await self._notify_subscribers(new_state, subscribers_to_notify)
 
-    Ensures that:
-    1. The decorated method returns a new state object of the correct type.
-    2. `_update_state_and_notify` is called to update the store and notify subscribers.
+    async def _notify_subscribers(self, new_state: StateT, subscribers: list[Subscriber]) -> None:
+        """
+        Private helper to call subscribers once the lock is released.
+        """
+        for subscriber in subscribers:
+            result = subscriber(new_state)
+            # If the subscriber is async, it returns a coroutine or awaitable
+            if asyncio.iscoroutine(result) or isinstance(result, Awaitable):
+                await result
 
-    TODO: Add runtime warnings and lint warnings via static analysis for 
-    state mutations that do not follow the immutable update rule
-    """
-
-    def wrapper(self: BaseStore[StateT], *args: Any, **kwargs: Any) -> StateT:
-        new_state = func(self, *args, **kwargs)
-        if not isinstance(new_state, self._state.__class__):  # Check against current state's type
-            raise TypeError(f"Action method must return a {self._state.__class__.__name__} object.")
-        self._update_state_and_notify(new_state)
-        return new_state
-
-    return wrapper
