@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from junjo.app import JunjoApp
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from app.db.db_config import engine, init_db
 from app.db.models.chat.routes import chat_router
@@ -22,7 +23,7 @@ load_dotenv()
 # Set up logging
 setup_logging()
 
-# Setup OpenTelemetry
+# Setup OpenTelemetry before anything else happens
 init_otel()
 
 # Dependency to manage the lifespan of the application
@@ -32,7 +33,7 @@ async def lifespan(app: FastAPI):
     # Initialize Junjo
     JunjoApp(app_name="AI Chat Demo")
 
-    # Initialize the database
+    # Initialize the database (OTEL instrumented in db_config.py)
     await init_db()
     yield
 
@@ -43,6 +44,9 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI app
 app = FastAPI(lifespan=lifespan)
+
+# OTEL: Instrument FastAPI tracing
+FastAPIInstrumentor.instrument_app(app)
 
 origins = [
     "http://localhost:5173",

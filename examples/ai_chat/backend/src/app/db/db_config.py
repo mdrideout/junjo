@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from loguru import logger
+from opentelemetry import trace
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -65,3 +67,37 @@ async def init_db():
         await conn.execute(text("PRAGMA synchronous = NORMAL"))
 
     logger.info("Database initialized successfully")
+
+
+# --- OpenTelemetry Instrumentation ---
+def add_details(span, conn, cursor, statement, parameters, context, exception_):
+    """Adds more details to the SQLAlchemy span
+       - DB connection attributes
+       - Exception information
+       - Parameter information
+    """
+    span.set_attribute("db.system", conn.dialect.name)
+    span.set_attribute("db.connection.string", str(conn.engine.url))
+    span.set_attribute("db.user", conn.engine.url.username or "default")  # Provide a default if username is None
+
+    # Get isolation level, handling potential AttributeError
+    try:
+        isolation_level = conn.get_isolation_level()
+        span.set_attribute("db.connection.isolation_level", isolation_level)
+    except AttributeError:
+        span.set_attribute("db.connection.isolation_level", "N/A")  # Or some other default
+
+    if parameters:
+        span.set_attribute("db.params", str(parameters))  # Convert to string
+
+    if exception_:
+        span.set_status(trace.Status(trace.StatusCode.ERROR))
+        span.record_exception(exception_)
+
+SQLAlchemyInstrumentor().instrument(
+    engine=engine.sync_engine, # `.sync_engine` is required since this instrumentation does not support the async engine
+    before_cursor_execute=add_details,
+    after_cursor_execute=add_details,
+    dbapi_level_span=True
+)
+# --- End OpenTelemetry Instrumentation ---
