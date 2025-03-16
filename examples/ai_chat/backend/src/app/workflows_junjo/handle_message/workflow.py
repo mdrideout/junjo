@@ -1,5 +1,4 @@
 from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.otel_provider import OpenTelemetryProvider
 from junjo.workflow import Workflow
 
 from app.db.models.message.schemas import MessageCreate
@@ -21,7 +20,6 @@ async def handle_message_workflow(message: MessageCreate) -> None:
         graph=handle_message_graph,
         store=store,
         hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
-        otel_provider=OpenTelemetryProvider(service_name="ai_chat_provider_example", host="localhost", port="4317")
     )
 
     # Execute the workflow

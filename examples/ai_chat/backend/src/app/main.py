@@ -12,6 +12,7 @@ from app.db.models.contact.routes import contact_router
 from app.db.models.message.routes import message_router
 from app.db.queries.routes import queries_router
 from app.log.config import setup_logging
+from app.otel_config import init_otel
 from app.workflows_basic.routes import workflows_router
 from app.workflows_junjo.routes import workflows_junjo_router
 
@@ -20,6 +21,9 @@ load_dotenv()
 
 # Set up logging
 setup_logging()
+
+# Setup OpenTelemetry
+init_otel()
 
 # Dependency to manage the lifespan of the application
 @asynccontextmanager
@@ -39,8 +43,6 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI app
 app = FastAPI(lifespan=lifespan)
-
-
 
 origins = [
     "http://localhost:5173",

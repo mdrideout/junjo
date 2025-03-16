@@ -3,12 +3,9 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from jsonpatch import JsonPatch
 from nanoid import generate
-from opentelemetry import context as otel_context
 from opentelemetry import trace
-from opentelemetry.trace import Span
 
-from junjo.telemetry.otel_provider import OpenTelemetryProvider
-from junjo.telemetry.otel_schema import JunjoOtelSpanTypes
+from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 
 if TYPE_CHECKING:
     from junjo.store import BaseStore
@@ -66,40 +63,25 @@ class Node(Generic[StoreT], ABC):
     async def _execute(
             self,
             store: StoreT,
-            otel: OpenTelemetryProvider | None = None,
-            otel_context: otel_context.Context | None = None
         ) -> None:
         """
-        Validate the node and execute its service function.
+        Execute the Node's service function with OpenTelemetry tracing.
         """
 
-        # Execute the service
-        try:
-            if otel is not None:
-                span = self._otel_span_open(otel, otel_context)
-                with trace.use_span(span, end_on_exit=True):
-                    await self.service(store) # (cannot know store is StoreT here? it works...)
-                    span.set_status(trace.StatusCode.OK)
+        # Acquire a tracer (will be a real tracer if configured, otherwise no-op)
+        tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
 
-                    # Add attributes for after execution here? (patch event?)
-                    # or does that happen inside the service execution?
+        # Start a new span and keep a reference to the span object
+        with tracer.start_as_current_span(self.name) as span:
+            try:
+                # Set an attribute on the span
+                span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.NODE)
 
-            else:
+                # Perform your async operation
                 await self.service(store)
 
-        except Exception as e:
-            if span:
+            except Exception as e:
+                print(f"Error executing node service: {e}")
                 span.set_status(trace.StatusCode.ERROR, str(e))
                 span.record_exception(e)
-
-            print(f"Error executing node service: {e}")
-            raise
-
-    def _otel_span_open(self, otel: OpenTelemetryProvider, otel_context: otel_context.Context | None) -> Span:
-        """Open the Node's OpenTelemetry span."""
-        print(f"Opening span for {self.name}")
-
-        tracer = otel.get_tracer()
-        span = tracer.start_span(name=self.name, context=otel_context)
-        span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.NODE)
-        return span
+                raise

@@ -2,15 +2,12 @@
 from typing import Generic
 
 from nanoid import generate
-from opentelemetry import context as otel_context
 from opentelemetry import trace
-from opentelemetry.trace import Span
 
 from junjo.graph import Graph
 from junjo.store import StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.otel_provider import OpenTelemetryProvider
-from junjo.telemetry.otel_schema import JunjoOtelSpanTypes
+from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 
 
 class Workflow(Generic[StateT, StoreT]):
@@ -25,7 +22,6 @@ class Workflow(Generic[StateT, StoreT]):
             store: StoreT,
             max_iterations: int = 100,
             hook_manager: HookManager | None = None,
-            otel_provider: OpenTelemetryProvider | None = None,
             parent_workflow_id: str | None = None
     ):
         """
@@ -45,7 +41,6 @@ class Workflow(Generic[StateT, StoreT]):
         self.max_iterations = max_iterations
         self.node_execution_counter: dict[str, int] = {}
         self.hook_manager = hook_manager
-        self.otel_provider = otel_provider
         self.parent_workflow_id = parent_workflow_id
 
         # Private store (immutable interactions only)
@@ -71,82 +66,71 @@ class Workflow(Generic[StateT, StoreT]):
         # if self.hook_manager is not None:
             # self.hook_manager.run_before_workflow_execute_hooks(before_workflow_hook_args)
 
-        # IF otel: open the workflow span
-        if self.otel_provider is not None:
-            span = self._otel_span_open(self.otel_provider)
+        # Acquire a tracer (will be a real tracer if configured, otherwise no-op)
+        tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
+
+        # Start a new span and keep a reference to the span object
+        with tracer.start_as_current_span(self.workflow_name) as span:
             span.set_attribute("junjo.workflow.state.start", await self.get_state_json())
+            span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.WORKFLOW)
+            span.set_attribute("junjo.workflow_id", self.workflow_id)
 
-            with trace.use_span(span, end_on_exit=True):
-                current_context = trace.get_current_span().get_span_context()
-                # Convert trace context to a context that can be passed to start_span
-                current_context = trace.set_span_in_context(trace.get_current_span(), otel_context.get_current())
+            if self.parent_workflow_id is not None:
+                span.set_attribute("junjo.parent_workflow_id", self.parent_workflow_id)
 
-                current_node = self.graph.source
-                try:
-                    while True:
-                        try:
-                            # # Execute node before hooks
-                            # if self.hook_manager is not None:
-                            #     self.hook_manager.run_before_node_execute_hooks(span_open_node_args)
+            # Loop to execute the nodes inside this workflow
+            current_node = self.graph.source
+            try:
+                while True:
+                    try:
+                        # # Execute node before hooks
+                        # if self.hook_manager is not None:
+                        #     self.hook_manager.run_before_node_execute_hooks(span_open_node_args)
 
-                            # Execute the current node.
-                            print("Executing node:", current_node.name)
-                            await current_node._execute(self.store, self.otel_provider, current_context)
+                        # Execute the current node.
+                        print("Executing node:", current_node.name)
+                        await current_node._execute(self.store)
 
-                            # # Execute node after hooks
-                            # if self.hook_manager is not None:
-                            #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
+                        # # Execute node after hooks
+                        # if self.hook_manager is not None:
+                        #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
 
-                            # Increment the execution counter for the current node.
-                            self.node_execution_counter[current_node.id] = self.node_execution_counter.get(current_node.id, 0) + 1
-                            if self.node_execution_counter[current_node.id] > self.max_iterations:
-                                raise ValueError(
-                                    f"Node '{current_node}' exceeded maximum execution count. \
-                                    Check for loops in your graph. Ensure it transitions to the sink node."
-                                )
+                        # Increment the execution counter for the current node.
+                        self.node_execution_counter[current_node.id] = self.node_execution_counter.get(current_node.id, 0) + 1
+                        if self.node_execution_counter[current_node.id] > self.max_iterations:
+                            raise ValueError(
+                                f"Node '{current_node}' exceeded maximum execution count. \
+                                Check for loops in your graph. Ensure it transitions to the sink node."
+                            )
 
-                            # Break the loop if the current node is the final node.
-                            if current_node == self.graph.sink:
-                                print("Sink has executed. Exiting loop.")
-                                break
+                        # Break the loop if the current node is the final node.
+                        if current_node == self.graph.sink:
+                            print("Sink has executed. Exiting loop.")
+                            break
 
-                            # Get the next node in the workflow.
-                            current_node = await self.graph.get_next_node(self.store, current_node)
+                        # Get the next node in the workflow.
+                        current_node = await self.graph.get_next_node(self.store, current_node)
 
-                        except Exception as e:
-                            span.set_status(trace.StatusCode.ERROR, str(e))
-                            span.record_exception(e)
-                            print(f"Error executing node: {e}")
-                            raise e
+                    except Exception as e:
+                        print(f"Error executing node: {e}")
+                        raise e
 
-                    span.set_status(trace.StatusCode.OK)
+            except Exception as e:
+                print(f"Error executing workflow: {e}")
+                span.set_status(trace.StatusCode.ERROR, str(e))
+                span.record_exception(e)
 
-                finally:
-                    execution_sum = sum(self.node_execution_counter.values())
+            finally:
+                execution_sum = sum(self.node_execution_counter.values())
 
+                # Update attributes *after* the workflow loop completes (or errors)
+                span.set_attribute("junjo.workflow.state.end", await self.get_state_json())
+                span.set_attribute("junjo.workflow.node.count", execution_sum)
 
-                    # Update attributes *after* the workflow loop completes (or errors)
-                    span.set_attribute("junjo.workflow.state.end", await self.get_state_json())
-                    span.set_attribute("junjo.workflow.node.count", execution_sum)
+            # # Execute workflow after hooks
+            # if self.hook_manager is not None:
+            #     self.hook_manager.run_after_workflow_execute_hooks(
+            #         after_workflow_hook_args
+            #     )
 
-        # # Execute workflow after hooks
-        # if self.hook_manager is not None:
-        #     self.hook_manager.run_after_workflow_execute_hooks(
-        #         after_workflow_hook_args
-        #     )
-
-        return
-
-    def _otel_span_open(self, otel: OpenTelemetryProvider) -> Span:
-        """Open the Node's OpenTelemetry span."""
-        print(f"Opening span for {self.workflow_name}")
-
-        tracer = otel.get_tracer()
-        span = tracer.start_span(name=self.workflow_name)
-        span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.WORKFLOW)
-        span.set_attribute("junjo.workflow_id", self.workflow_id)
-
-        if self.parent_workflow_id is not None:
-            span.set_attribute("junjo.parent_workflow_id", self.parent_workflow_id)
-
-        return span
+            return
