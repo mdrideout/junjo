@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from junjo.app import JunjoApp
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor
 
 from app.db.db_config import engine, init_db
 from app.db.models.chat.routes import chat_router
@@ -47,6 +48,10 @@ app = FastAPI(lifespan=lifespan)
 
 # OTEL: Instrument FastAPI tracing
 FastAPIInstrumentor.instrument_app(app)
+
+# OTEL: Instrument Gemini AI tracing
+
+GoogleGenAiSdkInstrumentor().instrument()
 
 origins = [
     "http://localhost:5173",

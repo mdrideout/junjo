@@ -18,6 +18,7 @@ dependencies = [
     "opentelemetry-api>=1.31.0",
     "opentelemetry-sdk>=1.31.0",
     "opentelemetry-instrumentation-fastapi>=0.52b0",
+    "opentelemetry-instrumentation-google-genai>=0.1b0",
 ]
 
 [tool.ruff]
