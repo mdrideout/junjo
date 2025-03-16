@@ -11,11 +11,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.trace import Span
 
-from junjo.app import JunjoApp
 from junjo.telemetry.hook_schema import (
-    SpanCloseSchemaNode,
     SpanCloseSchemaWorkflow,
-    SpanOpenSchemaNode,
     SpanOpenSchemaWorkflow,
 )
 
@@ -25,16 +22,21 @@ class OpenTelemetryHooks:
     A class that provides OpenTelemetry hooks for Junjo workflows.
     """
 
-    def __init__(self, service_name: str, jaeger_host: str, jaeger_port: int):
+    def __init__(self, service_name: str, host: str, port: str):
         """Initializes the OpenTelemetry hooks."""
 
+        # TEMPORARY
+        host = "localhost"
+        port = "4317"
+
+
         resource = Resource(attributes={
-            SERVICE_NAME: JunjoApp().app_name
+            SERVICE_NAME: service_name
         })
 
         tracer_provider = TracerProvider(resource=resource)
 
-        otlpProcessor = BatchSpanProcessor(OTLPSpanExporter(endpoint="localhost:4317", insecure=True))
+        otlpProcessor = BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{host}:{port}", insecure=True))
         tracer_provider.add_span_processor(otlpProcessor)
 
         consoleProcessor = BatchSpanProcessor(ConsoleSpanExporter())
@@ -45,7 +47,7 @@ class OpenTelemetryHooks:
         self._tracer = trace.get_tracer(__name__)
 
         readerOtlp = PeriodicExportingMetricReader(
-            OTLPMetricExporter(endpoint="localhost:4317", insecure=True)
+            OTLPMetricExporter(endpoint=f"{host}:{port}", insecure=True)
         )
         readerConsole = PeriodicExportingMetricReader(ConsoleMetricExporter())
         meterProvider = MeterProvider(resource=resource, metric_readers=[readerConsole, readerOtlp])
@@ -91,31 +93,31 @@ class OpenTelemetryHooks:
             workflow_span.end()
 
 
-    def before_node_execute(self, args: SpanOpenSchemaNode):
-        """
-        Start a new node span as a child of the *currently active* workflow span
-        (assuming 'before_workflow_execute' activated the workflow span).
-        """
-        node_span = self._tracer.start_span(name=args.junjo_name)
-        node_span.set_attribute("junjo.span_type", args.junjo_span_type)
-        node_span.set_attribute("junjo.workflow_id", args.junjo_workflow_id)
+    # def before_node_execute(self, args: SpanOpenSchemaNode):
+    #     """
+    #     Start a new node span as a child of the *currently active* workflow span
+    #     (assuming 'before_workflow_execute' activated the workflow span).
+    #     """
+    #     node_span = self._tracer.start_span(name=args.junjo_name)
+    #     node_span.set_attribute("junjo.span_type", args.junjo_span_type)
+    #     node_span.set_attribute("junjo.workflow_id", args.junjo_workflow_id)
 
-        node_token = trace.use_span(node_span, end_on_exit=False)
-        node_token.__enter__()
-        self._node_spans[args.junjo_id] = (node_span, node_token)
+    #     node_token = trace.use_span(node_span, end_on_exit=False)
+    #     node_token.__enter__()
+    #     self._node_spans[args.junjo_id] = (node_span, node_token)
 
 
-    def after_node_execute(self, args: SpanCloseSchemaNode):
-        """
-        Finish the node span, record attributes, and exit the node context.
-        """
-        span_token_tuple = self._node_spans.pop(args.junjo_id, None)
-        if span_token_tuple is not None:
-            node_span, node_token = span_token_tuple
+    # def after_node_execute(self, args: SpanCloseSchemaNode):
+    #     """
+    #     Finish the node span, record attributes, and exit the node context.
+    #     """
+    #     span_token_tuple = self._node_spans.pop(args.junjo_id, None)
+    #     if span_token_tuple is not None:
+    #         node_span, node_token = span_token_tuple
 
-            # Optionally record node details
-            node_span.set_attribute("junjo.state_patch", args.junjo_state_patch)
+    #         # Optionally record node details
+    #         node_span.set_attribute("junjo.state_patch", args.junjo_state_patch)
 
-            # Exit context and end the span
-            node_token.__exit__(None, None, None)
-            node_span.end()
+    #         # Exit context and end the span
+    #         node_token.__exit__(None, None, None)
+    #         node_span.end()

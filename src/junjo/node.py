@@ -3,6 +3,12 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from jsonpatch import JsonPatch
 from nanoid import generate
+from opentelemetry import context as otel_context
+from opentelemetry import trace
+from opentelemetry.trace import Span
+
+from junjo.telemetry.otel_provider import OpenTelemetryProvider
+from junjo.telemetry.otel_schema import JunjoOtelSpanTypes
 
 if TYPE_CHECKING:
     from junjo.store import BaseStore
@@ -57,14 +63,43 @@ class Node(Generic[StoreT], ABC):
         """
         raise NotImplementedError
 
-    async def _execute(self, store: StoreT) -> None:
+    async def _execute(
+            self,
+            store: StoreT,
+            otel: OpenTelemetryProvider | None = None,
+            otel_context: otel_context.Context | None = None
+        ) -> None:
         """
         Validate the node and execute its service function.
         """
 
         # Execute the service
         try:
-            await self.service(store) # (cannot know store is StoreT here? it works...)
+            if otel is not None:
+                span = self._otel_span_open(otel, otel_context)
+                with trace.use_span(span, end_on_exit=True):
+                    await self.service(store) # (cannot know store is StoreT here? it works...)
+                    span.set_status(trace.StatusCode.OK)
+
+                    # Add attributes for after execution here? (patch event?)
+                    # or does that happen inside the service execution?
+
+            else:
+                await self.service(store)
+
         except Exception as e:
-            print(f"Error executing service: {e}")
-            return
+            if span:
+                span.set_status(trace.StatusCode.ERROR, str(e))
+                span.record_exception(e)
+
+            print(f"Error executing node service: {e}")
+            raise
+
+    def _otel_span_open(self, otel: OpenTelemetryProvider, otel_context: otel_context.Context | None) -> Span:
+        """Open the Node's OpenTelemetry span."""
+        print(f"Opening span for {self.name}")
+
+        tracer = otel.get_tracer()
+        span = tracer.start_span(name=self.name, context=otel_context)
+        span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.NODE)
+        return span

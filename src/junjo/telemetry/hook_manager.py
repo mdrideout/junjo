@@ -6,7 +6,6 @@ from junjo.telemetry.hook_schema import (
     SpanOpenSchemaNode,
     SpanOpenSchemaWorkflow,
 )
-from junjo.telemetry.opentelemetry_hooks import OpenTelemetryHooks
 
 
 class HookManager:
@@ -19,8 +18,8 @@ class HookManager:
         if verbose_logging:
             self.register_verbose_hooks()
 
-        if open_telemetry:
-            self.register_open_telemetry_hooks()
+        # if open_telemetry:
+        #     self.register_open_telemetry_hooks()
 
 
     # Workflow Execution Hooks
@@ -74,10 +73,10 @@ class HookManager:
         self.add_before_node_execute_hook(log_before_node_execute)
         self.add_after_node_execute_hook(log_after_node_execute)
 
-    def register_open_telemetry_hooks(self) -> None:
-        """Registers the OpenTelemetry hooks with the HookManager."""
-        otel_hooks = OpenTelemetryHooks(service_name="test_service_name", jaeger_host="localhost", jaeger_port=4317)
-        self.add_before_workflow_execute_hook(otel_hooks.before_workflow_execute)
-        self.add_after_workflow_execute_hook(otel_hooks.after_workflow_execute)
-        self.add_before_node_execute_hook(otel_hooks.before_node_execute)
-        self.add_after_node_execute_hook(otel_hooks.after_node_execute)
+    # def register_open_telemetry_hooks(self) -> None:
+    #     """Registers the OpenTelemetry hooks with the HookManager."""
+    #     otel_hooks = OpenTelemetryHooks(service_name="test_service_name", host="localhost", port="4317")
+    #     self.add_before_workflow_execute_hook(otel_hooks.before_workflow_execute)
+    #     self.add_after_workflow_execute_hook(otel_hooks.after_workflow_execute)
+        # self.add_before_node_execute_hook(otel_hooks.before_node_execute)
+        # self.add_after_node_execute_hook(otel_hooks.after_node_execute)

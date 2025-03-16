@@ -3,6 +3,8 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Generic, TypeVar
 
+import jsonpatch
+from opentelemetry import trace
 from pydantic import ValidationError
 
 from junjo.node import Node
@@ -67,7 +69,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         async with self._lock:
             return self._state.model_dump_json()
 
-    async def set_state(self, node: Node, update: dict,) -> None:
+    async def set_state(self, node: Node, update: dict) -> None:
         """
         Public API to partially update the store state with a dict of changes.
         - Immutable update with a deep state copy
@@ -93,8 +95,29 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
             # Only notify if something actually changed
             if new_state != self._state:
+                state_json_before = self._state.model_dump(mode="json")
+                state_json_after = new_state.model_dump(mode="json")
+
+                # Calculate the patch
+                patch = jsonpatch.make_patch(state_json_before, state_json_after)
+                print("PATCH: ", patch)
+
+                # Update the stack (have lock)
                 self._state = new_state
                 subscribers_to_notify = list(self._subscribers)
+
+                # --- OpenTelemetry Event --- #
+                current_span = trace.get_current_span()
+                if current_span.is_recording():
+                    current_span.add_event(
+                        name="set_state",
+                        attributes={
+                            "node.id": node.id,
+                            "node.name": node.name,
+                            "state_json_patch": patch.to_string(),
+                        },
+                    )
+                # --- End OpenTelemetry Event --- #
 
         # Notify subscribers outside the lock
         if subscribers_to_notify:
