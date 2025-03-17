@@ -9,6 +9,7 @@ import (
 	"junjo-server/api"
 	"junjo-server/auth"
 	"junjo-server/db"
+	"junjo-server/db_duckdb"
 	m "junjo-server/middleware"
 	"junjo-server/telemetry"
 	u "junjo-server/utils"
@@ -36,9 +37,16 @@ func main() {
 	host := "0.0.0.0"
 	serverHostPort := host + ":" + port
 
-	// Database
+	// SQLite DB
 	db.Connect()
 	defer db.Close()
+
+	// DuckDB
+	duck_err := db_duckdb.Connect()
+	if duck_err != nil {
+		log.Fatalf("duckdb err: %v", duck_err)
+	}
+	defer db_duckdb.Close()
 
 	// Initialize Echo
 	e := echo.New()
