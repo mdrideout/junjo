@@ -30,6 +30,7 @@ COPY . .
 
 # ================================================
 # Production Stage
+# TODO: Optimize builders so that we use optimized debian-slim here, but build with full go:debian image
 FROM base AS production
 
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server
