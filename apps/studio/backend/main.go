@@ -26,7 +26,7 @@ func main() {
 	// Load environment variables
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Println(".env file could not be loaded")
+		log.Fatalf(".env file could not be loaded")
 	}
 	env := os.Getenv("ENV")
 	fmt.Println("Environment: ", env)
@@ -51,7 +51,7 @@ func main() {
 
 	// CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:5151"}, // Frontend URL (TODO: May need to add jaeger too)
+		AllowOrigins:     []string{"http://localhost:5151"},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderXCSRFToken},
 		AllowCredentials: true,

@@ -10,12 +10,18 @@ import (
 
 	"database/sql"
 
-	db "junjo-server/db_gen"    // Import your sqlc code
+	db "junjo-server/db_gen"    // Import sqlc code
 	pb "junjo-server/proto_gen" // Import generated protobuf code
+
+	// Otel imports
+	collogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
+	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 
 	_ "modernc.org/sqlite" // SQLite driver
 )
 
+// Proprietary Junjo Services
 type server struct {
 	pb.UnimplementedNodeLogServiceServer
 	pb.UnimplementedWorkflowLogServiceServer
@@ -38,10 +44,16 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 
 	grpcServer := grpc.NewServer()
 
-	// Register services
+	// Register Proprietary Junjo services
 	pb.RegisterNodeLogServiceServer(grpcServer, &server{queries: queries})
 	pb.RegisterWorkflowLogServiceServer(grpcServer, &server{queries: queries})
 	pb.RegisterWorkflowMetadataServiceServer(grpcServer, &server{queries: queries})
+
+	// Register OTLP services
+	coltracepb.RegisterTraceServiceServer(grpcServer, &otelTraceService{ /* queries: queries */ }) // Pass queries if needed
+	colmetricpb.RegisterMetricsServiceServer(grpcServer, &otelMetricService{})
+	collogspb.RegisterLogsServiceServer(grpcServer, &otelLogsService{})
+
 	reflection.Register(grpcServer)
 
 	return grpcServer, lis, nil // Return server *and* listener

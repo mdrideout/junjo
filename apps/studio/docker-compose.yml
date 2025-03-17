@@ -34,7 +34,7 @@ services:
     ports:
       # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
       - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
+      # - "4318:4318" # OTLP HTTP
     volumes:
       - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
       - jaeger_badger_store:/data/jaeger/badger/jaeger
