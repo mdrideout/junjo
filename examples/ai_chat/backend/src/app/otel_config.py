@@ -15,22 +15,33 @@ def init_otel():
     # Set up tracing for this application
     tracer_provider = TracerProvider(resource=resource)
 
-    # Construct a Junjo Server exporter
-    junjo_exporter = JunjoServerOtelExporter(
+    # Construct a Junjo exporter for Jaeger (see junjo-server docker-compose.yml)
+    junjo_jaeger_exporter = JunjoServerOtelExporter(
         host="localhost",
         port="4317",
         insecure=True,
     )
 
+    # Construct a Junjo exporter for Junjo Server (see junjo-server docker-compose.yml)
+    junjo_server_exporter = JunjoServerOtelExporter(
+        host="localhost",
+        port="50051",
+        insecure=True,
+    )
+
     # Set up span processors
-    # Add the Junjo span processor (exports span data to the Junjo Server)
+    # Add the Junjo span processor (Junjo Server and Jaeger)
     # Add more span processors if desired
-    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+    tracer_provider.add_span_processor(junjo_jaeger_exporter.span_processor)
+    tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)
 
     # Set up metrics
-    #    - Construct with the Junjo metric reader (exports metrics to the Junjo Server)
+    #    - Construct with the Junjo metric reader (Junjo Server and Jaeger)
     #    - Add more metric readers if desired
-    junjo_metric_reader = junjo_exporter.metric_reader
-    meter_provider = MeterProvider(resource=resource, metric_readers=[junjo_metric_reader])
+    junjo_jaeger_metric_reader = junjo_jaeger_exporter.metric_reader
+    junjo_server_metric_reader = junjo_server_exporter.metric_reader
+    meter_provider = MeterProvider(
+        resource=resource, metric_readers=[junjo_jaeger_metric_reader, junjo_server_metric_reader]
+    )
     metrics.set_meter_provider(meter_provider)

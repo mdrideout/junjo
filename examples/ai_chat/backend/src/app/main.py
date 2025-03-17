@@ -50,7 +50,6 @@ app = FastAPI(lifespan=lifespan)
 FastAPIInstrumentor.instrument_app(app)
 
 # OTEL: Instrument Gemini AI tracing
-
 GoogleGenAiSdkInstrumentor().instrument()
 
 origins = [
