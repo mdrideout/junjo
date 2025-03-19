@@ -7,8 +7,8 @@ services:
       target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
       - ./backend:/app-dev # Mount the backend code for hot reloading
-      - ./sqlite:/data/sqlite # SQLite storage
-      - ./duckdb:/data/duckdb # DuckDB storage
+      - ./dbdata/sqlite:/dbdata/sqlite # SQLite storage
+      - ./dbdata/duckdb:/dbdata/duckdb # DuckDB storage
     ports:
       - "1323:1323" # Echo API server port
       - "50051:50051" # gRPC telemetry server port

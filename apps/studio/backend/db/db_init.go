@@ -27,7 +27,7 @@ var DB *sql.DB
 // Connect initializes the database connection
 func Connect() {
 	ctx := context.Background()
-	dbPath := "/data/sqlite/telemetry.db"
+	dbPath := "/dbdata/sqlite/telemetry.db"
 
 	// Open the database connection
 	var err error
