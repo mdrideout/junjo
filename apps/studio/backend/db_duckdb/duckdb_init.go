@@ -10,8 +10,8 @@ import (
 	_ "github.com/marcboeker/go-duckdb" // Import the DuckDB driver
 )
 
-//go:embed test_schema.sql
-var testSchema string
+//go:embed otel_spans/schema.sql
+var spansSchema string
 
 // DB is a global variable to hold the database connection.
 var DB *sql.DB
@@ -20,7 +20,7 @@ var DB *sql.DB
 func Connect() error {
 	ctx := context.Background()
 	fmt.Println("Connecting to duckdb...")
-	dbPath := "/data/duckdb/telemetry.db"
+	dbPath := "/dbdata/duckdb/otel_data.db"
 	var err error
 
 	// Open the database connection.
@@ -48,19 +48,18 @@ func Connect() error {
 func initializeTables(ctx context.Context) error {
 	// Check if table exists.  DuckDB's information_schema is reliable.
 	var exists bool
-	//Check for the people table
-	err := DB.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'people')").Scan(&exists)
+	//Check for the spans table
+	err := DB.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'spans')").Scan(&exists)
 	if err != nil {
-		return fmt.Errorf("failed to check if table 'people' exists: %w", err)
+		return fmt.Errorf("failed to check if table 'spans' exists: %w", err)
 	}
 
 	if !exists {
 		// Create table and insert if !exists
-		// use testSchema here
-		if _, err := DB.ExecContext(ctx, testSchema); err != nil {
+		if _, err := DB.ExecContext(ctx, spansSchema); err != nil {
 			return fmt.Errorf("failed to execute schema: %w", err)
 		}
-		fmt.Println("people table created and populated")
+		fmt.Println("spans table created and populated")
 	}
 	return nil
 }
