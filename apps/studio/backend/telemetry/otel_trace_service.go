@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -28,6 +29,13 @@ func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 				s.receivedSpans = append(s.receivedSpans, span)
 				traceID := trace.TraceID(span.TraceId)
 				fmt.Printf("OTel Trace Service: Received Span: %s, Trace ID: %s\n", span.Name, traceID)
+
+				spanJSON, err := json.MarshalIndent(span, "", "  ")
+				if err != nil {
+					fmt.Printf("OTel Trace Service: Error marshaling span to JSON: %v\n", err)
+					continue
+				}
+				fmt.Printf("OTel Trace Service: Received Span:\n%s\n", spanJSON)
 
 				// Example of storing to a database (assuming you have a queries object):
 				// _, err := s.queries.CreateSpan(ctx, db.CreateSpanParams{...})
