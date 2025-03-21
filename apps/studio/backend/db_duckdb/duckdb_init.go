@@ -10,8 +10,11 @@ import (
 	_ "github.com/marcboeker/go-duckdb" // Import the DuckDB driver
 )
 
-//go:embed otel_spans/schema.sql
+//go:embed otel_spans/spans_schema.sql
 var spansSchema string
+
+//go:embed otel_spans/state_patches_schema.sql
+var statePatchesSchema string
 
 // DB is a global variable to hold the database connection.
 var DB *sql.DB
@@ -46,21 +49,17 @@ func Connect() error {
 }
 
 func initializeTables(ctx context.Context) error {
-	// Check if table exists.  DuckDB's information_schema is reliable.
-	var exists bool
-	//Check for the spans table
-	err := DB.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'spans')").Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("failed to check if table 'spans' exists: %w", err)
+
+	// spans_schema.sql
+	if err := initTable("spans", spansSchema); err != nil {
+		return fmt.Errorf("failed to initialize spans table: %w", err)
 	}
 
-	if !exists {
-		// Create table and insert if !exists
-		if _, err := DB.ExecContext(ctx, spansSchema); err != nil {
-			return fmt.Errorf("failed to execute schema: %w", err)
-		}
-		fmt.Println("spans table created and populated")
+	// state_patches_schema.sql
+	if err := initTable("state_patches", statePatchesSchema); err != nil {
+		return fmt.Errorf("failed to initialize state_patches table: %w", err)
 	}
+
 	return nil
 }
 
@@ -71,4 +70,25 @@ func Close() {
 			fmt.Printf("Error closing duckdb database: %v", err)
 		}
 	}
+}
+
+// Initialize a table if it does not exist
+func initTable(tableName string, schema string) error {
+	ctx := context.Background()
+
+	// Check if the table exists
+	var exists bool
+	err := DB.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = $1)", tableName).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check if table '%s' exists: %w", tableName, err)
+	}
+
+	if !exists {
+		// Create the table
+		if _, err := DB.ExecContext(ctx, schema); err != nil {
+			return fmt.Errorf("failed to create table '%s': %w", tableName, err)
+		}
+		fmt.Printf("Table '%s' created\n", tableName)
+	}
+	return nil
 }
