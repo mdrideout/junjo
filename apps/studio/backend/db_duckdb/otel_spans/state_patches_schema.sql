@@ -2,13 +2,16 @@ CREATE TABLE state_patches (
   patch_id VARCHAR PRIMARY KEY,
   trace_id VARCHAR(32) NOT NULL,
   span_id VARCHAR(16) NOT NULL,
-  node_id VARCHAR,
+  workflow_id VARCHAR NOT NULL,
+  node_id VARCHAR NOT NULL,
   event_time TIMESTAMPTZ NOT NULL,
   patch JSON NOT NULL,
   FOREIGN KEY (trace_id, span_id) REFERENCES spans (trace_id, span_id)
 );
 
 CREATE INDEX idx_state_patches_trace_id_span_id ON state_patches (trace_id, span_id);
+
+CREATE INDEX idx_state_patches_workflow_id ON state_patches (workflow_id);
 
 CREATE INDEX idx_state_patches_node_id ON state_patches (node_id);
 

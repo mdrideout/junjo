@@ -15,6 +15,7 @@ CREATE TABLE spans (
   trace_flags INTEGER,
   trace_state VARCHAR,
   -- Junjo Fields
+  junjo_service_name VARCHAR,
   junjo_id VARCHAR,
   junjo_parent_id VARCHAR,
   junjo_span_type VARCHAR,

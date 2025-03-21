@@ -2,7 +2,6 @@ package telemetry
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -30,16 +29,22 @@ func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 				traceID := trace.TraceID(span.TraceId)
 				fmt.Printf("OTel Trace Service: Received Span: %s, Trace ID: %s\n", span.Name, traceID)
 
-				spanJSON, err := json.MarshalIndent(span, "", "  ")
-				if err != nil {
-					fmt.Printf("OTel Trace Service: Error marshaling span to JSON: %v\n", err)
-					continue
-				}
-				fmt.Printf("OTel Trace Service: Received Span:\n%s\n", spanJSON)
+				// spanJSON, err := json.MarshalIndent(span, "", "  ")
+				// if err != nil {
+				// 	fmt.Printf("OTel Trace Service: Error marshaling span to JSON: %v\n", err)
+				// 	continue
+				// }
+				// fmt.Printf("OTel Trace Service: Received Span:\n%s\n", spanJSON)
 
-				// Example of storing to a database (assuming you have a queries object):
-				// _, err := s.queries.CreateSpan(ctx, db.CreateSpanParams{...})
-				// if err != nil { ... handle error ... }
+				// Pass the *protobuf* span directly to the processing function.
+				if err := ProcessSpan(ctx, span); err != nil {
+					fmt.Printf("OTel Trace Service: Error processing span: %v\n", err)
+					//  Log the error, perhaps add metrics for failed spans, etc.
+				}
+
+				// // Example of storing to a database (assuming you have a queries object):
+				// // _, err := s.queries.CreateSpan(ctx, db.CreateSpanParams{...})
+				// // if err != nil { ... handle error ... }
 			}
 		}
 	}
