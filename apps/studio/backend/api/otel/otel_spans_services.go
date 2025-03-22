@@ -9,24 +9,60 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+//go:embed query_distinct_service_names.sql
+var queryDistinctServiceNames string
+
 //go:embed query_workflow_spans.sql
 var queryWorkflowSpans string
 
 //go:embed query_workflow_lineage.sql
 var queryWorkflowLineage string
 
+func GetDistinctServiceNames(c echo.Context) error {
+	c.Logger().Printf("Running GetDistinctServiceNames function")
+
+	db := db_duckdb.DB
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	// Execute the query
+	rows, err := db.Query(queryDistinctServiceNames)
+	if err != nil {
+		c.Logger().Printf("Error querying database: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})
+	}
+	defer rows.Close()
+
+	// Create the array of strings from the row values
+	var serviceNames []string
+	for rows.Next() {
+		var serviceName string
+		if err := rows.Scan(&serviceName); err != nil {
+			c.Logger().Printf("Error scanning row: %v", err)
+		}
+		serviceNames = append(serviceNames, serviceName)
+	}
+
+	return c.JSON(http.StatusOK, serviceNames)
+}
+
 func GetWorkflowE2E(c echo.Context) error {
-	c.Logger().Printf("Running GetOtelE2E function")
+	serviceName := c.Param("serviceName")
+	if serviceName == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "serviceName parameter is required"})
+	}
+	c.Logger().Printf("Running GetOtelE2E function for service %s", serviceName)
 
 	// Get the workflow spans
-	workflowSpans, err := GetWorkflowSpans(c)
+	workflowSpans, err := GetWorkflowSpans(c, serviceName)
 	if err != nil {
 		c.Logger().Printf("Error getting workflow spans: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to get workflow spans: %v", err)})
 	}
 
 	// Get the workflow lineage spans
-	workflowLineage, err := GetWorkflowLineage(c)
+	workflowLineage, err := GetWorkflowLineage(c, serviceName)
 	if err != nil {
 		c.Logger().Printf("Error getting workflow lineage: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to get workflow lineage: %v", err)})
@@ -39,7 +75,7 @@ func GetWorkflowE2E(c echo.Context) error {
 	})
 }
 
-func GetWorkflowSpans(c echo.Context) ([]map[string]interface{}, error) {
+func GetWorkflowSpans(c echo.Context, serviceName string) ([]map[string]interface{}, error) {
 	c.Logger().Printf("Running GetOtelSpans function")
 	c.Logger().Printf("Query executing: %s", queryWorkflowSpans)
 
@@ -49,7 +85,7 @@ func GetWorkflowSpans(c echo.Context) ([]map[string]interface{}, error) {
 	}
 
 	// Execute the query
-	rows, err := db.Query(queryWorkflowSpans)
+	rows, err := db.Query(queryWorkflowSpans, serviceName)
 	if err != nil {
 		c.Logger().Printf("Error querying database: %v", err)
 		return nil, c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})
@@ -108,11 +144,10 @@ func GetWorkflowSpans(c echo.Context) ([]map[string]interface{}, error) {
 		results = append(results, rowMap)
 	}
 
-	c.Logger().Printf("Results: %v", results)
 	return results, nil
 }
 
-func GetWorkflowLineage(c echo.Context) ([]map[string]interface{}, error) {
+func GetWorkflowLineage(c echo.Context, serviceName string) ([]map[string]interface{}, error) {
 	c.Logger().Printf("Running GetWorkflowLineage function")
 	c.Logger().Printf("Query executing: %s", queryWorkflowLineage)
 
@@ -122,7 +157,7 @@ func GetWorkflowLineage(c echo.Context) ([]map[string]interface{}, error) {
 	}
 
 	// Execute the query
-	rows, err := db.Query(queryWorkflowLineage)
+	rows, err := db.Query(queryWorkflowLineage, serviceName)
 	if err != nil {
 		c.Logger().Printf("Error querying database: %v", err)
 		return nil, c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})
@@ -181,6 +216,5 @@ func GetWorkflowLineage(c echo.Context) ([]map[string]interface{}, error) {
 		results = append(results, rowMap)
 	}
 
-	c.Logger().Printf("Results: %v", results)
 	return results, nil
 }

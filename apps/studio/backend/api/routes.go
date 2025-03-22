@@ -7,11 +7,12 @@ import (
 )
 
 func InitRoutes(e *echo.Echo) {
-	e.GET("/node-logs/:execID", GetNodeLogs)
-	e.GET("/workflow-logs/:execID", GetWorkflowLogs)
-	e.GET("/workflow-metadata", GetWorkflowMetadata)
-	e.GET("/workflow-metadata/:execID", GetWorkflowMetadataByExecID)
-	e.GET("/app-names", GetUniqueAppNames)
-	e.GET("/app-names/:AppName/workflow-executions", GetWorkflowMetadataByAppName)
-	e.GET("/workflow-spans-e2e", otel.GetWorkflowE2E)
+	// e.GET("/node-logs/:execID", GetNodeLogs)
+	// e.GET("/workflow-logs/:execID", GetWorkflowLogs)
+	// e.GET("/workflow-metadata", GetWorkflowMetadata)
+	// e.GET("/workflow-metadata/:execID", GetWorkflowMetadataByExecID)
+	// e.GET("/app-names", GetUniqueAppNames)
+	// e.GET("/app-names/:AppName/workflow-executions", GetWorkflowMetadataByAppName)
+	e.GET("/otel/span-service-names", otel.GetDistinctServiceNames)
+	e.GET("/workflow-spans-e2e/:serviceName", otel.GetWorkflowE2E)
 }

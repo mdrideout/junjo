@@ -3,6 +3,7 @@ CREATE TABLE spans (
   trace_id VARCHAR(32) NOT NULL,
   span_id VARCHAR(16) NOT NULL,
   parent_span_id VARCHAR(16),
+  service_name VARCHAR NOT NULL,
   name VARCHAR,
   kind VARCHAR,
   start_time TIMESTAMPTZ NOT NULL,

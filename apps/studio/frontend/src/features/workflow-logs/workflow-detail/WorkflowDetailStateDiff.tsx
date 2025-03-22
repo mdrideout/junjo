@@ -4,8 +4,8 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
-import { WorkflowLog } from '../../schemas'
-import { decodeBase64Json } from '../../../../util/decode-base64-json'
+import { WorkflowLog } from '../schemas'
+import { decodeBase64Json } from '../../../util/decode-base64-json'
 
 enum DiffTabOptions {
   BEFORE = 'Before',

@@ -6,6 +6,7 @@ WITH RECURSIVE workflow_spans AS (
     spans
   WHERE
     junjo_span_type = 'workflow'
+    AND service_name = ?
   UNION
   ALL -- Recursive Member: Join the spans table with the CTE itself.
   SELECT

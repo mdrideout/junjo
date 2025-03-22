@@ -145,7 +145,7 @@ func convertEventsToJson(events []*tracepb.Span_Event) (string, error) {
 }
 
 // ProcessSpan processes a single OpenTelemetry span (protobuf).
-func ProcessSpan(ctx context.Context, span *tracepb.Span) error {
+func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) error {
 	db := db_duckdb.DB
 	if db == nil {
 		return fmt.Errorf("database connection is nil")
@@ -177,10 +177,9 @@ func ProcessSpan(ctx context.Context, span *tracepb.Span) error {
 	}
 
 	// 4. Junjo Attributes
-	junjoID := ""
 	junjoSpanType := extractStringAttribute(span.Attributes, "junjo.span_type")
 	junjoParentID := extractStringAttribute(span.Attributes, "junjo.parent_id")
-	junjoID = extractStringAttribute(span.Attributes, "junjo.id")
+	junjoID := extractStringAttribute(span.Attributes, "junjo.id")
 	junjoServiceName := extractStringAttribute(span.Attributes, "service.name")
 
 	workflowID := ""
@@ -231,21 +230,21 @@ func ProcessSpan(ctx context.Context, span *tracepb.Span) error {
 	// Insert into `spans`
 	spanInsertQuery := `
 		INSERT INTO spans (
-			trace_id, span_id, parent_span_id, name, kind, start_time, end_time,
+			trace_id, span_id, parent_span_id, service_name, name, kind, start_time, end_time,
 			status_code, status_message, attributes_json, events_json, links_json,
 			trace_flags, trace_state, junjo_service_name, junjo_id, junjo_parent_id, junjo_span_type,
 			junjo_initial_state, junjo_final_state
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
-	log.Printf("Executing query: %s with parameters: %v", spanInsertQuery, []interface{}{
-		traceID, spanID, parentSpanID, span.Name, kindStr, startTime, endTime,
-		statusCode, statusMessage, attributesJSON, eventsJSON, "[]",
-		span.Flags, traceState, junjoServiceName, junjoID, junjoParentID, junjoSpanType,
-		junjoInitialState, junjoFinalState,
-	})
+	// log.Printf("Executing query: %s with parameters: %v", spanInsertQuery, []interface{}{
+	// 	traceID, spanID, parentSpanID, service_name, span.Name, kindStr, startTime, endTime,
+	// 	statusCode, statusMessage, attributesJSON, eventsJSON, "[]",
+	// 	span.Flags, traceState, junjoServiceName, junjoID, junjoParentID, junjoSpanType,
+	// 	junjoInitialState, junjoFinalState,
+	// })
 
 	_, err = db.ExecContext(ctx, spanInsertQuery,
-		traceID, spanID, parentSpanID, span.Name, kindStr, startTime, endTime,
+		traceID, spanID, parentSpanID, service_name, span.Name, kindStr, startTime, endTime,
 		statusCode, statusMessage, attributesJSON, eventsJSON, "[]",
 		span.Flags, traceState, junjoServiceName, junjoID, junjoParentID, junjoSpanType,
 		junjoInitialState, junjoFinalState,
@@ -256,8 +255,8 @@ func ProcessSpan(ctx context.Context, span *tracepb.Span) error {
 
 	// Insert State Patches
 	patchInsertQuery := `
-		INSERT INTO state_patches (patch_id, trace_id, span_id, workflow_id, node_id, event_time, patch)
-		VALUES (?, ?, ?, ?, ?, ?, ?);`
+		INSERT INTO state_patches (patch_id, service_name, trace_id, span_id, workflow_id, node_id, event_time, patch)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
 
 	for _, event := range span.Events {
 		if event.Name == "set_state" {
@@ -266,7 +265,7 @@ func ProcessSpan(ctx context.Context, span *tracepb.Span) error {
 			patchID := uuid.NewString()
 			workflowID := workflowID
 			nodeID := nodeID
-			_, err = db.ExecContext(ctx, patchInsertQuery, patchID, traceID, spanID, workflowID, nodeID, eventTime, patchJSON)
+			_, err = db.ExecContext(ctx, patchInsertQuery, patchID, service_name, traceID, spanID, workflowID, nodeID, eventTime, patchJSON)
 			if err != nil {
 				log.Printf("Error inserting patch: %v", err)
 			}
