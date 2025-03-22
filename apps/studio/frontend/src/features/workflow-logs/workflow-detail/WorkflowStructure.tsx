@@ -1,7 +1,6 @@
-import { JunjoGraph } from '../../../../junjo-graph/junjo-graph'
-import ReactFlowJunjoGraph from '../../../../react-flow/components/ReactFlowJunjoGraph'
-import { ReactFlowGraphDirection } from '../../../../react-flow/dagre-layout-util'
-import { useFetchWorkflowExecution } from '../../hooks/useFetchWorkflowExecution'
+import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
+import ReactFlowJunjoGraph from '../../../react-flow/components/ReactFlowJunjoGraph'
+import { ReactFlowGraphDirection } from '../../../react-flow/dagre-layout-util'
 
 export type WorkflowStructureProps = {
   ExecID: string

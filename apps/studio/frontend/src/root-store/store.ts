@@ -1,11 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit'
-import logSlice from '../features/workflow-logs/store/slice'
-// ...
+import otelSlice from '../features/otel/store/slice'
+import { otelStateListenerMiddleware } from '../features/otel/store/listeners'
 
 export const store = configureStore({
   reducer: {
-    logState: logSlice,
+    otelState: otelSlice,
   },
+
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      // Listener middleware must be prepended
+      .prepend(otelStateListenerMiddleware.middleware),
 })
 
 // Infer the `RootState` and `AppDispatch` types from the store itself

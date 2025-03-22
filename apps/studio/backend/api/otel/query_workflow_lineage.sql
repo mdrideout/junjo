@@ -9,6 +9,7 @@ WITH RECURSIVE workflow_lineage AS (
     and p.trace_id = w.trace_id
   WHERE
     w.junjo_span_type = 'workflow'
+    AND w.service_name = ?
   UNION
   ALL -- Recursive Member:  Join to find the *parent* of the current span.
   SELECT

@@ -1,5 +1,6 @@
 CREATE TABLE state_patches (
   patch_id VARCHAR PRIMARY KEY,
+  service_name VARCHAR NOT NULL,
   trace_id VARCHAR(32) NOT NULL,
   span_id VARCHAR(16) NOT NULL,
   workflow_id VARCHAR NOT NULL,

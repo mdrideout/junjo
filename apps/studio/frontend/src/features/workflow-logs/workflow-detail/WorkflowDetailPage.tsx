@@ -4,7 +4,7 @@ import WorkflowStructure from './WorkflowStructure'
 import WorkflowLogStateDiff from './WorkflowDetailStateDiff'
 import LogPageNavButtons from './LogPageNavButtons'
 import { useFetchWorkflowLogs } from '../../hooks/useFetchWorkflowLogs'
-import NodeLogsList from '../../node-logs/NodeLogsList'
+import NodeLogsList from '../node-logs/NodeLogsList'
 
 export default function WorkflowDetailPage() {
   const { AppName, ExecID } = useParams()
