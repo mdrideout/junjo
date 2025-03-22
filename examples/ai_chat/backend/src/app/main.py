@@ -21,19 +21,19 @@ from app.workflows_junjo.routes import workflows_junjo_router
 # Load the environment variables
 load_dotenv()
 
+# Initialize Junjo
+APP_NAME = "Junjo Chat Example"
+JunjoApp(app_name=APP_NAME)
+
 # Set up logging
 setup_logging()
 
 # Setup OpenTelemetry before anything else happens
-init_otel()
+init_otel(service_name=APP_NAME)
 
 # Dependency to manage the lifespan of the application
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    # Initialize Junjo
-    JunjoApp(app_name="AI Chat Demo")
-
     # Initialize the database (OTEL instrumented in db_config.py)
     await init_db()
     yield

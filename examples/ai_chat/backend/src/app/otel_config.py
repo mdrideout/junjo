@@ -5,12 +5,12 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
 
-def init_otel():
+def init_otel(service_name: str):
     """Configure OpenTelemetry for this application."""
 
     # Configure OpenTelemetry for this application
     # Create the OpenTelemetry Resource to identify this service
-    resource = Resource.create({"service.name": "Junjo Chat App"})
+    resource = Resource.create({"service.name": service_name})
 
     # Set up tracing for this application
     tracer_provider = TracerProvider(resource=resource)
