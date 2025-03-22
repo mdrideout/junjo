@@ -3,6 +3,7 @@ import { z } from 'zod'
 export enum JunjoSpanType {
   WORKFLOW = 'workflow',
   NODE = 'node',
+  OTHER = '',
 }
 
 export const OtelSpanSchema = z.object({
@@ -15,7 +16,7 @@ export const OtelSpanSchema = z.object({
   kind: z.string(),
   links_json: z.array(z.record(z.any())),
   name: z.string(),
-  parent_span_id: z.string(),
+  parent_span_id: z.string().nullable(),
   status_code: z.string(),
   status_message: z.string(),
   trace_flags: z.number(),
