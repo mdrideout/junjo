@@ -1,7 +1,3 @@
-import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
-import ReactFlowJunjoGraph from '../../../react-flow/components/ReactFlowJunjoGraph'
-import { ReactFlowGraphDirection } from '../../../react-flow/dagre-layout-util'
-
 export type WorkflowStructureProps = {
   ExecID: string
 }
@@ -13,22 +9,25 @@ export type WorkflowStructureProps = {
  */
 export default function WorkflowStructure(props: WorkflowStructureProps) {
   const { ExecID } = props
-  const { isLoading, error, workflowExecution } = useFetchWorkflowExecution(ExecID)
 
-  if (isLoading) {
-    return null
-  }
+  return <div>Workflow Structure (React Flow) for Junjo Graph Here. {ExecID}</div>
 
-  if (error || !workflowExecution) {
-    return <div>Unable to load the workflow execution.</div>
-  }
+  // const { isLoading, error, workflowExecution } = useFetchWorkflowExecution(ExecID)
 
-  // Create a JunjoGraph instance
-  const junjoGraph = JunjoGraph.fromBase64Json(workflowExecution.Structure)
+  // if (isLoading) {
+  //   return null
+  // }
 
-  return (
-    <div className={`w-full h-[60px] mb-5`}>
-      <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.LR} />
-    </div>
-  )
+  // if (error || !workflowExecution) {
+  //   return <div>Unable to load the workflow execution.</div>
+  // }
+
+  // // Create a JunjoGraph instance
+  // const junjoGraph = JunjoGraph.fromBase64Json(workflowExecution.Structure)
+
+  // return (
+  //   <div className={`w-full h-[60px] mb-5`}>
+  //     <ReactFlowJunjoGraph junjoGraph={junjoGraph} direction={ReactFlowGraphDirection.LR} />
+  //   </div>
+  // )
 }

@@ -3,46 +3,66 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { WorkflowSpansE2EResponse } from './schemas'
 
 interface OtelState {
-  data: WorkflowSpansE2EResponse
-  loading: boolean
-  error: boolean
+  serviceNames: {
+    data: string[]
+    loading: boolean
+    error: boolean
+  }
+  workflows: {
+    data: Partial<{ [serviceName: string]: WorkflowSpansE2EResponse }>
+    loading: boolean
+    error: boolean
+  }
 }
 
 const initialState: OtelState = {
-  data: {
-    workflowLineage: [],
-    workflowSpans: [],
+  serviceNames: {
+    data: [],
+    loading: false,
+    error: false,
   },
-  loading: false,
-  error: false,
+  workflows: {
+    data: {},
+    loading: false,
+    error: false,
+  },
 }
 
 export const otelSlice = createSlice({
   name: 'otelState',
   initialState,
   reducers: {
-    fetchData: (_state, _action: PayloadAction<null>) => {
+    // Listener Middleware Triggers
+    fetchServiceNames: (_state) => {
       // Handled by listener middleware
     },
-    setData: (state, action: PayloadAction<WorkflowSpansE2EResponse>) => {
-      state.data = action.payload
+    fetchWorkflowsData: (_state, _action: PayloadAction<{ serviceName: string | undefined }>) => {
+      // Handled by listener middleware
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
+
+    // Service Names Actions
+    setServiceNamesData: (state, action: PayloadAction<string[]>) => {
+      state.serviceNames.data = action.payload
     },
-    setError: (state, action: PayloadAction<boolean>) => {
-      state.error = action.payload
+    setServiceNamesLoading: (state, action: PayloadAction<boolean>) => {
+      state.serviceNames.loading = action.payload
+    },
+    setServiceNamesError: (state, action: PayloadAction<boolean>) => {
+      state.serviceNames.error = action.payload
+    },
+
+    // Workflows Actions
+    setWorkflowsData: (state, action: PayloadAction<{ serviceName: string; data: WorkflowSpansE2EResponse }>) => {
+      state.workflows.data[action.payload.serviceName] = action.payload.data
+    },
+    setWorkflowsLoading: (state, action: PayloadAction<boolean>) => {
+      state.workflows.loading = action.payload
+    },
+    setWorkflowsError: (state, action: PayloadAction<boolean>) => {
+      state.workflows.error = action.payload
     },
   },
 })
 
 export const OtelStateActions = otelSlice.actions
-
-// Selectors
-export const selectWorkflowSpans = (state: { otelState: OtelState }) => state.otelState.data.workflowSpans
-export const selectWorkflowLineage = (state: { otelState: OtelState }) => state.otelState.data.workflowLineage
-export const selectLoading = (state: { otelState: OtelState }) => state.otelState.loading
-export const selectError = (state: { otelState: OtelState }) => state.otelState.error
-
-// Reducer
 export default otelSlice.reducer

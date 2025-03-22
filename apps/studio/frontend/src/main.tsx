@@ -42,7 +42,7 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/logs/:AppName"
+                  path="/logs/:serviceName"
                   element={
                     <AuthGuard>
                       <WorkflowListPage />

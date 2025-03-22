@@ -1,11 +1,23 @@
 import { useNavigate } from 'react-router'
-import { useFetchAppNames } from '../../hooks/useFetchAppNames'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
+import { selectServiceNames, selectServiceNamesError, selectServiceNamesLoading } from '../../otel/store/selectors'
+import { useEffect } from 'react'
+import { OtelStateActions } from '../../otel/store/slice'
 
 export default function AppNamesList() {
   const navigate = useNavigate()
-  const { appNames, isLoading, error } = useFetchAppNames()
+  const dispatch = useAppDispatch()
 
-  if (isLoading) {
+  const loading = useAppSelector(selectServiceNamesLoading)
+  const error = useAppSelector(selectServiceNamesError)
+  const serviceNames = useAppSelector(selectServiceNames)
+
+  // Fetch the serviceNames
+  useEffect(() => {
+    dispatch(OtelStateActions.fetchServiceNames())
+  }, [])
+
+  if (loading) {
     return null
   }
 
@@ -21,7 +33,7 @@ export default function AppNamesList() {
         </tr>
       </thead>
       <tbody>
-        {appNames.map((item) => (
+        {serviceNames.map((item) => (
           <tr
             key={item}
             className={
