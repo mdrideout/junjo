@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Generic, TypeVar
 
 import jsonpatch
+from nanoid import generate
 from opentelemetry import trace
 from pydantic import ValidationError
 
@@ -112,8 +113,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     current_span.add_event(
                         name="set_state",
                         attributes={
+                            "id": generate(),
                             "node.id": node.id,
-                            "node.name": node.name,
                             "state_json_patch": patch.to_string(),
                         },
                     )

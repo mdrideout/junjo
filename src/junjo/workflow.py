@@ -22,7 +22,7 @@ class Workflow(Generic[StateT, StoreT]):
             store: StoreT,
             max_iterations: int = 100,
             hook_manager: HookManager | None = None,
-            parent_workflow_id: str | None = None
+            parent_id: str | None = None
     ):
         """
         Initializes the Workflow.
@@ -35,13 +35,13 @@ class Workflow(Generic[StateT, StoreT]):
                             executed before raising an exception (defaults to 100)
 
         """
-        self.workflow_id = generate()
+        self.id = generate()
         self.workflow_name = workflow_name.strip()
         self.graph = graph
         self.max_iterations = max_iterations
         self.node_execution_counter: dict[str, int] = {}
         self.hook_manager = hook_manager
-        self.parent_workflow_id = parent_workflow_id
+        self.parent_id = parent_id
 
         # Private store (immutable interactions only)
         self._store = store
@@ -73,10 +73,10 @@ class Workflow(Generic[StateT, StoreT]):
         with tracer.start_as_current_span(self.workflow_name) as span:
             span.set_attribute("junjo.workflow.state.start", await self.get_state_json())
             span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.WORKFLOW)
-            span.set_attribute("junjo.workflow_id", self.workflow_id)
+            span.set_attribute("junjo.id", self.id)
 
-            if self.parent_workflow_id is not None:
-                span.set_attribute("junjo.parent_workflow_id", self.parent_workflow_id)
+            if self.parent_id is not None:
+                span.set_attribute("junjo.parent_id", self.parent_id)
 
             # Loop to execute the nodes inside this workflow
             current_node = self.graph.source
@@ -89,7 +89,7 @@ class Workflow(Generic[StateT, StoreT]):
 
                         # Execute the current node.
                         print("Executing node:", current_node.name)
-                        await current_node._execute(self.store)
+                        await current_node._execute(self.id, self.store)
 
                         # # Execute node after hooks
                         # if self.hook_manager is not None:

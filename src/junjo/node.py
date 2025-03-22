@@ -62,6 +62,7 @@ class Node(Generic[StoreT], ABC):
 
     async def _execute(
             self,
+            parent_id: str,
             store: StoreT,
         ) -> None:
         """
@@ -76,6 +77,8 @@ class Node(Generic[StoreT], ABC):
             try:
                 # Set an attribute on the span
                 span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.NODE)
+                span.set_attribute("junjo.parent_id", parent_id)
+                span.set_attribute("junjo.id", self.id)
 
                 # Perform your async operation
                 await self.service(store)
