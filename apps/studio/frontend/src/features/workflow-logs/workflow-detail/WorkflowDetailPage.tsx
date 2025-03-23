@@ -42,6 +42,8 @@ export default function WorkflowDetailPage() {
   // Parse duration
   const durationString = getSpanDurationString(span.start_time, span.end_time)
 
+  console.log('Rendering workflow: ', span)
+
   return (
     <div className={'p-5'}>
       <div className={'px-2'}>
@@ -69,7 +71,7 @@ export default function WorkflowDetailPage() {
       <WorkflowStructure spanID={spanID} />
       <div className={'flex gap-x-5 justify-between'}>
         <NodeLogsList spanID={spanID} />
-        <WorkflowDetailStateDiff stateStart={span.junjo_initial_state} stateEnd={span.junjo_final_state} />
+        <WorkflowDetailStateDiff stateStart={span.junjo_wf_state_start} stateEnd={span.junjo_wf_state_end} />
       </div>
     </div>
   )

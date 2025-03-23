@@ -9,6 +9,7 @@ export enum JunjoSpanType {
 export const OtelSpanSchema = z.object({
   span_id: z.string(),
   trace_id: z.string(),
+  service_name: z.string(),
   attributes_json: z.record(z.any()),
   start_time: z.string().datetime({ offset: true }),
   end_time: z.string().datetime({ offset: true }),
@@ -23,10 +24,10 @@ export const OtelSpanSchema = z.object({
   trace_state: z.any(),
   junjo_id: z.string(),
   junjo_parent_id: z.string(),
-  junjo_service_name: z.string(),
   junjo_span_type: z.nativeEnum(JunjoSpanType),
-  junjo_initial_state: z.record(z.any()),
-  junjo_final_state: z.record(z.any()),
+  junjo_wf_state_start: z.record(z.any()),
+  junjo_wf_state_end: z.record(z.any()),
+  junjo_wf_graph_structure: z.record(z.any()),
 })
 export type OtelSpan = z.infer<typeof OtelSpanSchema>
 
