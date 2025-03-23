@@ -71,7 +71,7 @@ export default function WorkflowDetailPage() {
       <hr className={'my-6'} />
       <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
       <div className={'flex gap-x-5 justify-between'}>
-        <NodeLogsList spanID={spanID} />
+        <NodeLogsList workflowSpanID={spanID} serviceName={serviceName} />
         <WorkflowDetailStateDiff stateStart={span.junjo_wf_state_start} stateEnd={span.junjo_wf_state_end} />
       </div>
     </div>
