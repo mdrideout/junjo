@@ -17,3 +17,11 @@ export const selectWorkflowSpan = (
   props: { serviceName: string | undefined; spanID: string | undefined },
 ) =>
   state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.find((item) => item.span_id === props.spanID)
+
+export const selectWorkflowSpanChildren = (
+  state: RootState,
+  props: { serviceName: string | undefined; workflowSpanID: string | undefined },
+) =>
+  state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.filter(
+    (item) => item.parent_span_id === props.workflowSpanID,
+  )
