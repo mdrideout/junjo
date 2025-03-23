@@ -72,6 +72,7 @@ class Workflow(Generic[StateT, StoreT]):
         # Start a new span and keep a reference to the span object
         with tracer.start_as_current_span(self.workflow_name) as span:
             span.set_attribute("junjo.workflow.state.start", await self.get_state_json())
+            span.set_attribute("junjo.workflow.graph_structure", self.graph.serialize_to_json_string())
             span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.WORKFLOW)
             span.set_attribute("junjo.id", self.id)
 
