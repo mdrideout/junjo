@@ -23,7 +23,8 @@ CREATE TABLE spans (
   junjo_wf_state_start JSON,
   junjo_wf_state_end JSON,
   junjo_wf_graph_structure JSON,
-  PRIMARY KEY (trace_id, span_id)
+  -- Node State (Node-level spans only)
+  junjo_node_ PRIMARY KEY (trace_id, span_id)
 );
 
 -- Indexes
