@@ -22,4 +22,6 @@ WITH RECURSIVE workflow_lineage AS (
 SELECT
   *
 FROM
-  workflow_lineage;
+  workflow_lineage
+ORDER BY
+  start_time DESC;

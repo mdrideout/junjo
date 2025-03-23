@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -106,7 +106,7 @@ func convertAttributesToJson(attributes []*commonpb.KeyValue) (string, error) {
 			}
 			attrMap[attr.Key] = kvlistMap
 		case *commonpb.AnyValue_BytesValue:
-			attrMap[attr.Key] = base64.StdEncoding.EncodeToString(v.BytesValue)
+			attrMap[attr.Key] = hex.EncodeToString(v.BytesValue)
 		default:
 			log.Printf("Unsupported attribute type: %T for key: %s", v, attr.Key)
 		}
@@ -152,13 +152,13 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 	}
 
 	// 1. Encode IDs CORRECTLY
-	traceID := base64.StdEncoding.EncodeToString(span.TraceId)
-	spanID := base64.StdEncoding.EncodeToString(span.SpanId)
+	traceID := hex.EncodeToString(span.TraceId)
+	spanID := hex.EncodeToString(span.SpanId)
 
 	// Handle potentially missing parent_span_id
 	var parentSpanID sql.NullString
 	if len(span.ParentSpanId) > 0 {
-		parentSpanID = sql.NullString{String: base64.StdEncoding.EncodeToString(span.ParentSpanId), Valid: true}
+		parentSpanID = sql.NullString{String: hex.EncodeToString(span.ParentSpanId), Valid: true}
 	} else {
 		parentSpanID = sql.NullString{Valid: false}
 	}

@@ -1,4 +1,6 @@
 SELECT
   DISTINCT service_name
 FROM
-  spans;
+  spans
+ORDER BY
+  service_name ASC;
