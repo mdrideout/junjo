@@ -43,7 +43,6 @@ export default function WorkflowsList() {
       </thead>
       <tbody>
         {workflowSpans.map((item) => {
-          console.log('Item: ', item)
           const nodeCount = item.attributes_json['junjo.workflow.node.count'] ?? null
 
           // Make date human readable

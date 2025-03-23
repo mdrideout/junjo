@@ -16,13 +16,13 @@ CREATE TABLE spans (
   trace_flags INTEGER,
   trace_state VARCHAR,
   -- Junjo Fields
-  junjo_service_name VARCHAR,
   junjo_id VARCHAR,
   junjo_parent_id VARCHAR,
   junjo_span_type VARCHAR,
   -- Workflow State (Workflow-level spans only)
-  junjo_initial_state JSON,
-  junjo_final_state JSON,
+  junjo_wf_state_start JSON,
+  junjo_wf_state_end JSON,
+  junjo_wf_graph_structure JSON,
   PRIMARY KEY (trace_id, span_id)
 );
 

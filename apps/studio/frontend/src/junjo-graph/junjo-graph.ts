@@ -26,19 +26,12 @@ export class JunjoGraph {
    * @throws if there are any issues parsing the data
    * @returns an instance of JunjoGraph
    */
-  static fromBase64Json(base64String: string): JunjoGraph {
-    const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/
-    if (!base64Regex.test(base64String)) {
-      throw new JunjoGraphError('Invalid base64 string provided.')
-    }
-
+  static fromJson(json: Record<string, any>): JunjoGraph {
     try {
-      const decodedString = atob(base64String)
-      const jsonData = JSON.parse(decodedString)
-      const parsedData = JGraphSchema.safeParse(jsonData)
+      const parsedData = JGraphSchema.safeParse(json)
 
       if (!parsedData.success) {
-        const errorMessage = `Invalid JSON data or data structure: ${JSON.stringify(parsedData.error.issues)}. Base64 String (truncated): ${decodedString.substring(0, 100)}...`
+        const errorMessage = `Invalid JSON data or data structure: ${JSON.stringify(parsedData.error.issues)}.`
         console.error('Error parsing base64 encoded JSON:', errorMessage)
         throw new JunjoGraphError(errorMessage)
       }
@@ -61,15 +54,6 @@ export class JunjoGraph {
 
   get version(): number {
     return this.graph.v
-  }
-
-  /**
-   * To JSON
-   * Returns the graph data in JSON format.
-   * @returns A JSON string representing the graph data.
-   */
-  toJson(): string {
-    return JSON.stringify(this.graph, null, 2)
   }
 
   /**
