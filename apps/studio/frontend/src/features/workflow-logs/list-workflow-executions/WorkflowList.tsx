@@ -5,6 +5,7 @@ import { RootState } from '../../../root-store/store'
 import { useEffect } from 'react'
 import { OtelStateActions } from '../../otel/store/slice'
 import { useNavigate } from 'react-router'
+import { getSpanDurationString } from '../../../util/duration-utils'
 
 export default function WorkflowsList() {
   const { serviceName } = useParams<{ serviceName: string }>()
@@ -29,16 +30,6 @@ export default function WorkflowsList() {
     return <div>Error loading workflow executions.</div>
   }
 
-  // Helper function to format duration
-  const formatDuration = (durationMs: number): string => {
-    if (durationMs < 1000) {
-      return `${durationMs}ms`
-    } else {
-      const durationSeconds = durationMs / 1000
-      return `${durationSeconds.toFixed(2)}s`
-    }
-  }
-
   return (
     <table className="text-left text-sm">
       <thead>
@@ -59,10 +50,8 @@ export default function WorkflowsList() {
           const start = new Date(item.start_time)
           const startString = start.toLocaleString()
 
-          // Duration in ms
-          const end = new Date(item.end_time)
-          const duration = end.getTime() - start.getTime()
-          const durationString = formatDuration(duration)
+          // Duration String
+          const durationString = getSpanDurationString(item.start_time, item.end_time)
 
           return (
             <tr

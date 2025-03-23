@@ -1,64 +1,76 @@
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
+import { useEffect } from 'react'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
+import { selectWorkflowsError, selectWorkflowsLoading, selectWorkflowSpan } from '../../otel/store/selectors'
+import { RootState } from '../../../root-store/store'
+import { OtelStateActions } from '../../otel/store/slice'
+import { getSpanDurationString } from '../../../util/duration-utils'
+import LogPageNavButtons from './LogPageNavButtons'
+import WorkflowStructure from './WorkflowStructure'
+import NodeLogsList from '../node-logs/NodeLogsList'
+import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
 
 export default function WorkflowDetailPage() {
-  const { AppName, ExecID } = useParams()
+  const { serviceName, spanID } = useParams()
+  const dispatch = useAppDispatch()
 
-  const loading = false
-  const error = false
-  const workflowLogs: null | [] = []
+  const loading = useAppSelector(selectWorkflowsLoading)
+  const error = useAppSelector(selectWorkflowsError)
+  const span = useAppSelector((state: RootState) => selectWorkflowSpan(state, { serviceName, spanID }))
+
+  // Fetch the serviceNames
+  useEffect(() => {
+    console.log('Fetching workflows data...')
+    dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
+  }, [])
 
   if (loading) return null
 
   if (error) {
-    return <ErrorPage title={'Error'} message={`Error loading workflow logs`} />
+    return <ErrorPage title={'Error'} message={`Error loading workflow span`} />
   }
 
-  if (!ExecID || !workflowLogs || workflowLogs.length === 0) {
+  if (!spanID || !serviceName || !span) {
     return <div>No logs found.</div>
   }
 
-  return <div>Workflow detail page here for {AppName}</div>
+  // Human readable start ingest time
+  const date = new Date(span.start_time)
+  const readableStart = date.toLocaleString()
 
-  // // Human readable start ingest time
-  // const date = new Date(workflowLogs[0]?.IngestionTime)
-  // const readableStart = date.toLocaleString()
+  // Parse duration
+  const durationString = getSpanDurationString(span.start_time, span.end_time)
 
-  // // Parse duration
-  // const durationNano = workflowLogs[1]?.EventTimeNano - workflowLogs[0]?.EventTimeNano
-  // const durationMs = durationNano / 1e6
-  // const durationMsRounded = Math.round(durationMs * 100) / 100
-
-  // return (
-  //   <div className={'p-5'}>
-  //     <div className={'px-2'}>
-  //       <div className={'flex gap-x-3 items-center justify-between'}>
-  //         <div>
-  //           <div className={'mb-1 flex gap-x-3 font-bold'}>
-  //             <Link to={'/logs'} className={'hover:underline'}>
-  //               Logs
-  //             </Link>
-  //             <div>&rarr;</div>
-  //             <Link to={`/logs/${AppName}`} className={'hover:underline'}>
-  //               {AppName}
-  //             </Link>
-  //             <div>&rarr;</div>
-  //             <div>{ExecID}</div>
-  //           </div>
-  //           <div className={'text-zinc-400 text-xs'}>
-  //             {readableStart} &mdash; {durationMsRounded} ms
-  //           </div>
-  //         </div>
-  //         <LogPageNavButtons ExecID={ExecID} />
-  //       </div>
-  //     </div>
-  //     <hr className={'my-6'} />
-  //     {workflowLogs.length === 0 && <p>No logs found for this workflow.</p>}
-  //     <WorkflowStructure ExecID={ExecID} />
-  //     <div className={'flex gap-x-5 justify-between'}>
-  //       <NodeLogsList ExecID={ExecID} />
-  //       <WorkflowLogStateDiff startLog={workflowLogs[0]} endLog={workflowLogs[1]} />
-  //     </div>
-  //   </div>
-  // )
+  return (
+    <div className={'p-5'}>
+      <div className={'px-2'}>
+        <div className={'flex gap-x-3 items-center justify-between'}>
+          <div>
+            <div className={'mb-1 flex gap-x-3 font-bold'}>
+              <Link to={'/logs'} className={'hover:underline'}>
+                Logs
+              </Link>
+              <div>&rarr;</div>
+              <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
+                {serviceName}
+              </Link>
+              <div>&rarr;</div>
+              <div>{spanID}</div>
+            </div>
+            <div className={'text-zinc-400 text-xs'}>
+              {readableStart} &mdash; {durationString}
+            </div>
+          </div>
+          <LogPageNavButtons spanID={spanID} />
+        </div>
+      </div>
+      <hr className={'my-6'} />
+      <WorkflowStructure spanID={spanID} />
+      <div className={'flex gap-x-5 justify-between'}>
+        <NodeLogsList spanID={spanID} />
+        <WorkflowDetailStateDiff stateStart={span.junjo_initial_state} stateEnd={span.junjo_final_state} />
+      </div>
+    </div>
+  )
 }

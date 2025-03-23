@@ -1,9 +1,9 @@
 interface NodeLogsListProps {
-  ExecID: string
+  spanID: string
 }
 
 export default function NodeLogsList(props: NodeLogsListProps) {
-  const { ExecID } = props
+  const { spanID } = props
 
   const loading = false
   const error = false
@@ -19,7 +19,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
     return <div>No node logs found for this execution.</div>
   }
 
-  return <div>Render the node logs list here for {ExecID}</div>
+  return <div>Render the node logs list here for {spanID}</div>
 
   // return (
   //   <div>

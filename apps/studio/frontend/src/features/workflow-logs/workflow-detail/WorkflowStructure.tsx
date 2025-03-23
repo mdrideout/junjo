@@ -1,5 +1,5 @@
 export type WorkflowStructureProps = {
-  ExecID: string
+  spanID: string
 }
 
 /**
@@ -8,11 +8,11 @@ export type WorkflowStructureProps = {
  * @returns
  */
 export default function WorkflowStructure(props: WorkflowStructureProps) {
-  const { ExecID } = props
+  const { spanID } = props
 
-  return <div>Workflow Structure (React Flow) for Junjo Graph Here. {ExecID}</div>
+  return <div>Workflow Structure (React Flow) for Junjo Graph Here. {spanID}</div>
 
-  // const { isLoading, error, workflowExecution } = useFetchWorkflowExecution(ExecID)
+  // const { isLoading, error, workflowExecution } = useFetchWorkflowExecution(spanID)
 
   // if (isLoading) {
   //   return null

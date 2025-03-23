@@ -8,7 +8,7 @@ import WorkflowList from './WorkflowList'
  * @returns
  */
 export default function WorkflowListPage() {
-  const { AppName } = useParams()
+  const { serviceName } = useParams()
 
   // Human readable start ingest time
   const date = new Date()
@@ -22,7 +22,7 @@ export default function WorkflowListPage() {
             Logs
           </Link>
           <div>&rarr;</div>
-          <div>{AppName}</div>
+          <div>{serviceName}</div>
         </div>
         <div className={'text-zinc-400 text-xs'}>{readableDate}</div>
       </div>
