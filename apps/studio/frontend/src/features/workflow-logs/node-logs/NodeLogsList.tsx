@@ -1,7 +1,8 @@
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import { selectWorkflowSpanChildren } from '../../otel/store/selectors'
+import { selectSpanChildren } from '../../otel/store/selectors'
+import RecursiveNodeChildSpans from './RecursiveNodeChildSpans'
 
 interface NodeLogsListProps {
   serviceName: string
@@ -11,7 +12,7 @@ interface NodeLogsListProps {
 export default function NodeLogsList(props: NodeLogsListProps) {
   const { serviceName, workflowSpanID } = props
 
-  const spans = useAppSelector((state: RootState) => selectWorkflowSpanChildren(state, { serviceName, workflowSpanID }))
+  const spans = useAppSelector((state: RootState) => selectSpanChildren(state, { serviceName, workflowSpanID }))
 
   if (!spans || spans.length === 0) {
     return <div>No node logs found for this workflow.</div>
@@ -37,7 +38,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
             <th className={'px-4 py-1'}>Node Name</th>
             <th className={'px-4 py-1'}>Span ID</th>
             <th className={'px-4 py-1'}>Start Time</th>
-            <th className={'px-4 py-1'}>Duration</th>
+            <th className={'pl-4 pr-2 py-1'}>Duration</th>
           </tr>
         </thead>
         <tbody>
@@ -49,19 +50,33 @@ export default function NodeLogsList(props: NodeLogsListProps) {
             // Duration String
             const durationString = getSpanDurationString(item.start_time, item.end_time)
             return (
-              <tr
-                key={item.span_id}
-                className={
-                  'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
-                }
-                onClick={() => console.log('DO SOMETHING.')}
-              >
-                <td className={'px-2 py-1.5'}>{index + 1}</td>
-                <td className={'px-4 py-1.5'}>{item.name}</td>
-                <td className={'px-4 py-1.5'}>{item.span_id}</td>
-                <td className={'px-4 py-1.5'}>{startString}</td>
-                <td className={'px-4 py-1.5 text-right'}>{durationString}</td>
-              </tr>
+              <>
+                <tr
+                  key={`${item.span_id}-table`}
+                  className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
+                  onClick={() => console.log('DO SOMETHING.')}
+                >
+                  <td className={'px-2 py-1.5'}>{index + 1}</td>
+                  <td className={'px-4 py-1.5'}>{item.name}</td>
+                  <td className={'px-4 py-1.5'}>{item.span_id}</td>
+                  <td className={'px-4 py-1.5'}>{startString}</td>
+                  <td className={'pl-4 pr-2 py-1.5 text-right'}>{durationString}</td>
+                </tr>
+                <tr key={`${item.span_id}-children`}>
+                  <td colSpan={5}>
+                    <RecursiveNodeChildSpans layer={0} serviceName={serviceName} workflowSpanID={item.span_id} />
+                  </td>
+                </tr>
+                <tr
+                  key={`${item.span_id}-border`}
+                  className={
+                    'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
+                  }
+                  onClick={() => console.log('DO SOMETHING.')}
+                >
+                  <td colSpan={5}></td>
+                </tr>
+              </>
             )
           })}
         </tbody>
