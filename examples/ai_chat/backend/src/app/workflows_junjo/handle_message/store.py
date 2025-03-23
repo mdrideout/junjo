@@ -21,21 +21,16 @@ class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
 
     async def set_conversation_history(self, node: Node, payload: list[MessageRead]) -> None:
         await self.set_state(node, {"conversation_history": payload})
-        return
 
     async def append_conversation_history(self, node: Node, payload: MessageRead) -> None:
         await self.set_state(node, {"conversation_history": [*self._state.conversation_history, payload]})
-        return
 
     async def set_received_message(self, node: Node, payload: MessageCreate) -> None:
         await self.set_state(node, {"received_message": payload})
-        return
 
     async def set_contact(self, node: Node, payload: ContactRead) -> None:
         await self.set_state(node, {"contact": payload})
-        return
 
     async def set_response_message(self, node: Node, payload: MessageRead) -> None:
         await self.set_state(node, {"response_message": payload})
-        return
 

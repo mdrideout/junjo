@@ -80,6 +80,8 @@ def add_details(span, conn, cursor, statement, parameters, context, exception_):
     # Database Name
     parsed_url = urlparse(str(conn.engine.url))
     db_name = parsed_url.path.lstrip("/")  # Remove leading slash
+    if not db_name:
+        db_name = "Unknown SQLite"
     span.set_attribute("db.name", db_name)
 
     # db.user

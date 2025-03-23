@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import inspect
 from collections.abc import Awaitable, Callable
 from typing import Generic, TypeVar
 
@@ -78,6 +79,17 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         - Validates that each updated field is valid for StateT.
         - If there's a change, notifies subscribers outside the lock.
         """
+        # Get the caller function's name and class name for telemetry purposes
+        caller_frame = inspect.currentframe()
+        if caller_frame:
+            caller_frame = caller_frame.f_back
+        caller_function_name = caller_frame.f_code.co_name if caller_frame else "unknown action"
+
+        # Get the caller class name if available
+        caller_class_name = "unknown store"
+        if caller_frame and "self" in caller_frame.f_locals:
+            caller_class_name = caller_frame.f_locals["self"].__class__.__name__
+
         # Validate the update dictionary against the state's model OUTSIDE the lock
         try:
             self._state.__class__.model_validate(
@@ -114,8 +126,10 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                         name="set_state",
                         attributes={
                             "id": generate(),
-                            "node.id": node.id,
-                            "state_json_patch": patch.to_string(),
+                            "junjo.node.id": node.id,
+                            "junjo.store.name": caller_class_name,
+                            "junjo.store.action": caller_function_name,
+                            "junjo.state_json_patch": patch.to_string(),
                         },
                     )
                 # --- End OpenTelemetry Event --- #
