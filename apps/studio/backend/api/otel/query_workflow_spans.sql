@@ -19,4 +19,6 @@ WITH RECURSIVE workflow_spans AS (
 SELECT
   *
 FROM
-  workflow_spans;
+  workflow_spans
+ORDER BY
+  start_time DESC;

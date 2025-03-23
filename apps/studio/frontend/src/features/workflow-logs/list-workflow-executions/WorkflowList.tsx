@@ -4,11 +4,12 @@ import { selectServiceWorkflows, selectWorkflowsError, selectWorkflowsLoading } 
 import { RootState } from '../../../root-store/store'
 import { useEffect } from 'react'
 import { OtelStateActions } from '../../otel/store/slice'
+import { useNavigate } from 'react-router'
 
 export default function WorkflowsList() {
   const { serviceName } = useParams<{ serviceName: string }>()
   const dispatch = useAppDispatch()
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
@@ -28,20 +29,40 @@ export default function WorkflowsList() {
     return <div>Error loading workflow executions.</div>
   }
 
+  // Helper function to format duration
+  const formatDuration = (durationMs: number): string => {
+    if (durationMs < 1000) {
+      return `${durationMs}ms`
+    } else {
+      const durationSeconds = durationMs / 1000
+      return `${durationSeconds.toFixed(2)}s`
+    }
+  }
+
   return (
     <table className="text-left text-sm">
       <thead>
         <tr>
           <th className={'px-4 py-1'}>Workflow</th>
-          <th className={'px-4 py-1'}>Execution ID</th>
-          <th className={'px-4 py-1'}>Created At</th>
+          <th className={'px-4 py-1'}>Span ID</th>
+          <th className={'px-4 py-1'}>Start Time</th>
+          <th className={'px-4 py-1'}>Nodes</th>
+          <th className={'px-4 py-1'}>Duration</th>
         </tr>
       </thead>
       <tbody>
         {workflowSpans.map((item) => {
+          console.log('Item: ', item)
+          const nodeCount = item.attributes_json['junjo.workflow.node.count'] ?? null
+
           // Make date human readable
-          const date = new Date(item.start_time)
-          const dateString = date.toLocaleString()
+          const start = new Date(item.start_time)
+          const startString = start.toLocaleString()
+
+          // Duration in ms
+          const end = new Date(item.end_time)
+          const duration = end.getTime() - start.getTime()
+          const durationString = formatDuration(duration)
 
           return (
             <tr
@@ -49,11 +70,13 @@ export default function WorkflowsList() {
               className={
                 'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
               }
-              onClick={() => console.log('Navigate to the workflow details.')}
+              onClick={() => navigate(`${item.span_id}`)}
             >
               <td className={'px-4 py-1.5'}>{item.name}</td>
-              <td className={'px-4 py-1.5'}>{item.junjo_id}</td>
-              <td className={'px-4 py-1.5'}>{dateString}</td>
+              <td className={'px-4 py-1.5'}>{item.span_id}</td>
+              <td className={'px-4 py-1.5'}>{startString}</td>
+              <td className={'px-4 py-1.5 text-right'}>{nodeCount}</td>
+              <td className={'px-4 py-1.5 text-right'}>{durationString}</td>
             </tr>
           )
         })}

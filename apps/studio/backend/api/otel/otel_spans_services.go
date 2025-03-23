@@ -99,8 +99,6 @@ func GetWorkflowSpans(c echo.Context, serviceName string) ([]map[string]interfac
 		return nil, c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to get columns: %v", err)})
 	}
 
-	c.Logger().Printf("Columns: %v", columns)
-
 	// Prepare data structures for dynamic scanning
 	count := len(columns)
 	values := make([]interface{}, count)    // The storage of row data

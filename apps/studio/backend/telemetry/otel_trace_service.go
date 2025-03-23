@@ -30,8 +30,8 @@ func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 		for _, scopeSpans := range resourceSpans.ScopeSpans {
 			for _, span := range scopeSpans.Spans {
 				s.receivedSpans = append(s.receivedSpans, span)
-				traceID := trace.TraceID(span.TraceId)
-				fmt.Printf("OTel Trace Service: Received Span: %s, Trace ID: %s\n", span.Name, traceID)
+				traceID := trace.TraceID(span.TraceId).String()
+				fmt.Printf("OTel Trace Service: Received Span: %s, Span ID: %s, Trace ID: %s\n", span.Name, span.SpanId, traceID)
 
 				// Pass the *protobuf* span directly to the processing function.
 				if err := ProcessSpan(ctx, serviceName, span); err != nil {
