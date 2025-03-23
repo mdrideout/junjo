@@ -20,7 +20,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
   const { layer, serviceName, workflowSpanID } = props
 
   const spans = useAppSelector((state: RootState) => selectSpanChildren(state, { serviceName, workflowSpanID }))
-  const paddingLeft = layer + 1 * 40
+  const paddingLeft = layer + 1 * 32
   const isEven = layer % 2 === 0
 
   // Stop the recursion when there are no more children

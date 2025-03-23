@@ -1,6 +1,7 @@
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
+import { NodeEventType, NodeSetStateEventSchema } from '../../otel/store/schemas'
 import { selectSpanChildren } from '../../otel/store/selectors'
 import RecursiveNodeChildSpans from './RecursiveNodeChildSpans'
 
@@ -34,7 +35,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
       <table className="text-left text-sm">
         <thead>
           <tr>
-            <th className={'px-2 py-1'}>#</th>
+            <th className={'pl-2 py-1'}>#</th>
             <th className={'px-4 py-1'}>Node Name</th>
             <th className={'px-4 py-1'}>Span ID</th>
             <th className={'px-4 py-1'}>Start Time</th>
@@ -43,6 +44,12 @@ export default function NodeLogsList(props: NodeLogsListProps) {
         </thead>
         <tbody>
           {sortedSpans.map((item, index) => {
+            console.log('Node span data: ', item)
+
+            // Get this node's set_state events
+            const setStateEvents = item.events_json.filter((item) => item.name === NodeEventType.SET_STATE)
+            console.log(`Set state events for Node: ${item.name}`, setStateEvents)
+
             // Make date human readable
             const start = new Date(item.start_time)
             const startString = start.toLocaleString()
@@ -52,23 +59,48 @@ export default function NodeLogsList(props: NodeLogsListProps) {
             return (
               <>
                 <tr
-                  key={`${item.span_id}-table`}
+                  key={`${item.span_id}-table-index:${index}`}
                   className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
                   onClick={() => console.log('DO SOMETHING.')}
                 >
-                  <td className={'px-2 py-1.5'}>{index + 1}</td>
+                  <td className={'pl-2 py-1.5'}>{index + 1}</td>
                   <td className={'px-4 py-1.5'}>{item.name}</td>
                   <td className={'px-4 py-1.5'}>{item.span_id}</td>
                   <td className={'px-4 py-1.5'}>{startString}</td>
                   <td className={'pl-4 pr-2 py-1.5 text-right'}>{durationString}</td>
                 </tr>
-                <tr key={`${item.span_id}-children`}>
+                <tr key={`${item.span_id}-children-index:${index}`}>
                   <td colSpan={5}>
                     <RecursiveNodeChildSpans layer={0} serviceName={serviceName} workflowSpanID={item.span_id} />
                   </td>
                 </tr>
+
+                {setStateEvents.length > 0 && (
+                  <tr key={`${item.span_id}-set_state-index:${index}`}>
+                    <td colSpan={5} className={'pl-[32px] text-xs pb-4'}>
+                      <div className={'font-bold'}>State Actions</div>
+                      {setStateEvents.map((event) => {
+                        // Validate the event is a set state event
+                        const validated = NodeSetStateEventSchema.safeParse(event)
+                        if (validated.error) {
+                          console.log('ERROR: ', validated.error)
+                          return <div className={'text-red-700'}>Invalid state update metadata.</div>
+                        }
+
+                        return (
+                          <div key={`set-state-event-${validated.data.attributes.id}`}>
+                            {validated.data.attributes['junjo.store.name']} &rarr;{' '}
+                            {validated.data.attributes['junjo.store.action']} &rarr;{' '}
+                            <span className={'underline text-blue-600 cursor-pointer'}>state patch</span>
+                          </div>
+                        )
+                      })}
+                    </td>
+                  </tr>
+                )}
+
                 <tr
-                  key={`${item.span_id}-border`}
+                  key={`${item.span_id}-border-index:${index}`}
                   className={
                     'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
                   }

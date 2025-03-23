@@ -11,7 +11,7 @@ export function SpanIconConstructor(props: { span: OtelSpan }): JSX.Element {
   const { span } = props
 
   const attributes = span.attributes_json
-  console.log('Span attributes: ', attributes)
+  // console.log('Span attributes: ', attributes)
 
   // Database Span
   // If attributes contains "db.system" key

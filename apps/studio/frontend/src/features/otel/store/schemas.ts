@@ -6,6 +6,10 @@ export enum JunjoSpanType {
   OTHER = '',
 }
 
+export enum NodeEventType {
+  SET_STATE = 'set_state',
+}
+
 export const OtelSpanSchema = z.object({
   span_id: z.string(),
   trace_id: z.string(),
@@ -36,3 +40,19 @@ export const WorkflowSpansE2EResponseSchema = z.object({
   workflowSpans: z.array(OtelSpanSchema),
 })
 export type WorkflowSpansE2EResponse = z.infer<typeof WorkflowSpansE2EResponseSchema>
+
+// Define the schema for the known event type
+export const NodeSetStateAttributesSchema = z.object({
+  id: z.string(),
+  'junjo.node.id': z.string(),
+  'junjo.state_json_patch': z.string(), // Assuming this is a JSON string
+  'junjo.store.action': z.string(),
+  'junjo.store.name': z.string(),
+})
+
+export const NodeSetStateEventSchema = z.object({
+  name: z.literal('set_state'), // Discriminator field
+  timeUnixNano: z.number(),
+  attributes: NodeSetStateAttributesSchema,
+})
+export type NodeSetStateEvent = z.infer<typeof NodeSetStateEventSchema>
