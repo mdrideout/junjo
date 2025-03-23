@@ -1,57 +1,57 @@
-interface LogPageNavButtonsProps {
-  spanID: string
+import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons'
+import { useNavigate } from 'react-router'
+import { useAppSelector } from '../../../root-store/hooks'
+import { RootState } from '../../../root-store/store'
+import { selectNextWorkflowSpanID, selectPrevWorkflowSpanID } from '../../otel/store/selectors'
+
+interface WorkflowDetailNavButtonsProps {
+  serviceName: string
+  workflowSpanID: string
 }
 
-export default function LogPageNavButtons(props: LogPageNavButtonsProps) {
-  const { spanID } = props
-  // const { AppName } = useParams()
-  // const navigate = useNavigate()
+export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtonsProps) {
+  const { serviceName, workflowSpanID } = props
+  const navigate = useNavigate()
 
-  const loading = false
-  const error = false
+  const prevSpanID = useAppSelector((state: RootState) =>
+    selectPrevWorkflowSpanID(state, { serviceName, workflowSpanID }),
+  )
+  const nextSpanID = useAppSelector((state: RootState) =>
+    selectNextWorkflowSpanID(state, { serviceName, workflowSpanID }),
+  )
 
-  if (loading || error) {
-    return null
+  const disablePrev = prevSpanID === undefined
+  const disableNext = nextSpanID === undefined
+
+  const handlePrevClick = () => {
+    if (!disablePrev) {
+      navigate(`/logs/${serviceName}/${prevSpanID}`)
+    }
   }
 
-  console.log('spanID NAV: ', spanID)
-  return <div>NAV</div>
+  const handleNextClick = () => {
+    if (!disableNext) {
+      navigate(`/logs/${serviceName}/${nextSpanID}`)
+    }
+  }
 
-  // const thisExecIDIndex = workflowExecutions.findIndex((item) => item.ExecID === ExecID)
-  // const disablePrev = thisExecIDIndex === 0
-  // const disableNext = thisExecIDIndex === workflowExecutions.length - 1
+  return (
+    <div className={'flex flex-col gap-y-1'}>
+      <button
+        className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'}
+        onClick={handlePrevClick}
+        disabled={disablePrev}
+      >
+        <ArrowUpIcon />
+      </button>
 
-  // const handlePrevClick = () => {
-  //   if (!disablePrev) {
-  //     const prevExecID = workflowExecutions[thisExecIDIndex - 1].ExecID
-  //     navigate(`/logs/${AppName}/${prevExecID}`)
-  //   }
-  // }
-
-  // const handleNextClick = () => {
-  //   if (!disableNext) {
-  //     const nextExecID = workflowExecutions[thisExecIDIndex + 1].ExecID
-  //     navigate(`/logs/${AppName}/${nextExecID}`)
-  //   }
-  // }
-
-  // return (
-  //   <div className={'flex flex-col gap-y-1'}>
-  //     <button
-  //       className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'}
-  //       onClick={handlePrevClick}
-  //       disabled={disablePrev}
-  //     >
-  //       <ArrowUpIcon />
-  //     </button>
-
-  //     <button
-  //       className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'}
-  //       onClick={handleNextClick}
-  //       disabled={disableNext}
-  //     >
-  //       <ArrowDownIcon />
-  //     </button>
-  //   </div>
-  // )
+      <button
+        className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'}
+        onClick={handleNextClick}
+        disabled={disableNext}
+      >
+        <ArrowDownIcon />
+      </button>
+    </div>
+  )
 }
