@@ -10,6 +10,7 @@ import LogPageNavButtons from './LogPageNavButtons'
 import WorkflowStructure from './WorkflowStructure'
 import NodeLogsList from '../node-logs/NodeLogsList'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
+import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
 
 export default function WorkflowDetailPage() {
   const { serviceName, spanID } = useParams()
@@ -68,7 +69,7 @@ export default function WorkflowDetailPage() {
         </div>
       </div>
       <hr className={'my-6'} />
-      <WorkflowStructure spanID={spanID} />
+      <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
       <div className={'flex gap-x-5 justify-between'}>
         <NodeLogsList spanID={spanID} />
         <WorkflowDetailStateDiff stateStart={span.junjo_wf_state_start} stateEnd={span.junjo_wf_state_end} />
