@@ -1,40 +1,46 @@
 export function getSpanDurationString(start_time: string, end_time: string) {
-  const startTime = new Date(start_time)
-  const endTime = new Date(end_time)
+  try {
+    // Calculate the duration in microseconds using the new function
+    const durationMicro = calculateDurationMicro(start_time, end_time)
 
-  // Check if the date strings are valid
-  if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-    console.error('Invalid date strings provided:', start_time, end_time)
+    // Format the duration
+    return formatDurationMicro(durationMicro)
+  } catch (error) {
+    console.error('Error calculating or formatting duration:', error)
     return 'Invalid Date'
   }
-
-  // Calculate the duration in microseconds
-  const durationMicro = calculateDurationMicro(startTime, endTime)
-
-  // Format the duration
-  return formatDurationMicro(durationMicro)
 }
 
 /**
  * Calculates the duration between two dates in microseconds.
- * @param startTime - The start date.
- * @param endTime - The end date.
+ * @param startTime - The start date in ISO string format.
+ * @param endTime - The end date in ISO string format.
  * @returns The duration in microseconds.
+ * @throws Error if the date format is invalid.
  */
-function calculateDurationMicro(startTime: Date, endTime: Date): number {
-  // Convert to microseconds
-  const startMicro = startTime.getTime() * 1000 // Convert milliseconds to microseconds
-  const endMicro = endTime.getTime() * 1000 // Convert milliseconds to microseconds
+function calculateDurationMicro(startTime: string, endTime: string): number {
+  const startMicro = getMicrosecondsSinceEpoch(startTime)
+  const endMicro = getMicrosecondsSinceEpoch(endTime)
+  return endMicro - startMicro
+}
 
-  // Extract the fractional part of the milliseconds (microseconds)
-  const startFractionalMicro = startTime.getMilliseconds() * 1000
-  const endFractionalMicro = endTime.getMilliseconds() * 1000
+/**
+ * Gets the number of microseconds since the epoch from an ISO string.
+ * @param isoString - The ISO string to parse.
+ * @returns The number of microseconds since the epoch.
+ * @throws Error if the date format is invalid.
+ */
+function getMicrosecondsSinceEpoch(isoString: string) {
+  const date = new Date(isoString)
 
-  // Calculate the total microseconds
-  const totalStartMicro = startMicro + startFractionalMicro
-  const totalEndMicro = endMicro + endFractionalMicro
+  if (isNaN(date.getTime())) {
+    throw new Error('Invalid Date format')
+  }
 
-  return totalEndMicro - totalStartMicro
+  const microsecondPart = isoString.substring(isoString.indexOf('.') + 1, isoString.length - 1)
+  const microseconds = parseInt(microsecondPart, 10) || 0 // Default to 0 if no fractional seconds
+
+  return date.getTime() * 1000 + microseconds * 10 ** (6 - microsecondPart.length)
 }
 
 /**
@@ -47,14 +53,14 @@ function formatDurationMicro(durationMicro: number): string {
   const oneSecond = 1_000_000
 
   if (durationMicro < oneMilli) {
-    return `${durationMicro.toFixed(0)} µs`
+    return `${durationMicro.toFixed(0)}µs`
   } else if (durationMicro < oneSecond) {
     const durationMilli = durationMicro / oneMilli
     const formattedMs = durationMilli.toFixed(1)
-    return formattedMs.endsWith('.0') ? `${formattedMs.slice(0, -2)} ms` : `${formattedMs} ms`
+    return formattedMs.endsWith('.0') ? `${formattedMs.slice(0, -2)}ms` : `${formattedMs}ms`
   } else {
     const durationSeconds = durationMicro / oneSecond
     const formattedSeconds = durationSeconds.toFixed(3)
-    return formattedSeconds.endsWith('.000') ? `${formattedSeconds.slice(0, -4)} s` : `${formattedSeconds} s`
+    return formattedSeconds.endsWith('.000') ? `${formattedSeconds.slice(0, -4)}s` : `${formattedSeconds}s`
   }
 }
