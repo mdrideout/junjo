@@ -6,7 +6,7 @@ import { selectWorkflowsError, selectWorkflowsLoading, selectWorkflowSpan } from
 import { RootState } from '../../../root-store/store'
 import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import LogPageNavButtons from './LogPageNavButtons'
+import WorkflowDetailNavButtons from './LogPageNavButtons'
 import WorkflowStructure from './WorkflowStructure'
 import NodeLogsList from '../node-logs/NodeLogsList'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
@@ -59,13 +59,15 @@ export default function WorkflowDetailPage() {
                 {serviceName}
               </Link>
               <div>&rarr;</div>
-              <div>{spanID}</div>
+              <div>
+                {span.name} <span className={'text-xs font-normal'}>({spanID})</span>
+              </div>
             </div>
             <div className={'text-zinc-400 text-xs'}>
               {readableStart} &mdash; {durationString}
             </div>
           </div>
-          <LogPageNavButtons spanID={spanID} />
+          <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={spanID} />
         </div>
       </div>
       <hr className={'my-6'} />
