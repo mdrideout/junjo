@@ -2,10 +2,10 @@ package telemetry
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 
-	"go.opentelemetry.io/otel/trace"
 	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -25,13 +25,13 @@ func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 	for _, resourceSpans := range req.ResourceSpans {
 		// Get the service name
 		serviceName := getServiceName(resourceSpans)
-		fmt.Printf("OTel Trace Service: Received ResourceSpans for Service: %s\n", serviceName)
-
+		fmt.Printf("\nReceived ResourceSpans for Service: %s\n", serviceName)
 		for _, scopeSpans := range resourceSpans.ScopeSpans {
 			for _, span := range scopeSpans.Spans {
 				s.receivedSpans = append(s.receivedSpans, span)
-				traceID := trace.TraceID(span.TraceId).String()
-				fmt.Printf("OTel Trace Service: Received Span: %s, Span ID: %s, Trace ID: %s\n", span.Name, span.SpanId, traceID)
+				traceID := hex.EncodeToString(span.TraceId)
+				spanID := hex.EncodeToString(span.SpanId)
+				fmt.Printf("Received Span ID: %s, Trace ID: %s, Name: %s\n", spanID, traceID, span.Name)
 
 				// Pass the *protobuf* span directly to the processing function.
 				if err := ProcessSpan(ctx, serviceName, span); err != nil {

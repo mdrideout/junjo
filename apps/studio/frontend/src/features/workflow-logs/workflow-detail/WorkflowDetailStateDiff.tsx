@@ -4,8 +4,6 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
-import { WorkflowLog } from '../schemas'
-import { decodeBase64Json } from '../../../util/decode-base64-json'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -15,8 +13,8 @@ enum DiffTabOptions {
 }
 
 interface WorkflowDetailStateDiffProps {
-  startLog: WorkflowLog
-  endLog: WorkflowLog
+  stateStart: Record<string, any>
+  stateEnd: Record<string, any>
 }
 
 /**
@@ -51,21 +49,17 @@ const TabButton = ({
  * @returns
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
-  const { startLog, endLog } = props
-
-  // Extract JSON
-  const startJsonState = decodeBase64Json(startLog.State)
-  const endJsonState = decodeBase64Json(endLog.State)
+  const { stateStart, stateEnd } = props
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
-  const [jsonViewData, setJsonViewData] = useState<object>(endJsonState)
+  const [jsonViewData, setJsonViewData] = useState<object>(stateEnd)
   const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(2)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
   // Diffs
-  const objdiff = diff(startJsonState, endJsonState)
-  const deepObject = detailedDiff(startJsonState, endJsonState)
+  const objdiff = diff(stateStart, stateEnd)
+  const deepObject = detailedDiff(stateStart, stateEnd)
 
   // Theme decider
   const displayTheme = prefersDarkMode ? vscodeTheme : lightTheme
@@ -93,11 +87,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     // Set the display values
     switch (tab) {
       case DiffTabOptions.BEFORE:
-        setJsonViewData(startJsonState)
+        setJsonViewData(stateStart)
         setJsonViewCollapsedLevel(2)
         break
       case DiffTabOptions.AFTER:
-        setJsonViewData(endJsonState)
+        setJsonViewData(stateEnd)
         setJsonViewCollapsedLevel(2)
         break
       case DiffTabOptions.CHANGES:

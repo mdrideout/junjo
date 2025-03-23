@@ -12,3 +12,8 @@ export const selectServiceWorkflows = (state: RootState, props: { serviceName: s
   state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.filter(
     (item) => item.junjo_span_type === 'workflow',
   )
+export const selectWorkflowSpan = (
+  state: RootState,
+  props: { serviceName: string | undefined; spanID: string | undefined },
+) =>
+  state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.find((item) => item.span_id === props.spanID)

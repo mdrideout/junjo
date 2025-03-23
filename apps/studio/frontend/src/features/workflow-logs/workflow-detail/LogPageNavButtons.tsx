@@ -1,9 +1,9 @@
 interface LogPageNavButtonsProps {
-  ExecID: string
+  spanID: string
 }
 
 export default function LogPageNavButtons(props: LogPageNavButtonsProps) {
-  const { ExecID } = props
+  const { spanID } = props
   // const { AppName } = useParams()
   // const navigate = useNavigate()
 
@@ -14,7 +14,7 @@ export default function LogPageNavButtons(props: LogPageNavButtonsProps) {
     return null
   }
 
-  console.log('ExecID NAV: ', ExecID)
+  console.log('spanID NAV: ', spanID)
   return <div>NAV</div>
 
   // const thisExecIDIndex = workflowExecutions.findIndex((item) => item.ExecID === ExecID)
