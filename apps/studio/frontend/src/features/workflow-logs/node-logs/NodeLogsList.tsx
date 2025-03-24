@@ -1,9 +1,11 @@
+import { ForwardIcon } from '@heroicons/react/24/outline'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import { NodeEventType, NodeSetStateEventSchema } from '../../otel/store/schemas'
 import { selectSpanChildren } from '../../otel/store/selectors'
 import RecursiveNodeChildSpans from './RecursiveNodeChildSpans'
+import { ActiveStatePatch, useActiveNodeContext } from '../workflow-detail/ActiveNodeContext'
 
 interface NodeLogsListProps {
   serviceName: string
@@ -12,6 +14,7 @@ interface NodeLogsListProps {
 
 export default function NodeLogsList(props: NodeLogsListProps) {
   const { serviceName, workflowSpanID } = props
+  const { activeStatePatch, setActiveStatePatch } = useActiveNodeContext()
 
   const spans = useAppSelector((state: RootState) => selectSpanChildren(state, { serviceName, workflowSpanID }))
 
@@ -44,11 +47,8 @@ export default function NodeLogsList(props: NodeLogsListProps) {
         </thead>
         <tbody>
           {sortedSpans.map((item, index) => {
-            console.log('Node span data: ', item)
-
             // Get this node's set_state events
             const setStateEvents = item.events_json.filter((item) => item.name === NodeEventType.SET_STATE)
-            console.log(`Set state events for Node: ${item.name}`, setStateEvents)
 
             // Make date human readable
             const start = new Date(item.start_time)
@@ -60,7 +60,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
               <>
                 <tr
                   key={`${item.span_id}-table-index:${index}`}
-                  className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
+                  className={`hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer`}
                   onClick={() => console.log('DO SOMETHING.')}
                 >
                   <td className={'pl-2 py-1.5'}>{index + 1}</td>
@@ -78,7 +78,6 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                 {setStateEvents.length > 0 && (
                   <tr key={`${item.span_id}-set_state-index:${index}`}>
                     <td colSpan={5} className={'pl-[32px] text-xs pb-4'}>
-                      <div className={'font-bold'}>State Actions</div>
                       {setStateEvents.map((event) => {
                         // Validate the event is a set state event
                         const validated = NodeSetStateEventSchema.safeParse(event)
@@ -87,11 +86,25 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                           return <div className={'text-red-700'}>Invalid state update metadata.</div>
                         }
 
+                        const isActivePatch =
+                          validated.data.attributes.id === activeStatePatch?.patchID &&
+                          item.span_id === activeStatePatch?.nodeSpanID
+
                         return (
-                          <div key={`set-state-event-${validated.data.attributes.id}`}>
-                            {validated.data.attributes['junjo.store.name']} &rarr;{' '}
-                            {validated.data.attributes['junjo.store.action']} &rarr;{' '}
-                            <span className={'underline text-blue-600 cursor-pointer'}>state patch</span>
+                          <div
+                            key={`set-state-event-${validated.data.attributes.id}`}
+                            className={`flex gap-x-1 py-1 pl-2 border-t border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
+                            onClick={() => {
+                              const activePatch: ActiveStatePatch = {
+                                nodeSpanID: item.span_id,
+                                patchID: validated.data.attributes.id,
+                              }
+                              setActiveStatePatch(activePatch)
+                            }}
+                          >
+                            <ForwardIcon className={'size-4 text-zinc-600 dark:text-zinc-400 mr-1.5'} />
+                            STATE &rarr; {validated.data.attributes['junjo.store.name']} &rarr;{' '}
+                            {validated.data.attributes['junjo.store.action']}
                           </div>
                         )
                       })}

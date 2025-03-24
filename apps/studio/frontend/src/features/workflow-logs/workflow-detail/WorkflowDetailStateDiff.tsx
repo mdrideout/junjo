@@ -4,6 +4,7 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
+import { useActiveNodeContext } from './ActiveNodeContext'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -50,6 +51,7 @@ const TabButton = ({
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { stateStart, stateEnd } = props
+  const { activeStatePatch } = useActiveNodeContext()
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
@@ -109,6 +111,17 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   return (
     <div className={'grow'}>
+      <div>
+        TODO: Update this to select all patches for this workflow, and allow forward / backward stepping. Left side
+        selection of a specific state update will control this side's nav.
+      </div>
+      <div>Active Patch: {activeStatePatch?.patchID}</div>
+      <div className={'flex gap-x-2'}>
+        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch 1</div>
+        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch 2</div>
+        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch 3</div>
+        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch etc.</div>
+      </div>
       <div className={'flex gap-x-2 mb-2'}>
         <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
         <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
