@@ -108,7 +108,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   }
 
   return (
-    <div>
+    <div className={'grow'}>
       <div className={'flex gap-x-2 mb-2'}>
         <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
         <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
