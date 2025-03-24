@@ -41,8 +41,8 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
 
   return (
     <div style={{ paddingLeft: `${paddingLeft}px` }}>
-      <div className={`mb-2 ${isEven ? '' : ''}`}>
-        <table className={`text-left text-xs text-zinc-700 w-full`}>
+      <div className={`${isEven ? '' : ''}`}>
+        <table className={`text-left text-xs text-zinc-700 dark:text-zinc-200 w-full`}>
           {/* <thead>
             <tr>
               <th className={'px-2 pt-1'}>#</th>
@@ -62,8 +62,8 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
                 <>
                   <tr
                     key={`${item.span_id}-table-${layer}`}
-                    className={'hover:bg-zinc-300 dark:hover:bg-zinc-700 cursor-pointer'}
-                    onClick={() => console.log('Child span')}
+                    className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
+                    onClick={() => console.log('TODO: Show attributes')}
                   >
                     <td className={'pl-2 py-1'}>
                       <SpanIconConstructor span={item} />
@@ -73,7 +73,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
                   </tr>
                   <tr
                     key={`${item.span_id}-children-${layer}`}
-                    className={'hover:bg-zinc-300 dark:hover:bg-zinc-700 cursor-pointer'}
+                    className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
                   >
                     <td colSpan={3}>
                       <RecursiveNodeChildSpans
