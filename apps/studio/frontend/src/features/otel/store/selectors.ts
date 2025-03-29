@@ -2,84 +2,140 @@ import { createSelector } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
 import { NodeSetStateEvent, NodeSetStateEventSchema, OtelSpan } from './schemas'
 
+// Base Selector
+export const selectOtelState = (state: RootState) => state.otelState
+
 // Selectors - Service Names
 export const selectServiceNamesLoading = (state: RootState) => state.otelState.serviceNames.loading
 export const selectServiceNamesError = (state: RootState) => state.otelState.serviceNames.error
 export const selectServiceNames = (state: RootState) => state.otelState.serviceNames.data
 
 // Selectors - Workflows
+export const selectWorkflowsData = (state: RootState) => state.otelState.workflows.data
 export const selectWorkflowsLoading = (state: RootState) => state.otelState.workflows.loading
 export const selectWorkflowsError = (state: RootState) => state.otelState.workflows.error
-export const selectServiceWorkflows = (state: RootState, props: { serviceName: string | undefined }) =>
-  state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.filter(
-    (item) => item.junjo_span_type === 'workflow',
-  )
-export const selectWorkflowSpan = (
-  state: RootState,
-  props: { serviceName: string | undefined; spanID: string | undefined },
-) =>
-  state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.find((item) => item.span_id === props.spanID)
 
-export const selectSpanChildren = (
-  state: RootState,
-  props: { serviceName: string | undefined; workflowSpanID: string | undefined },
-) =>
-  state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.filter(
-    (item) => item.parent_span_id === props.workflowSpanID,
-  )
+// --- Memoized Selectors ---
+export const selectServiceWorkflows = createSelector(
+  [selectWorkflowsData, (_state: RootState, props: { serviceName: string | undefined }) => props],
+  (workflowsData, props) => {
+    console.log('Recomputing selectServiceWorkflows') // Add log for debugging
+    const serviceData = workflowsData[props.serviceName ?? '']
+    if (!serviceData) return [] // Return stable empty array reference
 
-export const selectAllWorkflowChildSpans = (
-  state: RootState,
-  props: { serviceName: string | undefined; workflowSpanID: string | undefined },
-) => {
-  const { serviceName, workflowSpanID } = props
-  if (!serviceName || !workflowSpanID) return []
+    // Filter creates a new array, but only when input workflowsData or props change
+    return serviceData.workflowSpans.filter((item) => item.junjo_span_type === 'workflow')
+  },
+)
 
-  const workflowSpan = selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID })
-  if (!workflowSpan) return []
+export const selectWorkflowSpan = createSelector(
+  [
+    selectWorkflowsData,
+    (_state: RootState, props: { serviceName: string | undefined; spanID: string | undefined }) => props,
+  ],
+  (workflowsData, props): OtelSpan | undefined => {
+    // Added explicit return type
+    console.log('Recomputing selectWorkflowSpan')
+    const serviceData = workflowsData[props.serviceName ?? '']
+    if (!serviceData || !props.spanID) return undefined
+    // .find returns existing reference or undefined, which is fine.
+    return serviceData.workflowSpans.find((item) => item.span_id === props.spanID)
+  },
+)
 
-  const allSpans = state.otelState.workflows.data[serviceName]?.workflowSpans
-  if (!allSpans) return []
+// Direct children only
+export const selectSpanChildren = createSelector(
+  [
+    selectWorkflowsData,
+    (_state: RootState, props: { serviceName: string | undefined; workflowSpanID: string | undefined }) =>
+      props,
+  ],
+  (workflowsData, props): OtelSpan[] => {
+    // Added explicit return type
+    console.log('Recomputing selectSpanChildren')
+    const serviceData = workflowsData[props.serviceName ?? '']
+    if (!serviceData || !props.workflowSpanID) return [] // Stable empty array reference
+    // .filter creates new array, memoized by createSelector
+    return serviceData.workflowSpans.filter((item) => item.parent_span_id === props.workflowSpanID)
+  },
+)
 
-  const children = []
-  const queue = [workflowSpan]
-  while (queue.length > 0) {
-    const currentSpan = queue.shift()!
-    const childSpans = allSpans.filter((s) => s.parent_span_id === currentSpan.span_id)
-    children.push(...childSpans)
-    queue.push(...childSpans)
-  }
-  return children
-}
+// Memoized selectAllWorkflowChildSpans (Recursive children - Using inline prop selector)
+export const selectAllWorkflowChildSpans = createSelector(
+  [
+    selectWorkflowsData,
+    (_state: RootState, props: { serviceName: string | undefined; workflowSpanID: string | undefined }) =>
+      props,
+  ],
+  (workflowsData, props): OtelSpan[] => {
+    // Added explicit return type
+    console.log('Recomputing selectAllWorkflowChildSpans')
+    const { serviceName, workflowSpanID } = props
+    if (!serviceName || !workflowSpanID) return [] // Stable empty array reference
+
+    const allSpans = workflowsData[serviceName]?.workflowSpans
+    if (!allSpans) return [] // Stable empty array reference
+
+    // Find starting span without calling another selector directly inside result func
+    const workflowSpan = allSpans.find((item) => item.span_id === workflowSpanID)
+    if (!workflowSpan) return [] // Stable empty array reference
+
+    // Logic to find children - this computation only runs if workflowsData or props change
+    const children: OtelSpan[] = []
+    const queue: OtelSpan[] = [workflowSpan]
+    const visited = new Set<string>() // Prevent cycles
+    visited.add(workflowSpan.span_id)
+
+    while (queue.length > 0) {
+      const currentSpan = queue.shift()!
+      // .filter creates a new array, but it's okay inside the memoized function
+      const childSpans = allSpans.filter((s) => s.parent_span_id === currentSpan.span_id)
+      for (const child of childSpans) {
+        if (!visited.has(child.span_id)) {
+          children.push(child)
+          queue.push(child)
+          visited.add(child.span_id)
+        }
+      }
+    }
+    // The returned 'children' array reference is memoized by createSelector
+    return children
+  },
+)
 
 /**
  * Select All Workflow State Events
+ * Memoized selectAllWorkflowStateEvents (Depends on memoized selectAllWorkflowChildSpans)
+ * No direct prop selector needed here, as props are passed to selectAllWorkflowChildSpans implicitly
  * @returns {NodeSetStateEvent[]} sorted by their timeUnixNano
  */
-export const selectAllWorkflowStateEvents = (
-  state: RootState,
-  props: { serviceName: string | undefined; workflowSpanID: string | undefined },
-) => {
-  const childSpans = selectAllWorkflowChildSpans(state, props)
-
-  // Get the set state events from the spans
-  const nodeSetStateEvents: NodeSetStateEvent[] = []
-  childSpans.forEach((span) => {
-    span.events_json.forEach((event) => {
-      try {
-        const parsedEvent = NodeSetStateEventSchema.parse(event)
-        nodeSetStateEvents.push(parsedEvent)
-      } catch (error) {
-        console.error('Error parsing event:', error)
+export const selectAllWorkflowStateEvents = createSelector(
+  [selectAllWorkflowChildSpans], // Input selector already handles props
+  (childSpans): NodeSetStateEvent[] => {
+    // Added explicit return type
+    console.log('Recomputing selectAllWorkflowStateEvents')
+    const nodeSetStateEvents: NodeSetStateEvent[] = []
+    childSpans.forEach((span) => {
+      // Basic check if events_json exists and is an array
+      if (Array.isArray(span.events_json)) {
+        span.events_json.forEach((event) => {
+          try {
+            // Assuming NodeSetStateEventSchema.parse returns a newly parsed object
+            const parsedEvent = NodeSetStateEventSchema.parse(event)
+            nodeSetStateEvents.push(parsedEvent)
+          } catch (error) {
+            // Consider less noisy logging or specific handling
+            // console.error('Error parsing event in selector:', error);
+          }
+        })
       }
     })
-  })
 
-  // Sort the events by the order they occurred
-  nodeSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-
-  return nodeSetStateEvents
-}
+    nodeSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+    // createSelector memoizes this returned reference
+    return nodeSetStateEvents
+  },
+)
 
 export const selectPrevWorkflowSpanID = (
   state: RootState,

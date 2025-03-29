@@ -1,13 +1,9 @@
 import React, { createContext, useContext, useState, Dispatch, SetStateAction } from 'react'
-
-export type ActiveStatePatch = {
-  nodeSpanID: string
-  patchID: string
-}
+import { NodeSetStateEvent } from '../../otel/store/schemas'
 
 interface ActiveNodeContextType {
-  activeStatePatch: ActiveStatePatch | null
-  setActiveStatePatch: Dispatch<SetStateAction<ActiveStatePatch | null>>
+  activeNodeSetStateEvent: NodeSetStateEvent | null
+  setActiveNodeSetStateEvent: Dispatch<SetStateAction<NodeSetStateEvent | null>>
 }
 
 const ActiveNodeContext = createContext<ActiveNodeContextType | undefined>(undefined)
@@ -25,10 +21,10 @@ interface ActiveNodeProviderProps {
 }
 
 export const ActiveNodeProvider: React.FC<ActiveNodeProviderProps> = ({ children }) => {
-  const [activeStatePatch, setActiveStatePatch] = useState<ActiveStatePatch | null>(null)
+  const [activeNodeSetStateEvent, setActiveNodeSetStateEvent] = useState<NodeSetStateEvent | null>(null)
 
   return (
-    <ActiveNodeContext.Provider value={{ activeStatePatch, setActiveStatePatch }}>
+    <ActiveNodeContext.Provider value={{ activeNodeSetStateEvent, setActiveNodeSetStateEvent }}>
       {children}
     </ActiveNodeContext.Provider>
   )
