@@ -76,7 +76,12 @@ export default function WorkflowDetailPage() {
       <div className={'flex gap-x-10 justify-between'}>
         <ActiveNodeProvider>
           <NodeLogsList workflowSpanID={spanID} serviceName={serviceName} />
-          <WorkflowDetailStateDiff stateStart={span.junjo_wf_state_start} stateEnd={span.junjo_wf_state_end} />
+          <WorkflowDetailStateDiff
+            stateStart={span.junjo_wf_state_start}
+            stateEnd={span.junjo_wf_state_end}
+            workflowSpanID={spanID}
+            serviceName={serviceName}
+          />
         </ActiveNodeProvider>
       </div>
     </div>

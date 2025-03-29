@@ -1,4 +1,6 @@
+import { createSelector } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
+import { NodeSetStateEvent, NodeSetStateEventSchema, OtelSpan } from './schemas'
 
 // Selectors - Service Names
 export const selectServiceNamesLoading = (state: RootState) => state.otelState.serviceNames.loading
@@ -25,6 +27,59 @@ export const selectSpanChildren = (
   state.otelState.workflows.data[props.serviceName ?? '']?.workflowSpans.filter(
     (item) => item.parent_span_id === props.workflowSpanID,
   )
+
+export const selectAllWorkflowChildSpans = (
+  state: RootState,
+  props: { serviceName: string | undefined; workflowSpanID: string | undefined },
+) => {
+  const { serviceName, workflowSpanID } = props
+  if (!serviceName || !workflowSpanID) return []
+
+  const workflowSpan = selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID })
+  if (!workflowSpan) return []
+
+  const allSpans = state.otelState.workflows.data[serviceName]?.workflowSpans
+  if (!allSpans) return []
+
+  const children = []
+  const queue = [workflowSpan]
+  while (queue.length > 0) {
+    const currentSpan = queue.shift()!
+    const childSpans = allSpans.filter((s) => s.parent_span_id === currentSpan.span_id)
+    children.push(...childSpans)
+    queue.push(...childSpans)
+  }
+  return children
+}
+
+/**
+ * Select All Workflow State Events
+ * @returns {NodeSetStateEvent[]} sorted by their timeUnixNano
+ */
+export const selectAllWorkflowStateEvents = (
+  state: RootState,
+  props: { serviceName: string | undefined; workflowSpanID: string | undefined },
+) => {
+  const childSpans = selectAllWorkflowChildSpans(state, props)
+
+  // Get the set state events from the spans
+  const nodeSetStateEvents: NodeSetStateEvent[] = []
+  childSpans.forEach((span) => {
+    span.events_json.forEach((event) => {
+      try {
+        const parsedEvent = NodeSetStateEventSchema.parse(event)
+        nodeSetStateEvents.push(parsedEvent)
+      } catch (error) {
+        console.error('Error parsing event:', error)
+      }
+    })
+  })
+
+  // Sort the events by the order they occurred
+  nodeSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+
+  return nodeSetStateEvents
+}
 
 export const selectPrevWorkflowSpanID = (
   state: RootState,
