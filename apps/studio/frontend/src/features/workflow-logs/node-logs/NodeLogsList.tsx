@@ -1,4 +1,4 @@
-import { ForwardIcon } from '@heroicons/react/24/outline'
+import { ForwardIcon } from '@heroicons/react/24/solid'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
@@ -93,7 +93,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                         return (
                           <div
                             key={`set-state-event-${validated.data.attributes.id}`}
-                            className={`flex gap-x-1 py-1 pl-2 border-t border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
+                            className={`flex gap-x-1 py-1 pl-2 border-t border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-200 hover:bg-amber-200 dark:hover:bg-amber-900 cursor-pointer ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
                             onClick={() => {
                               const activePatch: ActiveStatePatch = {
                                 nodeSpanID: item.span_id,
@@ -102,9 +102,17 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                               setActiveStatePatch(activePatch)
                             }}
                           >
-                            <ForwardIcon className={'size-4 text-zinc-600 dark:text-zinc-400 mr-1.5'} />
-                            STATE &rarr; {validated.data.attributes['junjo.store.name']} &rarr;{' '}
-                            {validated.data.attributes['junjo.store.action']}
+                            <div>
+                              <div className={'flex gap-x-0.5 font-bold'}>
+                                <ForwardIcon className={'size-4 mr-1.5 text-orange-300'} />
+                                <span className={'text-orange-300'}>STATE</span>
+                                <div className={'font-normal'}>
+                                  &rarr; {validated.data.attributes['junjo.store.name']} &rarr;{' '}
+                                  {validated.data.attributes['junjo.store.action']}
+                                </div>
+                              </div>
+                              <div className={'pl-6'}>Patch: {validated.data.attributes.id}</div>
+                            </div>
                           </div>
                         )
                       })}

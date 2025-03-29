@@ -5,10 +5,14 @@ import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
 import { useActiveNodeContext } from './ActiveNodeContext'
+import { useAppSelector } from '../../../root-store/hooks'
+import { RootState } from '../../../root-store/store'
+import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
   AFTER = 'After',
+  PATCH = 'Patch',
   CHANGES = 'Changes',
   DETAILED = 'Detailed',
 }
@@ -16,6 +20,8 @@ enum DiffTabOptions {
 interface WorkflowDetailStateDiffProps {
   stateStart: Record<string, any>
   stateEnd: Record<string, any>
+  serviceName: string
+  workflowSpanID: string
 }
 
 /**
@@ -34,11 +40,11 @@ const TabButton = ({
   activeTab: DiffTabOptions
   tabChangeHandler: (tab: DiffTabOptions) => void
 }) => {
-  const getButtonClass = () => {
-    return `leading-tight px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm font-medium border-b transition-all duration-200 cursor-pointer ${activeTab === tab ? 'border-zinc-600 ' : 'border-transparent'}`
-  }
   return (
-    <button className={getButtonClass()} onClick={() => tabChangeHandler(tab)}>
+    <button
+      className={`leading-tight px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm font-medium border-b transition-all duration-200 cursor-pointer ${activeTab === tab ? 'border-zinc-600 ' : 'border-transparent'}`}
+      onClick={() => tabChangeHandler(tab)}
+    >
       {tab}
     </button>
   )
@@ -50,7 +56,7 @@ const TabButton = ({
  * @returns
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
-  const { stateStart, stateEnd } = props
+  const { stateStart, stateEnd, serviceName, workflowSpanID } = props
   const { activeStatePatch } = useActiveNodeContext()
 
   // Local State
@@ -59,11 +65,24 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(2)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
+  // Selectors
+  const workflowPatches = useAppSelector((state: RootState) =>
+    selectAllWorkflowStateEvents(state, {
+      serviceName,
+      workflowSpanID,
+    }),
+  )
+  console.log('Workflow Patches: ', workflowPatches)
+
+  // Get index of activeStatePatch in the workflowPatches array
+  const activePatchIndex = workflowPatches.findIndex((patch) => patch.attributes.id === activeStatePatch?.patchID)
+  console.log('Active patch index: ', activePatchIndex)
+
   // Diffs
   const objdiff = diff(stateStart, stateEnd)
   const deepObject = detailedDiff(stateStart, stateEnd)
 
-  // Theme decider
+  // JSON Renderer Theme Decider
   const displayTheme = prefersDarkMode ? vscodeTheme : lightTheme
 
   // Detect preferred color scheme
@@ -78,9 +97,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     mediaQuery.addEventListener('change', listener)
     return () => mediaQuery.removeEventListener('change', listener)
   }, [])
-
-  // Set the initial json view
-  useEffect
 
   // Handle tab changes
   const tabChangeHandler = (tab: DiffTabOptions) => {
@@ -115,16 +131,25 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         TODO: Update this to select all patches for this workflow, and allow forward / backward stepping. Left side
         selection of a specific state update will control this side's nav.
       </div>
-      <div>Active Patch: {activeStatePatch?.patchID}</div>
       <div className={'flex gap-x-2'}>
-        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch 1</div>
-        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch 2</div>
-        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch 3</div>
-        <div className={'bg-amber-100 rounded-md px-2 cursor-pointer'}>patch etc.</div>
+        {workflowPatches.length > 0 &&
+          workflowPatches.map((patch) => {
+            const isActive = activeStatePatch?.patchID === patch.attributes.id
+            return (
+              <div
+                className={`bg-amber-100 text-zinc-900 rounded-md px-2 cursor-pointer text-xs ${isActive ? 'bg-amber-100' : 'bg-amber-300'}`}
+              >
+                {patch.attributes.id}
+              </div>
+            )
+          })}
       </div>
       <div className={'flex gap-x-2 mb-2'}>
         <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
         <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
+        {activeStatePatch && (
+          <TabButton tab={DiffTabOptions.PATCH} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
+        )}
         <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
         <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
       </div>
