@@ -77,8 +77,8 @@ export default function WorkflowDetailPage() {
         <ActiveNodeProvider>
           <NodeLogsList workflowSpanID={spanID} serviceName={serviceName} />
           <WorkflowDetailStateDiff
-            stateStart={span.junjo_wf_state_start}
-            stateEnd={span.junjo_wf_state_end}
+            workflowStateStart={span.junjo_wf_state_start}
+            workflowStateEnd={span.junjo_wf_state_end}
             workflowSpanID={spanID}
             serviceName={serviceName}
           />

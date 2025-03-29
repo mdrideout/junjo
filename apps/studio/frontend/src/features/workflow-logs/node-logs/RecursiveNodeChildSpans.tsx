@@ -1,8 +1,10 @@
+import { Fragment } from 'react/jsx-runtime'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import { selectSpanChildren } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
+import { useMemo } from 'react'
 
 interface RecursiveNodeChildSpansProps {
   layer: number
@@ -19,7 +21,17 @@ interface RecursiveNodeChildSpansProps {
 export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansProps) {
   const { layer, serviceName, workflowSpanID } = props
 
-  const spans = useAppSelector((state: RootState) => selectSpanChildren(state, { serviceName, workflowSpanID }))
+  // 1. Memoize the props object for the selector
+  const selectorProps = useMemo(
+    () => ({
+      serviceName,
+      workflowSpanID,
+    }),
+    [serviceName, workflowSpanID],
+  )
+
+  // 2. Use the memoized props object in useAppSelector
+  const spans = useAppSelector((state: RootState) => selectSpanChildren(state, selectorProps))
   const paddingLeft = layer + 1 * 32
   const isEven = layer % 2 === 0
 
@@ -59,9 +71,9 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
               // Duration String
               const durationString = getSpanDurationString(item.start_time, item.end_time)
               return (
-                <>
+                <Fragment key={`${item.span_id}-tr-wrap-${layer}`}>
                   <tr
-                    key={`${item.span_id}-table-${layer}`}
+                    key={`${item.span_id}-table-${layer}-${index}`}
                     className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
                     onClick={() => console.log('TODO: Show attributes')}
                   >
@@ -77,6 +89,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
                   >
                     <td colSpan={3}>
                       <RecursiveNodeChildSpans
+                        key={`${item.span_id}-child-td-${layer}-${index}`}
                         layer={layer + 1}
                         serviceName={serviceName}
                         workflowSpanID={item.span_id}
@@ -92,7 +105,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
                   >
                     <td colSpan={2}></td>
                   </tr>
-                </>
+                </Fragment>
               )
             })}
           </tbody>

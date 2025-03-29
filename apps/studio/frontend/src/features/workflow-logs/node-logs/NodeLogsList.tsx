@@ -5,7 +5,9 @@ import { getSpanDurationString } from '../../../util/duration-utils'
 import { NodeEventType, NodeSetStateEventSchema } from '../../otel/store/schemas'
 import { selectSpanChildren } from '../../otel/store/selectors'
 import RecursiveNodeChildSpans from './RecursiveNodeChildSpans'
-import { ActiveStatePatch, useActiveNodeContext } from '../workflow-detail/ActiveNodeContext'
+import { useActiveNodeContext } from '../workflow-detail/ActiveNodeContext'
+import { Fragment } from 'react/jsx-runtime'
+import { useMemo } from 'react'
 
 interface NodeLogsListProps {
   serviceName: string
@@ -14,9 +16,18 @@ interface NodeLogsListProps {
 
 export default function NodeLogsList(props: NodeLogsListProps) {
   const { serviceName, workflowSpanID } = props
-  const { activeStatePatch, setActiveStatePatch } = useActiveNodeContext()
+  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent } = useActiveNodeContext()
 
-  const spans = useAppSelector((state: RootState) => selectSpanChildren(state, { serviceName, workflowSpanID }))
+  // 1. Memoize the props object for the selector
+  const selectorProps = useMemo(
+    () => ({
+      serviceName,
+      workflowSpanID,
+    }),
+    [serviceName, workflowSpanID],
+  )
+
+  const spans = useAppSelector((state: RootState) => selectSpanChildren(state, selectorProps))
 
   if (!spans || spans.length === 0) {
     return <div>No node logs found for this workflow.</div>
@@ -57,7 +68,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
             // Duration String
             const durationString = getSpanDurationString(item.start_time, item.end_time)
             return (
-              <>
+              <Fragment key={`${item.span_id}-tr-wrap-root`}>
                 <tr
                   key={`${item.span_id}-table-index:${index}`}
                   className={`hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer`}
@@ -71,7 +82,12 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                 </tr>
                 <tr key={`${item.span_id}-children-index:${index}`}>
                   <td colSpan={5}>
-                    <RecursiveNodeChildSpans layer={0} serviceName={serviceName} workflowSpanID={item.span_id} />
+                    <RecursiveNodeChildSpans
+                      key={`${item.span_id}-child-root`}
+                      layer={0}
+                      serviceName={serviceName}
+                      workflowSpanID={item.span_id}
+                    />
                   </td>
                 </tr>
 
@@ -87,19 +103,16 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                         }
 
                         const isActivePatch =
-                          validated.data.attributes.id === activeStatePatch?.patchID &&
-                          item.span_id === activeStatePatch?.nodeSpanID
+                          validated.data.attributes.id === activeNodeSetStateEvent?.attributes.id
+
+                        console.log('IS ACTIVE? ', isActivePatch)
 
                         return (
                           <div
                             key={`set-state-event-${validated.data.attributes.id}`}
                             className={`flex gap-x-1 py-1 pl-2 border-t border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-200 hover:bg-amber-200 dark:hover:bg-amber-900 cursor-pointer ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
                             onClick={() => {
-                              const activePatch: ActiveStatePatch = {
-                                nodeSpanID: item.span_id,
-                                patchID: validated.data.attributes.id,
-                              }
-                              setActiveStatePatch(activePatch)
+                              setActiveNodeSetStateEvent(validated.data)
                             }}
                           >
                             <div>
@@ -129,7 +142,7 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                 >
                   <td colSpan={5}></td>
                 </tr>
-              </>
+              </Fragment>
             )
           })}
         </tbody>

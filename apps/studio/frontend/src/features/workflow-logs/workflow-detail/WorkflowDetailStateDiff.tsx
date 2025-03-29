@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import JsonView from '@uiw/react-json-view'
 import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
@@ -8,6 +8,7 @@ import { useActiveNodeContext } from './ActiveNodeContext'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
+import * as jsonpatch from 'fast-json-patch'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -18,8 +19,8 @@ enum DiffTabOptions {
 }
 
 interface WorkflowDetailStateDiffProps {
-  stateStart: Record<string, any>
-  stateEnd: Record<string, any>
+  workflowStateStart: Record<string, any>
+  workflowStateEnd: Record<string, any>
   serviceName: string
   workflowSpanID: string
 }
@@ -56,31 +57,45 @@ const TabButton = ({
  * @returns
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
-  const { stateStart, stateEnd, serviceName, workflowSpanID } = props
-  const { activeStatePatch } = useActiveNodeContext()
+  const { workflowStateStart, workflowStateEnd, serviceName, workflowSpanID } = props
+  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent } = useActiveNodeContext()
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
-  const [jsonViewData, setJsonViewData] = useState<object>(stateEnd)
-  const [jsonViewCollapsedLevel, setJsonViewCollapsedLevel] = useState<number>(2)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
+  // Workflow JSON States
+  // Different representations of the Workflow's states for rendering
+  const [beforeJson, setBeforeJson] = useState<object>(workflowStateStart)
+  const [afterJson, setAfterJson] = useState<object>(workflowStateEnd)
+
+  // Infer Changes & Detailed tab data using deep-object-diff
+  const changesJson = diff(beforeJson, afterJson)
+  const detailedJson = detailedDiff(beforeJson, afterJson)
+
   // Selectors
-  const workflowPatches = useAppSelector((state: RootState) =>
-    selectAllWorkflowStateEvents(state, {
+  // Memoize the props object
+  const selectorProps = useMemo(
+    () => ({
       serviceName,
       workflowSpanID,
     }),
+    [serviceName, workflowSpanID],
   )
-  console.log('Workflow Patches: ', workflowPatches)
 
-  // Get index of activeStatePatch in the workflowPatches array
-  const activePatchIndex = workflowPatches.findIndex((patch) => patch.attributes.id === activeStatePatch?.patchID)
-  console.log('Active patch index: ', activePatchIndex)
+  // Use the memoized props object
+  const workflowStateEvents = useAppSelector((state: RootState) =>
+    selectAllWorkflowStateEvents(state, selectorProps),
+  )
 
-  // Diffs
-  const objdiff = diff(stateStart, stateEnd)
-  const deepObject = detailedDiff(stateStart, stateEnd)
+  // Active Patch Isolation
+  const activePatchIndex = workflowStateEvents.findIndex(
+    (patch) => patch.attributes.id === activeNodeSetStateEvent?.attributes.id,
+  )
+  const activePatchJson =
+    activePatchIndex >= 0
+      ? JSON.parse(workflowStateEvents[activePatchIndex].attributes['junjo.state_json_patch'])
+      : {}
 
   // JSON Renderer Theme Decider
   const displayTheme = prefersDarkMode ? vscodeTheme : lightTheme
@@ -98,66 +113,143 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     return () => mediaQuery.removeEventListener('change', listener)
   }, [])
 
-  // Handle tab changes
-  const tabChangeHandler = (tab: DiffTabOptions) => {
-    setActiveTab(tab)
+  /**
+   * Cumulative Patch Setter
+   * Takes the workflow's starting state, and accumulates the patches to create
+   *  - Before: Starting State + Patches up to but excluding the currently selected patch
+   *  - After: Starting State + Patches up to and including the currently selected patch
+   * @param {number} patchIndex is the index of the currently active patch
+   * @returns {void} - nothing is returned, this function sets state instead
+   */
+  const cumulativePatchSetter = (patchIndex: number) => {
+    // If there are no patches, just set the original state
+    if (workflowStateEvents.length === 0) {
+      setBeforeJson(workflowStateStart)
+      setAfterJson(workflowStateEnd)
+      return
+    }
 
-    // Set the display values
+    // If the patch index is out of bounds, return
+    if (patchIndex < 0 || patchIndex >= workflowStateEvents.length) return
+
+    // Starting points for accumulating patches
+    let beforeCumulativeState = structuredClone(workflowStateStart)
+    let afterCumulativeState = structuredClone(workflowStateStart)
+
+    for (let i = 0; i <= patchIndex; i++) {
+      const patchString = workflowStateEvents[i].attributes['junjo.state_json_patch']
+      const patch = JSON.parse(patchString)
+
+      // Apply to after state
+      afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
+
+      // Apply to before state if i is less than patchIndex
+      if (i < patchIndex) {
+        beforeCumulativeState = jsonpatch.applyPatch(beforeCumulativeState, patch).newDocument
+      }
+    }
+
+    // Set state
+    setBeforeJson(beforeCumulativeState)
+    setAfterJson(afterCumulativeState)
+
+    console.log('Set before JSON to: ', beforeCumulativeState)
+    console.log('Set after JSON to: ', afterCumulativeState)
+  }
+
+  // Run the patch setter
+  useEffect(() => {
+    console.log('Re-running patcher useEffect')
+
+    // If activePatchIndex is -1, reset it to the workflow state
+    if (activePatchIndex === -1) {
+      setBeforeJson(workflowStateStart)
+      setAfterJson(workflowStateEnd)
+      return
+    }
+
+    // Else, use the cumulative state patch setter
+    cumulativePatchSetter(activePatchIndex)
+  }, [activePatchIndex, workflowStateEvents])
+
+  // Get Tab Collapsed Level
+  const getTabCollapsedLevel = (tab: DiffTabOptions) => {
     switch (tab) {
-      case DiffTabOptions.BEFORE:
-        setJsonViewData(stateStart)
-        setJsonViewCollapsedLevel(2)
-        break
-      case DiffTabOptions.AFTER:
-        setJsonViewData(stateEnd)
-        setJsonViewCollapsedLevel(2)
-        break
       case DiffTabOptions.CHANGES:
-        setJsonViewData(objdiff)
-        setJsonViewCollapsedLevel(1)
-        break
-      case DiffTabOptions.DETAILED:
-        setJsonViewData(deepObject)
-        setJsonViewCollapsedLevel(2)
-        break
+        return 2
       default:
-        break
+        return 2
     }
   }
 
+  // Get Tab JSON Data
+  const getTabJsonData = (tab: DiffTabOptions) => {
+    switch (tab) {
+      case DiffTabOptions.BEFORE:
+        return beforeJson
+      case DiffTabOptions.AFTER:
+        return afterJson
+      case DiffTabOptions.CHANGES:
+        return changesJson
+      case DiffTabOptions.DETAILED:
+        return detailedJson
+      case DiffTabOptions.PATCH:
+        return activePatchJson
+      default:
+        return {}
+    }
+  }
+
+  // Next patch nav
+  const handleNextPatchClick = () => {
+    if (activeNodeSetStateEvent) {
+      const nextPatchIndex = activePatchIndex + 1
+      if (nextPatchIndex < workflowStateEvents.length) {
+        const nextPatch = workflowStateEvents[nextPatchIndex]
+        setActiveNodeSetStateEvent(nextPatch)
+      }
+    }
+  }
+
+  const handlePrevPatchClick = () => {
+    if (activeNodeSetStateEvent) {
+      const prevPatchIndex = activePatchIndex - 1
+      if (prevPatchIndex >= 0) {
+        const prevPatch = workflowStateEvents[prevPatchIndex]
+        setActiveNodeSetStateEvent(prevPatch)
+      }
+    }
+  }
+
+  // Previous patch nav
+
+  console.log('Re-rendering...')
+
   return (
     <div className={'grow'}>
-      <div>
-        TODO: Update this to select all patches for this workflow, and allow forward / backward stepping. Left side
-        selection of a specific state update will control this side's nav.
-      </div>
-      <div className={'flex gap-x-2'}>
-        {workflowPatches.length > 0 &&
-          workflowPatches.map((patch) => {
-            const isActive = activeStatePatch?.patchID === patch.attributes.id
-            return (
-              <div
-                className={`bg-amber-100 text-zinc-900 rounded-md px-2 cursor-pointer text-xs ${isActive ? 'bg-amber-100' : 'bg-amber-300'}`}
-              >
-                {patch.attributes.id}
-              </div>
-            )
-          })}
-      </div>
+      {activeNodeSetStateEvent && (
+        <div className={'flex justify-between text-sm mb-2 border-b px-2 pb-1'}>
+          <div>Workflow &rarr; Node (name!) &rarr; Patch {activeNodeSetStateEvent?.attributes.id}</div>
+          <div className={'flex gap-x-2'}>
+            <button onClick={handlePrevPatchClick}>prev</button> /{' '}
+            <button onClick={handleNextPatchClick}>next</button>
+          </div>
+        </div>
+      )}
       <div className={'flex gap-x-2 mb-2'}>
-        <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
-        <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
-        {activeStatePatch && (
-          <TabButton tab={DiffTabOptions.PATCH} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
+        <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        {activeNodeSetStateEvent && (
+          <TabButton tab={DiffTabOptions.PATCH} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
-        <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
-        <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={tabChangeHandler} />
+        <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
       </div>
       <div className={'workflow-logs-json-container'}>
         <JsonView
-          key={JSON.stringify(jsonViewData)}
-          value={jsonViewData}
-          collapsed={jsonViewCollapsedLevel}
+          key={JSON.stringify(getTabJsonData(activeTab))}
+          value={getTabJsonData(activeTab)}
+          collapsed={getTabCollapsedLevel(activeTab)}
           shouldExpandNodeInitially={(isExpanded, { value, level }) => {
             // Collapse arrays more than 1 level deep (not root arrays)
             const isArray = Array.isArray(value)
