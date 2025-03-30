@@ -9,6 +9,7 @@ import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
+import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -58,7 +59,7 @@ const TabButton = ({
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { workflowStateStart, workflowStateEnd, serviceName, workflowSpanID } = props
-  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent } = useActiveNodeContext()
+  const { activeNodeSetStateEvent } = useActiveNodeContext()
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
@@ -152,15 +153,10 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     // Set state
     setBeforeJson(beforeCumulativeState)
     setAfterJson(afterCumulativeState)
-
-    console.log('Set before JSON to: ', beforeCumulativeState)
-    console.log('Set after JSON to: ', afterCumulativeState)
   }
 
   // Run the patch setter
   useEffect(() => {
-    console.log('Re-running patcher useEffect')
-
     // If activePatchIndex is -1, reset it to the workflow state
     if (activePatchIndex === -1) {
       setBeforeJson(workflowStateStart)
@@ -177,6 +173,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     switch (tab) {
       case DiffTabOptions.CHANGES:
         return 2
+      case DiffTabOptions.PATCH:
+        return 3
       default:
         return 2
     }
@@ -200,40 +198,15 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }
   }
 
-  // Next patch nav
-  const handleNextPatchClick = () => {
-    if (activeNodeSetStateEvent) {
-      const nextPatchIndex = activePatchIndex + 1
-      if (nextPatchIndex < workflowStateEvents.length) {
-        const nextPatch = workflowStateEvents[nextPatchIndex]
-        setActiveNodeSetStateEvent(nextPatch)
-      }
-    }
-  }
-
-  const handlePrevPatchClick = () => {
-    if (activeNodeSetStateEvent) {
-      const prevPatchIndex = activePatchIndex - 1
-      if (prevPatchIndex >= 0) {
-        const prevPatch = workflowStateEvents[prevPatchIndex]
-        setActiveNodeSetStateEvent(prevPatch)
-      }
-    }
-  }
-
-  // Previous patch nav
-
-  console.log('Re-rendering...')
-
   return (
     <div className={'grow'}>
       {activeNodeSetStateEvent && (
-        <div className={'flex justify-between text-sm mb-2 border-b px-2 pb-1'}>
-          <div>Workflow &rarr; Node (name!) &rarr; Patch {activeNodeSetStateEvent?.attributes.id}</div>
-          <div className={'flex gap-x-2'}>
-            <button onClick={handlePrevPatchClick}>prev</button> /{' '}
-            <button onClick={handleNextPatchClick}>next</button>
+        <div className={'flex justify-between text-xs mb-2 border-b px-2 pb-2'}>
+          <div>
+            State Patch ({activePatchIndex + 1}/{workflowStateEvents.length}):&nbsp;
+            {activeNodeSetStateEvent?.attributes.id}
           </div>
+          <WorkflowStateEventNavButtons workflowStateEvents={workflowStateEvents} />
         </div>
       )}
       <div className={'flex gap-x-2 mb-2'}>

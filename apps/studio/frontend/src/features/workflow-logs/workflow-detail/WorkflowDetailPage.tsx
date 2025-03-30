@@ -6,7 +6,7 @@ import { selectWorkflowsError, selectWorkflowsLoading, selectWorkflowSpan } from
 import { RootState } from '../../../root-store/store'
 import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import WorkflowDetailNavButtons from './LogPageNavButtons'
+import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowStructure from './WorkflowStructure'
 import NodeLogsList from '../node-logs/NodeLogsList'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
