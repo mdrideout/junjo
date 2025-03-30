@@ -106,6 +106,9 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
             # Create a new instance with partial updates, deep=True for true immutability
             new_state = self._state.model_copy(update=update, deep=True)
 
+            # Patch starts as None
+            patch = None
+
             # Only notify if something actually changed
             if new_state != self._state:
                 state_json_before = self._state.model_dump(mode="json")
@@ -119,20 +122,20 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                 self._state = new_state
                 subscribers_to_notify = list(self._subscribers)
 
-                # --- OpenTelemetry Event --- #
-                current_span = trace.get_current_span()
-                if current_span.is_recording():
-                    current_span.add_event(
-                        name="set_state",
-                        attributes={
-                            "id": generate(),
-                            "junjo.node.id": node.id,
-                            "junjo.store.name": caller_class_name,
-                            "junjo.store.action": caller_function_name,
-                            "junjo.state_json_patch": patch.to_string(),
-                        },
-                    )
-                # --- End OpenTelemetry Event --- #
+            # --- OpenTelemetry Event (call even if nothing changed) --- #
+            current_span = trace.get_current_span()
+            if current_span.is_recording():
+                current_span.add_event(
+                    name="set_state",
+                    attributes={
+                        "id": generate(),
+                        "junjo.node.id": node.id,
+                        "junjo.store.name": caller_class_name,
+                        "junjo.store.action": caller_function_name,
+                        "junjo.state_json_patch": patch.to_string() if patch else "{}",
+                    },
+                )
+            # --- End OpenTelemetry Event --- #
 
         # Notify subscribers outside the lock
         if subscribers_to_notify:
@@ -147,4 +150,3 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
             # If the subscriber is async, it returns a coroutine or awaitable
             if asyncio.iscoroutine(result) or isinstance(result, Awaitable):
                 await result
-
