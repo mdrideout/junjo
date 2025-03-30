@@ -105,8 +105,6 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                         const isActivePatch =
                           validated.data.attributes.id === activeNodeSetStateEvent?.attributes.id
 
-                        console.log('IS ACTIVE? ', isActivePatch)
-
                         return (
                           <div
                             key={`set-state-event-${validated.data.attributes.id}`}
