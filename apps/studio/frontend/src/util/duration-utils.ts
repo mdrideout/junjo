@@ -32,15 +32,30 @@ function calculateDurationMicro(startTime: string, endTime: string): number {
  */
 function getMicrosecondsSinceEpoch(isoString: string) {
   const date = new Date(isoString)
-
   if (isNaN(date.getTime())) {
     throw new Error('Invalid Date format')
   }
 
-  const microsecondPart = isoString.substring(isoString.indexOf('.') + 1, isoString.length - 1)
-  const microseconds = parseInt(microsecondPart, 10) || 0 // Default to 0 if no fractional seconds
+  // Split the ISO string on the decimal point
+  const [_secondsPart, fractionPartWithZone] = isoString.split('.')
+  if (!fractionPartWithZone) {
+    return date.getTime() * 1000 // no fractional part
+  }
 
-  return date.getTime() * 1000 + microseconds * 10 ** (6 - microsecondPart.length)
+  // Remove the timezone (assuming 'Z' or an offset) from the fraction
+  const fractionPart = fractionPartWithZone.replace(/[^0-9]/g, '')
+
+  // Pad the fraction to 6 digits (microseconds)
+  const fractionPadded = fractionPart.padEnd(6, '0')
+  const totalFractionMicro = parseInt(fractionPadded, 10)
+
+  // Get milliseconds already included in date.getTime() and convert to microseconds.
+  const msFraction = date.getTime() % 1000
+  const msFractionMicro = msFraction * 1000
+
+  // Compute only the remainder (the microseconds beyond the ms precision)
+  const extraMicro = totalFractionMicro - msFractionMicro
+  return date.getTime() * 1000 + extraMicro
 }
 
 /**
@@ -56,7 +71,7 @@ function formatDurationMicro(durationMicro: number): string {
     return `${durationMicro.toFixed(0)}µs`
   } else if (durationMicro < oneSecond) {
     const durationMilli = durationMicro / oneMilli
-    const formattedMs = durationMilli.toFixed(1)
+    const formattedMs = durationMilli.toFixed(2)
     return formattedMs.endsWith('.0') ? `${formattedMs.slice(0, -2)}ms` : `${formattedMs}ms`
   } else {
     const durationSeconds = durationMicro / oneSecond
