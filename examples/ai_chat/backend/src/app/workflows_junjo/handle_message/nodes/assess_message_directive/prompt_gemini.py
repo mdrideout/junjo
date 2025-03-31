@@ -1,4 +1,6 @@
 from app.workflows_junjo.handle_message.schemas import MessageDirective
+
+
 def assess_message_directive_prompt(most_recent_message: str) -> str:
     """Create a message response using history and contact bio information."""
     # Create the prompt

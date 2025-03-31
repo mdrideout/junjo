@@ -4,8 +4,11 @@ from loguru import logger
 from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.db.models.message.repository import MessageRepository
 from app.db.models.message.schemas import MessageCreate
+from app.workflows_junjo.handle_message.nodes.create_date_idea_response.prompt_gemini import (
+    create_date_idea_response_workflow_prompt,
+)
 from app.workflows_junjo.handle_message.store import MessageWorkflowStore
-from app.workflows_junjo.handle_message.nodes.create_date_idea_response.prompt_gemini import create_date_idea_response_workflow_prompt
+
 
 class CreateDateIdeaResponseNode(Node[MessageWorkflowStore]):
     """Create a date idea response message based on the data loaded into state."""

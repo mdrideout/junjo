@@ -2,9 +2,11 @@ from junjo.node import Node
 from loguru import logger
 
 from app.ai_services.gemini.gemini_tool import GeminiTool
-from app.workflows_junjo.handle_message.store import MessageWorkflowStore
-from app.workflows_junjo.handle_message.nodes.assess_message_directive.prompt_gemini import assess_message_directive_prompt
+from app.workflows_junjo.handle_message.nodes.assess_message_directive.prompt_gemini import (
+    assess_message_directive_prompt,
+)
 from app.workflows_junjo.handle_message.schemas import MessageDirective
+from app.workflows_junjo.handle_message.store import MessageWorkflowStore
 
 
 class AssessMessageDirectiveNode(Node[MessageWorkflowStore]):
