@@ -15,7 +15,7 @@ export default function WorkflowStructure(props: WorkflowStructureProps) {
   const { graph } = props
 
   return (
-    <div className={`w-full h-[60px] mb-5`}>
+    <div className={`w-full h-[250px] mb-5`}>
       <ReactFlowJunjoGraph junjoGraph={graph} direction={ReactFlowGraphDirection.LR} />
     </div>
   )

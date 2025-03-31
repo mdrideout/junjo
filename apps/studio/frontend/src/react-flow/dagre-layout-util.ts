@@ -39,12 +39,12 @@ export default function layoutGraphWithDagre(props: LayoutGraphWithDagreProps): 
   const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}))
 
   // Size constants
-  const nodeWidth = 150
+  const nodeWidth = 175
   const nodeHeight = 40
 
   // Determine direction
   const isHorizontal = direction === ReactFlowGraphDirection.LR
-  dagreGraph.setGraph({ rankdir: direction?.valueOf(), nodesep: 300, ranksep: 40 })
+  dagreGraph.setGraph({ rankdir: direction?.valueOf(), nodesep: 100, ranksep: 20 })
 
   nodes.forEach((node) => {
     node.style = {
