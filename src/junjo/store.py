@@ -132,7 +132,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                         "junjo.node.id": node.id,
                         "junjo.store.name": caller_class_name,
                         "junjo.store.action": caller_function_name,
-                        "junjo.state_json_patch": patch.to_string() if patch else "{}",
+                        "junjo.state_json_patch": patch.to_string() if patch else "{}", # Empty object if nothing changed
                     },
                 )
             # --- End OpenTelemetry Event --- #

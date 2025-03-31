@@ -1,7 +1,7 @@
-from collections.abc import Awaitable, Callable
 
+from junjo.condition import Condition
 from junjo.node import Node
-from junjo.store import BaseStore, StoreT
+from junjo.store import BaseStore, StateT
 
 
 class Edge:
@@ -16,7 +16,7 @@ class Edge:
         self,
         tail: Node,
         head: Node,
-        condition: Callable[[Node, Node, StoreT], Awaitable[bool] | bool] | None = None,
+        condition: Condition[StateT] | None = None,
     ):
         """
         Initializes the Edge.
@@ -52,4 +52,4 @@ class Edge:
             if state is None:
                 raise ValueError("State is not available in the store.")
 
-            return self.head if self.condition(self.tail, self.head, state) else None
+            return self.head if self.condition.evaluate(state) else None

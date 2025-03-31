@@ -61,8 +61,7 @@ async def main():
             print("Running FinalNode service from initial state: ", state.model_dump())
             return
 
-    async def count_over_10(current_node: Node, next_node: Node, store: MyGraphStore) -> bool:
-        state = await store.get_state()
+    async def count_over_10(state: MyGraphState) -> bool:
         return state.counter > 10
 
     # Instantiate nodes

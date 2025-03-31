@@ -4,11 +4,13 @@ from loguru import logger
 from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.db.models.message.repository import MessageRepository
 from app.db.models.message.schemas import MessageCreate
-from app.workflows_junjo.handle_message.nodes.create_response.prompt_gemini import create_response_workflow_prompt
+from app.workflows_junjo.handle_message.nodes.create_general_response.prompt_gemini import (
+    create_general_response_workflow_prompt,
+)
 from app.workflows_junjo.handle_message.store import MessageWorkflowStore
 
 
-class CreateResponseNode(Node[MessageWorkflowStore]):
+class CreateGeneralResponseNode(Node[MessageWorkflowStore]):
     """Create a response message based on the data loaded into state."""
 
     async def service(self, store) -> None:
@@ -19,7 +21,7 @@ class CreateResponseNode(Node[MessageWorkflowStore]):
             raise ValueError("Contact is required to execute this node.")
 
         # Construct the prompt
-        prompt = create_response_workflow_prompt(state.conversation_history, contact, state.received_message.message)
+        prompt = create_general_response_workflow_prompt(state.conversation_history, contact, state.received_message.message)
         logger.info(f"Creating response with prompt: {prompt}")
 
         # Create a request to gemini

@@ -70,7 +70,7 @@ class Graph:
             head_id = edge.head.id
             edge_label = ""
             if edge.condition:
-                edge_label = "|Condition|"  # Or a more descriptive label
+                edge_label = str(edge.condition)
             mermaid_str += f"    {tail_id} --> {edge_label}{head_id}\n"
 
         return mermaid_str
@@ -95,7 +95,7 @@ class Graph:
         for edge in self.edges:
             tail_id = edge.tail.id
             head_id = edge.head.id
-            condition_str = self._format_condition(edge.condition)
+            condition_str = str(edge.condition)
             style = "dashed" if condition_str else "solid"  # Dotted for conditional, solid otherwise
             dot_str += f'    "{tail_id}" -> "{head_id}" [label="{condition_str}", style="{style}"];\n'
 
@@ -126,7 +126,7 @@ class Graph:
                 id=f"{tail_id}-{head_id}",
                 source=tail_id,
                 target=head_id,
-                label=edge.condition.__name__ if edge.condition else None
+                label=str(edge.condition) if edge.condition else None
             ))
 
         viewport = ReactFlowViewport(x=0, y=0, zoom=1)
@@ -159,7 +159,7 @@ class Graph:
                 "id": f"{edge.tail.id}_{edge.head.id}",
                 "source": str(edge.tail.id),
                 "target": str(edge.head.id),
-                "condition": edge.condition.__name__ if edge.condition else None
+                "condition": str(edge.condition) if edge.condition else None
             }
             for edge in self.edges
         ]
@@ -171,15 +171,3 @@ class Graph:
         }
 
         return json.dumps(graph_dict)
-
-
-
-    def _format_condition(self, condition):
-        """Helper function to format the condition into a human-readable string."""
-        if condition is None:
-            return ""
-        elif callable(condition): # Handles function conditions
-            return condition.__name__ #Use the function's name as a label
-        else:
-            return str(condition) #Handles other condition types (e.g., strings, booleans)
-
