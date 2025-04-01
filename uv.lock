@@ -75,6 +75,8 @@ dependencies = [
     { name = "opentelemetry-instrumentation-google-genai" },
     { name = "opentelemetry-instrumentation-sqlalchemy" },
     { name = "opentelemetry-sdk" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "sqlalchemy" },
 ]
 
@@ -98,6 +100,8 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-google-genai", specifier = ">=0.1b0" },
     { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.52b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.31.0" },
+    { name = "pytest", specifier = ">=8.3.4" },
+    { name = "pytest-asyncio", specifier = ">=0.25.3" },
     { name = "sqlalchemy", specifier = ">=2.0.38" },
 ]
 

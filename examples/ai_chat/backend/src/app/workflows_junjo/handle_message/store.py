@@ -7,6 +7,7 @@ from app.db.models.contact.schemas import ContactRead
 from app.db.models.message.schemas import MessageCreate, MessageRead
 from app.workflows_junjo.handle_message.schemas import MessageDirective
 
+
 class MessageWorkflowState(BaseState):
     received_message: MessageCreate
     message_directive: MessageDirective | None = None
