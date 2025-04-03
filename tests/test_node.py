@@ -27,7 +27,7 @@ async def test_node_service_wrong_state_param():
 
     node = MockNodeWithWrongState()
     with pytest.raises(ValueError, match="Service function must have a 'state' parameter of type"):
-        await node._execute("dummy_workflow_id")
+        await node.execute("dummy_workflow_id")
 
 @pytest.mark.asyncio
 async def test_node_service_wrong_store_param():
@@ -38,7 +38,7 @@ async def test_node_service_wrong_store_param():
 
     node = MockNodeWithWrongStore()
     with pytest.raises(ValueError, match="Service function must have a 'store' parameter of type"):
-        await node._execute("dummy_workflow_id")
+        await node.execute("dummy_workflow_id")
 
 @pytest.mark.asyncio
 async def test_node_service_wrong_return_type():
@@ -49,7 +49,7 @@ async def test_node_service_wrong_return_type():
 
     node = MockNodeWithWrongReturnType()
     with pytest.raises(ValueError, match="Service function must have a return type of"):
-        await node._execute("dummy_workflow_id")
+        await node.execute("dummy_workflow_id")
 
 @pytest.mark.asyncio
 async def test_node_service_missing_return_type():
@@ -60,7 +60,7 @@ async def test_node_service_missing_return_type():
 
     node = MockNodeWithMissingReturnType()
     with pytest.raises(ValueError, match="Service function must have a return type of"):
-        await node._execute("dummy_workflow_id")
+        await node.execute("dummy_workflow_id")
 
 @pytest.mark.asyncio
 async def test_node_service_missing_store_param():
@@ -71,7 +71,7 @@ async def test_node_service_missing_store_param():
 
     node = MockNodeWithMissingStore()
     with pytest.raises(ValueError, match="Service function must have a 'store' parameter of type"):
-        await node._execute("dummy_workflow_id")
+        await node.execute("dummy_workflow_id")
 
 @pytest.mark.asyncio
 async def test_node_service_missing_state_param():
@@ -82,7 +82,7 @@ async def test_node_service_missing_state_param():
 
     node = MockNodeWithMissingState()
     with pytest.raises(ValueError, match="Service function must have a 'state' parameter of type"):
-        await node._execute("dummy_workflow_id")
+        await node.execute("dummy_workflow_id")
 
 @pytest.mark.asyncio
 async def test_node_id():

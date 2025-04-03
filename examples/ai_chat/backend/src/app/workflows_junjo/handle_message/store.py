@@ -14,6 +14,8 @@ class MessageWorkflowState(BaseState):
     conversation_history: list[MessageRead] = []
     contact: ContactRead | None = None
     response_message: MessageRead | None = None
+    test_updates: list[str] = []
+    concurrent_update_test_state: str | None = None
 
 
 class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
@@ -38,3 +40,10 @@ class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
 
     async def set_response_message(self, node: Node, payload: MessageRead) -> None:
         await self.set_state(node, {"response_message": payload})
+
+    async def append_test_update(self, node: Node, payload: str) -> None:
+        await self.set_state(node, {"test_updates": [*self._state.test_updates, payload]})
+
+    async def set_concurrent_update_test_state(self, node: Node, payload: str) -> None:
+        await self.set_state(node, {"concurrent_update_test_state": payload})
+

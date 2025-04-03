@@ -90,7 +90,7 @@ class Workflow(Generic[StateT, StoreT]):
 
                         # Execute the current node.
                         print("Executing node:", current_node.name)
-                        await current_node._execute(self.id, self.store)
+                        await current_node.execute(self.id, self.store)
 
                         # # Execute node after hooks
                         # if self.hook_manager is not None:

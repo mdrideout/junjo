@@ -53,14 +53,18 @@ class Node(Generic[StoreT], ABC):
 
     @abstractmethod
     async def service(self, store: StoreT) -> None:
-        """The main logic of the node.
+        """
+        This is main logic of the node.
+
+        DO NOT EXECUTE `node.service()` DIRECTLY!
+        Use `node.execute()` instead.
 
         Args
             :param store: The store will be passed to this node during execution
         """
         raise NotImplementedError
 
-    async def _execute(
+    async def execute(
             self,
             parent_id: str,
             store: StoreT,
