@@ -5,6 +5,8 @@ import { getSpanDurationString } from '../../../util/duration-utils'
 import { selectSpanChildren } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
 import { useMemo } from 'react'
+import SpanSetStateEventsTR from './NodeSetStateEvents'
+import { JunjoSpanType } from '../../otel/store/schemas'
 
 interface RecursiveNodeChildSpansProps {
   layer: number
@@ -32,7 +34,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
 
   // 2. Use the memoized props object in useAppSelector
   const spans = useAppSelector((state: RootState) => selectSpanChildren(state, selectorProps))
-  const paddingLeft = layer + 1 * 32
+  const marginLeft = layer + 1 * 24
   const isEven = layer % 2 === 0
 
   // Stop the recursion when there are no more children
@@ -52,7 +54,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
   })
 
   return (
-    <div style={{ paddingLeft: `${paddingLeft}px` }}>
+    <div style={{ marginLeft: `${marginLeft}px` }}>
       <div className={`${isEven ? '' : ''}`}>
         <table className={`text-left text-xs text-zinc-700 dark:text-zinc-200 w-full`}>
           {/* <thead>
@@ -63,41 +65,47 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
             </tr>
           </thead> */}
           <tbody>
-            {sortedSpans.map((item, index) => {
+            {sortedSpans.map((span, index) => {
+              // Workflow / Node spans
+              const isWorkflowOrNode =
+                span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.WORKFLOW
+
               // Make date human readable
-              const start = new Date(item.start_time)
+              const start = new Date(span.start_time)
               const startString = start.toLocaleString()
 
               // Duration String
-              const durationString = getSpanDurationString(item.start_time, item.end_time)
+              const durationString = getSpanDurationString(span.start_time, span.end_time)
               return (
-                <Fragment key={`${item.span_id}-tr-wrap-${layer}`}>
+                <Fragment key={`${span.span_id}-tr-wrap-${layer}`}>
                   <tr
-                    key={`${item.span_id}-table-${layer}-${index}`}
-                    className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
+                    key={`${span.span_id}-table-${layer}-${index}`}
+                    className={`${isWorkflowOrNode ? 'text-sm' : ''}`}
                     onClick={() => console.log('TODO: Show attributes')}
                   >
-                    <td className={'pl-2 py-1'}>
-                      <SpanIconConstructor span={item} />
+                    <td className={'pl-2 py-1 w-6'}>
+                      <SpanIconConstructor span={span} />
                     </td>
-                    <td className={'px-2 py-1'}>{item.name}</td>
+                    <td className={'px-2 py-1'}>{span.name}</td>
                     <td className={'px-2 py-1 text-right'}>{durationString}</td>
                   </tr>
+
                   <tr
-                    key={`${item.span_id}-children-${layer}`}
+                    key={`${span.span_id}-children-${layer}`}
                     className={'hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
                   >
                     <td colSpan={3}>
                       <RecursiveNodeChildSpans
-                        key={`${item.span_id}-child-td-${layer}-${index}`}
+                        key={`${span.span_id}-child-td-${layer}-${index}`}
                         layer={layer + 1}
                         serviceName={serviceName}
-                        workflowSpanID={item.span_id}
+                        workflowSpanID={span.span_id}
                       />
                     </td>
                   </tr>
+                  <SpanSetStateEventsTR span={span} />
                   <tr
-                    key={`${item.span_id}-border-${layer}`}
+                    key={`${span.span_id}-border-${layer}`}
                     className={
                       'last-of-type:border-0 border-b border-zinc-400 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
                     }
