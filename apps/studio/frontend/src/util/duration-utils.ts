@@ -19,8 +19,8 @@ export function getSpanDurationString(start_time: string, end_time: string) {
  * @throws Error if the date format is invalid.
  */
 function calculateDurationMicro(startTime: string, endTime: string): number {
-  const startMicro = getMicrosecondsSinceEpoch(startTime)
-  const endMicro = getMicrosecondsSinceEpoch(endTime)
+  const startMicro = isoStringToMicrosecondsSinceEpoch(startTime)
+  const endMicro = isoStringToMicrosecondsSinceEpoch(endTime)
   return endMicro - startMicro
 }
 
@@ -30,7 +30,7 @@ function calculateDurationMicro(startTime: string, endTime: string): number {
  * @returns The number of microseconds since the epoch.
  * @throws Error if the date format is invalid.
  */
-function getMicrosecondsSinceEpoch(isoString: string) {
+export function isoStringToMicrosecondsSinceEpoch(isoString: string) {
   const date = new Date(isoString)
   if (isNaN(date.getTime())) {
     throw new Error('Invalid Date format')
@@ -78,4 +78,11 @@ function formatDurationMicro(durationMicro: number): string {
     const formattedSeconds = durationSeconds.toFixed(3)
     return formattedSeconds.endsWith('.000') ? `${formattedSeconds.slice(0, -4)}s` : `${formattedSeconds}s`
   }
+}
+
+/**
+ * Nanoseconds to Microseconds
+ */
+export function nanoSecondsToMicrosecons(nanoseconds: number): number {
+  return nanoseconds / 1000
 }
