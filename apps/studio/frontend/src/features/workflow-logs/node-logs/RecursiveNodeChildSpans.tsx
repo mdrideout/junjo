@@ -1,12 +1,18 @@
 import { Fragment } from 'react/jsx-runtime'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { getSpanDurationString } from '../../../util/duration-utils'
+import { getSpanDurationString, isoStringToMicrosecondsSinceEpoch } from '../../../util/duration-utils'
 import { selectSpanChildren } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
 import { useMemo } from 'react'
 import SpanSetStateEventsTR from './NodeSetStateEvents'
-import { JunjoSpanType } from '../../otel/store/schemas'
+import {
+  JunjoSpanType,
+  NodeEventType,
+  NodeSetStateEvent,
+  NodeSetStateEventSchema,
+  OtelSpan,
+} from '../../otel/store/schemas'
 
 interface RecursiveNodeChildSpansProps {
   layer: number
@@ -42,16 +48,60 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
     return null
   }
 
-  // Order the spans from oldest to newest
-  const sortedSpans = [...spans].sort((a, b) => {
-    const aDate = new Date(a.start_time)
-    const bDate = new Date(b.start_time)
+  // Rows
+  enum RowType {
+    SPAN = 'SPAN',
+    STATE = 'STATE',
+  }
 
-    const aTime = aDate.getTime()
-    const bTime = bDate.getTime()
+  interface SpanRow {
+    type: RowType.SPAN
+    data: OtelSpan
+    time: number
+  }
 
-    return aTime - bTime
+  interface StateRow {
+    type: RowType.STATE
+    data: NodeSetStateEvent
+    time: number
+  }
+
+  type RowData = SpanRow | StateRow
+  const rows: RowData[] = []
+
+  // For each sortedSpan, add a row
+  spans.forEach((span) => {
+    // Get this span's children
+
+    // Create the RowData and add it to rows
+    rows.push({
+      type: RowType.SPAN,
+      data: span,
+      time: isoStringToMicrosecondsSinceEpoch(span.end_time),
+    })
+
+    // Add the span's state event as a row
+    const setStateEvents = span.events_json.filter((item) => item.name === NodeEventType.SET_STATE)
+
+    setStateEvents.forEach((event) => {
+      const validated = NodeSetStateEventSchema.safeParse(event)
+      if (validated.error) {
+        console.log('ERROR: ', validated.error)
+        return <div className={'text-red-700'}>Invalid state update metadata.</div>
+      }
+      console.log('Adding state row: ', validated.data.name)
+      rows.push({
+        type: RowType.STATE,
+        data: validated.data,
+        time: validated.data.timeUnixNano,
+      })
+    })
   })
+
+  // Sort the rows by time
+  rows.sort((a, b) => a.time - b.time)
+
+  console.log('ROWS: ', rows)
 
   return (
     <div style={{ marginLeft: `${marginLeft}px` }}>
@@ -65,7 +115,29 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
             </tr>
           </thead> */}
           <tbody>
-            {sortedSpans.map((span, index) => {
+            {rows.map((row, index) => {
+              return (
+                <Fragment key={`${row.type}-${row.time}-${index}`}>
+                  {row.type === RowType.SPAN && (
+                    <>
+                      <tr>
+                        <td>SPAN</td>
+                      </tr>
+                    </>
+                  )}
+                  {row.type === RowType.STATE && (
+                    <SpanSetStateEventsTR
+                      span={
+                        spans.find((s) =>
+                          s.events_json.find((e) => e.attributes.id === row.data.attributes.id),
+                        )!
+                      }
+                    />
+                  )}
+                </Fragment>
+              )
+            })}
+            {/* {sortedSpans.map((span, index) => {
               // Workflow / Node spans
               const isWorkflowOrNode =
                 span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.WORKFLOW
@@ -115,7 +187,7 @@ export default function RecursiveNodeChildSpans(props: RecursiveNodeChildSpansPr
                   </tr>
                 </Fragment>
               )
-            })}
+            })} */}
           </tbody>
         </table>
       </div>

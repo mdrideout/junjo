@@ -8,6 +8,7 @@ import RecursiveNodeChildSpans from './RecursiveNodeChildSpans'
 import { Fragment } from 'react/jsx-runtime'
 import { useMemo } from 'react'
 import SpanSetStateEventsTR from './NodeSetStateEvents'
+import NestedWorkflowSpans from './NestedWorkflowSpans'
 
 interface NodeLogsListProps {
   serviceName: string
@@ -81,16 +82,16 @@ export default function NodeLogsList(props: NodeLogsListProps) {
                 </tr>
                 <tr key={`${span.span_id}-children-index:${index}`}>
                   <td colSpan={5}>
-                    <RecursiveNodeChildSpans
+                    {/* <RecursiveNodeChildSpans
                       key={`${span.span_id}-child-root`}
                       layer={0}
                       serviceName={serviceName}
                       workflowSpanID={span.span_id}
-                    />
+                    /> */}
                   </td>
                 </tr>
 
-                <SpanSetStateEventsTR span={span} />
+                {/* <SpanSetStateEventsTR span={span} /> */}
 
                 <tr
                   key={`${span.span_id}-border-index:${index}`}

@@ -6,7 +6,7 @@ import {
   CpuChipIcon,
   Squares2X2Icon,
 } from '@heroicons/react/24/outline'
-import { ArrowTurnDownRightIcon } from '@heroicons/react/24/solid'
+import { ArrowTurnDownRightIcon, CubeIcon } from '@heroicons/react/24/solid'
 
 /**
  * Span Icon Constructor
@@ -27,19 +27,19 @@ export function SpanIconConstructor(props: { span: OtelSpan }): JSX.Element {
 
   // Junjo Node Span
   if (span.junjo_span_type === JunjoSpanType.NODE) {
-    return <ArrowTurnDownRightIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+    return <CubeIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
   }
 
   // Database Span
   // If attributes contains "db.system" key
   if (attributes['db.system']) {
-    return <CircleStackIcon className={'size-4 text-zinc-600 dark:text-zinc-400'} />
+    return <CircleStackIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
   }
 
   // AI Span
   // Gemini: gen_ai.system
   if (attributes['gen_ai.system']) {
-    return <ChatBubbleLeftEllipsisIcon className={'size-4 text-zinc-600 dark:text-zinc-400'} />
+    return <ChatBubbleLeftEllipsisIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
   }
 
   // Default
