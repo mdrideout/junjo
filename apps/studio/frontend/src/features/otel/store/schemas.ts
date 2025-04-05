@@ -3,6 +3,7 @@ import { z } from 'zod'
 export enum JunjoSpanType {
   WORKFLOW = 'workflow',
   NODE = 'node',
+  NODE_GATHER = 'node_gather',
   OTHER = '',
 }
 
