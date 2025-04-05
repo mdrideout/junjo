@@ -162,7 +162,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
             <div
               className={` p-1.5 ${nonWorkflowNodeSpan ? 'border-b border-zinc-300 dark:border-zinc-700' : ''}`}
             >
-              <div className={`flex items-start gap-x-2`}>
+              <div className={`flex gap-x-2 ${nonWorkflowNodeSpan ? 'items-start' : 'items-center'}`}>
                 <SpanIconConstructor span={row.data} />
                 <div>{row.data.name}</div>
               </div>

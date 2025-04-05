@@ -28,6 +28,8 @@ export class JunjoGraph {
    * @returns an instance of JunjoGraph
    */
   static fromJson(json: Record<string, any>): JunjoGraph {
+    console.log('Junjo Graph Raw JSON: ', json)
+
     try {
       const parsedData = JGraphSchema.safeParse(json)
 
@@ -86,46 +88,98 @@ export class JunjoGraph {
   /**
    * To Mermaid Flowchart
    *
-   * Converts the Junjo Graph representation into a Mermaid flowchart definition string.
+   * Converts the Junjo Graph representation into a Mermaid flowchart definition string,
+   * rendering nodes marked as subgraphs correctly.
    *
-   * @param {MermaidGraphDirection} direction - The direction of the flowchart (e.g., 'TB', 'LR'). Defaults to 'LR'.
+   * @param {MermaidGraphDirection} direction - The overall direction of the flowchart (e.g., 'TB', 'LR'). Defaults to 'LR'.
+   * @param {MermaidGraphDirection} subDirection - Optional direction for layout *within* subgraphs. Defaults to 'TB'.
    * @returns {string} A string containing the Mermaid flowchart definition.
    */
-  toMermaid(direction: MermaidGraphDirection = 'LR'): string {
+  toMermaid(
+    direction: MermaidGraphDirection = 'LR',
+    subDirection: MermaidGraphDirection = 'LR', // Default direction inside subgraphs
+  ): string {
     const lines: string[] = []
 
-    // 1. Add the graph direction definition
+    // Create a map for easy node lookup by ID
+    const nodeMap = new Map<string, JNode>(this.graph.nodes.map((node) => [node.id, node]))
+
+    // Sets to keep track of node roles
+    const childrenNodeIds = new Set<string>()
+    const subgraphContainerIds = new Set<string>()
+
+    // 1. Preprocessing: Identify subgraph containers and their children
+    this.graph.nodes.forEach((node) => {
+      if (node.isSubgraph && node.children && node.children.length > 0) {
+        subgraphContainerIds.add(node.id)
+        node.children.forEach((childId) => {
+          if (nodeMap.has(childId)) {
+            // Only add if the child node actually exists
+            childrenNodeIds.add(childId)
+          } else {
+            console.warn(
+              `Subgraph ${node.id} ('${node.label}') lists child ID ${childId}, but this node was not found.`,
+            )
+          }
+        })
+      }
+    })
+
+    // 2. Start graph definition
     lines.push(`graph ${direction}`)
 
-    // 2. Define all nodes
-    // Syntax: nodeId["Node Label"] or nodeId(Node Label) etc.
-    // Using nodeId["Label"] is generally safer for labels with special characters/spaces.
+    // 3. Define top-level nodes (nodes that are NOT children of any subgraph AND are NOT subgraph containers themselves)
     this.graph.nodes.forEach((node) => {
-      // We could potentially map node.type to different Mermaid shapes here if needed.
-      // Example: const shape = node.type === 'database' ? '[(%s)]' : '[%s]';
-      // For now, we use the default rectangle shape with quoted labels.
-      lines.push(`  ${node.id}[${escapeMermaidLabel(node.label)}]`)
+      if (!childrenNodeIds.has(node.id) && !subgraphContainerIds.has(node.id)) {
+        lines.push(`  ${node.id}[${escapeMermaidLabel(node.label)}]`)
+      }
     })
 
-    // 3. Define all edges
-    // Syntax: sourceId --> targetId
-    // Syntax with label: sourceId --"Edge Label"--> targetId
+    // 4. Define subgraphs and their children nodes
+    this.graph.nodes.forEach((node) => {
+      if (subgraphContainerIds.has(node.id)) {
+        // Check if it's a subgraph container we identified
+        lines.push(``) // Add empty line for readability
+        lines.push(`  subgraph ${node.id} [${escapeMermaidLabel(node.label)}]`)
+        lines.push(`    direction ${subDirection}`) // Set internal direction
+
+        node.children?.forEach((childId) => {
+          const childNode = nodeMap.get(childId)
+          if (childNode) {
+            // Define the child node INSIDE the subgraph block
+            lines.push(`    ${childNode.id}[${escapeMermaidLabel(childNode.label)}]`)
+          }
+          // We already warned about missing children during preprocessing
+        })
+        lines.push(`  end`)
+      }
+    })
+
+    // 5. Define all explicit edges from the graph definition
+    lines.push(``) // Add empty line for readability
     this.graph.edges.forEach((edge) => {
-      if (edge.condition) {
+      // Basic validation: Ensure source and target nodes were found during collection
+      if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) {
+        console.warn(
+          `Skipping edge '${edge.id}' because source ('${edge.source}') or target ('${edge.target}') node was not found.`,
+        )
+        return // Skip this edge
+      }
+
+      const sourceId = edge.source
+      const targetId = edge.target
+      const condition = edge.condition // string | null
+
+      if (condition) {
         // Edge with a condition (label)
-        lines.push(`  ${edge.source} --${escapeMermaidLabel(edge.condition)}--> ${edge.target}`)
+        lines.push(`  ${sourceId} --${escapeMermaidLabel(condition)}--> ${targetId}`)
       } else {
         // Edge without a condition
-        lines.push(`  ${edge.source} --> ${edge.target}`)
+        lines.push(`  ${sourceId} --> ${targetId}`)
       }
-      // Optional: Add different arrow styles based on conditions or types
-      // Example: Use dotted lines for conditions:
-      // lines.push(`  ${edge.source} ${edge.condition ? '-.' : '--'}-> ${edge.target}`);
-      // Or with label and dotted line:
-      // lines.push(`  ${edge.source} -. ${escapeMermaidLabel(edge.condition || '')} .-> ${edge.target}`);
     })
 
-    // Join all lines into a single string
+    // 6. Join all lines into a single string
     return lines.join('\n')
   }
 }

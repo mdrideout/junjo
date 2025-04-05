@@ -1,12 +1,7 @@
 import { JSX } from 'react'
 import { JunjoSpanType, OtelSpan } from '../../otel/store/schemas'
-import {
-  ChatBubbleLeftEllipsisIcon,
-  CircleStackIcon,
-  CpuChipIcon,
-  Squares2X2Icon,
-} from '@heroicons/react/24/outline'
-import { ArrowTurnDownRightIcon, CubeIcon } from '@heroicons/react/24/solid'
+import { ChatBubbleLeftEllipsisIcon, CircleStackIcon } from '@heroicons/react/24/outline'
+import { ArrowTurnDownRightIcon, CubeIcon, Square3Stack3DIcon } from '@heroicons/react/24/solid'
 
 /**
  * Span Icon Constructor
@@ -28,6 +23,11 @@ export function SpanIconConstructor(props: { span: OtelSpan }): JSX.Element {
   // Junjo Node Span
   if (span.junjo_span_type === JunjoSpanType.NODE) {
     return <CubeIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+  }
+
+  // Junjo NodeGather Span
+  if (span.junjo_span_type === JunjoSpanType.NODE_GATHER) {
+    return <Square3Stack3DIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
   }
 
   // Database Span

@@ -89,7 +89,7 @@ export default function WorkflowDetailPage() {
         </div>
       </div>
       <hr className={'my-6'} />
-      <div className={`w-full h-[250px] mb-5`}>
+      <div className={`w-full h-[1000px] mb-5`}>
         <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
       </div>
       <div className={'grow w-full flex gap-x-10 justify-between overflow-hidden'}>
