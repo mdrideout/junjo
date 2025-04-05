@@ -1,15 +1,10 @@
 import { Fragment } from 'react/jsx-runtime'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import {
-  getSpanDurationString,
-  isoStringToMicrosecondsSinceEpoch,
-  nanoSecondsToMicrosecons,
-} from '../../../util/duration-utils'
-import { selectAllWorkflowChildSpans, selectSpanChildren } from '../../otel/store/selectors'
+import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
+import { selectAllWorkflowChildSpans } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
 import { JSX, useMemo } from 'react'
-import SpanSetStateEventsTR from './NodeSetStateEvents'
 import {
   JunjoSpanType,
   NodeEventType,
@@ -158,8 +153,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
    * @returns
    */
   function RecursiveNestedRow({ row, layer }: { row: RowData; layer: number }): JSX.Element {
-    const marginLeft = layer * 24
-
     if (row.type === RowType.SPAN) {
       const nonWorkflowNodeSpan = row.data.junjo_span_type === JunjoSpanType.OTHER
 

@@ -28,6 +28,8 @@ export type ReactFlowJunjoGraphProps = {
 export default function ReactFlowJunjoGraph(props: ReactFlowJunjoGraphProps) {
   const { junjoGraph, direction } = props
 
+  console.log('Mermaid flow json:\n', junjoGraph.toMermaid())
+
   // Get initial graph nodes and perform the layout
   const { nodes: initialNodes, edges: initialEdges } = junjoGraph.toReactFlow()
   const { nodes: layoutedNodes, edges: layoutedEdges } = layoutGraphWithDagre({
