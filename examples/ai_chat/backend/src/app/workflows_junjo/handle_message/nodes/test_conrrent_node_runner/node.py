@@ -16,6 +16,9 @@ class TestConcurrentNodeRunner(Node[MessageWorkflowStore]):
         # Test calling other nodes directly to see what happens
         logger.info("Running TestConcurrentNodeRunner")
 
+        # Test setting state before
+        await store.append_test_update(self, "TestConcurrentNodeRunner - Before")
+
         # Instantiate the other concurrent nodes
         node1 = TestConcurrentNode1()
         node2 = TestConcurrentNode2()
@@ -27,6 +30,10 @@ class TestConcurrentNodeRunner(Node[MessageWorkflowStore]):
             node2.execute(self.id, store),
             node3.execute(self.id, store),
         )
+
+        # Test setting state after
+        await store.append_test_update(self, "TestConcurrentNodeRunner - After")
+
 
         logger.info("Finished running TestConcurrentNodeRunner")
 
