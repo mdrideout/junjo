@@ -158,17 +158,17 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
       return (
         <Fragment key={`span-${row.data.span_id}-${layer}`}>
-          <div className={`w-full ${layer > 0 ? 'ml-5 text-sm' : 'ml-0'}`}>
+          <div className={`${layer > 0 ? 'ml-3 text-sm' : 'ml-0'}`}>
             <div
-              className={`w-full p-1.5 ${nonWorkflowNodeSpan ? 'border-b border-zinc-300 dark:border-zinc-700' : ''}`}
+              className={` p-1.5 ${nonWorkflowNodeSpan ? 'border-b border-zinc-300 dark:border-zinc-700' : ''}`}
             >
-              <div className={`flex items-center gap-x-2`}>
+              <div className={`flex items-start gap-x-2`}>
                 <SpanIconConstructor span={row.data} />
                 <div>{row.data.name}</div>
               </div>
             </div>
             {row.childRows.length > 0 && (
-              <div className={'w-full border-l ml-[15px] border-zinc-300 dark:border-zinc-700'}>
+              <div className={'border-l ml-[15px] border-zinc-300 dark:border-zinc-700'}>
                 {row.childRows.map((childRow) => {
                   return <RecursiveNestedRow row={childRow} layer={layer + 1} />
                 })}
@@ -186,7 +186,8 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       return (
         <Fragment key={`state-${row.data.attributes.id}-${layer}`}>
           <div
-            className={`w-full p-1.5 cursor-pointer border-b last:border-0 border-zinc-300 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-5 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
+            id={`state-patch-${row.data.attributes.id}`}
+            className={`p-1.5 cursor-pointer border-b last:border-0 border-zinc-300 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
             onClick={() => {
               setActiveNodeSetStateEvent(row.data)
             }}
@@ -213,7 +214,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   topLevelRows.sort((a, b) => a.time - b.time)
 
   return (
-    <div className={'grow'}>
+    <>
       {topLevelRows.map((row) => {
         return (
           <Fragment key={`row-${row.time}`}>
@@ -221,6 +222,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
           </Fragment>
         )
       })}
-    </div>
+    </>
   )
 }

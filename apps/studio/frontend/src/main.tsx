@@ -14,6 +14,7 @@ import { ReactFlowProvider } from '@xyflow/react'
 import AppNamesPage from './features/workflow-logs/list-app-names/AppNamesPage.tsx'
 import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
+import { ActiveNodeProvider } from './features/workflow-logs/workflow-detail/ActiveNodeContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -53,7 +54,9 @@ createRoot(document.getElementById('root')!).render(
                   path="/logs/:serviceName/:spanID"
                   element={
                     <AuthGuard>
-                      <WorkflowDetailPage />
+                      <ActiveNodeProvider>
+                        <WorkflowDetailPage />
+                      </ActiveNodeProvider>
                     </AuthGuard>
                   }
                 />

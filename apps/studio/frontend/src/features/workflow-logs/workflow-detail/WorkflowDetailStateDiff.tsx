@@ -199,7 +199,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   }
 
   return (
-    <div className={''}>
+    <>
       {activeNodeSetStateEvent && (
         <div className={'flex justify-between text-xs mb-2 border-b px-2 pb-2'}>
           <div>
@@ -246,6 +246,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
           </JsonView.Arrow>
         </JsonView>
       </div>
-    </div>
+    </>
   )
 }

@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { selectWorkflowsError, selectWorkflowsLoading, selectWorkflowSpan } from '../../otel/store/selectors'
 import { RootState } from '../../../root-store/store'
@@ -8,15 +8,16 @@ import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowStructure from './WorkflowStructure'
-import NodeLogsList from '../node-logs/NodeLogsList'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
 import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
-import { ActiveNodeProvider } from './ActiveNodeContext'
+import { useActiveNodeContext } from './ActiveNodeContext'
 import NestedWorkflowSpans from '../node-logs/NestedWorkflowSpans'
 
 export default function WorkflowDetailPage() {
   const { serviceName, spanID } = useParams()
   const dispatch = useAppDispatch()
+  const { scrollToPatchId } = useActiveNodeContext()
+  const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
@@ -27,6 +28,21 @@ export default function WorkflowDetailPage() {
     console.log('Fetching workflows data...')
     dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
   }, [])
+
+  // Scroll To Patch
+  useEffect(() => {
+    if (scrollToPatchId && scrollableContainerRef.current) {
+      console.log(`Scrolling to patch: state-patch-${scrollToPatchId}`)
+      const targetElement = scrollableContainerRef.current.querySelector(`#state-patch-${scrollToPatchId}`)
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        })
+      }
+    }
+  }, [scrollToPatchId])
 
   if (loading) return null
 
@@ -48,7 +64,7 @@ export default function WorkflowDetailPage() {
   console.log('Rendering workflow: ', span)
 
   return (
-    <div className={'p-5'}>
+    <div className={'p-5 flex flex-col h-full'}>
       <div className={'px-2'}>
         <div className={'flex gap-x-3 items-center justify-between'}>
           <div>
@@ -73,11 +89,14 @@ export default function WorkflowDetailPage() {
         </div>
       </div>
       <hr className={'my-6'} />
-      <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
-      <ActiveNodeProvider>
-        <div className={'w-full flex gap-x-14 justify-between'}>
+      <div className={`w-full h-[250px] mb-5`}>
+        <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
+      </div>
+      <div className={'grow w-full flex gap-x-10 justify-between overflow-hidden'}>
+        <div ref={scrollableContainerRef} className={'grow overflow-y-scroll pr-5'}>
           <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={spanID} />
-          {/* <NodeLogsList workflowSpanID={spanID} serviceName={serviceName} /> */}
+        </div>
+        <div className={'overflow-y-scroll'}>
           <WorkflowDetailStateDiff
             workflowStateStart={span.junjo_wf_state_start}
             workflowStateEnd={span.junjo_wf_state_end}
@@ -85,7 +104,7 @@ export default function WorkflowDetailPage() {
             serviceName={serviceName}
           />
         </div>
-      </ActiveNodeProvider>
+      </div>
     </div>
   )
 }

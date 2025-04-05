@@ -21,7 +21,11 @@ function CloseMenuIcon() {
   )
 }
 
-function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open: boolean; close: () => void }>) {
+function MobileSidebar({
+  open,
+  close,
+  children,
+}: React.PropsWithChildren<{ open: boolean; close: () => void }>) {
   return (
     <Headless.Dialog open={open} onClose={close} className="lg:hidden">
       <Headless.DialogBackdrop
@@ -72,8 +76,8 @@ export function SidebarLayout({
       </header>
 
       {/* Content */}
-      <main className="flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 lg:pl-64">
-        <div className="grow p-2 lg:rounded-lg lg:bg-white lg:p-0 lg:ring-1 lg:shadow-xs lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:text-zinc-100 dark:lg:ring-white/10">
+      <main className="h-dvh flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 lg:pl-64 ">
+        <div className="h-full overflow-hidden grow p-2 lg:rounded-lg lg:bg-white lg:p-0 lg:ring-1 lg:shadow-xs lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:text-zinc-100 dark:lg:ring-white/10">
           <Outlet />
         </div>
       </main>
