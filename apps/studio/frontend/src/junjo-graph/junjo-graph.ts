@@ -3,6 +3,7 @@ import { ReactFlowInitialData } from '../react-flow/schemas'
 import { JunjoGraphError } from './errors'
 import { JEdge, JGraph, JGraphSchema, JNode } from './schemas'
 import { Edge as RFEdge, Node as RFNode } from '@xyflow/react' // Import correct types
+import { escapeMermaidLabel, MermaidGraphDirection } from './utils'
 
 export class JunjoGraph {
   private graph: JGraph
@@ -80,5 +81,51 @@ export class JunjoGraph {
     }))
 
     return { direction, nodes, edges }
+  }
+
+  /**
+   * To Mermaid Flowchart
+   *
+   * Converts the Junjo Graph representation into a Mermaid flowchart definition string.
+   *
+   * @param {MermaidGraphDirection} direction - The direction of the flowchart (e.g., 'TB', 'LR'). Defaults to 'LR'.
+   * @returns {string} A string containing the Mermaid flowchart definition.
+   */
+  toMermaid(direction: MermaidGraphDirection = 'LR'): string {
+    const lines: string[] = []
+
+    // 1. Add the graph direction definition
+    lines.push(`graph ${direction}`)
+
+    // 2. Define all nodes
+    // Syntax: nodeId["Node Label"] or nodeId(Node Label) etc.
+    // Using nodeId["Label"] is generally safer for labels with special characters/spaces.
+    this.graph.nodes.forEach((node) => {
+      // We could potentially map node.type to different Mermaid shapes here if needed.
+      // Example: const shape = node.type === 'database' ? '[(%s)]' : '[%s]';
+      // For now, we use the default rectangle shape with quoted labels.
+      lines.push(`  ${node.id}[${escapeMermaidLabel(node.label)}]`)
+    })
+
+    // 3. Define all edges
+    // Syntax: sourceId --> targetId
+    // Syntax with label: sourceId --"Edge Label"--> targetId
+    this.graph.edges.forEach((edge) => {
+      if (edge.condition) {
+        // Edge with a condition (label)
+        lines.push(`  ${edge.source} --${escapeMermaidLabel(edge.condition)}--> ${edge.target}`)
+      } else {
+        // Edge without a condition
+        lines.push(`  ${edge.source} --> ${edge.target}`)
+      }
+      // Optional: Add different arrow styles based on conditions or types
+      // Example: Use dotted lines for conditions:
+      // lines.push(`  ${edge.source} ${edge.condition ? '-.' : '--'}-> ${edge.target}`);
+      // Or with label and dotted line:
+      // lines.push(`  ${edge.source} -. ${escapeMermaidLabel(edge.condition || '')} .-> ${edge.target}`);
+    })
+
+    // Join all lines into a single string
+    return lines.join('\n')
   }
 }
