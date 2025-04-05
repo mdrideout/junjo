@@ -13,14 +13,14 @@ class TestConcurrentNode1(Node[MessageWorkflowStore]):
         # Concurrent instant set states to check for collision issues
         await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 1: {generate()}")
         await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 2: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 3: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 4: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 5: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 6: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 7: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 8: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 9: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 10: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 3: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 4: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 5: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 6: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 7: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 8: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 9: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode1 - 10: {generate()}")
 
         # Construct the prompt
         prompt = "Output a joke about a horse prepended by \"TestConcurrentNode1:\""

@@ -13,14 +13,14 @@ class TestConcurrentNode3(Node[MessageWorkflowStore]):
         # Concurrent instant set states to check for collision issues
         await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 1: {generate()}")
         await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 2: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 3: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 4: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 5: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 6: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 7: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 8: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 9: {generate()}")
-        await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 10: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 3: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 4: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 5: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 6: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 7: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 8: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 9: {generate()}")
+        # await store.set_concurrent_update_test_state(self, f"TestConcurrentNode3 - 10: {generate()}")
 
         # Construct the prompt
         prompt = "Output a random word of the day, prepended by \"TestConcurrentNode3:\""
