@@ -8,7 +8,7 @@ interface WorkflowStateEventNavButtonsProps {
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
   const { workflowStateEvents } = props
-  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent } = useActiveNodeContext()
+  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent, setScrollToPatchId } = useActiveNodeContext()
   const activePatchIndex = workflowStateEvents.findIndex(
     (patch) => patch.attributes.id === activeNodeSetStateEvent?.attributes.id,
   )
@@ -22,6 +22,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       if (nextPatchIndex < workflowStateEvents.length) {
         const nextPatch = workflowStateEvents[nextPatchIndex]
         setActiveNodeSetStateEvent(nextPatch)
+        setScrollToPatchId(nextPatch.attributes.id)
       }
     }
   }
@@ -32,6 +33,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       if (prevPatchIndex >= 0) {
         const prevPatch = workflowStateEvents[prevPatchIndex]
         setActiveNodeSetStateEvent(prevPatch)
+        setScrollToPatchId(prevPatch.attributes.id)
       }
     }
   }

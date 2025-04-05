@@ -4,6 +4,8 @@ import { NodeSetStateEvent } from '../../otel/store/schemas'
 interface ActiveNodeContextType {
   activeNodeSetStateEvent: NodeSetStateEvent | null
   setActiveNodeSetStateEvent: Dispatch<SetStateAction<NodeSetStateEvent | null>>
+  scrollToPatchId: string | null
+  setScrollToPatchId: Dispatch<SetStateAction<string | null>>
 }
 
 const ActiveNodeContext = createContext<ActiveNodeContextType | undefined>(undefined)
@@ -22,9 +24,12 @@ interface ActiveNodeProviderProps {
 
 export const ActiveNodeProvider: React.FC<ActiveNodeProviderProps> = ({ children }) => {
   const [activeNodeSetStateEvent, setActiveNodeSetStateEvent] = useState<NodeSetStateEvent | null>(null)
+  const [scrollToPatchId, setScrollToPatchId] = useState<string | null>(null)
 
   return (
-    <ActiveNodeContext.Provider value={{ activeNodeSetStateEvent, setActiveNodeSetStateEvent }}>
+    <ActiveNodeContext.Provider
+      value={{ activeNodeSetStateEvent, setActiveNodeSetStateEvent, scrollToPatchId, setScrollToPatchId }}
+    >
       {children}
     </ActiveNodeContext.Provider>
   )

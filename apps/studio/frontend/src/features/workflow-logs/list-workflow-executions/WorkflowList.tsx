@@ -1,6 +1,10 @@
 import { useParams } from 'react-router'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { selectServiceWorkflows, selectWorkflowsError, selectWorkflowsLoading } from '../../otel/store/selectors'
+import {
+  selectServiceWorkflows,
+  selectWorkflowsError,
+  selectWorkflowsLoading,
+} from '../../otel/store/selectors'
 import { RootState } from '../../../root-store/store'
 import { useEffect } from 'react'
 import { OtelStateActions } from '../../otel/store/slice'
@@ -14,7 +18,8 @@ export default function WorkflowsList() {
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
-  const workflowSpans = useAppSelector((state: RootState) => selectServiceWorkflows(state, { serviceName })) ?? []
+  const workflowSpans =
+    useAppSelector((state: RootState) => selectServiceWorkflows(state, { serviceName })) ?? []
 
   // Fetch the serviceNames
   useEffect(() => {
