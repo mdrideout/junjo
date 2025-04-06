@@ -142,10 +142,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
     })
   }
 
-  // generateChildRows(spans, 0)
-
-  console.log('ROWS: ', topLevelRows)
-
   /**
    * Recursive Nested Row
    * Recursively renders the nested rows

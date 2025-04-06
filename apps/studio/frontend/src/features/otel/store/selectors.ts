@@ -19,7 +19,6 @@ export const selectWorkflowsError = (state: RootState) => state.otelState.workfl
 export const selectServiceWorkflows = createSelector(
   [selectWorkflowsData, (_state: RootState, props: { serviceName: string | undefined }) => props],
   (workflowsData, props) => {
-    console.log('Recomputing selectServiceWorkflows') // Add log for debugging
     const serviceData = workflowsData[props.serviceName ?? '']
     if (!serviceData) return [] // Return stable empty array reference
 
@@ -34,8 +33,6 @@ export const selectWorkflowSpan = createSelector(
     (_state: RootState, props: { serviceName: string | undefined; spanID: string | undefined }) => props,
   ],
   (workflowsData, props): OtelSpan | undefined => {
-    // Added explicit return type
-    console.log('Recomputing selectWorkflowSpan')
     const serviceData = workflowsData[props.serviceName ?? '']
     if (!serviceData || !props.spanID) return undefined
     // .find returns existing reference or undefined, which is fine.
@@ -51,8 +48,6 @@ export const selectSpanChildren = createSelector(
       props,
   ],
   (workflowsData, props): OtelSpan[] => {
-    // Added explicit return type
-    console.log('Recomputing selectSpanChildren')
     const serviceData = workflowsData[props.serviceName ?? '']
     if (!serviceData || !props.workflowSpanID) return [] // Stable empty array reference
     // .filter creates new array, memoized by createSelector
@@ -68,8 +63,6 @@ export const selectAllWorkflowChildSpans = createSelector(
       props,
   ],
   (workflowsData, props): OtelSpan[] => {
-    // Added explicit return type
-    console.log('Recomputing selectAllWorkflowChildSpans')
     const { serviceName, workflowSpanID } = props
     if (!serviceName || !workflowSpanID) return [] // Stable empty array reference
 
@@ -110,10 +103,8 @@ export const selectAllWorkflowChildSpans = createSelector(
  * @returns {NodeSetStateEvent[]} sorted by their timeUnixNano
  */
 export const selectAllWorkflowStateEvents = createSelector(
-  [selectAllWorkflowChildSpans], // Input selector already handles props
+  [selectAllWorkflowChildSpans],
   (childSpans): NodeSetStateEvent[] => {
-    // Added explicit return type
-    console.log('Recomputing selectAllWorkflowStateEvents')
     const nodeSetStateEvents: NodeSetStateEvent[] = []
     childSpans.forEach((span) => {
       // Basic check if events_json exists and is an array
@@ -143,8 +134,6 @@ export const selectPrevWorkflowSpanID = (
 ) => {
   const workflowSpans = selectServiceWorkflows(state, { serviceName: props.serviceName })
   if (!workflowSpans) return undefined
-
-  console.log('Workflow Spans: ', workflowSpans)
 
   const spanIndex = workflowSpans.findIndex((item) => item.span_id === props.workflowSpanID)
   if (spanIndex === -1 || spanIndex === 0) return undefined

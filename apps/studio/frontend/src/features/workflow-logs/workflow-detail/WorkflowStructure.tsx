@@ -1,6 +1,6 @@
 import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
 import ReactFlowJunjoGraph from '../../../react-flow/components/ReactFlowJunjoGraph'
-import { ReactFlowGraphDirection } from '../../../react-flow/dagre-layout-util'
+import { ReactFlowGraphDirection } from '../../../react-flow/schemas'
 
 export type WorkflowStructureProps = {
   graph: JunjoGraph

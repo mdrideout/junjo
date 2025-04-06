@@ -12,8 +12,6 @@ export function SpanIconConstructor(props: { span: OtelSpan }): JSX.Element {
   const { span } = props
 
   const attributes = span.attributes_json
-  console.log(`Span ${span.name} attributes: `, attributes)
-  console.log(`Span ${span.name} junjo type: `, span.junjo_span_type)
 
   // Junjo Workflow Span
   if (span.junjo_span_type === JunjoSpanType.WORKFLOW) {

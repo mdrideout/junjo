@@ -1,10 +1,6 @@
 import { Node, Edge, Position } from '@xyflow/react'
 import dagre from '@dagrejs/dagre'
-
-export enum ReactFlowGraphDirection {
-  LR = 'LR',
-  TB = 'TB',
-}
+import { ReactFlowGraphDirection } from './schemas'
 
 // Interfaces
 export interface LayoutGraphWithDagreProps {
@@ -20,8 +16,8 @@ export interface LayoutGraphWithDagreResult {
 /**
  * Dagre Layout Util
  *
- * A utility function to handle configuring the Dagre Graph, and performing
- * the layout of the nodes and edges.
+ * Handles layout for React Flow nodes/edges using Dagre, including support
+ * for hierarchical graphs (nodes with parentId).
  *
  * Layout library: Dagre
  * - https://github.com/dagrejs/dagre/wiki
