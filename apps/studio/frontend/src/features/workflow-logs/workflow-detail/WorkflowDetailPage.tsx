@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { selectWorkflowsError, selectWorkflowsLoading, selectWorkflowSpan } from '../../otel/store/selectors'
 import { RootState } from '../../../root-store/store'
@@ -12,10 +12,12 @@ import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
 import NestedWorkflowSpans from '../node-logs/NestedWorkflowSpans'
 import RenderJunjoGraphMermaid from '../../../mermaidjs/RenderJunjoGraphMermaid'
 import { nanoid } from '@reduxjs/toolkit'
+import { Switch } from 'radix-ui'
 
 export default function WorkflowDetailPage() {
   const { serviceName, spanID } = useParams()
   const dispatch = useAppDispatch()
+  const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
@@ -45,7 +47,7 @@ export default function WorkflowDetailPage() {
   const durationString = getSpanDurationString(span.start_time, span.end_time)
 
   // Parse mermaid flow string
-  const mermaidFlowString = JunjoGraph.fromJson(span.junjo_wf_graph_structure).toMermaid()
+  const mermaidFlowString = JunjoGraph.fromJson(span.junjo_wf_graph_structure).toMermaid(mermaidEdgeLabels)
   const mermaidUniqueId = nanoid()
 
   return (
@@ -74,7 +76,24 @@ export default function WorkflowDetailPage() {
 
       <hr className={'my-6'} />
 
-      <div className={`w-full shrink-0 pb-3 mb-3 h-56 overflow-scroll`}>
+      <div className={`w-full shrink-0 pb-3 mb-3 h-64 overflow-scroll`}>
+        <div className={'absolute'}>
+          <div className="flex items-center">
+            <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">
+              Edge labels
+            </label>
+            <Switch.Root
+              checked={mermaidEdgeLabels}
+              onCheckedChange={setMermaidEdgeLabels}
+              className="relative h-[14px] w-[28px] border-0 cursor-default rounded-full outline-none bg-zinc-200 data-[state=checked]:bg-zinc-300"
+              id="edge-label-switch"
+              // stylelint-disable-next-line property-no-vendor-prefix
+              style={{ '-webkit-tap-highlight-color': 'rgba(0, 0, 0, 0)' }}
+            >
+              <Switch.Thumb className="block size-[14px] bg-zinc-700 translate-x-[1px] rounded-full transition-transform duration-100 will-change-transform data-[state=checked]:translate-x-[13px]" />
+            </Switch.Root>
+          </div>
+        </div>
         <RenderJunjoGraphMermaid
           mermaidFlowString={mermaidFlowString}
           mermaidUniqueId={mermaidUniqueId}

@@ -13,7 +13,12 @@
   transition: all 250ms ease-in-out;
 }
 
-.mermaid-container .node:hover > rect {
+.mermaid-container .node:not(.node-not-utilized):hover > rect {
   fill: orange !important;
   transition: all 250ms ease-in-out;
+}
+
+.mermaid-container .node.node-not-utilized {
+  cursor: default;
+  opacity: 0.5;
 }

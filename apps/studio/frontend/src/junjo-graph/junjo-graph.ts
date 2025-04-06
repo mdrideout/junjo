@@ -64,9 +64,11 @@ export class JunjoGraph {
    *
    * @param {MermaidGraphDirection} direction - The overall direction of the flowchart (e.g., 'TB', 'LR'). Defaults to 'LR'.
    * @param {MermaidGraphDirection} subDirection - Optional direction for layout *within* subgraphs. Defaults to 'TB'.
+   * @param {boolean} [showEdgeLabels=false] - If true, edge labels (conditions) will not be included in the output string.
    * @returns {string} A string containing the Mermaid flowchart definition.
    */
   toMermaid(
+    showEdgeLabels: boolean = false,
     direction: MermaidGraphDirection = 'LR',
     subDirection: MermaidGraphDirection = 'LR', // Default direction inside subgraphs
   ): string {
@@ -141,11 +143,15 @@ export class JunjoGraph {
       const targetId = edge.target
       const condition = edge.condition // string | null
 
-      if (condition) {
+      // Check if there's a condition AND if labels are NOT disabled
+      if (condition && showEdgeLabels) {
         // Edge with a condition (label)
-        lines.push(`  ${sourceId} --${escapeMermaidLabel(condition)}--> ${targetId}`)
+        lines.push(`  ${sourceId} -.${escapeMermaidLabel(condition)}.-> ${targetId}`)
+      } else if (condition && !showEdgeLabels) {
+        // Edge with a condition (label) AND labels ARE disabled
+        lines.push(`  ${sourceId} -.-> ${targetId}`)
       } else {
-        // Edge without a condition
+        // Edge without a condition OR labels ARE disabled
         lines.push(`  ${sourceId} --> ${targetId}`)
       }
     })
@@ -154,91 +160,3 @@ export class JunjoGraph {
     return lines.join('\n')
   }
 }
-
-// /**
-//  * To React Flow (Clean Hierarchy for ELK + Custom Node Type)
-//  *
-//  * Converts the Junjo Graph JSON representation for React Flow,
-//  * defining hierarchy via parentId and assigning a custom type
-//  * to subgraph nodes for custom rendering with Handles.
-//  *
-//  * @param {ReactFlowGraphDirection} direction - Layout direction hint.
-//  * @param {number} defaultSubgraphWidth - Placeholder width for subgraph nodes.
-//  * @param {number} defaultSubgraphHeight - Placeholder height for subgraph nodes.
-//  * @returns {ReactFlowInitialData} Initial data for React Flow.
-//  */
-// toReactFlow(
-//   direction: ReactFlowGraphDirection = ReactFlowGraphDirection.LR,
-//   defaultSubgraphWidth: number = 350,
-//   defaultSubgraphHeight: number = 250,
-// ): ReactFlowInitialData {
-//   const nodeMap = new Map<string, JNode>(this.graph.nodes.map((node) => [node.id, node]))
-//   const childToParentMap = new Map<string, string>()
-//   const subgraphIds = new Set<string>() // Still useful to know which are containers
-
-//   // 1. Preprocessing: Identify children and subgraph container IDs
-//   this.graph.nodes.forEach((node) => {
-//     if (node.isSubgraph && node.children) {
-//       subgraphIds.add(node.id)
-//       node.children.forEach((childId) => {
-//         if (nodeMap.has(childId)) {
-//           childToParentMap.set(childId, node.id)
-//         } else {
-//           console.warn(
-//             `Subgraph node ${node.id} ('${node.label}') lists child ${childId}, but it was not found.`,
-//           )
-//         }
-//       })
-//     }
-//   })
-
-//   // 2. Map JNodes to React Flow Nodes (NO PROXY NODES)
-//   const nodes: RFNode[] = this.graph.nodes.map((node) => {
-//     const isChild = childToParentMap.has(node.id)
-//     const parentId = isChild ? childToParentMap.get(node.id) : undefined
-//     const isSubgraph = subgraphIds.has(node.id)
-
-//     // Base React Flow node structure
-//     const rfNode: RFNode = {
-//       id: node.id,
-//       // *** Use a CUSTOM TYPE for subgraph containers ***
-//       type: isSubgraph ? 'junjoSubgraph' : undefined, // Signal custom rendering needed
-//       data: { label: node.label },
-//       position: { x: 0, y: 0 }, // Placeholder for layout algorithm
-//       parentId: parentId,
-//       extent: isChild ? 'parent' : undefined,
-//     }
-
-//     // Add style with dimensions ONLY to the subgraph container nodes
-//     if (isSubgraph) {
-//       rfNode.style = {
-//         width: defaultSubgraphWidth,
-//         height: defaultSubgraphHeight,
-//       }
-//     }
-
-//     return rfNode
-//   })
-
-//   // 3. Map JEdges to React Flow Edges (NO REDIRECTION)
-//   const edges: RFEdge[] = this.graph.edges
-//     .filter((edge) => nodeMap.has(edge.source) && nodeMap.has(edge.target))
-//     .map((edge) => ({
-//       id: edge.id,
-//       source: edge.source, // Use original source ID
-//       target: edge.target, // Use original target ID
-//       label: edge.condition ?? undefined,
-//       style: {
-//         strokeDasharray: edge.condition ? '6 4' : undefined,
-//       },
-//       // Note: We don't specify source/target handles here. The custom node's
-//       // default Handles will be used by React Flow if handle IDs aren't specified.
-//     }))
-
-//   // 4. Return the structured data
-//   return {
-//     direction,
-//     nodes, // Clean list without proxy nodes
-//     edges, // Clean list with original source/targets
-//   }
-// }
