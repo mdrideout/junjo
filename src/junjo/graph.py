@@ -3,14 +3,6 @@ import json
 
 from junjo.node import Node
 from junjo.node_gather import NodeGather
-from junjo.react_flow.schemas import (
-    ReactFlowEdge,
-    ReactFlowJsonObject,
-    ReactFlowNode,
-    ReactFlowNodeData,
-    ReactFlowPosition,
-    ReactFlowViewport,
-)
 from junjo.store import BaseStore
 
 from .edge import Edge  # Assuming Transition is in a 'transition.py' file
@@ -103,35 +95,6 @@ class Graph:
 
         dot_str += "}\n"  # End of DOT graph
         return dot_str
-
-    def to_react_flow(self) -> ReactFlowJsonObject:
-        """Converts the graph to a ReactFlowJsonObject."""
-        nodes: list[ReactFlowNode] = []
-        edges: list[ReactFlowEdge] = []
-
-        # Add nodes
-        all_nodes = {node.id: node for node in [self.source, self.sink] +
-                     [e.tail for e in self.edges] + [e.head for e in self.edges]}
-        for node_id, node in all_nodes.items():
-            nodes.append(ReactFlowNode(
-                id=node_id,
-                data=ReactFlowNodeData(label=node.__class__.__name__),
-                position=ReactFlowPosition(x=0, y=0)  # The frontend can calculate these dynamically
-            ))
-
-        # Add edges
-        for edge in self.edges:
-            tail_id = edge.tail.id
-            head_id = edge.head.id
-            edges.append(ReactFlowEdge(
-                id=f"{tail_id}-{head_id}",
-                source=tail_id,
-                target=head_id,
-                label=str(edge.condition) if edge.condition else None
-            ))
-
-        viewport = ReactFlowViewport(x=0, y=0, zoom=1)
-        return ReactFlowJsonObject(nodes=nodes, edges=edges, viewport=viewport)
 
 
     def serialize_to_json_string(self) -> str:  # noqa: C901
