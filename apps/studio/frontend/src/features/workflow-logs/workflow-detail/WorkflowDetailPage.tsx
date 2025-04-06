@@ -64,32 +64,32 @@ export default function WorkflowDetailPage() {
   console.log('Rendering workflow: ', span)
 
   return (
-    <div className={'p-5 flex flex-col h-full'}>
-      <div className={'px-2'}>
-        <div className={'flex gap-x-3 items-center justify-between'}>
-          <div>
-            <div className={'mb-1 flex gap-x-3 font-bold'}>
-              <Link to={'/logs'} className={'hover:underline'}>
-                Logs
-              </Link>
-              <div>&rarr;</div>
-              <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
-                {serviceName}
-              </Link>
-              <div>&rarr;</div>
-              <div>
-                {span.name} <span className={'text-xs font-normal'}>({spanID})</span>
-              </div>
-            </div>
-            <div className={'text-zinc-400 text-xs'}>
-              {readableStart} &mdash; {durationString}
+    <div className={'p-5 flex flex-col h-dvh'}>
+      <div className={'flex gap-x-3 px-2 items-center justify-between'}>
+        <div>
+          <div className={'mb-1 flex gap-x-3 font-bold'}>
+            <Link to={'/logs'} className={'hover:underline'}>
+              Logs
+            </Link>
+            <div>&rarr;</div>
+            <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
+              {serviceName}
+            </Link>
+            <div>&rarr;</div>
+            <div>
+              {span.name} <span className={'text-xs font-normal'}>({spanID})</span>
             </div>
           </div>
-          <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={spanID} />
+          <div className={'text-zinc-400 text-xs'}>
+            {readableStart} &mdash; {durationString}
+          </div>
         </div>
+        <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={spanID} />
       </div>
+
       <hr className={'my-6'} />
-      <div className={`w-full h-[1000px] mb-5`}>
+
+      <div className={`w-full shrink-0 pb-3 mb-3 max-h-56 overflow-scroll`}>
         <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
       </div>
       <div className={'grow w-full flex gap-x-10 justify-between overflow-hidden'}>

@@ -1,6 +1,5 @@
 import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
-import ReactFlowJunjoGraph from '../../../react-flow/components/ReactFlowJunjoGraph'
-import { ReactFlowGraphDirection } from '../../../react-flow/schemas'
+import RenderJunjoGraphMermaid from '../../../mermaidjs/RenderJunjoGraphMermaid'
 
 export type WorkflowStructureProps = {
   graph: JunjoGraph
@@ -14,5 +13,5 @@ export type WorkflowStructureProps = {
 export default function WorkflowStructure(props: WorkflowStructureProps) {
   const { graph } = props
 
-  return <ReactFlowJunjoGraph junjoGraph={graph} direction={ReactFlowGraphDirection.LR} />
+  return <RenderJunjoGraphMermaid graph={graph} />
 }

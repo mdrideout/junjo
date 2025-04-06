@@ -10,7 +10,6 @@ import { AuthProvider } from './auth/auth-context.tsx'
 import SignOut from './auth/sign-out/SignOut.tsx'
 import WorkflowDetailPage from './features/workflow-logs/workflow-detail/WorkflowDetailPage.tsx'
 import WorkflowListPage from './features/workflow-logs/list-workflow-executions/WorkflowListPage.tsx'
-import { ReactFlowProvider } from '@xyflow/react'
 import AppNamesPage from './features/workflow-logs/list-app-names/AppNamesPage.tsx'
 import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
@@ -20,50 +19,48 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Provider store={store}>
-        <ReactFlowProvider>
-          <AuthProvider>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/sign-in" element={<SignIn />} />
-                <Route path="/sign-out" element={<SignOut />} />
-                <Route
-                  path="/"
-                  element={
-                    <AuthGuard>
-                      <Dashboard />
-                    </AuthGuard>
-                  }
-                />
-                <Route
-                  path="/logs"
-                  element={
-                    <AuthGuard>
-                      <AppNamesPage />
-                    </AuthGuard>
-                  }
-                />
-                <Route
-                  path="/logs/:serviceName"
-                  element={
-                    <AuthGuard>
-                      <WorkflowListPage />
-                    </AuthGuard>
-                  }
-                />
-                <Route
-                  path="/logs/:serviceName/:spanID"
-                  element={
-                    <AuthGuard>
-                      <ActiveNodeProvider>
-                        <WorkflowDetailPage />
-                      </ActiveNodeProvider>
-                    </AuthGuard>
-                  }
-                />
-              </Route>
-            </Routes>
-          </AuthProvider>
-        </ReactFlowProvider>
+        <AuthProvider>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/sign-out" element={<SignOut />} />
+              <Route
+                path="/"
+                element={
+                  <AuthGuard>
+                    <Dashboard />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/logs"
+                element={
+                  <AuthGuard>
+                    <AppNamesPage />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/logs/:serviceName"
+                element={
+                  <AuthGuard>
+                    <WorkflowListPage />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/logs/:serviceName/:spanID"
+                element={
+                  <AuthGuard>
+                    <ActiveNodeProvider>
+                      <WorkflowDetailPage />
+                    </ActiveNodeProvider>
+                  </AuthGuard>
+                }
+              />
+            </Route>
+          </Routes>
+        </AuthProvider>
       </Provider>
     </BrowserRouter>
   </StrictMode>,

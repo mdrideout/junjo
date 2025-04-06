@@ -165,8 +165,14 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
             </div>
             {row.childRows.length > 0 && (
               <div className={'border-l ml-[15px] border-zinc-300 dark:border-zinc-700'}>
-                {row.childRows.map((childRow) => {
-                  return <RecursiveNestedRow row={childRow} layer={layer + 1} />
+                {row.childRows.map((childRow, index) => {
+                  return (
+                    <RecursiveNestedRow
+                      key={`nested-row-${index}-${childRow.data.name}`}
+                      row={childRow}
+                      layer={layer + 1}
+                    />
+                  )
                 })}
               </div>
             )}
