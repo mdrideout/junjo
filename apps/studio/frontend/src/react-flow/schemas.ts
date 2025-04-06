@@ -1,5 +1,4 @@
 import { Edge, Node } from '@xyflow/react'
-import { ReactFlowGraphDirection } from './dagre-layout-util'
 
 /**
  * React Flow Initial Data
@@ -10,4 +9,12 @@ export type ReactFlowInitialData = {
   direction: ReactFlowGraphDirection
   nodes: Node[]
   edges: Edge[]
+}
+
+// Define ReactFlow direction type
+export enum ReactFlowGraphDirection {
+  TB = 'TB',
+  LR = 'LR',
+  RL = 'RL',
+  BT = 'BT',
 }
