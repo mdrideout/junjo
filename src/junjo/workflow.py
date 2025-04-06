@@ -4,6 +4,7 @@ from typing import Generic
 from opentelemetry import trace
 
 from junjo.graph import Graph
+from junjo.node_gather import NodeGather
 from junjo.store import StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
@@ -96,13 +97,22 @@ class Workflow(Generic[StateT, StoreT]):
                         # if self.hook_manager is not None:
                         #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
 
-                        # Increment the execution counter for the current node.
-                        self.node_execution_counter[current_node.id] = self.node_execution_counter.get(current_node.id, 0) + 1
-                        if self.node_execution_counter[current_node.id] > self.max_iterations:
-                            raise ValueError(
-                                f"Node '{current_node}' exceeded maximum execution count. \
-                                Check for loops in your graph. Ensure it transitions to the sink node."
-                            )
+                        # Increment the execution counter for Node and NodeGather executions
+                        if isinstance(current_node, NodeGather):
+                            for node in current_node.nodes:
+                                self.node_execution_counter[node.id] = self.node_execution_counter.get(node.id, 0) + 1
+                                if self.node_execution_counter[node.id] > self.max_iterations:
+                                    raise ValueError(
+                                        f"Node '{node}' exceeded maximum execution count. \
+                                        Check for loops in your graph. Ensure it transitions to the sink node."
+                                    )
+                        else:
+                            self.node_execution_counter[current_node.id] = self.node_execution_counter.get(current_node.id, 0) + 1
+                            if self.node_execution_counter[current_node.id] > self.max_iterations:
+                                raise ValueError(
+                                    f"Node '{current_node}' exceeded maximum execution count. \
+                                    Check for loops in your graph. Ensure it transitions to the sink node."
+                                )
 
                         # Break the loop if the current node is the final node.
                         if current_node == self.graph.sink:
