@@ -4,7 +4,7 @@ import { RootState } from '../../../root-store/store'
 import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
 import { selectAllWorkflowChildSpans } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
-import { JSX, useMemo } from 'react'
+import { JSX, useEffect, useMemo, useRef } from 'react'
 import {
   JunjoSpanType,
   NodeEventType,
@@ -29,6 +29,8 @@ interface NestedWorkflowSpansProps {
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { serviceName, workflowSpanID } = props
   const { activeNodeSetStateEvent, setActiveNodeSetStateEvent } = useActiveNodeContext()
+  const { scrollToPatchId } = useActiveNodeContext()
+  const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
   // 1. Memoize the props object for the selector
   const selectorProps = useMemo(
@@ -50,9 +52,22 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   })
 
   // Filter the spans to only include the top level spans
-
   const topLevelSpans = spans.filter((span) => span.parent_span_id === workflowSpanID)
-  console.log('Top level spans: ', topLevelSpans)
+
+  // Scroll To Patch
+  useEffect(() => {
+    if (scrollToPatchId && scrollableContainerRef.current) {
+      console.log(`Scrolling to patch: state-patch-${scrollToPatchId}`)
+      const targetElement = scrollableContainerRef.current.querySelector(`#state-patch-${scrollToPatchId}`)
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        })
+      }
+    }
+  }, [scrollToPatchId])
 
   // Stop the recursion when there are no more children
   if (!spans || spans.length === 0) {
@@ -216,7 +231,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   topLevelRows.sort((a, b) => a.time - b.time)
 
   return (
-    <>
+    <div ref={scrollableContainerRef} className={'flex-1 overflow-y-scroll'}>
       {topLevelRows.map((row) => {
         return (
           <Fragment key={`row-${row.time}`}>
@@ -224,6 +239,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
           </Fragment>
         )
       })}
-    </>
+    </div>
   )
 }
