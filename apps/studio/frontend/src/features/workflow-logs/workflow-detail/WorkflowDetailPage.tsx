@@ -87,8 +87,6 @@ export default function WorkflowDetailPage() {
               onCheckedChange={setMermaidEdgeLabels}
               className="relative h-[14px] w-[28px] border-0 cursor-default rounded-full outline-none bg-zinc-200 data-[state=checked]:bg-zinc-300"
               id="edge-label-switch"
-              // stylelint-disable-next-line property-no-vendor-prefix
-              style={{ '-webkit-tap-highlight-color': 'rgba(0, 0, 0, 0)' }}
             >
               <Switch.Thumb className="block size-[14px] bg-zinc-700 translate-x-[1px] rounded-full transition-transform duration-100 will-change-transform data-[state=checked]:translate-x-[13px]" />
             </Switch.Root>
