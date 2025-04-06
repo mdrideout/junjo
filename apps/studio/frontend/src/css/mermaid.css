@@ -14,8 +14,13 @@
 }
 
 .mermaid-container .node:not(.node-not-utilized):hover > rect {
-  fill: orange !important;
+  fill: rgb(255, 193, 77) !important;
   transition: all 250ms ease-in-out;
+}
+@media (prefers-color-scheme: dark) {
+  .mermaid-container .node:not(.node-not-utilized):hover > rect {
+    fill: rgb(106, 63, 0) !important;
+  }
 }
 
 .mermaid-container .node.node-not-utilized {
