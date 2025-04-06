@@ -1,8 +1,13 @@
 import { Fragment } from 'react/jsx-runtime'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
-import { selectAllWorkflowChildSpans } from '../../otel/store/selectors'
+import {
+  formatMicrosecondsSinceEpochToTime,
+  getSpanDurationString,
+  isoStringToMicrosecondsSinceEpoch,
+  nanoSecondsToMicrosecons,
+} from '../../../util/duration-utils'
+import { selectAllWorkflowChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
 import { JSX, useEffect, useMemo, useRef } from 'react'
 import {
@@ -96,12 +101,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   type RowData = SpanRow | StateRow
   const topLevelRows: RowData[] = []
 
-  // TODO
-  // For each span
-  // Generate a row
-  // Recursively generate nested rows for its children
-  // LEFT OFF HERE
-
   /**
    * Generate Rows
    * Recursive function to populate rows with the correct indentation / nesting
@@ -113,8 +112,8 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
     const childRows: RowData[] = []
 
     // Get this span's state events and add them to the child rows
-    const setStateEvents = parentSpan.events_json.filter((item) => item.name === NodeEventType.SET_STATE)
-    setStateEvents.forEach((event) => {
+    const spanSetStateEvents = parentSpan.events_json.filter((item) => item.name === NodeEventType.SET_STATE)
+    spanSetStateEvents.forEach((event) => {
       const validated = NodeSetStateEventSchema.safeParse(event)
       if (validated.error) {
         console.log('ERROR: ', validated.error)
@@ -166,16 +165,23 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   function RecursiveNestedRow({ row, layer }: { row: RowData; layer: number }): JSX.Element {
     if (row.type === RowType.SPAN) {
       const nonWorkflowNodeSpan = row.data.junjo_span_type === JunjoSpanType.OTHER
+      const start_time = row.data.start_time
+      const end_time = row.data.end_time
+      const spanDuration = getSpanDurationString(start_time, end_time)
 
       return (
         <Fragment key={`span-${row.data.span_id}-${layer}`}>
           <div className={`${layer > 0 ? 'ml-3 text-sm' : 'ml-0'}`}>
             <div
-              className={` p-1.5 ${nonWorkflowNodeSpan ? 'border-b border-zinc-300 dark:border-zinc-700' : ''}`}
+              className={` p-1.5 ${nonWorkflowNodeSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}
             >
               <div className={`flex gap-x-2 ${nonWorkflowNodeSpan ? 'items-start' : 'items-center'}`}>
                 <SpanIconConstructor span={row.data} />
-                <div>{row.data.name}</div>
+                <div className={'w-full flex gap-x-2 justify-between items-end'}>
+                  <div>{row.data.name}</div>
+
+                  <div className={'text-zinc-500 text-xs'}>{spanDuration}</div>
+                </div>
               </div>
             </div>
             {row.childRows.length > 0 && (
@@ -231,7 +237,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   topLevelRows.sort((a, b) => a.time - b.time)
 
   return (
-    <div ref={scrollableContainerRef} className={'flex-1 overflow-y-scroll'}>
+    <div ref={scrollableContainerRef} className={'flex-1 overflow-y-scroll pr-2.5'}>
       {topLevelRows.map((row) => {
         return (
           <Fragment key={`row-${row.time}`}>

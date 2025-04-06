@@ -10,6 +10,10 @@ import { RootState } from '../../../root-store/store'
 import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
+import {
+  formatMicrosecondsSinceEpochToTime,
+  isoStringToMicrosecondsSinceEpoch,
+} from '../../../util/duration-utils'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -198,15 +202,25 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }
   }
 
+  const statePatchTime = activeNodeSetStateEvent?.timeUnixNano
+  const start_micro = statePatchTime
+    ? formatMicrosecondsSinceEpochToTime(activeNodeSetStateEvent?.timeUnixNano / 1000)
+    : null
+
   return (
-    <div className={'flex-1 overflow-y-scroll'}>
+    <div className={'flex-1 overflow-y-scroll pr-2.5'}>
       {activeNodeSetStateEvent && (
-        <div className={'flex justify-between text-xs mb-2 border-b px-2 pb-2'}>
-          <div>
-            State Patch ({activePatchIndex + 1}/{workflowStateEvents.length}):&nbsp;
-            {activeNodeSetStateEvent?.attributes.id}
+        <div
+          className={
+            'flex justify-between items-center text-xs mb-2 border-b border-zinc-300 px-2 pb-2 font-bold'
+          }
+        >
+          <div>Patch: {activeNodeSetStateEvent?.attributes.id}</div>
+          <div className={'flex items-center gap-x-2'}>
+            {' '}
+            {start_micro} &mdash; ({activePatchIndex + 1}/{workflowStateEvents.length})
+            <WorkflowStateEventNavButtons workflowStateEvents={workflowStateEvents} />
           </div>
-          <WorkflowStateEventNavButtons workflowStateEvents={workflowStateEvents} />
         </div>
       )}
       <div className={'flex gap-x-2 mb-2'}>

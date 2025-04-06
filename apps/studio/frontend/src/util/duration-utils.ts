@@ -86,3 +86,54 @@ function formatDurationMicro(durationMicro: number): string {
 export function nanoSecondsToMicrosecons(nanoseconds: number): number {
   return nanoseconds / 1000
 }
+
+/**
+ * Formats microseconds since the epoch into a HH:MM:SS.ffffff string (UTC).
+ *
+ * The time is always calculated based on the UTC timezone.
+ *
+ * @param microsecondsSinceEpoch - The total number of microseconds since 1970-01-01T00:00:00Z.
+ * Should be a standard JavaScript number (or BigInt if needed, though number is usually sufficient).
+ * @returns A string formatted as HH:MM:SS.ffffff in UTC.
+ * @throws Error if the input is not a finite number or results in an invalid Date.
+ */
+export function formatMicrosecondsSinceEpochToTime(microsecondsSinceEpoch: number): string {
+  // Validate input
+  if (typeof microsecondsSinceEpoch !== 'number' || !Number.isFinite(microsecondsSinceEpoch)) {
+    throw new Error('Input must be a finite number representing microseconds since epoch.')
+  }
+
+  // Calculate milliseconds since epoch for the Date object
+  // Math.floor handles potential negative numbers correctly for epoch conversion
+  const millisecondsSinceEpoch = Math.floor(microsecondsSinceEpoch / 1000)
+
+  // Calculate the microsecond fraction part (0-999999)
+  // Use Math.abs before modulo to handle negative epoch times correctly, ensuring a positive fraction.
+  // Although epoch times are usually positive, this makes the function more robust.
+  const microsecondFraction = Math.abs(microsecondsSinceEpoch) % 1000000
+
+  // Create a Date object using the milliseconds
+  const date = new Date(millisecondsSinceEpoch)
+
+  // Check if the resulting date is valid
+  if (isNaN(date.getTime())) {
+    throw new Error('Invalid microsecond value resulted in an invalid Date.')
+  }
+
+  // Extract UTC time components
+  const hours = date.getUTCHours()
+  const minutes = date.getUTCMinutes()
+  const seconds = date.getUTCSeconds()
+
+  // Format components with leading zeros if needed
+  const formattedHours = String(hours).padStart(2, '0')
+  const formattedMinutes = String(minutes).padStart(2, '0')
+  const formattedSeconds = String(seconds).padStart(2, '0')
+
+  // Format the microsecond fraction with leading zeros to 6 digits
+  // Ensure it's an integer before padding
+  const formattedMicroseconds = String(Math.floor(microsecondFraction)).padStart(6, '0')
+
+  // Combine into the final string
+  return `${formattedHours}:${formattedMinutes}:${formattedSeconds}.${formattedMicroseconds}`
+}

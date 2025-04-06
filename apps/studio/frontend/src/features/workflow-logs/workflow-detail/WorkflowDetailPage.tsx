@@ -99,7 +99,7 @@ export default function WorkflowDetailPage() {
           workflowSpanID={spanID}
         />
       </div>
-      <div className={'grow w-full flex gap-x-10 justify-between overflow-hidden'}>
+      <div className={'grow w-full flex gap-x-6 justify-between overflow-hidden'}>
         <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={spanID} />
         <WorkflowDetailStateDiff
           workflowStateStart={span.junjo_wf_state_start}
