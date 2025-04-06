@@ -1,13 +1,13 @@
 
 from typing import Generic
 
-from nanoid import generate
 from opentelemetry import trace
 
 from junjo.graph import Graph
 from junjo.store import StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from junjo.util import generate_safe_id
 
 
 class Workflow(Generic[StateT, StoreT]):
@@ -35,7 +35,7 @@ class Workflow(Generic[StateT, StoreT]):
                             executed before raising an exception (defaults to 100)
 
         """
-        self.id = generate()
+        self.id = generate_safe_id()
         self.workflow_name = workflow_name.strip()
         self.graph = graph
         self.max_iterations = max_iterations

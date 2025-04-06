@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from jsonpatch import JsonPatch
-from nanoid import generate
 from opentelemetry import trace
 
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from junjo.util import generate_safe_id
 
 if TYPE_CHECKING:
     from junjo.store import BaseStore
@@ -25,7 +25,7 @@ class Node(Generic[StoreT], ABC):
     ):
         """Initialize the node"""
         super().__init__()
-        self._id = generate()
+        self._id = generate_safe_id()
         self._patches: list[JsonPatch] = []
 
     def __repr__(self):

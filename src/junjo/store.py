@@ -5,12 +5,12 @@ from collections.abc import Awaitable, Callable
 from typing import Generic, TypeVar
 
 import jsonpatch
-from nanoid import generate
 from opentelemetry import trace
 from pydantic import ValidationError
 
 from junjo.node import Node
 from junjo.state import BaseState
+from junjo.util import generate_safe_id
 
 StateT = TypeVar("StateT", bound=BaseState)
 StoreT = TypeVar("StoreT", bound="BaseStore")
@@ -128,7 +128,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                 current_span.add_event(
                     name="set_state",
                     attributes={
-                        "id": generate(),
+                        "id": generate_safe_id(),
                         "junjo.node.id": node.id,
                         "junjo.store.name": caller_class_name,
                         "junjo.store.action": caller_function_name,

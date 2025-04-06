@@ -1,11 +1,11 @@
 import asyncio
 
-from nanoid import generate
 from opentelemetry import trace
 
 from junjo.node import Node
 from junjo.store import BaseStore
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from junjo.util import generate_safe_id
 
 
 class NodeGather(Node):
@@ -22,7 +22,7 @@ class NodeGather(Node):
         """
         super().__init__()
         self.nodes = nodes
-        self._id = generate()
+        self._id = generate_safe_id()
         self._name = name
 
     def __repr__(self):
