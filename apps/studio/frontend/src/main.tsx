@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
-import './index.css'
+import './css/index.css'
 import Dashboard from './features/dashboard/Dashboard.tsx'
 import { AppLayout } from './Layouts/AppLayout.tsx'
 import SignIn from './auth/sign-in/SignIn.tsx'

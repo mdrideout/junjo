@@ -1,0 +1,19 @@
+.mermaid-node-active > rect,
+.mermaid-node-active > polygon,
+.mermaid-node-active > circle,
+.mermaid-node-active > ellipse {
+  /* Target the shape element within the active node group */
+  stroke: orange !important;
+  stroke-width: 4px !important;
+  transition: all 250ms ease-in-out;
+}
+
+.mermaid-container .node {
+  cursor: pointer;
+  transition: all 250ms ease-in-out;
+}
+
+.mermaid-container .node:hover > rect {
+  fill: orange !important;
+  transition: all 250ms ease-in-out;
+}

@@ -7,10 +7,11 @@ import { RootState } from '../../../root-store/store'
 import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
-import WorkflowStructure from './WorkflowStructure'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
 import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
 import NestedWorkflowSpans from '../node-logs/NestedWorkflowSpans'
+import RenderJunjoGraphMermaid from '../../../mermaidjs/RenderJunjoGraphMermaid'
+import { nanoid } from '@reduxjs/toolkit'
 
 export default function WorkflowDetailPage() {
   const { serviceName, spanID } = useParams()
@@ -43,7 +44,9 @@ export default function WorkflowDetailPage() {
   // Parse duration
   const durationString = getSpanDurationString(span.start_time, span.end_time)
 
-  console.log('Rendering workflow: ', span)
+  // Parse mermaid flow string
+  const mermaidFlowString = JunjoGraph.fromJson(span.junjo_wf_graph_structure).toMermaid()
+  const mermaidUniqueId = nanoid()
 
   return (
     <div className={'p-5 flex flex-col h-dvh'}>
@@ -71,8 +74,13 @@ export default function WorkflowDetailPage() {
 
       <hr className={'my-6'} />
 
-      <div className={`w-full shrink-0 pb-3 mb-3 max-h-56 overflow-scroll`}>
-        <WorkflowStructure graph={JunjoGraph.fromJson(span.junjo_wf_graph_structure)} />
+      <div className={`w-full shrink-0 pb-3 mb-3 h-56 overflow-scroll`}>
+        <RenderJunjoGraphMermaid
+          mermaidFlowString={mermaidFlowString}
+          mermaidUniqueId={mermaidUniqueId}
+          serviceName={serviceName}
+          workflowSpanID={spanID}
+        />
       </div>
       <div className={'grow w-full flex gap-x-10 justify-between overflow-hidden'}>
         <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={spanID} />
