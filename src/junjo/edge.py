@@ -2,6 +2,7 @@
 from junjo.condition import Condition
 from junjo.node import Node
 from junjo.store import BaseStore, StateT
+from junjo.sub_flow import SubFlow
 
 
 class Edge:
@@ -14,8 +15,8 @@ class Edge:
 
     def __init__(
         self,
-        tail: Node,
-        head: Node,
+        tail: Node | SubFlow,
+        head: Node | SubFlow,
         condition: Condition[StateT] | None = None,
     ):
         """
@@ -35,7 +36,7 @@ class Edge:
         self.head = head
         self.condition = condition
 
-    async def next_node(self, store: BaseStore) -> Node | None:
+    async def next_node(self, store: BaseStore) -> Node | SubFlow | None:
         """
         Determines the next node in the workflow based on the edge's condition.
 

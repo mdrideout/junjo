@@ -7,3 +7,4 @@ class JunjoOtelSpanTypes(StrEnum):
     WORKFLOW = "workflow"
     NODE = "node"
     NODE_GATHER = "node_gather"
+    SUB_FLOW = "sub_flow"

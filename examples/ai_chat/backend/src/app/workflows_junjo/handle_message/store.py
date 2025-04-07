@@ -16,7 +16,7 @@ class MessageWorkflowState(BaseState):
     response_message: MessageRead | None = None
     test_updates: list[str] = []
     concurrent_update_test_state: str | None = None
-
+    sub_flow_jokes: list[str] = []
 
 class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
     """
@@ -46,4 +46,8 @@ class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
 
     async def set_concurrent_update_test_state(self, node: Node, payload: str) -> None:
         await self.set_state(node, {"concurrent_update_test_state": payload})
+
+    async def set_sub_flow_jokes(self, node: Node, payload: list[str]) -> None:
+        await self.set_state(node, {"sub_flow_jokes": payload})
+
 

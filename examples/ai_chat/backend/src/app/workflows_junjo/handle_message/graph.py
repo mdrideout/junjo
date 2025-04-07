@@ -17,6 +17,10 @@ from app.workflows_junjo.handle_message.nodes.test_conrrent_node_3.node import T
 from app.workflows_junjo.handle_message.nodes.test_conrrent_node_runner.node import TestConcurrentNodeRunner
 from app.workflows_junjo.handle_message.schemas import MessageDirective
 from app.workflows_junjo.handle_message.store import MessageWorkflowStore
+from app.workflows_junjo.test_sub_flow.graph import test_sub_flow_graph
+from app.workflows_junjo.test_sub_flow.state import TestSubFlowState
+from app.workflows_junjo.test_sub_flow.store import TestSubFlowStore
+from app.workflows_junjo.test_sub_flow.sub_flow import TestSubFlow
 
 
 class SinkNode(Node[MessageWorkflowStore]):
@@ -46,6 +50,13 @@ test_node_gather = NodeGather(
 # Concurrency Test - Node that directly executes other nodes
 test_concurrent_node_runner = TestConcurrentNodeRunner()
 
+# SubFlow Test - Test Running A SubFlow
+sub_flow_test = TestSubFlow(
+    name="TestSubFlow",
+    graph=test_sub_flow_graph,
+    store=TestSubFlowStore(initial_state=TestSubFlowState())
+)
+
 # Construct a graph
 handle_message_graph = Graph(
     source=save_message_node,
@@ -57,8 +68,11 @@ handle_message_graph = Graph(
         # Test NodeGather
         Edge(tail=load_contact_node, head=test_node_gather),
 
+        # Test SubFlow
+        Edge(tail=test_node_gather, head=sub_flow_test),
+
         # Test Concurrent Node Runner
-        Edge(tail=test_node_gather, head=test_concurrent_node_runner),
+        Edge(tail=sub_flow_test, head=test_concurrent_node_runner),
         Edge(tail=test_concurrent_node_runner, head=assess_message_directive_node),
 
         # Message Directive Options

@@ -4,6 +4,7 @@ import json
 from junjo.node import Node
 from junjo.node_gather import NodeGather
 from junjo.store import BaseStore
+from junjo.sub_flow import SubFlow
 
 from .edge import Edge  # Assuming Transition is in a 'transition.py' file
 
@@ -12,7 +13,7 @@ class Graph:
     """
     Represents a directed graph of nodes and edges.
     """
-    def __init__(self, source: Node, sink: Node, edges: list[Edge]):
+    def __init__(self, source: Node | SubFlow, sink: Node | SubFlow, edges: list[Edge]):
         self.source = source
         self.sink = sink
         self.edges = edges
@@ -29,7 +30,7 @@ class Graph:
     #     return True
 
 
-    async def get_next_node(self, store: BaseStore, current_node: Node) -> Node:
+    async def get_next_node(self, store: BaseStore, current_node: Node | SubFlow) -> Node | SubFlow:
         matching_edges = [edge for edge in self.edges if edge.tail == current_node]
         resolved_edges = [edge for edge in matching_edges if await edge.next_node(store) is not None]
 
@@ -108,7 +109,7 @@ class Graph:
         all_nodes_dict: dict[str, Node] = {} # Dictionary to store unique nodes found
 
         # Recursive helper function to find all nodes, including those inside NodeGather
-        def collect_nodes(node: Node | None):
+        def collect_nodes(node: Node | SubFlow | None):
             # Basic validation: Ensure node is a Node instance and has an ID
             if not isinstance(node, Node) or not hasattr(node, 'id'):
                  print(f"Warning: Item '{node}' is not a valid Node with an id, skipping collection.")
