@@ -123,7 +123,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             print("Executing subflow:", current_executable.name)
                             await current_executable.execute(self.id)
 
-                            # Perform post-run actions
+                            # Perform post-run actions (pass this level's store as the parent store)
                             await current_executable.post_run_actions(self.store)
 
                         # If executing a node

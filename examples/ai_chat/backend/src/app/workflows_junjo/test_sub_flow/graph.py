@@ -10,7 +10,6 @@ sub_flow_node_1 = SubFlowNode1()
 sub_flow_node_2 = SubFlowNode2()
 sub_flow_node_3 = SubFlowNode3()
 
-
 # Construct the graph for the SubFlow
 test_sub_flow_graph = Graph(
     source=sub_flow_node_1,
