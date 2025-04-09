@@ -1,5 +1,4 @@
 
-from junjo.node import Node
 from junjo.state import BaseState
 from junjo.store import BaseStore
 
@@ -23,31 +22,31 @@ class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
     A concrete store for MessageWorkflowState.
     """
 
-    async def set_received_message(self, node: Node, payload: MessageCreate) -> None:
-        await self.set_state(node, {"received_message": payload})
+    async def set_received_message(self, payload: MessageCreate) -> None:
+        await self.set_state({"received_message": payload})
 
-    async def set_message_directive(self, node: Node, payload: MessageDirective) -> None:
-        await self.set_state(node, {"message_directive": payload})
+    async def set_message_directive(self, payload: MessageDirective) -> None:
+        await self.set_state({"message_directive": payload})
 
-    async def set_conversation_history(self, node: Node, payload: list[MessageRead]) -> None:
-        await self.set_state(node, {"conversation_history": payload})
+    async def set_conversation_history(self, payload: list[MessageRead]) -> None:
+        await self.set_state({"conversation_history": payload})
 
-    async def append_conversation_history(self, node: Node, payload: MessageRead) -> None:
-        await self.set_state(node, {"conversation_history": [*self._state.conversation_history, payload]})
+    async def append_conversation_history(self, payload: MessageRead) -> None:
+        await self.set_state({"conversation_history": [*self._state.conversation_history, payload]})
 
-    async def set_contact(self, node: Node, payload: ContactRead) -> None:
-        await self.set_state(node, {"contact": payload})
+    async def set_contact(self, payload: ContactRead) -> None:
+        await self.set_state({"contact": payload})
 
-    async def set_response_message(self, node: Node, payload: MessageRead) -> None:
-        await self.set_state(node, {"response_message": payload})
+    async def set_response_message(self, payload: MessageRead) -> None:
+        await self.set_state({"response_message": payload})
 
-    async def append_test_update(self, node: Node, payload: str) -> None:
-        await self.set_state(node, {"test_updates": [*self._state.test_updates, payload]})
+    async def append_test_update(self, payload: str) -> None:
+        await self.set_state({"test_updates": [*self._state.test_updates, payload]})
 
-    async def set_concurrent_update_test_state(self, node: Node, payload: str) -> None:
-        await self.set_state(node, {"concurrent_update_test_state": payload})
+    async def set_concurrent_update_test_state(self, payload: str) -> None:
+        await self.set_state({"concurrent_update_test_state": payload})
 
-    async def set_sub_flow_jokes(self, node: Node, payload: list[str]) -> None:
-        await self.set_state(node, {"sub_flow_jokes": payload})
+    async def set_sub_flow_jokes(self, payload: list[str]) -> None:
+        await self.set_state({"sub_flow_jokes": payload})
 
 

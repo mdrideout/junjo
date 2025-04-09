@@ -3,7 +3,7 @@ name = "app"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.21.0",
     "fastapi[standard]>=0.115.10",
@@ -13,7 +13,7 @@ dependencies = [
     "loguru>=0.7.3",
     "nanoid>=2.0.0",
     "sqlalchemy>=2.0.38",
-    "junjo", # TODO: Convert to github link when package is published
+    "junjo",                                             # TODO: Convert to github link when package is published
     "opentelemetry-instrumentation-sqlalchemy>=0.52b0",
     "opentelemetry-api>=1.31.0",
     "opentelemetry-sdk>=1.31.0",
@@ -26,7 +26,7 @@ dependencies = [
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/
 line-length = 120        # Default, compatible with Black
-target-version = "py312" # Or your project's Python version
+target-version = "py311" # Or your project's Python version
 indent-width = 4         # Default, compatible with Black
 
 # Formatting options (optional - Ruff's formatter is Black-compatible by default)

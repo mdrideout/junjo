@@ -38,7 +38,7 @@ class NodeGather(Node):
     def name(self) -> str:
         return self._name
 
-    async def service(self, store: BaseStore) -> None:
+    async def service(self, store: "BaseStore") -> None:
         """
         The core logic executed by this NodeGather node.
         It runs the contained nodes concurrently.
@@ -49,19 +49,19 @@ class NodeGather(Node):
 
         # Use self.id (from base Node class) as the parent_id for nested executions
         # Assuming the base Node's execute method handles span creation
-        tasks = [node.execute(self.id, store) for node in self.nodes]
+        tasks = [node.execute(store, self.id) for node in self.nodes]
         await asyncio.gather(*tasks)
 
         print(f"Finished concurrent nodes within {self.name} ({self.id})")
 
 
-    async def execute(self, parent_id: str, store: BaseStore) -> None:
+    async def execute(self, store: "BaseStore", parent_id: str) -> None:
         """
         Executes the nodes in the list.
 
         Args:
-            parent_id: The parent id of the workflow.
             store: The store to use for the nodes.
+            parent_id: The parent id of the workflow.
         """
 
         # Acquire a tracer (will be a real tracer if configured, otherwise no-op)

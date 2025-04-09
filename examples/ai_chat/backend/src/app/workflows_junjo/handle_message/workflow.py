@@ -6,7 +6,7 @@ from app.workflows_junjo.handle_message.graph import handle_message_graph
 from app.workflows_junjo.handle_message.store import MessageWorkflowState, MessageWorkflowStore
 
 
-async def handle_message_workflow(message: MessageCreate) -> None:
+async def run_handle_message_workflow(message: MessageCreate) -> None:
     """Setup and execute the workflow"""
 
     # Create the store with initial state
@@ -14,18 +14,20 @@ async def handle_message_workflow(message: MessageCreate) -> None:
         initial_state=MessageWorkflowState(received_message=message)
     )
 
+
     # Create the workflow
-    workflow = Workflow(
-        workflow_name="Handle Message Workflow",
+    handle_message_workflow = Workflow[MessageWorkflowState, MessageWorkflowStore](
+        name="Handle Message Workflow",
         graph=handle_message_graph,
         store=store,
+
         hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
     )
 
     # Execute the workflow
-    print("Executing the workflow with initial store state: ", await workflow.get_state())
-    await workflow.execute()
-    final_state = await workflow.get_state()
-    print("Done")
+    print("Executing the workflow with initial store state: ", await handle_message_workflow.get_state())
+    await handle_message_workflow.execute()
+    final_state = await handle_message_workflow.get_state()
+    print("handle_message_workflow is done")
 
     return

@@ -19,6 +19,6 @@ class LoadContactNode(Node[MessageWorkflowStore]):
         logger.info(f"Fetched contact: {contact}")
 
         # Set the conversation contact to state
-        await store.set_contact(self, contact)
+        await store.set_contact(contact)
 
         return

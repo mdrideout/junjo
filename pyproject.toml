@@ -7,11 +7,11 @@ name = "junjo"
 version = "0.1.0"
 description = "A simple graph execution and state machine library for building AI agentic workflows."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 authors = [{ name = "Matthew Rideout", email = "boon4376@gmail.com" }]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
     "Operating System :: OS Independent",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -56,7 +56,7 @@ addopts = [
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/
 line-length = 120        # Default, compatible with Black
-target-version = "py312" # Or your project's Python version
+target-version = "py311" # Or your project's Python version
 indent-width = 4         # Default, compatible with Black
 
 # Formatting options (optional - Ruff's formatter is Black-compatible by default)

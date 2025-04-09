@@ -13,9 +13,9 @@ class LoadHistoryNode(Node[MessageWorkflowStore]):
         # Load the conversation history from the database
         history = await MessageService.get_chat_messages(state.received_message.chat_id)
 
-        print(f"Fetched history: {history}")
+        # print(f"Fetched history: {history}")
 
         # Set the conversation history to state
-        await store.set_conversation_history(self, history)
+        await store.set_conversation_history(history)
 
         return

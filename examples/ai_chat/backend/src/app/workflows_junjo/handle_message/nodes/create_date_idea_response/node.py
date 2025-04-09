@@ -40,6 +40,6 @@ class CreateDateIdeaResponseNode(Node[MessageWorkflowStore]):
         response = await MessageRepository.create(message_create)
 
         # Update state
-        await store.set_response_message(self, response)
+        await store.set_response_message(response)
 
         return

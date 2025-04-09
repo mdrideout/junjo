@@ -52,7 +52,6 @@ test_concurrent_node_runner = TestConcurrentNodeRunner()
 
 # SubFlow Test - Test Running A SubFlow
 sub_flow_test = TestSubFlow(
-    name="TestSubFlow",
     graph=test_sub_flow_graph,
     store=TestSubFlowStore(initial_state=TestSubFlowState())
 )

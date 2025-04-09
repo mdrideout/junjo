@@ -31,13 +31,14 @@ class AssessMessageDirectiveNode(Node[MessageWorkflowStore]):
         # Validate the result is a MessageDirective enum
         if not gemini_result:
             raise ValueError("Gemini result is empty.")
-        elif gemini_result not in MessageDirective:
-            raise ValueError("Gemini result is not a valid MessageDirective.")
 
-        # Construct the enum value with the gemini_result
-        message_directive = MessageDirective(gemini_result)
+        try:
+            # Attempt to construct the enum value with the gemini_result
+            message_directive = MessageDirective(gemini_result)
+        except ValueError as e:
+            raise ValueError(f"Gemini result '{gemini_result}' is not a valid MessageDirective.") from e
 
         # Update state
-        await store.set_message_directive(self, message_directive)
+        await store.set_message_directive(message_directive)
 
         return

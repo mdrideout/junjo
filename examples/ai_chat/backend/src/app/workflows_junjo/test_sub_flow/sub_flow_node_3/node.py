@@ -20,6 +20,6 @@ class SubFlowNode3(Node[TestSubFlowStore]):
 
 
         # Update state
-        await store.append_joke(self, gemini_result)
+        await store.append_joke(gemini_result)
 
         return

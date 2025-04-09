@@ -73,7 +73,7 @@ class TestWorkflow(unittest.IsolatedAsyncioTestCase):
         WorkflowContextManager.set_store("workflow_id", MockStore(initial_state=MockState()))
 
         with self.assertRaises(ValueError) as context:
-            workflow_graph.get_next_node("workflow_id", node2)
+            workflow_graph.get_next_executable("workflow_id", node2)
         self.assertTrue(str(context.exception).startswith("No valid transition found for node '<MockNode"))
 
 

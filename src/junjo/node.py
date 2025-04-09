@@ -1,16 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import Generic
 
 from jsonpatch import JsonPatch
 from opentelemetry import trace
 
+from junjo.store import StoreT
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 from junjo.util import generate_safe_id
 
-if TYPE_CHECKING:
-    from junjo.store import BaseStore
-
-StoreT = TypeVar("StoreT", bound="BaseStore")
 
 class Node(Generic[StoreT], ABC):
     """
@@ -66,8 +63,8 @@ class Node(Generic[StoreT], ABC):
 
     async def execute(
             self,
-            parent_id: str,
             store: StoreT,
+            parent_id: str,
         ) -> None:
         """
         Execute the Node's service function with OpenTelemetry tracing.

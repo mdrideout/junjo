@@ -1,8 +1,10 @@
 
+
+
 from junjo.condition import Condition
 from junjo.node import Node
 from junjo.store import BaseStore, StateT
-from junjo.sub_flow import SubFlow
+from junjo.workflow import _NestableWorkflow
 
 
 class Edge:
@@ -15,8 +17,8 @@ class Edge:
 
     def __init__(
         self,
-        tail: Node | SubFlow,
-        head: Node | SubFlow,
+        tail: Node | _NestableWorkflow,
+        head: Node | _NestableWorkflow,
         condition: Condition[StateT] | None = None,
     ):
         """
@@ -36,7 +38,7 @@ class Edge:
         self.head = head
         self.condition = condition
 
-    async def next_node(self, store: BaseStore) -> Node | SubFlow | None:
+    async def next_node(self, store: BaseStore) -> Node | _NestableWorkflow | None:
         """
         Determines the next node in the workflow based on the edge's condition.
 

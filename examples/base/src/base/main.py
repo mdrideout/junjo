@@ -87,7 +87,7 @@ async def main():
     print(f"Graphviz:\n{graph.to_dot_notation()}")
 
     workflow = Workflow(
-        workflow_name="demo_base_workflow",
+        name="demo_base_workflow",
         graph=graph,
         store=graph_store,
         hook_manager=HookManager(verbose_logging=False, open_telemetry=True),

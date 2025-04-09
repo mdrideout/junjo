@@ -2,18 +2,23 @@ import abc
 import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
+from types import NoneType
 from typing import Generic, TypeVar
 
 import jsonpatch
 from opentelemetry import trace
 from pydantic import ValidationError
 
-from junjo.node import Node
 from junjo.state import BaseState
 from junjo.util import generate_safe_id
 
+# State / Store
 StateT = TypeVar("StateT", bound=BaseState)
 StoreT = TypeVar("StoreT", bound="BaseStore")
+
+# Parent State / Store
+ParentStateT = TypeVar("ParentStateT", bound="BaseState | NoneType")
+ParentStoreT = TypeVar("ParentStoreT", bound="BaseStore | NoneType")
 
 # Type alias: each subscriber can be either a sync callable or an async callable (returns an Awaitable).
 Subscriber = Callable[[StateT], None] | Callable[[StateT], Awaitable[None]]
@@ -71,13 +76,16 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         async with self._lock:
             return self._state.model_dump_json()
 
-    async def set_state(self, node: Node, update: dict) -> None:
+    async def set_state(self, update: dict) -> None:
         """
         Public API to partially update the store state with a dict of changes.
         - Immutable update with a deep state copy
         - Merges the current state with `updates` using `model_copy(update=...)`.
         - Validates that each updated field is valid for StateT.
         - If there's a change, notifies subscribers outside the lock.
+
+        Args:
+            update: A dictionary of updates to apply to the state.
         """
         # Get the caller function's name and class name for telemetry purposes
         caller_frame = inspect.currentframe()
@@ -97,7 +105,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
             )
         except ValidationError as e:
             raise ValueError(
-                f"Invalid state update in node {node.name}. \
+                f"Invalid state update from caller {caller_class_name} -> {caller_function_name}. \
                   Check that you are updating a valid state property and type: {e}"
             ) from e
 
@@ -116,7 +124,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
                 # Calculate the patch
                 patch = jsonpatch.make_patch(state_json_before, state_json_after)
-                print("PATCH: ", patch)
+                # print("PATCH: ", patch)
 
                 # Update the stack (have lock)
                 self._state = new_state
@@ -129,7 +137,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     name="set_state",
                     attributes={
                         "id": generate_safe_id(),
-                        "junjo.node.id": node.id,
+                        # "junjo.wf_exec.id": wf_exec.id,
+                        # "junjo.wf_exec.name": wf_exec.name,
                         "junjo.store.name": caller_class_name,
                         "junjo.store.action": caller_function_name,
                         "junjo.state_json_patch": patch.to_string() if patch else "{}", # Empty object if nothing changed

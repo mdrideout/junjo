@@ -27,8 +27,8 @@ $ npm run dev
 # BACKEND (from ./backend) 
 #   - Using uv package manager https://docs.astral.sh/uv/)
 #
-# Create a virtual environment if one doesn't exist yet (recommend python 3.12)
-$ uv venv --python 3.12
+# Create a virtual environment if one doesn't exist yet (recommend python 3.11)
+$ uv venv --python 3.11
 
 # Make sure the backend virtual environment is activated
 $ source .venv/bin/activate

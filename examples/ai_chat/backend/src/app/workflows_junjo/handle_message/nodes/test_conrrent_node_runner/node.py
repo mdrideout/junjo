@@ -17,7 +17,7 @@ class TestConcurrentNodeRunner(Node[MessageWorkflowStore]):
         logger.info("Running TestConcurrentNodeRunner")
 
         # Test setting state before
-        await store.append_test_update(self, "TestConcurrentNodeRunner - Before")
+        await store.append_test_update("TestConcurrentNodeRunner - Before")
 
         # Instantiate the other concurrent nodes
         node1 = TestConcurrentNode1()
@@ -26,13 +26,13 @@ class TestConcurrentNodeRunner(Node[MessageWorkflowStore]):
 
         # Run the service method of each node concurrently using asyncio.gather
         await asyncio.gather(
-            node1.execute(self.id, store),
-            node2.execute(self.id, store),
-            node3.execute(self.id, store),
+            node1.execute(store, self.id),
+            node2.execute(store, self.id),
+            node3.execute(store, self.id),
         )
 
         # Test setting state after
-        await store.append_test_update(self, "TestConcurrentNodeRunner - After")
+        await store.append_test_update("TestConcurrentNodeRunner - After")
 
 
         logger.info("Finished running TestConcurrentNodeRunner")

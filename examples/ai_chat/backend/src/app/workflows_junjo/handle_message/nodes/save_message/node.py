@@ -18,7 +18,7 @@ class SaveMessageNode(Node[MessageWorkflowStore]):
         print(f"Message inserted: {saved_message}")
 
         # Append the saved message to state
-        await store.append_conversation_history(self, saved_message)
+        await store.append_conversation_history(saved_message)
 
         # Create a 1 second artificial delay
         await asyncio.sleep(1)
