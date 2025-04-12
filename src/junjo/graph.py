@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
 
 from junjo.edge import Edge
 from junjo.node import Node
 from junjo.node_gather import NodeGather
 from junjo.store import BaseStore
-
-if TYPE_CHECKING:
-    from junjo.workflow import _NestableWorkflow
+from junjo.workflow import _NestableWorkflow
 
 
 class Graph:
@@ -104,35 +101,61 @@ class Graph:
     def serialize_to_json_string(self) -> str:  # noqa: C901
         """
         Converts the graph to a neutral serialized JSON string,
-        representing NodeGather instances as subgraphs.
+        representing NodeGather instances as subgraphs and including Subflow graphs.
 
         Returns:
             str: A JSON string containing the graph structure.
         """
-        all_nodes_dict: dict[str, Node] = {} # Dictionary to store unique nodes found
+        all_nodes_dict: dict[str, Node | _NestableWorkflow] = {} # Dictionary to store unique nodes found
+        all_edges_dict: dict[str, Edge] = {} # Dictionary to store all edges including subflow edges
+        processed_subflows: set[str] = set() # Track processed subflows to avoid recursion loops
 
-        # Recursive helper function to find all nodes, including those inside NodeGather
+        # Recursive helper function to find all nodes, including those inside NodeGather and Subflows
         def collect_nodes(node: Node | _NestableWorkflow | None):
-            # Basic validation: Ensure node is a Node instance and has an ID
-            if not isinstance(node, Node) or not hasattr(node, 'id'):
-                 print(f"Warning: Item '{node}' is not a valid Node with an id, skipping collection.")
-                 return
+            if node is None:
+                return
+
+            # Skip if not a Node or _NestableWorkflow or doesn't have an ID
+            if not (isinstance(node, Node) or isinstance(node, _NestableWorkflow)) or not hasattr(node, 'id'):
+                print(f"Warning: Item '{node}' is not a valid Node or Workflow with an id, skipping collection.")
+                return
 
             if node.id not in all_nodes_dict:
                 all_nodes_dict[node.id] = node
+
                 # If it's a NodeGather, recursively collect the nodes it contains
                 if isinstance(node, NodeGather) and hasattr(node, 'nodes'):
                     for internal_node in node.nodes:
-                        # Recursively call collect_nodes for internal nodes
-                        collect_nodes(internal_node) # The helper handles None/invalid types
+                        collect_nodes(internal_node)
 
-        # --- Start Node Collection ---
+                # If it's a Subflow (inherits from _NestableWorkflow), recursively collect its graph
+                elif isinstance(node, _NestableWorkflow) and hasattr(node, 'graph') and node.id not in processed_subflows:
+                    processed_subflows.add(node.id)  # Mark as processed to avoid cycles
+
+                    # Collect subflow's source, sink and all nodes connected by edges
+                    subflow_graph = node.graph
+                    collect_nodes(subflow_graph.source)
+                    collect_nodes(subflow_graph.sink)
+
+                    # Collect all edges from the subflow
+                    for edge in subflow_graph.edges:
+                        # Create a unique ID for the subflow edge
+                        edge_id = f"subflow_{node.id}_edge_{edge.tail.id}_{edge.head.id}"
+                        all_edges_dict[edge_id] = edge
+                        collect_nodes(edge.tail)
+                        collect_nodes(edge.head)
+
+        # Collect edges from the main graph
+        for i, edge in enumerate(self.edges):
+            edge_id = f"edge_{edge.tail.id}_{edge.head.id}_{i}"
+            all_edges_dict[edge_id] = edge
+
+        # Start node collection
         collect_nodes(self.source)
         collect_nodes(self.sink)
         for edge in self.edges:
             collect_nodes(edge.tail)
             collect_nodes(edge.head)
-        # --- End Node Collection ---
 
         # Create nodes list for JSON output
         nodes_json = []
@@ -148,32 +171,41 @@ class Graph:
                 "label": label
             }
 
-            # ** Add subgraph representation for NodeGather **
+            # Add subgraph representation for NodeGather
             if isinstance(node, NodeGather):
                 node_info["isSubgraph"] = True
-                # Ensure children are valid Nodes with IDs before adding
                 children_ids = [
                     n.id for n in node.nodes
-                    if isinstance(n, Node) and hasattr(n, 'id')
+                    if (isinstance(n, Node) or isinstance(n, _NestableWorkflow)) and hasattr(n, 'id')
                 ]
                 node_info["children"] = children_ids
+
+            # Add subflow representation for Subflows
+            elif isinstance(node, _NestableWorkflow) and hasattr(node, 'graph'):
+                node_info["isSubflow"] = True
+                node_info["subflowSourceId"] = node.graph.source.id
+                node_info["subflowSinkId"] = node.graph.sink.id
 
             nodes_json.append(node_info)
 
         # Create explicit edges list for JSON output
         edges_json = []
-        for i, edge in enumerate(self.edges):
-             # Generate a unique ID for the edge
-             # Using index 'i' guarantees uniqueness within this serialization context
-             edge_id = f"edge_{str(edge.tail.id)}_{str(edge.head.id)}_{i}"
+        for edge_id, edge in all_edges_dict.items():
+            # Determine if this is a subflow edge
+            is_subflow_edge = edge_id.startswith("subflow_")
+            subflow_id = None
+            if is_subflow_edge:
+                # Extract the subflow ID from the edge_id (between "subflow_" and "_edge_")
+                subflow_id = edge_id.split("_edge_")[0].replace("subflow_", "")
 
-             edges_json.append({
-                 "id": edge_id,
-                 "source": str(edge.tail.id),
-                 "target": str(edge.head.id),
-                 "condition": str(edge.condition) if edge.condition else None,
-                 "type": "explicit" # Indicate this is from the main graph definition
-             })
+            edges_json.append({
+                "id": edge_id,
+                "source": str(edge.tail.id),
+                "target": str(edge.head.id),
+                "condition": str(edge.condition) if edge.condition else None,
+                "type": "subflow" if is_subflow_edge else "explicit",
+                "subflowId": subflow_id if is_subflow_edge else None
+            })
 
         # Final graph dictionary structure
         graph_dict = {
@@ -184,16 +216,11 @@ class Graph:
 
         try:
             # Serialize the dictionary to a JSON string
-            # Use indent=2 for readability during development, can remove for production
             return json.dumps(graph_dict, indent=2)
         except TypeError as e:
             print(f"Error serializing graph to JSON: {e}")
-            # Return a JSON formatted error message
             error_info = {
                 "error": "Failed to serialize graph",
                 "detail": str(e),
             }
-            # Optionally include partial data for debugging if safe:
-            # error_info["partial_nodes"] = nodes_json
-            # error_info["partial_edges"] = edges_json
             return json.dumps(error_info, indent=2)

@@ -137,8 +137,6 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     name="set_state",
                     attributes={
                         "id": generate_safe_id(),
-                        # "junjo.wf_exec.id": wf_exec.id,
-                        # "junjo.wf_exec.name": wf_exec.name,
                         "junjo.store.name": caller_class_name,
                         "junjo.store.action": caller_function_name,
                         "junjo.state_json_patch": patch.to_string() if patch else "{}", # Empty object if nothing changed
