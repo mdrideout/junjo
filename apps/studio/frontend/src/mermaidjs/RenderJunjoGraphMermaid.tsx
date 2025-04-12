@@ -47,7 +47,9 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const workflowChildSpans = useAppSelector((state: RootState) =>
     selectAllWorkflowChildSpans(state, selectorProps),
   )
-  const nodeSpans = workflowChildSpans.filter((span) => span.junjo_span_type === JunjoSpanType.NODE)
+  const nodeSpans = workflowChildSpans.filter(
+    (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
+  )
 
   // Generate a unique ID for the container div and SVG
   const containerId = `mermaid-container-${mermaidUniqueId}`
@@ -55,7 +57,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   // State to trigger re-render when the OS theme changes
   const [themeVersion, setThemeVersion] = useState(0)
 
-  // --- Click Handler Definition ---
+  // --- Node Click Handler Definition ---
   // Use useCallback to ensure the function reference is stable for add/removeEventListener
   const handleNodeClick = useCallback(
     (event: MouseEvent) => {
@@ -83,6 +85,20 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     },
     [workflowStateEvents],
   )
+
+  // --- Subflow Click Handler ---
+  const handleSubflowClick = useCallback((event: MouseEvent) => {
+    const targetElement = event.currentTarget as SVGGElement
+    const nodeIdAttr = targetElement?.id
+    const mermaidNodeId = extractMermaidNodeId(nodeIdAttr)
+
+    if (mermaidNodeId) {
+      // Handle subflow click logic here
+      console.log('Subflow clicked:', mermaidNodeId)
+    } else {
+      console.warn('Could not extract Mermaid Node ID from clicked element:', targetElement)
+    }
+  }, [])
 
   // --- Effect for OS Theme Detection & Mermaid Theme Initialization ---
   useEffect(() => {
@@ -166,12 +182,21 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
                 // Check if this node is inside the workflow spans
                 const utilizedNode = nodeSpans.find((span) => span.junjo_id === junjoNodeId)
-
                 if (!utilizedNode) {
                   console.log('Node not utilized: ', node.id)
 
                   // Set not-utilized class on the node for styling
                   node.classList.add('node-not-utilized')
+                }
+
+                // Check if this is a Subflow and add a class
+                const isSubflow = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.SUBFLOW
+                if (isSubflow) {
+                  console.log('Subflow node found:', node.id)
+                  node.classList.add('node-subflow')
+
+                  // Add click listener to the subflow node itself
+                  node.addEventListener('click', handleSubflowClick as EventListener)
                 }
               })
 

@@ -6,6 +6,7 @@ export const extractMermaidNodeId = (svgId: string | null | undefined): string |
   if (!svgId.startsWith(prefix)) return null // Or return svgId if prefix is not guaranteed
 
   let nodeId = svgId.substring(prefix.length)
+
   // Remove potential suffix like -0, -1, -10 etc.
   nodeId = nodeId.replace(/-\d+$/, '')
   return nodeId

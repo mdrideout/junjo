@@ -47,6 +47,7 @@ export default function WorkflowDetailPage() {
   const durationString = getSpanDurationString(span.start_time, span.end_time)
 
   // Parse mermaid flow string
+  console.log('Junjo Graph Structure: ', span.junjo_wf_graph_structure)
   const mermaidFlowString = JunjoGraph.fromJson(span.junjo_wf_graph_structure).toMermaid(mermaidEdgeLabels)
   const mermaidUniqueId = nanoid()
 
@@ -76,7 +77,7 @@ export default function WorkflowDetailPage() {
 
       <hr className={'my-6'} />
 
-      <div className={`w-full shrink-0 pb-3 mb-3 h-64 overflow-scroll`}>
+      <div className={`w-full shrink-0 pb-3 mb-3 h-80 overflow-scroll`}>
         <div className={'absolute'}>
           <div className="flex items-center">
             <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">

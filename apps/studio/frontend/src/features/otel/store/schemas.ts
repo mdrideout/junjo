@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export enum JunjoSpanType {
   WORKFLOW = 'workflow',
+  SUBFLOW = 'subflow',
   NODE = 'node',
   NODE_GATHER = 'node_gather',
   OTHER = '',
@@ -45,7 +46,6 @@ export type WorkflowSpansE2EResponse = z.infer<typeof WorkflowSpansE2EResponseSc
 // Define the schema for the known event type
 export const NodeSetStateAttributesSchema = z.object({
   id: z.string(),
-  'junjo.node.id': z.string(),
   'junjo.state_json_patch': z.string(), // Assuming this is a JSON string
   'junjo.store.action': z.string(),
   'junjo.store.name': z.string(),

@@ -19,6 +19,8 @@ import {
 } from '../../otel/store/schemas'
 import { ForwardIcon } from '@heroicons/react/16/solid'
 import { useActiveNodeContext } from '../workflow-detail/ActiveNodeContext'
+import { CheckIcon } from '@radix-ui/react-icons'
+import { PlayIcon } from '@heroicons/react/24/solid'
 
 interface NestedWorkflowSpansProps {
   serviceName: string
@@ -216,7 +218,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
             }}
           >
             <div className={'flex gap-x-2 items-start'}>
-              {layer > 0 && <ForwardIcon className={'size-5 text-orange-300'} />}
+              {layer > 0 && <PlayIcon className={'size-5 text-orange-300'} />}
 
               <div className={'font-normal'}>
                 <div>
