@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react' // Import useState
 import mermaid from 'mermaid'
 import { useActiveNodeContext } from '../features/workflow-logs/workflow-detail/ActiveNodeContext'
-import { extractMermaidNodeId as extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
+import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
-import { selectAllWorkflowChildSpans, selectStateEventsBySpanId } from '../features/otel/store/selectors'
+import { selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
 import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
 
 interface RenderJunjoGraphMermaidProps {
@@ -90,7 +90,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         setScrollToSpanId(clickedSpan.span_id)
       }
     } else {
-      console.warn('Could not extract Mermaid Node ID from clicked element:', targetElement)
+      console.warn('Could not extract Junjo ID from clicked element:', targetElement)
     }
   }, [])
 
@@ -98,13 +98,21 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const handleSubflowClick = useCallback((event: MouseEvent) => {
     const targetElement = event.currentTarget as SVGGElement
     const nodeIdAttr = targetElement?.id
-    const mermaidNodeId = extractJunjoIdFromMermaidElementId(nodeIdAttr)
+    const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
+    if (junjoID) {
+      setActiveSetStateEvent(null)
 
-    if (mermaidNodeId) {
-      // Handle subflow click logic here
-      console.log('Subflow clicked:', mermaidNodeId)
+      // Get the span with the junjo.id that matches the junjoID
+      const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
+      if (clickedSpan) {
+        console.log('Clicked Subflow span:', clickedSpan)
+        setActiveSpan(clickedSpan)
+
+        // Scroll to the span
+        setScrollToSpanId(clickedSpan.span_id)
+      }
     } else {
-      console.warn('Could not extract Mermaid Node ID from clicked element:', targetElement)
+      console.warn('Could not extract Junjo ID from clicked element:', targetElement)
     }
   }, [])
 
@@ -182,28 +190,29 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
               nodes.forEach((node) => {
                 console.log('Adding event listeners...')
 
-                // Add listener using the memoized handler
-                node.addEventListener('click', handleNodeClick as EventListener)
-
                 // Extract the node id
                 const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
 
                 // Check if this node is inside the workflow spans
                 const utilizedNode = nodeSpans.find((span) => span.junjo_id === junjoNodeId)
                 if (!utilizedNode) {
-                  console.log('Node not utilized: ', node.id)
-
                   // Set not-utilized class on the node for styling
-                  node.classList.add('node-not-utilized')
+                  node.classList.add('graph-element-not-utilized')
                 }
 
-                // Check if this is a Subflow and add a class
+                // Node: Add class and click handler
+                const isNode = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.NODE
+                if (isNode) {
+                  // Add click listener
+                  node.addEventListener('click', handleNodeClick as EventListener)
+                }
+
+                // Subflow: Add class and click handler
                 const isSubflow = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.SUBFLOW
                 if (isSubflow) {
-                  console.log('Subflow node found:', node.id)
                   node.classList.add('node-subflow')
 
-                  // Add click listener to the subflow node itself
+                  // Add click listener
                   node.addEventListener('click', handleSubflowClick as EventListener)
                 }
               })

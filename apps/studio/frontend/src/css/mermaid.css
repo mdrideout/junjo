@@ -13,17 +13,17 @@
   transition: all 250ms ease-in-out;
 }
 
-.mermaid-container .node:not(.node-not-utilized):hover > rect {
+.mermaid-container .node:not(.graph-element-not-utilized):hover > rect {
   fill: rgb(255, 193, 77) !important;
   transition: all 250ms ease-in-out;
 }
 @media (prefers-color-scheme: dark) {
-  .mermaid-container .node:not(.node-not-utilized):hover > rect {
+  .mermaid-container .node:not(.graph-element-not-utilized):hover > rect {
     fill: rgb(106, 63, 0) !important;
   }
 }
 
-.mermaid-container .node.node-not-utilized {
+.mermaid-container .node.graph-element-not-utilized {
   cursor: default;
   opacity: 0.5;
 }

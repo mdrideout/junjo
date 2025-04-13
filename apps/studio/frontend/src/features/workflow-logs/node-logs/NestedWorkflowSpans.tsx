@@ -214,8 +214,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
     /** Render State Row **/
     if (row.type === RowType.STATE) {
-      console.log(`Rendering state row: ${row.data.attributes.id}`, row)
-
       const isActivePatch = row.data.attributes.id === activeSetStateEvent?.attributes.id
 
       return (

@@ -1,5 +1,5 @@
 // Helper function to extract the base junjo.id attribute from the SVG element ID
-export const extractMermaidNodeId = (svgId: string | null | undefined): string | null => {
+export const extractJunjoIdFromMermaidElementId = (svgId: string | null | undefined): string | null => {
   if (!svgId) return null
   // Assumes format like 'flowchart-NODEID-INDEX' or 'flowchart-NODEID'
   const prefix = 'flowchart-'
