@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, Dispatch, SetStateAction } from 'react'
-import { NodeSetStateEvent } from '../../otel/store/schemas'
+import { JunjoSetStateEvent, OtelSpan } from '../../otel/store/schemas'
 
 interface ActiveNodeContextType {
-  activeNodeSetStateEvent: NodeSetStateEvent | null
-  setActiveNodeSetStateEvent: Dispatch<SetStateAction<NodeSetStateEvent | null>>
-  scrollToPatchId: string | null
-  setScrollToPatchId: Dispatch<SetStateAction<string | null>>
+  activeSpan: OtelSpan | null
+  setActiveSpan: Dispatch<SetStateAction<OtelSpan | null>>
+  activeSetStateEvent: JunjoSetStateEvent | null
+  setActiveSetStateEvent: Dispatch<SetStateAction<JunjoSetStateEvent | null>>
+  scrollToSpanId: string | null
+  setScrollToSpanId: Dispatch<SetStateAction<string | null>>
 }
 
 const ActiveNodeContext = createContext<ActiveNodeContextType | undefined>(undefined)
@@ -23,12 +25,20 @@ interface ActiveNodeProviderProps {
 }
 
 export const ActiveNodeProvider: React.FC<ActiveNodeProviderProps> = ({ children }) => {
-  const [activeNodeSetStateEvent, setActiveNodeSetStateEvent] = useState<NodeSetStateEvent | null>(null)
-  const [scrollToPatchId, setScrollToPatchId] = useState<string | null>(null)
+  const [activeSetStateEvent, setActiveSetStateEvent] = useState<JunjoSetStateEvent | null>(null)
+  const [scrollToSpanId, setScrollToSpanId] = useState<string | null>(null)
+  const [activeSpan, setActiveSpan] = useState<OtelSpan | null>(null)
 
   return (
     <ActiveNodeContext.Provider
-      value={{ activeNodeSetStateEvent, setActiveNodeSetStateEvent, scrollToPatchId, setScrollToPatchId }}
+      value={{
+        activeSetStateEvent,
+        setActiveSetStateEvent,
+        scrollToSpanId,
+        setScrollToSpanId,
+        activeSpan,
+        setActiveSpan,
+      }}
     >
       {children}
     </ActiveNodeContext.Provider>

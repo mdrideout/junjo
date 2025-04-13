@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
-import { NodeSetStateEvent, NodeSetStateEventSchema, OtelSpan } from './schemas'
+import { JunjoSetStateEvent, JunjoSetStateEventSchema, OtelSpan } from './schemas'
 
 // Base Selector
 export const selectOtelState = (state: RootState) => state.otelState
@@ -100,20 +100,20 @@ export const selectAllWorkflowChildSpans = createSelector(
  * Select All Workflow State Events
  * Memoized selectAllWorkflowStateEvents (Depends on memoized selectAllWorkflowChildSpans)
  * No direct prop selector needed here, as props are passed to selectAllWorkflowChildSpans implicitly
- * @returns {NodeSetStateEvent[]} sorted by their timeUnixNano
+ * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
  */
 export const selectAllWorkflowStateEvents = createSelector(
   [selectAllWorkflowChildSpans],
-  (childSpans): NodeSetStateEvent[] => {
-    const nodeSetStateEvents: NodeSetStateEvent[] = []
+  (childSpans): JunjoSetStateEvent[] => {
+    const junjoSetStateEvents: JunjoSetStateEvent[] = []
     childSpans.forEach((span) => {
       // Basic check if events_json exists and is an array
       if (Array.isArray(span.events_json)) {
         span.events_json.forEach((event) => {
           try {
-            // Assuming NodeSetStateEventSchema.parse returns a newly parsed object
-            const parsedEvent = NodeSetStateEventSchema.parse(event)
-            nodeSetStateEvents.push(parsedEvent)
+            // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
+            const parsedEvent = JunjoSetStateEventSchema.parse(event)
+            junjoSetStateEvents.push(parsedEvent)
           } catch (error) {
             // Consider less noisy logging or specific handling
             // console.error('Error parsing event in selector:', error);
@@ -122,11 +122,42 @@ export const selectAllWorkflowStateEvents = createSelector(
       }
     })
 
-    nodeSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
     // createSelector memoizes this returned reference
-    return nodeSetStateEvents
+    return junjoSetStateEvents
   },
 )
+
+/**
+ * Select All Span State Events
+ * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
+ */
+export const selectStateEventsBySpanId = (
+  state: RootState,
+  props: { serviceName: string | undefined; spanId: string | undefined },
+) => {
+  const serviceData = state.otelState.workflows.data[props.serviceName ?? '']
+  if (!serviceData || !props.spanId) return [] // Stable empty array reference
+  const workflowSpans = serviceData.workflowSpans
+  if (!workflowSpans) return [] // Stable empty array reference
+  const span = workflowSpans.find((item) => item.span_id === props.spanId)
+  if (!span) return [] // Stable empty array reference
+  const junjoSetStateEvents: JunjoSetStateEvent[] = []
+  if (Array.isArray(span.events_json)) {
+    span.events_json.forEach((event) => {
+      try {
+        // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
+        const parsedEvent = JunjoSetStateEventSchema.parse(event)
+        junjoSetStateEvents.push(parsedEvent)
+      } catch (error) {
+        // Consider less noisy logging or specific handling
+        // console.error('Error parsing event in selector:', error);
+      }
+    })
+  }
+  junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+  return junjoSetStateEvents
+}
 
 export const selectPrevWorkflowSpanID = (
   state: RootState,

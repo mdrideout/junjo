@@ -2,24 +2,21 @@ import { Fragment } from 'react/jsx-runtime'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import {
-  formatMicrosecondsSinceEpochToTime,
   getSpanDurationString,
   isoStringToMicrosecondsSinceEpoch,
   nanoSecondsToMicrosecons,
 } from '../../../util/duration-utils'
-import { selectAllWorkflowChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
+import { selectAllWorkflowChildSpans } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
 import { JSX, useEffect, useMemo, useRef } from 'react'
 import {
   JunjoSpanType,
   NodeEventType,
-  NodeSetStateEvent,
-  NodeSetStateEventSchema,
+  JunjoSetStateEvent,
+  JunjoSetStateEventSchema,
   OtelSpan,
 } from '../../otel/store/schemas'
-import { ForwardIcon } from '@heroicons/react/16/solid'
 import { useActiveNodeContext } from '../workflow-detail/ActiveNodeContext'
-import { CheckIcon } from '@radix-ui/react-icons'
 import { PlayIcon } from '@heroicons/react/24/solid'
 
 interface NestedWorkflowSpansProps {
@@ -35,8 +32,8 @@ interface NestedWorkflowSpansProps {
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { serviceName, workflowSpanID } = props
-  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent } = useActiveNodeContext()
-  const { scrollToPatchId } = useActiveNodeContext()
+  const { activeSetStateEvent, setActiveSetStateEvent, activeSpan, setActiveSpan } = useActiveNodeContext()
+  const { scrollToSpanId } = useActiveNodeContext()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
   // 1. Memoize the props object for the selector
@@ -61,11 +58,12 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   // Filter the spans to only include the top level spans
   const topLevelSpans = spans.filter((span) => span.parent_span_id === workflowSpanID)
 
-  // Scroll To Patch
+  // Scroll To Span
   useEffect(() => {
-    if (scrollToPatchId && scrollableContainerRef.current) {
-      console.log(`Scrolling to patch: state-patch-${scrollToPatchId}`)
-      const targetElement = scrollableContainerRef.current.querySelector(`#state-patch-${scrollToPatchId}`)
+    if (scrollToSpanId && scrollableContainerRef.current) {
+      const targetSpanId = `#span-${scrollToSpanId}`
+      console.log(`Scrolling to span: ${targetSpanId}`)
+      const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
@@ -74,7 +72,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         })
       }
     }
-  }, [scrollToPatchId])
+  }, [scrollToSpanId])
 
   // Stop the recursion when there are no more children
   if (!spans || spans.length === 0) {
@@ -96,8 +94,9 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
   interface StateRow {
     type: RowType.STATE
-    data: NodeSetStateEvent
+    data: JunjoSetStateEvent
     time: number
+    parentSpan: OtelSpan
   }
 
   type RowData = SpanRow | StateRow
@@ -116,7 +115,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
     // Get this span's state events and add them to the child rows
     const spanSetStateEvents = parentSpan.events_json.filter((item) => item.name === NodeEventType.SET_STATE)
     spanSetStateEvents.forEach((event) => {
-      const validated = NodeSetStateEventSchema.safeParse(event)
+      const validated = JunjoSetStateEventSchema.safeParse(event)
       if (validated.error) {
         console.log('ERROR: ', validated.error)
         return
@@ -125,6 +124,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         type: RowType.STATE,
         data: validated.data,
         time: nanoSecondsToMicrosecons(validated.data.timeUnixNano),
+        parentSpan: parentSpan,
       })
     })
 
@@ -165,20 +165,26 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
    * @returns
    */
   function RecursiveNestedRow({ row, layer }: { row: RowData; layer: number }): JSX.Element {
+    /** Render Span Row **/
     if (row.type === RowType.SPAN) {
       const nonWorkflowNodeSpan = row.data.junjo_span_type === JunjoSpanType.OTHER
       const start_time = row.data.start_time
       const end_time = row.data.end_time
       const spanDuration = getSpanDurationString(start_time, end_time)
 
+      const isActiveSpan = row.data.span_id === activeSpan?.span_id
+
       return (
         <Fragment key={`span-${row.data.span_id}-${layer}`}>
-          <div className={`${layer > 0 ? 'ml-3 text-sm' : 'ml-0'}`}>
+          <div
+            id={`span-${row.data.span_id}`}
+            className={`rounded-md ${!nonWorkflowNodeSpan ? 'pb-2 last-of-type:pb-0' : ''} ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900 cursor-pointer' : ''}`}
+          >
             <div
-              className={` p-1.5 ${nonWorkflowNodeSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}
+              className={`p-1 ${nonWorkflowNodeSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}
             >
               <div className={`flex gap-x-2 ${nonWorkflowNodeSpan ? 'items-start' : 'items-center'}`}>
-                <SpanIconConstructor span={row.data} />
+                <SpanIconConstructor span={row.data} active={isActiveSpan} />
                 <div className={'w-full flex gap-x-2 justify-between items-end'}>
                   <div>{row.data.name}</div>
 
@@ -187,7 +193,9 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
               </div>
             </div>
             {row.childRows.length > 0 && (
-              <div className={'border-l ml-[15px] border-zinc-300 dark:border-zinc-700'}>
+              <div
+                className={`border-l ml-[13.5px]  ${isActiveSpan ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
+              >
                 {row.childRows.map((childRow, index) => {
                   return (
                     <RecursiveNestedRow
@@ -200,21 +208,27 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
               </div>
             )}
           </div>
-          {(layer === 0 || !nonWorkflowNodeSpan) && <div className={'h-5'}>&nbsp;</div>}
         </Fragment>
       )
     }
 
+    /** Render State Row **/
     if (row.type === RowType.STATE) {
-      const isActivePatch = row.data.attributes.id === activeNodeSetStateEvent?.attributes.id
+      console.log(`Rendering state row: ${row.data.attributes.id}`, row)
+
+      const isActivePatch = row.data.attributes.id === activeSetStateEvent?.attributes.id
 
       return (
         <Fragment key={`state-${row.data.attributes.id}-${layer}`}>
           <div
             id={`state-patch-${row.data.attributes.id}`}
-            className={`p-1.5 cursor-pointer border-b last:border-0 border-zinc-300 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
+            className={`p-1 cursor-pointer border-b last:border-0 border-zinc-200 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
             onClick={() => {
-              setActiveNodeSetStateEvent(row.data)
+              // Set the active span that this state event belongs to
+              setActiveSpan(row.parentSpan)
+
+              // Set the active set state event
+              setActiveSetStateEvent(row.data)
             }}
           >
             <div className={'flex gap-x-2 items-start'}>

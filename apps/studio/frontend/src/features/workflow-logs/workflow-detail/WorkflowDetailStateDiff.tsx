@@ -63,7 +63,7 @@ const TabButton = ({
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { workflowStateStart, workflowStateEnd, serviceName, workflowSpanID } = props
-  const { activeNodeSetStateEvent } = useActiveNodeContext()
+  const { activeSetStateEvent } = useActiveNodeContext()
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
@@ -95,7 +95,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   // Active Patch Isolation
   const activePatchIndex = workflowStateEvents.findIndex(
-    (patch) => patch.attributes.id === activeNodeSetStateEvent?.attributes.id,
+    (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
   )
   const activePatchJson =
     activePatchIndex >= 0
@@ -202,20 +202,20 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }
   }
 
-  const statePatchTime = activeNodeSetStateEvent?.timeUnixNano
+  const statePatchTime = activeSetStateEvent?.timeUnixNano
   const start_micro = statePatchTime
-    ? formatMicrosecondsSinceEpochToTime(activeNodeSetStateEvent?.timeUnixNano / 1000)
+    ? formatMicrosecondsSinceEpochToTime(activeSetStateEvent?.timeUnixNano / 1000)
     : null
 
   return (
     <div className={'flex-1 overflow-y-scroll pr-2.5'}>
-      {activeNodeSetStateEvent && (
+      {activeSetStateEvent && (
         <div
           className={
             'flex justify-between items-center text-xs mb-2 border-b border-zinc-300 px-2 pb-2 font-bold'
           }
         >
-          <div>Patch: {activeNodeSetStateEvent?.attributes.id}</div>
+          <div>Patch: {activeSetStateEvent?.attributes.id}</div>
           <div className={'flex items-center gap-x-2'}>
             {' '}
             {start_micro} &mdash; ({activePatchIndex + 1}/{workflowStateEvents.length})
@@ -226,7 +226,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       <div className={'flex gap-x-2 mb-2'}>
         <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={setActiveTab} />
-        {activeNodeSetStateEvent && (
+        {activeSetStateEvent && (
           <TabButton tab={DiffTabOptions.PATCH} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
         <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={setActiveTab} />

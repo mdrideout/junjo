@@ -13,36 +13,37 @@ import {
  * Returns the icon for the span based on attribute information
  * @param span
  */
-export function SpanIconConstructor(props: { span: OtelSpan }): JSX.Element {
-  const { span } = props
+export function SpanIconConstructor(props: { span: OtelSpan; active: boolean }): JSX.Element {
+  const { span, active } = props
 
   const attributes = span.attributes_json
+  const iconColor = active ? 'text-amber-500' : 'text-zinc-600 dark:text-zinc-400'
 
   // Junjo Workflow Span
   if (span.junjo_span_type === JunjoSpanType.SUBFLOW) {
-    return <Square3Stack3DIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+    return <Square3Stack3DIcon className={`size-5 ${iconColor}`} />
   }
 
   // Junjo Node Span
   if (span.junjo_span_type === JunjoSpanType.NODE) {
-    return <CubeIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+    return <CubeIcon className={`size-5 ${iconColor}`} />
   }
 
   // Junjo NodeGather Span
   if (span.junjo_span_type === JunjoSpanType.NODE_GATHER) {
-    return <Squares2X2Icon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+    return <Squares2X2Icon className={`size-5 ${iconColor}`} />
   }
 
   // Database Span
   // If attributes contains "db.system" key
   if (attributes['db.system']) {
-    return <CircleStackIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+    return <CircleStackIcon className={`size-5 ${iconColor}`} />
   }
 
   // AI Span
   // Gemini: gen_ai.system
   if (attributes['gen_ai.system']) {
-    return <ChatBubbleLeftEllipsisIcon className={'size-5 text-zinc-600 dark:text-zinc-400'} />
+    return <ChatBubbleLeftEllipsisIcon className={`size-5 ${iconColor}`} />
   }
 
   // Default

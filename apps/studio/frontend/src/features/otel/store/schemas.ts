@@ -51,9 +51,9 @@ export const NodeSetStateAttributesSchema = z.object({
   'junjo.store.name': z.string(),
 })
 
-export const NodeSetStateEventSchema = z.object({
+export const JunjoSetStateEventSchema = z.object({
   name: z.literal('set_state'), // Discriminator field
   timeUnixNano: z.number(),
   attributes: NodeSetStateAttributesSchema,
 })
-export type NodeSetStateEvent = z.infer<typeof NodeSetStateEventSchema>
+export type JunjoSetStateEvent = z.infer<typeof JunjoSetStateEventSchema>

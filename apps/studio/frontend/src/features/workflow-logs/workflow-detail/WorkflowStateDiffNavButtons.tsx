@@ -1,39 +1,39 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
 import { useActiveNodeContext } from './ActiveNodeContext'
-import { NodeSetStateEvent } from '../../otel/store/schemas'
+import { JunjoSetStateEvent } from '../../otel/store/schemas'
 
 interface WorkflowStateEventNavButtonsProps {
-  workflowStateEvents: NodeSetStateEvent[]
+  workflowStateEvents: JunjoSetStateEvent[]
 }
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
   const { workflowStateEvents } = props
-  const { activeNodeSetStateEvent, setActiveNodeSetStateEvent, setScrollToPatchId } = useActiveNodeContext()
+  const { activeSetStateEvent, setActiveSetStateEvent, setScrollToSpanId } = useActiveNodeContext()
   const activePatchIndex = workflowStateEvents.findIndex(
-    (patch) => patch.attributes.id === activeNodeSetStateEvent?.attributes.id,
+    (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
   )
 
   const disablePrev = activePatchIndex === 0
   const disableNext = activePatchIndex + 1 === workflowStateEvents.length
 
   const handleNextPatchClick = () => {
-    if (activeNodeSetStateEvent) {
+    if (activeSetStateEvent) {
       const nextPatchIndex = activePatchIndex + 1
       if (nextPatchIndex < workflowStateEvents.length) {
         const nextPatch = workflowStateEvents[nextPatchIndex]
-        setActiveNodeSetStateEvent(nextPatch)
-        setScrollToPatchId(nextPatch.attributes.id)
+        setActiveSetStateEvent(nextPatch)
+        setScrollToSpanId(nextPatch.attributes.id)
       }
     }
   }
 
   const handlePrevPatchClick = () => {
-    if (activeNodeSetStateEvent) {
+    if (activeSetStateEvent) {
       const prevPatchIndex = activePatchIndex - 1
       if (prevPatchIndex >= 0) {
         const prevPatch = workflowStateEvents[prevPatchIndex]
-        setActiveNodeSetStateEvent(prevPatch)
-        setScrollToPatchId(prevPatch.attributes.id)
+        setActiveSetStateEvent(prevPatch)
+        setScrollToSpanId(prevPatch.attributes.id)
       }
     }
   }
