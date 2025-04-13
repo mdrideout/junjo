@@ -6,7 +6,7 @@ import { useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
 import { selectAllWorkflowChildSpans, selectStateEventsBySpanId } from '../features/otel/store/selectors'
-import { JunjoSpanType } from '../features/otel/store/schemas'
+import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
 
 interface RenderJunjoGraphMermaidProps {
   mermaidFlowString: string
@@ -36,11 +36,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     [serviceName, workflowSpanID],
   )
 
-  // Get the active span's set state events
-  const activeSpanStateEvents = useAppSelector((state: RootState) =>
-    selectStateEventsBySpanId(state, { serviceName, spanId: activeSpan?.span_id ?? '' }),
-  )
-
   // Get all spans for this workflow
   const workflowChildSpans = useAppSelector((state: RootState) =>
     selectAllWorkflowChildSpans(state, selectorProps),
@@ -57,37 +52,47 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
   // --- Node Click Handler Definition ---
   // Use useCallback to ensure the function reference is stable for add/removeEventListener
-  const handleNodeClick = useCallback(
-    (event: MouseEvent) => {
-      // Use currentTarget to get the element the listener was attached to (<g class="node">)
-      const targetElement = event.currentTarget as SVGGElement // Type assertion
-      const nodeIdAttr = targetElement?.id
+  const handleNodeClick = useCallback((event: MouseEvent) => {
+    // Use currentTarget to get the element the listener was attached to (<g class="node">)
+    const targetElement = event.currentTarget as SVGGElement // Type assertion
+    const nodeIdAttr = targetElement?.id
 
-      // Get the ID from the mermaid element
-      const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
-      if (junjoID) {
-        console.log('Clicked junjo ID:', junjoID)
+    // Get the ID from the mermaid element
+    const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
+    if (junjoID) {
+      console.log('Clicked junjo ID:', junjoID)
+
+      // Set the active SetState event to the first event in this node
+      setActiveSetStateEvent(null)
+
+      // Get the span with the junjo.id that matches the junjoID
+      const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
+      if (clickedSpan) {
+        console.log('Clicked span:', clickedSpan)
+
+        // Set the active span to the clicked span
+        setActiveSpan(clickedSpan)
 
         // Set the active SetState event to the first event in this node
-        setActiveSetStateEvent(null)
-
-        // Get the span with the junjo.id that matches the junjoID
-        const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
-        if (clickedSpan) {
-          console.log('Clicked span:', clickedSpan)
-
-          // Set the active span to the clicked span
-          setActiveSpan(clickedSpan)
-
-          // Scroll to the span
-          setScrollToSpanId(clickedSpan.span_id)
+        const spanStateEvent = clickedSpan.events_json[0]
+        if (spanStateEvent) {
+          // Validate the events_json structure
+          const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
+          if (!validated.success) {
+            console.error('Invalid state event structure:', validated.error)
+            return
+          }
+          const stateEvent = validated.data
+          setActiveSetStateEvent(stateEvent)
         }
-      } else {
-        console.warn('Could not extract Mermaid Node ID from clicked element:', targetElement)
+
+        // Scroll to the span
+        setScrollToSpanId(clickedSpan.span_id)
       }
-    },
-    [activeSpanStateEvents],
-  )
+    } else {
+      console.warn('Could not extract Mermaid Node ID from clicked element:', targetElement)
+    }
+  }, [])
 
   // --- Subflow Click Handler ---
   const handleSubflowClick = useCallback((event: MouseEvent) => {
