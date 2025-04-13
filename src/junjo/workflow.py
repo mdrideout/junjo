@@ -83,6 +83,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
     async def execute(  # noqa: C901
             self,
+            parent_store: ParentStoreT | None = None,
             parent_id: str | None = None,
         ):
         """
@@ -121,10 +122,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         # # If executing a subflow
                         if isinstance(current_executable, Subflow):
                             print("Executing subflow:", current_executable.name)
-                            await current_executable.execute(self.id)
-
-                            # Perform post-run actions (pass this level's store as the parent store)
-                            await current_executable.post_run_actions(self.store)
+                            # Pass the current store as the parent store for the sub-flow
+                            await current_executable.execute(self.store, self.id)
 
                         # If executing a node
                         if isinstance(current_executable, Node):
@@ -167,6 +166,14 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         raise e
 
                 logger.info(f"Completed workflow: {self.name} with ID: {self.id}")
+
+                # Perform subflow post-run actions
+                if isinstance(self, Subflow):
+                    if parent_store is None:
+                        raise ValueError("Subflow requires a parent store to execute post_run_actions.")
+                    else:
+                        print("Performing post-run actions for subflow:", self.name)
+                        await self.post_run_actions(parent_store)
 
             except Exception as e:
                 print(f"Error executing workflow: {e}")
