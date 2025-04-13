@@ -1,11 +1,17 @@
 .mermaid-node-active > rect,
 .mermaid-node-active > polygon,
 .mermaid-node-active > circle,
-.mermaid-node-active > ellipse {
+.mermaid-node-active > ellipse,
+.mermaid-node-active.node-subflow path {
   /* Target the shape element within the active node group */
   stroke: orange !important;
   stroke-width: 4px !important;
   transition: all 250ms ease-in-out;
+}
+
+.mermaid-node-active.node-subflow path {
+  /* Style override */
+  stroke-width: 3px !important;
 }
 
 .mermaid-container .node {
@@ -13,13 +19,15 @@
   transition: all 250ms ease-in-out;
 }
 
-.mermaid-container .node:not(.graph-element-not-utilized):hover > rect {
+.mermaid-container .node:not(.graph-element-not-utilized):hover > rect,
+.mermaid-container .node-subflow:not(.graph-element-not-utilized):hover path {
   fill: rgb(255, 193, 77) !important;
   transition: all 250ms ease-in-out;
 }
 @media (prefers-color-scheme: dark) {
-  .mermaid-container .node:not(.graph-element-not-utilized):hover > rect {
-    fill: rgb(106, 63, 0) !important;
+  .mermaid-container .node:not(.graph-element-not-utilized):hover > rect,
+  .mermaid-container .node-subflow:not(.graph-element-not-utilized):hover path {
+    fill: rgb(106, 41, 0) !important;
   }
 }
 

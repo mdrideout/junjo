@@ -194,7 +194,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
             </div>
             {row.childRows.length > 0 && (
               <div
-                className={`border-l ml-[13.5px]  ${isActiveSpan ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
+                className={`border-l ml-[13px]  ${isActiveSpan ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
               >
                 {row.childRows.map((childRow, index) => {
                   return (
