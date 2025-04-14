@@ -24,8 +24,7 @@ const mermaidBaseConfig = {
 
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
   const { mermaidFlowString, mermaidUniqueId, serviceName, workflowSpanID } = props
-  const { activeSpan, setActiveSpan, activeSetStateEvent, setActiveSetStateEvent, setScrollToSpanId } =
-    useActiveNodeContext()
+  const { activeSpan, setActiveSpan, setActiveSetStateEvent, setScrollToSpanId } = useActiveNodeContext()
 
   // 1. Memoize the props object for the selector
   const selectorProps = useMemo(
@@ -83,6 +82,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
             return
           }
           const stateEvent = validated.data
+          console.log('Setting active state event:', stateEvent)
           setActiveSetStateEvent(stateEvent)
         }
 

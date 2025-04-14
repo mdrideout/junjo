@@ -10,10 +10,7 @@ import { RootState } from '../../../root-store/store'
 import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
-import {
-  formatMicrosecondsSinceEpochToTime,
-  isoStringToMicrosecondsSinceEpoch,
-} from '../../../util/duration-utils'
+import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -127,6 +124,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
    * @returns {void} - nothing is returned, this function sets state instead
    */
   const cumulativePatchSetter = (patchIndex: number) => {
+    console.log('Running cumulative patch setter.')
+
     // If there are no patches, just set the original state
     if (workflowStateEvents.length === 0) {
       setBeforeJson(workflowStateStart)
@@ -140,10 +139,19 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     // Starting points for accumulating patches
     let beforeCumulativeState = structuredClone(workflowStateStart)
     let afterCumulativeState = structuredClone(workflowStateStart)
+    console.log('Before cumulative state: ', beforeCumulativeState)
+    console.log('After cumulative state: ', afterCumulativeState)
 
+    // Apply patches to the cumulative state
     for (let i = 0; i <= patchIndex; i++) {
-      const patchString = workflowStateEvents[i].attributes['junjo.state_json_patch']
+      const thisEvent = workflowStateEvents[i]
+      console.log('Adding patch from this state event: ', thisEvent)
+
+      const patchString = thisEvent.attributes['junjo.state_json_patch']
       const patch = JSON.parse(patchString)
+      console.log(`Patch ${i} of ${patchIndex}`)
+      console.log('Patch string: ', patchString)
+      console.log('Patch: ', patch)
 
       // Apply to after state
       afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument

@@ -34,6 +34,7 @@ export const OtelSpanSchema = z.object({
   junjo_wf_state_start: z.record(z.any()),
   junjo_wf_state_end: z.record(z.any()),
   junjo_wf_graph_structure: z.record(z.any()),
+  junjo_wf_store_id: z.string(),
 })
 export type OtelSpan = z.infer<typeof OtelSpanSchema>
 
@@ -49,6 +50,7 @@ export const NodeSetStateAttributesSchema = z.object({
   'junjo.state_json_patch': z.string(), // Assuming this is a JSON string
   'junjo.store.action': z.string(),
   'junjo.store.name': z.string(),
+  'junjo.store.id': z.string(),
 })
 
 export const JunjoSetStateEventSchema = z.object({

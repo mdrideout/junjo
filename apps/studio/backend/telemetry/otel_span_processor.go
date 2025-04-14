@@ -195,17 +195,19 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 	junjoInitialState := "{}"
 	junjoFinalState := "{}"
 	junjoGraphStructure := "{}"
-	if junjoSpanType == "workflow" {
+	junjoWfStoreId := ""
+	if junjoSpanType == "workflow" || junjoSpanType == "subflow" {
 		junjoInitialState = extractJSONAttribute(span.Attributes, "junjo.workflow.state.start")
 		junjoFinalState = extractJSONAttribute(span.Attributes, "junjo.workflow.state.end")
 		junjoGraphStructure = extractJSONAttribute(span.Attributes, "junjo.workflow.graph_structure")
+		junjoWfStoreId = extractJSONAttribute(span.Attributes, "junjo.workflow.store.id")
 	}
 
 	// Filter out attributes_json elements that we are extracting to dedicated columns
 	filteredAttributes := []*commonpb.KeyValue{}
 	for _, attr := range span.Attributes {
 		switch attr.Key {
-		case "junjo.workflow_id", "node.id", "junjo.id", "junjo.parent_id", "junjo.span_type", "junjo.workflow.state.start", "junjo.workflow.state.end", "junjo.workflow.graph_structure":
+		case "junjo.workflow_id", "node.id", "junjo.id", "junjo.parent_id", "junjo.span_type", "junjo.workflow.state.start", "junjo.workflow.state.end", "junjo.workflow.graph_structure", "junjo.workflow.store.id":
 			// Skip - in dedicated columns
 		default:
 			filteredAttributes = append(filteredAttributes, attr)
@@ -236,8 +238,8 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 			trace_id, span_id, parent_span_id, service_name, name, kind, start_time, end_time,
 			status_code, status_message, attributes_json, events_json, links_json,
 			trace_flags, trace_state, junjo_id, junjo_parent_id, junjo_span_type,
-			junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
+			junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 	// log.Printf("Executing query: %s with parameters: %v", spanInsertQuery, []interface{}{
 	// 	traceID, spanID, parentSpanID, service_name, span.Name, kindStr, startTime, endTime,
@@ -250,7 +252,7 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 		traceID, spanID, parentSpanID, service_name, span.Name, kindStr, startTime, endTime,
 		statusCode, statusMessage, attributesJSON, eventsJSON, "[]",
 		span.Flags, traceState, junjoID, junjoParentID, junjoSpanType,
-		junjoInitialState, junjoFinalState, junjoGraphStructure,
+		junjoInitialState, junjoFinalState, junjoGraphStructure, junjoWfStoreId,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert span into DuckDB: %w", err)
@@ -258,17 +260,18 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 
 	// Insert State Patches
 	patchInsertQuery := `
-		INSERT INTO state_patches (patch_id, service_name, trace_id, span_id, workflow_id, node_id, event_time, patch)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+		INSERT INTO state_patches (patch_id, service_name, trace_id, span_id, workflow_id, node_id, event_time, patch_json, patch_store_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 	for _, event := range span.Events {
 		if event.Name == "set_state" {
 			eventTime := time.Unix(0, int64(event.TimeUnixNano)).UTC()
-			patchJSON := extractJSONAttribute(event.Attributes, "state_json_patch")
+			patchJSON := extractJSONAttribute(event.Attributes, "junjo.state_json_patch")
+			patchStoreID := extractStringAttribute(event.Attributes, "junjo.store.id")
 			patchID := uuid.NewString()
 			workflowID := workflowID
 			nodeID := nodeID
-			_, err = db.ExecContext(ctx, patchInsertQuery, patchID, service_name, traceID, spanID, workflowID, nodeID, eventTime, patchJSON)
+			_, err = db.ExecContext(ctx, patchInsertQuery, patchID, service_name, traceID, spanID, workflowID, nodeID, eventTime, patchJSON, patchStoreID)
 			if err != nil {
 				log.Printf("Error inserting patch: %v", err)
 			}

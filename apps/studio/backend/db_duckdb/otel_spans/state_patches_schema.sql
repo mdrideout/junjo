@@ -6,7 +6,8 @@ CREATE TABLE state_patches (
   workflow_id VARCHAR NOT NULL,
   node_id VARCHAR NOT NULL,
   event_time TIMESTAMPTZ NOT NULL,
-  patch JSON NOT NULL,
+  patch_json JSON NOT NULL,
+  patch_store_id VARCHAR NOT NULL,
   FOREIGN KEY (trace_id, span_id) REFERENCES spans (trace_id, span_id)
 );
 
