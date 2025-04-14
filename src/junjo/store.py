@@ -33,11 +33,19 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         # Use an asyncio.Lock for concurrency control in an async environment
         self._lock = asyncio.Lock()
 
+        # Generate a unique ID for the store instance
+        self._id = generate_safe_id()
+
         # The current state of the store
         self._state: StateT = initial_state
 
         # Each subscriber can be a synchronous or asynchronous function
         self._subscribers: list[Subscriber] = []
+
+    @property
+    def id(self) -> str:
+        """Returns the unique identifier for the node."""
+        return self._id
 
     async def subscribe(self, listener: Subscriber) -> Callable[[], Awaitable[None]]:
         """
@@ -138,8 +146,9 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     attributes={
                         "id": generate_safe_id(),
                         "junjo.store.name": caller_class_name,
+                        "junjo.store.id": self.id,
                         "junjo.store.action": caller_function_name,
-                        "junjo.state_json_patch": patch.to_string() if patch else "{}", # Empty object if nothing changed
+                        "junjo.state_json_patch": patch.to_string() if patch else "{}", # Empty if nothing changed
                     },
                 )
             # --- End OpenTelemetry Event --- #
