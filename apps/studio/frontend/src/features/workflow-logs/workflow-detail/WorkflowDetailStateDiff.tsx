@@ -11,6 +11,7 @@ import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
+import { OtelSpan } from '../../otel/store/schemas'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -21,10 +22,7 @@ enum DiffTabOptions {
 }
 
 interface WorkflowDetailStateDiffProps {
-  workflowStateStart: Record<string, any>
-  workflowStateEnd: Record<string, any>
-  serviceName: string
-  workflowSpanID: string
+  workflowSpan: OtelSpan
 }
 
 /**
@@ -59,8 +57,13 @@ const TabButton = ({
  * @returns
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
-  const { workflowStateStart, workflowStateEnd, serviceName, workflowSpanID } = props
+  const { workflowSpan } = props
+  // const { workflowStateStart, workflowStateEnd, serviceName, workflowSpanID } = props
   const { activeSetStateEvent } = useActiveNodeContext()
+
+  // Inferred
+  const serviceName = workflowSpan.service_name
+  const workflowSpanID = workflowSpan.span_id
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
@@ -68,8 +71,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   // Workflow JSON States
   // Different representations of the Workflow's states for rendering
-  const [beforeJson, setBeforeJson] = useState<object>(workflowStateStart)
-  const [afterJson, setAfterJson] = useState<object>(workflowStateEnd)
+  const [beforeJson, setBeforeJson] = useState<object>(workflowSpan.junjo_wf_state_start)
+  const [afterJson, setAfterJson] = useState<object>(workflowSpan.junjo_wf_state_start)
 
   // Infer Changes & Detailed tab data using deep-object-diff
   const changesJson = diff(beforeJson, afterJson)
@@ -128,8 +131,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
     // If there are no patches, just set the original state
     if (workflowStateEvents.length === 0) {
-      setBeforeJson(workflowStateStart)
-      setAfterJson(workflowStateEnd)
+      setBeforeJson(workflowSpan.junjo_wf_state_start)
+      setAfterJson(workflowSpan.junjo_wf_state_start)
       return
     }
 
@@ -137,8 +140,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     if (patchIndex < 0 || patchIndex >= workflowStateEvents.length) return
 
     // Starting points for accumulating patches
-    let beforeCumulativeState = structuredClone(workflowStateStart)
-    let afterCumulativeState = structuredClone(workflowStateStart)
+    let beforeCumulativeState = structuredClone(workflowSpan.junjo_wf_state_start)
+    let afterCumulativeState = structuredClone(workflowSpan.junjo_wf_state_start)
     console.log('Before cumulative state: ', beforeCumulativeState)
     console.log('After cumulative state: ', afterCumulativeState)
 
@@ -171,8 +174,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   useEffect(() => {
     // If activePatchIndex is -1, reset it to the workflow state
     if (activePatchIndex === -1) {
-      setBeforeJson(workflowStateStart)
-      setAfterJson(workflowStateEnd)
+      setBeforeJson(workflowSpan.junjo_wf_state_start)
+      setAfterJson(workflowSpan.junjo_wf_state_start)
       return
     }
 

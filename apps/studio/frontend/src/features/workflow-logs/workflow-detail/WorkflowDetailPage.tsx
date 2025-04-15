@@ -15,13 +15,17 @@ import { nanoid } from '@reduxjs/toolkit'
 import { Switch } from 'radix-ui'
 
 export default function WorkflowDetailPage() {
-  const { serviceName, spanID } = useParams()
+  const { serviceName, workflowSpanID } = useParams()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
-  const span = useAppSelector((state: RootState) => selectWorkflowSpan(state, { serviceName, spanID }))
+  const span = useAppSelector((state: RootState) =>
+    selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID }),
+  )
+
+  console.log('Workflow span: ', span)
 
   // Fetch the serviceNames
   useEffect(() => {
@@ -35,7 +39,7 @@ export default function WorkflowDetailPage() {
     return <ErrorPage title={'Error'} message={`Error loading workflow span`} />
   }
 
-  if (!spanID || !serviceName || !span) {
+  if (!workflowSpanID || !serviceName || !span) {
     return <div>No logs found.</div>
   }
 
@@ -65,14 +69,14 @@ export default function WorkflowDetailPage() {
             </Link>
             <div>&rarr;</div>
             <div>
-              {span.name} <span className={'text-xs font-normal'}>({spanID})</span>
+              {span.name} <span className={'text-xs font-normal'}>({workflowSpanID})</span>
             </div>
           </div>
           <div className={'text-zinc-400 text-xs'}>
             {readableStart} &mdash; {durationString}
           </div>
         </div>
-        <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={spanID} />
+        <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={workflowSpanID} />
       </div>
 
       <hr className={'my-6'} />
@@ -97,17 +101,12 @@ export default function WorkflowDetailPage() {
           mermaidFlowString={mermaidFlowString}
           mermaidUniqueId={mermaidUniqueId}
           serviceName={serviceName}
-          workflowSpanID={spanID}
+          workflowSpanID={workflowSpanID}
         />
       </div>
       <div className={'grow w-full flex gap-x-6 justify-between overflow-hidden'}>
-        <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={spanID} />
-        <WorkflowDetailStateDiff
-          workflowStateStart={span.junjo_wf_state_start}
-          workflowStateEnd={span.junjo_wf_state_end}
-          workflowSpanID={spanID}
-          serviceName={serviceName}
-        />
+        <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />
+        <WorkflowDetailStateDiff workflowSpan={span} />
       </div>
     </div>
   )

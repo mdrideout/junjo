@@ -49,7 +49,7 @@ createRoot(document.getElementById('root')!).render(
                 }
               />
               <Route
-                path="/logs/:serviceName/:spanID"
+                path="/logs/:serviceName/:workflowSpanID"
                 element={
                   <AuthGuard>
                     <ActiveNodeProvider>
