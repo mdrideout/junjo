@@ -7,7 +7,11 @@ import { TriangleDownIcon } from '@radix-ui/react-icons'
 import { useActiveNodeContext } from './ActiveNodeContext'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
+import {
+  selectAllWorkflowStateEvents,
+  selectSetStateEventsByStoreID,
+  selectWorkflowSpanByStoreID,
+} from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
@@ -22,7 +26,7 @@ enum DiffTabOptions {
 }
 
 interface WorkflowDetailStateDiffProps {
-  workflowSpan: OtelSpan
+  defaultWorkflowSpan: OtelSpan
 }
 
 /**
@@ -57,13 +61,54 @@ const TabButton = ({
  * @returns
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
-  const { workflowSpan } = props
-  // const { workflowStateStart, workflowStateEnd, serviceName, workflowSpanID } = props
+  const { defaultWorkflowSpan } = props
   const { activeSetStateEvent } = useActiveNodeContext()
 
-  // Inferred
-  const serviceName = workflowSpan.service_name
-  const workflowSpanID = workflowSpan.span_id
+  const serviceName = defaultWorkflowSpan.service_name
+  const defaultWorkflowSpanID = defaultWorkflowSpan.span_id
+
+  // Get All Workflow State Events
+  // This includes the default top level workflow and all subflows
+  const defaultWorkflowSelectorProps = useMemo(
+    () => ({
+      serviceName,
+      workflowSpanID: defaultWorkflowSpanID,
+    }),
+    [serviceName, defaultWorkflowSpanID],
+  )
+  const allWorkflowStateEvents = useAppSelector((state: RootState) =>
+    selectAllWorkflowStateEvents(state, defaultWorkflowSelectorProps),
+  )
+
+  // Active Set State Event - Store ID
+  // This is the ID of the store that this state event acted on
+  const activeStoreID = activeSetStateEvent?.attributes['junjo.store.id']
+
+  // The active workflow span is the workflow with the same store as the current set state event,
+  // defaulting to the default workflow span if there is no active set state event
+  // This may be a subflow of the default workflow depending on the set state event
+  const activeWorkflowSpan =
+    useAppSelector((state: RootState) =>
+      selectWorkflowSpanByStoreID(state, { serviceName, storeID: activeStoreID }),
+    ) ?? defaultWorkflowSpan
+
+  // Get Active Workflow State Events
+  // This is only state events for the currently actively rendering workflow or subflow
+  // This is so we can construct the patches of just this rendered JSON state for this workflow and its store
+  const activeWorkflowSelectorProps = useMemo(
+    () => ({
+      serviceName,
+      workflowSpanID: defaultWorkflowSpanID,
+      storeID: activeStoreID,
+    }),
+    [serviceName, defaultWorkflowSpanID, activeStoreID],
+  )
+  const activeWorkflowStateEvents = useAppSelector((state: RootState) =>
+    selectSetStateEventsByStoreID(state, activeWorkflowSelectorProps),
+  )
+
+  // The structure / starting state of the activeWorkflowSpan
+  const renderStateStart = activeWorkflowSpan.junjo_wf_state_start
 
   // Local State
   const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
@@ -71,35 +116,27 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   // Workflow JSON States
   // Different representations of the Workflow's states for rendering
-  const [beforeJson, setBeforeJson] = useState<object>(workflowSpan.junjo_wf_state_start)
-  const [afterJson, setAfterJson] = useState<object>(workflowSpan.junjo_wf_state_start)
+  const [beforeJson, setBeforeJson] = useState<object>(renderStateStart)
+  const [afterJson, setAfterJson] = useState<object>(renderStateStart)
 
   // Infer Changes & Detailed tab data using deep-object-diff
   const changesJson = diff(beforeJson, afterJson)
   const detailedJson = detailedDiff(beforeJson, afterJson)
 
-  // Selectors
-  // Memoize the props object
-  const selectorProps = useMemo(
-    () => ({
-      serviceName,
-      workflowSpanID,
-    }),
-    [serviceName, workflowSpanID],
-  )
-
-  // Use the memoized props object
-  const workflowStateEvents = useAppSelector((state: RootState) =>
-    selectAllWorkflowStateEvents(state, selectorProps),
-  )
-
-  // Active Patch Isolation
-  const activePatchIndex = workflowStateEvents.findIndex(
+  // All Events Patch Index (for all state events in the parent workflow and subflows)
+  const allEventsPatchIndex = allWorkflowStateEvents.findIndex(
     (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
   )
-  const activePatchJson =
-    activePatchIndex >= 0
-      ? JSON.parse(workflowStateEvents[activePatchIndex].attributes['junjo.state_json_patch'])
+
+  // ActiveWorkflowPatchIndex (for the state events in the active workflow / store)
+  const activeWorkflowPatchIndex = activeWorkflowStateEvents.findIndex(
+    (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
+  )
+
+  // The JSON of the current patch
+  const currentPatchJson =
+    allEventsPatchIndex >= 0
+      ? JSON.parse(allWorkflowStateEvents[allEventsPatchIndex].attributes['junjo.state_json_patch'])
       : {}
 
   // JSON Renderer Theme Decider
@@ -120,34 +157,36 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   /**
    * Cumulative Patch Setter
-   * Takes the workflow's starting state, and accumulates the patches to create
+   * Takes the active workflow's starting state, and accumulates the patches to create
    *  - Before: Starting State + Patches up to but excluding the currently selected patch
    *  - After: Starting State + Patches up to and including the currently selected patch
-   * @param {number} patchIndex is the index of the currently active patch
+   * @param {number} patchIndex is the index of the currently active patch IN THE active workflow
    * @returns {void} - nothing is returned, this function sets state instead
    */
   const cumulativePatchSetter = (patchIndex: number) => {
-    console.log('Running cumulative patch setter.')
+    console.log(
+      `Running cumulative patch setter for store: ${activeStoreID} and \
+       patch index: ${patchIndex} / ${activeWorkflowStateEvents.length}`,
+    )
 
     // If there are no patches, just set the original state
-    if (workflowStateEvents.length === 0) {
-      setBeforeJson(workflowSpan.junjo_wf_state_start)
-      setAfterJson(workflowSpan.junjo_wf_state_start)
+    if (activeWorkflowStateEvents.length === 0) {
+      setBeforeJson(renderStateStart)
+      setAfterJson(renderStateStart)
       return
     }
 
     // If the patch index is out of bounds, return
-    if (patchIndex < 0 || patchIndex >= workflowStateEvents.length) return
+    if (patchIndex < 0 || patchIndex >= activeWorkflowStateEvents.length) return
 
     // Starting points for accumulating patches
-    let beforeCumulativeState = structuredClone(workflowSpan.junjo_wf_state_start)
-    let afterCumulativeState = structuredClone(workflowSpan.junjo_wf_state_start)
+    let beforeCumulativeState = structuredClone(renderStateStart)
+    let afterCumulativeState = structuredClone(renderStateStart)
     console.log('Before cumulative state: ', beforeCumulativeState)
-    console.log('After cumulative state: ', afterCumulativeState)
 
     // Apply patches to the cumulative state
     for (let i = 0; i <= patchIndex; i++) {
-      const thisEvent = workflowStateEvents[i]
+      const thisEvent = activeWorkflowStateEvents[i]
       console.log('Adding patch from this state event: ', thisEvent)
 
       const patchString = thisEvent.attributes['junjo.state_json_patch']
@@ -173,15 +212,15 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   // Run the patch setter
   useEffect(() => {
     // If activePatchIndex is -1, reset it to the workflow state
-    if (activePatchIndex === -1) {
-      setBeforeJson(workflowSpan.junjo_wf_state_start)
-      setAfterJson(workflowSpan.junjo_wf_state_start)
+    if (activeWorkflowPatchIndex === -1) {
+      setBeforeJson(renderStateStart)
+      setAfterJson(renderStateStart)
       return
     }
 
     // Else, use the cumulative state patch setter
-    cumulativePatchSetter(activePatchIndex)
-  }, [activePatchIndex, workflowStateEvents])
+    cumulativePatchSetter(activeWorkflowPatchIndex)
+  }, [activeWorkflowPatchIndex, activeWorkflowStateEvents])
 
   // Get Tab Collapsed Level
   const getTabCollapsedLevel = (tab: DiffTabOptions) => {
@@ -207,7 +246,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       case DiffTabOptions.DETAILED:
         return detailedJson
       case DiffTabOptions.PATCH:
-        return activePatchJson
+        return currentPatchJson
       default:
         return {}
     }
@@ -229,8 +268,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
           <div>Patch: {activeSetStateEvent?.attributes.id}</div>
           <div className={'flex items-center gap-x-2'}>
             {' '}
-            {start_micro} &mdash; ({activePatchIndex + 1}/{workflowStateEvents.length})
-            <WorkflowStateEventNavButtons workflowStateEvents={workflowStateEvents} />
+            {start_micro} &mdash; ({allEventsPatchIndex + 1}/{allWorkflowStateEvents.length})
+            <WorkflowStateEventNavButtons workflowStateEvents={allWorkflowStateEvents} />
           </div>
         </div>
       )}

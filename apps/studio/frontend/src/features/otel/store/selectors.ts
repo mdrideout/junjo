@@ -129,6 +129,58 @@ export const selectAllWorkflowStateEvents = createSelector(
 )
 
 /**
+ * Select Workflow Span By Store ID
+ * Allows for the selection of a workflow span by its store ID
+ */
+export const selectWorkflowSpanByStoreID = createSelector(
+  [
+    selectWorkflowsData,
+    (_state: RootState, props: { serviceName: string | undefined; storeID: string | undefined }) => props,
+  ],
+  (workflowsData, props): OtelSpan | undefined => {
+    if (!props.storeID || !props.serviceName) return undefined
+
+    const serviceData = workflowsData[props.serviceName ?? '']
+    if (!serviceData) return undefined
+
+    return serviceData.workflowSpans.find((span) => span.junjo_wf_store_id === props.storeID)
+  },
+)
+
+/**
+ * Select Set State Events by Store ID
+ */
+export const selectSetStateEventsByStoreID = createSelector(
+  [selectAllWorkflowChildSpans, (_state: RootState, props: { storeID: string | undefined }) => props],
+  (childSpans, { storeID }): JunjoSetStateEvent[] => {
+    const junjoSetStateEvents: JunjoSetStateEvent[] = []
+    if (!storeID) return junjoSetStateEvents
+
+    childSpans.forEach((span) => {
+      // Basic check if events_json exists and is an array
+      if (Array.isArray(span.events_json)) {
+        span.events_json.forEach((event) => {
+          try {
+            // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
+            const parsedEvent = JunjoSetStateEventSchema.parse(event)
+            if (parsedEvent.attributes['junjo.store.id'] === storeID) {
+              junjoSetStateEvents.push(parsedEvent)
+            }
+          } catch (error) {
+            // Consider less noisy logging or specific handling
+            // console.error('Error parsing event in selector:', error);
+          }
+        })
+      }
+    })
+
+    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+    // createSelector memoizes this returned reference
+    return junjoSetStateEvents
+  },
+)
+
+/**
  * Select All Span State Events
  * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
  */

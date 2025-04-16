@@ -106,7 +106,7 @@ export default function WorkflowDetailPage() {
       </div>
       <div className={'grow w-full flex gap-x-6 justify-between overflow-hidden'}>
         <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />
-        <WorkflowDetailStateDiff workflowSpan={span} />
+        <WorkflowDetailStateDiff defaultWorkflowSpan={span} />
       </div>
     </div>
   )
