@@ -4,7 +4,7 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
-import { useActiveNodeContext } from './ActiveNodeContext'
+import { useActiveSpanContext } from './ActiveNodeContext'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import {
@@ -62,7 +62,7 @@ const TabButton = ({
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { defaultWorkflowSpan } = props
-  const { activeSetStateEvent } = useActiveNodeContext()
+  const { activeSetStateEvent } = useActiveSpanContext()
 
   const serviceName = defaultWorkflowSpan.service_name
   const defaultWorkflowSpanID = defaultWorkflowSpan.span_id
@@ -269,7 +269,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
           <div className={'flex items-center gap-x-2'}>
             {' '}
             {start_micro} &mdash; ({allEventsPatchIndex + 1}/{allWorkflowStateEvents.length})
-            <WorkflowStateEventNavButtons workflowStateEvents={allWorkflowStateEvents} />
+            <WorkflowStateEventNavButtons
+              serviceName={serviceName}
+              workflowSpanID={defaultWorkflowSpanID} // top level workflow
+              workflowStateEvents={allWorkflowStateEvents}
+            />
           </div>
         </div>
       )}

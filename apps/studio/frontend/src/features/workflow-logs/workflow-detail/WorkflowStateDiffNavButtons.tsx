@@ -1,20 +1,48 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
-import { useActiveNodeContext } from './ActiveNodeContext'
+import { useActiveSpanContext } from './ActiveNodeContext'
 import { JunjoSetStateEvent } from '../../otel/store/schemas'
+import { useAppSelector } from '../../../root-store/hooks'
+import { RootState } from '../../../root-store/store'
+import { selectStateEventParentSpan } from '../../otel/store/selectors'
+import { useEffect } from 'react'
 
 interface WorkflowStateEventNavButtonsProps {
+  serviceName: string
+  workflowSpanID: string
   workflowStateEvents: JunjoSetStateEvent[]
 }
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
-  const { workflowStateEvents } = props
-  const { activeSetStateEvent, setActiveSetStateEvent, setScrollToSpanId } = useActiveNodeContext()
+  const { serviceName, workflowSpanID, workflowStateEvents } = props
+  const { activeSetStateEvent, setActiveSetStateEvent, setActiveSpan, setScrollToSpanId } =
+    useActiveSpanContext()
+
+  // Get the span that contains this workflow state event
+  const span = useAppSelector((state: RootState) =>
+    selectStateEventParentSpan(state, {
+      serviceName,
+      workflowSpanID,
+      stateEventId: activeSetStateEvent?.attributes.id,
+    }),
+  )
+  console.log('Nav button span: ', span)
+
+  // Get the index of the active patch
   const activePatchIndex = workflowStateEvents.findIndex(
     (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
   )
 
   const disablePrev = activePatchIndex === 0
   const disableNext = activePatchIndex + 1 === workflowStateEvents.length
+
+  // Effect to update the active span when the activeSetStateEvent changes
+  useEffect(() => {
+    if (span) {
+      setActiveSpan(span)
+    }
+    // Add dependencies: setActiveSpan and span
+    // activeSetStateEvent is implicitly a dependency because `span` depends on it.
+  }, [span, setActiveSpan])
 
   const handleNextPatchClick = () => {
     if (activeSetStateEvent) {

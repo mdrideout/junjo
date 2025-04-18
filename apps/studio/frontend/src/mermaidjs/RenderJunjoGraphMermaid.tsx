@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react' // Import useState
 import mermaid from 'mermaid'
-import { useActiveNodeContext } from '../features/workflow-logs/workflow-detail/ActiveNodeContext'
+import { useActiveSpanContext } from '../features/workflow-logs/workflow-detail/ActiveNodeContext'
 import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppSelector } from '../root-store/hooks'
 
@@ -24,7 +24,7 @@ const mermaidBaseConfig = {
 
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
   const { mermaidFlowString, mermaidUniqueId, serviceName, workflowSpanID } = props
-  const { activeSpan, setActiveSpan, setActiveSetStateEvent, setScrollToSpanId } = useActiveNodeContext()
+  const { activeSpan, setActiveSpan, setActiveSetStateEvent, setScrollToSpanId } = useActiveSpanContext()
 
   // 1. Memoize the props object for the selector
   const selectorProps = useMemo(

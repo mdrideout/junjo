@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, Dispatch, SetStateAction } from 'react'
 import { JunjoSetStateEvent, OtelSpan } from '../../otel/store/schemas'
 
-interface ActiveNodeContextType {
+interface ActiveSpanContextType {
   activeSpan: OtelSpan | null
   setActiveSpan: Dispatch<SetStateAction<OtelSpan | null>>
   activeSetStateEvent: JunjoSetStateEvent | null
@@ -10,21 +10,21 @@ interface ActiveNodeContextType {
   setScrollToSpanId: Dispatch<SetStateAction<string | null>>
 }
 
-const ActiveNodeContext = createContext<ActiveNodeContextType | undefined>(undefined)
+const ActiveNodeContext = createContext<ActiveSpanContextType | undefined>(undefined)
 
-export const useActiveNodeContext = () => {
+export const useActiveSpanContext = () => {
   const context = useContext(ActiveNodeContext)
   if (!context) {
-    throw new Error('useActiveNodeContext must be used within an ActiveNodeProvider')
+    throw new Error('useActiveSpanContext must be used within an ActiveSpanProvider')
   }
   return context
 }
 
-interface ActiveNodeProviderProps {
+interface ActiveSpanProviderProps {
   children: React.ReactNode
 }
 
-export const ActiveNodeProvider: React.FC<ActiveNodeProviderProps> = ({ children }) => {
+export const ActiveSpanProvider: React.FC<ActiveSpanProviderProps> = ({ children }) => {
   const [activeSetStateEvent, setActiveSetStateEvent] = useState<JunjoSetStateEvent | null>(null)
   const [scrollToSpanId, setScrollToSpanId] = useState<string | null>(null)
   const [activeSpan, setActiveSpan] = useState<OtelSpan | null>(null)

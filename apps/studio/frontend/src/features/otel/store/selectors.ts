@@ -211,6 +211,31 @@ export const selectStateEventsBySpanId = (
   return junjoSetStateEvents
 }
 
+/**
+ * Select State Event Parent Span
+ * @returns {OtelSpan | undefined}
+ */
+export const selectStateEventParentSpan = createSelector(
+  [
+    selectAllWorkflowChildSpans,
+    (_state: RootState, props: { stateEventId: string | undefined }) => props.stateEventId,
+  ],
+  (childSpans, stateEventId): OtelSpan | undefined => {
+    if (!stateEventId) return undefined
+
+    console.log('Finding span containing state event with ID:', stateEventId)
+    console.log('Searching spans: ', childSpans)
+
+    // Find the span that contains this state event
+    const span = childSpans.find((span) => {
+      // Check if the span's events_json array contains an event with the matching id
+      const hasEvent = span.events_json.some((event) => event.attributes?.id === stateEventId)
+      return hasEvent
+    })
+    return span
+  },
+)
+
 export const selectPrevWorkflowSpanID = (
   state: RootState,
   props: { serviceName: string | undefined; workflowSpanID: string | undefined },

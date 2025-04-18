@@ -16,7 +16,7 @@ import {
   JunjoSetStateEventSchema,
   OtelSpan,
 } from '../../otel/store/schemas'
-import { useActiveNodeContext } from '../workflow-detail/ActiveNodeContext'
+import { useActiveSpanContext } from '../workflow-detail/ActiveNodeContext'
 import { PlayIcon } from '@heroicons/react/24/solid'
 
 interface NestedWorkflowSpansProps {
@@ -32,8 +32,8 @@ interface NestedWorkflowSpansProps {
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { serviceName, workflowSpanID } = props
-  const { activeSetStateEvent, setActiveSetStateEvent, activeSpan, setActiveSpan } = useActiveNodeContext()
-  const { scrollToSpanId } = useActiveNodeContext()
+  const { activeSetStateEvent, setActiveSetStateEvent, activeSpan, setActiveSpan } = useActiveSpanContext()
+  const { scrollToSpanId } = useActiveSpanContext()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
   // 1. Memoize the props object for the selector

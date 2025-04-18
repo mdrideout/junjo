@@ -13,7 +13,7 @@ import WorkflowListPage from './features/workflow-logs/list-workflow-executions/
 import AppNamesPage from './features/workflow-logs/list-app-names/AppNamesPage.tsx'
 import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
-import { ActiveNodeProvider } from './features/workflow-logs/workflow-detail/ActiveNodeContext.tsx'
+import { ActiveSpanProvider } from './features/workflow-logs/workflow-detail/ActiveNodeContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -52,9 +52,9 @@ createRoot(document.getElementById('root')!).render(
                 path="/logs/:serviceName/:workflowSpanID"
                 element={
                   <AuthGuard>
-                    <ActiveNodeProvider>
+                    <ActiveSpanProvider>
                       <WorkflowDetailPage />
-                    </ActiveNodeProvider>
+                    </ActiveSpanProvider>
                   </AuthGuard>
                 }
               />
