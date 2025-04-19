@@ -25,7 +25,6 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       stateEventId: activeSetStateEvent?.attributes.id,
     }),
   )
-  console.log('Nav button span: ', span)
 
   // Get the index of the active patch
   const activePatchIndex = workflowStateEvents.findIndex(

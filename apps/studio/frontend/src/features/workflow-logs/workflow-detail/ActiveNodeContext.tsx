@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, Dispatch, SetStateAction } from 'react'
+import React, { createContext, useContext, useState, Dispatch, SetStateAction, useEffect } from 'react'
 import { JunjoSetStateEvent, OtelSpan } from '../../otel/store/schemas'
 
 interface ActiveSpanContextType {

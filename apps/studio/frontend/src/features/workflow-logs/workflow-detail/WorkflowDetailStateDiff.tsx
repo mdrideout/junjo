@@ -83,6 +83,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   // Active Set State Event - Store ID
   // This is the ID of the store that this state event acted on
   const activeStoreID = activeSetStateEvent?.attributes['junjo.store.id']
+  console.log('Active set state event: ', activeSetStateEvent)
 
   // The active workflow span is the workflow with the same store as the current set state event,
   // defaulting to the default workflow span if there is no active set state event
@@ -164,10 +165,10 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
    * @returns {void} - nothing is returned, this function sets state instead
    */
   const cumulativePatchSetter = (patchIndex: number) => {
-    console.log(
-      `Running cumulative patch setter for store: ${activeStoreID} and \
-       patch index: ${patchIndex} / ${activeWorkflowStateEvents.length}`,
-    )
+    // console.log(
+    //   `Running cumulative patch setter for store: ${activeStoreID} and \
+    //    patch index: ${patchIndex} / ${activeWorkflowStateEvents.length}`,
+    // )
 
     // If there are no patches, just set the original state
     if (activeWorkflowStateEvents.length === 0) {
@@ -182,18 +183,16 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     // Starting points for accumulating patches
     let beforeCumulativeState = structuredClone(renderStateStart)
     let afterCumulativeState = structuredClone(renderStateStart)
-    console.log('Before cumulative state: ', beforeCumulativeState)
 
     // Apply patches to the cumulative state
     for (let i = 0; i <= patchIndex; i++) {
       const thisEvent = activeWorkflowStateEvents[i]
-      console.log('Adding patch from this state event: ', thisEvent)
 
       const patchString = thisEvent.attributes['junjo.state_json_patch']
       const patch = JSON.parse(patchString)
-      console.log(`Patch ${i} of ${patchIndex}`)
-      console.log('Patch string: ', patchString)
-      console.log('Patch: ', patch)
+      // console.log(`Patch ${i} of ${patchIndex}`)
+      // console.log('Patch string: ', patchString)
+      // console.log('Patch: ', patch)
 
       // Apply to after state
       afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument

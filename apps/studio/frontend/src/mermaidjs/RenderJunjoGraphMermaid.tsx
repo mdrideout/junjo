@@ -5,7 +5,7 @@ import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
-import { selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
+import { selectAllWorkflowChildSpans, identifyWorkflowChain } from '../features/otel/store/selectors'
 import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
 
 interface RenderJunjoGraphMermaidProps {
@@ -42,6 +42,15 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const nodeSpans = workflowChildSpans.filter(
     (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
   )
+
+  // Get the chain of workflows / subflows that lead to the active span
+  const activeSpanWorkflowChain = useAppSelector((state: RootState) =>
+    identifyWorkflowChain(state, {
+      serviceName: activeSpan?.service_name,
+      startingSpan: activeSpan,
+    }),
+  )
+  console.log(`Active Span (${activeSpan?.span_id}) Workflow Chain: `, activeSpanWorkflowChain)
 
   // Generate a unique ID for the container div and SVG
   const containerId = `mermaid-container-${mermaidUniqueId}`
