@@ -1,10 +1,10 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
-import { useActiveSpanContext } from './ActiveNodeContext'
 import { JunjoSetStateEvent } from '../../otel/store/schemas'
-import { useAppSelector } from '../../../root-store/hooks'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { selectStateEventParentSpan } from '../../otel/store/selectors'
 import { useEffect } from 'react'
+import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowStateEventNavButtonsProps {
   serviceName: string
@@ -14,8 +14,11 @@ interface WorkflowStateEventNavButtonsProps {
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
   const { serviceName, workflowSpanID, workflowStateEvents } = props
-  const { activeSetStateEvent, setActiveSetStateEvent, setActiveSpan, setScrollToSpanId } =
-    useActiveSpanContext()
+  const dispatch = useAppDispatch()
+
+  const activeSetStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  )
 
   // Get the span that contains this workflow state event
   const span = useAppSelector((state: RootState) =>
@@ -37,19 +40,17 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   // Effect to update the active span when the activeSetStateEvent changes
   useEffect(() => {
     if (span) {
-      setActiveSpan(span)
+      dispatch(WorkflowDetailStateActions.setActiveSpan(span))
     }
-    // Add dependencies: setActiveSpan and span
-    // activeSetStateEvent is implicitly a dependency because `span` depends on it.
-  }, [span, setActiveSpan])
+  }, [span, dispatch])
 
   const handleNextPatchClick = () => {
     if (activeSetStateEvent) {
       const nextPatchIndex = activePatchIndex + 1
       if (nextPatchIndex < workflowStateEvents.length) {
         const nextPatch = workflowStateEvents[nextPatchIndex]
-        setActiveSetStateEvent(nextPatch)
-        setScrollToSpanId(nextPatch.attributes.id)
+        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(nextPatch))
+        dispatch(WorkflowDetailStateActions.setScrollToSpanId(nextPatch.attributes.id))
       }
     }
   }
@@ -59,8 +60,8 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       const prevPatchIndex = activePatchIndex - 1
       if (prevPatchIndex >= 0) {
         const prevPatch = workflowStateEvents[prevPatchIndex]
-        setActiveSetStateEvent(prevPatch)
-        setScrollToSpanId(prevPatch.attributes.id)
+        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(prevPatch))
+        dispatch(WorkflowDetailStateActions.setScrollToSpanId(prevPatch.attributes.id))
       }
     }
   }

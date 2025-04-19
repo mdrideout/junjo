@@ -1,10 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
 import otelSlice from '../features/otel/store/slice'
 import { otelStateListenerMiddleware } from '../features/otel/store/listeners'
+import workflowDetailSlice from '../features/workflow-logs/workflow-detail/store/slice'
 
 export const store = configureStore({
   reducer: {
     otelState: otelSlice,
+    workflowDetailState: workflowDetailSlice,
   },
 
   middleware: (getDefaultMiddleware) =>

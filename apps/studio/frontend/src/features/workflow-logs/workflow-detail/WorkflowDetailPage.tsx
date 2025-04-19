@@ -13,6 +13,7 @@ import NestedWorkflowSpans from '../node-logs/NestedWorkflowSpans'
 import RenderJunjoGraphMermaid from '../../../mermaidjs/RenderJunjoGraphMermaid'
 import { nanoid } from '@reduxjs/toolkit'
 import { Switch } from 'radix-ui'
+import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 
 export default function WorkflowDetailPage() {
   const { serviceName, workflowSpanID } = useParams()
@@ -50,11 +51,6 @@ export default function WorkflowDetailPage() {
   // Parse duration
   const durationString = getSpanDurationString(span.start_time, span.end_time)
 
-  // Parse mermaid flow string
-  console.log('Junjo Graph Structure: ', span.junjo_wf_graph_structure)
-  const mermaidFlowString = JunjoGraph.fromJson(span.junjo_wf_graph_structure).toMermaid(mermaidEdgeLabels)
-  const mermaidUniqueId = nanoid()
-
   return (
     <div className={'p-5 flex flex-col h-dvh'}>
       <div className={'flex gap-x-3 px-2 items-center justify-between'}>
@@ -82,7 +78,7 @@ export default function WorkflowDetailPage() {
       <hr className={'my-6'} />
 
       <div className={`w-full shrink-0 pb-3 mb-3 h-80 overflow-scroll`}>
-        <div className={'absolute'}>
+        <div className={'mb-2'}>
           <div className="flex items-center">
             <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">
               Edge labels
@@ -97,11 +93,10 @@ export default function WorkflowDetailPage() {
             </Switch.Root>
           </div>
         </div>
-        <RenderJunjoGraphMermaid
-          mermaidFlowString={mermaidFlowString}
-          mermaidUniqueId={mermaidUniqueId}
+        <RenderJunjoGraphList
           serviceName={serviceName}
           workflowSpanID={workflowSpanID}
+          showEdgeLabels={mermaidEdgeLabels}
         />
       </div>
       <div className={'grow w-full flex gap-x-6 justify-between overflow-hidden'}>

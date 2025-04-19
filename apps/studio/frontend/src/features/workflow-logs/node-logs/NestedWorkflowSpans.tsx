@@ -1,5 +1,5 @@
 import { Fragment } from 'react/jsx-runtime'
-import { useAppSelector } from '../../../root-store/hooks'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import {
   getSpanDurationString,
@@ -16,8 +16,8 @@ import {
   JunjoSetStateEventSchema,
   OtelSpan,
 } from '../../otel/store/schemas'
-import { useActiveSpanContext } from '../workflow-detail/ActiveNodeContext'
 import { PlayIcon } from '@heroicons/react/24/solid'
+import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 
 interface NestedWorkflowSpansProps {
   serviceName: string
@@ -32,9 +32,14 @@ interface NestedWorkflowSpansProps {
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { serviceName, workflowSpanID } = props
-  const { activeSetStateEvent, setActiveSetStateEvent, activeSpan, setActiveSpan } = useActiveSpanContext()
-  const { scrollToSpanId } = useActiveSpanContext()
+  const dispatch = useAppDispatch()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
+
+  const activeSetStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  )
+  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const scrollToSpanId = useAppSelector((state: RootState) => state.workflowDetailState.scrollToSpanId)
 
   // 1. Memoize the props object for the selector
   const selectorProps = useMemo(
@@ -223,10 +228,10 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
             className={`p-1 cursor-pointer border-b last:border-0 border-zinc-200 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
             onClick={() => {
               // Set the active span that this state event belongs to
-              setActiveSpan(row.parentSpan)
+              dispatch(WorkflowDetailStateActions.setActiveSpan(row.parentSpan))
 
               // Set the active set state event
-              setActiveSetStateEvent(row.data)
+              dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(row.data))
             }}
           >
             <div className={'flex gap-x-2 items-start'}>

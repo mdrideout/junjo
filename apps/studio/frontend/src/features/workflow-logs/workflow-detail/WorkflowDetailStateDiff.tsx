@@ -4,7 +4,6 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
 import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
-import { useActiveSpanContext } from './ActiveNodeContext'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import {
@@ -62,10 +61,12 @@ const TabButton = ({
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { defaultWorkflowSpan } = props
-  const { activeSetStateEvent } = useActiveSpanContext()
-
   const serviceName = defaultWorkflowSpan.service_name
   const defaultWorkflowSpanID = defaultWorkflowSpan.span_id
+
+  const activeSetStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  )
 
   // Get All Workflow State Events
   // This includes the default top level workflow and all subflows

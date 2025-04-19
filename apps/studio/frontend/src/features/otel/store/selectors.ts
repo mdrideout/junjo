@@ -1,4 +1,4 @@
-import { createSelector } from '@reduxjs/toolkit'
+import { createSelector, createSelectorCreator, lruMemoize } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
 import { JunjoSetStateEvent, JunjoSetStateEventSchema, JunjoSpanType, OtelSpan } from './schemas'
 
@@ -14,6 +14,9 @@ export const selectServiceNames = (state: RootState) => state.otelState.serviceN
 export const selectWorkflowsData = (state: RootState) => state.otelState.workflows.data
 export const selectWorkflowsLoading = (state: RootState) => state.otelState.workflows.loading
 export const selectWorkflowsError = (state: RootState) => state.otelState.workflows.error
+
+// Selectors - Workflow Detail
+export const selectWorkflowDetailActiveSpan = (state: RootState) => state.workflowDetailState.activeSpan
 
 // --- Memoized Selectors ---
 export const selectServiceWorkflows = createSelector(
@@ -234,6 +237,35 @@ export const selectStateEventParentSpan = createSelector(
 )
 
 /**
+ * Workflow Chain Equality Check
+ * Purpose: Avoid re-rendering every time the active span changes
+ *          and the workflow chain is the same.
+ */
+const workflowChainListEquality = (prevList: OtelSpan[], nextList: OtelSpan[]) => {
+  console.log(`Checking workflow chain equality...`)
+  console.log('Previous List: ', prevList)
+  console.log('Next List: ', nextList)
+
+  if (!prevList || !nextList) return false
+
+  // Check if the lengths are different
+  if (prevList.length !== nextList.length) return false
+
+  // Check if the elements are different
+  for (let i = 0; i < prevList.length; i++) {
+    if (prevList[i].span_id !== nextList[i].span_id) return false
+  }
+  // If all checks pass, the lists are equal
+  console.log('Workflow chain lists are equal.')
+  return true
+}
+
+/**
+ * Workflow Chain Selector Creator
+ */
+const createWorkflowChainSelector = createSelectorCreator(lruMemoize, workflowChainListEquality)
+
+/**
  * Identify Workflow Chain
  * Returns a chain of workflows and subflows that this span is part of.
  * Recursively checks the parent spans to find workflow / subflow spans
@@ -241,24 +273,39 @@ export const selectStateEventParentSpan = createSelector(
  *
  * @returns {OtelSpan | undefined}
  */
-export const identifyWorkflowChain = createSelector(
+export const identifyWorkflowChain = createWorkflowChainSelector(
   [
+    // Input 1: All workflow data
     selectWorkflowsData,
-    (
-      _state: RootState,
-      props: { serviceName: string | undefined; startingSpan: OtelSpan | undefined | null },
-    ) => props,
+    // Input 2: The current top-level workflow span
+    selectWorkflowSpan,
+    // Input 3: The active span
+    selectWorkflowDetailActiveSpan,
   ],
-  (workflowsData, { serviceName, startingSpan }): OtelSpan[] => {
+  // Result function now receives individual values, not the props object
+  (workflowsData, topLevelWorkflowSpan, activeSpan): OtelSpan[] => {
+    if (!workflowsData || !topLevelWorkflowSpan || !activeSpan) return []
+
+    // Initial array
     const workflowSpanChain: OtelSpan[] = []
 
-    if (!serviceName || !startingSpan) return workflowSpanChain
+    // Destructure the active span to get the service name and starting span ID
+    const { service_name: serviceName, span_id: startingSpanId } = activeSpan
 
+    // Get the service workflow data
     const serviceWorkflowData = workflowsData[serviceName]
     if (!serviceWorkflowData) return workflowSpanChain
 
-    // Combine all spans and lineage into a single array for easier searching
+    // Combine all spans for easier lookup *inside* the memoized function
     const allSpans = [...serviceWorkflowData.workflowLineage, ...serviceWorkflowData.workflowSpans]
+
+    // Find the actual starting span object using the stable ID *inside* the memoized function
+    const actualStartingSpan = allSpans.find((s) => s.span_id === startingSpanId)
+
+    if (!actualStartingSpan) {
+      // Return stable empty array reference if starting span not found in data
+      return workflowSpanChain
+    }
 
     // Recursively check the parent spans to find the first workflow / subflow span
     function recursivelyBuildWorkflowSpanChain(span: OtelSpan): OtelSpan | undefined {
@@ -278,9 +325,20 @@ export const identifyWorkflowChain = createSelector(
       return undefined
     }
     // Start the recursion with the event span
-    recursivelyBuildWorkflowSpanChain(startingSpan)
+    recursivelyBuildWorkflowSpanChain(actualStartingSpan)
+
+    // If the span chain is empty, add the top-level workflow span
+    // Otherwise, the recursive function will add it.
+    if (workflowSpanChain.length === 0) {
+      workflowSpanChain.push(topLevelWorkflowSpan)
+    }
 
     return workflowSpanChain
+  },
+  {
+    memoizeOptions: {
+      resultEqualityCheck: workflowChainListEquality,
+    },
   },
 )
 
