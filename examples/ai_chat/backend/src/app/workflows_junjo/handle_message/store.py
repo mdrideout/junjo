@@ -16,6 +16,7 @@ class MessageWorkflowState(BaseState):
     test_updates: list[str] = []
     concurrent_update_test_state: str | None = None
     sub_flow_jokes: list[str] = []
+    sub_flow_poems: list[str] = []
     sub_sub_flow_facts: list[str] = []
 
 class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
@@ -49,6 +50,9 @@ class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
 
     async def set_sub_flow_jokes(self, payload: list[str]) -> None:
         await self.set_state({"sub_flow_jokes": payload})
+
+    async def set_sub_flow_poems(self, payload: list[str]) -> None:
+        await self.set_state({"sub_flow_poems": payload})
 
     async def set_sub_sub_flow_facts(self, payload: list[str]) -> None:
         await self.set_state({"sub_sub_flow_facts": payload})

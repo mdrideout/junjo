@@ -3,6 +3,10 @@ from junjo.graph import Graph
 from junjo.node import Node
 from junjo.node_gather import NodeGather
 
+from app.workflows_junjo.concurrent_sub_flow.graph import concurrent_sub_flow_graph
+from app.workflows_junjo.concurrent_sub_flow.state import ConcurrentSubFlowState
+from app.workflows_junjo.concurrent_sub_flow.store import ConcurrentSubFlowStore
+from app.workflows_junjo.concurrent_sub_flow.sub_flow import ConcurrentSubFlow
 from app.workflows_junjo.handle_message.conditions.message_directive_is import MessageDirectiveIs
 from app.workflows_junjo.handle_message.nodes.assess_message_directive.node import AssessMessageDirectiveNode
 from app.workflows_junjo.handle_message.nodes.create_date_idea_response.node import CreateDateIdeaResponseNode
@@ -38,13 +42,19 @@ create_work_response_node = CreateWorkResponseNode()
 create_date_idea_response_node = CreateDateIdeaResponseNode()
 sink_node = SinkNode()
 
+# Concurrent Subflow Test - Test Running A Subflow Inside NodeGather
+concurrent_subflow = ConcurrentSubFlow(
+    graph=concurrent_sub_flow_graph,
+    store=ConcurrentSubFlowStore(initial_state=ConcurrentSubFlowState())
+)
+
 # Concurrency Test - NodeGather executes nodes with concurrency using declarative structure
 concurrent_node1 = TestConcurrentNode1()
 concurrent_node2 = TestConcurrentNode2()
 concurrent_node3 = TestConcurrentNode3()
 test_node_gather = NodeGather(
     name="TestNodeGather",
-    nodes=[concurrent_node1, concurrent_node2, concurrent_node3]
+    items=[concurrent_node1, concurrent_node2, concurrent_node3, concurrent_subflow]
 )
 
 # Concurrency Test - Node that directly executes other nodes

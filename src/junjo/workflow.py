@@ -137,7 +137,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
                             # Increment the execution counter for NodeGather executions
                             if isinstance(current_executable, NodeGather):
-                                for node in current_executable.nodes:
+                                for node in current_executable.items:
                                     self.node_execution_counter[node.id] = self.node_execution_counter.get(node.id, 0) + 1
                                     if self.node_execution_counter[node.id] > self.max_iterations:
                                         raise ValueError(

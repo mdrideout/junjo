@@ -125,7 +125,7 @@ class Graph:
 
                 # If it's a NodeGather, recursively collect the nodes it contains
                 if isinstance(node, NodeGather) and hasattr(node, 'nodes'):
-                    for internal_node in node.nodes:
+                    for internal_node in node.items:
                         collect_nodes(internal_node)
 
                 # If it's a Subflow (inherits from _NestableWorkflow), recursively collect its graph
@@ -175,7 +175,7 @@ class Graph:
             if isinstance(node, NodeGather):
                 node_info["isSubgraph"] = True
                 children_ids = [
-                    n.id for n in node.nodes
+                    n.id for n in node.items
                     if (isinstance(n, Node) or isinstance(n, _NestableWorkflow)) and hasattr(n, 'id')
                 ]
                 node_info["children"] = children_ids

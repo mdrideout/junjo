@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import asyncio
+from typing import TYPE_CHECKING
 
 from opentelemetry import trace
 
@@ -7,21 +10,23 @@ from junjo.store import BaseStore
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 from junjo.util import generate_safe_id
 
+if TYPE_CHECKING:
+    from junjo.workflow import Subflow
 
 class NodeGather(Node):
     """
     Execute a list of nodes concurrently using asyncio.gather
     """
 
-    def __init__(self, name:str, nodes: list[Node]):
+    def __init__(self, name:str, items: list[Node | Subflow]):
         """
         Initializes the NodeGather.
 
         Args:
-            nodes: A list of nodes to execute with asyncio.gather.
+            items: A list of nodes to execute with asyncio.gather.
         """
         super().__init__()
-        self.nodes = nodes
+        self.items = items
         self._id = generate_safe_id()
         self._name = name
 
@@ -38,29 +43,29 @@ class NodeGather(Node):
     def name(self) -> str:
         return self._name
 
-    async def service(self, store: "BaseStore") -> None:
+    async def service(self, store: BaseStore) -> None:
         """
         The core logic executed by this NodeGather node.
-        It runs the contained nodes concurrently.
+        It runs the contained items concurrently.
         """
-        print(f"Executing concurrent nodes within {self.name} ({self.id})")
-        if not self.nodes:
+        print(f"Executing concurrent items within {self.name} ({self.id})")
+        if not self.items:
             return
 
-        # Use self.id (from base Node class) as the parent_id for nested executions
-        # Assuming the base Node's execute method handles span creation
-        tasks = [node.execute(store, self.id) for node in self.nodes]
+        # Execute all items concurrently
+        # Using asyncio.gather to run all items concurrently
+        tasks = [item.execute(store, self.id) for item in self.items]
         await asyncio.gather(*tasks)
 
-        print(f"Finished concurrent nodes within {self.name} ({self.id})")
+        print(f"Finished concurrent items within {self.name} ({self.id})")
 
 
-    async def execute(self, store: "BaseStore", parent_id: str) -> None:
+    async def execute(self, store: BaseStore, parent_id: str) -> None:
         """
-        Executes the nodes in the list.
+        Executes the items in the list.
 
         Args:
-            store: The store to use for the nodes.
+            store: The store to use for the items.
             parent_id: The parent id of the workflow.
         """
 
