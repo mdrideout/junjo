@@ -40,6 +40,9 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   )
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
   const scrollToSpanId = useAppSelector((state: RootState) => state.workflowDetailState.scrollToSpanId)
+  const scrollToStateEventId = useAppSelector(
+    (state: RootState) => state.workflowDetailState.scrollToStateEventId,
+  )
 
   // 1. Memoize the props object for the selector
   const selectorProps = useMemo(
@@ -78,6 +81,22 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       }
     }
   }, [scrollToSpanId])
+
+  // Scroll To State Event
+  useEffect(() => {
+    if (scrollToStateEventId && scrollableContainerRef.current) {
+      const targetStateEventId = `#state-patch-${scrollToStateEventId}`
+      console.log(`Scrolling to state event: ${targetStateEventId}`)
+      const targetElement = scrollableContainerRef.current.querySelector(targetStateEventId)
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        })
+      }
+    }
+  }, [scrollToStateEventId])
 
   // Stop the recursion when there are no more children
   if (!spans || spans.length === 0) {

@@ -6,15 +6,17 @@ interface WorkflowDetailState {
   activeSpan: OtelSpan | null
   activeSetStateEvent: JunjoSetStateEvent | null
   scrollToSpanId: string | null
+  scrollToStateEventId: string | null
 }
 
 const initialState: WorkflowDetailState = {
   activeSpan: null,
   activeSetStateEvent: null,
   scrollToSpanId: null,
+  scrollToStateEventId: null,
 }
 
-export const workflowDetailSlice = createSlice({
+export const otelSlice = createSlice({
   name: 'workflowDetailState',
   initialState,
   reducers: {
@@ -27,8 +29,11 @@ export const workflowDetailSlice = createSlice({
     setScrollToSpanId: (state, action: PayloadAction<string | null>) => {
       state.scrollToSpanId = action.payload
     },
+    setScrollToStateEventId: (state, action: PayloadAction<string | null>) => {
+      state.scrollToStateEventId = action.payload
+    },
   },
 })
 
-export const WorkflowDetailStateActions = workflowDetailSlice.actions
-export default workflowDetailSlice.reducer
+export const WorkflowDetailStateActions = otelSlice.actions
+export default otelSlice.reducer

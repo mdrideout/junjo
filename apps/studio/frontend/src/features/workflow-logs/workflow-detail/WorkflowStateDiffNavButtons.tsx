@@ -50,7 +50,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       if (nextPatchIndex < workflowStateEvents.length) {
         const nextPatch = workflowStateEvents[nextPatchIndex]
         dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(nextPatch))
-        dispatch(WorkflowDetailStateActions.setScrollToSpanId(nextPatch.attributes.id))
+        dispatch(WorkflowDetailStateActions.setScrollToStateEventId(nextPatch.attributes.id))
       }
     }
   }
@@ -61,7 +61,8 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       if (prevPatchIndex >= 0) {
         const prevPatch = workflowStateEvents[prevPatchIndex]
         dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(prevPatch))
-        dispatch(WorkflowDetailStateActions.setScrollToSpanId(prevPatch.attributes.id))
+        console.log(`Scrolling to span ID: ${prevPatch.attributes.id}`)
+        dispatch(WorkflowDetailStateActions.setScrollToStateEventId(prevPatch.attributes.id))
       }
     }
   }
