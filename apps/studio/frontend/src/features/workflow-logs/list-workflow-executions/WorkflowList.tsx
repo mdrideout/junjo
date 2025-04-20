@@ -18,8 +18,7 @@ export default function WorkflowsList() {
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
-  const workflowSpans =
-    useAppSelector((state: RootState) => selectServiceWorkflows(state, { serviceName })) ?? []
+  const workflowSpans = useAppSelector((state: RootState) => selectServiceWorkflows(state, { serviceName }))
 
   // Fetch the serviceNames
   useEffect(() => {

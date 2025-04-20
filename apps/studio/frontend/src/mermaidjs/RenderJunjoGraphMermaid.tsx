@@ -4,7 +4,7 @@ import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
-import { selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
+import { identifyWorkflowChain, selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
 import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
 import { WorkflowDetailStateActions } from '../features/workflow-logs/workflow-detail/store/slice'
 
@@ -15,18 +15,26 @@ interface RenderJunjoGraphMermaidProps {
   workflowSpanID: string
 }
 
-// Base Mermaid configuration - customize as needed
-// startOnLoad: false is important when using mermaid.render() manually
-const mermaidBaseConfig = {
-  startOnLoad: false,
-  // securityLevel: 'loose', // Example other config
-}
-
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
   const { mermaidFlowString, mermaidUniqueId, serviceName, workflowSpanID } = props
   const dispatch = useAppDispatch()
+  const svgContainerRef = useRef<HTMLDivElement>(null)
+  const [highlightTrigger, setHighlightTrigger] = useState(0) // State to trigger re-render
 
+  // Generate a unique ID for the container div and SVG
+  const containerId = `mermaid-container-${mermaidUniqueId}`
+
+  // MERMAID RENDER FIX: this ref will survive across the StrictMode double‑mount and block the 2nd run
+  const strictModeFixHasRenderedRef = useRef(false)
+
+  // SELECTORS
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const workflowChain = useAppSelector((state: RootState) =>
+    identifyWorkflowChain(state, {
+      serviceName,
+      spanID: workflowSpanID,
+    }),
+  )
 
   // 1. Memoize the props object for the selector
   const selectorProps = useMemo(
@@ -45,170 +53,145 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
   )
 
-  // Generate a unique ID for the container div and SVG
-  const containerId = `mermaid-container-${mermaidUniqueId}`
-  const svgContainerRef = useRef<HTMLDivElement>(null)
-  // State to trigger re-render when the OS theme changes
-  const [themeVersion, setThemeVersion] = useState(0)
-
   // --- Node Click Handler Definition ---
   // Use useCallback to ensure the function reference is stable for add/removeEventListener
-  const handleNodeClick = useCallback((event: MouseEvent) => {
-    // Use currentTarget to get the element the listener was attached to (<g class="node">)
-    const targetElement = event.currentTarget as SVGGElement // Type assertion
-    const nodeIdAttr = targetElement?.id
+  const handleNodeClick = useCallback(
+    (event: MouseEvent) => {
+      // Use currentTarget to get the element the listener was attached to (<g class="node">)
+      const targetElement = event.currentTarget as SVGGElement // Type assertion
+      const nodeIdAttr = targetElement?.id
 
-    // Get the ID from the mermaid element
-    const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
-    if (junjoID) {
-      console.log('Clicked junjo ID:', junjoID)
-
-      // Set the active SetState event to the first event in this node
-      dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
-
-      // Get the span with the junjo.id that matches the junjoID
-      const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
-      if (clickedSpan) {
-        console.log('Clicked span:', clickedSpan)
-
-        // Set the active span to the clicked span
-        dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
+      // Get the ID from the mermaid element
+      const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
+      if (junjoID) {
+        console.log('Clicked junjo ID:', junjoID)
 
         // Set the active SetState event to the first event in this node
-        const spanStateEvent = clickedSpan.events_json[0]
-        if (spanStateEvent) {
-          // Validate the events_json structure
-          const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
-          if (!validated.success) {
-            console.error('Invalid state event structure:', validated.error)
-            return
-          }
-          const stateEvent = validated.data
-          console.log('Setting active state event:', stateEvent)
-          dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
-        }
+        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
-        // Scroll to the span
-        dispatch(WorkflowDetailStateActions.setScrollToSpanId(clickedSpan.span_id))
+        // Get the span with the junjo.id that matches the junjoID
+        const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
+        if (clickedSpan) {
+          console.log('Clicked span:', clickedSpan)
+
+          // Set the active span to the clicked span
+          dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
+
+          // Set the active SetState event to the first event in this node
+          const spanStateEvent = clickedSpan.events_json[0]
+          if (spanStateEvent) {
+            // Validate the events_json structure
+            const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
+            if (!validated.success) {
+              console.error('Invalid state event structure:', validated.error)
+              return
+            }
+            const stateEvent = validated.data
+            console.log('Setting active state event:', stateEvent)
+            dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
+          }
+
+          // Scroll to the span
+          dispatch(WorkflowDetailStateActions.setScrollToSpanId(clickedSpan.span_id))
+        }
+      } else {
+        console.warn('Could not extract Junjo ID from clicked element:', targetElement)
       }
-    } else {
-      console.warn('Could not extract Junjo ID from clicked element:', targetElement)
-    }
-  }, [])
+    },
+    [dispatch, workflowChildSpans],
+  )
 
   // --- Subflow Click Handler ---
-  const handleSubflowClick = useCallback((event: MouseEvent) => {
-    const targetElement = event.currentTarget as SVGGElement
-    const nodeIdAttr = targetElement?.id
-    const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
-    if (junjoID) {
-      dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+  const handleSubflowClick = useCallback(
+    (event: MouseEvent) => {
+      const targetElement = event.currentTarget as SVGGElement
+      const nodeIdAttr = targetElement?.id
+      const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
+      if (junjoID) {
+        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
-      // Get the span with the junjo.id that matches the junjoID
-      const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
-      if (clickedSpan) {
-        console.log('Clicked Subflow span:', clickedSpan)
-        dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
+        // Get the span with the junjo.id that matches the junjoID
+        const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
+        if (clickedSpan) {
+          console.log('Clicked Subflow span:', clickedSpan)
+          dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
 
-        // Scroll to the span
-        dispatch(WorkflowDetailStateActions.setScrollToSpanId(clickedSpan.span_id))
+          // Scroll to the span
+          dispatch(WorkflowDetailStateActions.setScrollToSpanId(clickedSpan.span_id))
+        }
+      } else {
+        console.warn('Could not extract Junjo ID from clicked element:', targetElement)
       }
-    } else {
-      console.warn('Could not extract Junjo ID from clicked element:', targetElement)
-    }
-  }, [])
-
-  // --- Effect for OS Theme Detection & Mermaid Theme Initialization ---
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-    const updateMermaidTheme = () => {
-      const isDarkMode = mediaQuery.matches
-      // Choose Mermaid themes for light and dark modes
-      const mermaidTheme = isDarkMode ? 'dark' : 'neutral' // Or 'neutral', 'forest' etc.
-
-      console.log(`Setting Mermaid theme based on OS: ${mermaidTheme}`)
-
-      // Initialize Mermaid with the correct theme for subsequent renders
-      mermaid.initialize({
-        ...mermaidBaseConfig, // Spread your base config
-        theme: mermaidTheme,
-      })
-
-      // Update state to force the rendering useEffect to re-run
-      setThemeVersion((v) => v + 1)
-    }
-
-    // Set the initial theme when the component mounts
-    updateMermaidTheme()
-
-    // Add listener for OS theme changes
-    mediaQuery.addEventListener('change', updateMermaidTheme)
-
-    // Cleanup listener when the component unmounts
-    return () => {
-      mediaQuery.removeEventListener('change', updateMermaidTheme)
-    }
-  }, []) // Empty dependency array ensures this runs only once on mount/unmount
+    },
+    [dispatch, workflowChildSpans],
+  )
 
   /**
    * Rerender The Mermaid Flow Diagram on Changes
    */
   useEffect(() => {
+    // Check if the component has rendered before
+    // Fixes an issue with React.StrictMode causing double rendering and breaking the SVG
+    if (strictModeFixHasRenderedRef.current) {
+      console.log('Component has already rendered, skipping re-render.')
+      return
+    }
+
+    // Set the flag to true to prevent re-rendering
+    strictModeFixHasRenderedRef.current = true
+
+    // Keep track of the nodes
     let nodes: NodeListOf<Element>
 
     // --- Click Listener Cleanup Function ---
     // This function will be returned by the effect to run on unmount or before re-run
     const cleanupEventListeners = () => {
       if (nodes) {
-        // console.log('Cleaning up node click listeners...');
+        console.log('Cleaning up node click listeners...')
         nodes.forEach((node) => {
           node.removeEventListener('click', handleNodeClick as EventListener)
+          node.removeEventListener('click', handleSubflowClick as EventListener)
         })
       }
     }
 
-    // Ensure the chart string is valid and the container exists
-    if (mermaidFlowString && svgContainerRef.current) {
-      const containerElement = svgContainerRef.current
-      containerElement.innerHTML = '' // Clear previous render
+    // Ensure the container exists before proceeding
+    if (!svgContainerRef.current) {
+      return
+    }
+    const containerElement = svgContainerRef.current
 
+    // Handle valid flow string: Render the diagram
+    if (mermaidFlowString) {
       try {
-        // mermaid.render() generates SVG code as a string
         const svgId = `mermaid-svg-${mermaidUniqueId}` // Unique ID for the SVG itself
 
-        console.log('Re-rendering mermaid diagram.')
+        console.log('Rendering the mermaid diagram.')
         // mermaid.render will use the theme set by mermaid.initialize()
         mermaid
           .render(svgId, mermaidFlowString)
           .then(({ svg, bindFunctions }) => {
             if (svgContainerRef.current) {
-              // Inject the rendered SVG into the container
-              svgContainerRef.current.innerHTML = svg
+              svgContainerRef.current.innerHTML = svg // Inject the rendered SVG into the container
 
               // --- Attach Click Listeners ---
               nodes = containerElement.querySelectorAll('.node') // Find nodes within the new SVG
-              // console.log(`Found ${nodes.length} nodes to attach listeners.`);
+              console.log(`Found ${nodes.length} nodes to attach listeners.`)
               nodes.forEach((node) => {
-                console.log('Adding event listeners...')
-
                 // Extract the node id
                 const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
-
                 // Check if this node is inside the workflow spans
                 const utilizedNode = nodeSpans.find((span) => span.junjo_id === junjoNodeId)
                 if (!utilizedNode) {
                   // Set not-utilized class on the node for styling
                   node.classList.add('graph-element-not-utilized')
                 }
-
                 // Node: Add class and click handler
                 const isNode = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.NODE
                 if (isNode) {
                   // Add click listener
                   node.addEventListener('click', handleNodeClick as EventListener)
                 }
-
                 // Subflow: Add class and click handler
                 const isSubflow = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.SUBFLOW
                 if (isSubflow) {
@@ -231,6 +214,10 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
               svgContainerRef.current.innerHTML = `Error rendering diagram: ${error.message}`
             }
           })
+          .finally(() => {
+            // Run the highlight trigger to ensure the active node is highlighted
+            setHighlightTrigger((prev) => prev + 1)
+          })
       } catch (error) {
         console.error('Mermaid syntax error or other issue:', error)
         if (svgContainerRef.current) {
@@ -240,11 +227,10 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     }
     // Return the cleanup function
     return cleanupEventListeners
+  }, [mermaidFlowString, mermaidUniqueId])
 
-    // Re-run this effect if the diagram definition changes OR if the themeVersion changes
-  }, [mermaidFlowString, mermaidUniqueId, themeVersion]) // Added themeVersion to dependency array
-
-  // Control active classes on the mermaidflow elements when the active patch changes
+  // --- Effect for Active Node Highlighting ---
+  // This effect runs when the activeSpan changes or the container ref is available
   useEffect(() => {
     // Ensure the container ref is available
     if (!svgContainerRef.current) {
@@ -252,13 +238,11 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       return
     }
 
-    const containerElement = svgContainerRef.current
-
     // --- Remove active class efficiently ---
     // Find the currently active node *within this container* and remove the class
-    const previousActive = containerElement.querySelector('.mermaid-node-active')
-    if (previousActive) {
-      previousActive.classList.remove('mermaid-node-active')
+    const prevActiveNode = svgContainerRef.current.querySelector('.mermaid-node-active')
+    if (prevActiveNode) {
+      prevActiveNode.classList.remove('mermaid-node-active')
     }
 
     // --- Add active class to the new active node ---
@@ -268,25 +252,56 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       console.log('Attempting to find active node starting with ID:', baseTargetId)
 
       // Use querySelector with an attribute "starts with" selector [id^=...]
-      // Query within the specific containerElement for better scoping
+      // Query within the specific svgContainerRef.current for better scoping
       // Use CSS.escape for robustness with potential special characters in IDs
-      const activeNode = containerElement.querySelector(`[id^="${CSS.escape(baseTargetId)}"]`)
-      // Alternative selector if sometimes there's no index:
-      // const activeNode = containerElement.querySelector(`[id^="${CSS.escape(baseTargetId)}"], #${CSS.escape(baseTargetId)}`);
+      const activeNode = svgContainerRef.current.querySelector(`[id^="${CSS.escape(baseTargetId)}"]`)
 
       if (activeNode && activeNode.classList.contains('node')) {
         // Extra check that it's a node group
         console.log('Found activeNode element:', activeNode.id)
         activeNode.classList.add('mermaid-node-active')
-      } else {
-        console.warn('Could not find node element starting with ID:', baseTargetId)
+
+        // Scroll to the active node
+        ;(activeNode as HTMLElement).scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center',
+        })
       }
     }
     // Dependencies: Ensure all variables used inside are listed, including the container ref's existence indirectly
-  }, [activeSpan, svgContainerRef])
+  }, [activeSpan, svgContainerRef, workflowChain, highlightTrigger])
 
-  console.log('Rendering mermaid diagram string:\n', mermaidFlowString)
+  // --- Effect for subflow highlighting ---
+  // This effect runs when the workflowChain changes to highlight subflow nodes
+  // inside the workflow chain
+  useEffect(() => {
+    // Ensure the container ref is available
+    if (!svgContainerRef.current) {
+      console.warn('Mermaid container ref not available yet.')
+      return
+    }
+    const containerElement = svgContainerRef.current
 
+    // Find all subflow nodes within the container
+    const subflowNodes = containerElement.querySelectorAll('.node-subflow')
+    subflowNodes.forEach((node) => {
+      // Remove the '.node-subflow-active' class if it exists
+      node.classList.remove('node-subflow-active')
+
+      // Extract the Junjo ID from the node's ID
+      const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
+
+      // Check if this node-subflow is part of the active workflowChain
+      const isActiveSubflow = workflowChain.some((span) => span.junjo_id === junjoNodeId)
+      if (isActiveSubflow) {
+        node.classList.add('node-subflow-active')
+      }
+    })
+  }, [workflowChain, svgContainerRef, highlightTrigger])
+
+  // --- Render the Mermaid diagram ---
   // Render the container div where the SVG will be placed
+  console.log('Rendering mermaid diagram string:\n', mermaidFlowString)
   return <div ref={svgContainerRef} className={'mermaid-container'} id={containerId} />
 }

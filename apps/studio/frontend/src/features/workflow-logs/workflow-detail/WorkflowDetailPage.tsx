@@ -8,10 +8,7 @@ import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
-import { JunjoGraph } from '../../../junjo-graph/junjo-graph'
 import NestedWorkflowSpans from '../node-logs/NestedWorkflowSpans'
-import RenderJunjoGraphMermaid from '../../../mermaidjs/RenderJunjoGraphMermaid'
-import { nanoid } from '@reduxjs/toolkit'
 import { Switch } from 'radix-ui'
 import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 
@@ -26,13 +23,13 @@ export default function WorkflowDetailPage() {
     selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID }),
   )
 
-  console.log('Workflow span: ', span)
-
-  // Fetch the serviceNames
+  // Fetch the data if the workflow span ID is not found
   useEffect(() => {
-    console.log('Fetching workflows data...')
-    dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
-  }, [])
+    if (!span) {
+      console.log('Fetching workflows data to get span...')
+      dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
+    }
+  }, [serviceName, workflowSpanID, span])
 
   if (loading) return null
 
@@ -50,6 +47,8 @@ export default function WorkflowDetailPage() {
 
   // Parse duration
   const durationString = getSpanDurationString(span.start_time, span.end_time)
+
+  console.log('Re-rendering WorkflowDetailPage')
 
   return (
     <div className={'p-5 flex flex-col h-dvh'}>

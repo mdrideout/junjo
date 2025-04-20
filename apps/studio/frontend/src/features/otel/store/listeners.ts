@@ -9,25 +9,36 @@ const startListener = otelStateListenerMiddleware.startListening.withTypes<RootS
 
 startListener({
   actionCreator: OtelStateActions.fetchWorkflowsData,
-  effect: async (action, listenerApi) => {
+  effect: async (action, { getState, dispatch }) => {
     const { serviceName } = action.payload
+    if (!serviceName) throw new Error('No service name provided')
+
+    const { loading, lastUpdated } = getState().otelState.workflows
+
+    // Cache busting logic
+    const now = Date.now()
+    const staleTime = 5 * 1000 // 5 seconds
+    const isStale = lastUpdated === null ? true : loading || now - lastUpdated < staleTime
+
+    // Bail out if already loading or not stale
+    if (loading || isStale === false) {
+      console.log(`Bailing because loading is true (${loading}) or isStale is false (${isStale})`)
+      return
+    }
 
     // Clear errors and set loading
-    listenerApi.dispatch(OtelStateActions.setWorkflowsError(false))
-    listenerApi.dispatch(OtelStateActions.setWorkflowsLoading(true))
-
-    if (!serviceName) {
-      throw new Error('No service name provided')
-    }
+    dispatch(OtelStateActions.setWorkflowsError(false))
+    dispatch(OtelStateActions.setWorkflowsLoading(true))
 
     // Fetch the data
     try {
       const data = await fetchOtelSpans(serviceName)
-      listenerApi.dispatch(OtelStateActions.setWorkflowsData({ serviceName, data }))
+      console.log('Fetched data:', data)
+      dispatch(OtelStateActions.setWorkflowsData({ serviceName, data }))
     } catch (error) {
-      listenerApi.dispatch(OtelStateActions.setWorkflowsError(true))
+      dispatch(OtelStateActions.setWorkflowsError(true))
     } finally {
-      listenerApi.dispatch(OtelStateActions.setWorkflowsLoading(false))
+      dispatch(OtelStateActions.setWorkflowsLoading(false))
     }
   },
 })

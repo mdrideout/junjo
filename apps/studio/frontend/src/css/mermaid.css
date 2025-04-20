@@ -2,14 +2,16 @@
 .mermaid-node-active > polygon,
 .mermaid-node-active > circle,
 .mermaid-node-active > ellipse,
-.mermaid-node-active.node-subflow path {
+.mermaid-node-active.node-subflow path,
+.node-subflow-active path {
   /* Target the shape element within the active node group */
   stroke: orange !important;
   stroke-width: 4px !important;
   transition: all 250ms ease-in-out;
 }
 
-.mermaid-node-active.node-subflow path {
+.mermaid-node-active.node-subflow path,
+.node-subflow-active path {
   /* Style override */
   stroke-width: 3px !important;
 }

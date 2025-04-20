@@ -12,6 +12,7 @@ interface OtelState {
     data: Partial<{ [serviceName: string]: WorkflowSpansE2EResponse }>
     loading: boolean
     error: boolean
+    lastUpdated: number | null
   }
 }
 
@@ -25,6 +26,7 @@ const initialState: OtelState = {
     data: {},
     loading: false,
     error: false,
+    lastUpdated: null,
   },
 }
 
@@ -52,8 +54,14 @@ export const otelSlice = createSlice({
     },
 
     // Workflows Actions
-    setWorkflowsData: (state, action: PayloadAction<{ serviceName: string; data: WorkflowSpansE2EResponse }>) => {
+    setWorkflowsData: (
+      state,
+      action: PayloadAction<{ serviceName: string; data: WorkflowSpansE2EResponse }>,
+    ) => {
       state.workflows.data[action.payload.serviceName] = action.payload.data
+
+      // stamp the time so we can cache
+      state.workflows.lastUpdated = Date.now()
     },
     setWorkflowsLoading: (state, action: PayloadAction<boolean>) => {
       state.workflows.loading = action.payload

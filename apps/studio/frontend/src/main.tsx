@@ -13,50 +13,53 @@ import WorkflowListPage from './features/workflow-logs/list-workflow-executions/
 import AppNamesPage from './features/workflow-logs/list-app-names/AppNamesPage.tsx'
 import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
+import { MermaidProvider } from './mermaidjs/mermaid-provider.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Provider store={store}>
         <AuthProvider>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/sign-in" element={<SignIn />} />
-              <Route path="/sign-out" element={<SignOut />} />
-              <Route
-                path="/"
-                element={
-                  <AuthGuard>
-                    <Dashboard />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/logs"
-                element={
-                  <AuthGuard>
-                    <AppNamesPage />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/logs/:serviceName"
-                element={
-                  <AuthGuard>
-                    <WorkflowListPage />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/logs/:serviceName/:workflowSpanID"
-                element={
-                  <AuthGuard>
-                    <WorkflowDetailPage />
-                  </AuthGuard>
-                }
-              />
-            </Route>
-          </Routes>
+          <MermaidProvider>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/sign-out" element={<SignOut />} />
+                <Route
+                  path="/"
+                  element={
+                    <AuthGuard>
+                      <Dashboard />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs"
+                  element={
+                    <AuthGuard>
+                      <AppNamesPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs/:serviceName"
+                  element={
+                    <AuthGuard>
+                      <WorkflowListPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/logs/:serviceName/:workflowSpanID"
+                  element={
+                    <AuthGuard>
+                      <WorkflowDetailPage />
+                    </AuthGuard>
+                  }
+                />
+              </Route>
+            </Routes>
+          </MermaidProvider>
         </AuthProvider>
       </Provider>
     </BrowserRouter>

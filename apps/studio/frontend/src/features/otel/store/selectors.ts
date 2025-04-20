@@ -20,10 +20,11 @@ export const selectWorkflowDetailActiveSpan = (state: RootState) => state.workfl
 
 // --- Memoized Selectors ---
 export const selectServiceWorkflows = createSelector(
-  [selectWorkflowsData, (_state: RootState, props: { serviceName: string | undefined }) => props],
-  (workflowsData, props) => {
-    const serviceData = workflowsData[props.serviceName ?? '']
-    if (!serviceData) return [] // Return stable empty array reference
+  [selectWorkflowsData, (_state: RootState, props: { serviceName: string | undefined }) => props.serviceName],
+  (workflowsData, serviceName) => {
+    if (!serviceName) return []
+    const serviceData = workflowsData[serviceName]
+    if (!serviceData) return []
 
     // Filter creates a new array, but only when input workflowsData or props change
     return serviceData.workflowSpans.filter((item) => item.junjo_span_type === 'workflow')
@@ -284,48 +285,56 @@ export const identifyWorkflowChain = createWorkflowChainSelector(
   ],
   // Result function now receives individual values, not the props object
   (workflowsData, topLevelWorkflowSpan, activeSpan): OtelSpan[] => {
-    if (!workflowsData || !topLevelWorkflowSpan || !activeSpan) return []
+    console.log('Top level workflow span: ', topLevelWorkflowSpan)
+
+    if (!workflowsData || !topLevelWorkflowSpan) return []
 
     // Initial array
     const workflowSpanChain: OtelSpan[] = []
 
-    // Destructure the active span to get the service name and starting span ID
-    const { service_name: serviceName, span_id: startingSpanId } = activeSpan
+    // If we have an active span, we need to find the workflow chain
+    if (activeSpan) {
+      // Destructure the active span to get the service name and starting span ID
+      const { service_name: serviceName, span_id: startingSpanId } = activeSpan
 
-    // Get the service workflow data
-    const serviceWorkflowData = workflowsData[serviceName]
-    if (!serviceWorkflowData) return workflowSpanChain
+      // Get the service workflow data
+      const serviceWorkflowData = workflowsData[serviceName]
+      if (!serviceWorkflowData) return workflowSpanChain
 
-    // Combine all spans for easier lookup *inside* the memoized function
-    const allSpans = [...serviceWorkflowData.workflowLineage, ...serviceWorkflowData.workflowSpans]
+      // Combine all spans for easier lookup *inside* the memoized function
+      const allSpans = [...serviceWorkflowData.workflowLineage, ...serviceWorkflowData.workflowSpans]
 
-    // Find the actual starting span object using the stable ID *inside* the memoized function
-    const actualStartingSpan = allSpans.find((s) => s.span_id === startingSpanId)
+      // Find the actual starting span object using the stable ID *inside* the memoized function
+      const actualStartingSpan = allSpans.find((s) => s.span_id === startingSpanId)
 
-    if (!actualStartingSpan) {
-      // Return stable empty array reference if starting span not found in data
-      return workflowSpanChain
-    }
-
-    // Recursively check the parent spans to find the first workflow / subflow span
-    function recursivelyBuildWorkflowSpanChain(span: OtelSpan): OtelSpan | undefined {
-      // Check if the span is a workflow or subflow, if so, return it
-      if (span.junjo_span_type === JunjoSpanType.WORKFLOW || span.junjo_span_type === JunjoSpanType.SUBFLOW) {
-        // Add to the beginning of the chain and continue traversing
-        workflowSpanChain.unshift(span)
+      if (!actualStartingSpan) {
+        // Return stable empty array reference if starting span not found in data
+        return workflowSpanChain
       }
 
-      // if not, get the parent span and recursively call this function to check it
-      const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
-      if (parentSpan) {
-        return recursivelyBuildWorkflowSpanChain(parentSpan)
-      }
+      // Recursively check the parent spans to find the first workflow / subflow span
+      function recursivelyBuildWorkflowSpanChain(span: OtelSpan): OtelSpan | undefined {
+        // Check if the span is a workflow or subflow, if so, return it
+        if (
+          span.junjo_span_type === JunjoSpanType.WORKFLOW ||
+          span.junjo_span_type === JunjoSpanType.SUBFLOW
+        ) {
+          // Add to the beginning of the chain and continue traversing
+          workflowSpanChain.unshift(span)
+        }
 
-      // If no parent span is found, break the recursion
-      return undefined
+        // if not, get the parent span and recursively call this function to check it
+        const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
+        if (parentSpan) {
+          return recursivelyBuildWorkflowSpanChain(parentSpan)
+        }
+
+        // If no parent span is found, break the recursion
+        return undefined
+      }
+      // Start the recursion with the event span
+      recursivelyBuildWorkflowSpanChain(actualStartingSpan)
     }
-    // Start the recursion with the event span
-    recursivelyBuildWorkflowSpanChain(actualStartingSpan)
 
     // If the span chain is empty, add the top-level workflow span
     // Otherwise, the recursive function will add it.
