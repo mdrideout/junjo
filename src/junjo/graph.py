@@ -4,7 +4,7 @@ import json
 
 from junjo.edge import Edge
 from junjo.node import Node
-from junjo.node_gather import NodeGather
+from junjo.run_concurrent import RunConcurrent
 from junjo.store import BaseStore
 from junjo.workflow import _NestableWorkflow
 
@@ -101,7 +101,7 @@ class Graph:
     def serialize_to_json_string(self) -> str:  # noqa: C901
         """
         Converts the graph to a neutral serialized JSON string,
-        representing NodeGather instances as subgraphs and including Subflow graphs.
+        representing RunConcurrent instances as subgraphs and including Subflow graphs.
 
         Returns:
             str: A JSON string containing the graph structure.
@@ -110,7 +110,7 @@ class Graph:
         all_edges_dict: dict[str, Edge] = {} # Dictionary to store all edges including subflow edges
         processed_subflows: set[str] = set() # Track processed subflows to avoid recursion loops
 
-        # Recursive helper function to find all nodes, including those inside NodeGather and Subflows
+        # Recursive helper function to find all nodes, including those inside RunConcurrent and Subflows
         def collect_nodes(node: Node | _NestableWorkflow | None):
             if node is None:
                 return
@@ -123,13 +123,17 @@ class Graph:
             if node.id not in all_nodes_dict:
                 all_nodes_dict[node.id] = node
 
-                # If it's a NodeGather, recursively collect the nodes it contains
-                if isinstance(node, NodeGather) and hasattr(node, 'nodes'):
-                    for internal_node in node.items:
-                        collect_nodes(internal_node)
+                # If it's a RunConcurrent, recursively collect the items it contains
+                if isinstance(node, RunConcurrent) and hasattr(node, 'items'):
+                    for run_concurrent_item in node.items:
+                        collect_nodes(run_concurrent_item)
 
                 # If it's a Subflow (inherits from _NestableWorkflow), recursively collect its graph
-                elif isinstance(node, _NestableWorkflow) and hasattr(node, 'graph') and node.id not in processed_subflows:
+                elif (
+                    isinstance(node, _NestableWorkflow)
+                    and hasattr(node, 'graph')
+                    and node.id not in processed_subflows
+                ):
                     processed_subflows.add(node.id)  # Mark as processed to avoid cycles
 
                     # Collect subflow's source, sink and all nodes connected by edges
@@ -171,8 +175,8 @@ class Graph:
                 "label": label
             }
 
-            # Add subgraph representation for NodeGather
-            if isinstance(node, NodeGather):
+            # Add subgraph representation for RunConcurrent
+            if isinstance(node, RunConcurrent):
                 node_info["isSubgraph"] = True
                 children_ids = [
                     n.id for n in node.items

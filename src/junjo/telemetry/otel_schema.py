@@ -7,4 +7,4 @@ class JunjoOtelSpanTypes(StrEnum):
     WORKFLOW = "workflow"
     SUBFLOW = "subflow"
     NODE = "node"
-    NODE_GATHER = "node_gather"
+    RUN_CONCURRENT = "run_concurrent"

@@ -1,7 +1,7 @@
 from junjo.edge import Edge
 from junjo.graph import Graph
 from junjo.node import Node
-from junjo.node_gather import NodeGather
+from junjo.run_concurrent import RunConcurrent
 
 from app.workflows_junjo.concurrent_sub_flow.graph import concurrent_sub_flow_graph
 from app.workflows_junjo.concurrent_sub_flow.state import ConcurrentSubFlowState
@@ -42,22 +42,22 @@ create_work_response_node = CreateWorkResponseNode()
 create_date_idea_response_node = CreateDateIdeaResponseNode()
 sink_node = SinkNode()
 
-# Concurrent Subflow Test - Test Running A Subflow Inside NodeGather
+# Concurrent Subflow Test - Test Running A Subflow Inside RunConcurrent
 concurrent_subflow = ConcurrentSubFlow(
     graph=concurrent_sub_flow_graph,
     store=ConcurrentSubFlowStore(initial_state=ConcurrentSubFlowState())
 )
 
-# Concurrency Test - NodeGather executes nodes with concurrency using declarative structure
+# Concurrency Test - RunConcurrent executes nodes with concurrency using declarative structure
 concurrent_node1 = TestConcurrentNode1()
 concurrent_node2 = TestConcurrentNode2()
 concurrent_node3 = TestConcurrentNode3()
-test_node_gather = NodeGather(
-    name="TestNodeGather",
+test_run_concurrent = RunConcurrent(
+    name="TestRunConcurrent",
     items=[concurrent_node1, concurrent_node2, concurrent_node3, concurrent_subflow]
 )
 
-# Concurrency Test - Node that directly executes other nodes
+# Concurrency Test - Node that directly executes other nodes (non-ideal implementation for testing)
 test_concurrent_node_runner = TestConcurrentNodeRunner()
 
 # SubFlow Test - Test Running A SubFlow
@@ -74,11 +74,11 @@ handle_message_graph = Graph(
         Edge(tail=save_message_node, head=load_history_node),
         Edge(tail=load_history_node, head=load_contact_node),
 
-        # Test NodeGather
-        Edge(tail=load_contact_node, head=test_node_gather),
+        # Test RunConcurrent
+        Edge(tail=load_contact_node, head=test_run_concurrent),
 
         # Test SubFlow
-        Edge(tail=test_node_gather, head=sub_flow_test),
+        Edge(tail=test_run_concurrent, head=sub_flow_test),
 
         # Test Concurrent Node Runner
         Edge(tail=sub_flow_test, head=test_concurrent_node_runner),

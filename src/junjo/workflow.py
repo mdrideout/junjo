@@ -8,7 +8,7 @@ from loguru import logger
 from opentelemetry import trace
 
 from junjo.node import Node
-from junjo.node_gather import NodeGather
+from junjo.run_concurrent import RunConcurrent
 from junjo.store import ParentStateT, ParentStoreT, StateT, StoreT
 from junjo.telemetry.hook_manager import HookManager
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
@@ -135,8 +135,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             # if self.hook_manager is not None:
                             #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
 
-                            # Increment the execution counter for NodeGather executions
-                            if isinstance(current_executable, NodeGather):
+                            # Increment the execution counter for RunConcurrent executions
+                            if isinstance(current_executable, RunConcurrent):
                                 for node in current_executable.items:
                                     self.node_execution_counter[node.id] = self.node_execution_counter.get(node.id, 0) + 1
                                     if self.node_execution_counter[node.id] > self.max_iterations:

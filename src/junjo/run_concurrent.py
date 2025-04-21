@@ -13,17 +13,17 @@ from junjo.util import generate_safe_id
 if TYPE_CHECKING:
     from junjo.workflow import Subflow
 
-class NodeGather(Node):
+class RunConcurrent(Node):
     """
-    Execute a list of nodes concurrently using asyncio.gather
+    Execute a list of nodes or subflows concurrently using asyncio.gather
     """
 
     def __init__(self, name:str, items: list[Node | Subflow]):
         """
-        Initializes the NodeGather.
+        Initializes RunConcurrent.
 
         Args:
-            items: A list of nodes to execute with asyncio.gather.
+            items: A list of nodes or subflows to execute with asyncio.gather.
         """
         super().__init__()
         self.items = items
@@ -31,12 +31,12 @@ class NodeGather(Node):
         self._name = name
 
     def __repr__(self):
-        """Returns a string representation of the node."""
+        """Returns a string representation of the node or subflow."""
         return f"<{type(self).__name__} id={self.id}>"
 
     @property
     def id(self) -> str:
-        """Returns the unique identifier for the node."""
+        """Returns the unique identifier for the node or subflow."""
         return self._id
 
     @property
@@ -45,7 +45,7 @@ class NodeGather(Node):
 
     async def service(self, store: BaseStore) -> None:
         """
-        The core logic executed by this NodeGather node.
+        The core logic executed by this RunConcurrent node or subflow.
         It runs the contained items concurrently.
         """
         print(f"Executing concurrent items within {self.name} ({self.id})")
@@ -76,7 +76,7 @@ class NodeGather(Node):
         with tracer.start_as_current_span(self.name) as span:
             try:
                 # Set an attribute on the span
-                span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.NODE_GATHER)
+                span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.RUN_CONCURRENT)
                 span.set_attribute("junjo.parent_id", parent_id)
                 span.set_attribute("junjo.id", self.id)
 
