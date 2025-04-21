@@ -25,7 +25,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const containerId = `mermaid-container-${mermaidUniqueId}`
 
   // MERMAID RENDER FIX: this ref will survive across the StrictMode double‑mount and block the 2nd run
-  const strictModeFixHasRenderedRef = useRef(false)
+  const strictModeFixHasRenderedRef = useRef<string>('')
 
   // SELECTORS
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
@@ -52,6 +52,23 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const nodeSpans = workflowChildSpans.filter(
     (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
   )
+
+  // helper to attach to any existing <g class="node"> elements
+  const attachListeners = (container: HTMLDivElement) => {
+    const existing = container.querySelectorAll('.node')
+    existing.forEach((node) => {
+      const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
+      const utilized = nodeSpans.find((s) => s.junjo_id === junjoNodeId)
+      if (!utilized) {
+        node.classList.add('graph-element-not-utilized')
+      } else if (utilized.junjo_span_type === JunjoSpanType.NODE) {
+        node.addEventListener('click', handleNodeClick as EventListener)
+      } else {
+        node.classList.add('node-subflow')
+        node.addEventListener('click', handleSubflowClick as EventListener)
+      }
+    })
+  }
 
   // --- Node Click Handler Definition ---
   // Use useCallback to ensure the function reference is stable for add/removeEventListener
@@ -130,36 +147,22 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
    * Rerender The Mermaid Flow Diagram on Changes
    */
   useEffect(() => {
+    const stringIsRendered = mermaidFlowString == strictModeFixHasRenderedRef.current
+
     // Check if the component has rendered before
     // Fixes an issue with React.StrictMode causing double rendering and breaking the SVG
-    if (strictModeFixHasRenderedRef.current) {
+    if (stringIsRendered) {
       console.log('Component has already rendered, skipping re-render.')
       return
     }
 
-    // Set the flag to true to prevent re-rendering
-    strictModeFixHasRenderedRef.current = true
-
-    // Keep track of the nodes
-    let nodes: NodeListOf<Element>
-
-    // --- Click Listener Cleanup Function ---
-    // This function will be returned by the effect to run on unmount or before re-run
-    const cleanupEventListeners = () => {
-      if (nodes) {
-        console.log('Cleaning up node click listeners...')
-        nodes.forEach((node) => {
-          node.removeEventListener('click', handleNodeClick as EventListener)
-          node.removeEventListener('click', handleSubflowClick as EventListener)
-        })
-      }
-    }
+    // Set the flag to the currently rendered string
+    strictModeFixHasRenderedRef.current = mermaidFlowString
 
     // Ensure the container exists before proceeding
     if (!svgContainerRef.current) {
       return
     }
-    const containerElement = svgContainerRef.current
 
     // Handle valid flow string: Render the diagram
     if (mermaidFlowString) {
@@ -172,40 +175,18 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
           .render(svgId, mermaidFlowString)
           .then(({ svg, bindFunctions }) => {
             if (svgContainerRef.current) {
+              // Clear previous content *before* adding new SVG
+              svgContainerRef.current.innerHTML = ''
               svgContainerRef.current.innerHTML = svg // Inject the rendered SVG into the container
 
-              // --- Attach Click Listeners ---
-              nodes = containerElement.querySelectorAll('.node') // Find nodes within the new SVG
-              console.log(`Found ${nodes.length} nodes to attach listeners.`)
-              nodes.forEach((node) => {
-                // Extract the node id
-                const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
-                // Check if this node is inside the workflow spans
-                const utilizedNode = nodeSpans.find((span) => span.junjo_id === junjoNodeId)
-                if (!utilizedNode) {
-                  // Set not-utilized class on the node for styling
-                  node.classList.add('graph-element-not-utilized')
-                }
-                // Node: Add class and click handler
-                const isNode = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.NODE
-                if (isNode) {
-                  // Add click listener
-                  node.addEventListener('click', handleNodeClick as EventListener)
-                }
-                // Subflow: Add class and click handler
-                const isSubflow = utilizedNode && utilizedNode.junjo_span_type === JunjoSpanType.SUBFLOW
-                if (isSubflow) {
-                  node.classList.add('node-subflow')
-
-                  // Add click listener
-                  node.addEventListener('click', handleSubflowClick as EventListener)
-                }
-              })
+              attachListeners(svgContainerRef.current) // Attach listeners to the nodes
 
               // Bind any interactive functions if necessary
               if (bindFunctions) {
                 bindFunctions(svgContainerRef.current)
               }
+              // Run the highlight trigger to ensure the active node is highlighted
+              setHighlightTrigger((prev) => prev + 1)
             }
           })
           .catch((error) => {
@@ -214,10 +195,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
               svgContainerRef.current.innerHTML = `Error rendering diagram: ${error.message}`
             }
           })
-          .finally(() => {
-            // Run the highlight trigger to ensure the active node is highlighted
-            setHighlightTrigger((prev) => prev + 1)
-          })
       } catch (error) {
         console.error('Mermaid syntax error or other issue:', error)
         if (svgContainerRef.current) {
@@ -225,8 +202,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         }
       }
     }
-    // Return the cleanup function
-    return cleanupEventListeners
   }, [mermaidFlowString, mermaidUniqueId])
 
   // --- Effect for Active Node Highlighting ---
@@ -270,7 +245,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       }
     }
     // Dependencies: Ensure all variables used inside are listed, including the container ref's existence indirectly
-  }, [activeSpan, svgContainerRef, workflowChain, highlightTrigger])
+  }, [activeSpan, svgContainerRef, highlightTrigger])
 
   // --- Effect for subflow highlighting ---
   // This effect runs when the workflowChain changes to highlight subflow nodes
