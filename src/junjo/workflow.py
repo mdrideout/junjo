@@ -126,6 +126,12 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             # Pass the current store as the parent store for the sub-flow
                             await current_executable.execute(self.store, self.id)
 
+                            # Incorporate the Subflows node count
+                            # into the parent workflow's node execution counter
+                            self.node_execution_counter[current_executable.id] = sum(
+                                current_executable.node_execution_counter.values()
+                            )
+
                         # If executing a node
                         if isinstance(current_executable, Node):
                             print("Executing node:", current_executable.name)
@@ -137,11 +143,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
                             # Increment the execution counter for RunConcurrent executions
                             if isinstance(current_executable, RunConcurrent):
-                                for node in current_executable.items:
-                                    self.node_execution_counter[node.id] = self.node_execution_counter.get(node.id, 0) + 1
-                                    if self.node_execution_counter[node.id] > self.max_iterations:
+                                for item in current_executable.items:
+                                    self.node_execution_counter[item.id] = self.node_execution_counter.get(item.id, 0) + 1
+                                    if self.node_execution_counter[item.id] > self.max_iterations:
                                         raise ValueError(
-                                            f"Node '{node}' exceeded maximum execution count. \
+                                            f"Node '{item}' exceeded maximum execution count. \
                                             Check for loops in your graph. Ensure it transitions to the sink node."
                                         )
 
@@ -195,10 +201,6 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             #     )
 
             return
-
-# Type Aliases
-# Workflow: TypeAlias = _NestableWorkflow[StateT, StoreT, NoneType, NoneType]
-# Subflow: TypeAlias = _NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT]
 
 # Class Variation
 class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
