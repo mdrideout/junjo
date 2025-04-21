@@ -150,7 +150,14 @@ export class JunjoGraph {
         node.children?.forEach((childId) => {
           const childNode = nodeMap.get(childId)
           if (childNode) {
-            lines.push(`    ${childNode.id}[${escapeMermaidLabel(childNode.label)}]`)
+            // Conditionally apply shape based on whether the child is a subflow node
+            if (subflowNodeIds.has(childNode.id)) {
+              lines.push(
+                `    ${childNode.id}@{ shape: st-rect, label: ${escapeMermaidLabel(childNode.label)} }`,
+              )
+            } else {
+              lines.push(`    ${childNode.id}[${escapeMermaidLabel(childNode.label)}]`)
+            }
           }
         })
         lines.push(`  end`)
