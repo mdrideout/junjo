@@ -30,7 +30,7 @@ export function SpanIconConstructor(props: { span: OtelSpan; active: boolean }):
   }
 
   // Junjo NodeGather Span
-  if (span.junjo_span_type === JunjoSpanType.NODE_GATHER) {
+  if (span.junjo_span_type === JunjoSpanType.RUN_CONCURRENT) {
     return <Squares2X2Icon className={`size-5 ${iconColor}`} />
   }
 

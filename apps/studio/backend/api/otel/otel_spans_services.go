@@ -35,7 +35,7 @@ func GetDistinctServiceNames(c echo.Context) error {
 	defer rows.Close()
 
 	// Create the array of strings from the row values
-	var serviceNames []string
+	serviceNames := []string{}
 	for rows.Next() {
 		var serviceName string
 		if err := rows.Scan(&serviceName); err != nil {
@@ -108,7 +108,7 @@ func GetWorkflowSpans(c echo.Context, serviceName string) ([]map[string]interfac
 	}
 
 	// Final results storage
-	var results []map[string]interface{}
+	results := []map[string]interface{}{}
 
 	// Start processing each row
 	for rows.Next() {
@@ -180,7 +180,7 @@ func GetWorkflowLineage(c echo.Context, serviceName string) ([]map[string]interf
 	}
 
 	// Final results storage
-	var results []map[string]interface{}
+	results := []map[string]interface{}{}
 
 	// Start processing each row
 	for rows.Next() {
