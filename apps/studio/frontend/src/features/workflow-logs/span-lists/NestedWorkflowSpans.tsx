@@ -212,7 +212,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                 <div className={'w-full flex gap-x-2 justify-between items-end'}>
                   <div>{row.data.name}</div>
 
-                  <div className={'text-zinc-500 text-xs'}>{spanDuration}</div>
+                  <div className={'font-mono text-zinc-500 text-xs'}>{spanDuration}</div>
                 </div>
               </div>
             </div>
