@@ -35,14 +35,19 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
   console.log('Spans', spans)
 
   return (
-    <div className={'flex flex-col gap-y-5 text-sm'}>
+    <div className={'flex flex-col text-sm'}>
       {events.map((event) => {
         const atts = event.attributes
         const eventTime = formatMicrosecondsSinceEpochToTime(event.timeUnixNano / 1000)
         const span = spans.find((span) => span.events_json.some((s) => s.attributes?.id === atts.id))
 
         return (
-          <div key={atts.id} className={'flex justify-between items-start'}>
+          <div
+            key={atts.id}
+            className={
+              'px-1 mb-2 pb-2 flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700'
+            }
+          >
             <div className={'flex gap-x-1 items-start'}>
               <PlayIcon className={'size-4 text-orange-300 mt-0.5'} />
 
