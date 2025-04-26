@@ -30,10 +30,6 @@ interface WorkflowDetailStateDiffProps {
 
 /**
  * Abstracted Button
- * @param tab
- * @param activeTab
- * @param tabChangeHandler
- * @returns
  */
 const TabButton = ({
   tab,
@@ -258,7 +254,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     : null
 
   return (
-    <div className={'flex-1 overflow-y-scroll pr-2.5'}>
+    <div className={'flex-1/2 overflow-y-scroll pr-2.5'}>
       {activeSetStateEvent && (
         <div
           className={

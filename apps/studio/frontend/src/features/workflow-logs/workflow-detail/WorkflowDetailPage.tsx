@@ -8,9 +8,10 @@ import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
-import NestedWorkflowSpans from '../node-logs/NestedWorkflowSpans'
+import NestedWorkflowSpans from '../span-lists/NestedWorkflowSpans'
 import { Switch } from 'radix-ui'
 import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
+import TabbedSpanLists from '../span-lists/TabbedSpanLists'
 
 export default function WorkflowDetailPage() {
   const { serviceName, workflowSpanID } = useParams()
@@ -74,9 +75,9 @@ export default function WorkflowDetailPage() {
         <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={workflowSpanID} />
       </div>
 
-      <hr className={'my-6'} />
+      <hr className={'my-4'} />
 
-      <div className={`w-full shrink-0 pb-3 mb-3 h-80 overflow-scroll`}>
+      <div className={`w-full shrink-0 pb-3 mb-4 h-80 overflow-scroll shadow-md p-3 bg-zinc-50`}>
         <div className={'mb-2'}>
           <div className="flex items-center">
             <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">
@@ -98,8 +99,8 @@ export default function WorkflowDetailPage() {
           showEdgeLabels={mermaidEdgeLabels}
         />
       </div>
-      <div className={'grow w-full flex gap-x-6 justify-between overflow-hidden'}>
-        <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />
+      <div className={'grow w-full flex gap-x-4 justify-between overflow-hidden'}>
+        <TabbedSpanLists serviceName={serviceName} workflowSpanID={workflowSpanID} />
         <WorkflowDetailStateDiff defaultWorkflowSpan={span} />
       </div>
     </div>

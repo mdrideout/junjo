@@ -275,7 +275,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   topLevelRows.sort((a, b) => a.time - b.time)
 
   return (
-    <div ref={scrollableContainerRef} className={'flex-1 overflow-y-scroll pr-2.5'}>
+    <div ref={scrollableContainerRef}>
       {topLevelRows.map((row) => {
         return (
           <Fragment key={`row-${row.time}`}>
