@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import NestedWorkflowSpans from './NestedWorkflowSpans'
+import FlatStateEventsList from './FlatStateEventsList'
 
 enum TabOptions {
   NESTED = 'Nested Spans',
@@ -45,10 +46,7 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
       </div>
       <div className={'overflow-y-scroll pr-2.5'}>
         {activeTab === TabOptions.FLAT && (
-          <div className={'text-sm text-zinc-500 mb-2'}>
-            <p>State updates are not yet implemented.</p>
-            <p>Check back later!</p>
-          </div>
+          <FlatStateEventsList serviceName={serviceName} workflowSpanID={workflowSpanID} />
         )}
         {activeTab === TabOptions.NESTED && (
           <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />

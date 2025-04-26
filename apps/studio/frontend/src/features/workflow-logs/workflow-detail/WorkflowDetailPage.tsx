@@ -77,7 +77,9 @@ export default function WorkflowDetailPage() {
 
       <hr className={'my-4'} />
 
-      <div className={`w-full shrink-0 pb-3 mb-4 h-80 overflow-scroll shadow-md p-3 bg-zinc-50`}>
+      <div
+        className={`w-full shrink-0 pb-3 mb-4 h-80 overflow-scroll shadow-md p-3 bg-zinc-50 dark:bg-zinc-800`}
+      >
         <div className={'mb-2'}>
           <div className="flex items-center">
             <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">
