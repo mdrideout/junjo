@@ -4,6 +4,7 @@ import { RootState } from '../../../root-store/store'
 import { selectAllWorkflowChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import { useEffect, useMemo, useRef } from 'react'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
+import { SpanIconConstructor } from './determine-span-icon'
 
 interface FlatStateEventsListProps {
   serviceName: string
@@ -25,6 +26,11 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
 
   const events = useAppSelector((state: RootState) => selectAllWorkflowStateEvents(state, selectorProps))
   const spans = useAppSelector((state: RootState) => selectAllWorkflowChildSpans(state, selectorProps))
+  const activeSetStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  )
+  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const scrollToSpanId = useAppSelector((state: RootState) => state.workflowDetailState.scrollToSpanId)
   const scrollToStateEventId = useAppSelector(
     (state: RootState) => state.workflowDetailState.scrollToStateEventId,
   )
@@ -52,29 +58,60 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
     }
   }, [scrollToStateEventId])
 
+  // Scroll To First Matching Node Span
+  useEffect(() => {
+    if (scrollToSpanId && scrollableContainerRef.current) {
+      const targetSpanId = `.flat-span-${scrollToSpanId}`
+      console.log(`Scrolling to span: ${targetSpanId}`)
+      const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        })
+      }
+    }
+  }, [scrollToSpanId])
+
   return (
     <div ref={scrollableContainerRef} className={'flex flex-col text-sm'}>
       {events.map((event) => {
         const atts = event.attributes
         const eventTime = formatMicrosecondsSinceEpochToTime(event.timeUnixNano / 1000)
         const span = spans.find((span) => span.events_json.some((s) => s.attributes?.id === atts.id))
-        const isActivePatch = atts.id === scrollToStateEventId
+        const isActivePatch = atts.id === activeSetStateEvent?.attributes.id
+        const isActiveSpan = (span && span.span_id === activeSpan?.span_id) ?? false
+        const spanClass = span ? `flat-span-${span.span_id}` : ''
+
+        function determineActiveStyle() {
+          if (isActivePatch) {
+            return 'bg-amber-100 dark:bg-amber-950'
+          } else if (isActiveSpan) {
+            return 'bg-zinc-100 dark:bg-zinc-800'
+          }
+          return ''
+        }
 
         return (
           <div
             key={atts.id}
             id={`flat-state-patch-${atts.id}`}
-            className={`px-1 py-2 flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
+            className={`${spanClass} px-2 py-2 flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 ${determineActiveStyle()}`}
           >
             <div className={'flex gap-x-1 items-start'}>
-              <PlayIcon className={'size-4 text-orange-300 mt-0.5'} />
+              <div className={'mt-[1px]'}>
+                <SpanIconConstructor span={span} active={isActiveSpan} size={'size-3.5'} />
+              </div>
 
-              <div className={'font-normal'}>
-                <div className={'leading-tight mb-1'}>
-                  {atts['junjo.store.name']} &rarr; {atts['junjo.store.action']}
+              <div className={'font-normal text-xs'}>
+                <div className={'mb-0.5 font-bold'}>{span?.name}</div>
+                <div className={'flex gap-x-1 items-center'}>
+                  <PlayIcon className={'size-3.5 text-orange-300'} /> {atts['junjo.store.name']} &rarr;{' '}
+                  {atts['junjo.store.action']}
                 </div>
-                <div className={'text-xs'}>Node: {span?.name}</div>
-                <div className={'opacity-50 text-xs'}>Patch: {atts.id}</div>
+
+                <div className={'opacity-50 text-xs pl-[18.5px]'}>{atts.id}</div>
               </div>
             </div>
             <div className={'font-mono text-zinc-500 text-xs'}>{eventTime}</div>

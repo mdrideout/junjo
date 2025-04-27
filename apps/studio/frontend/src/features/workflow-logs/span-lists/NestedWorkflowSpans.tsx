@@ -69,7 +69,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   // Scroll To Span
   useEffect(() => {
     if (scrollToSpanId && scrollableContainerRef.current) {
-      const targetSpanId = `#span-${scrollToSpanId}`
+      const targetSpanId = `#nested-span-${scrollToSpanId}`
       console.log(`Scrolling to span: ${targetSpanId}`)
       const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
       if (targetElement) {
@@ -199,9 +199,9 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       const isActiveSpan = row.data.span_id === activeSpan?.span_id
 
       return (
-        <Fragment key={`span-${row.data.span_id}-${layer}`}>
+        <Fragment key={`nested-span-${row.data.span_id}-${layer}`}>
           <div
-            id={`span-${row.data.span_id}`}
+            id={`nested-span-${row.data.span_id}`}
             className={`rounded-md ${!nonWorkflowNodeSpan ? 'pb-2 last-of-type:pb-0' : ''} ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900 cursor-pointer' : ''}`}
           >
             <div
