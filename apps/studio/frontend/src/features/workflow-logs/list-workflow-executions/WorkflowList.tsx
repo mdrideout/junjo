@@ -10,6 +10,7 @@ import { useEffect } from 'react'
 import { OtelStateActions } from '../../otel/store/slice'
 import { useNavigate } from 'react-router'
 import { getSpanDurationString } from '../../../util/duration-utils'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
 export default function WorkflowsList() {
   const { serviceName } = useParams<{ serviceName: string }>()
@@ -19,6 +20,7 @@ export default function WorkflowsList() {
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
   const workflowSpans = useAppSelector((state: RootState) => selectServiceWorkflows(state, { serviceName }))
+  console.log('Workflow spans:', workflowSpans)
 
   // Fetch the serviceNames
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function WorkflowsList() {
           <th className={'px-4 py-1'}>Start Time</th>
           <th className={'px-4 py-1'}>Nodes</th>
           <th className={'px-4 py-1'}>Duration</th>
+          <th className={'px-4 py-1'}>Exception</th>
         </tr>
       </thead>
       <tbody>
@@ -56,6 +59,11 @@ export default function WorkflowsList() {
           // Duration String
           const durationString = getSpanDurationString(item.start_time, item.end_time)
 
+          // Exceptions
+          const hasExceptions = item.events_json.some((event) => {
+            return event.attributes && event.attributes['exception.type'] !== undefined
+          })
+
           return (
             <tr
               key={item.span_id}
@@ -65,10 +73,15 @@ export default function WorkflowsList() {
               onClick={() => navigate(`${item.span_id}`)}
             >
               <td className={'px-4 py-1.5'}>{item.name}</td>
-              <td className={'px-4 py-1.5'}>{item.span_id}</td>
-              <td className={'px-4 py-1.5'}>{startString}</td>
-              <td className={'px-4 py-1.5 text-right'}>{nodeCount}</td>
-              <td className={'px-4 py-1.5 text-right'}>{durationString}</td>
+              <td className={'px-4 py-1.5 font-mono'}>{item.span_id}</td>
+              <td className={'px-4 py-1.5 font-mono'}>{startString}</td>
+              <td className={'px-4 py-1.5 text-right font-mono'}>{nodeCount}</td>
+              <td className={'px-4 py-1.5 text-right font-mono'}>{durationString}</td>
+              <td className={'px-4 py-1.5'}>
+                {hasExceptions && (
+                  <ExclamationTriangleIcon className={'size-5 m-auto text-red-700 dark:text-red-300'} />
+                )}
+              </td>
             </tr>
           )
         })}

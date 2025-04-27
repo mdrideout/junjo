@@ -13,6 +13,7 @@ import {
 } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import { OtelSpan } from '../../otel/store/schemas'
+import SpanExceptionsList from '../span-lists/SpanExceptionsList'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -20,6 +21,7 @@ enum DiffTabOptions {
   PATCH = 'Patch',
   CHANGES = 'Changes',
   DETAILED = 'Detailed',
+  EXCEPTIONS = 'Exceptions',
 }
 
 interface WorkflowDetailStateDiffProps {
@@ -57,6 +59,12 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   const { defaultWorkflowSpan } = props
   const serviceName = defaultWorkflowSpan.service_name
   const defaultWorkflowSpanID = defaultWorkflowSpan.span_id
+
+  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const hasExceptions =
+    activeSpan?.events_json.some((event) => {
+      return event.attributes && event.attributes['exception.type'] !== undefined
+    }) ?? false
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
@@ -255,39 +263,51 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         )}
         <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        {hasExceptions && (
+          <TabButton tab={DiffTabOptions.EXCEPTIONS} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        )}
       </div>
-      <div
-        className={
-          'workflow-logs-json-container grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'
-        }
-      >
-        <JsonView
-          key={JSON.stringify(getTabJsonData(activeTab))}
-          value={getTabJsonData(activeTab)}
-          collapsed={getTabCollapsedLevel(activeTab)}
-          shouldExpandNodeInitially={(isExpanded, { value, level }) => {
-            // Collapse arrays more than 1 level deep (not root arrays)
-            const isArray = Array.isArray(value)
-            if (isArray && level > 1) {
-              const arrayLength = Object.keys(value).length
-
-              // Only hide if the array length is greater than 1
-              if (arrayLength > 1) {
-                return true
-              }
-            }
-
-            return isExpanded
-          }}
-          style={{ ...displayTheme, fontFamily: 'var(--font-mono)' }}
+      {/* Exception View */}
+      {activeTab === DiffTabOptions.EXCEPTIONS && (
+        <div className={'grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'}>
+          <SpanExceptionsList span={activeSpan} />
+        </div>
+      )}
+      {/* JSON View */}
+      {activeTab !== DiffTabOptions.EXCEPTIONS && (
+        <div
+          className={
+            'workflow-logs-json-container grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'
+          }
         >
-          {/* Zero width whitespace char */}
-          <JsonView.Quote>&#8203;</JsonView.Quote>
-          <JsonView.Arrow>
-            <TriangleDownIcon className={'size-4 leading-0'} />
-          </JsonView.Arrow>
-        </JsonView>
-      </div>
+          <JsonView
+            key={JSON.stringify(getTabJsonData(activeTab))}
+            value={getTabJsonData(activeTab)}
+            collapsed={getTabCollapsedLevel(activeTab)}
+            shouldExpandNodeInitially={(isExpanded, { value, level }) => {
+              // Collapse arrays more than 1 level deep (not root arrays)
+              const isArray = Array.isArray(value)
+              if (isArray && level > 1) {
+                const arrayLength = Object.keys(value).length
+
+                // Only hide if the array length is greater than 1
+                if (arrayLength > 1) {
+                  return true
+                }
+              }
+
+              return isExpanded
+            }}
+            style={{ ...displayTheme, fontFamily: 'var(--font-mono)' }}
+          >
+            {/* Zero width whitespace char */}
+            <JsonView.Quote>&#8203;</JsonView.Quote>
+            <JsonView.Arrow>
+              <TriangleDownIcon className={'size-4 leading-0'} />
+            </JsonView.Arrow>
+          </JsonView>
+        </div>
+      )}
     </div>
   )
 }

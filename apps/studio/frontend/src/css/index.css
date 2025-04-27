@@ -89,3 +89,8 @@ li {
     @apply font-bold cursor-pointer;
   }
 }
+
+/* Word Break - Tailwind Compensation */
+.word-break {
+  word-break: break-word;
+}

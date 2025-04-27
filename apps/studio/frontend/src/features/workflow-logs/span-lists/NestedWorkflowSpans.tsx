@@ -22,6 +22,7 @@ import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 interface NestedWorkflowSpansProps {
   serviceName: string
   workflowSpanID: string
+  onExceptionClick: (span: OtelSpan) => void
 }
 
 /**
@@ -31,7 +32,7 @@ interface NestedWorkflowSpansProps {
  * @returns
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanID, onExceptionClick } = props
   const dispatch = useAppDispatch()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
@@ -195,8 +196,12 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       const start_time = row.data.start_time
       const end_time = row.data.end_time
       const spanDuration = getSpanDurationString(start_time, end_time)
-
       const isActiveSpan = row.data.span_id === activeSpan?.span_id
+
+      // Exceptions
+      const hasExceptions = row.data.events_json.some((event) => {
+        return event.attributes && event.attributes['exception.type'] !== undefined
+      })
 
       return (
         <Fragment key={`nested-span-${row.data.span_id}-${layer}`}>
@@ -210,7 +215,20 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
               <div className={`flex gap-x-2 ${nonWorkflowNodeSpan ? 'items-start' : 'items-center'}`}>
                 <SpanIconConstructor span={row.data} active={isActiveSpan} />
                 <div className={'w-full flex gap-x-2 justify-between items-end'}>
-                  <div>{row.data.name}</div>
+                  <div className={'flex gap-x-2 items-center'}>
+                    <div>{row.data.name}</div>
+                    {hasExceptions && (
+                      // <ExclamationTriangleIcon className={'mt-1 size-4 text-red-700 dark:text-red-300'} />
+                      <button
+                        className={
+                          'mt-[1px] cursor-pointer text-white bg-red-700 hover:bg-red-600 rounded-lg px-1.5 text-xs'
+                        }
+                        onClick={() => onExceptionClick(row.data)}
+                      >
+                        exceptions
+                      </button>
+                    )}
+                  </div>
 
                   <div className={'font-mono text-zinc-500 text-xs'}>{spanDuration}</div>
                 </div>
