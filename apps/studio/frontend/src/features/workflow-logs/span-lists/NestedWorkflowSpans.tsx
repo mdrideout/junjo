@@ -85,7 +85,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   // Scroll To State Event
   useEffect(() => {
     if (scrollToStateEventId && scrollableContainerRef.current) {
-      const targetStateEventId = `#state-patch-${scrollToStateEventId}`
+      const targetStateEventId = `#nested-state-patch-${scrollToStateEventId}`
       console.log(`Scrolling to state event: ${targetStateEventId}`)
       const targetElement = scrollableContainerRef.current.querySelector(targetStateEventId)
       if (targetElement) {
@@ -243,7 +243,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       return (
         <Fragment key={`state-${row.data.attributes.id}-${layer}`}>
           <div
-            id={`state-patch-${row.data.attributes.id}`}
+            id={`nested-state-patch-${row.data.attributes.id}`}
             className={`p-1 cursor-pointer border-b last:border-0 border-zinc-200 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
             onClick={() => {
               // Set the active span that this state event belongs to
