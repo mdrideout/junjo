@@ -260,7 +260,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                 <div>
                   {row.data.attributes['junjo.store.name']} &rarr; {row.data.attributes['junjo.store.action']}
                 </div>
-                <div className={'opacity-50 text-xs'}>Patch: {row.data.attributes.id}</div>
+                <div className={'opacity-50 text-xs'}>{row.data.attributes.id}</div>
               </div>
             </div>
           </div>

@@ -12,8 +12,6 @@ import {
   selectWorkflowSpanByStoreID,
 } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
-import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
-import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
 import { OtelSpan } from '../../otel/store/schemas'
 
 enum DiffTabOptions {
@@ -248,32 +246,9 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }
   }
 
-  const statePatchTime = activeSetStateEvent?.timeUnixNano
-  const start_micro = statePatchTime
-    ? formatMicrosecondsSinceEpochToTime(activeSetStateEvent?.timeUnixNano / 1000)
-    : null
-
   return (
-    <div className={'flex-1/2 overflow-y-scroll pr-2.5'}>
-      {activeSetStateEvent && (
-        <div
-          className={
-            'flex justify-between items-center text-xs mb-2 border-b border-zinc-300 px-2 pb-2 font-bold'
-          }
-        >
-          <div>Patch: {activeSetStateEvent?.attributes.id}</div>
-          <div className={'flex items-center gap-x-2'}>
-            {' '}
-            {start_micro} &mdash; ({allEventsPatchIndex + 1}/{allWorkflowStateEvents.length})
-            <WorkflowStateEventNavButtons
-              serviceName={serviceName}
-              workflowSpanID={defaultWorkflowSpanID} // top level workflow
-              workflowStateEvents={allWorkflowStateEvents}
-            />
-          </div>
-        </div>
-      )}
-      <div className={'flex gap-x-2 mb-2'}>
+    <div className={'flex-1/2 flex flex-col pr-2.5'}>
+      <div className={'flex gap-x-2'}>
         <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         {activeSetStateEvent && (
@@ -282,7 +257,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
       </div>
-      <div className={'workflow-logs-json-container'}>
+      <div
+        className={
+          'workflow-logs-json-container grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'
+        }
+      >
         <JsonView
           key={JSON.stringify(getTabJsonData(activeTab))}
           value={getTabJsonData(activeTab)}

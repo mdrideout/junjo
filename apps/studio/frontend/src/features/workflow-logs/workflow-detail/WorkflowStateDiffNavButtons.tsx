@@ -1,20 +1,30 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
-import { JunjoSetStateEvent } from '../../otel/store/schemas'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectStateEventParentSpan } from '../../otel/store/selectors'
-import { useEffect } from 'react'
+import { selectAllWorkflowStateEvents, selectStateEventParentSpan } from '../../otel/store/selectors'
+import { useEffect, useMemo } from 'react'
 import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowStateEventNavButtonsProps {
   serviceName: string
   workflowSpanID: string
-  workflowStateEvents: JunjoSetStateEvent[]
 }
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
-  const { serviceName, workflowSpanID, workflowStateEvents } = props
+  const { serviceName, workflowSpanID } = props
   const dispatch = useAppDispatch()
+
+  // Memoize the props object for the selector
+  const selectorProps = useMemo(
+    () => ({
+      serviceName,
+      workflowSpanID,
+    }),
+    [serviceName, workflowSpanID],
+  )
+  const workflowStateEvents = useAppSelector((state: RootState) =>
+    selectAllWorkflowStateEvents(state, selectorProps),
+  )
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
@@ -68,7 +78,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   }
 
   return (
-    <div className={'flex gap-x-1'}>
+    <div className={'flex gap-x-1 -mt-[1px]'}>
       <button
         className={
           'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'

@@ -1,10 +1,11 @@
 import { PlayIcon } from '@heroicons/react/24/solid'
-import { useAppSelector } from '../../../root-store/hooks'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { selectAllWorkflowChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import { useEffect, useMemo, useRef } from 'react'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
 import { SpanIconConstructor } from './determine-span-icon'
+import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 
 interface FlatStateEventsListProps {
   serviceName: string
@@ -14,6 +15,7 @@ interface FlatStateEventsListProps {
 export default function FlatStateEventsList(props: FlatStateEventsListProps) {
   const { serviceName, workflowSpanID } = props
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
+  const dispatch = useAppDispatch()
 
   // Memoize the props object for the selector
   const selectorProps = useMemo(
@@ -51,8 +53,8 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest',
+          block: 'center',
+          inline: 'center',
         })
       }
     }
@@ -67,8 +69,8 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest',
+          block: 'center',
+          inline: 'center',
         })
       }
     }
@@ -97,7 +99,14 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
           <div
             key={atts.id}
             id={`flat-state-patch-${atts.id}`}
-            className={`${spanClass} px-2 py-2 flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 ${determineActiveStyle()}`}
+            className={`${spanClass} px-2 py-2 cursor-pointer flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 ${determineActiveStyle()}`}
+            onClick={() => {
+              // Set the active span that this state event belongs to
+              span && dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+
+              // Set the active set state event
+              dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(event))
+            }}
           >
             <div className={'flex gap-x-1 items-start'}>
               <div className={'mt-[1px]'}>

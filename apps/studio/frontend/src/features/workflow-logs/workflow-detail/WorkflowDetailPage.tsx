@@ -12,6 +12,7 @@ import NestedWorkflowSpans from '../span-lists/NestedWorkflowSpans'
 import { Switch } from 'radix-ui'
 import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 import TabbedSpanLists from '../span-lists/TabbedSpanLists'
+import WorkflowDetailStateNav from './WorkflowDetailStateNav'
 
 export default function WorkflowDetailPage() {
   const { serviceName, workflowSpanID } = useParams()
@@ -77,9 +78,7 @@ export default function WorkflowDetailPage() {
 
       <hr className={'my-4'} />
 
-      <div
-        className={`w-full shrink-0 pb-3 mb-4 h-80 overflow-scroll shadow-md p-3 bg-zinc-50 dark:bg-zinc-800`}
-      >
+      <div className={`w-full shrink-0 pb-3 h-80 overflow-scroll shadow-md p-3 bg-zinc-50 dark:bg-zinc-800`}>
         <div className={'mb-2'}>
           <div className="flex items-center">
             <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">
@@ -101,6 +100,10 @@ export default function WorkflowDetailPage() {
           showEdgeLabels={mermaidEdgeLabels}
         />
       </div>
+      <div className={'pt-2 px-2 pb-2'}>
+        <WorkflowDetailStateNav serviceName={serviceName} workflowSpanID={workflowSpanID} />
+      </div>
+
       <div className={'grow w-full flex gap-x-4 justify-between overflow-hidden'}>
         <TabbedSpanLists serviceName={serviceName} workflowSpanID={workflowSpanID} />
         <WorkflowDetailStateDiff defaultWorkflowSpan={span} />

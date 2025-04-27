@@ -40,11 +40,11 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
 
   return (
     <div className={'flex flex-1/2 flex-col'}>
-      <div className={'flex gap-x-2 mb-2'}>
+      <div className={'flex gap-x-2'}>
         <TabButton tab={TabOptions.NESTED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={TabOptions.FLAT} activeTab={activeTab} tabChangeHandler={setActiveTab} />
       </div>
-      <div className={'overflow-y-scroll pr-2.5'}>
+      <div className={'overflow-y-scroll pr-2.5 border-t border-zinc-200 dark:border-zinc-700'}>
         {activeTab === TabOptions.FLAT && (
           <FlatStateEventsList serviceName={serviceName} workflowSpanID={workflowSpanID} />
         )}
