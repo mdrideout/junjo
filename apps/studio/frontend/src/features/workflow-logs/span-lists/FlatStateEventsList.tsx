@@ -53,8 +53,8 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'center',
-          inline: 'center',
+          block: 'nearest',
+          inline: 'nearest',
         })
       }
     }
@@ -69,8 +69,8 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'center',
-          inline: 'center',
+          block: 'nearest',
+          inline: 'nearest',
         })
       }
     }

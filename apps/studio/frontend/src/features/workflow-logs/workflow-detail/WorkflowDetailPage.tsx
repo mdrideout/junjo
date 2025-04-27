@@ -53,7 +53,7 @@ export default function WorkflowDetailPage() {
   console.log('Re-rendering WorkflowDetailPage')
 
   return (
-    <div className={'p-5 flex flex-col h-dvh'}>
+    <div className={'px-3 py-4 flex flex-col h-dvh overflow-hidden'}>
       <div className={'flex gap-x-3 px-2 items-center justify-between'}>
         <div>
           <div className={'mb-1 flex gap-x-3 font-bold'}>
