@@ -78,7 +78,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   // Active Set State Event - Store ID
   // This is the ID of the store that this state event acted on
   const activeStoreID = activeSetStateEvent?.attributes['junjo.store.id']
-  console.log('Active set state event: ', activeSetStateEvent)
 
   // The active workflow span is the workflow with the same store as the current set state event,
   // defaulting to the default workflow span if there is no active set state event
@@ -280,7 +279,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
             return isExpanded
           }}
-          style={displayTheme}
+          style={{ ...displayTheme, fontFamily: 'var(--font-mono)' }}
         >
           {/* Zero width whitespace char */}
           <JsonView.Quote>&#8203;</JsonView.Quote>

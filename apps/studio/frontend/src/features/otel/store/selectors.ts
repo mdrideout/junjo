@@ -243,9 +243,9 @@ export const selectStateEventParentSpan = createSelector(
  *          and the workflow chain is the same.
  */
 const workflowChainListEquality = (prevList: OtelSpan[], nextList: OtelSpan[]) => {
-  console.log(`Checking workflow chain equality...`)
-  console.log('Previous List: ', prevList)
-  console.log('Next List: ', nextList)
+  // console.log(`Checking workflow chain equality...`)
+  // console.log('Previous List: ', prevList)
+  // console.log('Next List: ', nextList)
 
   if (!prevList || !nextList) return false
 
