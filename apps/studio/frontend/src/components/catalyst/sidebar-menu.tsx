@@ -28,7 +28,7 @@ export default function SidebarMenu() {
                 alt="Junjo Logo (Karp)"
                 className="h-12 w-12 text-red dark:bg-zinc-50 dark:p-1 dark:mr-1 rounded-full"
               />
-              <div className="font-logo text-4xl -mt-[2px]">j u n j o</div>
+              <div className="font-logo text-3xl -mt-[2px]">j u n j o</div>
             </div>
           </Link>
         </div>

@@ -58,7 +58,7 @@ export function SidebarLayout({
   return (
     <div className="relative isolate flex min-h-svh w-full bg-white max-lg:flex-col lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950">
       {/* Sidebar on desktop */}
-      <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden">{sidebar}</div>
+      <div className="fixed inset-y-0 left-0 w-56 max-lg:hidden">{sidebar}</div>
 
       {/* Sidebar on mobile */}
       <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
@@ -76,7 +76,7 @@ export function SidebarLayout({
       </header>
 
       {/* Content */}
-      <main className="h-dvh flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 lg:pl-64 ">
+      <main className="h-dvh flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 lg:pl-56 ">
         <div className="h-full overflow-hidden grow p-2 lg:rounded-lg lg:bg-white lg:p-0 lg:ring-1 lg:shadow-xs lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:text-zinc-100 dark:lg:ring-white/10">
           <Outlet />
         </div>
