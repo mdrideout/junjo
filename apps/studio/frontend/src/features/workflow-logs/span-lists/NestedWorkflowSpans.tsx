@@ -206,7 +206,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         <Fragment key={`nested-span-${row.data.span_id}-${layer}`}>
           <div
             id={`nested-span-${row.data.span_id}`}
-            className={`rounded-md ${!nonWorkflowNodeSpan ? 'pb-2 last-of-type:pb-0' : ''} ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900 cursor-pointer' : ''}`}
+            className={`rounded-md ${!nonWorkflowNodeSpan ? 'pb-2 last-of-type:pb-0' : ''} ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900' : ''}`}
           >
             <div
               className={`p-1 ${nonWorkflowNodeSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}
@@ -215,7 +215,21 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                 <SpanIconConstructor span={row.data} active={isActiveSpan} />
                 <div className={'w-full flex gap-x-2 justify-between items-end'}>
                   <div className={'flex gap-x-2 items-center'}>
-                    <div>{row.data.name}</div>
+                    {/* Workflow Spans Get Clickable Titles */}
+                    {!nonWorkflowNodeSpan ? (
+                      <button
+                        className={`cursor-pointer text-left hover:underline`}
+                        onClick={() => {
+                          // Set as the active span
+                          dispatch(WorkflowDetailStateActions.setActiveSpan(row.data))
+                        }}
+                      >
+                        {row.data.name}
+                      </button>
+                    ) : (
+                      <div>{row.data.name}</div>
+                    )}
+
                     {hasExceptions && (
                       // <ExclamationTriangleIcon className={'mt-1 size-4 text-red-700 dark:text-red-300'} />
                       <button

@@ -288,6 +288,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
   // --- Render the Mermaid diagram ---
   // Render the container div where the SVG will be placed
-  console.log('Rendering mermaid diagram string:\n', mermaidFlowString)
+  // console.log('Rendering mermaid diagram string:\n', mermaidFlowString)
   return <div ref={svgContainerRef} className={'mermaid-container'} id={containerId} />
 }
