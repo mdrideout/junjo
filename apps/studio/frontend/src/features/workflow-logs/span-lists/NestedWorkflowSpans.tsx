@@ -222,6 +222,28 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                         onClick={() => {
                           // Set as the active span
                           dispatch(WorkflowDetailStateActions.setActiveSpan(row.data))
+
+                          // Set the active SetState event to the first event in this node
+                          const spanStateEvent = row.data.events_json[0]
+                          if (spanStateEvent) {
+                            // Validate the events_json structure
+                            const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
+                            if (!validated.success) {
+                              console.error('Invalid state event structure:', validated.error)
+                              return
+                            }
+                            const stateEvent = validated.data
+                            console.log('Setting active state event:', stateEvent)
+                            dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
+
+                            // Scroll to the active state event
+                            dispatch(
+                              WorkflowDetailStateActions.setScrollToStateEventId(stateEvent.attributes.id),
+                            )
+                          } else {
+                            // set the active set state event to null
+                            dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+                          }
                         }}
                       >
                         {row.data.name}
