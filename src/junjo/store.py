@@ -113,8 +113,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
             )
         except ValidationError as e:
             raise ValueError(
-                f"Invalid state update from caller {caller_class_name} -> {caller_function_name}. \
-                  Check that you are updating a valid state property and type: {e}"
+                f"Invalid state update from caller {caller_class_name} -> {caller_function_name}.\n"
+                f"Check that you are updating a valid state property and type: {e}"
             ) from e
 
         subscribers_to_notify: list[Subscriber] = []
