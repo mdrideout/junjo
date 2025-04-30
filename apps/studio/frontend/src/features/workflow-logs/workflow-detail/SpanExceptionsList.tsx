@@ -1,49 +1,75 @@
 import { useRef } from 'react'
 import { useAppDispatch } from '../../../root-store/hooks'
 import { OtelSpan } from '../../otel/store/schemas'
+import { SpanIconConstructor } from '../span-lists/determine-span-icon'
+import { WorkflowDetailStateActions } from './store/slice'
 
 interface SpanExceptionsListProps {
-  span: OtelSpan | null | undefined
+  spans: OtelSpan[]
 }
 
 export default function SpanExceptionsList(props: SpanExceptionsListProps) {
-  const { span } = props
+  const { spans } = props
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
 
-  if (!span) {
+  if (spans.length === 0) {
     return <div className={'p-2'}>Select a span to view any exceptions.</div>
   }
 
-  const exceptions =
-    span.events_json.filter((event) => {
-      return event.attributes && event.attributes['exception.type'] !== undefined
-    }) ?? []
-  console.log('Exceptions:', exceptions)
-
   return (
-    <div ref={scrollableContainerRef} className={'flex flex-col text-sm pb-10'}>
-      {exceptions.length === 0 && <div className={'p-2'}>No exceptions found.</div>}
-      {exceptions.map((exception, index) => (
-        <div
-          key={`${index}-${exception.timeUnixNano}`}
-          className={'px-2 py-6 border-b last:border-0 border-zinc-300 dark:border-zinc-700'}
-        >
-          <div className={'font-bold'}>Message</div>
-          <div
-            className={'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'}
-          >
-            {exception.attributes['exception.message']}
+    <div ref={scrollableContainerRef} className={'flex flex-col pb-10'}>
+      {spans.map((span) => {
+        const exceptions =
+          span.events_json.filter((event) => {
+            return event.attributes && event.attributes['exception.type'] !== undefined
+          }) ?? []
+        console.log('Exceptions:', exceptions)
+
+        return (
+          <div className={'px-1 pt-1 pb-5 mb-4'} key={span.span_id}>
+            <div className={'flex gap-x-2 items-center'}>
+              <SpanIconConstructor span={span} active={false} />
+              <button
+                className={'font-bold cursor-pointer text-left hover:underline'}
+                onClick={() => {
+                  // Set as the active span
+                  dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+
+                  // Trigger the node exceptions tab
+                  dispatch(WorkflowDetailStateActions.setOpenExceptionsTrigger())
+                }}
+              >
+                {span?.name}
+              </button>
+            </div>
+            {exceptions.map((exception, index) => (
+              <div
+                key={`${index}-${exception.timeUnixNano}`}
+                className={`text-sm px-4.5 mt-1 mb-5 pb-5 pt-1 border-l ml-[9.5px] border-b last:border-b-0 border-zinc-300 dark:border-zinc-700  ${false ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
+              >
+                <div className={'font-bold'}>Message</div>
+                <div
+                  className={
+                    'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'
+                  }
+                >
+                  {exception.attributes['exception.message']}
+                </div>
+                <div className={'h-4'}></div>
+                <div className={'font-bold'}>Stack trace</div>
+                <div
+                  className={
+                    'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'
+                  }
+                >
+                  {exception.attributes['exception.stacktrace']}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className={'h-4'}></div>
-          <div className={'font-bold'}>Stack trace</div>
-          <div
-            className={'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'}
-          >
-            {exception.attributes['exception.stacktrace']}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -8,7 +8,6 @@ import { OtelStateActions } from '../../otel/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
-import NestedWorkflowSpans from '../span-lists/NestedWorkflowSpans'
 import { Switch } from 'radix-ui'
 import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 import TabbedSpanLists from '../span-lists/TabbedSpanLists'
@@ -22,7 +21,7 @@ export default function WorkflowDetailPage() {
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
   const span = useAppSelector((state: RootState) =>
-    selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID }),
+    selectWorkflowSpan(state, { serviceName, workflowSpanID }),
   )
 
   // Fetch the data if the workflow span ID is not found

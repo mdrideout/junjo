@@ -16,7 +16,7 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
-      spanID: workflowSpanID,
+      workflowSpanID,
     }),
   )
 
@@ -29,8 +29,6 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
       showEdgeLabels,
     )
     const uniqueMermaidId = `mer-unique-${workflowSpan.span_id}`
-
-    console.log(`Rendering Mermaid with ID: ${uniqueMermaidId}`)
 
     return (
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>

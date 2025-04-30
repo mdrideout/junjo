@@ -292,9 +292,9 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         )}
       </div>
       {/* Exception View */}
-      {activeTab === DiffTabOptions.EXCEPTIONS && (
+      {activeSpan && activeTab === DiffTabOptions.EXCEPTIONS && (
         <div className={'grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'}>
-          <SpanExceptionsList span={activeSpan} />
+          <SpanExceptionsList spans={[activeSpan]} />
         </div>
       )}
       {/* JSON View */}

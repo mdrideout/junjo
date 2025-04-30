@@ -21,7 +21,7 @@ export function MermaidProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // helper to init with current prefers‑color‑scheme
     const applyTheme = () => {
-      console.log('Applying mermaid theme: ', window.matchMedia('(prefers-color-scheme: dark)').matches)
+      // console.log('Applying mermaid theme: ', window.matchMedia('(prefers-color-scheme: dark)').matches)
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       mermaid.initialize(getMermaidConfig(isDark ? 'dark' : 'neutral'))
     }

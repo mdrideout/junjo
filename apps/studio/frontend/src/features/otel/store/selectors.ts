@@ -41,13 +41,13 @@ export const selectServiceWorkflows = createSelector(
 export const selectWorkflowSpan = createSelector(
   [
     selectWorkflowsData,
-    (_state: RootState, props: { serviceName: string | undefined; spanID: string | undefined }) => props,
+    (_state: RootState, props: { serviceName: string | undefined; workflowSpanID: string | undefined }) =>
+      props,
   ],
   (workflowsData, props): OtelSpan | undefined => {
     const serviceData = workflowsData[props.serviceName ?? '']
-    if (!serviceData || !props.spanID) return undefined
-    // .find returns existing reference or undefined, which is fine.
-    return serviceData.workflowSpans.find((item) => item.span_id === props.spanID)
+    if (!serviceData || !props.workflowSpanID) return undefined
+    return serviceData.workflowSpans.find((item) => item.span_id === props.workflowSpanID)
   },
 )
 
@@ -138,31 +138,33 @@ export const selectAllWorkflowStateEvents = createSelector(
 )
 
 /**
- * Select All Workflow Exceptions
+ * Select Spans with Exceptions
  * For a given workflow span, create a list of all of the workflow span's exceptions
- * @returns {JunjoExceptionEvent[]} sorted by their timeUnixNano
+ * @returns {OtelSpan[]} sorted by their timeUnixNano
  */
-export const selectAllWorkflowExceptions = createSelector(
-  [selectWorkflowSpan],
-  (span): JunjoExceptionEvent[] => {
-    const junjoExceptionEvents: JunjoExceptionEvent[] = []
-    if (!span) return junjoExceptionEvents
+export const selectAllExceptionSpans = createSelector(
+  [selectWorkflowSpan, selectAllWorkflowChildSpans],
+  (workflowSpan, childSpans): OtelSpan[] => {
+    const exceptionSpans: OtelSpan[] = []
 
-    // Basic check if events_json exists and is an array
-    if (Array.isArray(span.events_json)) {
-      span.events_json.forEach((event) => {
-        try {
-          const parsedEvent = JunjoExceptionEventSchema.parse(event)
-          junjoExceptionEvents.push(parsedEvent)
-        } catch (error) {
-          // Consider less noisy logging or specific handling
-          // console.error('Error parsing event in selector:', error);
-        }
+    // combine the workflow span and child spans
+    const allSpans = [workflowSpan, ...childSpans].filter((span) => span !== undefined)
+    if (!allSpans) return [] // Stable empty array reference
+
+    for (const span of allSpans) {
+      // Basic check if events_json exists and is an array
+
+      const hasExceptions = span.events_json.some((event) => {
+        const parsedEvent = JunjoExceptionEventSchema.safeParse(event)
+        return parsedEvent.success && parsedEvent.data.attributes['exception.type'] !== undefined
       })
+
+      if (hasExceptions) {
+        exceptionSpans.push(span)
+      }
     }
 
-    junjoExceptionEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-    return junjoExceptionEvents
+    return exceptionSpans
   },
 )
 
@@ -384,37 +386,6 @@ export const identifyWorkflowChain = createWorkflowChainSelector(
     },
   },
 )
-
-// /**
-//  * Select State Event Workflow Span
-//  * Returns the first workflow / subflow span that contains this state event
-//  * Follows the parent_ids to find the first workflow / subflow span
-//  * @returns {OtelSpan | undefined}
-//  */
-// export const selectStateEventWorkflowSpan = createSelector(
-//   [selectAllWorkflowChildSpans, selectStateEventParentSpan],
-//   (allSpans, eventSpan): OtelSpan | undefined => {
-//     if (!eventSpan) return undefined
-
-//     // Recursively check the parent spans to find the first workflow / subflow span
-//     function checkIfParentSpanIsFlow(span: OtelSpan): OtelSpan | undefined {
-//       // Check if the span is a workflow or subflow, if so, return it
-//       if (span.junjo_span_type === JunjoSpanType.WORKFLOW || span.junjo_span_type === JunjoSpanType.SUBFLOW) {
-//         return span
-//       }
-
-//       // if not, get the parent span and recursively call this function to check it
-//       const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
-//       if (parentSpan) {
-//         return checkIfParentSpanIsFlow(parentSpan)
-//       }
-//       return undefined
-//     }
-//     // Start the recursion with the event span
-//     const flowSpan = checkIfParentSpanIsFlow(eventSpan)
-//     return flowSpan
-//   },
-// )
 
 export const selectPrevWorkflowSpanID = (
   state: RootState,

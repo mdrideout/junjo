@@ -3,7 +3,7 @@ import NestedWorkflowSpans from './NestedWorkflowSpans'
 import FlatStateEventsList from './FlatStateEventsList'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllWorkflowExceptions, selectWorkflowSpan } from '../../otel/store/selectors'
+import { selectAllExceptionSpans, selectWorkflowSpan } from '../../otel/store/selectors'
 import SpanExceptionsList from '../workflow-detail/SpanExceptionsList'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
@@ -50,16 +50,13 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      spanID: workflowSpanID,
+      workflowSpanID,
     }),
     [serviceName, workflowSpanID],
   )
 
-  const workflowSpan = useAppSelector((state: RootState) => selectWorkflowSpan(state, selectorProps))
-  const workflowExceptions = useAppSelector((state: RootState) =>
-    selectAllWorkflowExceptions(state, selectorProps),
-  )
-  const hasExceptions = workflowExceptions.length > 0
+  const exceptionSpans = useAppSelector((state: RootState) => selectAllExceptionSpans(state, selectorProps))
+  const hasExceptions = exceptionSpans.length > 0
 
   return (
     <div className={'flex flex-1/2 flex-col'}>
@@ -77,7 +74,7 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
         {activeTab === TabOptions.NESTED && (
           <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />
         )}
-        {activeTab === TabOptions.EXCEPTIONS && <SpanExceptionsList span={workflowSpan} />}
+        {activeTab === TabOptions.EXCEPTIONS && <SpanExceptionsList spans={exceptionSpans} />}
       </div>
     </div>
   )
