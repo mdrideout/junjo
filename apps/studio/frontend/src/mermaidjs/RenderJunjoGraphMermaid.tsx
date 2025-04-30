@@ -7,6 +7,7 @@ import { RootState } from '../root-store/store'
 import { identifyWorkflowChain, selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
 import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
 import { WorkflowDetailStateActions } from '../features/workflow-logs/workflow-detail/store/slice'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
 interface RenderJunjoGraphMermaidProps {
   mermaidFlowString: string
@@ -53,19 +54,29 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
   )
 
-  // helper to attach to any existing <g class="node"> elements
-  const attachListeners = (container: HTMLDivElement) => {
+  /**
+   * Attach listeners to the elements, and annotate where appropriate
+   */
+  const attachListenersAndAnnotate = (container: HTMLDivElement) => {
     const existing = container.querySelectorAll('.node')
     existing.forEach((node) => {
       const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
-      const utilized = nodeSpans.find((s) => s.junjo_id === junjoNodeId)
-      if (!utilized) {
+      const utilizedNodeSpan = nodeSpans.find((s) => s.junjo_id === junjoNodeId)
+      if (!utilizedNodeSpan) {
         node.classList.add('graph-element-not-utilized')
-      } else if (utilized.junjo_span_type === JunjoSpanType.NODE) {
+      } else if (utilizedNodeSpan.junjo_span_type === JunjoSpanType.NODE) {
         node.addEventListener('click', handleNodeClick as EventListener)
       } else {
         node.classList.add('node-subflow')
         node.addEventListener('click', handleSubflowClick as EventListener)
+      }
+
+      // Annotate exceptions
+      const hasException = utilizedNodeSpan?.events_json.some((event) => {
+        return event.attributes && event.attributes['exception.type'] !== undefined
+      })
+      if (hasException) {
+        node.classList.add('node-has-exception')
       }
     })
   }
@@ -179,7 +190,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
               svgContainerRef.current.innerHTML = ''
               svgContainerRef.current.innerHTML = svg // Inject the rendered SVG into the container
 
-              attachListeners(svgContainerRef.current) // Attach listeners to the nodes
+              attachListenersAndAnnotate(svgContainerRef.current) // Attach listeners to the nodes
 
               // Bind any interactive functions if necessary
               if (bindFunctions) {

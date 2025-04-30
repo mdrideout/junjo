@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import JsonView from '@uiw/react-json-view'
 import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
@@ -13,7 +13,7 @@ import {
 } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import { OtelSpan } from '../../otel/store/schemas'
-import SpanExceptionsList from '../span-lists/SpanExceptionsList'
+import SpanExceptionsList from './SpanExceptionsList'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -57,9 +57,13 @@ const TabButton = ({
  */
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { defaultWorkflowSpan } = props
+  const hasMountedRef = useRef(false)
   const serviceName = defaultWorkflowSpan.service_name
   const defaultWorkflowSpanID = defaultWorkflowSpan.span_id
 
+  const openExceptionsTrigger = useAppSelector(
+    (state: RootState) => state.workflowDetailState.openExceptionsTrigger,
+  )
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
   const hasExceptions =
     activeSpan?.events_json.some((event) => {
@@ -157,6 +161,26 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     mediaQuery.addEventListener('change', listener)
     return () => mediaQuery.removeEventListener('change', listener)
   }, [])
+
+  // Detect openExceptions trigger and set the active tab to exceptions
+  useEffect(() => {
+    // skip on first render
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true
+      return
+    }
+    // only switch if we actually got a new trigger
+    if (openExceptionsTrigger != null) {
+      setActiveTab(DiffTabOptions.EXCEPTIONS)
+    }
+  }, [openExceptionsTrigger])
+
+  // Detect if there are no exceptions, and we are on the exceptions tab, and switch to After tab
+  useEffect(() => {
+    if (activeTab === DiffTabOptions.EXCEPTIONS && !hasExceptions) {
+      setActiveTab(DiffTabOptions.AFTER)
+    }
+  }, [activeTab, hasExceptions])
 
   /**
    * Cumulative Patch Setter

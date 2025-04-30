@@ -30,12 +30,16 @@ export default function SpanExceptionsList(props: SpanExceptionsListProps) {
           className={'px-2 py-6 border-b last:border-0 border-zinc-300 dark:border-zinc-700'}
         >
           <div className={'font-bold'}>Message</div>
-          <div className={'whitespace-pre-wrap font-mono word-break text-zinc-600 text-xs'}>
+          <div
+            className={'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'}
+          >
             {exception.attributes['exception.message']}
           </div>
           <div className={'h-4'}></div>
           <div className={'font-bold'}>Stack trace</div>
-          <div className={'whitespace-pre-wrap font-mono word-break text-zinc-600 text-xs'}>
+          <div
+            className={'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'}
+          >
             {exception.attributes['exception.stacktrace']}
           </div>
         </div>

@@ -26,14 +26,23 @@
   fill: rgb(255, 193, 77) !important;
   transition: all 250ms ease-in-out;
 }
+
+.mermaid-container .node.graph-element-not-utilized {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mermaid-container .node.node-has-exception > rect {
+  fill: rgb(255, 209, 209) !important;
+}
+
 @media (prefers-color-scheme: dark) {
   .mermaid-container .node:not(.graph-element-not-utilized):hover > rect,
   .mermaid-container .node-subflow:not(.graph-element-not-utilized):hover path {
     fill: rgb(106, 41, 0) !important;
   }
-}
 
-.mermaid-container .node.graph-element-not-utilized {
-  cursor: default;
-  opacity: 0.5;
+  .mermaid-container .node.node-has-exception > rect {
+    fill: rgb(100, 32, 32) !important;
+  }
 }

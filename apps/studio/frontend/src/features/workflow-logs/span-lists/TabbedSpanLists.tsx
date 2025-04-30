@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import NestedWorkflowSpans from './NestedWorkflowSpans'
 import FlatStateEventsList from './FlatStateEventsList'
-import SpanExceptionsList from './SpanExceptionsList'
 
 enum TabOptions {
   NESTED = 'Nested Spans',
@@ -50,13 +49,7 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
           <FlatStateEventsList serviceName={serviceName} workflowSpanID={workflowSpanID} />
         )}
         {activeTab === TabOptions.NESTED && (
-          <NestedWorkflowSpans
-            serviceName={serviceName}
-            workflowSpanID={workflowSpanID}
-            onExceptionClick={(span) => {
-              console.log('Exception clicked for span:', span)
-            }}
-          />
+          <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />
         )}
       </div>
     </div>

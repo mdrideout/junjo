@@ -7,6 +7,7 @@ interface WorkflowDetailState {
   activeSetStateEvent: JunjoSetStateEvent | null
   scrollToSpanId: string | null
   scrollToStateEventId: string | null
+  openExceptionsTrigger: number | null
 }
 
 const initialState: WorkflowDetailState = {
@@ -14,6 +15,7 @@ const initialState: WorkflowDetailState = {
   activeSetStateEvent: null,
   scrollToSpanId: null,
   scrollToStateEventId: null,
+  openExceptionsTrigger: null,
 }
 
 export const otelSlice = createSlice({
@@ -31,6 +33,10 @@ export const otelSlice = createSlice({
     },
     setScrollToStateEventId: (state, action: PayloadAction<string | null>) => {
       state.scrollToStateEventId = action.payload
+    },
+    setOpenExceptionsTrigger: (state) => {
+      // Set the openExceptionsTrigger to a new value
+      state.openExceptionsTrigger = Date.now()
     },
   },
 })

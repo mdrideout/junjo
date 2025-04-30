@@ -22,7 +22,6 @@ import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 interface NestedWorkflowSpansProps {
   serviceName: string
   workflowSpanID: string
-  onExceptionClick: (span: OtelSpan) => void
 }
 
 /**
@@ -32,7 +31,7 @@ interface NestedWorkflowSpansProps {
  * @returns
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
-  const { serviceName, workflowSpanID, onExceptionClick } = props
+  const { serviceName, workflowSpanID } = props
   const dispatch = useAppDispatch()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
@@ -223,7 +222,13 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                         className={
                           'mt-[1px] cursor-pointer text-white bg-red-700 hover:bg-red-600 rounded-lg px-1.5 text-xs'
                         }
-                        onClick={() => onExceptionClick(row.data)}
+                        onClick={() => {
+                          // Set this span as the active span
+                          dispatch(WorkflowDetailStateActions.setActiveSpan(row.data))
+
+                          // Set this exception as the active
+                          dispatch(WorkflowDetailStateActions.setOpenExceptionsTrigger())
+                        }}
                       >
                         exceptions
                       </button>
@@ -298,6 +303,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         return (
           <Fragment key={`row-${row.time}`}>
             <RecursiveNestedRow row={row} layer={0} />
+            <div className={'h-5'}></div>
           </Fragment>
         )
       })}
