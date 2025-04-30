@@ -1,6 +1,13 @@
 import { createSelector, createSelectorCreator, lruMemoize } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
-import { JunjoSetStateEvent, JunjoSetStateEventSchema, JunjoSpanType, OtelSpan } from './schemas'
+import {
+  JunjoExceptionEvent,
+  JunjoExceptionEventSchema,
+  JunjoSetStateEvent,
+  JunjoSetStateEventSchema,
+  JunjoSpanType,
+  OtelSpan,
+} from './schemas'
 
 // Base Selector
 export const selectOtelState = (state: RootState) => state.otelState
@@ -115,7 +122,6 @@ export const selectAllWorkflowStateEvents = createSelector(
       if (Array.isArray(span.events_json)) {
         span.events_json.forEach((event) => {
           try {
-            // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
             const parsedEvent = JunjoSetStateEventSchema.parse(event)
             junjoSetStateEvents.push(parsedEvent)
           } catch (error) {
@@ -127,8 +133,36 @@ export const selectAllWorkflowStateEvents = createSelector(
     })
 
     junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-    // createSelector memoizes this returned reference
     return junjoSetStateEvents
+  },
+)
+
+/**
+ * Select All Workflow Exceptions
+ * For a given workflow span, create a list of all of the workflow span's exceptions
+ * @returns {JunjoExceptionEvent[]} sorted by their timeUnixNano
+ */
+export const selectAllWorkflowExceptions = createSelector(
+  [selectWorkflowSpan],
+  (span): JunjoExceptionEvent[] => {
+    const junjoExceptionEvents: JunjoExceptionEvent[] = []
+    if (!span) return junjoExceptionEvents
+
+    // Basic check if events_json exists and is an array
+    if (Array.isArray(span.events_json)) {
+      span.events_json.forEach((event) => {
+        try {
+          const parsedEvent = JunjoExceptionEventSchema.parse(event)
+          junjoExceptionEvents.push(parsedEvent)
+        } catch (error) {
+          // Consider less noisy logging or specific handling
+          // console.error('Error parsing event in selector:', error);
+        }
+      })
+    }
+
+    junjoExceptionEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+    return junjoExceptionEvents
   },
 )
 

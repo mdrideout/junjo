@@ -44,7 +44,7 @@ export const WorkflowSpansE2EResponseSchema = z.object({
 })
 export type WorkflowSpansE2EResponse = z.infer<typeof WorkflowSpansE2EResponseSchema>
 
-// Define the schema for the known event type
+// Define the schema for events_json set_state events
 export const NodeSetStateAttributesSchema = z.object({
   id: z.string(),
   'junjo.state_json_patch': z.string(), // Assuming this is a JSON string
@@ -59,3 +59,18 @@ export const JunjoSetStateEventSchema = z.object({
   attributes: NodeSetStateAttributesSchema,
 })
 export type JunjoSetStateEvent = z.infer<typeof JunjoSetStateEventSchema>
+
+// Define the schema for events_json exceptions
+export const NodeExceptionAttributesSchema = z.object({
+  'exception.message': z.string(),
+  'exception.stacktrace': z.string(),
+  'exception.type': z.string(),
+  'exception.escaped': z.string(),
+})
+
+export const JunjoExceptionEventSchema = z.object({
+  name: z.literal('exception'), // Discriminator field
+  timeUnixNano: z.number(),
+  attributes: NodeExceptionAttributesSchema,
+})
+export type JunjoExceptionEvent = z.infer<typeof JunjoExceptionEventSchema>

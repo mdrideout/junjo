@@ -21,7 +21,7 @@ enum DiffTabOptions {
   PATCH = 'Patch',
   CHANGES = 'Changes',
   DETAILED = 'Detailed',
-  EXCEPTIONS = 'Exceptions',
+  EXCEPTIONS = 'Node Exceptions',
 }
 
 interface WorkflowDetailStateDiffProps {
