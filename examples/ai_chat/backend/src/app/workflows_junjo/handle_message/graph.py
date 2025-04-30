@@ -80,9 +80,11 @@ handle_message_graph = Graph(
         # Test SubFlow
         Edge(tail=test_run_concurrent, head=sub_flow_test),
 
-        # Test Concurrent Node Runner
-        Edge(tail=sub_flow_test, head=test_concurrent_node_runner),
-        Edge(tail=test_concurrent_node_runner, head=assess_message_directive_node),
+        # # Test Concurrent Node Runner - SHOULD NOT BE DONE, KEEP FOR TESTING ONLY
+        # Edge(tail=sub_flow_test, head=test_concurrent_node_runner),
+        # Edge(tail=test_concurrent_node_runner, head=assess_message_directive_node),
+
+        Edge(tail=sub_flow_test, head=assess_message_directive_node),
 
         # Message Directive Options
         Edge(tail=assess_message_directive_node, head=create_work_response_node,

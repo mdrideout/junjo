@@ -115,62 +115,59 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             current_executable = self.graph.source
             try:
                 while True:
-                    try:
-                        # # Execute node before hooks
+
+                    # # Execute node before hooks
+                    # if self.hook_manager is not None:
+                    #     self.hook_manager.run_before_node_execute_hooks(span_open_node_args)
+
+                    # # If executing a subflow
+                    if isinstance(current_executable, Subflow):
+                        print("Executing subflow:", current_executable.name)
+                        # Pass the current store as the parent store for the sub-flow
+                        await current_executable.execute(self.store, self.id)
+
+                        # Incorporate the Subflows node count
+                        # into the parent workflow's node execution counter
+                        self.node_execution_counter[current_executable.id] = sum(
+                            current_executable.node_execution_counter.values()
+                        )
+
+                    # If executing a node
+                    if isinstance(current_executable, Node):
+                        print("Executing node:", current_executable.name)
+                        await current_executable.execute(self.store, self.id)
+
+                        # # Execute node after hooks
                         # if self.hook_manager is not None:
-                        #     self.hook_manager.run_before_node_execute_hooks(span_open_node_args)
+                        #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
 
-                        # # If executing a subflow
-                        if isinstance(current_executable, Subflow):
-                            print("Executing subflow:", current_executable.name)
-                            # Pass the current store as the parent store for the sub-flow
-                            await current_executable.execute(self.store, self.id)
-
-                            # Incorporate the Subflows node count
-                            # into the parent workflow's node execution counter
-                            self.node_execution_counter[current_executable.id] = sum(
-                                current_executable.node_execution_counter.values()
-                            )
-
-                        # If executing a node
-                        if isinstance(current_executable, Node):
-                            print("Executing node:", current_executable.name)
-                            await current_executable.execute(self.store, self.id)
-
-                            # # Execute node after hooks
-                            # if self.hook_manager is not None:
-                            #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
-
-                            # Increment the execution counter for RunConcurrent executions
-                            if isinstance(current_executable, RunConcurrent):
-                                for item in current_executable.items:
-                                    self.node_execution_counter[item.id] = self.node_execution_counter.get(item.id, 0) + 1
-                                    if self.node_execution_counter[item.id] > self.max_iterations:
-                                        raise ValueError(
-                                            f"Node '{item}' exceeded maximum execution count. \
-                                            Check for loops in your graph. Ensure it transitions to the sink node."
-                                        )
-
-                            # Increment the execution counter for Node executions
-                            else:
-                                self.node_execution_counter[current_executable.id] = self.node_execution_counter.get(current_executable.id, 0) + 1
-                                if self.node_execution_counter[current_executable.id] > self.max_iterations:
+                        # Increment the execution counter for RunConcurrent executions
+                        if isinstance(current_executable, RunConcurrent):
+                            for item in current_executable.items:
+                                self.node_execution_counter[item.id] = self.node_execution_counter.get(item.id, 0) + 1
+                                if self.node_execution_counter[item.id] > self.max_iterations:
                                     raise ValueError(
-                                        f"Node '{current_executable}' exceeded maximum execution count. \
+                                        f"Node '{item}' exceeded maximum execution count. \
                                         Check for loops in your graph. Ensure it transitions to the sink node."
                                     )
 
-                        # Break the loop if the current node is the final node.
-                        if current_executable == self.graph.sink:
-                            print("Sink has executed. Exiting loop.")
-                            break
+                        # Increment the execution counter for Node executions
+                        else:
+                            self.node_execution_counter[current_executable.id] = self.node_execution_counter.get(current_executable.id, 0) + 1
+                            if self.node_execution_counter[current_executable.id] > self.max_iterations:
+                                raise ValueError(
+                                    f"Node '{current_executable}' exceeded maximum execution count. \
+                                    Check for loops in your graph. Ensure it transitions to the sink node."
+                                )
 
-                        # Get the next executable in the workflow.
-                        current_executable = await self.graph.get_next_node(self.store, current_executable)
+                    # Break the loop if the current node is the final node.
+                    if current_executable == self.graph.sink:
+                        print("Sink has executed. Exiting loop.")
+                        break
 
-                    except Exception as e:
-                        print(f"Error executing node: {e}")
-                        raise e
+                    # Get the next executable in the workflow.
+                    current_executable = await self.graph.get_next_node(self.store, current_executable)
+
 
                 logger.info(f"Completed workflow: {self.name} with ID: {self.id}")
 
@@ -183,7 +180,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         await self.post_run_actions(parent_store)
 
             except Exception as e:
-                print(f"Error executing workflow: {e}")
+                logger.error(f"Error executing workflow: {e}")
                 span.set_status(trace.StatusCode.ERROR, str(e))
                 span.record_exception(e)
 

@@ -35,11 +35,13 @@ class Graph:
         resolved_edges = [edge for edge in matching_edges if await edge.next_node(store) is not None]
 
         if len(resolved_edges) == 0:
-            raise ValueError(f"No valid transition found for node '{current_node}'.")
+            raise ValueError("Check your Graph. No resolved edges. "
+                             f"No valid transition found for node or subflow: '{current_node}'.")
         else:
             resolved_edge = await resolved_edges[0].next_node(store)
             if resolved_edge is None:
-                raise ValueError("No valid transition found for node '{current_node}'")
+                raise ValueError("Check your Graph. Resolved edge is None. "
+                                 f"No valid transition found for node or subflow: '{current_node}'")
 
             return resolved_edge
 
