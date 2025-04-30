@@ -33,7 +33,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
-      spanID: workflowSpanID,
+      workflowSpanID,
     }),
   )
 
@@ -110,13 +110,11 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
           if (spanStateEvent) {
             // Validate the events_json structure
             const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
-            if (!validated.success) {
-              console.error('Invalid state event structure:', validated.error)
-              return
+            if (validated.success) {
+              const stateEvent = validated.data
+              console.log('Setting active state event:', stateEvent)
+              dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
             }
-            const stateEvent = validated.data
-            console.log('Setting active state event:', stateEvent)
-            dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
           }
 
           // Scroll to the span
