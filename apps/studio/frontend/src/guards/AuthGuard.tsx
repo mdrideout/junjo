@@ -7,10 +7,14 @@ interface AuthGuardProps {
 }
 
 const AuthGuard = ({ children }: AuthGuardProps) => {
-  const { isAuthenticated, loading } = useContext(AuthContext)
+  const { isAuthenticated, needsSetup, loading } = useContext(AuthContext)
 
   if (loading) {
     return <div className="text-center">Loading...</div>
+  }
+
+  if (needsSetup === true) {
+    return <div>Needs Setup</div>
   }
 
   if (!isAuthenticated) {

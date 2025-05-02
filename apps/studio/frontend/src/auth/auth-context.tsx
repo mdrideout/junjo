@@ -3,7 +3,9 @@ import { createContext, useState, ReactNode, useCallback, useEffect } from 'reac
 interface AuthContextType {
   isAuthenticated: boolean
   loading: boolean
+  needsSetup: boolean | null
   checkAuthStatus: () => void
+  checkSetupStatus: () => void
   login: (token: string) => void
   logout: () => void
 }
@@ -11,17 +13,50 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
+  needsSetup: null,
   checkAuthStatus: () => {},
+  checkSetupStatus: () => {},
   login: () => {},
   logout: () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [authCheckLoading, setAuthCheckLoading] = useState(true)
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null)
+  const [setupCheckLoading, setSetupCheckLoading] = useState(true)
+
+  // Combined loading state
+  const loading = authCheckLoading || setupCheckLoading
+
+  // Check if initial setup (first user creation) is needed
+  const checkSetupStatus = useCallback(async () => {
+    setSetupCheckLoading(true)
+    try {
+      // --- Use the dedicated setup status endpoint ---
+      const response = await fetch('http://localhost:1323/users-exist', {
+        method: 'GET',
+      })
+      if (response.ok) {
+        const data = await response.json() // Expects {"hasUsers": boolean}
+        setNeedsSetup(!data.hasUsers)
+      } else {
+        // Handle errors fetching setup status (e.g., backend not ready?)
+        console.error('Unexpected response from /users-exist:', response.status)
+        // Decide fallback: assume setup not needed? Or block? For safety, maybe assume not needed or show error.
+        setNeedsSetup(false) // Fallback: Assume setup not needed on error
+      }
+    } catch (error) {
+      console.error('Failed to check setup status:', error)
+      setNeedsSetup(false) // Fallback: Assume setup not needed on error
+    } finally {
+      setSetupCheckLoading(false) // Finish loading for setup check
+    }
+  }, [])
 
   // Check authentication status by making a request to /auth-test
   const checkAuthStatus = useCallback(async () => {
+    setAuthCheckLoading(true)
     try {
       const response = await fetch('http://localhost:1323/auth-test', {
         method: 'GET',
@@ -41,14 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Failed to check authentication status:', error)
       setIsAuthenticated(false)
     } finally {
-      setLoading(false)
+      setAuthCheckLoading(false)
     }
   }, [])
 
   // Check authentication status on initial load
   useEffect(() => {
+    checkSetupStatus()
     checkAuthStatus()
-  }, [checkAuthStatus])
+  }, [checkAuthStatus, checkSetupStatus])
 
   const login = () => {
     // After a successful sign-in request to your backend:
@@ -78,8 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        needsSetup,
         loading,
         checkAuthStatus,
+        checkSetupStatus,
         login,
         logout,
       }}
