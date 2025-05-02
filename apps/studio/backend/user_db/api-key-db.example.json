@@ -1,0 +1,10 @@
+[
+  {
+    "key": "EXAMPLE_KEY_1",
+    "description": "API key for application 1"
+  },
+  {
+    "key": "EXAMPLE_KEY_2",
+    "description": "API key for application 2"
+  }
+]

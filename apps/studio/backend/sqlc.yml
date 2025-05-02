@@ -2,13 +2,9 @@ version: "2"
 sql:
   - engine: "sqlite"
     queries: 
-      - "db/node_logs/query.sql"
-      - "db/workflow_logs/query.sql"
-      - "db/workflow_metadata/query.sql"
+      - "db/users/query.sql"
     schema:
-      - "db/node_logs/schema.sql"
-      - "db/workflow_logs/schema.sql"
-      - "db/workflow_metadata/schema.sql"
+      - "db/users/schema.sql"
     gen:
       go:
         package: "db_gen"

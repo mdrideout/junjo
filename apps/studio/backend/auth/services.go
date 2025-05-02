@@ -15,6 +15,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// HandleGetUsersExist calls the repository to check user existence.
+func HandleGetUsersExist(c echo.Context) error {
+	c.Logger().Printf("Running UsersExist function")
+
+	exists, err := UsersExist(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch user existence",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]bool{
+		"usersExist": exists,
+	})
+}
+
 func SignIn(c echo.Context) error {
 	type SigninRequest struct {
 		Email    string `json:"email" validate:"required,email"`

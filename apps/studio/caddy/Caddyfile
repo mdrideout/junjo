@@ -40,8 +40,6 @@
         # If auth succeeds (200 response), continue the request to the Jaeger UI.
         reverse_proxy jui-jaeger:16686
     }
-
-    
 }
 
 # IF HTTPS IS NEEDED LOCALLY

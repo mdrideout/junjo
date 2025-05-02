@@ -11,6 +11,7 @@ func InitRoutes(e *echo.Echo) {
 	e.POST("/sign-out", SignOut)
 	e.POST("/hash-password", HashPassword)
 	e.GET("/auth-test", AuthTest)
+	e.GET("/users-exist", HandleGetUsersExist)
 
 	// Can be called immediately after sign in to get a CSRF token
 	e.GET("/csrf", func(c echo.Context) error {
