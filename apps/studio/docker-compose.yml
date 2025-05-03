@@ -14,8 +14,12 @@ services:
       - "50051:50051" # gRPC telemetry server port
     networks:
       - caddy-proxy-network
-    depends_on:
-      - jui-jaeger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
 
   jui-fe:
     container_name: jui-fe
@@ -27,7 +31,8 @@ services:
       - 5151:5151 # Expose frontend port - host
       - 5152:5151 # Expose frontend port - Vite hmr (map hmr port to host port)
     depends_on:
-      - jui-be
+      jui-be:
+        condition: service_healthy # Wait for jui-be to be healthy before starting jui-fe
 
   jui-jaeger:
     image: jaegertracing/jaeger:2.3.0

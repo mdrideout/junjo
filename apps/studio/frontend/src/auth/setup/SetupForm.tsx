@@ -4,7 +4,7 @@ import { AuthContext } from '../auth-context'
 
 export default function SetupForm() {
   const [error, setError] = useState<string | null>(null)
-  const { isAuthenticated, login } = useContext(AuthContext)
+  const { isAuthenticated } = useContext(AuthContext)
   const navigate = useNavigate()
 
   useEffect(() => {

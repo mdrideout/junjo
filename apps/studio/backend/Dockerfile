@@ -6,6 +6,7 @@ ARG GO_VERSION=1.24.1
 ARG GO_ARCH=arm64
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        curl \
         build-essential \
         ca-certificates \
         wget \
