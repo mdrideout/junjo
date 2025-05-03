@@ -9,9 +9,9 @@ import (
 func InitRoutes(e *echo.Echo) {
 	e.POST("/sign-in", SignIn)
 	e.POST("/sign-out", SignOut)
-	e.POST("/hash-password", HashPassword)
 	e.GET("/auth-test", AuthTest)
-	e.GET("/users-exist", HandleGetUsersExist)
+	e.GET("/db-has-users", HandleDbHasUsers)
+	e.POST("/create-first-user", HandleCreateFirstUser)
 
 	// Can be called immediately after sign in to get a CSRF token
 	e.GET("/csrf", func(c echo.Context) error {

@@ -1,6 +1,7 @@
 import { ReactNode, useContext } from 'react'
 import { AuthContext } from '../auth/auth-context'
 import SignIn from '../auth/sign-in/SignIn'
+import Setup from '../auth/setup/Setup'
 
 interface AuthGuardProps {
   children: ReactNode
@@ -14,7 +15,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   }
 
   if (needsSetup === true) {
-    return <div>Needs Setup</div>
+    return <Setup />
   }
 
   if (!isAuthenticated) {

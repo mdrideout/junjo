@@ -1,4 +1,4 @@
-import SignInForm from './sign-in-form'
+import SignInForm from './SignInForm'
 import UsersExplanation from './UsersExplanation'
 
 export default function SignIn() {

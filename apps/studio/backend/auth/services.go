@@ -1,13 +1,11 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
+
+	"junjo-server/db_gen"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -15,11 +13,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// HandleGetUsersExist calls the repository to check user existence.
-func HandleGetUsersExist(c echo.Context) error {
+// HandleDbHasUsers calls the repository to check user existence.
+func HandleDbHasUsers(c echo.Context) error {
 	c.Logger().Printf("Running UsersExist function")
 
-	exists, err := UsersExist(c.Request().Context())
+	exists, err := DbHasUsers(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to fetch user existence",
@@ -31,12 +29,51 @@ func HandleGetUsersExist(c echo.Context) error {
 	})
 }
 
-func SignIn(c echo.Context) error {
-	type SigninRequest struct {
-		Email    string `json:"email" validate:"required,email"`
-		Password string `json:"password" validate:"required"`
+// HandleCreateFirstUser calls the repository to create the first user.
+func HandleCreateFirstUser(c echo.Context) error {
+	c.Logger().Printf("Running HandleCreateFirstUser function")
+
+	var req CreateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	// Check if any users exist
+	exists, err := DbHasUsers(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed check authorization for first user creation.",
+		})
+	}
+	if exists {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Users already exist, cannot create first user.",
+		})
+	}
+
+	// Hash the provided password
+	hashedPassword, err := hashPassword(req.Password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to hash password",
+		})
+	}
+
+	// Create the first user
+	create_err := CreateUser(c.Request().Context(), req.Email, hashedPassword)
+	if create_err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create first user",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "First user created successfully",
+	})
+
+}
+
+func SignIn(c echo.Context) error {
 	// Log the request
 	log.Printf("request: %v", c.Request())
 
@@ -111,78 +148,62 @@ func AuthTest(c echo.Context) error {
 	})
 }
 
-func HashPassword(c echo.Context) error {
-	type PasswordRequest struct {
-		Password string `json:"password" validate:"required"`
-	}
-
-	var req PasswordRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := c.Validate(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+func hashPassword(password string) (string, error) {
+	// Hash the password using bcrypt
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to hash password")
+		return "", err
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"hashedPassword": string(hashedPassword),
-	})
+	// Convert the hashed password to a string
+	return string(hashedPassword), nil
 }
 
-func LoadUsersJsonDb() ([]User, error) {
-	// Get the current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
+// func LoadUsersJsonDb() ([]User, error) {
+// 	// Get the current working directory
+// 	cwd, err := os.Getwd()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// Construct the relative path to the JSON file
-	filePath := filepath.Join(cwd, "user_db", "users-db.json")
+// 	// Construct the relative path to the JSON file
+// 	filePath := filepath.Join(cwd, "user_db", "users-db.json")
 
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+// 	file, err := os.Open(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer file.Close()
 
-	bytes, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
+// 	bytes, err := io.ReadAll(file)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var users []User
-	if err := json.Unmarshal(bytes, &users); err != nil {
-		return nil, err
-	}
+// 	var users []User
+// 	if err := json.Unmarshal(bytes, &users); err != nil {
+// 		return nil, err
+// 	}
 
-	for _, user := range users {
-		if user.Email == "" || user.Password == "" {
-			return nil, errors.New("users json db contains invalid data: ensure fields properly conform to the []User struct")
-		}
-	}
+// 	for _, user := range users {
+// 		if user.Email == "" || user.Password == "" {
+// 			return nil, errors.New("users json db contains invalid data: ensure fields properly conform to the []User struct")
+// 		}
+// 	}
 
-	return users, nil
-}
+// 	return users, nil
+// }
 
 func ComparePasswords(hashedPassword, plainPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
 }
 
-func ValidateCredentials(email, password string) (*User, error) {
-	users, err := LoadUsersJsonDb()
-	if err != nil {
-		return nil, err
-	}
+func ValidateCredentials(email, password string) (*db_gen.User, error) {
+	users := []db_gen.User{}
 
 	for _, user := range users {
 		if user.Email == email {
-			if err := ComparePasswords(user.Password, password); err == nil {
+			if err := ComparePasswords(user.PasswordHash, password); err == nil {
 				return &user, nil
 			}
 			break
