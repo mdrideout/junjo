@@ -1,11 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { RootState } from '../../root-store/store'
 import { UsersStateActions } from './slice'
 import { TrashIcon } from '@heroicons/react/24/outline'
+import { UserPlusIcon } from '@heroicons/react/24/solid'
+import CreateUserDialog from './CreateUserDialog'
 
 export default function UsersPage() {
   const dispatch = useAppDispatch()
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const { users, loading, error } = useAppSelector((state: RootState) => state.usersState)
 
   // Fetch users data when the component mounts
@@ -24,8 +27,9 @@ export default function UsersPage() {
   // Render the users list
   return (
     <div className={'px-3 py-4 flex flex-col h-dvh overflow-hidden'}>
-      <div className={'flex gap-x-3 px-2 items-center justify-between'}>
+      <div className={'flex gap-x-3 px-2 items-center'}>
         <div className={'flex gap-x-3 font-bold'}>Users</div>
+        <CreateUserDialog />
       </div>
       <hr className={'my-4'} />
       <div className={'px-2'}>

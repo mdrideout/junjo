@@ -3,7 +3,7 @@ import { z } from 'zod'
 // Schema for an individual user object
 export const userSchema = z.object({
   ID: z.number().int(),
-  Email: z.string().email(),
+  Email: z.string(),
   CreatedAt: z.string().datetime(), // Or z.coerce.date() if you want to parse it into a Date object
 })
 

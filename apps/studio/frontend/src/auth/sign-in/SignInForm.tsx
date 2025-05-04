@@ -86,7 +86,10 @@ export default function SignInForm() {
             required
             className="bg-slate-300 text-black py-1 px-2 rounded-sm"
           />
-          <button className="py-1 px-2 bg-zinc-200 hover:bg-zinc-300 cursor-pointer rounded-md font-bold">
+          <button
+            type="submit"
+            className="py-1 px-2 bg-zinc-200 hover:bg-zinc-300 cursor-pointer rounded-md font-bold"
+          >
             Sign In
           </button>
           {error && <p className="text-red-500">{error}</p>}
