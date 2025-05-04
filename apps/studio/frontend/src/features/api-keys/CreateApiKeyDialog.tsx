@@ -7,11 +7,11 @@ import {
   DialogDescription,
   DialogTitle,
 } from '../../components/catalyst/dialog'
-import { UserPlusIcon } from '@heroicons/react/24/solid'
 import { useAppDispatch } from '../../root-store/hooks'
-import { UsersStateActions } from './slice'
+import { PlusIcon } from '@heroicons/react/24/outline'
+import { ApiKeysStateActions } from './slice'
 
-export default function CreateUserDialog() {
+export default function CreateApiKeyDialog() {
   const dispatch = useAppDispatch()
   let [isOpen, setIsOpen] = useState(false)
 
@@ -27,30 +27,27 @@ export default function CreateUserDialog() {
     setError(null)
 
     const formData = new FormData(event.currentTarget)
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
+    const name = formData.get('name') as string
 
     // Perform setup
     try {
-      const response = await fetch('http://localhost:1323/users', {
+      const response = await fetch('http://localhost:1323/api_keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name }),
         credentials: 'include',
       })
 
-      if (!response.ok) {
-        console.log('Reason: ', await response.json())
+      const responseData = await response.json()
 
-        if (response.status === 409) {
-          throw new Error('User already exists.')
-        } else {
-          throw new Error('User creation failed. Please check server logs.')
-        }
+      if (!response.ok) {
+        console.error('API Key Creation Failed: ', responseData)
+
+        throw new Error('API Key Creation Failed.')
       }
 
-      // Refresh the users list
-      dispatch(UsersStateActions.fetchUsersData({ force: true }))
+      // Refresh the list
+      dispatch(ApiKeysStateActions.fetchApiKeysData({ force: true }))
       setIsOpen(false)
     } catch (err: any) {
       setError(err.message)
@@ -69,29 +66,21 @@ export default function CreateUserDialog() {
           setIsOpen(true)
         }}
       >
-        <UserPlusIcon className={'size-4'} /> Create User
+        <PlusIcon className={'size-4'} /> Create API Key
       </button>
       <Dialog open={isOpen} onClose={setIsOpen}>
-        <DialogTitle>Create User</DialogTitle>
+        <DialogTitle>Create API Key</DialogTitle>
         <DialogDescription>
-          This user will have complete access. There are currently no roles or permissions.
+          This API key will allow Junjo instances to deliver telemetry to this server.
         </DialogDescription>
         <DialogBody>
           <form onSubmit={handleSubmit} className="">
             <div className="flex flex-col gap-y-2">
-              <input type="hidden" name="actionType" value="signIn" />
+              <input type="hidden" name="actionType" value="createApiKey" />
               <input
-                type="email"
-                name="email"
-                placeholder="Email address"
-                required
-                className="py-1 px-2 rounded-sm border border-zinc-300 dark:border-zinc-600"
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                autoComplete="current-password"
+                type="name"
+                name="name"
+                placeholder="Name"
                 required
                 className="py-1 px-2 rounded-sm border border-zinc-300 dark:border-zinc-600"
               />

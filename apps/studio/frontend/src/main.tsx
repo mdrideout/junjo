@@ -15,6 +15,7 @@ import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
 import { MermaidProvider } from './mermaidjs/mermaid-provider.tsx'
 import UsersPage from './features/users/UsersPage.tsx'
+import ApiKeysPage from './features/api-keys/ApiKeysPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -63,6 +64,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <UsersPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/api-keys"
+                  element={
+                    <AuthGuard>
+                      <ApiKeysPage />
                     </AuthGuard>
                   }
                 />

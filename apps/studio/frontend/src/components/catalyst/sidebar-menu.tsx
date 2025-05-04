@@ -5,6 +5,7 @@ import {
   ExitIcon,
   ExternalLinkIcon,
   GitHubLogoIcon,
+  LockClosedIcon,
   RocketIcon,
   RowsIcon,
 } from '@radix-ui/react-icons'
@@ -53,6 +54,10 @@ export default function SidebarMenu() {
               <SidebarItem href="/users">
                 <AvatarIcon />
                 <SidebarLabel>Users</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/api-keys">
+                <LockClosedIcon />
+                <SidebarLabel>API Keys</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="//localhost/jaeger" target="_blank">
                 <BarChartIcon />
