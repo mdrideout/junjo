@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './css/index.css'
-import Dashboard from './features/dashboard/Dashboard.tsx'
+import DashboardPage from './features/dashboard/DashboardPage.tsx'
 import { AppLayout } from './Layouts/AppLayout.tsx'
 import SignIn from './auth/sign-in/SignIn.tsx'
 import AuthGuard from './guards/AuthGuard.tsx'
@@ -31,7 +31,7 @@ createRoot(document.getElementById('root')!).render(
                   path="/"
                   element={
                     <AuthGuard>
-                      <Dashboard />
+                      <DashboardPage />
                     </AuthGuard>
                   }
                 />
