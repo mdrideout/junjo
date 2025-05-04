@@ -87,7 +87,7 @@ func SignIn(c echo.Context) error {
 	}
 
 	// Validate user credentials
-	user, err := ValidateCredentials(req.Email, req.Password)
+	user, err := ValidateCredentials(c, req.Email, req.Password)
 	if err != nil {
 		log.Printf("failed to validate credentials: %v", err)
 		return echo.NewHTTPError(http.StatusUnauthorized, "invalid credentials")
@@ -159,55 +159,20 @@ func hashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-// func LoadUsersJsonDb() ([]User, error) {
-// 	// Get the current working directory
-// 	cwd, err := os.Getwd()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Construct the relative path to the JSON file
-// 	filePath := filepath.Join(cwd, "user_db", "users-db.json")
-
-// 	file, err := os.Open(filePath)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer file.Close()
-
-// 	bytes, err := io.ReadAll(file)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	var users []User
-// 	if err := json.Unmarshal(bytes, &users); err != nil {
-// 		return nil, err
-// 	}
-
-// 	for _, user := range users {
-// 		if user.Email == "" || user.Password == "" {
-// 			return nil, errors.New("users json db contains invalid data: ensure fields properly conform to the []User struct")
-// 		}
-// 	}
-
-// 	return users, nil
-// }
-
 func ComparePasswords(hashedPassword, plainPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
 }
 
-func ValidateCredentials(email, password string) (*db_gen.User, error) {
-	users := []db_gen.User{}
+func ValidateCredentials(c echo.Context, email, password string) (*db_gen.User, error) {
+	// Fetch the user from the database
+	user, err := GetUserByEmail(c.Request().Context(), email)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, user := range users {
-		if user.Email == email {
-			if err := ComparePasswords(user.PasswordHash, password); err == nil {
-				return &user, nil
-			}
-			break
-		}
+	// Compare the provided password with the hashed password
+	if err := ComparePasswords(user.PasswordHash, password); err == nil {
+		return &user, nil
 	}
 
 	return nil, errors.New("invalid credentials")

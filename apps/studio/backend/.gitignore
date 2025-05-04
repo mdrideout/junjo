@@ -11,9 +11,6 @@ tmp
 # Ignore environment file
 .env
 
-# Ignore the user db file
-*/users-db.json
-
 # Generated code
 db_gen/**.*
 proto_gen/**/**.*

@@ -27,3 +27,12 @@ func CreateUser(ctx context.Context, email string, password string) error {
 	}
 	return nil
 }
+
+func GetUserByEmail(ctx context.Context, email string) (db_gen.User, error) {
+	queries := db_gen.New(db.DB)
+	user, err := queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return db_gen.User{}, err
+	}
+	return user, nil
+}
