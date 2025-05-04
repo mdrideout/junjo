@@ -42,7 +42,9 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 		return nil, nil, fmt.Errorf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(ApiKeyAuthInterceptor),
+	)
 
 	// Register Proprietary Junjo services
 	pb.RegisterNodeLogServiceServer(grpcServer, &server{queries: queries})
