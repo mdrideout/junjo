@@ -15,6 +15,9 @@ import (
 //go:embed users/schema.sql
 var usersSchema string
 
+//go:embed api_keys/schema.sql
+var apiKeysSchema string
+
 // Database
 var DB *sql.DB
 
@@ -62,7 +65,8 @@ func Connect() {
 // initializeTables creates tables if they don't exist
 func initializeTables(ctx context.Context) error {
 	tables := map[string]string{
-		"users": usersSchema,
+		"users":    usersSchema,
+		"api_keys": apiKeysSchema,
 	}
 
 	for tableName, schema := range tables {

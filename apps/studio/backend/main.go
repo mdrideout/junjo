@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"junjo-server/api"
+	"junjo-server/api_keys"
 	"junjo-server/auth"
 	"junjo-server/db"
 	"junjo-server/db_duckdb"
@@ -103,6 +104,7 @@ func main() {
 	// ROUTES
 	auth.InitRoutes(e)
 	api.InitRoutes(e)
+	api_keys.InitRoutes(e)
 
 	// Ping route
 	e.GET("/ping", func(c echo.Context) error {
