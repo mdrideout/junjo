@@ -14,6 +14,7 @@ import AppNamesPage from './features/workflow-logs/list-app-names/AppNamesPage.t
 import { store } from './root-store/store.ts'
 import { Provider } from 'react-redux'
 import { MermaidProvider } from './mermaidjs/mermaid-provider.tsx'
+import UsersPage from './features/users/UsersPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -54,6 +55,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <WorkflowDetailPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <AuthGuard>
+                      <UsersPage />
                     </AuthGuard>
                   }
                 />

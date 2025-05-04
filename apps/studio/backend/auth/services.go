@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"junjo-server/db_gen"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
+	"modernc.org/sqlite"
 )
 
 // HandleDbHasUsers calls the repository to check user existence.
@@ -70,7 +72,83 @@ func HandleCreateFirstUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "First user created successfully",
 	})
+}
 
+func HandleCreateUser(c echo.Context) error {
+	var req CreateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	// Hash the provided password
+	hashedPassword, err := hashPassword(req.Password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to hash password",
+		})
+	}
+
+	err = CreateUser(c.Request().Context(), req.Email, hashedPassword)
+	if err != nil {
+		var sqliteErr *sqlite.Error
+
+		if errors.As(err, &sqliteErr) {
+			// Check if the extended error code is 2067 (SQLITE_CONSTRAINT_UNIQUE)
+			if sqliteErr.Code() == 2067 {
+				return c.JSON(http.StatusConflict, map[string]string{
+					"error": "A user with this email already exists",
+				})
+			}
+		}
+
+		// Other errors
+		c.Logger().Errorf("Database error during user creation: %v (Code: %d)", err, sqliteErr.Code())
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create user due to a database error",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "User created successfully",
+	})
+}
+
+func HandleListUsers(c echo.Context) error {
+	users, err := ListUsers(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to fetch users",
+		})
+	}
+
+	// Return empty list instead of null if no users exist
+	if users == nil {
+		users = []db_gen.ListUsersRow{}
+	}
+
+	return c.JSON(http.StatusOK, users)
+}
+
+func HandleDeleteUser(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "User ID is required")
+	}
+
+	// Convert id to int64
+	userID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid user ID format")
+	}
+
+	err = DeleteUser(c.Request().Context(), userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete user")
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "User deleted successfully",
+	})
 }
 
 func SignIn(c echo.Context) error {

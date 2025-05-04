@@ -10,8 +10,14 @@ func InitRoutes(e *echo.Echo) {
 	e.POST("/sign-in", SignIn)
 	e.POST("/sign-out", SignOut)
 	e.GET("/auth-test", AuthTest)
-	e.GET("/db-has-users", HandleDbHasUsers)
-	e.POST("/create-first-user", HandleCreateFirstUser)
+
+	// User CRUD
+	usersGroup := e.Group("/users")
+	usersGroup.GET("/db-has-users", HandleDbHasUsers)
+	usersGroup.POST("/create-first-user", HandleCreateFirstUser)
+	usersGroup.POST("", HandleCreateUser)
+	usersGroup.GET("", HandleListUsers)
+	usersGroup.DELETE("/:id", HandleDeleteUser)
 
 	// Can be called immediately after sign in to get a CSRF token
 	e.GET("/csrf", func(c echo.Context) error {

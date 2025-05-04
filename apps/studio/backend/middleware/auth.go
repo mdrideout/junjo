@@ -9,7 +9,7 @@ import (
 )
 
 // Auth Routes To Skip
-var authRoutesToSkip = []string{"/ping", "/sign-in", "/csrf", "/create-first-user", "/db-has-users"}
+var authRoutesToSkip = []string{"/ping", "/sign-in", "/csrf", "/users/create-first-user", "/users/db-has-users"}
 
 // Auth is a middleware function that checks for a valid session.
 func Auth() echo.MiddlewareFunc {

@@ -24,7 +24,7 @@ export default function SetupForm() {
 
     // Perform setup
     try {
-      const response = await fetch('http://localhost:1323/create-first-user', {
+      const response = await fetch('http://localhost:1323/users/create-first-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -37,7 +37,7 @@ export default function SetupForm() {
         if (data.message) {
           throw new Error(data.message)
         }
-        throw new Error('/create-first-user failed')
+        throw new Error('/users/create-first-user failed')
       }
 
       // Reload the page
@@ -48,29 +48,34 @@ export default function SetupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 text-black w-xs">
-      <div className="flex flex-col gap-y-2">
-        <input type="hidden" name="actionType" value="signIn" />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email address"
-          required
-          className="bg-slate-300 text-black py-1 px-2 rounded-sm"
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          autoComplete="current-password"
-          required
-          className="bg-slate-300 text-black py-1 px-2 rounded-sm"
-        />
-        <button className="py-1 px-2 bg-zinc-200 hover:bg-zinc-300 cursor-pointer rounded-md font-bold">
-          Create Account
-        </button>
-        {error && <p className="text-red-500">{error}</p>}
-      </div>
-    </form>
+    <>
+      <h1>Welcome</h1>
+      <p>Create your first user account.</p>
+      <div className={'h-3'} />
+      <form onSubmit={handleSubmit} className="mb-6 text-black w-xs">
+        <div className="flex flex-col gap-y-2">
+          <input type="hidden" name="actionType" value="signIn" />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email address"
+            required
+            className="bg-slate-300 text-black py-1 px-2 rounded-sm"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            autoComplete="current-password"
+            required
+            className="bg-slate-300 text-black py-1 px-2 rounded-sm"
+          />
+          <button className="py-1 px-2 bg-zinc-200 hover:bg-zinc-300 cursor-pointer rounded-md font-bold">
+            Create Account
+          </button>
+          {error && <p className="text-red-500">{error}</p>}
+        </div>
+      </form>
+    </>
   )
 }

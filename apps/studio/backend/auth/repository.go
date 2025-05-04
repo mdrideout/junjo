@@ -36,3 +36,21 @@ func GetUserByEmail(ctx context.Context, email string) (db_gen.User, error) {
 	}
 	return user, nil
 }
+
+func ListUsers(ctx context.Context) ([]db_gen.ListUsersRow, error) {
+	queries := db_gen.New(db.DB)
+	users, err := queries.ListUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func DeleteUser(ctx context.Context, id int64) error {
+	queries := db_gen.New(db.DB)
+	err := queries.DeleteUser(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

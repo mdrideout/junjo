@@ -35,17 +35,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSetupCheckLoading(true)
     try {
       // --- Use the dedicated setup status endpoint ---
-      const response = await fetch('http://localhost:1323/db-has-users', {
+      const response = await fetch('http://localhost:1323/users/db-has-users', {
         method: 'GET',
       })
       if (response.ok) {
         const data = await response.json()
         const validated = UsersExistSchema.parse(data)
 
-        setNeedsSetup(validated.usersExist === false)
+        const needsSetup = validated.usersExist === false
+        setNeedsSetup(needsSetup)
       } else {
         // Handle errors fetching setup status (e.g., backend not ready?)
-        console.error('Unexpected response from /db-has-users:', response.status)
+        console.error('Unexpected response from /users/db-has-users:', response.status)
         // Decide fallback: assume setup not needed? Or block? For safety, maybe assume not needed or show error.
         setNeedsSetup(false) // Fallback: Assume setup not needed on error
       }
