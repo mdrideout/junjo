@@ -33,7 +33,7 @@ type server struct {
 func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Return listener again
 	queries := db.New(dbConn)
 
-	listenAddr := ":50051" // Default gRPC port
+	listenAddr := ":50051"
 	if port := os.Getenv("GRPC_PORT"); port != "" {
 		listenAddr = ":" + port
 	}
@@ -41,6 +41,14 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to listen: %v", err)
 	}
+
+	// --- Initialize Jaeger Forwarder ---
+	// Hardcode the internal Docker Compose service name and default OTLP gRPC port
+	jaegerEndpoint := "jui-jaeger:4317"
+	jaegerFwd := NewJaegerForwarder(jaegerEndpoint) // jaegerFwd is local scope now
+
+	// --- Initialize OTLP Services, passing the forwarder ---
+	otelTraceSvc := NewOtelTraceService(jaegerFwd)
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(ApiKeyAuthInterceptor),
@@ -52,7 +60,7 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 	pb.RegisterWorkflowMetadataServiceServer(grpcServer, &server{queries: queries})
 
 	// Register OTLP services
-	coltracepb.RegisterTraceServiceServer(grpcServer, &otelTraceService{ /* queries: queries */ }) // Pass queries if needed
+	coltracepb.RegisterTraceServiceServer(grpcServer, otelTraceSvc) // Pass queries if needed
 	colmetricpb.RegisterMetricsServiceServer(grpcServer, &otelMetricService{})
 	collogspb.RegisterLogsServiceServer(grpcServer, &otelLogsService{})
 

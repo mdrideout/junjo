@@ -37,10 +37,10 @@ services:
   jui-jaeger:
     image: jaegertracing/jaeger:2.3.0
     container_name: jui-jaeger
-    ports:
-      # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
-      - "4317:4317" # OTLP gRPC
-      # - "4318:4318" # OTLP HTTP
+    # ports:
+    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from jui-be
+    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from jui-be
     volumes:
       - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
       - jaeger_badger_store:/data/jaeger/badger/jaeger

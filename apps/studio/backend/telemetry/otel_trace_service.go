@@ -14,8 +14,25 @@ type otelTraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
 	mu            sync.Mutex // Protect shared data
 	receivedSpans []*tracepb.Span
-	// You can add a database connection here if you want to store spans:
-	// queries *db.Queries
+
+	// Jaeger Forwarder
+	forwarder *JaegerForwarder // Optional, if you want to forward to Jaeger
+}
+
+// NewOtelTraceService creates a new trace service.
+// It accepts an optional JaegerForwarder for sending data onwards.
+func NewOtelTraceService(jf *JaegerForwarder) *otelTraceService {
+	fmt.Println("Initializing OtelTraceService...")
+	s := &otelTraceService{
+		receivedSpans: make([]*tracepb.Span, 0),
+		forwarder:     jf, // Store the provided forwarder (can be nil)
+	}
+	if jf != nil {
+		fmt.Println("OtelTraceService configured WITH Jaeger forwarding.")
+	} else {
+		fmt.Println("OtelTraceService configured WITHOUT Jaeger forwarding.")
+	}
+	return s
 }
 
 func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTraceServiceRequest) (*coltracepb.ExportTraceServiceResponse, error) {
@@ -37,20 +54,20 @@ func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 				if err := ProcessSpan(ctx, serviceName, span); err != nil {
 					fmt.Printf("OTel Trace Service: Error processing span: %v\n", err)
 				}
-
-				// spanJSON, err := json.MarshalIndent(span, "", "  ")
-				// if err != nil {
-				// 	fmt.Printf("OTel Trace Service: Error marshaling span to JSON: %v\n", err)
-				// 	continue
-				// }
-				// fmt.Printf("OTel Trace Service: Received Span:\n%s\n", spanJSON)
-
-				// // Example of storing to a database (assuming you have a queries object):
-				// // _, err := s.queries.CreateSpan(ctx, db.CreateSpanParams{...})
-				// // if err != nil { ... handle error ... }
 			}
 		}
 	}
+
+	// --- Forwarding via JaegerForwarder ---
+	if s.forwarder != nil {
+		// Delegate forwarding to the JaegerForwarder instance
+		// Use context.Background() for the goroutine to detach it from the incoming request's context
+		// if forwarding can take time or you don't want incoming request cancellation to stop it.
+		go s.forwarder.ForwardTraces(context.Background(), req)
+	}
+	// --- End of Forwarding ---
+
+	// Return a response to the client
 	return &coltracepb.ExportTraceServiceResponse{}, nil
 }
 
