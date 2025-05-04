@@ -17,6 +17,7 @@ class JunjoServerOtelExporter:
             self,
             host: str,
             port: str,
+            api_key: str,
             insecure: bool = False,
         ):
         """
@@ -31,24 +32,29 @@ class JunjoServerOtelExporter:
         Args:
         - host: the hostname of the Junjo Server.
         - port: the port of the Junjo Server.
+        - api_key: the API key for the Junjo Server.
         - insecure: whether to allow insecure connections to the Junjo Server.
         """
 
         # Set Class Instance Vars
         self._host = host
         self._port = port
+        self._api_key = api_key
         self._insecure = insecure
 
-        # TEMPORARY override for development
+        # Set the endpoint for the Junjo Server
         self._endpoint = f"{self._host}:{self._port}"
 
+        # Define headers
+        exporter_headers = {"x-api-key": self._api_key}
+
         # Set OTLP Span Exporter for Junjo Server
-        oltp_exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=self._insecure)
+        oltp_exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers)
         self._span_processor = BatchSpanProcessor(oltp_exporter)
 
         # --- Add Metric Reader ---
         self._metric_reader = PeriodicExportingMetricReader(
-            OTLPMetricExporter(endpoint=self._endpoint, insecure=self._insecure)
+            OTLPMetricExporter(endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers)
         )
 
     @property

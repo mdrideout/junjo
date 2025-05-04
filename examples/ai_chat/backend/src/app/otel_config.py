@@ -19,6 +19,7 @@ def init_otel(service_name: str):
     junjo_jaeger_exporter = JunjoServerOtelExporter(
         host="localhost",
         port="4317",
+        api_key="your_api_key_here",
         insecure=True,
     )
 
@@ -26,6 +27,7 @@ def init_otel(service_name: str):
     junjo_server_exporter = JunjoServerOtelExporter(
         host="localhost",
         port="50051",
+        api_key="your_api_key_here",
         insecure=True,
     )
 
