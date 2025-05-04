@@ -3,7 +3,7 @@ import NestedWorkflowSpans from './NestedWorkflowSpans'
 import FlatStateEventsList from './FlatStateEventsList'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllExceptionSpans, selectWorkflowSpan } from '../../otel/store/selectors'
+import { selectAllExceptionSpans } from '../../otel/store/selectors'
 import SpanExceptionsList from '../workflow-detail/SpanExceptionsList'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 

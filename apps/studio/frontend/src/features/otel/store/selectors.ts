@@ -1,7 +1,6 @@
 import { createSelector, createSelectorCreator, lruMemoize } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
 import {
-  JunjoExceptionEvent,
   JunjoExceptionEventSchema,
   JunjoSetStateEvent,
   JunjoSetStateEventSchema,

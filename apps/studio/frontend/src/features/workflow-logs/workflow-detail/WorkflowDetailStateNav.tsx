@@ -1,9 +1,6 @@
-import { useEffect, useMemo } from 'react'
-import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
+import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
-import { WorkflowDetailStateActions } from './store/slice'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
 
 interface WorkflowDetailStateNavProps {

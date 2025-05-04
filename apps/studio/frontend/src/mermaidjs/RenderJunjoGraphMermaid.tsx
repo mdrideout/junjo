@@ -7,7 +7,6 @@ import { RootState } from '../root-store/store'
 import { identifyWorkflowChain, selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
 import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
 import { WorkflowDetailStateActions } from '../features/workflow-logs/workflow-detail/store/slice'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
 interface RenderJunjoGraphMermaidProps {
   mermaidFlowString: string

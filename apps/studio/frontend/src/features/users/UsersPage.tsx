@@ -1,14 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { RootState } from '../../root-store/store'
 import { UsersStateActions } from './slice'
 import { TrashIcon } from '@heroicons/react/24/outline'
-import { UserPlusIcon } from '@heroicons/react/24/solid'
 import CreateUserDialog from './CreateUserDialog'
 
 export default function UsersPage() {
   const dispatch = useAppDispatch()
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const { users, loading, error } = useAppSelector((state: RootState) => state.usersState)
 
   // Fetch users data when the component mounts
