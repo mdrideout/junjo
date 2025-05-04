@@ -1,5 +1,4 @@
 import SignInForm from './SignInForm'
-import UsersExplanation from './UsersExplanation'
 
 export default function SignIn() {
   return (
@@ -7,7 +6,6 @@ export default function SignIn() {
       <div className="flex items-center flex-col">
         <h1>SIGN IN</h1>
         <SignInForm />
-        <UsersExplanation />
       </div>
     </div>
   )
