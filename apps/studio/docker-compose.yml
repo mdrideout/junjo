@@ -37,7 +37,7 @@ services:
   jui-jaeger:
     image: jaegertracing/jaeger:2.3.0
     container_name: jui-jaeger
-    # ports:
+    # ports: # No ports should be directly exposed - traces are relayed through jui-be
     # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
     # - "4317:4317" # OTLP gRPC - uses internal network forwarding from jui-be
     # - "4318:4318" # OTLP HTTP - uses internal network forwarding from jui-be

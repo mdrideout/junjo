@@ -7,13 +7,7 @@ export default function DashboardPage() {
       </div>
       <hr className={'my-4'} />
       <div className={'px-2'}>
-        <p>
-          Welcome to Junjo Server. The Dashboard is on our roadmap. For now, head to your{' '}
-          <a href="/logs" className={'underline'}>
-            logs
-          </a>
-          .
-        </p>
+        <p>Welcome to Junjo Server. This dashboard is on our roadmap.</p>
       </div>
     </div>
   )
