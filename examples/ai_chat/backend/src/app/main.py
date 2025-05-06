@@ -15,8 +15,7 @@ from app.db.models.message.routes import message_router
 from app.db.queries.routes import queries_router
 from app.log.config import setup_logging
 from app.otel_config import init_otel
-from app.workflows_basic.routes import workflows_router
-from app.workflows_junjo.routes import workflows_junjo_router
+from app.workflows.routes import workflows_junjo_router
 
 # Load the environment variables
 load_dotenv()
@@ -75,5 +74,4 @@ app.include_router(chat_members_router)  # Chat API Router
 app.include_router(contact_router)  # Contact API Router
 app.include_router(message_router)  # Message API Router
 app.include_router(queries_router)  # Queries API Router
-app.include_router(workflows_router)  # Workflow API Router
 app.include_router(workflows_junjo_router)
