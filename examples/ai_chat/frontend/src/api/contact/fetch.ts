@@ -1,20 +1,9 @@
 import { z } from 'zod'
-import {
-  ContactRead,
-  ContactReadSchema,
-  CreateSetupContactResponse,
-  CreateSetupContactResponseSchema,
-  GenderEnum,
-} from './schemas'
+import { ContactRead, ContactReadSchema, CreateSetupContactResponse, CreateSetupContactResponseSchema } from './schemas'
 
-export interface CreateContactRequest {
-  gender: GenderEnum
-}
-
-export const createSetupContact = async (request: CreateContactRequest): Promise<CreateSetupContactResponse> => {
-  const response = await fetch(`http://127.0.0.1:8000/workflows/contact`, {
+export const createSetupContact = async (): Promise<CreateSetupContactResponse> => {
+  const response = await fetch(`http://127.0.0.1:8000/api/contact`, {
     method: 'POST',
-    body: JSON.stringify(request),
     mode: 'cors',
     headers: {
       'Content-Type': 'application/json',

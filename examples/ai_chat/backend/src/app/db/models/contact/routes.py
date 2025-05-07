@@ -3,23 +3,24 @@ from loguru import logger
 
 from app.db.models.contact.repository import ContactRepository
 from app.db.models.contact.schemas import ContactRead
+from app.workflows.create_contact.workflow import run_create_contact_workflow
 
 contact_router = APIRouter(prefix="/api/contact")
 
 
-# Should only be created through setup workflow
-# @contact_router.post("/")
-# async def post_contact(request: ContactCreate) -> ContactRead:
-#     """
-#     Create a new contact directly.
-#     """
+@contact_router.post("/")
+async def post_contact() -> ContactRead:
+    """
+    Create a contact.
+    """
+    logger.info("Creating a contact")
 
-#     logger.info(f"Creating new contact with request: {request}")
+    # Execute the create contact workflow
+    new_contact = await run_create_contact_workflow()
 
-#     # Call the repository service to create the contact
-#     result = await ContactRepository.create(request)
+    return new_contact
 
-#     return result
+
 
 @contact_router.get("/")
 async def get_contacts() -> list[ContactRead]:

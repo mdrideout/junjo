@@ -1,4 +1,3 @@
-import { GenderEnum } from '../../api/contact/schemas'
 import SidebarAvatar from '../avatars/SidebarAvatar'
 import NewContactButton from './NewContactButton'
 import useGetChatsWithMembers from '../../api/chat/hook'
@@ -24,9 +23,7 @@ export default function ChatSidebar() {
   return (
     <>
       <div className={'mb-6'}>
-        <NewContactButton gender={GenderEnum.FEMALE} />
-        <div className={'h-2'}></div>
-        <NewContactButton gender={GenderEnum.MALE} />
+        <NewContactButton />
       </div>
 
       {(contactsError || chatsWithMembersError) && (

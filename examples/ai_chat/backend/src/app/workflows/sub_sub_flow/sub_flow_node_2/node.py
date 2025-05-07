@@ -18,7 +18,6 @@ class SubSubFlowNode2(Node[SubSubFlowStore]):
         gemini_result = await gemini_tool.text_request()
         logger.info(f"Gemini result: {gemini_result}")
 
-
         # Update state
         await store.append_fact(gemini_result)
 
