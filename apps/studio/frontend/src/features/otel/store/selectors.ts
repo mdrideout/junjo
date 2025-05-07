@@ -107,6 +107,53 @@ export const selectAllWorkflowChildSpans = createSelector(
 )
 
 /**
+ * Select all workflow lineage spans
+ * Recursively find all parent spans (lineage) of a given workflow span.
+ * @returns {OtelSpan[]}
+ */
+export const selectAllWorkflowLineageSpans = createSelector(
+  [
+    selectWorkflowsData,
+    selectWorkflowSpan,
+    (_state: RootState, props: { serviceName: string | undefined; workflowSpanID: string | undefined }) =>
+      props,
+  ],
+  (workflowsData, workflowSpan, props): OtelSpan[] => {
+    const { serviceName, workflowSpanID } = props
+    if (!serviceName || !workflowSpanID || !workflowSpan) return [] // Stable empty array reference
+
+    const allLineageSpans = workflowsData[serviceName]?.workflowLineage
+    if (!allLineageSpans) return [] // Stable empty array reference
+
+    console.log('All lineage spans: ', allLineageSpans)
+
+    // Logic to find children - this computation only runs if workflowsData or props change
+    const lineageSpans: OtelSpan[] = []
+
+    // Recursively check the parent spans and add them to the lineageSpans
+    function recursivelyBuildLineage(span: OtelSpan): OtelSpan | undefined {
+      if (!allLineageSpans) return undefined // Stable empty array reference
+
+      // Add to the beginning of the chain and continue traversing
+      lineageSpans.unshift(span)
+
+      // if not, get the parent span and recursively call this function to check it
+      const parentSpan = allLineageSpans.find((s) => s.span_id === span.parent_span_id)
+      if (parentSpan) {
+        return recursivelyBuildLineage(parentSpan)
+      }
+
+      // If no parent span is found, break the recursion
+      return undefined
+    }
+    // Start the recursion with the event span
+    recursivelyBuildLineage(workflowSpan)
+
+    return lineageSpans
+  },
+)
+
+/**
  * Select All Workflow State Events
  * Memoized selectAllWorkflowStateEvents (Depends on memoized selectAllWorkflowChildSpans)
  * No direct prop selector needed here, as props are passed to selectAllWorkflowChildSpans implicitly
@@ -138,16 +185,17 @@ export const selectAllWorkflowStateEvents = createSelector(
 
 /**
  * Select Spans with Exceptions
- * For a given workflow span, create a list of all of the workflow span's exceptions
+ * For a given workflow span, create a list of all of the workflow span's exceptions,
+ * including its lineage and child spans.
  * @returns {OtelSpan[]} sorted by their timeUnixNano
  */
 export const selectAllExceptionSpans = createSelector(
-  [selectWorkflowSpan, selectAllWorkflowChildSpans],
-  (workflowSpan, childSpans): OtelSpan[] => {
+  [selectWorkflowSpan, selectAllWorkflowChildSpans, selectAllWorkflowLineageSpans],
+  (workflowSpan, childSpans, lineageSpans): OtelSpan[] => {
     const exceptionSpans: OtelSpan[] = []
 
     // combine the workflow span and child spans
-    const allSpans = [workflowSpan, ...childSpans].filter((span) => span !== undefined)
+    const allSpans = [...lineageSpans, workflowSpan, ...childSpans].filter((span) => span !== undefined)
     if (!allSpans) return [] // Stable empty array reference
 
     for (const span of allSpans) {
