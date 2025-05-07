@@ -1,8 +1,9 @@
 import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons'
 import { useNavigate } from 'react-router'
-import { useAppSelector } from '../../../root-store/hooks'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { selectNextWorkflowSpanID, selectPrevWorkflowSpanID } from '../../otel/store/selectors'
+import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowDetailNavButtonsProps {
   serviceName: string
@@ -12,6 +13,7 @@ interface WorkflowDetailNavButtonsProps {
 export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtonsProps) {
   const { serviceName, workflowSpanID } = props
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
 
   const prevSpanID = useAppSelector((state: RootState) =>
     selectPrevWorkflowSpanID(state, { serviceName, workflowSpanID }),
@@ -25,12 +27,20 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
 
   const handlePrevClick = () => {
     if (!disablePrev) {
+      // Clear the activeSpan
+      dispatch(WorkflowDetailStateActions.setActiveSpan(null))
+
+      // Navigate
       navigate(`/logs/${serviceName}/${prevSpanID}`)
     }
   }
 
   const handleNextClick = () => {
     if (!disableNext) {
+      // Clear the activeSpan
+      dispatch(WorkflowDetailStateActions.setActiveSpan(null))
+
+      // Navigate
       navigate(`/logs/${serviceName}/${nextSpanID}`)
     }
   }
@@ -38,7 +48,9 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
   return (
     <div className={'flex flex-col gap-y-1'}>
       <button
-        className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'}
+        className={
+          'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'
+        }
         onClick={handlePrevClick}
         disabled={disablePrev}
       >
@@ -46,7 +58,9 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
       </button>
 
       <button
-        className={'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'}
+        className={
+          'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'
+        }
         onClick={handleNextClick}
         disabled={disableNext}
       >

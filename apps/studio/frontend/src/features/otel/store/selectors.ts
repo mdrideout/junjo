@@ -107,11 +107,11 @@ export const selectAllWorkflowChildSpans = createSelector(
 )
 
 /**
- * Select all workflow lineage spans
+ * Select all of a workflow's lineage spans
  * Recursively find all parent spans (lineage) of a given workflow span.
  * @returns {OtelSpan[]}
  */
-export const selectAllWorkflowLineageSpans = createSelector(
+export const selectWorkflowsLineageSpans = createSelector(
   [
     selectWorkflowsData,
     selectWorkflowSpan,
@@ -124,8 +124,6 @@ export const selectAllWorkflowLineageSpans = createSelector(
 
     const allLineageSpans = workflowsData[serviceName]?.workflowLineage
     if (!allLineageSpans) return [] // Stable empty array reference
-
-    console.log('All lineage spans: ', allLineageSpans)
 
     // Logic to find children - this computation only runs if workflowsData or props change
     const lineageSpans: OtelSpan[] = []
@@ -190,12 +188,12 @@ export const selectAllWorkflowStateEvents = createSelector(
  * @returns {OtelSpan[]} sorted by their timeUnixNano
  */
 export const selectAllExceptionSpans = createSelector(
-  [selectWorkflowSpan, selectAllWorkflowChildSpans, selectAllWorkflowLineageSpans],
-  (workflowSpan, childSpans, lineageSpans): OtelSpan[] => {
+  [selectAllWorkflowChildSpans, selectWorkflowsLineageSpans],
+  (childSpans, lineageSpans): OtelSpan[] => {
     const exceptionSpans: OtelSpan[] = []
 
     // combine the workflow span and child spans
-    const allSpans = [...lineageSpans, workflowSpan, ...childSpans].filter((span) => span !== undefined)
+    const allSpans = [...lineageSpans, ...childSpans].filter((span) => span !== undefined)
     if (!allSpans) return [] // Stable empty array reference
 
     for (const span of allSpans) {
@@ -212,6 +210,42 @@ export const selectAllExceptionSpans = createSelector(
     }
 
     return exceptionSpans
+  },
+)
+
+/**
+ * Workflow Execution Request Has Exceptions
+ * Checks if the workflow span and its lineage spans or child spans have any exceptions.
+ * Optimized to return early if any exceptions are found.
+ * TODO: For performance, consider moving this to when the data is loaded.
+ * @returns {boolean}
+ */
+export const workflowExecutionRequestHasExceptions = createSelector(
+  [selectWorkflowsLineageSpans, selectAllWorkflowChildSpans],
+  (lineageSpans, childSpans): boolean => {
+    // 2) Check lineage spans
+    for (const span of lineageSpans) {
+      if (Array.isArray(span.events_json)) {
+        for (const ev of span.events_json) {
+          if (ev.attributes?.['exception.type'] !== undefined) {
+            return true
+          }
+        }
+      }
+    }
+
+    // 3) Check child spans
+    for (const span of childSpans) {
+      if (Array.isArray(span.events_json)) {
+        for (const ev of span.events_json) {
+          if (ev.attributes?.['exception.type'] !== undefined) {
+            return true
+          }
+        }
+      }
+    }
+
+    return false
   },
 )
 
