@@ -14,8 +14,12 @@ class Node(Generic[StoreT], ABC):
     """
     Base class for all nodes in the junjo graph.
 
-    - The Workflow passes the store to the node's _execute function
-    - The action function is expected to carry out side effects on the output
+    Type Parameters:
+        StoreT: The workflow store type that will be passed into this node during execution.
+
+    Responsibilities:
+        - The Workflow passes the store to the node’s execute function.
+        - The service function implements side effects using that store.
     """
 
     def __init__(

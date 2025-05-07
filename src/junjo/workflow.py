@@ -184,6 +184,9 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 span.set_status(trace.StatusCode.ERROR, str(e))
                 span.record_exception(e)
 
+                # Raise the error to be handled by the caller
+                raise e
+
             finally:
                 execution_sum = sum(self.node_execution_counter.values())
 
