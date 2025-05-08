@@ -2,9 +2,9 @@
 from junjo.state import BaseState
 from junjo.store import BaseStore
 
-from app.db.models.contact.schemas import ContactRead
+from app.db.models.contact.schemas import ContactRead, Sex
 from app.workflows.create_contact.nodes.select_location.schemas import LocCityState
-from app.workflows.create_contact.schemas import Sex
+from app.workflows.create_contact.schemas import PersonalityTraits
 
 
 class CreateContactState(BaseState):
@@ -12,6 +12,7 @@ class CreateContactState(BaseState):
     loc_lat: float | None = None
     loc_lon: float | None = None
     location: LocCityState | None = None
+    personality_traits: PersonalityTraits | None = None
     final_contact: ContactRead | None = None
 
 class CreateContactStore(BaseStore[CreateContactState]):
@@ -30,6 +31,9 @@ class CreateContactStore(BaseStore[CreateContactState]):
 
     async def set_location(self, payload: LocCityState) -> None:
         await self.set_state({"location": payload})
+
+    async def set_personality_traits(self, payload: PersonalityTraits) -> None:
+        await self.set_state({"personality_traits": payload})
 
     async def set_final_contact(self, payload: ContactRead) -> None:
         await self.set_state({"final_contact": payload})

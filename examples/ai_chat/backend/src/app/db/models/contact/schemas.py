@@ -1,16 +1,19 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
 
-class GenderEnum(Enum):
+class Sex(StrEnum):
+    """Sex of the contact"""
     MALE = "MALE"
     FEMALE = "FEMALE"
+    OTHER = "OTHER"
+
 
 
 class ContactCreate(BaseModel):
-    gender: GenderEnum
+    sex: Sex
     first_name: str
     last_name: str
     age: int
@@ -24,7 +27,7 @@ class ContactRead(BaseModel):
     id: str
     created_at: datetime
     updated_at: datetime
-    gender: GenderEnum
+    sex: Sex
     first_name: str
     last_name: str
     age: int

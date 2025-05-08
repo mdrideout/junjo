@@ -1,6 +1,6 @@
 import random
 
-from app.workflows.create_contact.schemas import Sex
+from app.db.models.contact.schemas import Sex
 
 
 def select_sex() -> Sex:
