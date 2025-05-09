@@ -85,3 +85,81 @@ class GeminiTool:
         validated = schema.model_validate(schema_response)
 
         return validated
+
+    async def gemini_image_request(self) -> bytes:
+        """
+        Sends a request to the Gemini AI model for an image.
+        """
+        bytes = None
+
+        response = await self._client.aio.models.generate_content(
+            model=self._model,
+            contents=self._prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=['TEXT', 'IMAGE']
+            )
+        )
+
+        if not response.candidates:
+            logger.error(f"No candidates in response: {response}")
+            raise ValueError("No candidates in response")
+
+        if not response.candidates[0].content:
+            logger.error(f"No content in response: {response}")
+            raise ValueError("No content in response")
+
+        if not response.candidates[0].content.parts:
+            logger.error(f"No parts in response: {response}")
+            raise ValueError("No parts in response")
+
+        for part in response.candidates[0].content.parts:
+            if part.text is not None:
+                # Log the text part
+                logger.info(f"Gemini image generation text: {part.text}")
+
+            if not part.inline_data:
+                # Skip this part if it doesn't contain inline data
+                continue
+
+            # Get the image bytes from the inline data
+            bytes = part.inline_data.data
+
+        if not bytes:
+            logger.error(f"No image bytes in part: {part}")
+            raise ValueError("No image bytes in part")
+
+        return bytes
+
+    async def imagen_3_request(self) -> bytes:
+        """
+        Sends a request to the Gemini AI model for an image.
+        """
+        bytes = None
+
+        response = await self._client.aio.models.generate_images(
+            model=self._model,
+            prompt=self._prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=1,
+                aspect_ratio="1:1",
+                person_generation=types.PersonGeneration.ALLOW_ADULT
+            ),
+        )
+
+        if not response.generated_images:
+            logger.error(f"No generated images in response: {response}")
+            raise ValueError("No generated images in response")
+
+        for generated_image in response.generated_images:
+            if not generated_image.image:
+                logger.error(f"No image in generated image: {generated_image}")
+                raise ValueError("No image in generated image")
+
+            # Get the image bytes
+            bytes = generated_image.image.image_bytes
+
+        if not bytes:
+            logger.error(f"No image bytes in generated image: {generated_image}")
+            raise ValueError("No image bytes in generated image")
+
+        return bytes
