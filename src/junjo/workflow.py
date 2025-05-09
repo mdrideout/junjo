@@ -111,6 +111,12 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             if parent_id is not None:
                 span.set_attribute("junjo.parent_id", parent_id)
 
+            # If executing a subflow, run pre-run actions
+            if isinstance(self, Subflow):
+                if parent_store is None:
+                    raise ValueError("Subflow requires a parent store to execute pre_run_actions.")
+                await self.pre_run_actions(parent_store)
+
             # Loop to execute the nodes inside this workflow
             current_executable = self.graph.source
             try:
@@ -123,6 +129,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     # # If executing a subflow
                     if isinstance(current_executable, Subflow):
                         print("Executing subflow:", current_executable.name)
+
                         # Pass the current store as the parent store for the sub-flow
                         await current_executable.execute(self.store, self.id)
 
@@ -246,6 +253,31 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
             max_iterations=max_iterations,
             hook_manager=None
         )
+
+    @abstractmethod
+    async def pre_run_actions(self, parent_store: ParentStoreT) -> None:
+        """
+        # Pre Run Actions
+        This method is called before the workflow has run.
+
+        This is where you can pass initial state values from the parent workflow to the subflow state.
+
+        Example:
+            ```python
+                async def pre_run_actions(self, parent_store):
+                    # Get the parent state
+                    parent_state = await parent_store.get_state()
+
+                    # Pass initial state values from the parent state to the subflow
+                    await self.store.set_state({
+                        "parent_state": parent_state
+                    })
+            ```
+
+        Args:
+            parent_store: The parent store to update.
+        """
+        pass
 
     @abstractmethod
     async def post_run_actions(self, parent_store: ParentStoreT) -> None:

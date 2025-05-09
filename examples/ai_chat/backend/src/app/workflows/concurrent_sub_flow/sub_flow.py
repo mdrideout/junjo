@@ -8,6 +8,9 @@ from app.workflows.handle_message.store import MessageWorkflowState, MessageWork
 class ConcurrentSubFlow(Subflow[ConcurrentSubFlowState, ConcurrentSubFlowStore, MessageWorkflowState, MessageWorkflowStore]):
     """A Sub subflow to run inside the handle_message workflow."""
 
+    async def pre_run_actions(self, parent_store):
+        pass
+
     async def post_run_actions(self, parent_store):
         """Post run actions that can update the parent store."""
         # Get this workflow's state

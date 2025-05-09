@@ -5,16 +5,16 @@ from nanoid import generate
 
 from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.util.save_image_file import save_image_file
-from app.workflows.create_contact.nodes.create_avatar.prompt import create_avatar_prompt
-from app.workflows.create_contact.store import CreateContactStore
+from app.workflows.create_contact.avatar_subflow.nodes.create_avatar.prompt import create_avatar_prompt
+from app.workflows.create_contact.avatar_subflow.store import AvatarSubflowStore
 
 
-class CreateAvatarNode(Node[CreateContactStore]):
+class CreateAvatarNode(Node[AvatarSubflowStore]):
     """
     Node for creating an avatar for a contact.
     """
 
-    async def service(self, store: CreateContactStore) -> None:
+    async def service(self, store: AvatarSubflowStore) -> None:
         """
         Service method to create an avatar for a contact.
         """
@@ -22,18 +22,30 @@ class CreateAvatarNode(Node[CreateContactStore]):
         # Get the current state
         state = await store.get_state()
 
+        if state.parent_state is None:
+            raise ValueError("parent_state is required for this node.")
+
         # Check for required store data
-        if state.personality_traits is None:
+        if state.parent_state.personality_traits is None:
             raise ValueError("personality_traits are required for this node.")
 
         # if state.bio is None:
         #     raise ValueError("bio is required for this node.")
 
-        if state.location is None:
+        if state.parent_state.location is None:
             raise ValueError("location is required for this node.")
 
+        if state.inspiration_prompt is None:
+            raise ValueError("inspiration_prompt is required for this node.")
+
         # Construct the prompt
-        prompt = create_avatar_prompt(state.personality_traits, "bio here", state.location.city, state.location.state)
+        prompt = create_avatar_prompt(
+            state.parent_state.personality_traits,
+            "bio here",
+            state.parent_state.location.city,
+            state.parent_state.location.state,
+            state.inspiration_prompt,
+        )
         logger.info(f"Creating image with prompt: {prompt}")
 
         # Create a request to gemini
