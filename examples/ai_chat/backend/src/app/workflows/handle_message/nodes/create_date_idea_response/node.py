@@ -25,7 +25,7 @@ class CreateDateIdeaResponseNode(Node[MessageWorkflowStore]):
         logger.info(f"Prompt: {prompt}")
 
         # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-1.5-flash-8b-001")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-001")
         gemini_result = await gemini_tool.text_request()
         logger.info(f"Gemini result: {gemini_result}")
 

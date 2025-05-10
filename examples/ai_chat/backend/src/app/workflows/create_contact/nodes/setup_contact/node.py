@@ -1,13 +1,13 @@
 from junjo.node import Node
 
-from app.db.models.contact.repository import ContactRepository
 from app.db.models.contact.schemas import ContactCreate
+from app.db.queries.create_setup_contact.repository import CreateSetupContactRepository
 from app.workflows.create_contact.store import CreateContactStore
 
 
-class SaveContactNode(Node[CreateContactStore]):
+class SetupContactNode(Node[CreateContactStore]):
     async def service(self, store: CreateContactStore) -> None:
-        """Saves the contact to the database."""
+        """Sets up the contact and a conversation with them in the database."""
 
         # Get the current state
         state = await store.get_state()
@@ -62,7 +62,7 @@ class SaveContactNode(Node[CreateContactStore]):
         )
 
         # Save the contact to the database
-        saved_contact = await ContactRepository.create(contact_create)
+        setup_contact_result = await CreateSetupContactRepository.create_setup_contact(contact_create)
 
         # Update the state with the saved contact
-        await store.set_final_contact(saved_contact)
+        await store.set_final_contact(setup_contact_result)

@@ -17,6 +17,7 @@ const useGetContacts = (): UseGetContactsResult => {
   const CACHE_DURATION = 3 * 1000 // 3 seconds
 
   const fetchContacts = async () => {
+    console.log('Fetching contacts...')
     if (lastFetch && Date.now() - lastFetch < CACHE_DURATION) return
 
     setIsLoading(true)
@@ -24,6 +25,7 @@ const useGetContacts = (): UseGetContactsResult => {
     try {
       const fetchedContacts = await getAllContacts()
       upsertContacts(fetchedContacts)
+      console.log('Upserted contacts:', fetchedContacts)
     } catch (error: any) {
       setError(error.message)
     } finally {

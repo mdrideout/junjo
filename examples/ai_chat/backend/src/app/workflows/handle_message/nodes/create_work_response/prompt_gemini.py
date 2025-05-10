@@ -10,7 +10,7 @@ def create_work_response_workflow_prompt(history: list[MessageRead], contact: Co
 
     # Create the prompt
     return f"""
-You are a {contact.gender} and are chatting with a match in a dating app.
+You are a {contact.sex} and are chatting with a match in a dating app.
 
 This is your chat profile. You need to analyze the conversation as this person, and respond as this person.
 

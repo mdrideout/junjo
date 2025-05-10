@@ -9,9 +9,9 @@ from app.workflows.create_contact.nodes.create_age.node import SelectAgeNode
 from app.workflows.create_contact.nodes.create_bio.node import CreateBioNode
 from app.workflows.create_contact.nodes.create_name.node import CreateNameNode
 from app.workflows.create_contact.nodes.create_personality.node import CreatePersonalityNode
-from app.workflows.create_contact.nodes.save_contact.node import SaveContactNode
 from app.workflows.create_contact.nodes.select_location.node import SelectLocationNode
 from app.workflows.create_contact.nodes.select_sex.node import SelectSexNode
+from app.workflows.create_contact.nodes.setup_contact.node import SetupContactNode
 from app.workflows.create_contact.nodes.sink.node import CreateContactSinkNode
 
 # Nodes
@@ -22,7 +22,7 @@ select_location_node = SelectLocationNode()
 create_personality_node = CreatePersonalityNode()
 create_bio_node = CreateBioNode()
 create_name_node = CreateNameNode()
-save_contact_node = SaveContactNode()
+save_contact_node = SetupContactNode()
 
 # Subflows
 avatar_subflow = AvatarSubFlow(

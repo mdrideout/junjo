@@ -1,19 +1,19 @@
 from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
 
-from app.db.models.contact.schemas import ContactRead
+from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
 from app.workflows.create_contact.graph import create_contact_graph
 from app.workflows.create_contact.store import CreateContactState, CreateContactStore
 
 
-async def run_create_contact_workflow() -> ContactRead:
+async def run_create_contact_workflow() -> CreateSetupContactResponse:
     """
     Create Contact Workflow
 
     This workflow is responsible for creating a contact and saving it to the database.
 
     returns:
-        ContactRead: The created contact.
+        CreateSetupContactResponse: The resulting contact and new chat with this person.
     """
 
     # Create the store with initial state

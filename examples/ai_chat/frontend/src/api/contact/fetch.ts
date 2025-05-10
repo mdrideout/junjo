@@ -39,6 +39,7 @@ export const getAllContacts = async (): Promise<ContactRead[]> => {
   }
 
   const data = await response.json()
+  console.log('Data received from server:', data)
 
   try {
     // Validate the response data as an array of ContactRead

@@ -29,11 +29,14 @@ class CreateAvatarNode(Node[AvatarSubflowStore]):
         if state.parent_state.personality_traits is None:
             raise ValueError("personality_traits are required for this node.")
 
-        # if state.bio is None:
-        #     raise ValueError("bio is required for this node.")
+        if state.parent_state.bio is None:
+            raise ValueError("bio is required for this node.")
 
         if state.parent_state.location is None:
             raise ValueError("location is required for this node.")
+
+        if state.parent_state.sex is None:
+            raise ValueError("sex is required for this node.")
 
         if state.inspiration_prompt is None:
             raise ValueError("inspiration_prompt is required for this node.")
@@ -41,9 +44,10 @@ class CreateAvatarNode(Node[AvatarSubflowStore]):
         # Construct the prompt
         prompt = create_avatar_prompt(
             state.parent_state.personality_traits,
-            "bio here",
+            state.parent_state.bio,
             state.parent_state.location.city,
             state.parent_state.location.state,
+            state.parent_state.sex,
             state.inspiration_prompt,
         )
         logger.info(f"Creating image with prompt: {prompt}")

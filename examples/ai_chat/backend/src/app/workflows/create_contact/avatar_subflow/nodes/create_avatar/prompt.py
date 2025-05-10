@@ -1,3 +1,4 @@
+from app.db.models.contact.schemas import Sex
 from app.workflows.create_contact.schemas import PersonalityTraits
 
 
@@ -6,6 +7,7 @@ def create_avatar_prompt(
     bio: str,
     city: str,
     state: str,
+    sex: Sex,
     inspiration: str
 ) -> str:
     """Prompt to generate an avatar image based on the provided information."""
@@ -20,6 +22,8 @@ Traits: {personality_traits.model_dump_json()}
 Bio: {bio}
 
 Location: {city}, {state}
+
+Sex: {sex}
 
 Use this as inspiration for the image: {inspiration}
 

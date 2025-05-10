@@ -7,6 +7,7 @@ from junjo.app import JunjoApp
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor
 
+from app.avatar.routes import avatar_router
 from app.db.db_config import engine, init_db
 from app.db.models.chat.routes import chat_router
 from app.db.models.chat_members.routes import chat_members_router
@@ -74,4 +75,5 @@ app.include_router(chat_members_router)  # Chat API Router
 app.include_router(contact_router)  # Contact API Router
 app.include_router(message_router)  # Message API Router
 app.include_router(queries_router)  # Queries API Router
-app.include_router(workflows_junjo_router)
+app.include_router(workflows_junjo_router) # Workflows API Router
+app.include_router(avatar_router)  # Avatar API Router

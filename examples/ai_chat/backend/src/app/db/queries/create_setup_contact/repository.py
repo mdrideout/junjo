@@ -25,16 +25,7 @@ class CreateSetupContactRepository:
             try:
                 async with session.begin():
                     # 1. Create the contact
-                    db_contact = ContactsTable(
-                        gender=contact.gender,
-                        first_name=contact.first_name,
-                        last_name=contact.last_name,
-                        age=contact.age,
-                        weight_lbs=contact.weight_lbs,
-                        us_state=contact.us_state,
-                        city=contact.city,
-                        bio=contact.bio,
-                    )
+                    db_contact = ContactsTable(**contact.model_dump())
                     session.add(db_contact)
                     await session.flush()
 

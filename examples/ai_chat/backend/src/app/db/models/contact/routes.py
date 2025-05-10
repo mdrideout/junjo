@@ -3,13 +3,14 @@ from loguru import logger
 
 from app.db.models.contact.repository import ContactRepository
 from app.db.models.contact.schemas import ContactRead
+from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
 from app.workflows.create_contact.workflow import run_create_contact_workflow
 
 contact_router = APIRouter(prefix="/api/contact")
 
 
 @contact_router.post("/")
-async def post_contact() -> ContactRead:
+async def post_contact() -> CreateSetupContactResponse:
     """
     Create a contact.
     """

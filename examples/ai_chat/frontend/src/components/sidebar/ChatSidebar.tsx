@@ -38,7 +38,7 @@ export default function ChatSidebar() {
         </div>
       )}
       {chats.length === 0 && <div className={'opacity-30 text-center'}>so lonely...</div>}
-      <div className={'flex flex-col gap-y-5 px-1'}>
+      <div className={'flex flex-col gap-y-5'}>
         {chats.map((chat) => {
           // Create a human readable date
           const lastMessageTime = new Date(chat.last_message_time)
