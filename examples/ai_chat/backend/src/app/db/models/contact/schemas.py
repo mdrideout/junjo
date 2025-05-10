@@ -13,13 +13,24 @@ class Sex(StrEnum):
 
 
 class ContactCreate(BaseModel):
+    avatar_id: str
     sex: Sex
     first_name: str
     last_name: str
     age: int
-    weight_lbs: float
-    us_state: str
+    openness: float
+    conscientiousness: float
+    neuroticism: float
+    agreeableness: float
+    extraversion: float
+    intelligence: float
+    religiousness: float
+    attractiveness: float
+    trauma: float
+    latitude: float
+    longitude: float
     city: str
+    state: str
     bio: str
 
 
@@ -27,16 +38,29 @@ class ContactRead(BaseModel):
     id: str
     created_at: datetime
     updated_at: datetime
+    avatar_id: str
     sex: Sex
     first_name: str
     last_name: str
     age: int
-    weight_lbs: float
-    us_state: str
+    openness: float
+    conscientiousness: float
+    neuroticism: float
+    agreeableness: float
+    extraversion: float
+    intelligence: float
+    religiousness: float
+    attractiveness: float
+    trauma: float
+    latitude: float
+    longitude: float
     city: str
+    state: str
     bio: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
 
 
 class ContactDelete(BaseModel):

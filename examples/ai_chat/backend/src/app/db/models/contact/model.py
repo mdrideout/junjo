@@ -16,11 +16,11 @@ class ContactsTable(SQABase):
     id: Mapped[str] = mapped_column(String(21), primary_key=True, index=True, default=lambda: generate())
     created_at: Mapped[datetime] = mapped_column(index=True, nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(index=True, nullable=False, server_default=func.now())
+    avatar_id: Mapped[str]
 
     # Physical attributes
     sex: Mapped[Sex] = mapped_column(SQLAlchemyEnum(Sex), nullable=False)
-    age: Mapped[int] = mapped_column(CheckConstraint("age >= 18 AND age <= 150"))
-    weight_lbs: Mapped[float] = mapped_column(CheckConstraint("weight_lbs >= 70 AND weight_lbs <= 400"))
+    age: Mapped[int] = mapped_column(CheckConstraint("age >= 18 AND age <= 99"))
 
     # Personality traits
     openness:          Mapped[float] = mapped_column(CheckConstraint("openness >= 0 AND openness <= 1"))

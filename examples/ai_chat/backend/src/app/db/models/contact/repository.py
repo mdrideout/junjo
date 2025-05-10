@@ -6,32 +6,23 @@ from app.db.models.contact import model, schemas
 
 
 class ContactRepository:
-    # Should only be created through setup function
-    # @staticmethod
-    # async def create(contact: schemas.ContactCreate) -> schemas.ContactRead:
-    #     """
-    #     Creats a new contact in the database.
-    #     """
-    #     try:
-    #         db_obj = model.ContactsTable(
-    #             gender=contact.gender,
-    #             first_name=contact.first_name,
-    #             last_name=contact.last_name,
-    #             age=contact.age,
-    #             weight_lbs=contact.weight_lbs,
-    #             us_state=contact.us_state,
-    #             city=contact.city,
-    #             bio=contact.bio,
-    #         )
+    @staticmethod
+    async def create(contact: schemas.ContactCreate) -> schemas.ContactRead:
+        """
+        Creats a new contact in the database.
+        """
+        try:
+            # instantiate a new ContactsTable from the validated ContactCreate
+            db_obj = model.ContactsTable(**contact.model_dump())
 
-    #         async with async_session() as session:
-    #             session.add(db_obj)
-    #             await session.commit()
-    #             await session.refresh(db_obj)
+            async with async_session() as session:
+                session.add(db_obj)
+                await session.commit()
+                await session.refresh(db_obj)
 
-    #         return schemas.ContactRead.model_validate(db_obj)
-    #     except SQLAlchemyError as e:
-    #         raise e
+            return schemas.ContactRead.model_validate(db_obj)
+        except SQLAlchemyError as e:
+            raise e
 
     @staticmethod
     async def read(id: str) -> schemas.ContactRead | None:
