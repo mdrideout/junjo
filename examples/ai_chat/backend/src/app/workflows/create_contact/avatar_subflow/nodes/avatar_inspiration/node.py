@@ -30,7 +30,7 @@ class AvatarInspirationNode(Node[AvatarSubflowStore]):
             raise ValueError("location is required for this node.")
 
         if parent_state.bio is None:
-            bio = "bio here"
+            raise ValueError("bio is required for this node.")
 
         first_name = "first_name here"
 
@@ -40,7 +40,7 @@ class AvatarInspirationNode(Node[AvatarSubflowStore]):
         # Create the request to gemini for avatar inspiration
         prompt = avatar_inspiration_prompt(
             parent_state.personality_traits,
-            bio,
+            parent_state.bio,
             parent_state.location.city,
             parent_state.location.state,
             first_name,

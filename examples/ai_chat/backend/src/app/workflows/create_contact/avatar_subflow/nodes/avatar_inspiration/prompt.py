@@ -13,16 +13,22 @@ def avatar_inspiration_prompt(
 
     # Create the prompt
     return f"""
-Your job is to come up with a fun photography idea for a social media profile picture for this person:
+Your job is to come up with a fun photography idea prompt for a social media profile picture for this person:
 
 Name: {first_name} {last_name}
-Traits: {personality_traits.model_dump_json()}
-Bio: {bio}
+
 Location: {city}, {state}
 
+Traits: {personality_traits.model_dump_json()}
+
+Bio: {bio}
+
 Output a single idea in under 50 words. Be realistic and mirror what people actually do
-for their profile pictures that show lifestyle and personality.
+for their profile pictures that show lifestyle and personality. If they have hobbies or interests
+in their bio, make sure they are demonstrated in the photography prompt.
 
-Do not be conversational, just output a single definitive idea.
+Do not include the name, location, or traits, or bio in the prompt. Do not include any additional information.
+Do not be conversational, just output a single definitive photography idea prompt.
 
+Ensure the person's head is visible in the image.
 """.strip()

@@ -14,6 +14,9 @@ class CreateContactState(BaseState):
     location: LocCityState | None = None
     personality_traits: PersonalityTraits | None = None
     bio: str | None = None
+    age: int | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     avatar_id: str | None = None
     final_contact: ContactRead | None = None
 
@@ -39,6 +42,15 @@ class CreateContactStore(BaseStore[CreateContactState]):
 
     async def set_bio(self, payload: str) -> None:
         await self.set_state({"bio": payload})
+
+    async def set_age(self, payload: int) -> None:
+        await self.set_state({"age": payload})
+
+    async def set_first_name(self, payload: str) -> None:
+        await self.set_state({"first_name": payload})
+
+    async def set_last_name(self, payload: str) -> None:
+        await self.set_state({"last_name": payload})
 
     async def set_avatar_id(self, payload: str) -> None:
         await self.set_state({"avatar_id": payload})
