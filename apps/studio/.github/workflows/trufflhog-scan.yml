@@ -3,10 +3,10 @@ name: TruffleHog Secret Scan
 on:
   push: # Run on pushes to any branch
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main # Or your default branch
+      - master # Or your default branch
 
 jobs:
   trufflehog:
