@@ -9,8 +9,8 @@ import jsonpatch
 from opentelemetry import trace
 from pydantic import ValidationError
 
-from junjo.state import BaseState
-from junjo.util import generate_safe_id
+from .state import BaseState
+from .util import generate_safe_id
 
 # State / Store
 StateT = TypeVar("StateT", bound=BaseState)
@@ -25,11 +25,27 @@ Subscriber = Callable[[StateT], None] | Callable[[StateT], Awaitable[None]]
 
 class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
-    An abstract base for a "store" that manages a Pydantic state.
-    Subclasses must provide an initial_state property.
+    BaseStore represents a generic store for managing the state of a workflow.
+    It is designed to be subclassed with a specific state type (Pydantic model).
+
+    The store is responsible for:
+        | - Managing the state of the workflow.
+        | - Making immuable updates to the state safely in a concurrent environment.
+        | - Validating state updates against the Pydantic model.
+        | - Providing methods to subscribe to state changes.
+        | - Notifying subscribers when the state changes.
+
+    The store uses an asyncio.Lock to ensure that state updates are thread-safe and
+    that subscribers are notified in a safe manner. This is important in an async
+    environment where multiple coroutines may be trying to update the state or
+    subscribe to changes at the same time.
     """
 
     def __init__(self, initial_state: StateT) -> None:
+        """
+        Args:
+            initial_state: The initial state of the store, based on the Pydantic model.
+        """
         # Use an asyncio.Lock for concurrency control in an async environment
         self._lock = asyncio.Lock()
 
@@ -44,7 +60,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
     @property
     def id(self) -> str:
-        """Returns the unique identifier for the node."""
+        """Returns the unique identifier of a given store's implementation."""
         return self._id
 
     async def subscribe(self, listener: Subscriber) -> Callable[[], Awaitable[None]]:
@@ -86,14 +102,26 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
     async def set_state(self, update: dict) -> None:
         """
-        Public API to partially update the store state with a dict of changes.
-        - Immutable update with a deep state copy
-        - Merges the current state with `updates` using `model_copy(update=...)`.
-        - Validates that each updated field is valid for StateT.
-        - If there's a change, notifies subscribers outside the lock.
+        Update the store's state with a dictionary of changes.
+        | - Immutable update with a deep state copy
+        | - Merges the current state with `updates` using `model_copy(update=...)`.
+        | - Validates that each updated field is valid for StateT.
+        | - If there's a change, notifies subscribers outside the lock.
 
         Args:
             update: A dictionary of updates to apply to the state.
+
+        .. code-block:: python
+
+            class MessageWorkflowState(BaseState): # A pydantic model to represent the state
+                received_message: Message
+
+            class MessageWorkflowStore(BaseStore[MessageWorkflowState]): # A concrete store for MessageWorkflowState
+                async def set_received_message(self, payload: Message) -> None:
+                    await self.set_state({"received_message": payload})
+
+            payload = Message(...)
+            await store.set_received_message(payload) # Utilizes the set_state method to update a particular field
         """
         # Get the caller function's name and class name for telemetry purposes
         caller_frame = inspect.currentframe()

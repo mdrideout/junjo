@@ -15,8 +15,12 @@ class SelectAgeNode(Node[CreateContactStore]):
         Service method to select the age of a contact.
         """
 
-        # Determine age
-        age = random.randint(18, 99)
+        min_age, max_age = 18, 65
+
+        # use Beta(α,β) for skew
+        alpha, beta = 2.0, 9.0
+        fraction = random.betavariate(alpha, beta)
+        age = int(min_age + (max_age - min_age) * fraction)
 
         # Update state
         await store.set_age(age)

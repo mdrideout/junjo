@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from junjo.app import JunjoApp
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor
 
@@ -23,7 +22,6 @@ load_dotenv()
 
 # Initialize Junjo
 APP_NAME = "Junjo Chat Example"
-JunjoApp(app_name=APP_NAME)
 
 # Set up logging
 setup_logging()

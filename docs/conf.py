@@ -55,6 +55,8 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
+autoclass_content = "both"  # Include both class and __init__ docstrings
+
 # -- Options for intersphinx ----------------------------------------------
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

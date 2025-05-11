@@ -1,5 +1,5 @@
+from junjo import Workflow
 from junjo.telemetry.hook_manager import HookManager
-from junjo.workflow import Workflow
 
 from app.db.models.message.schemas import MessageCreate
 from app.workflows.handle_message.graph import handle_message_graph

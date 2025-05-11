@@ -1,6 +1,5 @@
 
-from junjo.state import BaseState
-from junjo.store import BaseStore
+from junjo import BaseState, BaseStore
 
 from app.db.models.contact.schemas import ContactRead
 from app.db.models.message.schemas import MessageCreate, MessageRead

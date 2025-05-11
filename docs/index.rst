@@ -5,12 +5,13 @@
 
    getting_started
    api
-   concepts/index
 
 Welcome to Junjo!
 ====================
 
-This is a simple graph execution and state machine library for building AI agentic workflows.
+This is a simple graph workflow execution library for building AI agentic workflows.
+
+See our github repository for more information: https://github.com/mdrideout/junjo
 
 Getting Started
 ---------------
@@ -21,9 +22,3 @@ API Reference
 -------------
 
 See the :doc:`api` page for the full API reference.
-
-
-Concepts
---------
-
-See the :doc:`concepts/index` page for an overview of concepts.

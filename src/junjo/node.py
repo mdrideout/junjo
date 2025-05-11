@@ -12,20 +12,42 @@ from junjo.util import generate_safe_id
 
 class Node(Generic[StoreT], ABC):
     """
-    Base class for all nodes in the junjo graph.
+    Nodes are the building blocks of a workflow. They represent a single unit of work
+    that can be executed within the context of a workflow.
+
+    Place business logic to be executed by the node in the `service` method.
+    The `service` method is where the main logic of the node resides. It will be wrapped and
+    annotated with OpenTelemetry tracing.
+
+    The Node is meant to remain decoupled from your business logic. While you can place business logic
+    directly in the `service` method, it is recommended that you call a service function located in a
+    separate module. This allows for better separation of concerns and makes it easier to test and
+    maintain your code.
 
     Type Parameters:
         StoreT: The workflow store type that will be passed into this node during execution.
 
     Responsibilities:
-        - The Workflow passes the store to the node’s execute function.
+        - The Workflow passes the store to the node's execute function.
         - The service function implements side effects using that store.
+
+    Example implementation:
+    .. code-block:: python
+
+        class SaveMessageNode(Node[MessageWorkflowStore]):
+            async def service(self, store) -> None:
+                state = await store.get_state() # Get the current state
+
+                # Perform some business logic
+                sentiment = await get_messasge_sentiment(state.message)
+
+                # Perform a state update
+                await store.set_message_sentiment(sentiment)
     """
 
     def __init__(
         self,
     ):
-        """Initialize the node"""
         super().__init__()
         self._id = generate_safe_id()
         self._patches: list[JsonPatch] = []
@@ -56,13 +78,20 @@ class Node(Generic[StoreT], ABC):
     @abstractmethod
     async def service(self, store: StoreT) -> None:
         """
-        This is main logic of the node.
+        This is main logic of the node. The concrete implementation of this method
+        should contain the side effects that this node will perform.
+
+        This method is called by the `execute` method of the node. The `execute`
+        method is responsible for tracing and error handling.
+
+        The `service` method should not be called directly. Instead, it should be
+        called by the `execute` method of the node.
 
         DO NOT EXECUTE `node.service()` DIRECTLY!
         Use `node.execute()` instead.
 
-        Args
-            :param store: The store will be passed to this node during execution
+        Args:
+            store (StoreT): The store that will be passed to the node's service function.
         """
         raise NotImplementedError
 
@@ -73,6 +102,16 @@ class Node(Generic[StoreT], ABC):
         ) -> None:
         """
         Execute the Node's service function with OpenTelemetry tracing.
+
+        This method is responsible for tracing and error handling. It will
+        acquire a tracer, start a new span, and call the `service` method.
+        The `service` method should contain the side effects that this node will
+        perform.
+
+        Args:
+            store (StoreT): The store that will be passed to the node's service function.
+            parent_id (str): The ID of the parent span. This is used to create a
+                child span for this node's execution.
         """
 
         # Acquire a tracer (will be a real tracer if configured, otherwise no-op)

@@ -1,7 +1,4 @@
-from junjo.edge import Edge
-from junjo.graph import Graph
-from junjo.node import Node
-from junjo.run_concurrent import RunConcurrent
+from junjo import Edge, Graph, Node, RunConcurrent
 
 from app.workflows.handle_message.conditions.message_directive_is import MessageDirectiveIs
 from app.workflows.handle_message.nodes.assess_message_directive.node import AssessMessageDirectiveNode

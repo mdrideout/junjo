@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 
-from junjo.edge import Edge
-from junjo.node import Node
-from junjo.run_concurrent import RunConcurrent
-from junjo.store import BaseStore
-from junjo.workflow import _NestableWorkflow
+from .edge import Edge
+from .node import Node
+from .run_concurrent import RunConcurrent
+from .store import BaseStore
+from .workflow import _NestableWorkflow
 
 
 class Graph:
@@ -18,19 +18,19 @@ class Graph:
         self.sink = sink
         self.edges = edges
 
-    # TODO: This needs work because it currently requires a workflow id to complete
-    # def validate_graph(self):
-    #     """Validate that it is possible to get to the sink from the source."""
-    #     current_node = self.source
-    #     while current_node != self.sink:
-    #         try:
-    #             current_node = self.get_next_node(current_node)
-    #         except ValueError:
-    #             return False
-    #     return True
-
-
     async def get_next_node(self, store: BaseStore, current_node: Node | _NestableWorkflow) -> Node | _NestableWorkflow:
+        """
+        Retrieves the next node (or workflow / subflow) in the graph for the given current node.
+        This method checks the edges connected to the current node and resolves the next node based on the conditions
+        defined in the edges.
+
+        Args:
+            store (BaseStore): The store instance to use for resolving the next node.
+            current_node (Node | _NestableWorkflow): The current node or subflow in the graph.
+
+        Returns:
+            Node | _NestableWorkflow: The next node or subflow in the graph.
+        """
         matching_edges = [edge for edge in self.edges if edge.tail == current_node]
         resolved_edges = [edge for edge in matching_edges if await edge.next_node(store) is not None]
 
@@ -45,65 +45,11 @@ class Graph:
 
             return resolved_edge
 
-    def to_mermaid(self) -> str:
-        """Generates a Mermaid diagram string from the graph."""
-        mermaid_str = "graph LR\n"
-
-        # Add nodes
-        nodes = {
-            node.id: node for node in [self.source, self.sink] +
-            [e.tail for e in self.edges] +
-            [e.head for e in self.edges]
-        }
-
-        for node_id, node in nodes.items():
-            node_label = node.__class__.__name__  # Or a custom label from node.name
-            mermaid_str += f"    {node_id}[{node_label}]\n"
-
-        # Add edges
-        for edge in self.edges:
-            tail_id = edge.tail.id
-            head_id = edge.head.id
-            edge_label = ""
-            if edge.condition:
-                edge_label = str(edge.condition)
-            mermaid_str += f"    {tail_id} --> {edge_label}{head_id}\n"
-
-        return mermaid_str
-
-    def to_dot_notation(self) -> str:
-        """Converts the graph to DOT notation."""
-
-        dot_str = "digraph G {\n"  # Start of DOT graph
-        dot_str += "  node [shape=box, style=\"rounded\", fontsize=10];\n" #Added node styling
-        dot_str += "  ranksep=0.5; nodesep=1.0;\n" # Adjust spacing between ranks and nodes
-        dot_str += "  margin=1.0;\n" # Adjust graph margin
-
-
-        # Add nodes
-        nodes = {node.id: node for node in [self.source, self.sink] +
-                 [e.tail for e in self.edges] + [e.head for e in self.edges]}
-        for node_id, node in nodes.items():
-            node_label = node.__class__.__name__  # Or a custom label from node.name
-            dot_str += f'    "{node_id}" [label="{node_label}"];\n'
-
-        # Add edges
-        for edge in self.edges:
-            tail_id = edge.tail.id
-            head_id = edge.head.id
-            condition_str = str(edge.condition)
-            style = "dashed" if condition_str else "solid"  # Dotted for conditional, solid otherwise
-            dot_str += f'    "{tail_id}" -> "{head_id}" [label="{condition_str}", style="{style}"];\n'
-
-
-        dot_str += "}\n"  # End of DOT graph
-        return dot_str
-
 
     def serialize_to_json_string(self) -> str:  # noqa: C901
         """
         Converts the graph to a neutral serialized JSON string,
-        representing RunConcurrent instances as subgraphs and including Subflow graphs.
+        representing RunConcurrent instances as subgraphs and includes Subflow graphs as well.
 
         Returns:
             str: A JSON string containing the graph structure.
@@ -230,3 +176,69 @@ class Graph:
                 "detail": str(e),
             }
             return json.dumps(error_info, indent=2)
+
+
+    def to_mermaid(self) -> str:
+        """
+        Currently Broken: Generates a Mermaid diagram string from the graph.
+
+        The junjo-server telemetry server will produce a proper mermaid diagram for the workflow executions.
+        """
+        mermaid_str = "graph LR\n"
+
+        # Add nodes
+        nodes = {
+            node.id: node for node in [self.source, self.sink] +
+            [e.tail for e in self.edges] +
+            [e.head for e in self.edges]
+        }
+
+        for node_id, node in nodes.items():
+            node_label = node.__class__.__name__  # Or a custom label from node.name
+            mermaid_str += f"    {node_id}[{node_label}]\n"
+
+        # Add edges
+        for edge in self.edges:
+            tail_id = edge.tail.id
+            head_id = edge.head.id
+            edge_label = ""
+            if edge.condition:
+                edge_label = str(edge.condition)
+            mermaid_str += f"    {tail_id} --> {edge_label}{head_id}\n"
+
+        return mermaid_str
+
+    def to_dot_notation(self) -> str:
+        """Currently Broken: Converts the graph to DOT notation."""
+
+        dot_str = "digraph G {\n"  # Start of DOT graph
+        dot_str += "  node [shape=box, style=\"rounded\", fontsize=10];\n" #Added node styling
+        dot_str += "  ranksep=0.5; nodesep=1.0;\n" # Adjust spacing between ranks and nodes
+        dot_str += "  margin=1.0;\n" # Adjust graph margin
+
+
+        # Add nodes
+        nodes = {node.id: node for node in [self.source, self.sink] +
+                 [e.tail for e in self.edges] + [e.head for e in self.edges]}
+        for node_id, node in nodes.items():
+            node_label = node.__class__.__name__  # Or a custom label from node.name
+            dot_str += f'    "{node_id}" [label="{node_label}"];\n'
+
+        # Add edges
+        for edge in self.edges:
+            tail_id = edge.tail.id
+            head_id = edge.head.id
+            condition_str = str(edge.condition)
+            style = "dashed" if condition_str else "solid"  # Dotted for conditional, solid otherwise
+            dot_str += f'    "{tail_id}" -> "{head_id}" [label="{condition_str}", style="{style}"];\n'
+
+
+        dot_str += "}\n"  # End of DOT graph
+        return dot_str
+
+    def to_graphviz(self) -> str:
+        """
+        Converts the graph to Graphviz format.
+        This is a placeholder for future implementation.
+        """
+        raise NotImplementedError("Graphviz conversion is not implemented yet.")

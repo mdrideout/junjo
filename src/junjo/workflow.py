@@ -7,15 +7,15 @@ from typing import TYPE_CHECKING, Generic
 from loguru import logger
 from opentelemetry import trace
 
-from junjo.node import Node
-from junjo.run_concurrent import RunConcurrent
-from junjo.store import ParentStateT, ParentStoreT, StateT, StoreT
-from junjo.telemetry.hook_manager import HookManager
-from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from junjo.util import generate_safe_id
+from .node import Node
+from .run_concurrent import RunConcurrent
+from .store import ParentStateT, ParentStoreT, StateT, StoreT
+from .telemetry.hook_manager import HookManager
+from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from .util import generate_safe_id
 
 if TYPE_CHECKING:
-    from junjo.graph import Graph
+    from .graph import Graph
 
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
@@ -30,16 +30,6 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             hook_manager: HookManager | None = None,
             name: str | None = None,
     ):
-        """
-        Initializes the Workflow.
-
-        Args:
-            name: The name of the workflow
-            graph: The workflow graph.
-            max_iterations: The maximum number of times a node can be
-                            executed before raising an exception (defaults to 100)
-
-        """
         self._id = generate_safe_id()
         self._name = name
         self.graph = graph
@@ -212,7 +202,23 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 # Class Variation
 class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
     """
-    Represents a workflow execution.
+    Represents a top level workflow that can be executed.
+
+    Generic Type Parameters:
+        | StateT: The type of state managed by this workflow
+        | StoreT: The type of store used by this workflow
+
+    A workflow is a collection of nodes and edges as a graph that can be executed.
+
+    .. code-block:: python
+
+        workflow = Workflow[MyGraphState, MyGraphStore](
+            name="demo_base_workflow",
+            graph=graph,
+            store=graph_store,
+            hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
+        )
+        await workflow.execute()
     """
     pass
 
@@ -221,15 +227,29 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
     Represents a subflow execution that can interact with a parent workflow.
 
     Generic Type Parameters:
-        StateT: The type of state managed by this subflow
-        StoreT: The type of store used by this subflow
-        ParentStateT: The type of state managed by the parent workflow
-        ParentStoreT: The type of store used by the parent workflow
+        | StateT: The type of state managed by this subflow
+        | StoreT: The type of store used by this subflow
+        | ParentStateT: The type of state managed by the parent workflow
+        | ParentStoreT: The type of store used by the parent workflow
 
     A subflow is a workflow that:
-    1. Executes within a parent workflow
-    2. Has its own isolated state and store
-    3. Can update the parent workflow's store after completion via post_run_actions
+        | 1. Executes within a parent workflow
+        | 2. Has its own isolated state and store
+        | 3. Can interact with the parent workflow's state before and after execution
+
+    .. code-block:: python
+
+        class ExampleSubFlow(Subflow[SubflowState, SubflowStore, ParentState, ParentStore]):
+            async def pre_run_actions(self, parent_store):
+                parent_state = await parent_store.get_state()
+                await self.store.set_parameter({
+                    "parameter": parent_state.parameter
+                })
+
+            async def post_run_actions(self, parent_store):
+                async def post_run_actions(self, parent_store):
+                    sub_flow_state = await self.get_state()
+                    await parent_store.set_subflow_result(self, sub_flow_state.result)
     """
 
     def __init__(
@@ -257,46 +277,25 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
     @abstractmethod
     async def pre_run_actions(self, parent_store: ParentStoreT) -> None:
         """
-        # Pre Run Actions
         This method is called before the workflow has run.
 
         This is where you can pass initial state values from the parent workflow to the subflow state.
 
-        Example:
-            ```python
-                async def pre_run_actions(self, parent_store):
-                    # Get the parent state
-                    parent_state = await parent_store.get_state()
-
-                    # Pass initial state values from the parent state to the subflow
-                    await self.store.set_state({
-                        "parent_state": parent_state
-                    })
-            ```
-
         Args:
-            parent_store: The parent store to update.
+            parent_store: The parent store to interact with.
+
+        In this example, we are passing a parameter from the parent store to the subflow store, using
+        the subflow's `set_parameter` method, defined in the subflow's store.
         """
         pass
 
     @abstractmethod
     async def post_run_actions(self, parent_store: ParentStoreT) -> None:
         """
-        # Post Run Actions
         This method is called after the workflow has run.
 
         This is where you can update the parent store with the results of the workflow.
         This is useful for subflows that need to update the parent workflow store with their results.
-
-        Example:
-            ```python
-                async def post_run_actions(self, parent_store):
-                    # Get the parent store
-                    sub_flow_state = await self.get_state()
-
-                    # Update the parent store with values from the SubFlow state
-                    await parent_store.set_subflow_result(self, sub_flow_state.result)
-            ```
 
         Args:
             parent_store: The parent store to update.

@@ -1,10 +1,10 @@
 
 
 
-from junjo.condition import Condition
-from junjo.node import Node
-from junjo.store import BaseStore, StateT
-from junjo.workflow import _NestableWorkflow
+from .condition import Condition
+from .node import Node
+from .store import BaseStore, StateT
+from .workflow import _NestableWorkflow
 
 
 class Edge:
@@ -22,16 +22,11 @@ class Edge:
         condition: Condition[StateT] | None = None,
     ):
         """
-        Initializes the Edge.
-
         Args:
             tail: The source node of the edge (where the transition originates).
             head: The destination node of the edge (where the transition leads).
-            condition: An optional function that determines whether the transition
-                       from tail to head should occur.  The function should take
-                       three arguments: the tail node, the head node, and the
-                       current workflow context, and return True if the transition
-                       is valid, False otherwise.
+            condition (Condition[StateT]): An optional function that determines whether the transition
+                       from tail to head should occur. If None, the transition is always valid.
         """
 
         self.tail = tail
@@ -40,10 +35,10 @@ class Edge:
 
     async def next_node(self, store: BaseStore) -> Node | _NestableWorkflow | None:
         """
-        Determines the next node in the workflow based on the edge's condition.
+        Determines the next node in the workflow based on the edge's condition (Condition[StateT]).
 
         Args:
-            context: The current workflow context (a dictionary).
+            store (BaseStore): The store instance to use for resolving the next node.
 
         Returns:
             The next node if the transition is valid, otherwise None.

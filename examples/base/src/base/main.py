@@ -1,16 +1,10 @@
 from base.store import MyGraphState, MyGraphStore
-from junjo.app import JunjoApp
-from junjo.edge import Edge
-from junjo.graph import Graph
-from junjo.node import Node
+from junjo import Condition, Edge, Graph, Node, Workflow
 from junjo.telemetry.hook_manager import HookManager
-from junjo.workflow import Workflow
 
 
 async def main():
     """The main entry point for the application."""
-    # Initialize Junjo
-    JunjoApp(app_name="Base Junjo Example")
 
     # Initialize a store
     initial_state = MyGraphState(items=["apple", "banana", "cherry"], counter=0, warning=False)
@@ -61,8 +55,11 @@ async def main():
             print("Running FinalNode service from initial state: ", state.model_dump())
             return
 
-    async def count_over_10(state: MyGraphState) -> bool:
-        return state.counter > 10
+    class CountOver10Condition(Condition[MyGraphState]):
+        def evaluate(self, state: MyGraphState) -> bool:
+            return state.counter > 10
+
+    count_over_10 = CountOver10Condition()
 
     # Instantiate nodes
     count_node = CountNode()
@@ -82,11 +79,12 @@ async def main():
         ]
     )
 
-    print(f"ReactFlow:\n{graph.to_react_flow().model_dump_json()}\n")
-    print(f"Mermaid:\n{graph.to_mermaid()}")
-    print(f"Graphviz:\n{graph.to_dot_notation()}")
+    # Currently broken
+    # print(f"ReactFlow:\n{graph.to_react_flow().model_dump_json()}\n")
+    # print(f"Mermaid:\n{graph.to_mermaid()}")
+    # print(f"Graphviz:\n{graph.to_dot_notation()}")
 
-    workflow = Workflow(
+    workflow = Workflow[MyGraphState, MyGraphStore](
         name="demo_base_workflow",
         graph=graph,
         store=graph_store,

@@ -5,25 +5,38 @@ from typing import TYPE_CHECKING
 
 from opentelemetry import trace
 
-from junjo.node import Node
-from junjo.store import BaseStore
-from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from junjo.util import generate_safe_id
+from .node import Node
+from .store import BaseStore
+from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from .util import generate_safe_id
 
 if TYPE_CHECKING:
     from junjo.workflow import Subflow
 
 class RunConcurrent(Node):
     """
-    Execute a list of nodes or subflows concurrently using asyncio.gather
+    Execute a list of nodes or subflows concurrently. Under the hood, this uses asyncio.gather
+    to run all items concurrently.
+
+    An instance of RunConcurrent can be added to a workflow's graph the same was as any other node.
     """
 
     def __init__(self, name:str, items: list[Node | Subflow]):
         """
-        Initializes RunConcurrent.
-
         Args:
+            name: The name of this collection of concurrently executed nodes.
             items: A list of nodes or subflows to execute with asyncio.gather.
+
+        .. code-block:: python
+
+            node_1 = NodeOne()
+            node_2 = NodeTwo()
+            node_3 = NodeThree()
+
+            run_concurrent = RunConcurrent(
+                name="Concurrent Execution",
+                items=[node_1, node_2, node_3]
+            )
         """
         super().__init__()
         self.items = items
@@ -45,8 +58,7 @@ class RunConcurrent(Node):
 
     async def service(self, store: BaseStore) -> None:
         """
-        The core logic executed by this RunConcurrent node or subflow.
-        It runs the contained items concurrently.
+        Execute the provided nodes and subflows concurrently using asyncio.gather.
         """
         print(f"Executing concurrent items within {self.name} ({self.id})")
         if not self.items:
@@ -62,7 +74,8 @@ class RunConcurrent(Node):
 
     async def execute(self, store: BaseStore, parent_id: str) -> None:
         """
-        Executes the items in the list.
+        Execute the RunConcurrent node's service function with OpenTelemetry tracing.
+        This method is responsible for tracing and error handling.
 
         Args:
             store: The store to use for the items.

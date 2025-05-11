@@ -14,7 +14,7 @@ def create_avatar_prompt(
 
     # Create the prompt
     return f"""
-Create an ultra-realistic DSLR portrait photo of a person for a social media profile photo
+Create an ultra-realistic iphone-quality and style photo of a person for a social media profile photo
 based on the following information:
 
 Traits: {personality_traits.model_dump_json()}
