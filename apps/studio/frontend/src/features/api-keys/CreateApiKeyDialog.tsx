@@ -91,7 +91,7 @@ export default function CreateApiKeyDialog() {
                 Cancel
               </Button>
               <Button disabled={loading} type="submit">
-                Create User
+                Create Key
               </Button>
             </DialogActions>
           </form>
