@@ -2,27 +2,42 @@
 
 > Japanese Translation: order, sequence, procedure
 
-Junjo is a simple AI Graph Workflow framework for python. It is optimized for telemetry, eval-driven-development (test driven prompt engineering), and type safety with Pydantic.
+Junjo helps you build and debug AI workflows with this Graph Workflow Execution library, and our **optional** companion [junjo-server](https://github.com/mdrideout/junjo-server) telemetry server.
 
-#### Why?
+<img src="./junjo-screenshot.png" width="600" />
 
-Agentic applications use LLMs to determine the order of execution of python functions. These functions may involve LLM requests, API requests, database CRUD operations, etc.
+_junjo-screenshot.png_
 
-The simplest way to organize functions that can be / need to be executed in a certain order is in the form of a directed graph.
+### Features
+
+- Organizes your python functions and LLM calls into executable graph workflows
+- Produces structured opentelemetry logs compatible with **any opentelemetry destination**
+  - Helps you visibly trace AI graph workflow executions
+  - Helps you debug where things go wrong
+  - Optionally utilize **[junjo-server](https://github.com/mdrideout/junjo-server)** for enhanced telemetry visualiations of the graph
+
+Junjo is a decoupled AI Graph Workflow execution framework for python applications. It is optimized for telemetry, eval-driven-development (test driven prompt engineering), concurrent execution with asyncio, and type safety with Pydantic.
+
+Junjo doesn't change how you build your applications, and will not couple you to this framework. Junjo provides building blocks to wrap and organize your existing python functions into scalable, testable, and improvable workflows.
+
+> 
+> There are zero proprietary AI / LLM implementations in Junjo. Use whatever LLM library you want.
+> 
+> All logs produced are opentelemetry compatible. Exusting otel spans are annotated with workflow execution span wrappers.
+> 
+
+It doesn't matter if the functions you add to a Junjo workflow are LLM API calls, database operations, or traditional business logic. You can write your business logic however you want. We just provide a convenient framework for organizing your desired flow into an executable graph.
+
+### Building AI Workflows and Agents as a Graph Workflow
+
+Agentic AI applications use LLMs to determine the order of execution of python functions. These functions may involve LLM requests, API requests, database CRUD operations, etc.
+
+The simplest way to organize functions that can be / need to be executed in a certain order is in the form of a [directed graph](https://en.wikipedia.org/wiki/Directed_graph).
 
 A directed graph gives one the building blocks to create any sort of agentic application, including:
 
-- High precision agentic workflows in the form of a Directed Acyclic Graph (DAG)
-- Autonomous AI Agents in the form of dynamically determined Directed Graphs
-
-#### Alternatives
-
-Alternative python graph execution libraries are too complex. They are great libraries, but with steep learning curves.
-
-- [Burr](https://burr.dagworks.io/) is a highly functional and competetnt graph execution and state machine framework. However, it has problematic asyncio and pydantic implementations. The way concurrency works is highly proprietary and confusing. The telemetry layer is also too proprietary.
-- [PydanticAI Graphs](https://ai.pydantic.dev/graph/) is a newer framework that seems to fix a lot of the early architecture decisions made at Burr. However, it over-complicates graph concepts, and its proprietary PydanticAI telemetry layer for [LogFire](https://pydantic.dev/logfire) is not optimal for visualizing and debugging graphs.
-
-Junjo tries to leverage conventional approachs to directed graphs and finite state machines to avoid any proprietary concepts. 
+- High precision workflows in the form of a Directed Acyclic Graph (DAG)
+- Autonomous AI Agents in the form of dynamically determined directed graphs
 
 ### Priorities
 
@@ -34,12 +49,12 @@ Junjo prioritizes the following capabilities above all else to ensure these thin
 1. Telemetry
 1. Visualization
 1. Type safety (pydantic)
-1. Asyncio and concurrency
+1. Concurrency safe (asyncio)
 
 
-# Contributing
+## Contributing
 
-This project was made with the [uv](https://github.com/astral-sh/uv) python package manager in place of pip.
+This project was made with the [uv](https://github.com/astral-sh/uv) python package manager.
 
 ```bash
 # Setup and activate the virtual environment
@@ -51,6 +66,8 @@ $ uv pip install -e ".[dev,graphviz]"
 ```
 
 ### Graphviz
+
+<mark>Currently Broken</mark>
 
 This project can render junjo Graph objects as images. However, it requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image).
 
