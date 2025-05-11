@@ -40,6 +40,10 @@ $ uv pip install -e .
 $ fastapi dev src/app/main.py
 ```
 
+### Telemetry
+
+Have the [junjo-server](https://github.com/mdrideout/junjo-server?tab=readme-ov-file#docker-commands) running on your machine to see the telemetry and graph visualizations.
+
 ### Clearing the SQLite database
 
 The SQLite database (see `.backend/src/app/db/db_config.py`) should persist inside the `.backend/sqlite-data` folder in this project.

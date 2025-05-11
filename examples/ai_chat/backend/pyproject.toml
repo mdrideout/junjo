@@ -13,7 +13,6 @@ dependencies = [
     "loguru>=0.7.3",
     "nanoid>=2.0.0",
     "sqlalchemy>=2.0.38",
-    "junjo",                                             # TODO: Convert to github link when package is published
     "opentelemetry-instrumentation-sqlalchemy>=0.52b0",
     "opentelemetry-api>=1.31.0",
     "opentelemetry-sdk>=1.31.0",
@@ -21,6 +20,7 @@ dependencies = [
     "opentelemetry-instrumentation-google-genai>=0.1b0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
+    "junjo",
 ]
 
 [tool.ruff]
@@ -41,6 +41,9 @@ ignore = ["B006"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
+
+[tool.uv.sources]
+junjo = { workspace = true }
 
 [dependency-groups]
 dev = ["ruff>=0.9.5"]
