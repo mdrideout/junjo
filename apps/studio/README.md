@@ -2,21 +2,10 @@
 
 This repository contains everything that runs the Junjo telemetry server and user interface.
 
-- Go Echo API and gRPC server
+- Go Echo API and gRPC server [docs](/backend/README.md)
 - Jaeger server
 - Caddy reverse proxy
-- React frontend
-
-## Frontend
-
-- Vite React SPA
-
-## Backend
-
-- GO echo API and grpc telemetry server [docs](/backend/README.md)
-- JWT auth middleware
-- JSON auth database
-- sqlc for queries to the sqlite data
+- React frontend (Vite React SPA)
 
 ## Running The Dev Environment
 
@@ -30,6 +19,8 @@ Caddy is utilized as a reverse proxy to facilitate authentication guarded access
 - It is expected that your virutal machine will have it's own Caddy service running, therefore it is excluded from production builds.
 
 #### .env requirements
+
+See the `.env.example` files in these subdirectories for required environment variables.
 
 - `/backend` .env
 - `/frontend` .env
@@ -56,13 +47,3 @@ $ docker compose down -v
 - Backend API: https://localhost:1323/
 - Jaeger UI: https://localhost/jaeger 
   - This is routed through Caddy reverse proxy forward_auth for authentication via the Backend API's cookie header validation
-
-
-
-## Authentication
-
-The backend is uses a JWT based authentication guard. The users database is a JSON file of email addresses and passwords. Do not check this file into the github repository.
-
-#### Environment Var: SESSION_SECRET
-
-TODO: Document how this is utilized for signing the sessions.
