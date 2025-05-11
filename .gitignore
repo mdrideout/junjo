@@ -179,3 +179,4 @@ src/junjo/telemetry/junjo_server/proto_gen/**.*
 
 # Misc
 .DS_Store
+.gitleaks/**
