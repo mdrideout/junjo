@@ -1,0 +1,24 @@
+name: TruffleHog Secret Scan
+
+on:
+  push: # Run on pushes to any branch
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main # Or your default branch
+
+jobs:
+  trufflehog:
+    name: TruffleHog Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history so TruffleHog can scan the entire history
+
+      # Step 2: Run TruffleHog
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@v3.88.29
