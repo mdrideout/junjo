@@ -46,6 +46,9 @@ Docker compose can be used to launch the frontend and backend together, with hot
 > TIP: `docker compose down -v` is required if node modules or go modules change (installed / uninstalled)
 
 ```bash
+# Create the network (if it does not already exist)
+$ docker network create caddy-proxy-network
+
 # Start the frontend and backend
 $ docker compose up --build
 
