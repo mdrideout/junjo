@@ -1,11 +1,23 @@
-# Junjo Server
+# Junjo 順序 Server
+
+> Japanese Translation: order, sequence, procedure
+
+Junjo Server is an opentelemetry ingestion server and AI graph workflow debugging interface designed to be run with Docker and deployed to a virtual machine.
+
+This is a companion telemetry server for the [Junjo Python SDK](https://github.com/mdrideout/junjo).
+
+<img src="./junjo-screenshot.png" width="600" />
+
+_junjo-screenshot.png_
+
+### Components
 
 This repository contains everything that runs the Junjo telemetry server and user interface.
 
 - Go Echo API and gRPC server [docs](/backend/README.md)
-- Jaeger server
-- Caddy reverse proxy
+- Jaeger server - Junjo comes with a Jaeger server to demonstrate full opentelemetry span compatibility
 - React frontend (Vite React SPA)
+- Authentication via Caddy reverse proxy forward with and session cookies
 
 ## Running The Dev Environment
 
