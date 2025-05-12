@@ -138,13 +138,36 @@ wheels = [
 [[package]]
 name = "base"
 version = "0.1.0"
-source = { editable = "examples/base" }
+source = { virtual = "examples/base" }
 dependencies = [
     { name = "junjo" },
+    { name = "load-dotenv" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "junjo", editable = "." }]
+requires-dist = [
+    { name = "junjo", editable = "." },
+    { name = "load-dotenv", specifier = ">=0.1.0" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "~=0.9.5" },
+]
+provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.9.5" }]
 
 [[package]]
 name = "beautifulsoup4"

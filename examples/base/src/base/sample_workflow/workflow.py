@@ -1,0 +1,22 @@
+
+
+from junjo import Workflow
+from junjo.telemetry.hook_manager import HookManager
+
+from base.sample_workflow.graph import sample_workflow_graph
+from base.sample_workflow.store import SampleWorkflowState, SampleWorkflowStore
+
+# Initialize a store
+initial_state = SampleWorkflowState(items=["apple", "banana", "cherry"], counter=0)
+sample_workflow_store = SampleWorkflowStore(initial_state=initial_state)
+
+# Create the workflow
+sample_workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
+    name="demo_base_workflow",
+    graph=sample_workflow_graph,
+    store=sample_workflow_store,
+    hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
+)
+
+
+
