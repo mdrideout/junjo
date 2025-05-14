@@ -1,4 +1,3 @@
-
 from dotenv import load_dotenv
 
 from base.otel_config import init_otel

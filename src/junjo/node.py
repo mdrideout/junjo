@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Generic
 
 from jsonpatch import JsonPatch
-from loguru import logger
 from opentelemetry import trace
 
 from junjo.store import StoreT
@@ -129,7 +128,7 @@ class Node(Generic[StoreT], ABC):
                 await self.service(store)
 
             except Exception as e:
-                logger.exception("Error executing node service", e)
+                print("Error executing node service", e)
                 span.set_status(trace.StatusCode.ERROR, str(e))
                 span.record_exception(e)
                 raise

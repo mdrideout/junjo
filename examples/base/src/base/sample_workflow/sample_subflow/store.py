@@ -3,7 +3,12 @@ from junjo import BaseState, BaseStore
 
 
 class SampleSubflowState(BaseState):
-    items: list[str]
+    """
+    Sample subflow state.
+
+    Will inherit items from the parent workflow store.
+    """
+    items: list[str] | None = None
     joke: str | None = None
     fact: str | None = None
 

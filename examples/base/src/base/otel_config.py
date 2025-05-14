@@ -1,6 +1,7 @@
 import os
 
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
 from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
@@ -46,3 +47,7 @@ def init_otel(service_name: str):
         resource=resource, metric_readers=[junjo_server_metric_reader]
     )
     metrics.set_meter_provider(meter_provider)
+
+    # Instrument OpenInference Libraries
+    # Google genai
+    GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)

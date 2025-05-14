@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from types import NoneType
 from typing import TYPE_CHECKING, Generic
 
-from loguru import logger
 from opentelemetry import trace
 
 from .node import Node
@@ -79,7 +78,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         """
         Executes the workflow.
         """
-        logger.info(f"Executing workflow: {self.name} with ID: {self.id}")
+        print(f"Executing workflow: {self.name} with ID: {self.id}")
 
         # TODO: Test that the sink node can be reached
 
@@ -166,7 +165,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     current_executable = await self.graph.get_next_node(self.store, current_executable)
 
 
-                logger.info(f"Completed workflow: {self.name} with ID: {self.id}")
+                print(f"Completed workflow: {self.name} with ID: {self.id}")
 
                 # Perform subflow post-run actions
                 if isinstance(self, Subflow):
@@ -177,7 +176,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         await self.post_run_actions(parent_store)
 
             except Exception as e:
-                logger.error(f"Error executing workflow: {e}")
+                print(f"Error executing workflow: {e}")
                 span.set_status(trace.StatusCode.ERROR, str(e))
                 span.record_exception(e)
 

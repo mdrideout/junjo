@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Development example for junjo"
 requires-python = ">=3.11"
 dependencies = [
+  "google-genai>=1.3.0",
   "junjo", # TODO: Convert to github link when package is published
   "load-dotenv>=0.1.0",
+  "openinference-instrumentation-google-genai>=0.1.1",
 ]
 
 [project.optional-dependencies]
