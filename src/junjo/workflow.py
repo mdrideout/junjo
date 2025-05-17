@@ -103,7 +103,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 span.set_attribute("junjo.parent_id", parent_id)
 
             if parent_store is not None and parent_store.id is not None:
-                span.set_attribute("junjo.parent_store.id", parent_store.id)
+                span.set_attribute("junjo.workflow.parent_store.id", parent_store.id)
 
             # If executing a subflow, run pre-run actions
             if isinstance(self, Subflow):
