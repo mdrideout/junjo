@@ -4,6 +4,10 @@
 
 Junjo helps you build and debug AI workflows with this Graph Workflow Execution library, and our **optional** companion [junjo-server](https://github.com/mdrideout/junjo-server) telemetry server.
 
+- [Python API Docs](https://python-api.junjo.ai/)
+- [PyPI](https://pypi.org/project/junjo/)
+
+
 <img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png" width="600" />
 
 _junjo-screenshot.png_
