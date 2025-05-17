@@ -24,10 +24,10 @@
    Base Example <https://github.com/mdrideout/junjo/tree/main/examples/base>
    AI Chat <https://github.com/mdrideout/junjo/tree/main/examples/ai_chat>
 
-Junjo Python SDK
-====================
+Junjo 順序 - Python API Reference
+==================================
 
-Junjo is a python library for building dynamic AI powered graph workflows. `Junjo on PyPI <https://pypi.org/project/junjo/>`_
+`Junjo on PyPI <https://pypi.org/project/junjo/>`_
 
 Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
 

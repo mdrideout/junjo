@@ -21,7 +21,7 @@ Basic Usage
 
 The following is a basic, single file example of how to use Junjo to create a simple workflow. This example demonstrates the basic concepts of defining a workflow, creating nodes and edges, and executing the workflow.
 
-More advanced examples can be found in the `examples` directory of the Junjo repository.
+More advanced examples can be found in the `examples directory <https://github.com/mdrideout/junjo/tree/main/examples>`_ of the Junjo repository.
 
 .. code-block:: python
 
