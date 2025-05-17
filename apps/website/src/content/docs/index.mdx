@@ -1,19 +1,15 @@
 ---
-title: Junjo AI
+title: Junjo 順序 AI
 description: Simple AI Graph Workflows + Telemetry
 template: splash
 hero:
-  tagline: Simple Open Source AI Graph Workflows + Telemetry<br />Coming Soon.
+  tagline: Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
   image:
-    file: ../../assets/graph-of-neural-networks.webp
+    file: https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png
   actions:
-    - text: Explore
-      link: /#
-      icon: right-arrow
     - text: Read the docs
-      link: /#
+      link: https://python-api.junjo.ai/
       icon: external
-      variant: minimal
 ---
 
 import { Card, CardGrid } from "@astrojs/starlight/components";
@@ -21,16 +17,17 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
 ## Features
 
 <CardGrid stagger>
-  <Card title="Testable" icon="pencil">
-    AI workflows that are consistent and testable.
+  <Card title="Eval Driven Development" icon="approve-check-circle">
+    Use pytest to test each workflow node against unlimited test inputs and outputs, with asserts and LLM powered evals.
   </Card>
-  <Card title="Telemetry" icon="add-document">
-    Visualize your graph's execution with granular traces.
+  <Card title="OpenTelemetry Native" icon="seti:plan">
+    Execution traces are grouped into workflows and nodes. Optional self-hostable [companion telemetry server](https://github.com/mdrideout/junjo-server).
   </Card>
-  <Card title="Library + UI" icon="setting">
-    Self-host the companion UI.
+  <Card title="State Management" icon="seti:json">
+    Redux-inspired state management for your workflows. Use [Junjo Server](https://github.com/mdrideout/junjo-server) to visually step through workflow state
+    changes.
   </Card>
   <Card title="Read the docs" icon="open-book">
-    Learn more in [the docs](#).
+    Check out the Python library API [the docs](https://python-api.junjo.ai/). Find [Junjo on PyPI](https://pypi.org/project/junjo/).
   </Card>
 </CardGrid>
