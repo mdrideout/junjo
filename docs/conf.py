@@ -36,7 +36,7 @@ html_theme_options = {
     #      "color-brand-primary": "orange",
     #     "color-brand-content": "#FF8800",
     # },
-    # "sidebar_hide_name": False,  # Show the project name in the sidebar
+    "sidebar_hide_name": False,  # Show the project name in the sidebar
     # "navigation_with_keys": True, # Allow navigation with arrow keys
     # "announcement": "<em>Important</em> announcement!",  # Add a banner at the top
 }
