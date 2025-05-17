@@ -33,6 +33,11 @@ Junjo is a modern Python library for designing, executing, testing, and debuggin
 
 Whether you're building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges.
 
+.. image:: https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png
+   :alt: Descriptive text for the image
+   :align: center
+   :width: 600px
+
 Junjo remains decoupled from any specific AI model or framework. Simply wrap your existing business logic in a Junjo node, organize them into a Graph with conditional edges, and then execute the graph. Junjo will handle the rest, including task orchestration, error handling, and logging to any OpenTelemetry destination.
 
 Junjo's optional companion library, `Junjo Server <https://github.com/mdrideout/junjo-server>`_, provides additional features for observing graph execution telemetry, and visually stepping through state changes made by each node. This is particularly useful for debugging complex workflows or understanding how data flows through your application.
