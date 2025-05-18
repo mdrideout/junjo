@@ -16,12 +16,9 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
   )
-
-  // Return test span for now
-  console.log('Re-rendering RenderJunjoGraphList')
 
   return workflowChain.map((workflowSpan) => {
     // Parse mermaid flow string

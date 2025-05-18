@@ -32,7 +32,6 @@ startListener({
     // Fetch the data
     try {
       const data = await fetchUsers()
-      console.log('Fetched data:', data)
       dispatch(UsersStateActions.setUsers(data))
     } catch (error) {
       dispatch(UsersStateActions.setError(true))

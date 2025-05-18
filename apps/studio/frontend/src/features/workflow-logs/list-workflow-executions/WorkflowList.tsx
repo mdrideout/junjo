@@ -8,15 +8,11 @@ import {
 import { RootState } from '../../../root-store/store'
 import { useEffect } from 'react'
 import { OtelStateActions } from '../../otel/store/slice'
-import { useNavigate } from 'react-router'
-import { getSpanDurationString } from '../../../util/duration-utils'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 import WorkflowListRow from './WorkflowListItem'
 
 export default function WorkflowsList() {
   const { serviceName } = useParams<{ serviceName: string }>()
   const dispatch = useAppDispatch()
-  const navigate = useNavigate()
 
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)

@@ -4,8 +4,8 @@ import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
-import { identifyWorkflowChain, selectAllWorkflowChildSpans } from '../features/otel/store/selectors'
-import { JunjoSetStateEventSchema, JunjoSpanType } from '../features/otel/store/schemas'
+import { identifyWorkflowChain, selectAllSpanChildSpans } from '../features/otel/store/selectors'
+import { JunjoSpanType } from '../features/otel/store/schemas'
 import { WorkflowDetailStateActions } from '../features/workflow-logs/workflow-detail/store/slice'
 
 interface RenderJunjoGraphMermaidProps {
@@ -32,7 +32,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
   )
 
@@ -40,14 +40,14 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
     [serviceName, workflowSpanID],
   )
 
   // Get all spans for this workflow
   const workflowChildSpans = useAppSelector((state: RootState) =>
-    selectAllWorkflowChildSpans(state, selectorProps),
+    selectAllSpanChildSpans(state, selectorProps),
   )
   const nodeSpans = workflowChildSpans.filter(
     (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
@@ -99,25 +99,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         // Get the span with the junjo.id that matches the junjoID
         const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
-          console.log('Clicked span:', clickedSpan)
-
-          // Set the active span to the clicked span
-          dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
-
-          // Set the active SetState event to the first event in this node
-          const spanStateEvent = clickedSpan.events_json[0]
-          if (spanStateEvent) {
-            // Validate the events_json structure
-            const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
-            if (validated.success) {
-              const stateEvent = validated.data
-              console.log('Setting active state event:', stateEvent)
-              dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
-            }
-          }
-
-          // Scroll to the span
-          dispatch(WorkflowDetailStateActions.setScrollToSpanId(clickedSpan.span_id))
+          dispatch(WorkflowDetailStateActions.handleSetActiveSpan(clickedSpan))
         }
       } else {
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
@@ -138,11 +120,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         // Get the span with the junjo.id that matches the junjoID
         const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
-          console.log('Clicked Subflow span:', clickedSpan)
-          dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
-
-          // Scroll to the span
-          dispatch(WorkflowDetailStateActions.setScrollToSpanId(clickedSpan.span_id))
+          dispatch(WorkflowDetailStateActions.handleSetActiveSpan(clickedSpan))
         }
       } else {
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
@@ -177,7 +155,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       try {
         const svgId = `mermaid-svg-${mermaidUniqueId}` // Unique ID for the SVG itself
 
-        console.log('Rendering the mermaid diagram.')
         // mermaid.render will use the theme set by mermaid.initialize()
         mermaid
           .render(svgId, mermaidFlowString)

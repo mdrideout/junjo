@@ -50,7 +50,7 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
     [serviceName, workflowSpanID],
   )

@@ -18,7 +18,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
     [serviceName, workflowSpanID],
   )
@@ -34,7 +34,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   const span = useAppSelector((state: RootState) =>
     selectStateEventParentSpan(state, {
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
       stateEventId: activeSetStateEvent?.attributes.id,
     }),
   )
@@ -78,7 +78,8 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   }
 
   return (
-    <div className={'flex gap-x-1 -mt-[1px]'}>
+    <div className={'flex gap-x-2 -mt-[1px]'}>
+      ({activePatchIndex + 1} / {workflowStateEvents.length}) &mdash;{' '}
       <button
         className={
           'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'
@@ -88,7 +89,6 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
       >
         <ArrowLeftIcon />
       </button>
-
       <button
         className={
           'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'

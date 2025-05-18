@@ -6,6 +6,7 @@ import usersSlice from '../features/users/slice'
 import { usersStateListenerMiddleware } from '../features/users/listeners'
 import { apiKeysReducer } from '../features/api-keys/slice'
 import { apiKeysStateListenerMiddleware } from '../features/api-keys/listeners'
+import { workflowDetailListenerMiddleware } from '../features/workflow-logs/workflow-detail/store/listeners'
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
       // Listener middleware must be prepended
       .prepend(
         otelStateListenerMiddleware.middleware,
+        workflowDetailListenerMiddleware.middleware,
         usersStateListenerMiddleware.middleware,
         apiKeysStateListenerMiddleware.middleware,
       ),

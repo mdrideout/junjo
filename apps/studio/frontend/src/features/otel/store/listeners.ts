@@ -33,7 +33,6 @@ startListener({
     // Fetch the data
     try {
       const data = await fetchOtelSpans(serviceName)
-      console.log('Fetched data:', data)
       dispatch(OtelStateActions.setWorkflowsData({ serviceName, data }))
     } catch (error) {
       dispatch(OtelStateActions.setWorkflowsError(true))

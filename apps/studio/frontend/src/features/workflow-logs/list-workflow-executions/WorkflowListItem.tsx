@@ -25,7 +25,7 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
   const selectorProps = useMemo(
     () => ({
       serviceName: workflowSpan.service_name,
-      workflowSpanID: workflowSpan.span_id,
+      spanID: workflowSpan.span_id,
     }),
     [workflowSpan.service_name, workflowSpan.span_id],
   )

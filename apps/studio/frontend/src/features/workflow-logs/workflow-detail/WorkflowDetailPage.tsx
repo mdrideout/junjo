@@ -21,13 +21,12 @@ export default function WorkflowDetailPage() {
   const loading = useAppSelector(selectWorkflowsLoading)
   const error = useAppSelector(selectWorkflowsError)
   const span = useAppSelector((state: RootState) =>
-    selectWorkflowSpan(state, { serviceName, workflowSpanID }),
+    selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID }),
   )
 
   // Fetch the data if the workflow span ID is not found
   useEffect(() => {
     if (!span) {
-      console.log('Fetching workflows data to get span...')
       dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
     }
   }, [serviceName, workflowSpanID, span])
@@ -48,8 +47,6 @@ export default function WorkflowDetailPage() {
 
   // Parse duration
   const durationString = getSpanDurationString(span.start_time, span.end_time)
-
-  console.log('Re-rendering WorkflowDetailPage')
 
   return (
     <div className={'px-3 py-4 flex flex-col h-dvh overflow-hidden'}>

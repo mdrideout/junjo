@@ -1,7 +1,7 @@
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllWorkflowChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
+import { selectAllSpanChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
 import { useEffect, useMemo, useRef } from 'react'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
 import { SpanIconConstructor } from './determine-span-icon'
@@ -21,13 +21,13 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
     [serviceName, workflowSpanID],
   )
 
   const events = useAppSelector((state: RootState) => selectAllWorkflowStateEvents(state, selectorProps))
-  const spans = useAppSelector((state: RootState) => selectAllWorkflowChildSpans(state, selectorProps))
+  const spans = useAppSelector((state: RootState) => selectAllSpanChildSpans(state, selectorProps))
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )

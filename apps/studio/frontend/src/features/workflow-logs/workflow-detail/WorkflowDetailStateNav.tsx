@@ -31,7 +31,7 @@ export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProp
         {atts['junjo.store.name']} &rarr; {atts['junjo.store.action']} &rarr; {atts.id}
       </div>
       <div className={'font-mono flex items-center gap-x-2'}>
-        {start_micro} &mdash;{' '}
+        {start_micro}
         <WorkflowStateEventNavButtons serviceName={serviceName} workflowSpanID={workflowSpanID} />
       </div>
     </div>

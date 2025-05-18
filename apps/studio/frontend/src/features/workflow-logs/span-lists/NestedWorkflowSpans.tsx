@@ -6,7 +6,7 @@ import {
   isoStringToMicrosecondsSinceEpoch,
   nanoSecondsToMicrosecons,
 } from '../../../util/duration-utils'
-import { selectAllWorkflowChildSpans } from '../../otel/store/selectors'
+import { selectAllSpanChildSpans } from '../../otel/store/selectors'
 import { SpanIconConstructor } from './determine-span-icon'
 import { JSX, useEffect, useMemo, useRef } from 'react'
 import {
@@ -48,13 +48,13 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      workflowSpanID,
+      spanID: workflowSpanID,
     }),
     [serviceName, workflowSpanID],
   )
 
   // 2. Use the memoized props object in useAppSelector
-  const spans = useAppSelector((state: RootState) => selectAllWorkflowChildSpans(state, selectorProps))
+  const spans = useAppSelector((state: RootState) => selectAllSpanChildSpans(state, selectorProps))
   // Sort the spans by start time
   spans.sort((a, b) => {
     const aTime = isoStringToMicrosecondsSinceEpoch(a.start_time)
@@ -220,30 +220,8 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                       <button
                         className={`cursor-pointer text-left hover:underline`}
                         onClick={() => {
-                          // Set as the active span
-                          dispatch(WorkflowDetailStateActions.setActiveSpan(row.data))
-
-                          // Set the active SetState event to the first event in this node
-                          const spanStateEvent = row.data.events_json[0]
-                          if (spanStateEvent) {
-                            // Validate the events_json structure
-                            const validated = JunjoSetStateEventSchema.safeParse(spanStateEvent)
-                            if (!validated.success) {
-                              console.error('Invalid state event structure:', validated.error)
-                              return
-                            }
-                            const stateEvent = validated.data
-                            console.log('Setting active state event:', stateEvent)
-                            dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(stateEvent))
-
-                            // Scroll to the active state event
-                            dispatch(
-                              WorkflowDetailStateActions.setScrollToStateEventId(stateEvent.attributes.id),
-                            )
-                          } else {
-                            // set the active set state event to null
-                            dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
-                          }
+                          console.log('Clicked span:', row.data.name)
+                          dispatch(WorkflowDetailStateActions.handleSetActiveSpan(row.data))
                         }}
                       >
                         {row.data.name}

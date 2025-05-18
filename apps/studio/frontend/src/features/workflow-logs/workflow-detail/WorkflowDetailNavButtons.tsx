@@ -16,10 +16,10 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
   const dispatch = useAppDispatch()
 
   const prevSpanID = useAppSelector((state: RootState) =>
-    selectPrevWorkflowSpanID(state, { serviceName, workflowSpanID }),
+    selectPrevWorkflowSpanID(state, { serviceName, spanID: workflowSpanID }),
   )
   const nextSpanID = useAppSelector((state: RootState) =>
-    selectNextWorkflowSpanID(state, { serviceName, workflowSpanID }),
+    selectNextWorkflowSpanID(state, { serviceName, spanID: workflowSpanID }),
   )
 
   const disablePrev = prevSpanID === undefined
