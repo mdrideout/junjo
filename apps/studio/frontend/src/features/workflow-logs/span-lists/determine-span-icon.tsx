@@ -4,7 +4,6 @@ import {
   CubeIcon,
   Square3Stack3DIcon,
   Squares2X2Icon,
-  ChatBubbleLeftEllipsisIcon,
   CircleStackIcon,
   QuestionMarkCircleIcon,
   SparklesIcon,
