@@ -124,14 +124,13 @@ export const selectFirstStateEventInSpanOrChildren = createSelector(
       // Basic check if events_json exists and is an array
       if (Array.isArray(span.events_json)) {
         span.events_json.forEach((event) => {
-          try {
-            // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
-            const parsedEvent = JunjoSetStateEventSchema.parse(event)
-            stateEvents.push(parsedEvent)
-          } catch (error) {
-            // Consider less noisy logging or specific handling
-            console.error('Error parsing event in selector:', error)
+          // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
+          const parsedEvent = JunjoSetStateEventSchema.safeParse(event)
+          if (!parsedEvent.success) {
+            console.error('Error parsing event in selector:', parsedEvent.error)
+            return
           }
+          stateEvents.push(parsedEvent.data)
         })
       }
     })
