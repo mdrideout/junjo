@@ -18,6 +18,8 @@ import {
 } from '../../otel/store/schemas'
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
+import { Link } from 'react-router'
 
 interface NestedWorkflowSpansProps {
   serviceName: string
@@ -201,6 +203,11 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         return event.attributes && event.attributes['exception.type'] !== undefined
       })
 
+      // Create Jaeger Deep Link to the span
+      const traceId = row.data.trace_id
+      const spanId = row.data.span_id
+      const jaegerDeepLink = `${window.location.protocol}//${window.location.hostname}/jaeger/trace/${traceId}?uiFind=${spanId}`
+
       return (
         <Fragment key={`nested-span-${row.data.span_id}-${layer}`}>
           <div
@@ -216,17 +223,27 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
                   <div className={'flex gap-x-2 items-center'}>
                     {/* Workflow Spans Get Clickable Titles */}
                     {!nonWorkflowNodeSpan ? (
-                      <button
-                        className={`cursor-pointer text-left hover:underline`}
-                        onClick={() => {
-                          console.log('Clicked span:', row.data.name)
-                          dispatch(WorkflowDetailStateActions.handleSetActiveSpan(row.data))
-                        }}
-                      >
-                        {row.data.name}
-                      </button>
+                      <div className={'flex gap-x-2 items-center'}>
+                        <button
+                          className={`cursor-pointer text-left hover:underline`}
+                          onClick={() => {
+                            console.log('Clicked span:', row.data.name)
+                            dispatch(WorkflowDetailStateActions.handleSetActiveSpan(row.data))
+                          }}
+                        >
+                          {row.data.name}
+                        </button>
+                        <Link to={jaegerDeepLink} target={'_blank'} title={'Open in Jaeger'}>
+                          <MagnifyingGlassIcon className={'size-4 cursor-pointer'} />
+                        </Link>
+                      </div>
                     ) : (
-                      <div>{row.data.name}</div>
+                      <div className={'flex gap-x-2 items-center'}>
+                        <span>{row.data.name}</span>
+                        <Link to={jaegerDeepLink} target={'_blank'} title={'Open in Jaeger'}>
+                          <MagnifyingGlassIcon className={'size-4 cursor-pointer'} />
+                        </Link>
+                      </div>
                     )}
 
                     {hasExceptions && (
