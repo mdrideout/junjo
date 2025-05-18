@@ -86,7 +86,6 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   useEffect(() => {
     if (scrollToStateEventId && scrollableContainerRef.current) {
       const targetStateEventId = `#nested-state-patch-${scrollToStateEventId}`
-      console.log(`Scrolling to state event: ${targetStateEventId}`)
       const targetElement = scrollableContainerRef.current.querySelector(targetStateEventId)
       if (targetElement) {
         targetElement.scrollIntoView({

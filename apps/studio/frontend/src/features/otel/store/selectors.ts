@@ -352,7 +352,6 @@ export const selectActiveSpansWorkflowSpan = createSelector(
       // if not, get the parent span and recursively call this function to check it
       const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
       if (parentSpan) {
-        console.log("Parent span found, checking recursively if it's a workflow span...")
         return recursivelyCheckParentSpansForWorkflowSpan(parentSpan)
       }
 
@@ -508,7 +507,6 @@ const workflowChainListEquality = (prevList: OtelSpan[], nextList: OtelSpan[]) =
     if (prevList[i].span_id !== nextList[i].span_id) return false
   }
   // If all checks pass, the lists are equal
-  console.log('Workflow chain lists are equal.')
   return true
 }
 

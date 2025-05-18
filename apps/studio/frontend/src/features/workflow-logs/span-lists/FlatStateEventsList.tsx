@@ -48,7 +48,6 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
   useEffect(() => {
     if (scrollToStateEventId && scrollableContainerRef.current) {
       const targetStateEventId = `#flat-state-patch-${scrollToStateEventId}`
-      console.log(`Scrolling to state event: ${targetStateEventId}`)
       const targetElement = scrollableContainerRef.current.querySelector(targetStateEventId)
       if (targetElement) {
         targetElement.scrollIntoView({

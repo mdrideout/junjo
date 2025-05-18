@@ -124,7 +124,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   const activeStoreStateEvents = useAppSelector((state: RootState) =>
     selectSetStateEventsByStoreID(state, activeWorkflowSelectorProps),
   )
-  console.log('Active Workflow State Events: ', activeStoreStateEvents)
 
   // The starting state of the active workflow
   // Used for accumulating patches
@@ -192,9 +191,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
    * @returns {[Record<string, any>, Record<string, any>]} - before / after state
    */
   const accumulateStatePathesToIndex = (patchIndex: number): [Record<string, any>, Record<string, any>] => {
-    console.log(`Active workflow store id: ${activeStoreID}`)
-    console.log(`Accumulating patches on top of starting state: `, workflowStateStart)
-
     // If there are no patches, just set the original state
     if (activeStoreStateEvents.length === 0) {
       return [workflowStateStart, workflowStateStart]
@@ -215,9 +211,9 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
       const patchString = thisEvent.attributes['junjo.state_json_patch']
       const patch = JSON.parse(patchString)
-      console.log(`Patch ${i} of ${patchIndex}`)
-      console.log('Patch string: ', patchString)
-      console.log('Patch: ', patch)
+      // console.log(`Patch ${i} of ${patchIndex}`)
+      // console.log('Patch string: ', patchString)
+      // console.log('Patch: ', patch)
 
       // Apply to after state
       afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
@@ -242,10 +238,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     //       OTHERWISE, the ux diffs may not make sense.
     //       Spans with no state events have the same before / after state (equal to the AFTER state of the most recent prior state event)
     if (!activeSetStateEvent) {
-      console.log(
-        'No active set state event, using the most recent before active span state event: ',
-        beforeActiveSpanStateEvent,
-      )
       // The index of the set state event that occurs just prior to the active span, in the list of state events for the active workflow's store
       const indexOfBeforeActiveSpanSetStateEventInsideActiveStore = activeStoreStateEvents.findIndex(
         (event) => event.attributes.id === beforeActiveSpanStateEvent?.attributes.id,
@@ -253,7 +245,6 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       const [_before, after] = accumulateStatePathesToIndex(
         indexOfBeforeActiveSpanSetStateEventInsideActiveStore,
       )
-      console.log('Accumulated before / after state: ', _before, after)
       setBeforeJson(after)
       setAfterJson(after)
       return

@@ -91,8 +91,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       // Get the ID from the mermaid element
       const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
       if (junjoID) {
-        console.log('Clicked junjo ID:', junjoID)
-
         // Set the active SetState event to the first event in this node
         dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
@@ -209,7 +207,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     if (activeSpan) {
       // Construct the base ID prefix we expect
       const baseTargetId = `flowchart-${activeSpan.junjo_id}`
-      console.log('Attempting to find active node starting with ID:', baseTargetId)
 
       // Use querySelector with an attribute "starts with" selector [id^=...]
       // Query within the specific svgContainerRef.current for better scoping
@@ -218,7 +215,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
       if (activeNode && activeNode.classList.contains('node')) {
         // Extra check that it's a node group
-        console.log('Found activeNode element:', activeNode.id)
         activeNode.classList.add('mermaid-node-active')
 
         // Scroll to the active node
