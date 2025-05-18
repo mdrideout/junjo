@@ -34,8 +34,8 @@ Junjo is a modern Python library for designing, executing, testing, and debuggin
 
 Whether you're building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges.
 
-.. image:: https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png
-   :alt: Descriptive text for the image
+.. image:: _static/junjo-screenshot.png
+   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo Server
    :align: center
    :width: 600px
 

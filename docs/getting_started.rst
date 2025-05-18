@@ -21,6 +21,13 @@ Basic Usage
 
 The following is a basic, single file example of how to use Junjo to create a simple workflow. This example demonstrates the basic concepts of defining a workflow, creating nodes and edges, and executing the workflow.
 
+.. image:: _static/junjo-base-example-screenshot.png
+   :alt: Example telemetry visualization of the getting started example
+   :align: center
+   :width: 75%
+
+*The above screenshot shows the telemetry visualization of this getting started example. Visually step through the workflow nodes and individual state updates.*
+
 More advanced examples can be found in the `examples directory <https://github.com/mdrideout/junjo/tree/main/examples>`_ of the Junjo repository.
 
 .. code-block:: python

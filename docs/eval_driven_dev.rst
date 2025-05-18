@@ -5,7 +5,7 @@ Eval-Driven Development
 
 Eval-Driven Development (EDD) is a critical development strategy for applications powered by Large Language Models (LLMs). This practice places continuous and rigorous evaluation at the heart of the development lifecycle.
 
-EDD accelerates complex workflow development by allowing one to iterate on their LLM prompts with many test inputs, and immediately see how the prompt changes impact the evaluation results.
+Junjo accelerates EDD and complex workflow development by allowing one to iterate on their LLM prompts with many test inputs, and immediately see how the prompt changes impact the evaluation results.
 
 .. image:: _static/pytest-eval-driven-development-example.gif
    :alt: Animated demo of eval-driven pytest execution and results
@@ -14,10 +14,17 @@ EDD accelerates complex workflow development by allowing one to iterate on their
 
 *The above example demonstrates a simple pytest execution that gives pass / fail rates for a set of test inputs evaluating against a Junjo node.*
 
+Powered by pytest
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- Evaluate / Judge the output of your Junjo workflows and nodes with LLMs
 - Test individual nodes
 - Test entire workflows
-- Just use **pytest**
-- No third party tools or platforms are required - everything happens directly in your codebase
+- Automate testing with CI / CD pipelines
+- Run on-demand as you iterate on your workflows
+- It just uses **pytest**!
+- Use tools like pytest-harvest to gather and track test results
+- No proprietary tools or testing platforms are required - everything happens directly in your codebase
 
 Pytest executions can initialize an input state for the node, and analyze the results after the node executes its set_state updates.
 
@@ -25,6 +32,8 @@ Library Example
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Check out :code:`src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
+
+- `Github link to test example <https://github.com/mdrideout/junjo/tree/main/examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test>`_
 
 - It uses a combination of asserts and live LLM evaluations
 - This example uses Gemini to evaluate the results of the `create_joke_node` against several test inputs inside `test_cases.py`
