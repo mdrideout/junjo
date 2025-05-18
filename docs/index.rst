@@ -4,6 +4,7 @@
    :hidden:
 
    getting_started
+   eval_driven_dev
    api
 
 .. toctree::
@@ -53,3 +54,8 @@ API Reference
 -------------
 
 See the :doc:`api` page for the full API reference.
+
+Eval-Driven Development
+------------------------
+
+See the :doc:`eval_driven_dev` page for more information on how to use Junjo for eval-driven development.

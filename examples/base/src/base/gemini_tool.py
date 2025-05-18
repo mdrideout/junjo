@@ -1,7 +1,12 @@
 import os
+from typing import TypeVar
 
 from google import genai
+from google.genai import types
+from pydantic import BaseModel
 
+# Define a TypeVar bound to BaseModel for the schema request
+T = TypeVar("T", bound=BaseModel)
 
 class GeminiTool:
     """A tool for making requests to the Google Gemini LLM via the google genai library."""
@@ -49,3 +54,32 @@ class GeminiTool:
             raise ValueError("No text in response")
 
         return text.strip()
+
+    async def schema_request(self, schema: type[T]) -> T:
+        """
+        Sends a request to the Gemini AI model and validates, returns a Pydantic model.
+
+        Args:
+            schema (Type[T]): (BaseModel bound) The Pydantic model class to validate against.
+
+        Docs: https://ai.google.dev/gemini-api/docs/migrate#json_response
+        """
+        print(f"Making schema request with prompt: {self._prompt}")
+
+        response = await self._client.aio.models.generate_content(
+            model=self._model,
+            contents=self._prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=500, temperature=2, response_mime_type="application/json", response_schema=schema
+            ),
+        )
+        print(f"Raw response: {response}")
+
+        schema_response = response.parsed
+        if schema_response is None:
+            print(f"Parsed schema response is None: {response}")
+
+        # Validate again using the provided model
+        validated = schema.model_validate(schema_response)
+
+        return validated
