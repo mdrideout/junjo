@@ -14,7 +14,7 @@ import {
   selectWorkflowSpanByStoreID,
 } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
-import { OtelSpan } from '../../otel/store/schemas'
+import { OtelSpan } from '../../otel/schemas/schemas'
 import SpanExceptionsList from './SpanExceptionsList'
 
 enum DiffTabOptions {

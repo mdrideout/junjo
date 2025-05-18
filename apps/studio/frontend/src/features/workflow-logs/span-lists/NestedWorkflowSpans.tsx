@@ -1,13 +1,8 @@
 import { Fragment } from 'react/jsx-runtime'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import {
-  getSpanDurationString,
-  isoStringToMicrosecondsSinceEpoch,
-  nanoSecondsToMicrosecons,
-} from '../../../util/duration-utils'
+import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
 import { selectAllSpanChildSpans } from '../../otel/store/selectors'
-import { SpanIconConstructor } from './determine-span-icon'
 import { JSX, useEffect, useMemo, useRef } from 'react'
 import {
   JunjoSpanType,
@@ -15,11 +10,9 @@ import {
   JunjoSetStateEvent,
   JunjoSetStateEventSchema,
   OtelSpan,
-} from '../../otel/store/schemas'
+} from '../../otel/schemas/schemas'
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
-import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
-import { Link } from 'react-router'
 import NestedSpanRow from './NestedSpanRow'
 
 interface NestedWorkflowSpansProps {

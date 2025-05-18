@@ -6,7 +6,7 @@ import {
   JunjoSetStateEventSchema,
   JunjoSpanType,
   OtelSpan,
-} from './schemas'
+} from '../schemas/schemas'
 import { isoStringToMicrosecondsSinceEpoch } from '../../../util/duration-utils'
 
 // Base Selector

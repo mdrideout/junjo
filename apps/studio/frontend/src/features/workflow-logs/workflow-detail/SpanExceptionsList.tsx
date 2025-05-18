@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useAppDispatch } from '../../../root-store/hooks'
-import { OtelSpan } from '../../otel/store/schemas'
+import { OtelSpan } from '../../otel/schemas/schemas'
 import { SpanIconConstructor } from '../span-lists/determine-span-icon'
 import { WorkflowDetailStateActions } from './store/slice'
 

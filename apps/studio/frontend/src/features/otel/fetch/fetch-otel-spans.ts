@@ -1,4 +1,4 @@
-import { WorkflowSpansE2EResponse, WorkflowSpansE2EResponseSchema } from '../store/schemas'
+import { WorkflowSpansE2EResponse, WorkflowSpansE2EResponseSchema } from '../schemas/schemas'
 
 export const fetchOtelSpans = async (serviceName: string): Promise<WorkflowSpansE2EResponse> => {
   const response = await fetch(`http://localhost:1323/workflow-spans-e2e/${serviceName}`, {

@@ -1,5 +1,5 @@
 import { JSX } from 'react'
-import { JunjoSpanType, OtelSpan } from '../../otel/store/schemas'
+import { JunjoSpanType, OtelSpan } from '../../otel/schemas/schemas'
 import {
   CubeIcon,
   Square3Stack3DIcon,
@@ -7,7 +7,9 @@ import {
   ChatBubbleLeftEllipsisIcon,
   CircleStackIcon,
   QuestionMarkCircleIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/solid'
+import { OpenInferenceSpanKind } from '../../otel/schemas/attribute-schemas-openinference'
 
 /**
  * Span Icon Constructor
@@ -50,10 +52,14 @@ export function SpanIconConstructor(props: {
     return <CircleStackIcon className={`${size} ${iconColor}`} />
   }
 
-  // AI Span
-  // Gemini: gen_ai.system
+  // OpenTelemetry Genai Attributes: gen_ai.system
   if (attributes['gen_ai.system']) {
-    return <ChatBubbleLeftEllipsisIcon className={`${size} ${iconColor}`} />
+    return <SparklesIcon className={`${size} ${iconColor}`} />
+  }
+
+  // OpenInference LLM Attributes
+  if (attributes['openinference.span.kind'] === OpenInferenceSpanKind.LLM) {
+    return <SparklesIcon className={`${size} ${iconColor}`} />
   }
 
   // Default

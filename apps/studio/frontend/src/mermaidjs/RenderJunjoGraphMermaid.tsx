@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
 import { identifyWorkflowChain, selectAllSpanChildSpans } from '../features/otel/store/selectors'
-import { JunjoSpanType } from '../features/otel/store/schemas'
+import { JunjoSpanType } from '../features/otel/schemas/schemas'
 import { WorkflowDetailStateActions } from '../features/workflow-logs/workflow-detail/store/slice'
 
 interface RenderJunjoGraphMermaidProps {

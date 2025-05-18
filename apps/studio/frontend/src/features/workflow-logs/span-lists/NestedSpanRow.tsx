@@ -1,10 +1,11 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { useAppDispatch } from '../../../root-store/hooks'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import { JunjoSpanType, OtelSpan } from '../../otel/store/schemas'
+import { JunjoSpanType, OtelSpan } from '../../otel/schemas/schemas'
 import { SpanIconConstructor } from './determine-span-icon'
 import { Link } from 'react-router'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import { spanNameConstructor } from './span-name-constructor'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -31,6 +32,11 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   const spanId = span.span_id
   const jaegerDeepLink = `${window.location.protocol}//${window.location.hostname}/jaeger/trace/${traceId}?uiFind=${spanId}`
 
+  // Create the name
+  const name = spanNameConstructor(span)
+
+  console.log('Span attributes: ', span.attributes_json)
+
   return (
     <div className={`p-1 ${spanTypeOther ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}>
       <div className={`flex gap-x-2 ${spanTypeOther ? 'items-start' : 'items-center'}`}>
@@ -47,7 +53,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                     dispatch(WorkflowDetailStateActions.handleSetActiveSpan(span))
                   }}
                 >
-                  {span.name}
+                  {name}
                 </button>
                 <Link to={jaegerDeepLink} target={'_blank'} title={'Open in Jaeger'}>
                   <MagnifyingGlassIcon className={'size-4 cursor-pointer'} />
@@ -55,7 +61,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
               </div>
             ) : (
               <div className={'flex gap-x-2 items-center'}>
-                <span>{span.name}</span>
+                <span>{name}</span>
                 <Link to={jaegerDeepLink} target={'_blank'} title={'Open in Jaeger'}>
                   <MagnifyingGlassIcon className={'size-4 cursor-pointer'} />
                 </Link>

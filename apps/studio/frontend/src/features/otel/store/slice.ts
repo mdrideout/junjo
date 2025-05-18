@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { WorkflowSpansE2EResponse } from './schemas'
+import { WorkflowSpansE2EResponse } from '../schemas/schemas'
 
 interface OtelState {
   serviceNames: {
