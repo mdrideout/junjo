@@ -71,7 +71,7 @@ $ uv pip install -e ".[dev,graphviz]"
 
 ### Graphviz
 
-<mark>Currently Broken</mark>
+<mark>Coming soon...</mark>
 
 This project can render junjo Graph objects as images. However, it requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image).
 
