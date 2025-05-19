@@ -2,32 +2,44 @@
 
 > Japanese Translation: order, sequence, procedure
 
-Junjo helps you build and debug AI workflows with this Graph Workflow Execution library, and our **optional** companion [junjo-server](https://github.com/mdrideout/junjo-server) telemetry server.
+Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
+
+Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges.
+
+#### Docs
 
 - [Python API Docs](https://python-api.junjo.ai/)
 - [PyPI](https://pypi.org/project/junjo/)
 
+#### Benefits:
+
+- Asyncio & Pydantic native
+- Visualize your AI workflows
+- Build in redux-inspired state machine
+- Create robust and predictable conditional chains of LLM calls
+- Organize complex workflow executions into a scalable clean Graph structure
+- Manage execution order, loops, and concurrency
+- Supports Eval-Driven Development techniques
+  - Test every node of your workflow to 100% evaluation accuracy
+  - Test your workflows with dozens or thousands of input cases
+  - Rapidly iterate on your AI capabilities knowing for sure you're making progress
+- Native opentelemetry support for clear tracing, observability, and debugging
+  - Try our **optional, free, open source** companion [junjo-server](https://github.com/mdrideout/junjo-server) telemetry server.
 
 <img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png" width="600" />
 
 _junjo-screenshot.png_
 
-### Features
+#### Decoupled
 
-- Organizes your python functions and LLM calls into executable graph workflows
-- Produces structured opentelemetry logs compatible with **any opentelemetry destination**
-  - Helps you visibly trace AI graph workflow executions
-  - Helps you debug where things go wrong
-  - Optionally utilize **[junjo-server](https://github.com/mdrideout/junjo-server)** for enhanced telemetry visualiations of the graph
+Junjo doesn't change how you create AI / LLM calls. Use any AI or LLM service provider or library. Junjo simply helps you organize your python functions into a clean organized graph structure with predictable, testable execution.
 
-Junjo is a decoupled AI Graph Workflow execution framework for python applications. It is optimized for telemetry, eval-driven-development (test driven prompt engineering), concurrent execution with asyncio, and type safety with Pydantic.
-
-Junjo doesn't change how you build your applications, and will not couple you to this framework. Junjo provides building blocks to wrap and organize your existing python functions into scalable, testable, and improvable workflows.
+Junjo provides the building blocks that let you make any sort of executable workflow. From linear function calls, to complex branching workflows with concurrent sublfows, to fully autonomous agents.
 
 > 
 > There are zero proprietary AI / LLM implementations in Junjo. Use whatever LLM library you want.
 > 
-> All logs produced are opentelemetry compatible. Exusting otel spans are annotated with workflow execution span wrappers.
+> All logs produced are opentelemetry compatible. Existing otel spans are annotated with workflow and node execution span wrappers.
 > 
 
 It doesn't matter if the functions you add to a Junjo workflow are LLM API calls, database operations, or traditional business logic. You can write your business logic however you want. We just provide a convenient framework for organizing your desired flow into an executable graph.
@@ -65,26 +77,52 @@ This project was made with the [uv](https://github.com/astral-sh/uv) python pack
 $ uv venv .venv
 $ source .venv/bin/activate
 
-# Install optional development dependencies
+# Install optional development dependencies (graphviz is optional for running the graphviz visualizer)
+# Graphviz, if utilized, must also be installed on the host system (see below)
 $ uv pip install -e ".[dev,graphviz]"
 ```
 
+## Visualizing Your Workflows
+
+### Junjo Server
+
+[Junjo Server](https://github.com/mdrideout/junjo-server) is an optional, free, open-source companion telemetry server that can ingest OpenTelemetry traces from Junjo, and visualize the workflow execution graph structures.
+
+The user interface makes it easy to observe and debug workflow executions. Step through every single state machine update to see how data changes throughout the workflow's lifecycle. 
+
 ### Graphviz
 
-<mark>Coming soon...</mark>
-
-This project can render junjo Graph objects as images. However, it requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image).
+Junjo can render workflow graphs as images. It requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image), as well as the above optional graphviz development dependencies in this python library.
 
 ```bash
-# Install Graphvis on MacOS with homebrew
+# Install Graphviz on MacOS with homebrew
 $ brew install graphviz
 ```
 
 ```python
-# Generate an image from a Graph
-from junjo.graphviz.utils import graph_to_graphviz_image
-graph_to_graphviz_image(workflow_graph)
+# visualize.py
+from base.sample_workflow.workflow import sample_workflow_graph
+
+def main():
+    # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
+    # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
+    sample_workflow_graph.export_graphviz_assets()
+
+if __name__ == "__main__":
+    main()
 ```
+
+```bash
+# Run the visualizer
+python -m src.base.visualize
+```
+
+<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot-graphviz.png" width="600" />
+
+#### Full Example
+**See the full example inside `examples/base`.**
+
+## Contributing
 
 ### Code Linting and Formatting
 

@@ -4,6 +4,7 @@
    :hidden:
 
    getting_started
+   visualizing_workflows
    eval_driven_dev
    api
 

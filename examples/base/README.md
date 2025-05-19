@@ -35,6 +35,9 @@ $ uv pip install -e ".[dev]"
 
 # Run from this directory
 $ python -m src.base.main
+
+# Generate Graphviz renderings of the graph (outputs to graphviz_out dir in root)
+$ python -m src.base.visualize
 ```
 
 ## Eval Driven Development
