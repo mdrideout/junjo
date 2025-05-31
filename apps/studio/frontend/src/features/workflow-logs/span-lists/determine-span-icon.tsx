@@ -40,7 +40,7 @@ export function SpanIconConstructor(props: {
     return <CubeIcon className={`${size} ${iconColor}`} />
   }
 
-  // Junjo NodeGather Span
+  // Junjo RunConcurrent Span
   if (span.junjo_span_type === JunjoSpanType.RUN_CONCURRENT) {
     return <Squares2X2Icon className={`${size} ${iconColor}`} />
   }

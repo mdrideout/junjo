@@ -57,149 +57,101 @@ export class JunjoGraph {
   }
 
   /**
-   * To Mermaid Flowchart
-   *
-   * Converts the Junjo Graph representation into a Mermaid flowchart definition string,
-   * rendering nodes marked as subgraphs correctly and subflows as single nodes.
-   *
-   * @param {boolean} [showEdgeLabels=false] - If true, edge labels (conditions) will be included in the output.
-   * @param {MermaidGraphDirection} direction - The overall direction of the flowchart. Defaults to 'LR'.
-   * @param {MermaidGraphDirection} subDirection - Optional direction for layout within subgraphs. Defaults to 'LR'.
-   * @returns {string} A string containing the Mermaid flowchart definition.
+   * Convert the graph to a Mermaid flow‑chart definition.
+   * @param showEdgeLabels – include edge conditions when true.
+   * @param direction – overall graph direction, defaults to LR.
+   * @param subDirection – direction to use inside RunConcurrent sub‑graphs, defaults to LR.
    */
   toMermaid(
     showEdgeLabels: boolean = false,
     direction: MermaidGraphDirection = 'LR',
-    subDirection: MermaidGraphDirection = 'LR', // Default direction inside subgraphs
+    subDirection: MermaidGraphDirection = 'LR',
   ): string {
     const lines: string[] = []
 
-    // Create a map for easy node lookup by ID
-    const nodeMap = new Map<string, JNode>(this.graph.nodes.map((node) => [node.id, node]))
+    // ---------- 0. Prepared lookup sets ----------
+    const nodeMap = new Map<string, JNode>(this.graph.nodes.map((n) => [n.id, n]))
+    const childrenNodeIds = new Set<string>()
+    const subgraphContainerIds = new Set<string>()
+    const subflowNodeIds = new Set<string>()
+    const subflowInternalNodeIds = new Set<string>()
 
-    // Sets to keep track of node roles
-    const childrenNodeIds = new Set<string>() // Children of NodeGather
-    const subgraphContainerIds = new Set<string>() // NodeGather containers
-    const subflowNodeIds = new Set<string>() // Subflow nodes themselves
-    const subflowInternalNodeIds = new Set<string>() // Nodes inside subflows (to be hidden)
-
-    // 1. Preprocessing: Identify subgraph containers, subflows, and their children
-    this.graph.nodes.forEach((node) => {
-      if (node.isSubgraph && node.children && node.children.length > 0) {
-        // Handle NodeGather subgraphs
+    // ---------- 1. Pass: classify nodes ----------
+    for (const node of this.graph.nodes) {
+      if (node.isSubgraph && node.children?.length) {
         subgraphContainerIds.add(node.id)
-        node.children.forEach((childId) => {
-          if (nodeMap.has(childId)) {
-            childrenNodeIds.add(childId)
-          } else {
-            console.warn(
-              `Subgraph ${node.id} ('${node.label}') lists child ID ${childId}, but this node was not found.`,
-            )
-          }
-        })
+        for (const ch of node.children) {
+          childrenNodeIds.add(ch)
+        }
       } else if (node.isSubflow) {
-        // Mark nodes that are subflows
         subflowNodeIds.add(node.id)
-
-        // Find internal nodes of this subflow
-        this.graph.edges
-          .filter((edge) => edge.subflowId === node.id)
-          .forEach((edge) => {
-            // Both source and target are internal to the subflow
-            subflowInternalNodeIds.add(edge.source)
-            subflowInternalNodeIds.add(edge.target)
-          })
+        for (const e of this.graph.edges.filter((e) => e.subflowId === node.id)) {
+          subflowInternalNodeIds.add(e.source)
+          subflowInternalNodeIds.add(e.target)
+        }
       }
-    })
+    }
 
-    // 2. Start graph definition
+    // ---------- 2. Start diagram ----------
     lines.push(`graph ${direction}`)
 
-    // 3. Define top-level nodes, excluding subflow internals
-    this.graph.nodes.forEach((node) => {
-      // Skip if node is internal to a subflow
-      if (subflowInternalNodeIds.has(node.id)) {
-        return
-      }
+    // ---------- 3. Top‑level nodes ----------
+    for (const node of this.graph.nodes) {
+      if (subflowInternalNodeIds.has(node.id)) continue // internal to a sub‑flow
+      if (childrenNodeIds.has(node.id)) continue // rendered in subgraph
+      if (subgraphContainerIds.has(node.id)) continue // container itself handled below
 
-      // Skip if node is a child of a NodeGather (will be rendered within the subgraph)
-      if (childrenNodeIds.has(node.id)) {
-        return
-      }
-
-      // Skip if node is a NodeGather container (will be rendered as a subgraph)
-      if (subgraphContainerIds.has(node.id)) {
-        return
-      }
-
-      // For subflow nodes, use a different shape (cylindrical)
+      const label = escapeMermaidLabel(node.label)
       if (subflowNodeIds.has(node.id)) {
-        lines.push(`  ${node.id}@{ shape: st-rect, label: ${escapeMermaidLabel(node.label)} }`)
+        lines.push(`  ${node.id}@{ shape: st-rect, label: ${label} }`)
       } else {
-        lines.push(`  ${node.id}@{ shape: rect, label: ${escapeMermaidLabel(node.label)} }`)
+        lines.push(`  ${node.id}@{ shape: rect, label: ${label} }`)
       }
-    })
+    }
 
-    // 4. Define subgraphs (NodeGather instances) and their children nodes
-    this.graph.nodes.forEach((node) => {
-      if (subgraphContainerIds.has(node.id)) {
-        lines.push(``) // Add empty line for readability
-        lines.push(`  subgraph ${node.id} [${escapeMermaidLabel(node.label)}]`)
-        lines.push(`    direction ${subDirection}`) // Set internal direction
+    // ---------- 4. RunConcurrent sub‑graphs ----------
+    for (const node of this.graph.nodes) {
+      if (!subgraphContainerIds.has(node.id)) continue
+      if (subflowInternalNodeIds.has(node.id)) continue // NEW ➜ skip if this gather lives inside a sub‑flow
 
-        node.children?.forEach((childId) => {
-          const childNode = nodeMap.get(childId)
-          if (childNode) {
-            // Conditionally apply shape based on whether the child is a subflow node
-            if (subflowNodeIds.has(childNode.id)) {
-              lines.push(
-                `    ${childNode.id}@{ shape: st-rect, label: ${escapeMermaidLabel(childNode.label)} }`,
-              )
-            } else {
-              lines.push(`    ${childNode.id}[${escapeMermaidLabel(childNode.label)}]`)
-            }
-          }
-        })
-        lines.push(`  end`)
-      }
-    })
+      lines.push('')
+      lines.push(`  subgraph ${node.id} [${escapeMermaidLabel(node.label)}]`)
+      lines.push(`    direction ${subDirection}`)
 
-    // 5. Define all explicit edges, excluding subflow internal edges
-    lines.push(``) // Add empty line for readability
-    this.graph.edges.forEach((edge) => {
-      // Skip subflow internal edges
-      if (edge.type === 'subflow') {
-        return
+      for (const childId of node.children || []) {
+        if (subflowInternalNodeIds.has(childId)) continue // child also internal
+        const child = nodeMap.get(childId)
+        if (!child) continue
+        const lbl = escapeMermaidLabel(child.label)
+        if (subflowNodeIds.has(child.id)) {
+          lines.push(`    ${child.id}@{ shape: st-rect, label: ${lbl} }`)
+        } else {
+          lines.push(`    ${child.id}[${lbl}]`)
+        }
       }
 
-      // Skip edges involving subflow internal nodes
-      if (subflowInternalNodeIds.has(edge.source) || subflowInternalNodeIds.has(edge.target)) {
-        return
-      }
+      lines.push('  end')
+    }
 
-      // Basic validation: Ensure source and target nodes are valid
-      if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) {
-        console.warn(
-          `Skipping edge '${edge.id}' because source ('${edge.source}') or target ('${edge.target}') node was not found.`,
-        )
-        return // Skip this edge
-      }
+    // ---------- 5. Edges ----------
+    lines.push('')
+    for (const edge of this.graph.edges) {
+      if (edge.type === 'subflow') continue // hide internal edges
+      if (subflowInternalNodeIds.has(edge.source) || subflowInternalNodeIds.has(edge.target)) continue
+      if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) continue
 
-      const sourceId = edge.source
-      const targetId = edge.target
-      const condition = edge.condition // string | null
-
-      // Check if there's a condition AND if labels should be shown
-      if (condition && showEdgeLabels) {
-        lines.push(`  ${sourceId} -.${escapeMermaidLabel(condition)}.-> ${targetId}`)
-      } else if (condition && !showEdgeLabels) {
-        lines.push(`  ${sourceId} -.-> ${targetId}`)
+      const src = edge.source
+      const tgt = edge.target
+      const cond = edge.condition ? escapeMermaidLabel(edge.condition) : null
+      if (cond && showEdgeLabels) {
+        lines.push(`  ${src} -.${cond}.-> ${tgt}`)
+      } else if (cond) {
+        lines.push(`  ${src} -.-> ${tgt}`)
       } else {
-        lines.push(`  ${sourceId} --> ${targetId}`)
+        lines.push(`  ${src} --> ${tgt}`)
       }
-    })
+    }
 
-    // 6. Join all lines into a single string
     return lines.join('\n')
   }
 }

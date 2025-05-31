@@ -4,7 +4,7 @@ export const JNodeSchema = z.object({
   id: z.string(),
   type: z.string(),
   label: z.string(),
-  // For NodeGather nodes
+  // For RunConcurrent nodes
   isSubgraph: z.boolean().optional(),
   children: z.array(z.string()).optional(),
   // New properties for Subflow nodes
