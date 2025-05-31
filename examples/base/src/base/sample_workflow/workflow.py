@@ -14,7 +14,12 @@ sample_workflow_store = SampleWorkflowStore(initial_state=initial_state)
 sample_workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
     name="demo_base_workflow",
     graph=sample_workflow_graph,
-    store=sample_workflow_store,
+    store_factory=lambda: SampleWorkflowStore(
+        initial_state=SampleWorkflowState(
+            items=["laser", "coffee", "horse"],
+            counter=0,
+        )
+    ),
     hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
 )
 

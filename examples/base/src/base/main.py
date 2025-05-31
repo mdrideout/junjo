@@ -19,7 +19,7 @@ async def main():
         print("State changed:", new_state.model_dump())
     unsubscribe = await sample_workflow_store.subscribe(on_state_change)
 
-    print("Executing the workflow with initial store state: ", await sample_workflow.get_state_json())
+    print("Executing the workflow...")
     await sample_workflow.execute()
     print("Final state: ", await sample_workflow.get_state_json())
 

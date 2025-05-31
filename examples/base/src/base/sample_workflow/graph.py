@@ -32,7 +32,9 @@ modify_counter_concurrent = RunConcurrent(
 # Instantiate the subflow
 sample_subflow = SampleSubflow(
     graph=sample_subflow_graph,
-    store=SampleSubflowStore(initial_state=SampleSubflowState())
+    store_factory=lambda: SampleSubflowStore(
+        initial_state=SampleSubflowState()
+    ),
 )
 
 sample_workflow_graph = Graph(
