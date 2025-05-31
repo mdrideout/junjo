@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from types import NoneType
-from typing import TYPE_CHECKING, Generic
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
 from opentelemetry import trace
 
 from .node import Node
 from .run_concurrent import RunConcurrent
-from .store import ParentStateT, ParentStoreT, StateT, StoreT
+from .store import BaseStore, ParentStateT, ParentStoreT, StateT, StoreT
 from .telemetry.hook_manager import HookManager
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 from .util import generate_safe_id
@@ -16,18 +16,24 @@ from .util import generate_safe_id
 if TYPE_CHECKING:
     from .graph import Graph
 
+# Define a covariant TypeVar specifically for the StoreFactory protocol.
+# It's bound to BaseStore, ensuring the factory produces BaseStore compatible instances.
+_CovariantStoreT = TypeVar("_CovariantStoreT", bound="BaseStore", covariant=True)
+class StoreFactory(Protocol, Generic[_CovariantStoreT]):
+    def __call__(self, *args, **kw) -> _CovariantStoreT: ...
+
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
     Represents a workflow execution.
     """
 
     def __init__(
-            self,
-            graph: Graph,
-            store: StoreT,
-            max_iterations: int = 100,
-            hook_manager: HookManager | None = None,
-            name: str | None = None,
+        self,
+        graph: Graph,
+        store_factory: StoreFactory[StoreT],
+        max_iterations: int = 100,
+        hook_manager: HookManager | None = None,
+        name: str | None = None,
     ):
         self._id = generate_safe_id()
         self._name = name
@@ -37,10 +43,13 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         self.hook_manager = hook_manager
 
         # Private stores (immutable interactions only)
-        self._store = store
+        self._store_factory = store_factory
+        self._store: StoreT | None = None
 
     @property
     def store(self) -> StoreT:
+        if self._store is None:
+            raise RuntimeError("Store cannot be accessed before execution. Call execute() first.")
         return self._store
 
     @property
@@ -65,9 +74,13 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         return JunjoOtelSpanTypes.WORKFLOW
 
     async def get_state(self) -> StateT:
+        if self._store is None:
+            raise RuntimeError("Store cannot be accessed before execution. Call execute() first.")
         return await self._store.get_state()
 
     async def get_state_json(self) -> str:
+        if self._store is None:
+            raise RuntimeError("Store cannot be accessed before execution. Call execute() first.")
         return await self._store.get_state_json()
 
     async def execute(  # noqa: C901
@@ -81,6 +94,9 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         print(f"Executing workflow: {self.name} with ID: {self.id}")
 
         # TODO: Test that the sink node can be reached
+
+        # Always start with a fresh store for *this* run.
+        self._store = self._store_factory()
 
         # # Execute workflow before hooks
         # if self.hook_manager is not None:
@@ -256,27 +272,27 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
                     await parent_store.set_subflow_result(self, sub_flow_state.result)
     """
 
-    def __init__(
-            self,
-            graph: Graph,
-            store: StoreT,
-            max_iterations: int = 100,
-    ):
-        """
-        Initializes the Subflow.
+    # def __init__(
+    #         self,
+    #         graph: Graph,
+    #         store: StoreT,
+    #         max_iterations: int = 100,
+    # ):
+    #     """
+    #     Initializes the Subflow.
 
-        Args:
-            graph: The workflow graph.
-            store: The store instance for this subflow.
-            max_iterations: The maximum number of times a node can be
-                            executed before raising an exception (defaults to 100)
-        """
-        super().__init__(
-            graph=graph,
-            store=store,
-            max_iterations=max_iterations,
-            hook_manager=None
-        )
+    #     Args:
+    #         graph: The workflow graph.
+    #         store: The store instance for this subflow.
+    #         max_iterations: The maximum number of times a node can be
+    #                         executed before raising an exception (defaults to 100)
+    #     """
+    #     super().__init__(
+    #         graph=graph,
+    #         store=store,
+    #         max_iterations=max_iterations,
+    #         hook_manager=None
+    #     )
 
     @abstractmethod
     async def pre_run_actions(self, parent_store: ParentStoreT) -> None:
