@@ -235,11 +235,11 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
         arranged as a graph. It manages its own state and store, distinct from
         any parent or sub-workflows.
 
-        This class is generic and requires two type parameters:
-        - ``StateT``: The Pydantic model (subclass of :class:`~.BaseState`)
-            representing the workflow's state.
-        - ``StoreT``: The store (subclass of :class:`~.BaseStore`) that manages
-            the ``StateT`` for this workflow.
+        This class is generic and requires four type parameters for a convenient and type safe developer experience:
+
+        Generic Type Parameters:
+            | StateT: The type of state managed by this workflow, (subclass of :class:`~.BaseState`)
+            | StoreT: The type of store used by this workflow, (subclass of :class:`~.BaseStore`)
 
         :param name: An optional name for the workflow. If not provided,
                     the class name is used.
@@ -294,13 +294,13 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
             | 3. Can interact with it's parent workflow state before and after execution
                 via :meth:`~.pre_run_actions` and :meth:`~.post_run_actions`
 
-        This class is generic and requires two type parameters:
+        This class is generic and requires four type parameters for a convenient and type safe developer experience:
 
         Generic Type Parameters:
-            | StateT: The type of state managed by this subflow
-            | StoreT: The type of store used by this subflow
-            | ParentStateT: The type of state managed by the parent workflow
-            | ParentStoreT: The type of store used by the parent workflow
+            | StateT: The type of state managed by this subflow, (subclass of :class:`~.BaseState`)
+            | StoreT: The type of store used by this subflow, (subclass of :class:`~.BaseStore`)
+            | ParentStateT: The type of state managed by the parent workflow, (subclass of :class:`~.BaseState`)
+            | ParentStoreT: The type of store used by the parent workflow, (subclass of :class:`~.BaseStore`)
 
         :param name: An optional name for the workflow. If not provided,
                     the class name is used.

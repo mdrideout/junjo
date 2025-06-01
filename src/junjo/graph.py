@@ -16,7 +16,87 @@ from .workflow import _NestableWorkflow
 
 class Graph:
     """
-    Represents a directed graph of nodes and edges.
+    Represents a directed graph of nodes and edges, defining the structure and
+    flow of a workflow.
+
+    The `Graph` class is a fundamental component in Junjo, responsible for
+    encapsulating the relationships between different processing units (Nodes
+    or Subflows) and the conditions under which transitions between them occur.
+
+    It holds references to the entry point (source) and exit point (sink) of
+    the graph, as well as a list of all edges that connect the nodes.
+
+    :param source: The starting node or subflow of the graph. Execution of the workflow begins here.
+    :type source: Node | _NestableWorkflow
+    :param sink: The terminal node or subflow of the graph. Reaching this node signifies the completion of the workflow.
+    :type sink: Node | _NestableWorkflow
+    :param edges: A list of :class:`~.Edge` instances that define the connections and transition logic between nodes in the graph.
+    :type edges: list[Edge]
+
+    Example:
+
+    .. code-block:: python
+
+        from junjo import Node, Edge, Graph, BaseStore, Condition, BaseState
+
+        # Define a simple state (can be more complex in real scenarios)
+        class MyWorkflowState(BaseState):
+            count: int | None = None
+
+        # Define a simple store
+        class MyWorkflowStore(BaseStore[MyWorkflowState]):
+            async def set_count(self, payload: int) -> None:
+                await self.set_state({"count": payload})
+
+        # Define some simple nodes
+        class FirstNode(Node[MyWorkflowStore]):
+            async def service(self, store: MyWorkflowStore) -> None:
+                print("First Node Executed")
+
+        class CountItemsNode(Node[MyWorkflowStore]):
+            async def service(self, store: MyWorkflowStore) -> None:
+                # In a real scenario, you might get items from state and count them
+                await store.set_count(5) # Example count
+                print("Counted items")
+
+        class EvenItemsNode(Node[MyWorkflowStore]):
+            async def service(self, store: MyWorkflowStore) -> None:
+                print("Path taken for even items count.")
+
+        class OddItemsNode(Node[MyWorkflowStore]):
+            async def service(self, store: MyWorkflowStore) -> None:
+                print("Path taken for odd items count.")
+
+        class FinalNode(Node[MyWorkflowStore]):
+            async def service(self, store: MyWorkflowStore) -> None:
+                print("Final Node Executed")
+
+        # Define a condition
+        class CountIsEven(Condition[MyWorkflowState]):
+            def evaluate(self, state: MyWorkflowState) -> bool:
+                if state.count is None:
+                    return False
+                return state.count % 2 == 0
+
+        # Instantiate the nodes
+        first_node = FirstNode()
+        count_items_node = CountItemsNode()
+        even_items_node = EvenItemsNode()
+        odd_items_node = OddItemsNode()
+        final_node = FinalNode()
+
+        # Create the workflow graph
+        workflow_graph = Graph(
+            source=first_node,
+            sink=final_node,
+            edges=[
+                Edge(tail=first_node, head=count_items_node),
+                Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()),
+                Edge(tail=count_items_node, head=odd_items_node), # Fallback
+                Edge(tail=even_items_node, head=final_node),
+                Edge(tail=odd_items_node, head=final_node),
+            ]
+        )
     """
     def __init__(self, source: Node | _NestableWorkflow, sink: Node | _NestableWorkflow, edges: list[Edge]):
         self.source = source
