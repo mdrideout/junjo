@@ -5,6 +5,7 @@
 
    getting_started
    concurrency
+   subflows
    visualizing_workflows
    eval_driven_dev
    api
