@@ -52,10 +52,6 @@ More advanced examples can be found in the `examples directory <https://github.c
             async def set_count(self, payload: int) -> None:
                 await self.set_state({"count": payload})
 
-        # Instantiate the store - initialize with state elements
-        initial_state = SampleWorkflowState(items=["laser", "coffee", "horse"])
-        workflow_store = SampleWorkflowStore(initial_state=initial_state)
-
         # Define the nodes
         class FirstNode(Node[SampleWorkflowStore]):
             async def service(self, store: SampleWorkflowStore) -> None:
@@ -119,7 +115,11 @@ More advanced examples can be found in the `examples directory <https://github.c
         sample_workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
             name="Getting Started Example Workflow",
             graph=workflow_graph,
-            store=workflow_store,
+            store_factory=lambda: SampleWorkflowStore(
+                initial_state=SampleWorkflowState(
+                    items=["laser", "coffee", "horse"]
+                )
+            )
         )
 
         # Execute the workflow
