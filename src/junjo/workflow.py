@@ -24,9 +24,10 @@ class StoreFactory(Protocol, Generic[_CovariantStoreT]):
 
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
-    Represents a workflow execution.
-    """
+    Represents a generic abstract class for workflow / subflow execution.
 
+    Should not be used directly. Only utilizer Workflow and Subflow.
+    """
     def __init__(
         self,
         graph: Graph,
@@ -221,78 +222,134 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
 # Class Variation
 class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
-    """
-    Represents a top level workflow that can be executed.
+    def __init__(
+        self,
+        graph: Graph,
+        store_factory: StoreFactory[StoreT],
+        max_iterations: int = 100,
+        hook_manager: HookManager | None = None,
+        name: str | None = None,
+    ):
+        """
+        A Workflow is a top-level, executable collection of nodes and edges
+        arranged as a graph. It manages its own state and store, distinct from
+        any parent or sub-workflows.
 
-    Generic Type Parameters:
-        | StateT: The type of state managed by this workflow
-        | StoreT: The type of store used by this workflow
+        This class is generic and requires two type parameters:
+        - ``StateT``: The Pydantic model (subclass of :class:`~.BaseState`)
+            representing the workflow's state.
+        - ``StoreT``: The store (subclass of :class:`~.BaseStore`) that manages
+            the ``StateT`` for this workflow.
 
-    A workflow is a collection of nodes and edges as a graph that can be executed.
+        :param name: An optional name for the workflow. If not provided,
+                    the class name is used.
+        :type name: str | None, optional
+        :param graph: The graph of nodes and edges that defines the workflow's structure
+                    and execution flow.
+        :type graph: Graph
+        :param store_factory: A callable that returns a new instance of the workflow's
+                            store (``StoreT``). This factory is invoked at the beginning
+                            of each :meth:`~.execute` call to ensure a fresh state for the 
+                            workflow's specific execution.
+        :type store_factory: StoreFactory[StoreT]
+        :param max_iterations: The maximum number of times any single node can be
+                            executed within one workflow run. This helps prevent
+                            infinite loops. Defaults to 100.
+        :type max_iterations: int, optional
+        :param hook_manager: An optional :class:`~.HookManager` for handling
+                            workflow lifecycle events and telemetry. Defaults to None.
+        :type hook_manager: HookManager | None, optional
 
-    .. code-block:: python
+        .. code-block:: python
 
-        workflow = Workflow[MyGraphState, MyGraphStore](
-            name="demo_base_workflow",
+            workflow = Workflow[MyGraphState, MyGraphStore](
+                name="demo_base_workflow",
+                graph=graph,
+                store_factory=lambda: MyGraphStore(initial_state=MyGraphState()),
+                hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
+            )
+            await workflow.execute()
+        """
+        super().__init__(
             graph=graph,
-            store=graph_store,
-            hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
+            store_factory=store_factory,
+            max_iterations=max_iterations,
+            hook_manager=hook_manager,
+            name=name,
         )
-        await workflow.execute()
-    """
-    pass
 
 class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC):
-    """
-    Represents a subflow execution that can interact with a parent workflow.
+    def __init__(
+        self,
+        graph: Graph,
+        store_factory: StoreFactory[StoreT],
+        max_iterations: int = 100,
+        hook_manager: HookManager | None = None,
+        name: str | None = None,
+    ):
+        """
+        A Subflow is a workflow that:
+            | 1. Executes within a parent workflow or parent subflow
+            | 2. Has its own isolated state and store
+            | 3. Can interact with it's parent workflow state before and after execution
+                via :meth:`~.pre_run_actions` and :meth:`~.post_run_actions`
 
-    Generic Type Parameters:
-        | StateT: The type of state managed by this subflow
-        | StoreT: The type of store used by this subflow
-        | ParentStateT: The type of state managed by the parent workflow
-        | ParentStoreT: The type of store used by the parent workflow
+        This class is generic and requires two type parameters:
 
-    A subflow is a workflow that:
-        | 1. Executes within a parent workflow
-        | 2. Has its own isolated state and store
-        | 3. Can interact with the parent workflow's state before and after execution
+        Generic Type Parameters:
+            | StateT: The type of state managed by this subflow
+            | StoreT: The type of store used by this subflow
+            | ParentStateT: The type of state managed by the parent workflow
+            | ParentStoreT: The type of store used by the parent workflow
 
-    .. code-block:: python
+        :param name: An optional name for the workflow. If not provided,
+                    the class name is used.
+        :type name: str | None, optional
+        :param graph: The graph of nodes and edges that defines the workflow's structure
+                    and execution flow.
+        :type graph: Graph
+        :param store_factory: A callable that returns a new instance of the workflow's
+                            store (``StoreT``). This factory is invoked at the beginning
+                            of each :meth:`~.execute` call to ensure a fresh state for the 
+                            workflow's specific execution.
+        :type store_factory: StoreFactory[StoreT]
+        :param max_iterations: The maximum number of times any single node can be
+                            executed within one workflow run. This helps prevent
+                            infinite loops. Defaults to 100.
+        :type max_iterations: int, optional
+        :param hook_manager: An optional :class:`~.HookManager` for handling
+                            workflow lifecycle events and telemetry. Defaults to None.
+        :type hook_manager: HookManager | None, optional
 
-        class ExampleSubFlow(Subflow[SubflowState, SubflowStore, ParentState, ParentStore]):
-            async def pre_run_actions(self, parent_store):
-                parent_state = await parent_store.get_state()
-                await self.store.set_parameter({
-                    "parameter": parent_state.parameter
-                })
+        .. code-block:: python
 
-            async def post_run_actions(self, parent_store):
+            class ExampleSubflow(Subflow[SubflowState, SubflowStore, ParentState, ParentStore]):
+                async def pre_run_actions(self, parent_store):
+                    parent_state = await parent_store.get_state()
+                    await self.store.set_parameter({
+                        "parameter": parent_state.parameter
+                    })
+
                 async def post_run_actions(self, parent_store):
-                    sub_flow_state = await self.get_state()
-                    await parent_store.set_subflow_result(self, sub_flow_state.result)
-    """
+                    async def post_run_actions(self, parent_store):
+                        sub_flow_state = await self.get_state()
+                        await parent_store.set_subflow_result(self, sub_flow_state.result)
 
-    # def __init__(
-    #         self,
-    #         graph: Graph,
-    #         store: StoreT,
-    #         max_iterations: int = 100,
-    # ):
-    #     """
-    #     Initializes the Subflow.
-
-    #     Args:
-    #         graph: The workflow graph.
-    #         store: The store instance for this subflow.
-    #         max_iterations: The maximum number of times a node can be
-    #                         executed before raising an exception (defaults to 100)
-    #     """
-    #     super().__init__(
-    #         graph=graph,
-    #         store=store,
-    #         max_iterations=max_iterations,
-    #         hook_manager=None
-    #     )
+            # Instantiate the subflow
+            example_subflow = ExampleSubflow(
+                graph=example_subflow_graph,
+                store_factory=lambda: ExampleSubflowStore(
+                    initial_state=ExampleSubflowState()
+                ),
+            )
+        """
+        super().__init__(
+            graph=graph,
+            store_factory=store_factory,
+            max_iterations=max_iterations,
+            hook_manager=hook_manager,
+            name=name,
+        )
 
     @abstractmethod
     async def pre_run_actions(self, parent_store: ParentStoreT) -> None:
