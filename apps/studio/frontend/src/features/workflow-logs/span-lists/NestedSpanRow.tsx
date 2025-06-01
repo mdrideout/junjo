@@ -35,7 +35,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   // Create the name
   const name = spanNameConstructor(span)
 
-  console.log('Span attributes: ', span.attributes_json)
+  // console.log('Span attributes: ', span.attributes_json)
 
   return (
     <div className={`p-1 ${spanTypeOther ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}>

@@ -77,11 +77,11 @@ export default function SidebarMenu() {
         </SidebarSection>
         <SidebarSection>
           <SidebarHeading>Resources</SidebarHeading>
-          <SidebarItem href="https://github.com/mdrideout/junjo" target="_blank">
+          <SidebarItem href="https://python-api.junjo.ai/" target="_blank">
             <RocketIcon />
             <SidebarLabel>
               <div className="flex items-center gap-x-2">
-                junjo docs <ExternalLinkIcon className="size-3" />
+                junjo sdk docs <ExternalLinkIcon className="size-3" />
               </div>
             </SidebarLabel>
           </SidebarItem>
