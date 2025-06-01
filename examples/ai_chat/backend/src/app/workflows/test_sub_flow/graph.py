@@ -17,7 +17,7 @@ sub_flow_node_3 = SubFlowNode3()
 # SubFlow Test - Test Running A SubFlow in a SubFlow graph
 sub_sub_flow = SubSubFlow(
     graph=sub_sub_flow_graph,
-    store=SubSubFlowStore(initial_state=SubSubFlowState())
+    store_factory=lambda: SubSubFlowStore(initial_state=SubSubFlowState())
 )
 
 # Construct the graph for the SubFlow

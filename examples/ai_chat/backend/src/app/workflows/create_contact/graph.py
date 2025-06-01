@@ -27,7 +27,7 @@ save_contact_node = SetupContactNode()
 # Subflows
 avatar_subflow = AvatarSubFlow(
     graph=avatar_subflow_graph,
-    store=AvatarSubflowStore(
+    store_factory=lambda: AvatarSubflowStore(
         initial_state=AvatarSubflowState()
     )
 )

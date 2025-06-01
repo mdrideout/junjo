@@ -16,21 +16,18 @@ async def run_create_contact_workflow() -> CreateSetupContactResponse:
         CreateSetupContactResponse: The resulting contact and new chat with this person.
     """
 
-    # Create the store with initial state
-    store = CreateContactStore(
-        initial_state=CreateContactState()
-    )
-
     # Create the workflow
     create_contact_workflow = Workflow[CreateContactState, CreateContactStore](
         name="Create Contact Workflow",
         graph=create_contact_graph,
-        store=store,
+        store_factory=lambda: CreateContactStore(
+            initial_state=CreateContactState()
+        ),
         hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
     )
 
     # Execute the workflow
-    print("Executing the workflow with initial store state: ", await create_contact_workflow.get_state())
+    print("Executing create_contact_workflow")
     await create_contact_workflow.execute()
     final_state = await create_contact_workflow.get_state()
     print("create_contact_workflow is done")

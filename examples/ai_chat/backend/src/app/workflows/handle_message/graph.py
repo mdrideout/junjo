@@ -44,7 +44,7 @@ initial_data_load = RunConcurrent(
 # SubFlow Test - Test Running A SubFlow
 sub_flow_test = TestSubFlow(
     graph=test_sub_flow_graph,
-    store=TestSubFlowStore(initial_state=TestSubFlowState())
+    store_factory=lambda: TestSubFlowStore(initial_state=TestSubFlowState())
 )
 
 # Construct a graph
