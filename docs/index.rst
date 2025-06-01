@@ -4,6 +4,7 @@
    :hidden:
 
    getting_started
+   concurrency
    visualizing_workflows
    eval_driven_dev
    api
