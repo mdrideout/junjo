@@ -3,16 +3,24 @@ title: Junjo 順序 AI
 description: Simple AI Graph Workflows + Telemetry
 template: splash
 hero:
-  tagline: Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
+  tagline: Junjo is an open source Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
   image:
-    file: https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png
+    file: ../../assets/junjo-base-example-screenshot.png
   actions:
     - text: Read the docs
       link: https://python-api.junjo.ai/
       icon: external
+    - text: Github Repository
+      link: https://github.com/mdrideout/junjo
+      icon: external
+      variant: minimal
 ---
 
 import { Card, CardGrid } from "@astrojs/starlight/components";
+
+Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges.
+
+Junjo remains decoupled from any specific AI model or framework. Simply wrap your existing business logic in a Junjo node, organize them into a Graph with conditional edges, and then execute the graph. Junjo will handle the rest, including task orchestration, error handling, and logging to any OpenTelemetry destination.
 
 ## Features
 

@@ -12,7 +12,8 @@ export default defineConfig({
     starlight({
       title: "Junjo AI",
       social: {
-        github: "https://github.com/withastro/starlight",
+        github: "https://github.com/mdrideout/junjo",
+        twitter: "https://twitter.com/junjo_ai",
       },
       sidebar: [
         {
