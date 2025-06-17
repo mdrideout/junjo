@@ -89,6 +89,7 @@ members = [
     "examples/base",
     "examples/getting_started/getting_started",
     "examples/getting_started",
+    "examples/run_for_every",
 ]
 
 [tool.uv.sources]
