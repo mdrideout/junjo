@@ -1,26 +1,25 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from opentelemetry import trace
 
-from .node import Node
 from .store import BaseStore
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
-    from junjo.workflow import Subflow
+    pass
 
-class RunForEvery(Node):
+class RunForEvery:
     """
     Execute a Node, Subflow, or RunConcurrent for each item in a list.
 
     An instance of RunForEvery can be added to a workflow's graph the same was as any other node.
     """
 
-    def __init__(self, name:str, items: list[Node | Subflow]):
+    def __init__(self, name:str, items: list[Any]):
         """
         Args:
             name: The name of this collection of concurrently executed nodes.
