@@ -19,6 +19,7 @@ extensions = [
     "sphinx.ext.todo",  # Support for TODO items
     "sphinx.ext.coverage",  # Check documentation coverage
     "sphinx.ext.ifconfig",  # Conditional content based on configuration
+    "simple_sphinx_xml_sitemap",
 ]
 
 # -- Options for HTML output -------------------------------------------------
