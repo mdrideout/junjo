@@ -150,3 +150,4 @@ $ sphinx-build -b html docs docs/_build
 3. Copy the .proto files from the junjo-server project to `src/telemetry/junjo_server/proto`
 4. Run `make proto` from the project root to generate the `proto_gen` files for the client
 5. Update any required changes to the `src/telemetry/junjo_server/client.py` file (type changes, fields, etc.)
+
