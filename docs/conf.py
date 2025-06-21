@@ -19,12 +19,14 @@ extensions = [
     "sphinx.ext.todo",  # Support for TODO items
     "sphinx.ext.coverage",  # Check documentation coverage
     "sphinx.ext.ifconfig",  # Conditional content based on configuration
+    "sphinx_sitemap",
 ]
 
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
 html_title = "Junjo Docs"
+html_baseurl = "https://python-api.junjo.ai/"
 
 # Furo theme options (see: https://pradyunsg.me/furo/customisation/)
 html_theme_options = {
