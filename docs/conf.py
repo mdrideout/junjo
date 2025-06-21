@@ -28,6 +28,9 @@ html_theme = "furo"
 html_title = "Junjo Docs"
 html_baseurl = "https://python-api.junjo.ai/"
 
+# Hide the link to the rst source files
+html_show_sourcelink = False
+
 # Furo theme options (see: https://pradyunsg.me/furo/customisation/)
 html_theme_options = {
     # "light_css_variables": {
@@ -47,6 +50,9 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# Add `robots.txt` to the root of the build output
+html_extra_path = ["robots.txt"]
 
 # -- Options for autodoc ----------------------------------------------------
 

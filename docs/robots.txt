@@ -1,0 +1,11 @@
+# See https://www.robotstxt.org/robotstxt.html for documentation
+#
+# Allow all crawlers to access the site.
+User-agent: *
+
+# Disallow crawling of Sphinx-specific directories that are not useful in search results.
+Disallow: /_sources/
+Disallow: /_static/
+Disallow: /_modules/
+
+Sitemap: https://python-api.junjo.ai/sitemap.xml
