@@ -19,7 +19,6 @@ extensions = [
     "sphinx.ext.todo",  # Support for TODO items
     "sphinx.ext.coverage",  # Check documentation coverage
     "sphinx.ext.ifconfig",  # Conditional content based on configuration
-    "sphinx_sitemap",
 ]
 
 # -- Options for HTML output -------------------------------------------------
@@ -83,4 +82,4 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The master toctree document.
-master_doc = "index"
+root_doc = "index"

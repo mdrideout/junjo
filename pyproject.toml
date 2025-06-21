@@ -43,7 +43,6 @@ dev = [
     "pytest-asyncio",
     "ruff~=0.9.5",
     "sphinx-rtd-theme",
-    "sphinx-sitemap",
     "mypy",
     "grpcio-tools",
     "build>=1.2.1",
