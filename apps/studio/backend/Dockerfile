@@ -26,6 +26,7 @@ RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ENV PATH=$PATH:/root/go/bin
+RUN mkdir -p proto_gen db_gen
 RUN make proto
 RUN sqlc generate
 
