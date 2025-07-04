@@ -18,7 +18,18 @@ RUN go mod download
 # 2. Copy the rest of your application's source code.
 COPY . .
 
-# 3. Build the application binary.
+# 3. Generate code before building.
+#    This ensures the build is self-contained and doesn't rely on
+#    pre-committed generated files.
+RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+ENV PATH=$PATH:/root/go/bin
+RUN make proto
+RUN sqlc generate
+
+# 4. Build the application binary.
 #    - TARGETARCH is an automatic build argument from Docker Buildx. It
 #      makes your build portable across architectures (e.g., amd64, arm64).
 #    - CGO_ENABLED=1 is set here, accommodating your need for DuckDB.
