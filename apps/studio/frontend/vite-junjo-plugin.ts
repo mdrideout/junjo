@@ -15,7 +15,7 @@ export default function viteJunjoPlugin() {
         console.log(
           bold(
             green(`
-  🎏 Junjo Server UI is running 🎏 
+  🎏 Junjo Server UI is running (Development) 🎏 
 
   Local:    ${server.config.server.https ? 'https' : 'http'}://localhost:${server.config.server.port}
   Network:  ${server.resolvedUrls.network[0]}

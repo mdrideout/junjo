@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"junjo-server/api"
 	"junjo-server/api_keys"
@@ -57,12 +58,28 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// CORS middleware
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:5151"},
+	// CORS middleware
+	allowedOriginsEnv := os.Getenv("ALLOW_ORIGINS")
+	config := middleware.CORSConfig{
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderXCSRFToken},
 		AllowCredentials: true,
-	}))
+	}
+
+	if len(allowedOriginsEnv) > 0 {
+		// Use a fixed list of origins if the env var is set
+		config.AllowOrigins = strings.Split(allowedOriginsEnv, ",")
+		e.Logger.Printf("CORS Allowed Origins set to: %v", config.AllowOrigins)
+	} else {
+		// If the env var is not set, allow any origin by reflecting the request's origin.
+		// This is required when AllowCredentials is true, as wildcard '*' is not allowed by browsers.
+		config.AllowOriginFunc = func(origin string) (bool, error) {
+			return true, nil
+		}
+		e.Logger.Printf("CORS Allowed Origins not set. Reflecting any origin.")
+	}
+
+	e.Use(middleware.CORSWithConfig(config))
 
 	// Session Middleware
 	sessionSecret := os.Getenv("SESSION_SECRET")

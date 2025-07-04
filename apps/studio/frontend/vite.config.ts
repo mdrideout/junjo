@@ -6,7 +6,13 @@ import { analyzer } from 'vite-bundle-analyzer'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), react(), viteJunjoPlugin(), analyzer()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    viteJunjoPlugin(),
+    // Only run analyzer if ANALYZE is true
+    process.env.ANALYZE ? analyzer() : undefined,
+  ].filter(Boolean),
   server: {
     port: 5151,
     host: true,

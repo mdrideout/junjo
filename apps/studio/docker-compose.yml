@@ -15,7 +15,7 @@ services:
     networks:
       - caddy-proxy-network
     env_file:
-      - ./backend/.env
+      - .env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
       interval: 5s
@@ -25,13 +25,17 @@ services:
 
   jui-fe:
     container_name: jui-fe
-    build: ./frontend # Build from frontend Dockerfile
+    build:
+      context: ./frontend
+      target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
-      - frontend-modules:/app/node_modules # Named volume for node_modules
-      - ./frontend:/app # Mount the frontend code for hot reloading
+      - frontend-modules:/app/node_modules # Dev only: Named volume for node_modules
+      - ./frontend:/app # Dev only: Mount the frontend code for hot reloading
     ports:
-      - 5151:5151 # Expose frontend port - host
-      - 5152:5151 # Expose frontend port - Vite hmr (map hmr port to host port)
+      # Development ports (Vite)
+      - "5151:5151" # Vite server
+      - "5152:5151" # Vite hmr (map hmr port to host port)
+      - "5153:80" # Production port to Nginx mapping
     depends_on:
       jui-be:
         condition: service_healthy # Wait for jui-be to be healthy before starting jui-fe
