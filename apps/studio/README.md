@@ -19,6 +19,44 @@ This repository contains everything that runs the Junjo telemetry server and use
 - React frontend (Vite React SPA)
 - Authentication via Caddy reverse proxy forward with and session cookies
 
+## Use & Deployment
+
+The backend service is automatically built and deployed to [Docker Hub](https://hub.docker.com/r/mdrideout/junjo-server-backend) whenever a new release is published on GitHub.
+
+The `production` stage of the `backend/Dockerfile` is used for the build, ensuring a small and secure final image. The image is tagged with the release version (e.g., `v1.2.0`) and `latest`.
+
+### Production Docker Compose
+
+To run the pre-built backend image from Docker Hub in a production-like environment, you can use a `docker-compose.yml` file similar to the one below. This setup pulls the image directly from the registry, bypassing the local build step.
+
+```yaml
+services:
+  junjo-server-backend:
+    image: mdrideout/junjo-server-backend:latest # Or specify a version like: mdrideout/junjo-server-backend:v1.2.0
+    container_name: junjo-server-backend
+    restart: unless-stopped
+    volumes:
+      - ./dbdata/sqlite:/dbdata/sqlite
+      - ./dbdata/duckdb:/dbdata/duckdb
+    ports:
+      - "1323:1323"
+      - "50051:50051"
+    networks:
+      - caddy-proxy-network # Ensure this network is created or managed externally
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+
+networks:
+  caddy-proxy-network:
+    external: true
+```
+
 ## Running The Dev Environment
 
 Docker is required for local development so your developer experience mirrors how things work in production.
