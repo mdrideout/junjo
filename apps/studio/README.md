@@ -1,38 +1,55 @@
-# Junjo 順序 Server
+# Junjo Server
 
-> Japanese Translation: order, sequence, procedure
+> 順序 - Japanese Translation: order, sequence, procedure
 
-Junjo Server is an opentelemetry ingestion server and AI graph workflow debugging interface designed to be run with Docker and deployed to a virtual machine.
+Junjo Server is an opentelemetry ingestion server and AI graph workflow debugging interface designed to be run in Docker and deployed to a virtual machine.
 
 This is a companion telemetry server for the [Junjo Python SDK](https://github.com/mdrideout/junjo).
 
-<img src="./junjo-screenshot.png" width="600" />
+<img src="https://python-api.junjo.ai/_images/junjo-screenshot.png" width="600" />
 
-_junjo-screenshot.png_
+_junjo frontend screenshot_
 
 ### Components
 
 This repository contains everything that runs the Junjo telemetry server and user interface.
 
-- Go Echo API and gRPC server [docs](/backend/README.md)
-- Jaeger server - Junjo comes with a Jaeger server to demonstrate full opentelemetry span compatibility
-- React frontend (Vite React SPA)
+- Backend API and gRPC server
+- Jaeger server to demonstrate full opentelemetry span compatibility
+- Frontend interface
 - Authentication via Caddy reverse proxy forward with and session cookies
 
 ## Use & Deployment
 
-The backend service is automatically built and deployed to [Docker Hub](https://hub.docker.com/r/mdrideout/junjo-server-backend) whenever a new release is published on GitHub.
+The backend service is automatically built and deployed to Docker Hub whenever a new release is published on GitHub.
 
-The `production` stage of the `backend/Dockerfile` is used for the build, ensuring a small and secure final image. The image is tagged with the release version (e.g., `v1.2.0`) and `latest`.
+- Backend Docker Container Image: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
+- Frontend Docker Container Image: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
 
-### Production Docker Compose
+### Environment Configuration
 
-To run the pre-built backend image from Docker Hub in a production-like environment, you can use a `docker-compose.yml` file similar to the one below. This setup pulls the image directly from the registry, bypassing the local build step.
+Before running the services, you need to set up your environment variables. Copy the example environment file to a new `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Then, open the `.env` file and configure the variables as needed. At a minimum, you should set a secure `SESSION_SECRET`. For production, you should also configure `ALLOW_ORIGINS` to match the domain where you are hosting the frontend.
+
+- `BUILD_TARGET`: Should be set to `production` when using the hosted images.
+- `SESSION_SECRET`: A long, random string used for securing user sessions.
+- `ALLOW_ORIGINS`: A comma-separated list of URLs that are allowed to make requests to the backend API.
+
+### Docker Compose - Hosted Images
+
+To run the pre-built images from Docker Hub in a production-like environment, you can use the `docker-compose.yml` file below. This setup pulls the images directly from the registry, bypassing any local build steps.
+
+This example provides a complete, self-contained setup including the backend, frontend, Jaeger for tracing, and Caddy as a reverse proxy.
 
 ```yaml
 services:
   junjo-server-backend:
-    image: mdrideout/junjo-server-backend:latest # Or specify a version like: mdrideout/junjo-server-backend:v1.2.0
+    image: mdrideout/junjo-server-backend:latest # Or specify a version like: v1.2.0
     container_name: junjo-server-backend
     restart: unless-stopped
     volumes:
@@ -42,7 +59,7 @@ services:
       - "1323:1323"
       - "50051:50051"
     networks:
-      - caddy-proxy-network # Ensure this network is created or managed externally
+      - junjo-network
     env_file:
       - .env
     healthcheck:
@@ -52,10 +69,68 @@ services:
       retries: 25
       start_period: 5s
 
+  junjo-server-frontend:
+    image: mdrideout/junjo-server-frontend:latest # Or specify a version like: v1.2.0
+    container_name: junjo-server-frontend
+    restart: unless-stopped
+    ports:
+      - "5153:80" # Exposed port to Nginx mapping
+    networks:
+      - junjo-network
+    depends_on:
+      junjo-server-backend:
+        condition: service_healthy
+
+  junjo-jaeger:
+    image: jaegertracing/jaeger:2.3.0
+    container_name: junjo-jaeger
+    restart: unless-stopped
+    volumes:
+      - ./jaeger/config.yml:/jaeger/config.yml # You may need to create this file
+      - jaeger_badger_store:/data/jaeger/badger/jaeger
+      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
+    command: --config /jaeger/config.yml
+    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
+    networks:
+      - junjo-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: junjo-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80" # For HTTP -> HTTPS redirect
+      - "443:443" # For HTTPS
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile # You will need to provide your own Caddyfile
+      - caddy_data:/data # Persist Caddy data (certificates)
+      - caddy_config:/config # Persist Caddy config
+    networks:
+      - junjo-network
+    depends_on:
+      - junjo-server-backend
+      - junjo-server-frontend
+      - junjo-jaeger
+
+volumes:
+  jaeger_badger_store:
+  jaeger_badger_store_archive:
+  caddy_data:
+  caddy_config:
+
 networks:
-  caddy-proxy-network:
-    external: true
+  junjo-network: # Allow these services to communicate with each other
+    driver: bridge
+
+# Network option if you want to use an existing shared server network
+# networks:
+#   your-network:
+#     external: true # not coupled to this compose file
 ```
+
+### Docker Compose - Self Build
+
+Checkout the [Junjo Server Repository](https://github.com/mdrideout/junjo-server) `docker-compose.yml` file for an example of how to build and run the backend and frontend services yourself.
 
 ## Running The Dev Environment
 
@@ -67,13 +142,6 @@ Docker is required for local development so your developer experience mirrors ho
 Caddy is utilized as a reverse proxy to facilitate authentication guarded access to various services.
 - This runs in local development mode as part of the development environment build
 - It is expected that your virutal machine will have it's own Caddy service running, therefore it is excluded from production builds.
-
-#### .env requirements
-
-See the `.env.example` files in these subdirectories for required environment variables.
-
-- `/backend` .env
-- `/frontend` .env
 
 #### Docker Commands
 
