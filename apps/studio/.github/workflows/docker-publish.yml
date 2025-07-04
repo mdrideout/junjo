@@ -1,8 +1,8 @@
-# This workflow builds and pushes the backend Docker image to Docker Hub.
-# It uses a matrix strategy with native runners to build amd64 and arm64
-# images in parallel, then merges them into a multi-platform manifest.
+# This workflow builds and pushes Docker images for multiple services to Docker Hub.
+# It uses a matrix strategy to build amd64 and arm64 images in parallel for each
+# service, then merges them into multi-platform manifests.
 
-name: Publish Backend Docker Image
+name: Publish Docker Images
 
 on:
   release:
@@ -11,10 +11,11 @@ on:
 
 jobs:
   build:
-    name: Build for ${{ matrix.arch }}
+    name: Build ${{ matrix.service }} for ${{ matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
+        service: [backend, frontend]
         include:
           - platform: linux/amd64
             arch: amd64
@@ -44,7 +45,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: mdrideout/junjo-server-backend
+          images: mdrideout/junjo-server-${{ matrix.service }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -56,21 +57,25 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
           target: production
           builder: ${{ steps.buildx.outputs.name }}
           platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=build-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=build-${{ matrix.arch }}
+          cache-from: type=gha,scope=build-${{ matrix.service }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=build-${{ matrix.service }}-${{ matrix.arch }}
 
-  merge:
-    name: Create and Push Manifest
+  merge-and-push:
+    name: Create and Push ${{ matrix.service }} Manifest
     runs-on: ubuntu-latest
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -85,7 +90,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: mdrideout/junjo-server-backend
+          images: mdrideout/junjo-server-${{ matrix.service }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -102,9 +107,13 @@ jobs:
           done
 
   update-hub-description:
-    name: Update Docker Hub Description
+    name: Update ${{ matrix.service }} Docker Hub Description
     runs-on: ubuntu-latest
-    needs: merge
+    needs: merge-and-push
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -114,5 +123,5 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: mdrideout/junjo-server-backend
+          repository: mdrideout/junjo-server-${{ matrix.service }}
           readme-filepath: ./README.md
