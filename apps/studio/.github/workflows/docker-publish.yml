@@ -15,12 +15,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [backend, frontend]
         include:
-          - platform: linux/amd64
+          - service: backend
+            platform: linux/amd64
             arch: amd64
             runs-on: ubuntu-latest
-          - platform: linux/arm64
+          - service: backend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: frontend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: frontend
+            platform: linux/arm64
             arch: arm64
             runs-on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs-on }}
