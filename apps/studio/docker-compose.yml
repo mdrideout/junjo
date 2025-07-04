@@ -6,7 +6,7 @@ services:
       context: ./backend
       target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
-      - ./backend:/app-dev # Mount the backend code for hot reloading
+      - ./backend:/app # Mount the backend code for hot reloading
       - ./dbdata/sqlite:/dbdata/sqlite # SQLite storage
       - ./dbdata/duckdb:/dbdata/duckdb # DuckDB storage
     ports:
@@ -14,6 +14,8 @@ services:
       - "50051:50051" # gRPC telemetry server port
     networks:
       - caddy-proxy-network
+    env_file:
+      - ./backend/.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
       interval: 5s

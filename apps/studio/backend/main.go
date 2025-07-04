@@ -26,12 +26,10 @@ func main() {
 	fmt.Println("Running main.go function")
 
 	// Load environment variables
-	err := godotenv.Load(".env")
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf(".env file could not be loaded")
+		fmt.Printf("%v\n", err)
 	}
-	env := os.Getenv("ENV")
-	fmt.Println("Environment: ", env)
 
 	// Host
 	port := "1323"
@@ -67,7 +65,11 @@ func main() {
 	}))
 
 	// Session Middleware
-	e.Use(session.Middleware(sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))))
+	sessionSecret := os.Getenv("SESSION_SECRET")
+	if sessionSecret == "" {
+		log.Fatal("SESSION_SECRET environment variable is not set")
+	}
+	e.Use(session.Middleware(sessions.NewCookieStore([]byte(sessionSecret))))
 
 	// CSRF Middleware (Echo's built-in CSRF)
 	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
