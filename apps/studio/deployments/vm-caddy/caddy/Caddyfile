@@ -1,6 +1,13 @@
 :80 {
     log
 
+    map {host} {redirect_url} {
+        # For production host
+        junjo-deploy.example.rideout.dev https://junjo-deploy.example.rideout.dev/sign-in
+        # Default for all other hosts (i.e., localhost)
+        default http://localhost:5153/sign-in
+    }
+
     @jaegerPath path /jaeger*
 
     handle @jaegerPath {
@@ -12,7 +19,8 @@
             # Redirect to the FE app sign-in page if the auth service returns a 4xx status
             @bad status 4xx
 			handle_response @bad {
-				redir http://localhost:5153/sign-in 302
+                # Utilize the map
+				redir {redirect_url} 302
 			}
         }
 
