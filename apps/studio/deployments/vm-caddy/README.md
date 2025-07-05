@@ -157,7 +157,7 @@ $ ssh root@[your-ip-address]
 1. Install rsync
 1. Disconnect from ssh for next steps
 
-### RSYNC: Copy Files & Docker Compose
+### Copy Files & Launch
 
 These commands will copy the files from your machine to the remote server.
 
