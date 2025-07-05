@@ -132,3 +132,55 @@ The `Caddyfile` can be used as a demonstration for:
 *   **Description**: A modern, powerful reverse proxy.
 *   **Source**: [`caddy/`](caddy/)
 *   **Details**: Caddy routes incoming traffic to the appropriate services based on the path. The configuration can be found in the [`caddy/Caddyfile`](caddy/Caddyfile). For production use, you would replace `localhost` with your domain name, and Caddy would automatically handle HTTPS for you.
+
+## Digital Ocean VM Setup Example
+
+This example has been tested on a Digital Ocean VM with the following configuration:
+
+- Debian 12
+- 1GB RAM
+- 1vCPU
+- 25GB Disk
+
+The following are instructions for baseline server setup and deployment of the Junjo Server and Junjo App.
+
+### SSH into the server
+
+```bash
+$ ssh root@[your-ip-address]
+```
+
+### Install Docker & Docker Compose
+
+1. Follow [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/) instructions.
+1. Docker compose comes installed already now
+1. Install rsync
+1. Disconnect from ssh for next steps
+
+### RSYNC: Copy Files & Docker Compose
+
+These commands will copy the files from your machine to the remote server.
+
+```bash
+# Copy via SSH rsync (ssh must be disconnected to execute)
+# Exclude hidden files
+$ rsync -avz --delete -e ssh ~/path/on/local/machine/ root@[your-ip-address]:folder_name/ --exclude='.??*'
+
+# SSH into the server and go to the caddy folder
+$ cd ~/caddy
+
+# Copy the .env.example file and rename it to .env
+$ cp .env.example .env
+
+# Edit the .env file and update the required environment variables
+$ sudo vi .env
+
+# Launch the docker compose configuration in detached mode so it runs in the background
+$ docker compose up -d --build
+
+# List containers
+$ docker container ls
+
+# Watch logs of the container
+$ docker logs -f caddy
+```
