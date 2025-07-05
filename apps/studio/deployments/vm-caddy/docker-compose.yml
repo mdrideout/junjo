@@ -1,0 +1,86 @@
+services:
+  junjo-app:
+    build: ./junjo_app
+    container_name: junjo-app
+    restart: unless-stopped
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    depends_on:
+      - junjo-server-backend
+
+  junjo-server-backend:
+    image: mdrideout/junjo-server-backend:latest
+    container_name: junjo-server-backend
+    restart: unless-stopped
+    volumes:
+      - ./dbdata/sqlite:/dbdata/sqlite
+      - ./dbdata/duckdb:/dbdata/duckdb
+    ports:
+      - "1323:1323"
+      - "50051:50051"
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+
+  junjo-server-frontend:
+    image: mdrideout/junjo-server-frontend:latest
+    container_name: junjo-server-frontend
+    restart: unless-stopped
+    ports:
+      - "5153:80" # Access the frontend at http://localhost:5153
+    networks:
+      - junjo-network
+    depends_on:
+      junjo-server-backend:
+        condition: service_healthy
+
+  junjo-jaeger:
+    image: jaegertracing/jaeger:2.3.0
+    container_name: junjo-jaeger
+    restart: unless-stopped
+    volumes:
+      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
+      - jaeger_badger_store:/data/jaeger/badger/jaeger
+      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317" # OTLP gRPC
+    networks:
+      - junjo-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: junjo-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - junjo-network
+    depends_on:
+      - junjo-server-backend
+      - junjo-server-frontend
+      - junjo-jaeger
+
+volumes:
+  jaeger_badger_store:
+  jaeger_badger_store_archive:
+  caddy_data:
+  caddy_config:
+
+networks:
+  junjo-network:
+    driver: bridge

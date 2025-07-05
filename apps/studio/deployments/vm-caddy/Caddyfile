@@ -1,0 +1,19 @@
+# This is a sample Caddyfile for local development.
+# For a production deployment, you would replace "localhost"
+# with your domain name and Caddy will automatically provision
+# an SSL certificate for you.
+
+localhost {
+    # Reverse proxy for the Junjo Server frontend
+    reverse_proxy junjo-server-frontend:80
+
+    # Reverse proxy for the Junjo Server backend API
+    handle_path /api/* {
+        reverse_proxy junjo-server-backend:1323
+    }
+
+    # Reverse proxy for the Jaeger UI
+    handle_path /jaeger/* {
+        reverse_proxy junjo-jaeger:16686
+    }
+}

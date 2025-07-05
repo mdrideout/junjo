@@ -1,0 +1,2 @@
+junjo[otel]
+python-dotenv
