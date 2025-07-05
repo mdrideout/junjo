@@ -2,32 +2,6 @@
 
 This repository provides a complete, deployable example of a custom Junjo application running alongside the Junjo Server in a Docker Compose environment. It is designed to be a starting point for users who want to build and deploy their own Junjo-powered applications.
 
-## Architecture
-
-The project consists of several containerized services orchestrated by Docker Compose. A Caddy reverse proxy serves as the entry point, routing traffic to the appropriate services.
-
-```mermaid
-graph TD
-    subgraph "Virtual Machine / Docker Host"
-        subgraph "Docker Compose Services"
-            Caddy(Caddy Reverse Proxy)
-            JunjoApp(Custom Junjo App)
-            JunjoServerFrontend(Junjo Server Frontend)
-            JunjoServerBackend(Junjo Server Backend)
-            Jaeger(Jaeger Tracing)
-
-            Caddy -- ":80 (HTTP)" --> JunjoServerFrontend
-            Caddy -- "/api" --> JunjoServerBackend
-            Caddy -- "/jaeger" --> Jaeger
-            JunjoServerFrontend -- "API Calls" --> JunjoServerBackend
-            JunjoApp -- "gRPC Telemetry" --> JunjoServerBackend
-            JunjoServerBackend -- "Sends Traces" --> Jaeger
-        end
-    end
-
-    User[End User] -- "Accesses UI" --> Caddy
-```
-
 ## Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/)
@@ -70,20 +44,20 @@ This command will build the `junjo-app` image and pull the necessary images for 
 
 Once all the services are running, you can access them in your browser:
 
-*   **Junjo Server UI**: [http://localhost](http://localhost)
+*   **Junjo Server UI**: [http://localhost:5153](http://localhost:5153)
 *   **Jaeger UI for Tracing**: [http://localhost/jaeger](http://localhost/jaeger)
 
 #### Junjo Setup Steps:
 
-1. Create your user account with an email address and password, then sign in.
-2. Create an [API key](http://localhost:5153/api-keys) in the Junjo Server UI.
-3. Set the key as the `JUNJO_SERVER_API_KEY` environment variable in the `.env` file.
-4. Restart the junjo-app container to pickup the new API key.
+1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
+2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo Server UI.
+3.  Set this key as the `JUNJO_SERVER_API_KEY` environment variable in your `.env` file.
+4.  Restart the `junjo-app` container to apply the new API key:
+    ```bash
+    docker compose restart junjo-app
+    ```
 
-
-> **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services.
-> 
-> This can be an issue if you have had multiple junjo server projects running on `localhost` and the session cookie is still valid in another instance.
+> **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
 
 You should see workflow runs appearing in the Junjo Server UI every 5 seconds. You can click on a run to see the detailed trace in Jaeger.
 
@@ -118,11 +92,11 @@ docker compose down -v
 ### `junjo-jaeger`
 
 *   **Description**: The Jaeger all-in-one instance for distributed tracing.
-*   **Image**: `jaegertracing/all-in-one:latest`
+*   **Image**: `jaegertracing/jaeger:2.3.0`
 *   **Details**: The Junjo Server is integrated with Jaeger to provide detailed traces of workflow executions.
 
 ### `caddy`
 
 *   **Description**: A modern, powerful reverse proxy.
-*   **Image**: `caddy:2-alpine`
-*   **Details**: Caddy routes incoming traffic to the appropriate services based on the path. The configuration can be found in the [`Caddyfile`](Caddyfile). For production use, you would replace `localhost` with your domain name, and Caddy would automatically handle HTTPS for you.
+*   **Source**: [`caddy/`](caddy/)
+*   **Details**: Caddy routes incoming traffic to the appropriate services based on the path. The configuration can be found in the [`caddy/Caddyfile`](caddy/Caddyfile). For production use, you would replace `localhost` with your domain name, and Caddy would automatically handle HTTPS for you.
