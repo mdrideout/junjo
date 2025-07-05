@@ -178,3 +178,7 @@ $ docker compose down -v
 - Backend API: https://localhost:1323/
 - Jaeger UI: https://localhost/jaeger 
   - This is routed through Caddy reverse proxy forward_auth for authentication via the Backend API's cookie header validation
+
+#### Troubleshooting
+
+If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
