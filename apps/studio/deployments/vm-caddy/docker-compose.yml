@@ -62,6 +62,8 @@ services:
       context: ./caddy
     container_name: junjo-caddy
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "80:80" # For HTTP -> HTTPS redirect
       - "443:443" # For HTTPS

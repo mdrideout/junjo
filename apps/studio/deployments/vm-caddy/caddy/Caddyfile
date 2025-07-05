@@ -51,31 +51,32 @@
 #     reverse_proxy h2c://junjo-server-backend:50051
 # }
 
-# # ---------------------------
-# # Production Frontend & Jaeger UI ({$JUNJO_PROD_AUTH_DOMAIN})
-# # ---------------------------
-# {$JUNJO_PROD_AUTH_DOMAIN} {
-#     log
+# --------------------------------------------------------------
+# Production Domain & Subdomains
+# - Jaeger:     https://{$JUNJO_PROD_AUTH_DOMAIN}/jaeger
+# - Frontend:   https://{$JUNJO_PROD_AUTH_DOMAIN}
+# - Backend:    https://api.{$JUNJO_PROD_AUTH_DOMAIN}
+# - gRPC:       https://grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+# --------------------------------------------------------------
+*.{$JUNJO_PROD_AUTH_DOMAIN} {
+    log
+    
+    @jaegerPath path /jaeger*
 
-#     # Handle Jaeger UI requests with forward authentication.
-#     handle_path /jaeger/* {
-#         forward_auth junjo-server-backend:1323 {
-#             uri /auth-test
-#             copy_headers Cookie
-#         }
+    handle @jaegerPath {
+        # Validate all jaeger requests with the backend auth service (validates cookies)
+        forward_auth junjo-server-backend:1323 {
+            uri /auth-test
+            copy_headers Cookie
 
-#         # On auth failure, redirect to the production sign-in page.
-#         @bad status 4xx
-#         handle_response @bad {
-#             redir https://{$JUNJO_PROD_AUTH_DOMAIN}/sign-in 302
-#         }
+            # Redirect to the FE app sign-in page if the auth service returns a 4xx status
+            @bad status 4xx
+			handle_response @bad {
+				redir http://localhost:5153/sign-in 302
+			}
+        }
 
-#         # If auth succeeds, proxy to the Jaeger UI.
-#         reverse_proxy junjo-jaeger:16686
-#     }
-
-#     # Handle all other requests by serving the frontend application.
-#     handle {
-#         reverse_proxy junjo-server-frontend:80
-#     }
-# }
+        # If auth succeeds (200 response), continue the request to the Jaeger UI.
+        reverse_proxy junjo-jaeger:16686
+    }
+}
