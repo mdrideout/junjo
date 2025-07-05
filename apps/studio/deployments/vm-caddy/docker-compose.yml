@@ -46,28 +46,29 @@ services:
   junjo-jaeger:
     image: jaegertracing/jaeger:2.3.0
     container_name: junjo-jaeger
-    restart: unless-stopped
     volumes:
       - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
       - jaeger_badger_store:/data/jaeger/badger/jaeger
       - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
-    ports:
-      - "16686:16686" # Jaeger UI
-      - "4317:4317" # OTLP gRPC
+    # ports: # No ports should be directly exposed - traces are relayed through junjo-backend
+    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    command: --config /jaeger/config.yml
+    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
     networks:
       - junjo-network
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./caddy
     container_name: junjo-caddy
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80" # For HTTP -> HTTPS redirect
+      - "443:443" # For HTTPS
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
+      - caddy_data:/data # Persist Caddy data (certificates)
+      - caddy_config:/config # Persist Caddy config (optional in dev)
     networks:
       - junjo-network
     depends_on:

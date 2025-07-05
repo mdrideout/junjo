@@ -1,0 +1,24 @@
+:80 {
+    log
+
+    @jaegerPath path /jaeger*
+
+    handle @jaegerPath {
+        # Validate all jaeger requests with the backend auth service (validates cookies)
+        forward_auth junjo-server-backend:1323 {
+            uri /auth-test
+            copy_headers Cookie
+
+            # Redirect to the FE app sign-in page if the auth service returns a 4xx status
+            @bad status 4xx
+			handle_response @bad {
+				redir http://localhost:5153/sign-in 302
+			}
+        }
+
+        # If auth succeeds (200 response), continue the request to the Jaeger UI.
+        reverse_proxy junjo-jaeger:16686 {
+            header_up Host {upstream_hostport}
+        }
+    }
+}
