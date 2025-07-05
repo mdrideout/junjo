@@ -38,6 +38,7 @@ Then, open the `.env` file and configure the variables as needed. At a minimum, 
 
 - `BUILD_TARGET`: Should be set to `production` when using the hosted images.
 - `SESSION_SECRET`: A long, random string used for securing user sessions.
+  - You can generate a secure key with: `openssl rand -base64 48`
 - `ALLOW_ORIGINS`: A comma-separated list of URLs that are allowed to make requests to the backend API.
 
 ### Docker Compose - Hosted Images

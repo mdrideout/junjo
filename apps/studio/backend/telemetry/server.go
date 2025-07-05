@@ -44,7 +44,7 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 
 	// --- Initialize Jaeger Forwarder ---
 	// Hardcode the internal Docker Compose service name and default OTLP gRPC port
-	jaegerEndpoint := "jui-jaeger:4317"
+	jaegerEndpoint := "junjo-jaeger:4317"
 	jaegerFwd := NewJaegerForwarder(jaegerEndpoint) // jaegerFwd is local scope now
 
 	// --- Initialize OTLP Services, passing the forwarder ---

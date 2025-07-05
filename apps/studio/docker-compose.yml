@@ -40,9 +40,9 @@ services:
       jui-be:
         condition: service_healthy # Wait for jui-be to be healthy before starting jui-fe
 
-  jui-jaeger:
+  junjo-jaeger:
     image: jaegertracing/jaeger:2.3.0
-    container_name: jui-jaeger
+    container_name: junjo-jaeger
     # ports: # No ports should be directly exposed - traces are relayed through jui-be
     # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
     # - "4317:4317" # OTLP gRPC - uses internal network forwarding from jui-be
@@ -72,7 +72,7 @@ services:
     depends_on:
       - jui-be
       - jui-fe
-      - jui-jaeger
+      - junjo-jaeger
 
 volumes:
   frontend-modules:
