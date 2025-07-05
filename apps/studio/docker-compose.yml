@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     build:
       context: ./backend
-      target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
+      target: ${JUNJO_BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
       - ./backend:/app # Mount the backend code for hot reloading
       - ./dbdata/sqlite:/dbdata/sqlite # SQLite storage
@@ -27,7 +27,7 @@ services:
     container_name: jui-fe
     build:
       context: ./frontend
-      target: ${BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
+      target: ${JUNJO_BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
       - frontend-modules:/app/node_modules # Dev only: Named volume for node_modules
       - ./frontend:/app # Dev only: Mount the frontend code for hot reloading

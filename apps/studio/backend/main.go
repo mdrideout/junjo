@@ -58,8 +58,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// CORS middleware
-	// CORS middleware
-	allowedOriginsEnv := os.Getenv("ALLOW_ORIGINS")
+	allowedOriginsEnv := os.Getenv("JUNJO_ALLOW_ORIGINS")
 	config := middleware.CORSConfig{
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderXCSRFToken},
@@ -82,9 +81,9 @@ func main() {
 	e.Use(middleware.CORSWithConfig(config))
 
 	// Session Middleware
-	sessionSecret := os.Getenv("SESSION_SECRET")
+	sessionSecret := os.Getenv("JUNJO_SESSION_SECRET")
 	if sessionSecret == "" {
-		log.Fatal("SESSION_SECRET environment variable is not set")
+		log.Fatal("JUNJO_SESSION_SECRET environment variable is not set")
 	}
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte(sessionSecret))))
 

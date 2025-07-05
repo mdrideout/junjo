@@ -34,12 +34,12 @@ Before running the services, you need to set up your environment variables. Copy
 cp .env.example .env
 ```
 
-Then, open the `.env` file and configure the variables as needed. At a minimum, you should set a secure `SESSION_SECRET`. For production, you should also configure `ALLOW_ORIGINS` to match the domain where you are hosting the frontend.
+Then, open the `.env` file and configure the variables as needed. At a minimum, you should set a secure `JUNJO_SESSION_SECRET`. For production, you should also configure `JUNJO_ALLOW_ORIGINS` to match the domain where you are hosting the frontend.
 
-- `BUILD_TARGET`: Should be set to `production` when using the hosted images.
-- `SESSION_SECRET`: A long, random string used for securing user sessions.
+- `JUNJO_BUILD_TARGET`: Should be set to `production` when using the hosted images.
+- `JUNJO_SESSION_SECRET`: A long, random string used for securing user sessions.
   - You can generate a secure key with: `openssl rand -base64 48`
-- `ALLOW_ORIGINS`: A comma-separated list of URLs that are allowed to make requests to the backend API.
+- `JUNJO_ALLOW_ORIGINS`: A comma-separated list of URLs that are allowed to make requests to the backend API.
 
 ### Docker Compose - Hosted Images
 
@@ -157,7 +157,7 @@ Docker is required for local development so your developer experience mirrors ho
 
 Docker compose can be used to launch the frontend and backend together, with hot reloading for local development.
 
-> Ensure the project root `.env` file contains `BUILD_TARGET=development`
+> Ensure the project root `.env` file contains `JUNJO_BUILD_TARGET=development`
 
 > TIP: `docker compose down -v` is required if node modules or go modules change (installed / uninstalled)
 

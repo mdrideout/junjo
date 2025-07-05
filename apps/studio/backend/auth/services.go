@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"junjo-server/db_gen"
@@ -178,12 +179,28 @@ func SignIn(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
 	}
 
-	sess.Options = &sessions.Options{
-		MaxAge:   86400 * 7, // 7 days
+	// Construct the default session options
+	options := &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 30, // 30 days
 		HttpOnly: true,
-		Secure:   true, // HTTPS in production
+		Secure:   true, // HTTPS in production (handles localhost dev correctly)
 		SameSite: http.SameSiteStrictMode,
 	}
+
+	// IF IN PRODUCTION:
+	// Set the Domain to the production auth domain
+	if os.Getenv("JUNJO_ENV") == "production" {
+		authDomain := os.Getenv("JUNJO_PROD_AUTH_DOMAIN")
+		if authDomain != "" {
+			options.Domain = "." + authDomain // covers subdomains
+		}
+	}
+
+	// Set the session options
+	sess.Options = options
+
+	// Set session values
 	sess.Values["userEmail"] = user.Email
 	if err := sess.Save(c.Request(), c.Response()); err != nil {
 		log.Printf("failed to save session: %v", err)
