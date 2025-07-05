@@ -1,3 +1,10 @@
+# Misc
+/tmp/
+.env
+dbdata/
+.DS_Store
+.gitleaks/**
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
