@@ -70,7 +70,6 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
       - caddy_data:/data # Persist Caddy data (certificates)
-      - caddy_config:/config # Persist Caddy config (optional in dev)
     networks:
       - junjo-network
     depends_on:
@@ -81,8 +80,7 @@ services:
 volumes:
   jaeger_badger_store:
   jaeger_badger_store_archive:
-  caddy_data:
-  caddy_config:
+  caddy_data: # Persistent caddy data (certificates, configuration)
 
 networks:
   junjo-network:

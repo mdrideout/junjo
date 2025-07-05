@@ -42,6 +42,12 @@
 # ----------------------------------------------------------------------------------------
 *.{$JUNJO_PROD_AUTH_DOMAIN} {
     log
+
+    # For automatic SSL (via xcaddy cloudflare plugin)
+    tls {
+        dns cloudflare {$CF_API_TOKEN}      # Created inside CloudFlare and set in the .env file
+        resolvers 1.1.1.1                   # Cloudflare DNS is recommended for this plugin
+    }
     
     # Handle Jaeger UI requests with forward authentication.
     @jaegerPath path /jaeger*

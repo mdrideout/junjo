@@ -71,7 +71,7 @@ docker compose down -v
 
 ## Production Deployment
 
-The `PROD_AUTH_DOMAIN` environment variable is used to define the primary production domain. The domain sets:
+The `JUNJO_PROD_AUTH_DOMAIN` environment variable is used to define the primary production domain. The domain sets:
 
 1. The Junjo Server frontend access domain.
 2. The session cookie domain + subdomains (all subdomains are covered)
@@ -79,7 +79,7 @@ The `PROD_AUTH_DOMAIN` environment variable is used to define the primary produc
 
 ### Accessing Production Services:
 
-Assuming the `PROD_AUTH_DOMAIN` is set to `junjo.example.com`, you can access the services at:
+Assuming the `JUNJO_PROD_AUTH_DOMAIN` is set to `junjo.example.com`, you can access the services at:
 
 *   Junjo Server UI: [https://junjo.example.com](https://junjo.example.com)
 *   Jaeger UI: [https://junjo.example.com/jaeger](https://junjo.example.com/jaeger)
@@ -87,6 +87,19 @@ Assuming the `PROD_AUTH_DOMAIN` is set to `junjo.example.com`, you can access th
 *   Junjo Server gRPC: [https://grpc.junjo.example.com](https://grpc.junjo.example.com)
     *   This is the endpoint for delivering open telemetry data to Junjo Server from your python application setup with a `JunjoServerOtelExporter`
 
+### Caddy Server / Reverse Proxy
+
+One would typically manage and deploy Caddy (or other reverse proxy) separately from the Junjo Server for their virtual machine. You may have a server-wide docker network and many 
+other container services running on the same machine that you'd like to control individually.
+
+This example bundles Caddy **with** the example Junjo App and Junjo Server instance only for demonstration purposes.
+
+The `Caddyfile` can be used as a demonstration for:
+
+- Secure Jaeger access via forward_auth
+- `:80` local and `*.{$JUNJO_PROD_AUTH_DOMAIN}` production deployment
+- Cloudflare DNS setup example
+- Subdomain service access configuration through Caddy
 
 ## Services
 
