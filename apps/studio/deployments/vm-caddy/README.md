@@ -69,12 +69,31 @@ To stop all the services, press `Ctrl+C` in the terminal where `docker compose` 
 docker compose down -v
 ```
 
+## Production Deployment
+
+The `PROD_AUTH_DOMAIN` environment variable is used to define the primary production domain. The domain sets:
+
+1. The Junjo Server frontend access domain.
+2. The session cookie domain + subdomains (all subdomains are covered)
+   1. Requires a wildcard DNS record.
+
+### Accessing Production Services:
+
+Assuming the `PROD_AUTH_DOMAIN` is set to `junjo.example.com`, you can access the services at:
+
+*   Junjo Server UI: [https://junjo.example.com](https://junjo.example.com)
+*   Jaeger UI: [https://junjo.example.com/jaeger](https://junjo.example.com/jaeger)
+*   Junjo Server API: [https://api.junjo.example.com](https://api.junjo.example.com)
+*   Junjo Server gRPC: [https://grpc.junjo.example.com](https://grpc.junjo.example.com)
+    *   This is the endpoint for delivering open telemetry data to Junjo Server from your python application setup with a `JunjoServerOtelExporter`
+
+
 ## Services
 
 ### `junjo-app`
 
 *   **Description**: A custom Python application that runs a simple Junjo workflow in a loop.
-*   **Source**: [`junjo_app/`](junjo_app/)
+*   **Source**: See the `junjo_app/` directory.
 *   **Details**: This application is configured to send OpenTelemetry data to the `junjo-server-backend` via gRPC. This allows you to see the workflow's execution traces in the Junjo Server UI.
 
 ### `junjo-server-backend`

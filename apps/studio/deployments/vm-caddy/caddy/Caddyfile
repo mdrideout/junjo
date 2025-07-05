@@ -1,8 +1,8 @@
 # Caddyfile for Junjo Local Dev & Production Deployment
 
-# This Caddyfile uses the PROD_DOMAIN environment variable to define
+# This Caddyfile uses the JUNJO_PROD_AUTH_DOMAIN environment variable to define
 # the production domain. Set this in your .env file.
-# Example: PROD_DOMAIN=junjo-deploy.example.rideout.dev
+# Example: JUNJO_PROD_AUTH_DOMAIN=junjo-deploy.example.rideout.dev
 
 # ---------------------------
 # Local Development Server (localhost)
@@ -35,27 +35,27 @@ localhost {
 
 
 # ---------------------------
-# Production API Server (api.{$PROD_DOMAIN})
+# Production API Server (api.{$JUNJO_PROD_AUTH_DOMAIN})
 # ---------------------------
-api.{$PROD_DOMAIN} {
+api.{$JUNJO_PROD_AUTH_DOMAIN} {
     log
     # CORS is handled by the backend application.
     reverse_proxy junjo-server-backend:1323
 }
 
 # ---------------------------
-# Production gRPC Server (grpc.{$PROD_DOMAIN})
+# Production gRPC Server (grpc.{$JUNJO_PROD_AUTH_DOMAIN})
 # ---------------------------
-grpc.{$PROD_DOMAIN} {
+grpc.{$JUNJO_PROD_AUTH_DOMAIN} {
     log
     # The h2c scheme enables gRPC over HTTP/2.
     reverse_proxy h2c://junjo-server-backend:50051
 }
 
 # ---------------------------
-# Production Frontend & Jaeger UI ({$PROD_DOMAIN})
+# Production Frontend & Jaeger UI ({$JUNJO_PROD_AUTH_DOMAIN})
 # ---------------------------
-{$PROD_DOMAIN} {
+{$JUNJO_PROD_AUTH_DOMAIN} {
     log
 
     # Handle Jaeger UI requests with forward authentication.
@@ -68,7 +68,7 @@ grpc.{$PROD_DOMAIN} {
         # On auth failure, redirect to the production sign-in page.
         @bad status 4xx
         handle_response @bad {
-            redir https://{$PROD_DOMAIN}/sign-in 302
+            redir https://{$JUNJO_PROD_AUTH_DOMAIN}/sign-in 302
         }
 
         # If auth succeeds, proxy to the Jaeger UI.
