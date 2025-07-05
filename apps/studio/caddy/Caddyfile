@@ -1,26 +1,7 @@
-# Local Dev:
-# Listens on HTTP port 80
-# Forwards requests to the appropriate backend service
-# based on the path of the request.
-#
-#
-# :80 {
-#     handle junjo-jaeger:16686 {
-#         forward_auth jui-be:1323 {
-#             uri /auth/validate
-#             copy_headers Cookie
-
-#             handle_response 401 {
-#                 redir /login 302
-#             }
-#             handle_response 403 {
-#                 redir /login 302
-#             }
-#         }
-#         reverse_proxy junjo-jaeger:16686
-#     }
-# }
-
+# Caddy Config: Jaeger Forward Auth
+# This Caddyfile configures a reverse proxy for the Jaeger UI.
+# It validates all requests to the Jaeger UI with the backend auth service.
+# If the auth service returns a 4xx status, it redirects to the FE app sign-in page.
 :80 {
     @jaegerPath path /jaeger*
 
@@ -41,27 +22,3 @@
         reverse_proxy junjo-jaeger:16686
     }
 }
-
-# IF HTTPS IS NEEDED LOCALLY
-# - Change the port to 443 to have Caddy listen on HTTPS
-# - Generate a self-signed certificate
-# - Update the config to use the self-signed certificate
-# - Update browser to trust the self-signed certificate OR
-# - Update the host OS to trust the self-signed certificate
-
-# Custom Subdomain Reverse Proxy Configuration
-# Optional config - requires changes to the /etc/hosts file to work locally
-# # Custom local domains:
-# app.localhost {
-#     reverse_proxy jui-fe:5151
-# }
-
-# jaeger.localhost {
-#    reverse_proxy junjo-jaeger:16686 {
-#     header_up Host {upstream_hostport}
-#   }
-# }
-
-# api.localhost {
-# 	reverse_proxy jui-be:1323
-# }
