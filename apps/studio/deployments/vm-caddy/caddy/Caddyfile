@@ -32,37 +32,19 @@
     }
 }
 
-
-# # ---------------------------
-# # Production API Server (api.{$JUNJO_PROD_AUTH_DOMAIN})
-# # ---------------------------
-# api.{$JUNJO_PROD_AUTH_DOMAIN} {
-#     log
-#     # CORS is handled by the backend application.
-#     reverse_proxy junjo-server-backend:1323
-# }
-
-# # ---------------------------
-# # Production gRPC Server (grpc.{$JUNJO_PROD_AUTH_DOMAIN})
-# # ---------------------------
-# grpc.{$JUNJO_PROD_AUTH_DOMAIN} {
-#     log
-#     # The h2c scheme enables gRPC over HTTP/2.
-#     reverse_proxy h2c://junjo-server-backend:50051
-# }
-
-# --------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 # Production Domain & Subdomains
-# - Jaeger:     https://{$JUNJO_PROD_AUTH_DOMAIN}/jaeger
-# - Frontend:   https://{$JUNJO_PROD_AUTH_DOMAIN}
-# - Backend:    https://api.{$JUNJO_PROD_AUTH_DOMAIN}
-# - gRPC:       https://grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-# --------------------------------------------------------------
+#   Name        Container Name & Port           Access URL
+# - Frontend:   junjo-server-frontend:5153      https://{$JUNJO_PROD_AUTH_DOMAIN}
+# - Jaeger      junjo-jaeger:16686              https://{$JUNJO_PROD_AUTH_DOMAIN}/jaeger
+# - Backend:    junjo-server-backend:1323       https://api.{$JUNJO_PROD_AUTH_DOMAIN}
+# - gRPC:       junjo-server-backend:50051      https://grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+# ----------------------------------------------------------------------------------------
 *.{$JUNJO_PROD_AUTH_DOMAIN} {
     log
     
+    # Handle Jaeger UI requests with forward authentication.
     @jaegerPath path /jaeger*
-
     handle @jaegerPath {
         # Validate all jaeger requests with the backend auth service (validates cookies)
         forward_auth junjo-server-backend:1323 {
@@ -79,4 +61,16 @@
         # If auth succeeds (200 response), continue the request to the Jaeger UI.
         reverse_proxy junjo-jaeger:16686
     }
+
+    # api.{$JUNJO_PROD_AUTH_DOMAIN} 
+    @api {
+        host api.{$JUNJO_PROD_AUTH_DOMAIN}
+    }
+    reverse_proxy junjo-server-backend:1323
+
+    # grpc.{$JUNJO_PROD_AUTH_DOMAIN} 
+    @grpc {
+        host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+    }
+    reverse_proxy junjo-server-backend:50051
 }
