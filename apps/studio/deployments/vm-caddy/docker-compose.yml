@@ -51,7 +51,7 @@ services:
       - jaeger_badger_store:/data/jaeger/badger/jaeger
       - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
     # ports: # No ports should be directly exposed - traces are relayed through junjo-backend
-    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    # - "16686:16686" # Jaeger UI - do not expose, uses Caddy reverse proxy
     command: --config /jaeger/config.yml
     user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
     networks:

@@ -1,32 +1,82 @@
-:80 {
+# Caddyfile for Junjo Local Dev & Production Deployment
+
+# This Caddyfile uses the PROD_DOMAIN environment variable to define
+# the production domain. Set this in your .env file.
+# Example: PROD_DOMAIN=junjo-deploy.example.rideout.dev
+
+# ---------------------------
+# Local Development Server (localhost)
+# ---------------------------
+# This block is ONLY for local development access to Jaeger.
+localhost {
     log
 
-    map {host} {redirect_url} {
-        # For production host
-        junjo-deploy.example.rideout.dev https://junjo-deploy.example.rideout.dev/sign-in
-        # Default for all other hosts (i.e., localhost)
-        default http://localhost:5153/sign-in
-    }
-
     @jaegerPath path /jaeger*
-
     handle @jaegerPath {
-        # Validate all jaeger requests with the backend auth service (validates cookies)
+        # Validate jaeger requests with the backend auth service
         forward_auth junjo-server-backend:1323 {
             uri /auth-test
             copy_headers Cookie
-
-            # Redirect to the FE app sign-in page if the auth service returns a 4xx status
-            @bad status 4xx
-			handle_response @bad {
-                # Utilize the map
-				redir {redirect_url} 302
-			}
         }
 
-        # If auth succeeds (200 response), continue the request to the Jaeger UI.
-        reverse_proxy junjo-jaeger:16686 {
-            header_up Host {upstream_hostport}
+        # On auth failure, redirect to the local frontend for sign-in
+        @bad status 4xx
+        handle_response @bad {
+            redir http://localhost:5153/sign-in 302
         }
+
+        # If auth succeeds, proxy to the Jaeger UI
+        reverse_proxy junjo-jaeger:16686
+    }
+
+    # Note: Other local services are accessed directly by their ports,
+    # so no other handlers are needed here.
+}
+
+
+# ---------------------------
+# Production API Server (api.{$PROD_DOMAIN})
+# ---------------------------
+api.{$PROD_DOMAIN} {
+    log
+    # CORS is handled by the backend application.
+    reverse_proxy junjo-server-backend:1323
+}
+
+# ---------------------------
+# Production gRPC Server (grpc.{$PROD_DOMAIN})
+# ---------------------------
+grpc.{$PROD_DOMAIN} {
+    log
+    # The h2c scheme enables gRPC over HTTP/2.
+    reverse_proxy h2c://junjo-server-backend:50051
+}
+
+# ---------------------------
+# Production Frontend & Jaeger UI ({$PROD_DOMAIN})
+# ---------------------------
+{$PROD_DOMAIN} {
+    log
+
+    # Handle Jaeger UI requests with forward authentication.
+    handle_path /jaeger/* {
+        forward_auth junjo-server-backend:1323 {
+            uri /auth-test
+            copy_headers Cookie
+        }
+
+        # On auth failure, redirect to the production sign-in page.
+        @bad status 4xx
+        handle_response @bad {
+            redir https://{$PROD_DOMAIN}/sign-in 302
+        }
+
+        # If auth succeeds, proxy to the Jaeger UI.
+        reverse_proxy junjo-jaeger:16686
+    }
+
+    # Handle all other requests by serving the frontend application.
+    handle {
+        reverse_proxy junjo-server-frontend:80
     }
 }
