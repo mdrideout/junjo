@@ -1,7 +1,7 @@
 # Misc
 /tmp/
 .env
-dbdata/
+.dbdata/
 .DS_Store
 .gitleaks/**
 

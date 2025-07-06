@@ -161,9 +161,9 @@ $ ssh root@[your-ip-address]
 These commands will copy the files from your machine to the remote server.
 
 ```bash
-# Copy via SSH rsync (ssh must be disconnected to execute)
-# Exclude hidden files
-$ rsync -avz --delete -e ssh ~/path/on/local/machine/ root@[your-ip-address]:folder_name/ --exclude='.??*'
+# Copy via rsync (ssh must be disconnected to execute)
+# Exclude hidden files except for .env.example
+$ rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/path/on/local/machine/ root@[your-ip-address]:folder_name/
 
 # ssh into the server again
 $ ssh root@[your-ip-address]
@@ -171,20 +171,51 @@ $ ssh root@[your-ip-address]
 # cd into to the folder you uploaded the project to
 $ cd ~/folder_name
 
+# Verify all files were copied correctly
+$ ls -a
+
 # Copy the .env.example file and rename it to .env
 $ cp .env.example .env
 
-# Edit the .env file and update the required environment variables
+# Edit the .env file and update the required environment variables (the JUNJO_SERVER_API_KEY can be added after the Junjo Server is running)
 $ sudo vi .env
 
 # Exit the vi text editor with escape key, then type :wq to save and quit
 
-# Launch the docker compose configuration in detached mode so it runs in the background
-$ docker compose up -d --build
+# Pull the latest Junjo Server images and launch the docker compose configuration in detached mode so it runs in the background
+$ docker compose pull && docker compose up -d --build
 
 # List containers
 $ docker container ls
 
-# Watch logs of the container
+# Watch logs of the container (check caddy for successful SSL)
 $ docker logs -f caddy
 ```
+
+## Caddy SSL Staging / Testing
+
+Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment it is recommended to use the Let's Encrypt staging environment to avoid rate limits during testing. Just a few `docker compose down -v` and `docker compose up -d --build` commands can exhaust your rate limit.
+
+The [Caddyfile](caddy/Caddyfile) includes a commented out line for using the Let's Encrypt staging environment. To use it, uncomment the line.
+
+```yaml
+# --- FOR SSL TESTING ---
+# ...
+# ca https://acme-staging-v02.api.letsencrypt.org/directory
+```
+
+Next, follow the instructions below for downloading and trusting the staging certificates on a MacOS system.
+
+### Staging SSL Testing Instructions:
+
+To test your setup, you can add a staging certificate to your MacOS Keychain Access and trust it. The following steps will guide you through the process:
+
+1. Export the staging certificate from Caddy
+
+- Chrome will show a "Your connection is not private" warning
+- Click "Not Secure" in the address bar, go to the "Details" tab, and click "Export"
+- MacOS: Double click the downloaded .pem file to add it to "Keychain Access"
+- Select the new certificate and expand the "Trust" section
+- Select "Always Trust"
+- Restart chrome or safari and you should be able to access the site
+

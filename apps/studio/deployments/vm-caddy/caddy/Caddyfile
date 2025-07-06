@@ -47,6 +47,18 @@
     tls {
         dns cloudflare {$CF_API_TOKEN}      # Created inside CloudFlare and set in the .env file
         resolvers 1.1.1.1                   # Cloudflare DNS is recommended for this plugin
+
+        # --- FOR SSL TESTING ---
+        # Uncomment the `ca...` line below to use the Let's Encrypt staging environment
+        # to avoid production rate limits while you are testing or debugging your setup.
+        #
+        # See this repository's README.md for instructions on downloading and trusting
+        # the staging certificates on a MacOS system.
+        #
+        # Remember to re-comment this line once everything is working well.
+        #
+        # Keep this line commented for production.
+        ca https://acme-staging-v02.api.letsencrypt.org/directory
     }
 
     # api.{$JUNJO_PROD_AUTH_DOMAIN} 

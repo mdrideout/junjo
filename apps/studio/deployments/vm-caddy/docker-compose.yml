@@ -15,8 +15,8 @@ services:
     container_name: junjo-server-backend
     restart: unless-stopped
     volumes:
-      - ./dbdata/sqlite:/dbdata/sqlite
-      - ./dbdata/duckdb:/dbdata/duckdb
+      - ./.dbdata/sqlite:/dbdata/sqlite
+      - ./.dbdata/duckdb:/dbdata/duckdb
     ports:
       - "1323:1323"
       - "50051:50051"
@@ -36,6 +36,8 @@ services:
     image: mdrideout/junjo-server-frontend:latest
     container_name: junjo-server-frontend
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "5153:80" # Access the frontend at http://localhost:5153
     networks:
@@ -68,6 +70,7 @@ services:
     ports:
       - "80:80" # For HTTP -> HTTPS redirect
       - "443:443" # For HTTPS
+      - "443:443/udp" # For HTTP/3
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
       - caddy_data:/data # Persist Caddy data (certificates)
