@@ -1,61 +1,77 @@
 # Junjo Server
 
-> 順序 - Japanese Translation: order, sequence, procedure
+> 順序 - order, sequence, procedure
 
-Junjo Server is an opentelemetry ingestion server and AI graph workflow debugging interface designed to be run in Docker and deployed to a virtual machine.
+The [Junjo Python Library](https://github.com/mdrideout/junjo) is an AI Graph Workflow framework that makes it easy to build and run structured directed graph workflows where the path is dynamically traversed by an LLM and a state machine.
 
-This is a companion telemetry server for the [Junjo Python SDK](https://github.com/mdrideout/junjo).
+**Junjo Server** is an opentelemetry ingestion server and AI graph workflow debugging interface. This provides telemetry, observability, and a debugging interface for the Junjo Python Library.
+
+If you've ever struggled to wonder exactly what your LLM is doing, and what data it is basing its decisions on, Junjo Server is for you. You will gain complete visibility to the state of the application, and every change LLMs make to the application state.
 
 <img src="https://python-api.junjo.ai/_images/junjo-screenshot.png" width="600" />
 
-_junjo frontend screenshot_
+_Junjo Server Frontend Screenshot_
 
-### Components
+## Turn-Key Example Repository
 
-This repository contains everything that runs the Junjo telemetry server and user interface.
+**Junjo Server Deployment Example [https://github.com/mdrideout/junjo-server-deployment-example](https://github.com/mdrideout/junjo-server-deployment-example)**.
 
-- Backend API and gRPC server
-- Jaeger server to demonstrate full opentelemetry span compatibility
-- Frontend interface
-- Authentication via Caddy reverse proxy forward with and session cookies
+_A complete example of a Junjo Server deployment, including a Junjo Python Library application._
+
+**Components:** This repository is orchestrated with [Docker Compose](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/docker-compose.yml). 
+
+- Caddy reverse proxy and SSL management
+- Session cookie authentication
+- Junjo Server pre-build images:
+  - Docker hub junjo-server-backend: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
+  - Docker hub junjo-server-frontend: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
+- A Jaeger instance
+  - Depends on the Caddy reverse proxy to provide an authentication layer
+- A sample Junjo Python Library Application
+- Local development and production environment variable configurability
+
+The [README.md](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/README.md) will walk you through the deployment process on a Digital Ocean Droplet virtual machine (or any VM provider of your choice). You can use this as the basis for your own deployment of Junjo Server.
+
+### VM Resource Requirements
+
+Junjo is designed to be low resource. It uses SQLite, DuckDB, and BadgerDB for storage, which are all low resource embedded databases. It can be run on small affordable virtual machines with as little as **a shared vCPU** and **1GB of RAM**.
 
 ## Use & Deployment
 
-The backend service is automatically built and deployed to Docker Hub whenever a new release is published on GitHub.
+Junjo Server is built and deployed to **Docker Hub** whenever a new release is published on GitHub.
 
-- Backend Docker Container Image: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
-- Frontend Docker Container Image: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
+- **Backend**: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
+- **Frontend**: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
 
 ### Environment Configuration
 
-Before running the services, you need to set up your environment variables. Copy the example environment file to a new `.env` file:
+Before running the services, you need to set up your environment variables.
+
+Copy the example environment file to a new `.env` file:
 
 ```bash
 cp .env.example .env
 ```
 
-Then, open the `.env` file and configure the variables as needed. At a minimum, you should set a secure `JUNJO_SESSION_SECRET`. For production, you should also configure `JUNJO_ALLOW_ORIGINS` to match the domain where you are hosting the frontend.
-
-- `JUNJO_BUILD_TARGET`: Should be set to `production` when using the hosted images.
-- `JUNJO_SESSION_SECRET`: A long, random string used for securing user sessions.
-  - You can generate a secure key with: `openssl rand -base64 48`
-- `JUNJO_ALLOW_ORIGINS`: A comma-separated list of URLs that are allowed to make requests to the backend API.
+The `JUNJO_SERVER_API_KEY` can be created in the Junjo Server frontend interface after you get it intially running.
 
 ### Docker Compose - Hosted Images
 
-To run the pre-built images from Docker Hub in a production-like environment, you can use the `docker-compose.yml` file below. This setup pulls the images directly from the registry, bypassing any local build steps.
+Below if a brief example of using the Junjo Server pre-built images from Docker Hub.
+
+For a more complete example, checkout the [Junjo Server Deployment Example Repository](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/docker-compose.yml).
 
 This example yaml file provides a complete, self-contained setup including the backend, frontend, Jaeger for tracing, and Caddy as a reverse proxy to provide an authentication layer for Jaeger.
 
 ```yaml
 services:
   junjo-server-backend:
-    image: mdrideout/junjo-server-backend:latest # Or specify a version like: v1.2.0
+    image: mdrideout/junjo-server-backend:latest
     container_name: junjo-server-backend
     restart: unless-stopped
     volumes:
-      - ./dbdata/sqlite:/dbdata/sqlite
-      - ./dbdata/duckdb:/dbdata/duckdb
+      - ./.dbdata/sqlite:/dbdata/sqlite
+      - ./.dbdata/duckdb:/dbdata/duckdb
     ports:
       - "1323:1323"
       - "50051:50051"
@@ -63,6 +79,7 @@ services:
       - junjo-network
     env_file:
       - .env
+    user: root # requires root for writing to the duckdb vol
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
       interval: 5s
@@ -71,11 +88,13 @@ services:
       start_period: 5s
 
   junjo-server-frontend:
-    image: mdrideout/junjo-server-frontend:latest # Or specify a version like: v1.2.0
+    image: mdrideout/junjo-server-frontend:latest
     container_name: junjo-server-frontend
     restart: unless-stopped
     ports:
-      - "5153:80" # Exposed port to Nginx mapping
+      - "5153:80" # Access the frontend at http://localhost:5153
+    env_file:
+      - .env
     networks:
       - junjo-network
     depends_on:
@@ -85,29 +104,33 @@ services:
   junjo-jaeger:
     image: jaegertracing/jaeger:2.3.0
     container_name: junjo-jaeger
-    restart: unless-stopped
     volumes:
-      - ./jaeger/config.yml:/jaeger/config.yml # You may need to create this file
+      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
       - jaeger_badger_store:/data/jaeger/badger/jaeger
       - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
-    # ports: # No ports should be directly exposed - traces are relayed through junjo-backend
-    # - "16686:16686" # Jaeger UI - do not expose, uses Caddy reverse proxy
+    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
+    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
+    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
     command: --config /jaeger/config.yml
     user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
     networks:
       - junjo-network
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./caddy
     container_name: junjo-caddy
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "80:80" # For HTTP -> HTTPS redirect
       - "443:443" # For HTTPS
+      - "443:443/udp" # For HTTP/3
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile # You will need to provide your own Caddyfile
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
       - caddy_data:/data # Persist Caddy data (certificates)
-      - caddy_config:/config # Persist Caddy config
     networks:
       - junjo-network
     depends_on:
@@ -118,11 +141,10 @@ services:
 volumes:
   jaeger_badger_store:
   jaeger_badger_store_archive:
-  caddy_data:
-  caddy_config:
+  caddy_data: # Persistent caddy data (certificates, configuration)
 
 networks:
-  junjo-network: # Allow these services to communicate with each other
+  junjo-network:
     driver: bridge
 
 # Network option if you want to use an existing shared server network
@@ -131,11 +153,7 @@ networks:
 #     external: true # not coupled to this compose file
 ```
 
-### Docker Compose - Self Build
-
-Checkout the [Junjo Server Repository](https://github.com/mdrideout/junjo-server) `docker-compose.yml` file for an example of how to build and run the backend and frontend services yourself.
-
-## Running The Dev Environment
+## Running The Local Dev Environment
 
 Docker is required for local development so your developer experience mirrors how things work in production.
 
@@ -150,8 +168,8 @@ Docker is required for local development so your developer experience mirrors ho
 - Jaeger is a light weight opentelemetry tracing platform.
 - Junjo automatically relays all traces to Jaeger, keeping Junjo focused on Workflow oriented traces.
 - Jaeger is included in this stack to capture all Otel traces for testing and demonstration purposes.
-- TODO: _Jaeger will be a configurable and remoable option in the future._
 - Junjo traces can be "inspected" to see more trace details in the Jaeger UI.
+- [ ] **TODO: _Jaeger will be a configurable option in the future, and not included by default._**
 
 #### Docker Commands
 
