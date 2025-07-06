@@ -48,6 +48,18 @@
         dns cloudflare {$CF_API_TOKEN}      # Created inside CloudFlare and set in the .env file
         resolvers 1.1.1.1                   # Cloudflare DNS is recommended for this plugin
     }
+
+    # api.{$JUNJO_PROD_AUTH_DOMAIN} 
+    @api {
+        host api.{$JUNJO_PROD_AUTH_DOMAIN}
+    }
+    reverse_proxy junjo-server-backend:1323
+
+    # grpc.{$JUNJO_PROD_AUTH_DOMAIN} 
+    @grpc {
+        host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+    }
+    reverse_proxy junjo-server-backend:50051
     
     # Handle Jaeger UI requests with forward authentication.
     @jaegerPath path /jaeger*
@@ -68,21 +80,9 @@
         reverse_proxy junjo-jaeger:16686
     }
 
-    # api.{$JUNJO_PROD_AUTH_DOMAIN} 
-    @api {
-        host api.{$JUNJO_PROD_AUTH_DOMAIN}
-    }
-    reverse_proxy junjo-server-backend:1323
-
-    # grpc.{$JUNJO_PROD_AUTH_DOMAIN} 
-    @grpc {
-        host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-    }
-    reverse_proxy junjo-server-backend:50051
-
     # Fallback for the root domain
     handle {
-        reverse_proxy junjo-server-frontend:5153
+        reverse_proxy junjo-server-frontend:80
     }
     
 }
