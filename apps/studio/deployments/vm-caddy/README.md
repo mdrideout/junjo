@@ -135,7 +135,7 @@ The `Caddyfile` can be used as a demonstration for:
 
 ## Digital Ocean VM Setup Example
 
-This example has been tested on a Digital Ocean VM with the following configuration:
+The following assumes a fresh Digital Ocean Droplet VM with the following configuration:
 
 - Debian 12
 - 1GB RAM
@@ -153,9 +153,8 @@ $ ssh root@[your-ip-address]
 ### Install Docker & Docker Compose
 
 1. Follow [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/) instructions.
-1. Docker compose comes installed already now
-1. Install rsync
-1. Disconnect from ssh for next steps
+2. Install rsync `sudo apt install rsync`
+3. Disconnect from ssh for next steps
 
 ### Copy Files & Launch
 
@@ -166,14 +165,19 @@ These commands will copy the files from your machine to the remote server.
 # Exclude hidden files
 $ rsync -avz --delete -e ssh ~/path/on/local/machine/ root@[your-ip-address]:folder_name/ --exclude='.??*'
 
-# SSH into the server and go to the caddy folder
-$ cd ~/caddy
+# ssh into the server again
+$ ssh root@[your-ip-address]
+
+# cd into to the folder you uploaded the project to
+$ cd ~/folder_name
 
 # Copy the .env.example file and rename it to .env
 $ cp .env.example .env
 
 # Edit the .env file and update the required environment variables
 $ sudo vi .env
+
+# Exit the vi text editor with escape key, then type :wq to save and quit
 
 # Launch the docker compose configuration in detached mode so it runs in the background
 $ docker compose up -d --build

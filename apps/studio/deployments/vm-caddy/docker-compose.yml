@@ -24,6 +24,7 @@ services:
       - junjo-network
     env_file:
       - .env
+    user: root # requires root for writing to the duckdb vol
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
       interval: 5s

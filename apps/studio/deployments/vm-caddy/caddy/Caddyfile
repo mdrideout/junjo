@@ -40,7 +40,7 @@
 # - Backend:    junjo-server-backend:1323       https://api.{$JUNJO_PROD_AUTH_DOMAIN}
 # - gRPC:       junjo-server-backend:50051      https://grpc.{$JUNJO_PROD_AUTH_DOMAIN}
 # ----------------------------------------------------------------------------------------
-*.{$JUNJO_PROD_AUTH_DOMAIN} {
+{$JUNJO_PROD_AUTH_DOMAIN}, *.{$JUNJO_PROD_AUTH_DOMAIN} {
     log
 
     # For automatic SSL (via xcaddy cloudflare plugin)
@@ -60,7 +60,7 @@
             # Redirect to the FE app sign-in page if the auth service returns a 4xx status
             @bad status 4xx
 			handle_response @bad {
-				redir http://localhost:5153/sign-in 302
+				redir https://{$JUNJO_PROD_AUTH_DOMAIN}/sign-in 302
 			}
         }
 
@@ -79,4 +79,10 @@
         host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
     }
     reverse_proxy junjo-server-backend:50051
+
+    # Fallback for the root domain
+    handle {
+        reverse_proxy junjo-server-frontend:5153
+    }
+    
 }
