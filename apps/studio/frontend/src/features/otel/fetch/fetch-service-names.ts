@@ -1,7 +1,8 @@
+import { API_HOST } from '../../../config'
 import z from 'zod'
 
 export const fetchServiceNames = async (): Promise<string[]> => {
-  const response = await fetch(`http://localhost:1323/otel/span-service-names`, {
+  const response = await fetch(`${API_HOST}/otel/span-service-names`, {
     method: 'GET',
     credentials: 'include',
     headers: {

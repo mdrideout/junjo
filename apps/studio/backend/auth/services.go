@@ -191,6 +191,7 @@ func SignIn(c echo.Context) error {
 	// IF IN PRODUCTION:
 	// Set the Domain to the production auth domain
 	if os.Getenv("JUNJO_ENV") == "production" {
+		log.Printf("setting production auth domain to %v", os.Getenv("JUNJO_PROD_AUTH_DOMAIN"))
 		authDomain := os.Getenv("JUNJO_PROD_AUTH_DOMAIN")
 		if authDomain != "" {
 			options.Domain = "." + authDomain // covers subdomains

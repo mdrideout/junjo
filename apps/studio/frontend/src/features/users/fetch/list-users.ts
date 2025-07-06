@@ -1,7 +1,8 @@
+import { API_HOST } from '../../../config'
 import { ListUsersResponse, ListUsersResponseSchema } from '../schema'
 
 export const fetchUsers = async (): Promise<ListUsersResponse> => {
-  const response = await fetch(`http://localhost:1323/users`, {
+  const response = await fetch(`${API_HOST}/users`, {
     method: 'GET',
     credentials: 'include',
     headers: {

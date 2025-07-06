@@ -1,5 +1,6 @@
 import { createContext, useState, ReactNode, useCallback, useEffect } from 'react'
 import { UsersExistSchema } from './schema'
+import { API_HOST } from '../config'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSetupCheckLoading(true)
     try {
       // --- Use the dedicated setup status endpoint ---
-      const response = await fetch('http://localhost:1323/users/db-has-users', {
+      const response = await fetch(`${API_HOST}/users/db-has-users`, {
         method: 'GET',
       })
       if (response.ok) {
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuthStatus = useCallback(async () => {
     setAuthCheckLoading(true)
     try {
-      const response = await fetch('http://localhost:1323/auth-test', {
+      const response = await fetch(`${API_HOST}/auth-test`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:1323/sign-out', {
+      const response = await fetch(`${API_HOST}/sign-out`, {
         method: 'POST',
         credentials: 'include',
       })

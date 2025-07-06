@@ -36,6 +36,8 @@ services:
       - "5151:5151" # Vite server
       - "5152:5151" # Vite hmr (map hmr port to host port)
       - "5153:80" # Production port to Nginx mapping
+    env_file:
+      - .env
     depends_on:
       jui-be:
         condition: service_healthy # Wait for jui-be to be healthy before starting jui-fe
@@ -60,6 +62,8 @@ services:
     build:
       context: ./caddy
     container_name: jui-caddy
+    env_file:
+      - .env
     ports:
       - "80:80" # For HTTP -> HTTPS redirect (optional in dev)
       - "443:443" # For HTTPS

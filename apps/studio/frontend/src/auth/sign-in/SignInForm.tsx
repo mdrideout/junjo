@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { AuthContext } from '../auth-context'
+import { API_HOST } from '../../config'
 
 export default function SignInForm() {
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +25,7 @@ export default function SignInForm() {
 
     // Perform sign in
     try {
-      const response = await fetch('http://localhost:1323/sign-in', {
+      const response = await fetch(`${API_HOST}/sign-in`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -41,7 +42,7 @@ export default function SignInForm() {
       }
 
       // Get CSRF Token
-      const csrfResponse = await fetch('http://localhost:1323/csrf', {
+      const csrfResponse = await fetch(`${API_HOST}/csrf`, {
         method: 'GET',
         credentials: 'include',
       })

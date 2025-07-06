@@ -10,6 +10,7 @@ import {
 import { UserPlusIcon } from '@heroicons/react/24/solid'
 import { useAppDispatch } from '../../root-store/hooks'
 import { UsersStateActions } from './slice'
+import { API_HOST } from '../../config'
 
 export default function CreateUserDialog() {
   const dispatch = useAppDispatch()
@@ -32,7 +33,7 @@ export default function CreateUserDialog() {
 
     // Perform setup
     try {
-      const response = await fetch('http://localhost:1323/users', {
+      const response = await fetch(`${API_HOST}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

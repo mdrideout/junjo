@@ -3,6 +3,8 @@
 # It validates all requests to the Jaeger UI with the backend auth service.
 # If the auth service returns a 4xx status, it redirects to the FE app sign-in page.
 :80 {
+    log
+    
     @jaegerPath path /jaeger*
 
     handle @jaegerPath {

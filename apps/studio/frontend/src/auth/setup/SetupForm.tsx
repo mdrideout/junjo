@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { AuthContext } from '../auth-context'
+import { API_HOST } from '../../config'
 
 export default function SetupForm() {
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +25,7 @@ export default function SetupForm() {
 
     // Perform setup
     try {
-      const response = await fetch('http://localhost:1323/users/create-first-user', {
+      const response = await fetch(`${API_HOST}/users/create-first-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
