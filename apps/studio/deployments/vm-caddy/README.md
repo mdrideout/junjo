@@ -204,18 +204,23 @@ The [Caddyfile](caddy/Caddyfile) includes a commented out line for using the Let
 # ca https://acme-staging-v02.api.letsencrypt.org/directory
 ```
 
-Next, follow the instructions below for downloading and trusting the staging certificates on a MacOS system.
+Without manually trusting these staging certificates, you will see a "Your connection is not private" warning in your browser.
+
+Follow the instructions below for downloading and trusting the staging certificates on a MacOS system, allowing complete testing.
 
 ### Staging SSL Testing Instructions:
 
 To test your setup, you can add a staging certificate to your MacOS Keychain Access and trust it. The following steps will guide you through the process:
 
-1. Export the staging certificate from Caddy
+1. Run the certificate download script:
 
-- Chrome will show a "Your connection is not private" warning
-- Click "Not Secure" in the address bar, go to the "Details" tab, and click "Export"
-- MacOS: Double click the downloaded .pem file to add it to "Keychain Access"
-- Select the new certificate and expand the "Trust" section
-- Select "Always Trust"
-- Restart chrome or safari and you should be able to access the site
+```bash
+# Download the staging certificates to the .certs directory in this project directory
+$ bash download_staging_certs.sh
+```
+
+2. Open the `.certs` folder in Finder and double-click on the `.pem` files to add them to "Keychain Access".
+3. Inside Keychain Access, double-click the new certificates and expand the "Trust" section
+4. Select "Always Trust" on both of them
+5. Restart chrome or safari and you should be able to access the site
 

@@ -58,7 +58,7 @@
         # Remember to re-comment this line once everything is working well.
         #
         # Keep this line commented for production.
-        ca https://acme-staging-v02.api.letsencrypt.org/directory
+        # ca https://acme-staging-v02.api.letsencrypt.org/directory
     }
 
     # api.{$JUNJO_PROD_AUTH_DOMAIN} 

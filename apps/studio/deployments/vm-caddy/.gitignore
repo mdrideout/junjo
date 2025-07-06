@@ -2,6 +2,7 @@
 /tmp/
 .env
 .dbdata/
+.certs/
 .DS_Store
 .gitleaks/**
 

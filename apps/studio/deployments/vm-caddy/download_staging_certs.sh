@@ -6,7 +6,7 @@
 
 # --- Configuration ---
 ENV_FILE=".env"
-OUTPUT_DIR="tmp/certs"
+OUTPUT_DIR=".certs"
 # ---------------------
 
 # Function to download a certificate chain and extract a specific certificate by its CN
@@ -34,27 +34,30 @@ get_cert_by_cn() {
     return 1
   fi
 
-  # Use awk to find the certificate block corresponding to the TARGET_CN
-  # and extract the PEM-formatted certificate.
+  # Use a stateful awk script to find the certificate block for the specific CN.
+  # This is more robust than previous attempts.
   local server_cert
   server_cert=$(echo "$cert_chain_data" | awk -v cn_to_find="s:CN=$TARGET_CN" '
-    # When we find the line with the correct CN, set a flag.
-    index($0, cn_to_find) {
-      found_cn = 1
+    BEGIN { state = 0 }
+
+    # State 0: Look for the line with the correct CN.
+    state == 0 && index($0, cn_to_find) {
+        state = 1
     }
-    # When we find the BEGIN line AND the flag is set, start printing.
-    /-----BEGIN CERTIFICATE-----/ {
-      if (found_cn) {
-        printing = 1
-      }
+
+    # State 1: We found the CN, now look for the start of the certificate block.
+    state == 1 && /-----BEGIN CERTIFICATE-----/ {
+        print
+        state = 2
+        next
     }
-    # If we are in printing mode, print the line.
-    printing {
-      print
-    }
-    # If we are printing and we hit the END line, print it and exit.
-    printing && /-----END CERTIFICATE-----/ {
-      exit
+
+    # State 2: We are inside the correct certificate block, so print each line.
+    state == 2 {
+        print
+        if (/-----END CERTIFICATE-----/) {
+            exit # Exit after printing the complete block.
+        }
     }
   ')
 
