@@ -61,17 +61,17 @@
         # ca https://acme-staging-v02.api.letsencrypt.org/directory
     }
 
-    # api.{$JUNJO_PROD_AUTH_DOMAIN} 
-    @api {
-        host api.{$JUNJO_PROD_AUTH_DOMAIN}
+    # API Backend: api.{$JUNJO_PROD_AUTH_DOMAIN}
+    @api host api.{$JUNJO_PROD_AUTH_DOMAIN}
+    handle @api {
+        reverse_proxy junjo-server-backend:1323
     }
-    reverse_proxy junjo-server-backend:1323
 
-    # grpc.{$JUNJO_PROD_AUTH_DOMAIN} 
-    @grpc {
-        host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+    # gRPC Backend: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+    @grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+    handle @grpc {
+        reverse_proxy junjo-server-backend:50051
     }
-    reverse_proxy junjo-server-backend:50051
     
     # Handle Jaeger UI requests with forward authentication.
     @jaegerPath path /jaeger*
