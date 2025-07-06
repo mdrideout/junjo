@@ -183,7 +183,14 @@ $ sudo vi .env
 # Exit the vi text editor with escape key, then type :wq to save and quit
 
 # Pull the latest Junjo Server images and launch the docker compose configuration in detached mode so it runs in the background
+# This will start all of the services
 $ docker compose pull && docker compose up -d --build
+
+# Create & Set the Junjo Server API Key
+# 1. Access the frontend and create an API key.
+# 2. Edit the .env file again and set the JUNJO_SERVER_API_KEY
+# 3. Restart the Junjo Server
+$ docker compose down && docker compose up -d --build
 
 # List containers
 $ docker container ls
@@ -196,13 +203,15 @@ $ docker logs -f caddy
 
 Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment it is recommended to use the Let's Encrypt staging environment to avoid rate limits during testing. Just a few `docker compose down -v` and `docker compose up -d --build` commands can exhaust your rate limit.
 
-The [Caddyfile](caddy/Caddyfile) includes a commented out line for using the Let's Encrypt staging environment. To use it, uncomment the line.
+To use Let's Encrypt staging certificates, uncomment the following line in your `.env` file.
 
 ```yaml
-# --- FOR SSL TESTING ---
+# === FOR SSL TESTING ============================================================================>
 # ...
-# ca https://acme-staging-v02.api.letsencrypt.org/directory
+JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE="ca https://acme-staging-v02.api.letsencrypt.org/directory"
 ```
+
+Caddy will then automatically use the Let's Encrypt staging environment when generating certificates.
 
 Without manually trusting these staging certificates, you will see a "Your connection is not private" warning in your browser.
 
