@@ -36,10 +36,10 @@ services:
     image: mdrideout/junjo-server-frontend:latest
     container_name: junjo-server-frontend
     restart: unless-stopped
-    env_file:
-      - .env
     ports:
       - "5153:80" # Access the frontend at http://localhost:5153
+    env_file:
+      - .env
     networks:
       - junjo-network
     depends_on:
@@ -53,8 +53,10 @@ services:
       - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
       - jaeger_badger_store:/data/jaeger/badger/jaeger
       - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
-    # ports: # No ports should be directly exposed - traces are relayed through junjo-backend
-    # - "16686:16686" # Jaeger UI - do not expose, uses Caddy reverse proxy
+    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
+    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
+    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
     command: --config /jaeger/config.yml
     user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
     networks:

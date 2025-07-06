@@ -24,7 +24,7 @@ Copy the example environment file and update it with your own secret key.
 cp .env.example .env
 ```
 
-Open `.env` in your editor and replace `your-super-secret-key` with a new key. You can generate one with the following command:
+Open `.env` in your editor and replace `your_secret_key` with a new key. You can generate one with the following command:
 
 ```bash
 openssl rand -base64 48
