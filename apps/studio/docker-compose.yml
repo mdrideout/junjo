@@ -1,14 +1,14 @@
 services:
-  jui-be:
-    container_name: jui-be
+  junjo-server-backend:
+    container_name: junjo-server-backend
     restart: unless-stopped
     build:
       context: ./backend
       target: ${JUNJO_BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
     volumes:
       - ./backend:/app # Mount the backend code for hot reloading
-      - ./dbdata/sqlite:/dbdata/sqlite # SQLite storage
-      - ./dbdata/duckdb:/dbdata/duckdb # DuckDB storage
+      - ./.dbdata/sqlite:/dbdata/sqlite # SQLite storage
+      - ./.dbdata/duckdb:/dbdata/duckdb # DuckDB storage
     ports:
       - "1323:1323" # Echo API server port
       - "50051:50051" # gRPC telemetry server port
@@ -23,8 +23,9 @@ services:
       retries: 25
       start_period: 5s
 
-  jui-fe:
-    container_name: jui-fe
+  junjo-server-frontend:
+    container_name: junjo-server-frontend
+    restart: unless-stopped
     build:
       context: ./frontend
       target: ${JUNJO_BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
@@ -39,29 +40,30 @@ services:
     env_file:
       - .env
     depends_on:
-      jui-be:
-        condition: service_healthy # Wait for jui-be to be healthy before starting jui-fe
+      junjo-server-backend:
+        condition: service_healthy # Wait for junjo-server-backend to be healthy before starting junjo-server-frontend
 
   junjo-jaeger:
     image: jaegertracing/jaeger:2.3.0
     container_name: junjo-jaeger
-    # ports: # No ports should be directly exposed - traces are relayed through jui-be
-    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
-    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from jui-be
-    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from jui-be
     volumes:
       - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
       - jaeger_badger_store:/data/jaeger/badger/jaeger
       - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
+    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
+    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
+    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
     command: --config /jaeger/config.yml
     user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
     networks:
       - caddy-proxy-network
 
-  jui-caddy:
+  junjo-caddy:
     build:
       context: ./caddy
-    container_name: jui-caddy
+    container_name: junjo-caddy
+    restart: unless-stopped
     env_file:
       - .env
     ports:
@@ -74,16 +76,15 @@ services:
     networks:
       - caddy-proxy-network
     depends_on:
-      - jui-be
-      - jui-fe
+      - junjo-server-backend
+      - junjo-server-frontend
       - junjo-jaeger
 
 volumes:
-  frontend-modules:
-  junjo_sqlite_data:
-  jaeger_badger_store:
-  jaeger_badger_store_archive:
-  caddy_data:
+  frontend-modules: # Dev only: Named volume for node_modules
+  jaeger_badger_store: # Jaeger data
+  jaeger_badger_store_archive: # Jaeger archive
+  caddy_data: # Persistent caddy data (certificates, configuration)
 
 networks:
   caddy-proxy-network:
