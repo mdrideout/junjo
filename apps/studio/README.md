@@ -18,7 +18,7 @@ _Junjo Server Frontend Screenshot_
 
 **Junjo Server Deployment Example [https://github.com/mdrideout/junjo-server-deployment-example](https://github.com/mdrideout/junjo-server-deployment-example)**.
 
-_A complete example of a Junjo Server deployment, including a Junjo Python Library application._
+- _A complete example of a Junjo Server deployment, including a Junjo Python Library application._
 
 **Components:** This repository is orchestrated with [Docker Compose](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/docker-compose.yml). 
 
