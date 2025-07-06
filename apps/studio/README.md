@@ -2,11 +2,13 @@
 
 > 順序 - order, sequence, procedure
 
-The [Junjo Python Library](https://github.com/mdrideout/junjo) is an AI Graph Workflow framework that makes it easy to build and run structured directed graph workflows where the path is dynamically traversed by an LLM and a state machine.
+The [Junjo Python Library](https://github.com/mdrideout/junjo) is an AI Graph Workflow and state machine framework that makes it easy to build and run structured directed graph workflows that are dynamically traversed by an LLM.
 
 **Junjo Server** is an opentelemetry ingestion server and AI graph workflow debugging interface. This provides telemetry, observability, and a debugging interface for the Junjo Python Library.
 
-If you've ever struggled to wonder exactly what your LLM is doing, and what data it is basing its decisions on, Junjo Server is for you. You will gain complete visibility to the state of the application, and every change LLMs make to the application state.
+If you've struggled to understand what decisions your LLM is making in a chained sequence of events, and what data it is basing its decisions on, Junjo Server is for you. You will gain complete visibility to the state of the application, and every change LLMs make to the application state.
+
+Complex, mission critical AI workflows are made transparent and understandable with Junjo and Junjo Server.
 
 <img src="https://python-api.junjo.ai/_images/junjo-screenshot.png" width="600" />
 
