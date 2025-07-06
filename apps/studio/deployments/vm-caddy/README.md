@@ -189,8 +189,8 @@ $ docker compose pull && docker compose up -d --build
 # Create & Set the Junjo Server API Key
 # 1. Access the frontend and create an API key.
 # 2. Edit the .env file again and set the JUNJO_SERVER_API_KEY
-# 3. Restart the Junjo Server
-$ docker compose down && docker compose up -d --build
+# 3. Restart the Junjo App so that it picks up the new API key and can deliver telemetry to the Junjo Server
+$ docker compose restart junjo-app
 
 # List containers
 $ docker container ls
