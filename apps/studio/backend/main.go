@@ -67,29 +67,33 @@ func main() {
 		AllowCredentials: true,
 	}
 
-	if len(allowedOriginsEnv) > 0 {
-		// Use a fixed list of origins if the env var is set
-		rawOrigins := strings.Split(allowedOriginsEnv, ",")
-		processedOrigins := []string{}
-		for _, origin := range rawOrigins {
-			trimmedOrigin := strings.TrimSpace(origin)
-			if !strings.HasPrefix(trimmedOrigin, "http://") && !strings.HasPrefix(trimmedOrigin, "https://") {
-				// If no protocol, add both http and https versions to be safe.
-				processedOrigins = append(processedOrigins, "http://"+trimmedOrigin)
-				processedOrigins = append(processedOrigins, "https://"+trimmedOrigin)
-				e.Logger.Warnf("CORS origin '%s' is missing a protocol. Allowing both http and https. Please specify the protocol in JUNJO_ALLOW_ORIGINS for production.", trimmedOrigin)
-			} else {
-				processedOrigins = append(processedOrigins, trimmedOrigin)
-			}
-		}
-		config.AllowOrigins = processedOrigins
-		e.Logger.Printf("CORS Allowed Origins set to: %v", config.AllowOrigins)
-	} else {
-		// If the env var is not set, allow any origin by reflecting the request's origin.
-		// This is required when AllowCredentials is true, as wildcard '*' is not allowed by browsers.
-		config.AllowOriginFunc = func(origin string) (bool, error) {
+	// AllowOriginFunc is a custom function to validate the origin.
+	// It's used here to provide more robust logging and explicit control over the CORS logic.
+	// According to Echo docs, if this option is set, the AllowOrigins array is ignored.
+	config.AllowOriginFunc = func(origin string) (bool, error) {
+		allowedOriginsEnv := os.Getenv("JUNJO_ALLOW_ORIGINS")
+		if len(allowedOriginsEnv) == 0 {
+			e.Logger.Infof("CORS check: JUNJO_ALLOW_ORIGINS not set. Allowing origin for local dev: %s", origin)
 			return true, nil
 		}
+
+		allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+		for _, allowed := range allowedOrigins {
+			trimmedAllowed := strings.TrimSpace(allowed)
+			if trimmedAllowed == origin {
+				e.Logger.Infof("CORS check: Allowing origin (exact match): %s", origin)
+				return true, nil
+			}
+		}
+
+		e.Logger.Warnf("CORS check: Denying origin: %s. Not in JUNJO_ALLOW_ORIGINS.", origin)
+		return false, nil
+	}
+
+	// Log the configured origins for clarity on startup
+	if len(allowedOriginsEnv) > 0 {
+		e.Logger.Printf("CORS Allowed Origins configured via JUNJO_ALLOW_ORIGINS: %s", allowedOriginsEnv)
+	} else {
 		e.Logger.Printf("CORS Allowed Origins not set. Reflecting any origin.")
 	}
 	e.Pre(middleware.CORSWithConfig(config))
