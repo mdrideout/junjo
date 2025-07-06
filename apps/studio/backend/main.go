@@ -53,11 +53,13 @@ func main() {
 	e.Logger.Printf("initialized echo with host:port %s", serverHostPort)
 	e.Validator = u.NewCustomValidator()
 
-	// Other Middleware
+	// Middleware
+	e.Pre(middleware.Recover()) // Recover must be first
 	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 
 	// CORS middleware
+	// Must be registered with `Pre` to run before the router, which allows it to handle
+	// OPTIONS requests for routes that don't have an explicit OPTIONS handler.
 	allowedOriginsEnv := os.Getenv("JUNJO_ALLOW_ORIGINS")
 	config := middleware.CORSConfig{
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
@@ -67,7 +69,20 @@ func main() {
 
 	if len(allowedOriginsEnv) > 0 {
 		// Use a fixed list of origins if the env var is set
-		config.AllowOrigins = strings.Split(allowedOriginsEnv, ",")
+		rawOrigins := strings.Split(allowedOriginsEnv, ",")
+		processedOrigins := []string{}
+		for _, origin := range rawOrigins {
+			trimmedOrigin := strings.TrimSpace(origin)
+			if !strings.HasPrefix(trimmedOrigin, "http://") && !strings.HasPrefix(trimmedOrigin, "https://") {
+				// If no protocol, add both http and https versions to be safe.
+				processedOrigins = append(processedOrigins, "http://"+trimmedOrigin)
+				processedOrigins = append(processedOrigins, "https://"+trimmedOrigin)
+				e.Logger.Warnf("CORS origin '%s' is missing a protocol. Allowing both http and https. Please specify the protocol in JUNJO_ALLOW_ORIGINS for production.", trimmedOrigin)
+			} else {
+				processedOrigins = append(processedOrigins, trimmedOrigin)
+			}
+		}
+		config.AllowOrigins = processedOrigins
 		e.Logger.Printf("CORS Allowed Origins set to: %v", config.AllowOrigins)
 	} else {
 		// If the env var is not set, allow any origin by reflecting the request's origin.
@@ -77,8 +92,7 @@ func main() {
 		}
 		e.Logger.Printf("CORS Allowed Origins not set. Reflecting any origin.")
 	}
-
-	e.Use(middleware.CORSWithConfig(config))
+	e.Pre(middleware.CORSWithConfig(config))
 
 	// Session Middleware
 	sessionSecret := os.Getenv("JUNJO_SESSION_SECRET")

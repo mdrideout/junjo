@@ -172,7 +172,7 @@ $ docker compose up --build
 $ docker compose down -v
 ```
 
-#### Accessing Services
+#### Accessing Services (development environment)
 
 - Frontend: https://localhost:5151
 - Backend API: https://localhost:1323/
