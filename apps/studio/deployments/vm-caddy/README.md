@@ -84,15 +84,16 @@ Assuming the `JUNJO_PROD_AUTH_DOMAIN` is set to `junjo.example.com`, you can acc
 *   Junjo Server UI: [https://junjo.example.com](https://junjo.example.com)
 *   Jaeger UI: [https://junjo.example.com/jaeger](https://junjo.example.com/jaeger)
 *   Junjo Server API: [https://api.junjo.example.com](https://api.junjo.example.com)
-*   Junjo Server gRPC: [https://grpc.junjo.example.com](https://grpc.junjo.example.com)
+*   Junjo Server gRPC: [grpc.junjo.example.com](grpc.junjo.example.com)
     *   This is the endpoint for delivering open telemetry data to Junjo Server from your python application setup with a `JunjoServerOtelExporter`
+    *   In this repository example, we use the docker container service name on the junjo-network
 
 ### Caddy Server / Reverse Proxy
 
 One would typically manage and deploy Caddy (or other reverse proxy) separately from the Junjo Server for their virtual machine. You may have a server-wide docker network and many 
 other container services running on the same machine that you'd like to control individually.
 
-This example bundles Caddy **with** the example Junjo App and Junjo Server instance only for demonstration purposes.
+This example bundles Caddy **with** the example Junjo App and Junjo Server instance for turn-key demonstration purposes.
 
 The `Caddyfile` can be used as a demonstration for:
 
@@ -133,7 +134,7 @@ The `Caddyfile` can be used as a demonstration for:
 *   **Source**: [`caddy/`](caddy/)
 *   **Details**: Caddy routes incoming traffic to the appropriate services based on the path. The configuration can be found in the [`caddy/Caddyfile`](caddy/Caddyfile). For production use, you would replace `localhost` with your domain name, and Caddy would automatically handle HTTPS for you.
 
-## Digital Ocean VM Setup Example
+## Digital Ocean VM Deployment Example
 
 The following assumes a fresh Digital Ocean Droplet VM with the following configuration:
 
