@@ -134,19 +134,19 @@ def setup_telemetry():
 	# Option 1: Assuming this application is on a different server
 	# Construct a Junjo exporter for Junjo Server
 	junjo_server_exporter = JunjoServerOtelExporter(
-			host="grpc.junjp.example.com",
-			port="443",
-			api_key=JUNJO_SERVER_API_KEY,
-			insecure=False,
+		host="grpc.junjp.example.com",
+		port="443",
+		api_key=JUNJO_SERVER_API_KEY,
+		insecure=False,
 	)
 
 	# Option 2: Assuming this application is on the same server and same docker network
 	# Construct a Junjo exporter for Junjo Server
 	# junjo_server_exporter = JunjoServerOtelExporter(
-	#     host="junjo-server-backend",
-	#     port="50051",
-	#     api_key=JUNJO_SERVER_API_KEY,
-	#     insecure=True,
+	# 	host="junjo-server-backend",
+	# 	port="50051",
+	# 	api_key=JUNJO_SERVER_API_KEY,
+	# 	insecure=True,
 	# )
 
 	# Set up span processors
