@@ -1,0 +1,61 @@
+services:
+  junjo-server-backend:
+    image: mdrideout/junjo-server-backend:latest
+    container_name: junjo-server-backend
+    restart: unless-stopped
+    volumes:
+      - junjo_server_db_data/sqlite:/dbdata/sqlite
+      - junjo_server_db_data/duckdb:/dbdata/duckdb
+    ports:
+      - "1323:1323"
+      - "50051:50051"
+    networks:
+      - caddy_net
+    env_file:
+      - .env
+    user: root # requires root for writing to the duckdb vol
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+
+  junjo-server-frontend:
+    image: mdrideout/junjo-server-frontend:latest
+    container_name: junjo-server-frontend
+    restart: unless-stopped
+    ports:
+      - "5153:80" # Access the frontend at http://localhost:5153
+    env_file:
+      - .env
+    networks:
+      - caddy_net
+    depends_on:
+      junjo-server-backend:
+        condition: service_healthy
+
+  junjo-jaeger:
+    image: jaegertracing/jaeger:2.3.0
+    container_name: junjo-jaeger
+    volumes:
+      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
+      - jaeger_badger_store:/data/jaeger/badger/jaeger
+      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
+    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
+    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
+    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
+    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
+    command: --config /jaeger/config.yml
+    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
+    networks:
+      - caddy_net
+
+volumes:
+  jaeger_badger_store:
+  jaeger_badger_store_archive:
+  junjo_server_db_data:
+
+networks:
+  caddy_net:
+    external: true

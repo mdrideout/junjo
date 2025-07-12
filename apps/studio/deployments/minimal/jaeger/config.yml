@@ -1,0 +1,61 @@
+service:
+  extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]  # Export to the configured storage
+  telemetry:
+    resource:
+      service.name: jaeger
+    metrics:
+      level: detailed
+    logs:
+      level: info
+
+extensions:
+  healthcheckv2:
+    use_v2: true
+    http:
+
+  jaeger_query:
+    storage:
+      traces: jaeger_badger_store  # Reference the backend name defined below
+      traces_archive: jaeger_badger_store_archive  # Reference the backend name defined below
+    base_path: /jaeger
+    # ui:
+    #   config_file: /jaeger/ui-config.json # Copied via docker-compose.yml # Currently not needed.
+
+  jaeger_storage:
+    backends:
+      jaeger_badger_store:  # Give the BadgerDB backend a name
+        badger:
+          directories:
+            keys: "/data/jaeger/badger/jaeger"
+            values: "/data/jaeger/badger/jaeger"
+          ephemeral: false
+      jaeger_badger_store_archive:  # Give the BadgerDB backend a name
+        badger:
+          directories:
+            keys: "/data/jaeger/badger/jaeger_archive"
+            values: "/data/jaeger/badger/jaeger_archive"
+          ephemeral: false
+
+
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 1000
+    timeout: 10s
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: jaeger_badger_store  # Reference the backend name
