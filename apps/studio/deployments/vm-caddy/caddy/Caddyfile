@@ -10,26 +10,26 @@
 # Ex: http://localhost/jaeger (port 80)
 # ---------------------------
 :80 {
-    log
-    
-    @jaegerPath path /jaeger*
+	log
 
-    handle @jaegerPath {
-        # Validate all jaeger requests with the backend auth service (validates cookies)
-        forward_auth junjo-server-backend:1323 {
-            uri /auth-test
-            copy_headers Cookie
+	@jaegerPath path /jaeger*
 
-            # Redirect to the FE app sign-in page if the auth service returns a 4xx status
-            @bad status 4xx
+	handle @jaegerPath {
+		# Validate all jaeger requests with the backend auth service (validates cookies)
+		forward_auth junjo-server-backend:1323 {
+			uri /auth-test
+			copy_headers Cookie
+
+			# Redirect to the FE app sign-in page if the auth service returns a 4xx status
+			@bad status 4xx
 			handle_response @bad {
 				redir http://localhost:5153/sign-in 302
 			}
-        }
+		}
 
-        # If auth succeeds (200 response), continue the request to the Jaeger UI.
-        reverse_proxy junjo-jaeger:16686
-    }
+		# If auth succeeds (200 response), continue the request to the Jaeger UI.
+		reverse_proxy junjo-jaeger:16686
+	}
 }
 
 # ----------------------------------------------------------------------------------------
@@ -41,52 +41,51 @@
 # - gRPC:       junjo-server-backend:50051      https://grpc.{$JUNJO_PROD_AUTH_DOMAIN}
 # ----------------------------------------------------------------------------------------
 {$JUNJO_PROD_AUTH_DOMAIN}, *.{$JUNJO_PROD_AUTH_DOMAIN} {
-    log
+	log
 
-    # For automatic SSL (via xcaddy cloudflare plugin)
-    tls {
-        dns cloudflare {$CF_API_TOKEN}      # Created inside CloudFlare and set in the .env file
-        resolvers 1.1.1.1                   # Cloudflare DNS is recommended for this plugin
+	# For automatic SSL (via xcaddy cloudflare plugin)
+	tls {
+		dns cloudflare {$CF_API_TOKEN} # Created inside CloudFlare and set in the .env file
+		resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin
 
-        # To use the Let's Encrypt staging environment, set the following in your .env file:
-        # JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE="ca https://acme-staging-v02.api.letsencrypt.org/directory"
-        {$JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE}
-    }
+		# To use the Let's Encrypt staging environment, set the following in your .env file:
+		# JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE="ca https://acme-staging-v02.api.letsencrypt.org/directory"
+		{$JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE}
+	}
 
-    # API Backend: api.{$JUNJO_PROD_AUTH_DOMAIN}
-    @api host api.{$JUNJO_PROD_AUTH_DOMAIN}
-    handle @api {
-        reverse_proxy junjo-server-backend:1323
-    }
+	# API Backend: api.{$JUNJO_PROD_AUTH_DOMAIN}
+	@api host api.{$JUNJO_PROD_AUTH_DOMAIN}
+	handle @api {
+		reverse_proxy junjo-server-backend:1323
+	}
 
-    # gRPC Backend: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-    @grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-    handle @grpc {
-        reverse_proxy junjo-server-backend:50051
-    }
-    
-    # Handle Jaeger UI requests with forward authentication.
-    @jaegerPath path /jaeger*
-    handle @jaegerPath {
-        # Validate all jaeger requests with the backend auth service (validates cookies)
-        forward_auth junjo-server-backend:1323 {
-            uri /auth-test
-            copy_headers Cookie
+	# gRPC Backend: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+	@grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+	handle @grpc {
+		reverse_proxy junjo-server-backend:50051
+	}
 
-            # Redirect to the FE app sign-in page if the auth service returns a 4xx status
-            @bad status 4xx
+	# Handle Jaeger UI requests with forward authentication.
+	@jaegerPath path /jaeger*
+	handle @jaegerPath {
+		# Validate all jaeger requests with the backend auth service (validates cookies)
+		forward_auth junjo-server-backend:1323 {
+			uri /auth-test
+			copy_headers Cookie
+
+			# Redirect to the FE app sign-in page if the auth service returns a 4xx status
+			@bad status 4xx
 			handle_response @bad {
 				redir https://{$JUNJO_PROD_AUTH_DOMAIN}/sign-in 302
 			}
-        }
+		}
 
-        # If auth succeeds (200 response), continue the request to the Jaeger UI.
-        reverse_proxy junjo-jaeger:16686
-    }
+		# If auth succeeds (200 response), continue the request to the Jaeger UI.
+		reverse_proxy junjo-jaeger:16686
+	}
 
-    # Fallback for the root domain
-    handle {
-        reverse_proxy junjo-server-frontend:80
-    }
-    
+	# Fallback for the root domain
+	handle {
+		reverse_proxy junjo-server-frontend:80
+	}
 }
