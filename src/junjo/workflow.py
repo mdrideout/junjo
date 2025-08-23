@@ -22,6 +22,12 @@ _CovariantStoreT = TypeVar("_CovariantStoreT", bound="BaseStore", covariant=True
 class StoreFactory(Protocol, Generic[_CovariantStoreT]):
     def __call__(self, *args, **kw) -> _CovariantStoreT: ...
 
+# Define a covariant TypeVar for the GraphFactory protocol.
+# It's bound to Graph, ensuring the factory produces Graph compatible instances.
+_CovariantGraphT = TypeVar("_CovariantGraphT", bound="Graph", covariant=True)
+class GraphFactory(Protocol, Generic[_CovariantGraphT]):
+    def __call__(self, *args, **kw) -> _CovariantGraphT: ...
+
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
     Represents a generic abstract class for workflow / subflow execution.
@@ -30,7 +36,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
     def __init__(
         self,
-        graph: Graph,
+        graph_factory: GraphFactory[Graph],
         store_factory: StoreFactory[StoreT],
         max_iterations: int = 100,
         hook_manager: HookManager | None = None,
@@ -38,12 +44,13 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     ):
         self._id = generate_safe_id()
         self._name = name
-        self.graph = graph
+        self.graph: Graph | None = None
         self.max_iterations = max_iterations
         self.node_execution_counter: dict[str, int] = {}
         self.hook_manager = hook_manager
 
         # Private stores (immutable interactions only)
+        self._graph_factory = graph_factory
         self._store_factory = store_factory
         self._store: StoreT | None = None
 
@@ -97,6 +104,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         # TODO: Test that the sink node can be reached
 
         # Always start with a fresh store for *this* run.
+        self.graph = self._graph_factory()
         self._store = self._store_factory()
 
         # # Execute workflow before hooks
@@ -110,7 +118,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         with tracer.start_as_current_span(self.name) as span:
             # Set span attributes
             span.set_attribute("junjo.workflow.state.start", await self.get_state_json())
-            span.set_attribute("junjo.workflow.graph_structure", self.graph.serialize_to_json_string())
+            if self.graph:
+                span.set_attribute("junjo.workflow.graph_structure", self.graph.serialize_to_json_string())
             span.set_attribute("junjo.workflow.store.id", self.store.id)
             span.set_attribute("junjo.span_type", self.span_type)
             span.set_attribute("junjo.id", self.id)
@@ -129,6 +138,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 await self.pre_run_actions(parent_store)
 
             # Loop to execute the nodes inside this workflow
+            if not self.graph:
+                raise RuntimeError("Graph not initialized. Call execute() first.")
             current_executable = self.graph.source
             try:
                 while True:
@@ -179,11 +190,15 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                                 )
 
                     # Break the loop if the current node is the final node.
+                    if not self.graph:
+                        raise RuntimeError("Graph not initialized. Call execute() first.")
                     if current_executable == self.graph.sink:
                         print("Sink has executed. Exiting loop.")
                         break
 
                     # Get the next executable in the workflow.
+                    if not self.graph:
+                        raise RuntimeError("Graph not initialized. Call execute() first.")
                     current_executable = await self.graph.get_next_node(self.store, current_executable)
 
 
@@ -224,7 +239,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
     def __init__(
         self,
-        graph: Graph,
+        graph_factory: GraphFactory[Graph],
         store_factory: StoreFactory[StoreT],
         max_iterations: int = 100,
         hook_manager: HookManager | None = None,
@@ -244,12 +259,15 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
         :param name: An optional name for the workflow. If not provided,
                     the class name is used.
         :type name: str | None, optional
-        :param graph: The graph of nodes and edges that defines the workflow's structure
-                    and execution flow.
-        :type graph: Graph
+        :param graph_factory: A callable that returns a new instance of the workflow's
+                            graph (``Graph``). This factory is invoked at the beginning
+                            of each :meth:`~.execute` call to ensure a fresh, isolated
+                            graph for the workflow's specific execution. This is critical
+                            for concurrency safety.
+        :type graph_factory: GraphFactory[Graph]
         :param store_factory: A callable that returns a new instance of the workflow's
                             store (``StoreT``). This factory is invoked at the beginning
-                            of each :meth:`~.execute` call to ensure a fresh state for the 
+                            of each :meth:`~.execute` call to ensure a fresh state for the
                             workflow's specific execution.
         :type store_factory: StoreFactory[StoreT]
         :param max_iterations: The maximum number of times any single node can be
@@ -264,14 +282,14 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
 
             workflow = Workflow[MyGraphState, MyGraphStore](
                 name="demo_base_workflow",
-                graph=graph,
+                graph_factory=create_my_graph,
                 store_factory=lambda: MyGraphStore(initial_state=MyGraphState()),
                 hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
             )
             await workflow.execute()
         """
         super().__init__(
-            graph=graph,
+            graph_factory=graph_factory,
             store_factory=store_factory,
             max_iterations=max_iterations,
             hook_manager=hook_manager,
@@ -281,7 +299,7 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
 class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC):
     def __init__(
         self,
-        graph: Graph,
+        graph_factory: GraphFactory[Graph],
         store_factory: StoreFactory[StoreT],
         max_iterations: int = 100,
         hook_manager: HookManager | None = None,
@@ -305,12 +323,15 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         :param name: An optional name for the workflow. If not provided,
                     the class name is used.
         :type name: str | None, optional
-        :param graph: The graph of nodes and edges that defines the workflow's structure
-                    and execution flow.
-        :type graph: Graph
+        :param graph_factory: A callable that returns a new instance of the workflow's
+                            graph (``Graph``). This factory is invoked at the beginning
+                            of each :meth:`~.execute` call to ensure a fresh, isolated
+                            graph for the workflow's specific execution. This is critical
+                            for concurrency safety.
+        :type graph_factory: GraphFactory[Graph]
         :param store_factory: A callable that returns a new instance of the workflow's
                             store (``StoreT``). This factory is invoked at the beginning
-                            of each :meth:`~.execute` call to ensure a fresh state for the 
+                            of each :meth:`~.execute` call to ensure a fresh state for the
                             workflow's specific execution.
         :type store_factory: StoreFactory[StoreT]
         :param max_iterations: The maximum number of times any single node can be
@@ -337,14 +358,14 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
 
             # Instantiate the subflow
             example_subflow = ExampleSubflow(
-                graph=example_subflow_graph,
+                graph_factory=create_example_subflow_graph,
                 store_factory=lambda: ExampleSubflowStore(
                     initial_state=ExampleSubflowState()
                 ),
             )
         """
         super().__init__(
-            graph=graph,
+            graph_factory=graph_factory,
             store_factory=store_factory,
             max_iterations=max_iterations,
             hook_manager=hook_manager,

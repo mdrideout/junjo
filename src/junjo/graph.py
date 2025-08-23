@@ -170,7 +170,8 @@ class Graph:
                     processed_subflows.add(node.id)  # Mark as processed to avoid cycles
 
                     # Collect subflow's source, sink and all nodes connected by edges
-                    subflow_graph = node.graph
+                    # We call the factory directly to get a temporary graph for serialization
+                    subflow_graph = node._graph_factory()
                     collect_nodes(subflow_graph.source)
                     collect_nodes(subflow_graph.sink)
 
@@ -220,8 +221,10 @@ class Graph:
             # Add subflow representation for Subflows
             elif isinstance(node, _NestableWorkflow) and hasattr(node, 'graph'):
                 node_info["isSubflow"] = True
-                node_info["subflowSourceId"] = node.graph.source.id
-                node_info["subflowSinkId"] = node.graph.sink.id
+                # Call the factory again to ensure we have the graph for IDs
+                subflow_graph = node._graph_factory()
+                node_info["subflowSourceId"] = subflow_graph.source.id
+                node_info["subflowSinkId"] = subflow_graph.sink.id
 
             nodes_json.append(node_info)
 
