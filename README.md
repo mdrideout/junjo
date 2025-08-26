@@ -101,12 +101,12 @@ $ brew install graphviz
 
 ```python
 # visualize.py
-from base.sample_workflow.workflow import sample_workflow_graph
+from base.sample_workflow.graph import create_sample_workflow_graph
 
 def main():
     # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
     # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
-    sample_workflow_graph.export_graphviz_assets()
+    create_sample_workflow_graph().export_graphviz_assets()
 
 if __name__ == "__main__":
     main()

@@ -20,12 +20,25 @@ if TYPE_CHECKING:
 # It's bound to BaseStore, ensuring the factory produces BaseStore compatible instances.
 _CovariantStoreT = TypeVar("_CovariantStoreT", bound="BaseStore", covariant=True)
 class StoreFactory(Protocol, Generic[_CovariantStoreT]):
+    """
+    A callable that returns a new instance of a workflow's store.
+
+    This factory is invoked at the beginning of each :meth:`~.Workflow.execute`
+    call to ensure a fresh state for the workflow's specific execution.
+    """
     def __call__(self, *args, **kw) -> _CovariantStoreT: ...
 
 # Define a covariant TypeVar for the GraphFactory protocol.
 # It's bound to Graph, ensuring the factory produces Graph compatible instances.
 _CovariantGraphT = TypeVar("_CovariantGraphT", bound="Graph", covariant=True)
 class GraphFactory(Protocol, Generic[_CovariantGraphT]):
+    """
+    A callable that returns a new instance of a workflow's graph.
+
+    This factory is invoked at the beginning of each :meth:`~.Workflow.execute`
+    call to ensure a fresh, isolated graph for the workflow's specific execution.
+    This is critical for concurrency safety.
+    """
     def __call__(self, *args, **kw) -> _CovariantGraphT: ...
 
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
@@ -261,13 +274,13 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
         :type name: str | None, optional
         :param graph_factory: A callable that returns a new instance of the workflow's
                             graph (``Graph``). This factory is invoked at the beginning
-                            of each :meth:`~.execute` call to ensure a fresh, isolated
+                            of each :meth:`~.Workflow.execute` call to ensure a fresh, isolated
                             graph for the workflow's specific execution. This is critical
                             for concurrency safety.
         :type graph_factory: GraphFactory[Graph]
         :param store_factory: A callable that returns a new instance of the workflow's
                             store (``StoreT``). This factory is invoked at the beginning
-                            of each :meth:`~.execute` call to ensure a fresh state for the
+                            of each :meth:`~.Workflow.execute` call to ensure a fresh state for the
                             workflow's specific execution.
         :type store_factory: StoreFactory[StoreT]
         :param max_iterations: The maximum number of times any single node can be
@@ -325,13 +338,13 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         :type name: str | None, optional
         :param graph_factory: A callable that returns a new instance of the workflow's
                             graph (``Graph``). This factory is invoked at the beginning
-                            of each :meth:`~.execute` call to ensure a fresh, isolated
+                            of each :meth:`~.Subflow.execute` call to ensure a fresh, isolated
                             graph for the workflow's specific execution. This is critical
                             for concurrency safety.
         :type graph_factory: GraphFactory[Graph]
         :param store_factory: A callable that returns a new instance of the workflow's
                             store (``StoreT``). This factory is invoked at the beginning
-                            of each :meth:`~.execute` call to ensure a fresh state for the
+                            of each :meth:`~.Subflow.execute` call to ensure a fresh state for the
                             workflow's specific execution.
         :type store_factory: StoreFactory[StoreT]
         :param max_iterations: The maximum number of times any single node can be
