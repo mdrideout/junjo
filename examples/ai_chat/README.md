@@ -38,7 +38,11 @@ $ uv pip install -e .
 
 # Start the backend
 $ fastapi dev src/app/main.py
+
+# Visualize the graph
+$ python -m src.app.visualize
 ```
+
 
 ### Telemetry
 
