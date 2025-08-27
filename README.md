@@ -141,6 +141,13 @@ This project utilizes [ruff](https://astral.sh/ruff) for linting and auto format
 $ sphinx-build -b html docs docs/_build
 ```
 
+### Tests
+
+```bash
+# Run the tests with uv
+$ uv run pytest
+```
+
 ## Code Generation
 
 ### Protobuf schema generation
