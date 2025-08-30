@@ -300,6 +300,41 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
                 hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
             )
             await workflow.execute()
+
+        .. _workflow-instantiation-params:
+
+        **Passing Parameters to Factories**
+
+        To provide parameters to your `graph_factory` or `store_factory` when
+        you create a `Workflow`, you can wrap your factory function call in a
+        `lambda`. This creates a new, argument-less factory that calls your
+        function with the desired parameters when executed.
+
+        This is useful for injecting dependencies like configuration objects or
+        API clients into your graph at instantiation time, while preserving
+        concurrency safety.
+
+        .. code-block:: python
+
+            # Your factory function that requires a dependency
+            def create_graph_with_dependency(emulator: Emulator) -> Graph:
+                # ... setup graph using the emulator
+                return Graph(...)
+
+            # An instance of the dependency
+            my_emulator = Emulator()
+
+            # Instantiate the workflow, using a lambda to create the factory
+            workflow = Workflow[MyState, MyStore](
+                name="configured_workflow",
+                graph_factory=lambda: create_graph_with_dependency(
+                    emulator=my_emulator
+                ),
+                store_factory=lambda: MyStore(initial_state=MyState())
+            )
+
+            # The workflow can now be executed normally
+            await workflow.execute()
         """
         super().__init__(
             graph_factory=graph_factory,
