@@ -14,11 +14,13 @@ from .node import Node
 from .run_concurrent import RunConcurrent
 from .state import BaseState
 from .store import BaseStore
-from .workflow import Subflow, Workflow, _NestableWorkflow
+from .workflow import GraphFactory, StoreFactory, Subflow, Workflow, _NestableWorkflow
 
 __all__ = [
     "Condition",
     "Graph",
+    "GraphFactory",
+    "StoreFactory",
     "Workflow",
     "Subflow",
     "_NestableWorkflow",

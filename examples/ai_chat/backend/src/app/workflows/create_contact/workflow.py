@@ -2,7 +2,7 @@ from junjo.telemetry.hook_manager import HookManager
 from junjo.workflow import Workflow
 
 from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
-from app.workflows.create_contact.graph import create_contact_graph
+from app.workflows.create_contact.graph import create_create_contact_graph
 from app.workflows.create_contact.store import CreateContactState, CreateContactStore
 
 
@@ -19,7 +19,7 @@ async def run_create_contact_workflow() -> CreateSetupContactResponse:
     # Create the workflow
     create_contact_workflow = Workflow[CreateContactState, CreateContactStore](
         name="Create Contact Workflow",
-        graph=create_contact_graph,
+        graph_factory=create_create_contact_graph,
         store_factory=lambda: CreateContactStore(
             initial_state=CreateContactState()
         ),

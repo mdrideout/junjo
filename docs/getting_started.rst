@@ -87,34 +87,40 @@ More advanced examples can be found in the `examples directory <https://github.c
                     return False
                 return count % 2 == 0
 
-        # Instantiate the nodes
-        first_node = FirstNode()
-        count_items_node = CountItemsNode()
-        even_items_node = EvenItemsNode()
-        odd_items_node = OddItemsNode()
-        final_node = FinalNode()
+        def create_graph() -> Graph:
+            """
+            Factory function to create a new instance of the sample workflow graph.
+            This ensures that each workflow execution gets a fresh, isolated graph,
+            preventing state conflicts in concurrent environments.
+            """
+            # Instantiate the nodes
+            first_node = FirstNode()
+            count_items_node = CountItemsNode()
+            even_items_node = EvenItemsNode()
+            odd_items_node = OddItemsNode()
+            final_node = FinalNode()
 
-        # Create the workflow graph
-        workflow_graph = Graph(
-            source=first_node,
-            sink=final_node,
-            edges=[
-                Edge(tail=first_node, head=count_items_node),
+            # Create the workflow graph
+            return Graph(
+                source=first_node,
+                sink=final_node,
+                edges=[
+                    Edge(tail=first_node, head=count_items_node),
 
-                # Branching based on the count of items
-                Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()), # Only transitions if count is even
-                Edge(tail=count_items_node, head=odd_items_node), # Fallback if first condition is not met
+                    # Branching based on the count of items
+                    Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()), # Only transitions if count is even
+                    Edge(tail=count_items_node, head=odd_items_node), # Fallback if first condition is not met
 
-                # Branched paths converge to the final node
-                Edge(tail=even_items_node, head=final_node),
-                Edge(tail=odd_items_node, head=final_node),
-            ]
-        )
+                    # Branched paths converge to the final node
+                    Edge(tail=even_items_node, head=final_node),
+                    Edge(tail=odd_items_node, head=final_node),
+                ]
+            )
 
         # Create the workflow
         sample_workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
             name="Getting Started Example Workflow",
-            graph=workflow_graph,
+            graph_factory=create_graph,
             store_factory=lambda: SampleWorkflowStore(
                 initial_state=SampleWorkflowState(
                     items=["laser", "coffee", "horse"]

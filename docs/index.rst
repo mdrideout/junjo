@@ -4,6 +4,9 @@
    :hidden:
 
    getting_started
+   tutorial
+   core_concepts
+   state_management
    concurrency
    subflows
    visualizing_workflows
