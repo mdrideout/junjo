@@ -16,6 +16,7 @@ import { Provider } from 'react-redux'
 import { MermaidProvider } from './mermaidjs/mermaid-provider.tsx'
 import UsersPage from './features/users/UsersPage.tsx'
 import ApiKeysPage from './features/api-keys/ApiKeysPage.tsx'
+import TracesListPage from './features/traces/TracesListPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -72,6 +73,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <ApiKeysPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/traces/:serviceName"
+                  element={
+                    <AuthGuard>
+                      <TracesListPage />
                     </AuthGuard>
                   }
                 />
