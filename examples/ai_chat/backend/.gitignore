@@ -1,3 +1,4 @@
 logs
 sqlite-data
 avatars
+**.egg-info
