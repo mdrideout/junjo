@@ -1,4 +1,3 @@
-
 from junjo.node import Node
 from loguru import logger
 
@@ -35,16 +34,12 @@ class CreateBioNode(Node[CreateContactStore]):
 
         # Create the request to gemini for avatar inspiration
         prompt = create_bio_prompt(
-            state.personality_traits,
-            state.location.city,
-            state.location.state,
-            state.age,
-            state.sex
+            state.personality_traits, state.location.city, state.location.state, state.age, state.sex
         )
         logger.info(f"Creating response with prompt: {prompt}")
 
         # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-001")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash")
         gemini_result = await gemini_tool.text_request()
         logger.info(f"Gemini result: {gemini_result}")
 
