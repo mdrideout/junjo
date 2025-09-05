@@ -2,7 +2,9 @@ from app.db.models.contact.schemas import ContactRead
 from app.db.models.message.schemas import MessageRead
 
 
-def create_general_response_workflow_prompt(history: list[MessageRead], contact: ContactRead, most_recent_message: str) -> str:
+def create_general_response_workflow_prompt(
+    history: list[MessageRead], contact: ContactRead, most_recent_message: str
+) -> str:
     """Create a message response using history and contact bio information."""
 
     # Convert the message history into stringified JSON
@@ -28,4 +30,6 @@ MOST RECENT MESSAGE TO RESPOND TO:
 Create the response to the most recent message utilizing the rest of the conversation as context.
 This response will be sent to a human.
 Make sure your response is how a human with your chat profile would respond.
+Do not wrap your response in quotes.
+Do not use markdown.
 """.strip()
