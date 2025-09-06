@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../otel/schemas/schemas'
 import { API_HOST } from '../../config'
+import NestedOtelSpans from './NestedOtelSpans'
 
 export default function TraceDetails() {
   const { traceId } = useParams<{ traceId: string }>()
@@ -45,7 +46,7 @@ export default function TraceDetails() {
     <div className="h-full flex flex-col">
       <h1>Trace Details</h1>
       <div className="grow overflow-scroll">
-        <pre>{JSON.stringify(spans, null, 2)}</pre>
+        <NestedOtelSpans spans={spans} traceId={traceId!} />
       </div>
     </div>
   )
