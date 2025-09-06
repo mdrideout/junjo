@@ -178,13 +178,45 @@ class GeminiTool:
         image = Image.open(BytesIO(image_bytes))
 
         logger.debug(f"Making gemini_image_edit_request with model: {self._model}, prompt: {self._prompt}")
-        response = await self._client.aio.models.generate_content(model=self._model, contents=[self._prompt, image])
+        response = await self._client.aio.models.generate_content(
+            model=self._model,
+            contents=[self._prompt, image],
+            config=types.GenerateContentConfig(
+                safety_settings=[
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                ]
+            ),
+        )
 
         if not response.candidates:
             logger.error(f"No candidates in response: {response}")
             raise ValueError("No candidates in response")
 
         if not response.candidates[0].content:
+            # If prohibited content
+            if response.candidates[0].finish_reason is not None:
+                logger.warning(f"Prohibited content detected in response. Finish Reason: {response.candidates[0].finish_reason}")
+                return None, str(response.candidates[0].finish_reason)
+
             logger.error(f"No content in response: {response}")
             raise ValueError("No content in response")
 

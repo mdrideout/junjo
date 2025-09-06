@@ -41,7 +41,7 @@ def create_handle_message_graph() -> Graph:
 
     # Initial Data Load
     initial_data_load = RunConcurrent(
-        name="Initial Data Load", items=[save_message_node, load_history_node, load_contact_node]
+        name="Initial Data Load", items=[load_history_node, load_contact_node]
     )
 
     # Create Response With Image SubFlow
@@ -52,9 +52,10 @@ def create_handle_message_graph() -> Graph:
 
     # Construct a graph
     return Graph(
-        source=initial_data_load,
+        source=save_message_node,
         sink=sink_node,
         edges=[
+            Edge(tail=save_message_node, head=initial_data_load),
             Edge(tail=initial_data_load, head=assess_message_directive_node),
             # Message Directive Options
             Edge(

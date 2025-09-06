@@ -62,7 +62,8 @@ class CreateImageNode(Node[CreateResponseWithImageSubflowStore]):
 
             # Update the state with the image id
             await store.set_image_id(image_id)
-            if text_response:
-                await store.set_text_response(text_response)
+
+        if text_response:
+            await store.set_text_response(text_response)
 
         return

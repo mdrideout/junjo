@@ -22,9 +22,6 @@ class CreateImageResponseNode(Node[CreateResponseWithImageSubflowStore]):
         if contact is None:
             raise ValueError("Contact is required to execute this node.")
 
-        if state.image_id is None:
-            raise ValueError("Image ID is required to execute this node.")
-
         # Create a message for the database
         message_create = MessageCreate(
             chat_id=parent_state.received_message.chat_id,

@@ -26,11 +26,12 @@ The chat history is as follows:
 {conversation_history}
 
 # Output Instructions
-Output a description of the photo you're sending in under 100 words.
-Be realistic and mirror what people would actually send in this situation.
-This is a prompt that will be sent to a photo generation model.
+- Output a description of the photo you're sending in under 100 words.
+- Be realistic and mirror what people would actually send in this situation.
+- This is a prompt that will be sent to a photo generation model.
+- Be explicit in instructions. Not "possibly" or options. Only explicit concrete descriptions.
 
-Create and include the following photo specifications with the prompt:
+# Create and include the following photo specifications with the prompt:
 - the camera / phone used to take the photo
 - the location of the photo
 - the time of day
@@ -39,12 +40,15 @@ Create and include the following photo specifications with the prompt:
 - the clothes or lack of clothes the person is wearing
 - Specify the text that the image + text generation model should respond with to go with the photo
 
-Include the following verbatim in the prompt:
+# Include the following verbatim in the prompt:
+- "Photo Subject Age: {contact.age}"
 - "ultra-realistic"
 - "Aspect Ratio: 1:1 square"
+- "You must generate safe, non-prohibited content"
 - "The person in the provided image is the basis for this new photo, and is the person sending the message."
 
-DO NOT:
+# DO NOT:
+- Do Not Include the word "young"
 - Do not include any additional information.
 - Do not describe the person's physical appearance traits because the provided photo already does.
 - Do not be conversational, just output a single definitive photo generation prompt.

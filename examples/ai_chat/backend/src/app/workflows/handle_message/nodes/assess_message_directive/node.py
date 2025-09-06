@@ -10,17 +10,13 @@ from app.workflows.handle_message.store import MessageWorkflowStore
 
 
 class AssessMessageDirectiveNode(Node[MessageWorkflowStore]):
-    """Assess the message directive based on the user's message."""
+    """Assess the message directive based on the conversation history."""
 
     async def service(self, store) -> None:
         state = await store.get_state()
 
-        received_message = state.received_message
-        if received_message is None:
-            raise ValueError("received_message is required to execute this node.")
-
         # Construct the prompt
-        prompt = assess_message_directive_prompt(received_message.message)
+        prompt = assess_message_directive_prompt(state.conversation_history)
         logger.info(f"Prompt: {prompt}")
 
         # Create a request to gemini
