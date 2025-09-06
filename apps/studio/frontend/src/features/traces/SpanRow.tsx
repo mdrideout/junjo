@@ -21,9 +21,11 @@ export default function SpanRow(props: SpanRowProps) {
 
   return (
     <div className="p-1">
-      <div className="flex gap-x-2 items-center">
+      <div className="flex gap-x-1 items-center">
         <SpanIconConstructor span={span} active={isActiveSpan} />
-        <div className={'w-full flex gap-x-2 justify-between items-end'}>
+        <div
+          className={'w-full flex gap-x-2 justify-between items-end cursor-pointer hover:bg-zinc-100 px-1'}
+        >
           <div className={'flex gap-x-2 items-center'}>
             <span>{span.name}</span>
 
@@ -41,6 +43,7 @@ export default function SpanRow(props: SpanRowProps) {
           <div className={'font-mono text-zinc-500 text-xs'}>{spanDuration}</div>
         </div>
       </div>
+      {/* <div className={'ml-6 pb-2 border-b border-zinc-300 dark:border-zinc-700'}></div> */}
     </div>
   )
 }
