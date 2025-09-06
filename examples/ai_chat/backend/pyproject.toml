@@ -23,6 +23,7 @@ dependencies = [
     "pytest-dotenv",
     "junjo",
     "pillow>=11.3.0",
+    "openinference-instrumentation-google-genai>=0.1.1",
 ]
 
 [tool.ruff]

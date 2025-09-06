@@ -1,6 +1,7 @@
 import os
 
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
 from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
@@ -22,6 +23,9 @@ def init_otel(service_name: str):
 
     # Set up tracing for this application
     tracer_provider = TracerProvider(resource=resource)
+
+    # Instrument Google GenAI
+    GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
     # Construct a Junjo exporter for Junjo Server (see junjo-server docker-compose.yml)
     junjo_server_exporter = JunjoServerOtelExporter(
