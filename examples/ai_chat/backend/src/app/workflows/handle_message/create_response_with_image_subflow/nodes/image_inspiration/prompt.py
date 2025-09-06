@@ -27,7 +27,8 @@ Include the following with the prompt:
 - the time of day
 - the weather
 - the set and setting of the photo
-- a 1:1 square aspect ratio
+- "Aspect Ratio: 1:1 square"
+- "The person in the provided image is the basis for this new photo, and is the person sending the message."
 
 Do not include any additional information.
 Do not be conversational, just output a single definitive photo generation prompt.

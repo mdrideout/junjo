@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useMessagesStore } from '../api/message/store'
 import ChatReceiveBubble from './bubbles/ChatReceiveBubble'
+import ChatReceiveImageBubble from './bubbles/ChatReceiveImageBubble'
 import ChatSendBubble from './bubbles/ChatSendBubble'
 import useGetMessages from '../api/message/hooks/get-messages-hook'
 
@@ -46,7 +47,11 @@ export default function ChatWindow(props: ChatWindowProps) {
         if (isSender) {
           return <ChatSendBubble key={message.id} message={message} />
         } else {
-          return <ChatReceiveBubble key={message.id} message={message} />
+          if (message.image_id) {
+            return <ChatReceiveImageBubble key={message.id} message={message} />
+          } else {
+            return <ChatReceiveBubble key={message.id} message={message} />
+          }
         }
       })}
       <div className={'h-1'}></div>

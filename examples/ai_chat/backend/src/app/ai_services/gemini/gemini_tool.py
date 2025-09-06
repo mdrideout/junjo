@@ -1,5 +1,8 @@
 import os
+from io import BytesIO
 from typing import TypeVar
+
+from PIL import Image
 
 from google import genai
 from google.genai import types
@@ -48,6 +51,7 @@ class GeminiTool:
         """
         Sends a text request to the Gemini AI model.
         """
+        logger.debug(f"Making text request with model: {self._model}, prompt: {self._prompt}")
         response = await self._client.aio.models.generate_content(model=self._model, contents=self._prompt)
 
         text = response.text
@@ -68,6 +72,7 @@ class GeminiTool:
         """
         logger.info(f"Making schema request with prompt: {self._prompt}")
 
+        logger.debug(f"Making schema request with model: {self._model}, prompt: {self._prompt}, schema: {schema}")
         response = await self._client.aio.models.generate_content(
             model=self._model,
             contents=self._prompt,
@@ -92,12 +97,11 @@ class GeminiTool:
         """
         bytes = None
 
+        logger.debug(f"Making gemini_image_request with model: {self._model}, prompt: {self._prompt}")
         response = await self._client.aio.models.generate_content(
             model=self._model,
             contents=self._prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=['TEXT', 'IMAGE']
-            )
+            config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
         )
 
         if not response.candidates:
@@ -136,13 +140,12 @@ class GeminiTool:
         """
         bytes = None
 
+        logger.debug(f"Making imagen_3_request with model: {self._model}, prompt: {self._prompt}")
         response = await self._client.aio.models.generate_images(
             model=self._model,
             prompt=self._prompt,
             config=types.GenerateImagesConfig(
-                number_of_images=1,
-                aspect_ratio="1:1",
-                person_generation=types.PersonGeneration.ALLOW_ADULT
+                number_of_images=1, aspect_ratio="1:1", person_generation=types.PersonGeneration.ALLOW_ADULT
             ),
         )
 
@@ -161,5 +164,45 @@ class GeminiTool:
         if not bytes:
             logger.error(f"No image bytes in generated image: {generated_image}")
             raise ValueError("No image bytes in generated image")
+
+        return bytes
+
+    async def image_edit_request(self, image_bytes: bytes) -> bytes:
+        """
+        Sends a request to the Gemini AI model for an image.
+        """
+
+        image = Image.open(BytesIO(image_bytes))
+
+        logger.debug(f"Making image_edit_request with model: {self._model}, prompt: {self._prompt}")
+        response = await self._client.aio.models.generate_content(model=self._model, contents=[self._prompt, image])
+
+        if not response.candidates:
+            logger.error(f"No candidates in response: {response}")
+            raise ValueError("No candidates in response")
+
+        if not response.candidates[0].content:
+            logger.error(f"No content in response: {response}")
+            raise ValueError("No content in response")
+
+        if not response.candidates[0].content.parts:
+            logger.error(f"No parts in response: {response}")
+            raise ValueError("No parts in response")
+
+        for part in response.candidates[0].content.parts:
+            if part.text is not None:
+                # Log the text part
+                logger.info(f"Gemini image generation text: {part.text}")
+
+            if not part.inline_data:
+                # Skip this part if it doesn't contain inline data
+                continue
+
+            # Get the image bytes from the inline data
+            bytes = part.inline_data.data
+
+        if not bytes:
+            logger.error(f"No image bytes in part: {part}")
+            raise ValueError("No image bytes in part")
 
         return bytes

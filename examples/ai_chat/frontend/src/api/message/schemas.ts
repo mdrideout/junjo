@@ -7,6 +7,7 @@ export const MessageReadSchema = z.object({
   contact_id: z.string().nullable(),
   chat_id: z.string(),
   message: z.string(),
+  image_id: z.string().nullable(),
 })
 
 export type MessageRead = z.infer<typeof MessageReadSchema>

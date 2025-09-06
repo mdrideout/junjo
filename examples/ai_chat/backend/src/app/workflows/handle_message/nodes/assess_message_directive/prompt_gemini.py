@@ -13,7 +13,8 @@ You have received the following message:
 These are the response directive categories to choose from:
 1. {MessageDirective.DATE_IDEA_RESEARCH} - the user wants you to suggest date ideas.
 2. {MessageDirective.WORK_RELATED_RESPONSE} - the user wants you to talk about work-related topics.
-3. {MessageDirective.GENERAL_RESPONSE} - anything that does not fit into the other categories.
+3. {MessageDirective.IMAGE_RESPONSE} - the user wants you to send a photo response.
+4. {MessageDirective.GENERAL_RESPONSE} - anything that does not fit into the other categories.
 
 Return the category as a string value and nothing else. No quotes or punctuation.
 """.strip()
