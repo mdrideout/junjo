@@ -6,7 +6,7 @@ interface Props {
   trace: OtelSpan
 }
 
-export default function TraceListRow({ trace }: Props) {
+export default function TraceListItem({ trace }: Props) {
   const navigate = useNavigate()
 
   const startString = new Date(trace.start_time).toLocaleString()

@@ -2,7 +2,7 @@ import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../otel/schemas/schemas'
 import { API_HOST } from '../../config'
-import TraceListRow from './TraceListItem'
+import TraceListItem from './TraceListItem'
 
 export default function TracesList() {
   const { serviceName } = useParams<{ serviceName: string }>()
@@ -53,7 +53,7 @@ export default function TracesList() {
       </thead>
       <tbody>
         {traces.map((trace) => (
-          <TraceListRow key={trace.span_id} trace={trace} />
+          <TraceListItem key={trace.span_id} trace={trace} />
         ))}
       </tbody>
     </table>

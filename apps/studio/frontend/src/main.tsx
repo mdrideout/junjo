@@ -17,6 +17,7 @@ import { MermaidProvider } from './mermaidjs/mermaid-provider.tsx'
 import UsersPage from './features/users/UsersPage.tsx'
 import ApiKeysPage from './features/api-keys/ApiKeysPage.tsx'
 import TracesListPage from './features/traces/TracesListPage.tsx'
+import TraceDetails from './features/traces/TraceDetails.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -81,6 +82,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <TracesListPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/traces/:serviceName/:traceId"
+                  element={
+                    <AuthGuard>
+                      <TraceDetails />
                     </AuthGuard>
                   }
                 />
