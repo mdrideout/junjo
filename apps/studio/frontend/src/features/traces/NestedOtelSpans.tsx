@@ -23,15 +23,6 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
   // Get all spans except the root to use for nesting
   const childSpans = spans.filter((span) => span.span_id !== rootSpan?.span_id)
 
-  // Sort spans by start time
-  const sortedSpans = useMemo(() => {
-    return [...spans].sort((a, b) => {
-      const aTime = isoStringToMicrosecondsSinceEpoch(a.start_time)
-      const bTime = isoStringToMicrosecondsSinceEpoch(b.start_time)
-      return aTime - bTime
-    })
-  }, [spans])
-
   // Stop if there are no spans
   if (!spans || spans.length === 0) {
     return <div>No spans available for this trace.</div>
@@ -75,15 +66,16 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
    */
   function RecursiveNestedRow({ rowData, layer }: { rowData: SpanRowData; layer: number }): JSX.Element {
     const isActiveSpan = selectedSpanId === rowData.span.span_id
+    const hasChildren = rowData.childRows.length > 0
 
     return (
       <Fragment key={`nested-span-${rowData.span.span_id}-${layer}`}>
         <div
           id={`nested-span-${rowData.span.span_id}`}
-          className={`rounded-md pb-2 last-of-type:pb-0 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900' : ''}`}
+          className={`rounded-md ${hasChildren ? 'mb-2' : 'mb-0'} last-of-type:mb-0 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'}`}
         >
           <SpanRow span={rowData.span} isActiveSpan={isActiveSpan} onClick={onSelectSpan} />
-          {rowData.childRows.length > 0 && (
+          {hasChildren && (
             <div
               className={`border-l ml-[13px] ${isActiveSpan ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
             >

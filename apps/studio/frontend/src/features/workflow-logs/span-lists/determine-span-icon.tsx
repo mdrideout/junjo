@@ -7,6 +7,8 @@ import {
   CircleStackIcon,
   QuestionMarkCircleIcon,
   SparklesIcon,
+  CodeBracketIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/react/24/solid'
 import { OpenInferenceSpanKind } from '../../otel/schemas/attribute-schemas-openinference'
 
@@ -58,11 +60,12 @@ export function SpanIconConstructor(props: {
     return <SparklesIcon className={`${size} ${iconColor}`} />
   }
 
+  // ============= OTEL STANDARD SPAN ICONS =============>
+  if (span.kind === 'SERVER') {
+    return <ArrowsRightLeftIcon className={`${size} ${iconColor}`} />
+  }
+
   // ============= DEFAULT SPAN ICONS =============>
   // Default
-  return (
-    <div className={'text-xs font-bold ml-[1px] px-[2px] py-[1px] rounded-md bg-slate-600 text-white'}>
-      (&nbsp;&nbsp;)
-    </div>
-  )
+  return <CodeBracketIcon className={`${size} ${iconColor}`} />
 }
