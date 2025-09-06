@@ -30,6 +30,7 @@ export function SpanIconConstructor(props: {
 
   const attributes = span.attributes_json
 
+  // ============ JUNJO SPAN ICONS ============>
   // Junjo Workflow Span
   if (span.junjo_span_type === JunjoSpanType.SUBFLOW) {
     return <Square3Stack3DIcon className={`${size} ${iconColor}`} />
@@ -45,22 +46,23 @@ export function SpanIconConstructor(props: {
     return <Squares2X2Icon className={`${size} ${iconColor}`} />
   }
 
-  // Database Span
+  // ============= DATABASE SPAN ICONS =============>
   // If attributes contains "db.system" key
   if (attributes['db.system']) {
     return <CircleStackIcon className={`${size} ${iconColor}`} />
   }
 
-  // OpenTelemetry Genai Attributes: gen_ai.system
-  if (attributes['gen_ai.system']) {
-    return <SparklesIcon className={`${size} ${iconColor}`} />
-  }
-
-  // OpenInference LLM Attributes
+  // ============= OPENINFERENCE SPAN ICONS =============>
+  // If attributes contains "openinference.span.kind" key
   if (attributes['openinference.span.kind'] === OpenInferenceSpanKind.LLM) {
     return <SparklesIcon className={`${size} ${iconColor}`} />
   }
 
+  // ============= DEFAULT SPAN ICONS =============>
   // Default
-  return <div></div>
+  return (
+    <div className={'text-xs font-bold ml-[1px] px-[2px] py-[1px] rounded-md bg-slate-600 text-white'}>
+      (&nbsp;&nbsp;)
+    </div>
+  )
 }
