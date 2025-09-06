@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react'
 import { OtelSpan } from '../otel/schemas/schemas'
 import { API_HOST } from '../../config'
 import NestedOtelSpans from './NestedOtelSpans'
+import SpanAttributesPanel from './SpanAttributesPanel'
 
 export default function TraceDetails() {
   const { traceId } = useParams<{ traceId: string }>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [spans, setSpans] = useState<OtelSpan[]>([])
+  const [selectedSpan, setSelectedSpan] = useState<OtelSpan | null>(null)
 
   useEffect(() => {
     const fetchSpans = async () => {
@@ -45,8 +47,18 @@ export default function TraceDetails() {
   return (
     <div className="h-full flex flex-col">
       <h1>Trace Details</h1>
-      <div className="grow overflow-scroll">
-        <NestedOtelSpans spans={spans} traceId={traceId!} />
+      <div className="grow flex overflow-hidden">
+        <div className="w-2/3 overflow-y-auto">
+          <NestedOtelSpans
+            spans={spans}
+            traceId={traceId!}
+            selectedSpanId={selectedSpan?.span_id || null}
+            onSelectSpan={setSelectedSpan}
+          />
+        </div>
+        <div className="w-1/3 border-l border-zinc-300 dark:border-zinc-700 overflow-y-auto">
+          <SpanAttributesPanel span={selectedSpan} />
+        </div>
       </div>
     </div>
   )

@@ -7,10 +7,12 @@ import SpanRow from './SpanRow'
 interface NestedOtelSpansProps {
   spans: OtelSpan[]
   traceId: string
+  selectedSpanId: string | null
+  onSelectSpan: (span: OtelSpan) => void
 }
 
 export default function NestedOtelSpans(props: NestedOtelSpansProps) {
-  const { spans, traceId } = props
+  const { spans, traceId, selectedSpanId, onSelectSpan } = props
 
   // Find the root span (the one with matching traceId as spanId or null parent)
   const rootSpan =
@@ -72,7 +74,7 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
    * Recursively renders the nested rows
    */
   function RecursiveNestedRow({ rowData, layer }: { rowData: SpanRowData; layer: number }): JSX.Element {
-    const isActiveSpan = false // Simplified for now, could be enhanced with active span selection
+    const isActiveSpan = selectedSpanId === rowData.span.span_id
 
     return (
       <Fragment key={`nested-span-${rowData.span.span_id}-${layer}`}>
@@ -80,7 +82,7 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
           id={`nested-span-${rowData.span.span_id}`}
           className={`rounded-md pb-2 last-of-type:pb-0 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900' : ''}`}
         >
-          <SpanRow span={rowData.span} isActiveSpan={isActiveSpan} />
+          <SpanRow span={rowData.span} isActiveSpan={isActiveSpan} onClick={onSelectSpan} />
           {rowData.childRows.length > 0 && (
             <div
               className={`border-l ml-[13px] ${isActiveSpan ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
@@ -115,7 +117,11 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
     <div>
       {/* Root span */}
       <div className="rounded-md pb-2">
-        <SpanRow span={rootRowData.span} isActiveSpan={false} />
+        <SpanRow
+          span={rootRowData.span}
+          isActiveSpan={selectedSpanId === rootRowData.span.span_id}
+          onClick={onSelectSpan}
+        />
         {rootRowData.childRows.length > 0 && (
           <div className="border-l ml-[13px] border-zinc-300 dark:border-zinc-700">
             {rootRowData.childRows.map((childRow, index) => {

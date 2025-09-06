@@ -5,10 +5,11 @@ import { SpanIconConstructor } from '../workflow-logs/span-lists/determine-span-
 interface SpanRowProps {
   span: OtelSpan
   isActiveSpan: boolean
+  onClick: (span: OtelSpan) => void
 }
 
 export default function SpanRow(props: SpanRowProps) {
-  const { span, isActiveSpan } = props
+  const { span, isActiveSpan, onClick } = props
 
   const start_time = span.start_time
   const end_time = span.end_time
@@ -25,6 +26,7 @@ export default function SpanRow(props: SpanRowProps) {
         <SpanIconConstructor span={span} active={isActiveSpan} />
         <div
           className={'w-full flex gap-x-2 justify-between items-end cursor-pointer hover:bg-zinc-100 px-1'}
+          onClick={() => onClick(span)}
         >
           <div className={'flex gap-x-2 items-center'}>
             <span>{span.name}</span>
