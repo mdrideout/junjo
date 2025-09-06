@@ -29,7 +29,7 @@ class CreateImageResponseNode(Node[CreateResponseWithImageSubflowStore]):
         message_create = MessageCreate(
             chat_id=parent_state.received_message.chat_id,
             contact_id=contact.id,
-            message=f"Image response: {state.image_id}",
+            message=state.text_response or "",
             image_id=state.image_id,
         )
 

@@ -26,9 +26,13 @@ class ImageInspirationNode(Node[CreateResponseWithImageSubflowStore]):
         if parent_state is None:
             raise ValueError("parent_state is required for this node.")
 
+        if parent_state.contact is None:
+            raise ValueError("Contact is required to execute this node.")
+
         # Create the request to gemini for image inspiration
         prompt = image_inspiration_prompt(
             parent_state.conversation_history,
+            parent_state.contact
         )
         logger.info(f"Creating response with prompt: {prompt}")
 

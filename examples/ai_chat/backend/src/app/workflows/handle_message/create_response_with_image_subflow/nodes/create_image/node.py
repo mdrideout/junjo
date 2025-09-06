@@ -44,21 +44,25 @@ class CreateImageNode(Node[CreateResponseWithImageSubflowStore]):
 
         # Create a request to gemini
         gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash-image-preview")
-        image_bytes = await gemini_tool.image_edit_request(avatar_image_bytes)
-        logger.info(f"Gemini result image size: {len(image_bytes) / 1024} kb")
+        image_bytes, text_response = await gemini_tool.gemini_image_edit_request(avatar_image_bytes)
 
-        # Create an id for the image
-        image_id = generate()
+        if image_bytes:
+            logger.info(f"Gemini result image size: {len(image_bytes) / 1024} kb")
 
-        # Save the image to the file system
-        save_image_file(
-            image_bytes,
-            f"chat-images/{state.parent_state.received_message.chat_id}",
-            image_id,
-            "png",
-        )
+            # Create an id for the image
+            image_id = generate()
 
-        # Update the state with the image id
-        await store.set_image_id(image_id)
+            # Save the image to the file system
+            save_image_file(
+                image_bytes,
+                f"chat-images/{state.parent_state.received_message.chat_id}",
+                image_id,
+                "png",
+            )
+
+            # Update the state with the image id
+            await store.set_image_id(image_id)
+            if text_response:
+                await store.set_text_response(text_response)
 
         return

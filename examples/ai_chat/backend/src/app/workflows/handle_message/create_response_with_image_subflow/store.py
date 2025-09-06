@@ -11,6 +11,7 @@ class CreateResponseWithImageSubflowState(BaseState):
     # Output State - will be generated in this subflow
     inspiration_prompt: str | None = None
     image_id: str | None = None
+    text_response: str | None = None
 
 
 class CreateResponseWithImageSubflowStore(BaseStore[CreateResponseWithImageSubflowState]):
@@ -26,3 +27,6 @@ class CreateResponseWithImageSubflowStore(BaseStore[CreateResponseWithImageSubfl
 
     async def set_image_id(self, payload: str) -> None:
         await self.set_state({"image_id": payload})
+
+    async def set_text_response(self, payload: str) -> None:
+        await self.set_state({"text_response": payload})
