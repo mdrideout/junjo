@@ -20,6 +20,7 @@ dependencies = [
     "opentelemetry-instrumentation-google-genai>=0.1b0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
+    "pytest-dotenv",
     "junjo",
     "pillow>=11.3.0",
 ]
