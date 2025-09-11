@@ -28,7 +28,7 @@ export default function SpanRow(props: SpanRowProps) {
           className={`w-full flex gap-x-2 justify-between items-end cursor-pointer rounded-sm px-1 ${isActiveSpan ? 'bg-amber-100 dark:bg-amber-900' : 'hover:bg-zinc-100'}`}
           onClick={() => onClick(span)}
         >
-          <div className={'flex gap-x-2 items-center'}>
+          <div className={'flex gap-x-2 items-center text-sm'}>
             <span>{span.name}</span>
 
             {hasExceptions && (

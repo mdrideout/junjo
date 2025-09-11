@@ -1,4 +1,8 @@
 import { OtelSpan } from '../otel/schemas/schemas'
+import { useEffect, useState } from 'react'
+import SpanAttributeKeyValueViewer from '../../components/SpanAttributeKeyValueViewer'
+import { lightTheme } from '@uiw/react-json-view/light'
+import { vscodeTheme } from '@uiw/react-json-view/vscode'
 
 interface SpanAttributesPanelProps {
   span: OtelSpan | null
@@ -61,7 +65,9 @@ export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
             {Object.entries(span.attributes_json).map(([key, value]) => (
               <div key={key} className="border-b border-zinc-200 dark:border-zinc-700 pb-2">
                 <div className="text-xs text-zinc-500">{key}</div>
-                <div className="font-mono text-sm break-words">{JSON.stringify(value)}</div>
+                <div className="text-sm">
+                  <SpanAttributeKeyValueViewer value={value} />
+                </div>
               </div>
             ))}
           </div>
@@ -82,7 +88,9 @@ export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
                     {Object.entries(event.attributes).map(([key, value]) => (
                       <div key={key} className="text-xs mb-2">
                         <div className="text-zinc-500">{key}: </div>
-                        <div className="font-mono text-sm break-words">{JSON.stringify(value)}</div>
+                        <div className="text-sm">
+                          <SpanAttributeKeyValueViewer value={value} />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -102,11 +110,11 @@ export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
         <div className="grid grid-cols-1 gap-2">
           <div>
             <div className="text-xs text-zinc-500">Start Time</div>
-            <div className="font-mono text-sm text-sm">{span.start_time}</div>
+            <div className="font-mono text-sm">{span.start_time}</div>
           </div>
           <div>
             <div className="text-xs text-zinc-500">End Time</div>
-            <div className="font-mono text-sm text-sm">{span.end_time}</div>
+            <div className="font-mono text-sm">{span.end_time}</div>
           </div>
         </div>
       </div>
