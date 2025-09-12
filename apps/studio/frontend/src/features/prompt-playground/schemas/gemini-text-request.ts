@@ -11,6 +11,15 @@ export const GeminiTextRequestSchema = z.object({
       ),
     }),
   ),
+  generationConfig: z
+    .object({
+      stopSequences: z.array(z.string()).optional(),
+      responseMimeType: z.string().optional(),
+      temperature: z.number().optional(),
+      topP: z.number().optional(),
+      topK: z.number().optional(),
+    })
+    .optional(),
 })
 
 export type GeminiTextRequest = z.infer<typeof GeminiTextRequestSchema>

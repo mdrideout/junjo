@@ -6,6 +6,7 @@ interface PromptPlaygroundState {
   loading: boolean
   error: boolean
   selectedModel: string | null
+  jsonMode: boolean
 }
 
 const initialState: PromptPlaygroundState = {
@@ -13,6 +14,7 @@ const initialState: PromptPlaygroundState = {
   loading: false,
   error: false,
   selectedModel: null,
+  jsonMode: false,
 }
 
 export const promptPlaygroundSlice = createSlice({
@@ -30,6 +32,9 @@ export const promptPlaygroundSlice = createSlice({
     },
     setSelectedModel: (state, action: PayloadAction<string | null>) => {
       state.selectedModel = action.payload
+    },
+    setJsonMode: (state, action: PayloadAction<boolean>) => {
+      state.jsonMode = action.payload
     },
   },
 })

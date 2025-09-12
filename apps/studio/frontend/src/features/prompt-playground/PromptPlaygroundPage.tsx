@@ -7,6 +7,7 @@ import { geminiTextRequest } from './fetch/gemini-text-request'
 import { PromptPlaygroundActions } from './store/slice'
 import { GeminiTextRequest } from './schemas/gemini-text-request'
 import ModelSelector from './components/ModelSelector'
+import { Switch } from '../../components/catalyst/switch'
 
 export default function PromptPlaygroundPage() {
   const { traceId, spanId } = useParams<{ traceId: string; spanId: string }>()
@@ -21,12 +22,19 @@ export default function PromptPlaygroundPage() {
     error: outputError,
   } = useAppSelector((state) => state.promptPlaygroundState)
   const selectedModel = useAppSelector((state) => state.promptPlaygroundState.selectedModel)
+  const jsonMode = useAppSelector((state) => state.promptPlaygroundState.jsonMode)
 
   useEffect(() => {
     if (span) {
       const modelName = span.attributes_json['llm.model_name'] || 'Unknown'
       dispatch(PromptPlaygroundActions.setSelectedModel(modelName))
       setOriginalModel(modelName)
+    }
+    if (span) {
+      const mimeType = span.attributes_json['input.mime_type']
+      if (mimeType === 'application/json') {
+        dispatch(PromptPlaygroundActions.setJsonMode(true))
+      }
     }
   }, [span, dispatch])
 
@@ -122,6 +130,7 @@ export default function PromptPlaygroundPage() {
   const outputValue = getOutputValue(span.attributes_json)
   const modelName = span.attributes_json['llm.model_name'] || 'Unknown'
   const provider = span.attributes_json['llm.provider'] || 'Unknown'
+  const mimeType = span.attributes_json['input.mime_type'] || ''
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -136,6 +145,12 @@ export default function PromptPlaygroundPage() {
     const payload: GeminiTextRequest = {
       model,
       contents: [{ parts: [{ text: prompt }] }],
+    }
+
+    if (jsonMode) {
+      payload.generationConfig = {
+        responseMimeType: 'application/json',
+      }
     }
     dispatch(PromptPlaygroundActions.setOutput(null))
     const result = await geminiTextRequest(payload)
@@ -158,6 +173,11 @@ export default function PromptPlaygroundPage() {
             <h2 className="text-lg font-semibold mb-2 dark:text-white">Original</h2>
             <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
               {provider} / {modelName}
+              {mimeType && (
+                <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">
+                  {mimeType}
+                </span>
+              )}
             </div>
           </div>
 
@@ -205,6 +225,14 @@ export default function PromptPlaygroundPage() {
             <div className="text-sm text-zinc-500 dark:text-zinc-400">
               <div className="flex items-center gap-2">
                 <ModelSelector originalModel={originalModel} />
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={jsonMode}
+                    onChange={(checked) => dispatch(PromptPlaygroundActions.setJsonMode(checked))}
+                    className="group"
+                  />
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400">JSON Mode</span>
+                </div>
               </div>
             </div>
           </div>

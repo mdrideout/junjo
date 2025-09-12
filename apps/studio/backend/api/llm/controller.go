@@ -15,7 +15,7 @@ func HandleGeminiTextRequest(c echo.Context) error {
 
 	// Set a default model if not provided
 	if req.Model == "" {
-		req.Model = "gemini-1.5-flash"
+		req.Model = "gemini-2.5-flash"
 	}
 
 	service := NewGeminiService()

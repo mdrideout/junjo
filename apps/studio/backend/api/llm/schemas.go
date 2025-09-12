@@ -12,11 +12,13 @@ type GeminiContent struct {
 }
 
 // GenerationConfig specifies the generation parameters for the model.
+// https://ai.google.dev/api/generate-content#v1beta.GenerationConfig
 type GenerationConfig struct {
-	StopSequences []string `json:"stopSequences,omitempty"`
-	Temperature   float64  `json:"temperature,omitempty"`
-	TopP          float64  `json:"topP,omitempty"`
-	TopK          int      `json:"topK,omitempty"`
+	StopSequences    []string `json:"stopSequences,omitempty"`
+	ResponseMimeType string   `json:"responseMimeType,omitempty"`
+	Temperature      float64  `json:"temperature,omitempty"`
+	TopP             float64  `json:"topP,omitempty"`
+	TopK             int      `json:"topK,omitempty"`
 }
 
 // SystemInstruction provides system-level instructions to the model.
