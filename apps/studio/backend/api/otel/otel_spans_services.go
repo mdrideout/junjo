@@ -24,6 +24,9 @@ var queryRootSpans string
 //go:embed query_nested_spans.sql
 var queryNestedSpans string
 
+//go:embed query_span.sql
+var querySpan string
+
 func GetDistinctServiceNames(c echo.Context) error {
 	c.Logger().Printf("Running GetDistinctServiceNames function")
 
@@ -339,4 +342,66 @@ func GetNestedSpans(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, results)
+}
+
+func GetSpan(c echo.Context) error {
+	traceId := c.Param("traceId")
+	if traceId == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "traceId parameter is required"})
+	}
+	spanId := c.Param("spanId")
+	if spanId == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "spanId parameter is required"})
+	}
+	c.Logger().Printf("Running GetSpan function for trace %s and span %s", traceId, spanId)
+
+	db := db_duckdb.DB
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	// Execute the query
+	rows, err := db.Query(querySpan, traceId, spanId)
+	if err != nil {
+		c.Logger().Printf("Error querying database: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})
+	}
+	defer rows.Close()
+
+	// Get Column Names
+	columns, err := rows.Columns()
+	if err != nil {
+		c.Logger().Printf("Error getting columns: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to get columns: %v", err)})
+	}
+
+	// Prepare data structures for dynamic scanning
+	count := len(columns)
+	values := make([]interface{}, count)
+	valuePtrs := make([]interface{}, count)
+	for i := range columns {
+		valuePtrs[i] = &values[i]
+	}
+
+	// Final results storage
+	var result map[string]interface{}
+
+	// Start processing each row
+	if rows.Next() {
+		if err := rows.Scan(valuePtrs...); err != nil {
+			c.Logger().Printf("Error scanning row: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to scan row: %v", err)})
+		}
+
+		// Create a map for the current row
+		rowMap := make(map[string]interface{})
+
+		for i, colName := range columns {
+			rowMap[colName] = values[i]
+		}
+
+		result = rowMap
+	}
+
+	return c.JSON(http.StatusOK, result)
 }

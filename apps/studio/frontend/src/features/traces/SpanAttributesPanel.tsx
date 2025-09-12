@@ -1,8 +1,7 @@
 import { OtelSpan } from '../otel/schemas/schemas'
-import { useEffect, useState } from 'react'
 import SpanAttributeKeyValueViewer from '../../components/SpanAttributeKeyValueViewer'
-import { lightTheme } from '@uiw/react-json-view/light'
-import { vscodeTheme } from '@uiw/react-json-view/vscode'
+import { isLLMSpan } from '../otel/utils/span-utils'
+import { Link } from 'react-router'
 
 interface SpanAttributesPanelProps {
   span: OtelSpan | null
@@ -23,6 +22,17 @@ export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
   return (
     <div className="p-4 h-full flex flex-col overflow-auto">
       <div className="text-xl font-semibold mb-4">Span Details</div>
+
+      {isLLMSpan(span) && (
+        <div className="mb-4">
+          <Link
+            to={`/traces/${span.service_name}/${span.trace_id}/${span.span_id}/prompt-playground`}
+            className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 text-white hover:bg-zinc-800"
+          >
+            Open in Playground
+          </Link>
+        </div>
+      )}
 
       <div className="mb-6">
         <div className="font-semibold text-md mb-2 text-lg">Basic Information</div>

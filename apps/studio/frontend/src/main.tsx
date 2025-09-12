@@ -18,6 +18,7 @@ import UsersPage from './features/users/UsersPage.tsx'
 import ApiKeysPage from './features/api-keys/ApiKeysPage.tsx'
 import TracesListPage from './features/traces/TracesListPage.tsx'
 import TraceDetails from './features/traces/TraceDetails.tsx'
+import PromptPlaygroundPage from './features/prompt-playground/PromptPlaygroundPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -90,6 +91,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <TraceDetails />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/traces/:serviceName/:traceId/:spanId/prompt-playground"
+                  element={
+                    <AuthGuard>
+                      <PromptPlaygroundPage />
                     </AuthGuard>
                   }
                 />

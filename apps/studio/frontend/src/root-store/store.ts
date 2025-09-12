@@ -7,6 +7,7 @@ import { usersStateListenerMiddleware } from '../features/users/listeners'
 import { apiKeysReducer } from '../features/api-keys/slice'
 import { apiKeysStateListenerMiddleware } from '../features/api-keys/listeners'
 import { workflowDetailListenerMiddleware } from '../features/workflow-logs/workflow-detail/store/listeners'
+import promptPlaygroundSlice from '../features/prompt-playground/store/slice'
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     workflowDetailState: workflowDetailSlice,
     usersState: usersSlice,
     apiKeysState: apiKeysReducer,
+    promptPlaygroundState: promptPlaygroundSlice,
   },
 
   middleware: (getDefaultMiddleware) =>
