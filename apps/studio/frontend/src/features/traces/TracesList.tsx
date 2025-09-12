@@ -4,7 +4,7 @@ import { OtelSpan } from '../otel/schemas/schemas'
 import { API_HOST } from '../../config'
 import TraceListItem from './TraceListItem'
 
-export default function TracesList() {
+export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
   const { serviceName } = useParams<{ serviceName: string }>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -15,7 +15,10 @@ export default function TracesList() {
       try {
         setLoading(true)
         setError(false)
-        const response = await fetch(`${API_HOST}/otel/service/${serviceName}/root-spans`, {
+        const endpoint = filterLLM
+          ? `${API_HOST}/otel/service/${serviceName}/root-spans-filtered`
+          : `${API_HOST}/otel/service/${serviceName}/root-spans`
+        const response = await fetch(endpoint, {
           credentials: 'include',
         })
         if (!response.ok) {
@@ -31,7 +34,7 @@ export default function TracesList() {
     }
 
     fetchTraces()
-  }, [serviceName])
+  }, [serviceName, filterLLM])
 
   if (loading) {
     return <div>Loading...</div>
