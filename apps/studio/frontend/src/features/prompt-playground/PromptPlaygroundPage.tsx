@@ -6,18 +6,29 @@ import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { geminiTextRequest } from './fetch/gemini-text-request'
 import { PromptPlaygroundActions } from './store/slice'
 import { GeminiTextRequest } from './schemas/gemini-text-request'
+import ModelSelector from './components/ModelSelector'
 
 export default function PromptPlaygroundPage() {
   const { traceId, spanId } = useParams<{ traceId: string; spanId: string }>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [span, setSpan] = useState<OtelSpan | null>(null)
+  const [originalModel, setOriginalModel] = useState<string | null>(null)
   const dispatch = useAppDispatch()
   const {
     output,
     loading: outputLoading,
     error: outputError,
   } = useAppSelector((state) => state.promptPlaygroundState)
+  const selectedModel = useAppSelector((state) => state.promptPlaygroundState.selectedModel)
+
+  useEffect(() => {
+    if (span) {
+      const modelName = span.attributes_json['llm.model_name'] || 'Unknown'
+      dispatch(PromptPlaygroundActions.setSelectedModel(modelName))
+      setOriginalModel(modelName)
+    }
+  }, [span, dispatch])
 
   useEffect(() => {
     const fetchSpan = async () => {
@@ -40,7 +51,7 @@ export default function PromptPlaygroundPage() {
     }
 
     fetchSpan()
-  }, [traceId, spanId])
+  }, [traceId, spanId, dispatch])
 
   if (loading) {
     return <div>Loading...</div>
@@ -116,7 +127,12 @@ export default function PromptPlaygroundPage() {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
     const prompt = formData.get('prompt') as string
-    const model = modelName
+    const model = selectedModel
+    if (!model) {
+      // Handle case where model is not selected
+      console.error('No model selected')
+      return
+    }
     const payload: GeminiTextRequest = {
       model,
       contents: [{ parts: [{ text: prompt }] }],
@@ -134,7 +150,10 @@ export default function PromptPlaygroundPage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold">Prompt Playground</h1>
         <div className="text-sm text-zinc-500">
-          {provider} / {modelName}
+          <div className="flex items-center gap-2">
+            <span>{provider} / </span>
+            <ModelSelector originalModel={originalModel} />
+          </div>
         </div>
       </div>
       <form onSubmit={handleSubmit}>

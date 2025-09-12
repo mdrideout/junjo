@@ -5,12 +5,14 @@ interface PromptPlaygroundState {
   output: string | null
   loading: boolean
   error: boolean
+  selectedModel: string | null
 }
 
 const initialState: PromptPlaygroundState = {
   output: null,
   loading: false,
   error: false,
+  selectedModel: null,
 }
 
 export const promptPlaygroundSlice = createSlice({
@@ -25,6 +27,9 @@ export const promptPlaygroundSlice = createSlice({
     },
     setError: (state, action: PayloadAction<boolean>) => {
       state.error = action.payload
+    },
+    setSelectedModel: (state, action: PayloadAction<string | null>) => {
+      state.selectedModel = action.payload
     },
   },
 })
