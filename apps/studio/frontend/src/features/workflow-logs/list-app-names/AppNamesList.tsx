@@ -50,7 +50,7 @@ export default function AppNamesList() {
               className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
               onClick={() => navigate(`/traces/${item}`)}
             >
-              All Traces
+              Traces
             </td>
           </tr>
         ))}

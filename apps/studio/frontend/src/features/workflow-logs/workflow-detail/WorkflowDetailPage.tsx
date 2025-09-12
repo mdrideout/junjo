@@ -49,7 +49,7 @@ export default function WorkflowDetailPage() {
   const durationString = getSpanDurationString(span.start_time, span.end_time)
 
   return (
-    <div className={'px-3 py-4 flex flex-col h-dvh overflow-hidden'}>
+    <div className={'px-2 py-3 flex flex-col h-dvh overflow-hidden'}>
       <div className={'flex gap-x-3 px-2 items-center justify-between'}>
         <div>
           <div className={'mb-1 flex gap-x-3 font-bold'}>
@@ -57,8 +57,10 @@ export default function WorkflowDetailPage() {
               Logs
             </Link>
             <div>&rarr;</div>
+            <div>{serviceName}</div>
+            <div>&rarr;</div>
             <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
-              {serviceName}
+              Workflow Executions
             </Link>
             <div>&rarr;</div>
             <div>

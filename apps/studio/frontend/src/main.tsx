@@ -87,7 +87,7 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/traces/:serviceName/:traceId"
+                  path="/traces/:serviceName/:traceId/:spanId?"
                   element={
                     <AuthGuard>
                       <TraceDetails />
