@@ -46,6 +46,7 @@ The chat history is as follows:
 - "Aspect Ratio: 1:1 square"
 - "You must generate safe, non-prohibited content"
 - "The person in the provided image is the basis for this new photo, and is the person sending the message."
+- "No text, no watermarks"
 
 # DO NOT:
 - Do Not Include the word "young"
