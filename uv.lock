@@ -74,7 +74,6 @@ dependencies = [
     { name = "openinference-instrumentation-google-genai" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-instrumentation-fastapi" },
-    { name = "opentelemetry-instrumentation-google-genai" },
     { name = "opentelemetry-instrumentation-sqlalchemy" },
     { name = "opentelemetry-sdk" },
     { name = "pillow" },
@@ -102,7 +101,6 @@ requires-dist = [
     { name = "openinference-instrumentation-google-genai", specifier = ">=0.1.1" },
     { name = "opentelemetry-api", specifier = ">=1.31.0" },
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.52b0" },
-    { name = "opentelemetry-instrumentation-google-genai", specifier = ">=0.1b0" },
     { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.52b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.31.0" },
     { name = "pillow", specifier = ">=11.3.0" },
@@ -1223,20 +1221,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/30/92/29d3b07874a77dd578b26a3eefc8fdfb188da039b63bb573cbeb004071c3/opentelemetry_instrumentation_fastapi-0.52b0.tar.gz", hash = "sha256:89d48334db82680db4da2792d5a533a632cb1c8a20342e6263c62a9302658cb2", size = 19247, upload-time = "2025-03-12T18:03:19.444Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/e4/cf52204413891954cd854bd4ffe19d9ef70a510affb835adef4c8d8ac45f/opentelemetry_instrumentation_fastapi-0.52b0-py3-none-any.whl", hash = "sha256:738d93e5ea819c2ce7905395c64acb2792f097697b4d4b2e35a7fee8c692241f", size = 12114, upload-time = "2025-03-12T18:02:28.018Z" },
-]
-
-[[package]]
-name = "opentelemetry-instrumentation-google-genai"
-version = "0.1b0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-instrumentation" },
-    { name = "opentelemetry-semantic-conventions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/57/be/a0127d44a232cdabf3e78fd9100bcb3f80c4402c54b3e4b5965bd549ac00/opentelemetry_instrumentation_google_genai-0.1b0.tar.gz", hash = "sha256:6b0bbe5a232b1bc1dd7265af2f1ed78de5b55fe431c5258ad7b2a47e0b4030f4", size = 19019, upload-time = "2025-03-05T19:38:09.23Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/44/20c8ca0e859e6a320db73dce25a2fc6cfa9ae0edda5f1b97eb8d546950b3/opentelemetry_instrumentation_google_genai-0.1b0-py3-none-any.whl", hash = "sha256:29eb2bd24be5f3665111073dd90cefed1fffb06d1b10500430b3a69a9777cc69", size = 17502, upload-time = "2025-03-05T19:38:07.63Z" },
 ]
 
 [[package]]
