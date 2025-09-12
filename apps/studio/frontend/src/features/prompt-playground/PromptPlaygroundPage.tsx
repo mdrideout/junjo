@@ -8,6 +8,7 @@ import { PromptPlaygroundActions } from './store/slice'
 import { GeminiTextRequest } from './schemas/gemini-text-request'
 import ModelSelector from './components/ModelSelector'
 import { Switch } from '../../components/catalyst/switch'
+import { getSpanDurationString } from '../../util/duration-utils'
 
 export default function PromptPlaygroundPage() {
   const { traceId, spanId } = useParams<{ traceId: string; spanId: string }>()
@@ -15,6 +16,8 @@ export default function PromptPlaygroundPage() {
   const [error, setError] = useState(false)
   const [span, setSpan] = useState<OtelSpan | null>(null)
   const [originalModel, setOriginalModel] = useState<string | null>(null)
+  const [testStartTime, setTestStartTime] = useState<string | null>(null)
+  const [testEndTime, setTestEndTime] = useState<string | null>(null)
   const dispatch = useAppDispatch()
   const {
     output,
@@ -134,6 +137,8 @@ export default function PromptPlaygroundPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setTestStartTime(new Date().toISOString())
+    setTestEndTime(null)
     const formData = new FormData(event.currentTarget)
     const prompt = formData.get('prompt') as string
     const model = selectedModel
@@ -158,6 +163,7 @@ export default function PromptPlaygroundPage() {
       const text = result.candidates[0].content.parts[0].text
       dispatch(PromptPlaygroundActions.setOutput(text))
     }
+    setTestEndTime(new Date().toISOString())
   }
 
   return (
@@ -200,12 +206,17 @@ export default function PromptPlaygroundPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="original-output"
-              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-              Output
-            </label>
+            <div className="flex justify-between items-center">
+              <label
+                htmlFor="original-output"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Output
+              </label>
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                {getSpanDurationString(span.start_time, span.end_time)}
+              </div>
+            </div>
             <div className="mt-1">
               <textarea
                 id="original-output"
@@ -252,9 +263,17 @@ export default function PromptPlaygroundPage() {
               </div>
             </div>
             <div className="mb-4">
-              <label htmlFor="output" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Output
-              </label>
+              <div className="flex justify-between items-center">
+                <label
+                  htmlFor="output"
+                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Output
+                </label>
+                <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                  {testStartTime && testEndTime ? getSpanDurationString(testStartTime, testEndTime) : ''}
+                </div>
+              </div>
               <div className="mt-1">
                 <textarea
                   id="output"
