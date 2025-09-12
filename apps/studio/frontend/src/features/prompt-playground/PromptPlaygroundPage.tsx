@@ -148,53 +148,107 @@ export default function PromptPlaygroundPage() {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Prompt Playground</h1>
-        <div className="text-sm text-zinc-500">
-          <div className="flex items-center gap-2">
-            <span>{provider} / </span>
-            <ModelSelector originalModel={originalModel} />
+        <h1 className="text-2xl font-semibold dark:text-white">Prompt Playground</h1>
+      </div>
+
+      <div className="flex gap-8">
+        {/* Left Column: Original */}
+        <div className="w-1/2">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold mb-2 dark:text-white">Original</h2>
+            <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+              {provider} / {modelName}
+            </div>
           </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="original-prompt"
+              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            >
+              Prompt
+            </label>
+            <div className="mt-1">
+              <textarea
+                id="original-prompt"
+                rows={15}
+                className="p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-zinc-300 rounded-md resize-y bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
+                value={inputValue}
+                readOnly
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="original-output"
+              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            >
+              Output
+            </label>
+            <div className="mt-1">
+              <textarea
+                id="original-output"
+                rows={15}
+                className="p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-zinc-300 rounded-md resize-y bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
+                value={outputValue}
+                readOnly
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Playground */}
+        <div className="w-1/2">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold dark:text-white">Test</h2>
+            <div className="text-sm text-zinc-500 dark:text-zinc-400">
+              <div className="flex items-center gap-2">
+                <ModelSelector originalModel={originalModel} />
+              </div>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label htmlFor="prompt" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Prompt
+              </label>
+              <div className="mt-1">
+                <textarea
+                  id="prompt"
+                  name="prompt"
+                  rows={15}
+                  className="p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-zinc-300 rounded-md resize-y dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300"
+                  defaultValue={inputValue}
+                />
+              </div>
+            </div>
+            <div className="mb-4">
+              <label htmlFor="output" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Output
+              </label>
+              <div className="mt-1">
+                <textarea
+                  id="output"
+                  name="output"
+                  rows={15}
+                  className="p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-zinc-300 rounded-md resize-y dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300"
+                  value={output || ''}
+                  readOnly
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+              disabled={outputLoading}
+            >
+              {outputLoading ? 'Loading...' : 'Generate'}
+            </button>
+            {outputError && <div className="text-red-500 mt-2">Error generating content</div>}
+          </form>
         </div>
       </div>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label htmlFor="prompt" className="block text-sm font-medium text-zinc-700">
-            Prompt
-          </label>
-          <div className="mt-1">
-            <textarea
-              id="prompt"
-              name="prompt"
-              rows={10}
-              className="p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-zinc-300 rounded-md resize-y"
-              defaultValue={inputValue}
-            />
-          </div>
-        </div>
-        <div className="mb-4">
-          <label htmlFor="output" className="block text-sm font-medium text-zinc-700">
-            Output
-          </label>
-          <div className="mt-1">
-            <textarea
-              id="output"
-              name="output"
-              rows={10}
-              className="p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-zinc-300 rounded-md resize-y"
-              value={output || outputValue}
-              readOnly
-            />
-          </div>
-        </div>
-        <button
-          type="submit"
-          className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 text-white hover:bg-zinc-800"
-          disabled={outputLoading}
-        >
-          {outputLoading ? 'Loading...' : 'Submit'}
-        </button>
-        {outputError && <div className="text-red-500 mt-2">Error generating content</div>}
-      </form>
     </div>
   )
 }
