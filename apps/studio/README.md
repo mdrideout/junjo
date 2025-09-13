@@ -14,6 +14,19 @@ Complex, mission critical AI workflows are made transparent and understandable w
 
 _Junjo Server Frontend Screenshot_
 
+
+## Architecture Overview
+
+The Junjo Server backend is composed of two primary services:
+
+1.  **`junjo-server-backend`**: The main application server. It's an Echo-based Go application responsible for the HTTP API, user authentication, and all business logic. It uses SQLite for primary data and DuckDB for analytical queries on telemetry data.
+
+2.  **`ingestion-service`**: A lightweight, high-throughput Go service responsible for ingesting OpenTelemetry (OTel) data. It exposes a gRPC endpoint to receive OTel spans and immediately writes them to a BadgerDB instance, which acts as a durable Write-Ahead Log (WAL). This decouples the data ingestion from the main backend, ensuring resilience and scalability.
+
+The `backend` service will, in a future version, read from the `ingestion-service`'s WAL to index telemetry data into DuckDB.
+
+---
+
 ## Turn-Key Example Repository
 
 **Junjo Server Deployment Example [https://github.com/mdrideout/junjo-server-deployment-example](https://github.com/mdrideout/junjo-server-deployment-example)**.
@@ -40,6 +53,26 @@ Junjo Server is built and deployed to **Docker Hub** whenever a new release is p
 
 - **Backend**: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
 - **Frontend**: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
+
+## Database Access
+
+#### Badger DB
+
+You can install the badger CLI tool to read the database for testing purposes.
+
+```bash
+go install github.com/dgraph-io/badger/v4/badger@latest
+```
+
+Inspect the data with the following command:
+
+```bash
+# Read the database (requires app connection to be closed)
+badger stream --dir ./.dbdata/badgerdb
+
+# Clean + Read (use if there is an issue reading from improper database flushing / shutdown)
+badger stream --dir ./.dbdata/badgerdb --read_only=false
+```
 
 ### Environment Configuration
 

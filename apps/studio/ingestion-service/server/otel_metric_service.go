@@ -1,0 +1,24 @@
+package server
+
+import (
+	"context"
+	"log"
+
+	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+)
+
+type OtelMetricService struct {
+	colmetricpb.UnimplementedMetricsServiceServer
+}
+
+// NewOtelMetricService creates a new metrics service.
+func NewOtelMetricService() *OtelMetricService {
+	return &OtelMetricService{}
+}
+
+func (s *OtelMetricService) Export(ctx context.Context, req *colmetricpb.ExportMetricsServiceRequest) (*colmetricpb.ExportMetricsServiceResponse, error) {
+	// For now, we just log that we received metrics.
+	// In the future, these could also be written to the WAL.
+	log.Printf("Received %d resource metrics", len(req.ResourceMetrics))
+	return &colmetricpb.ExportMetricsServiceResponse{}, nil
+}

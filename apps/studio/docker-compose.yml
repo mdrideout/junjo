@@ -11,7 +11,6 @@ services:
       - ./.dbdata/duckdb:/dbdata/duckdb # DuckDB storage
     ports:
       - "1323:1323" # Echo API server port
-      - "50051:50051" # gRPC telemetry server port
     networks:
       - junjo-network
     env_file:
@@ -22,6 +21,22 @@ services:
       timeout: 3s
       retries: 25
       start_period: 5s
+
+  ingestion-service:
+    container_name: ingestion-service
+    restart: unless-stopped
+    build:
+      context: ./ingestion-service
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      - ./ingestion-service:/app
+      - ./.dbdata/badgerdb:/dbdata/badgerdb # BadgerDB storage
+    ports:
+      - "50051:50051" # gRPC telemetry server port
+    networks:
+      - junjo-network
+    env_file:
+      - .env
 
   junjo-server-frontend:
     container_name: junjo-server-frontend
