@@ -1,9 +1,7 @@
-import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { useAppDispatch } from '../../../root-store/hooks'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import { JunjoSpanType, OtelSpan } from '../../otel/schemas/schemas'
 import { SpanIconConstructor } from './determine-span-icon'
-import { Link } from 'react-router'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import { spanNameConstructor } from './span-name-constructor'
 
@@ -26,11 +24,6 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   const hasExceptions = span.events_json.some((event) => {
     return event.attributes && event.attributes['exception.type'] !== undefined
   })
-
-  // Create Jaeger Deep Link to the span
-  const traceId = span.trace_id
-  const spanId = span.span_id
-  const jaegerDeepLink = `${window.location.protocol}//${window.location.hostname}/jaeger/trace/${traceId}?uiFind=${spanId}`
 
   // Create the name
   const name = spanNameConstructor(span)
@@ -55,16 +48,10 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 >
                   {name}
                 </button>
-                <Link to={jaegerDeepLink} target={'_blank'} title={'Open in Jaeger'}>
-                  <MagnifyingGlassIcon className={'size-4 cursor-pointer'} />
-                </Link>
               </div>
             ) : (
               <div className={'flex gap-x-2 items-center'}>
                 <span>{name}</span>
-                <Link to={jaegerDeepLink} target={'_blank'} title={'Open in Jaeger'}>
-                  <MagnifyingGlassIcon className={'size-4 cursor-pointer'} />
-                </Link>
               </div>
             )}
 

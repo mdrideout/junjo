@@ -13,7 +13,7 @@ services:
       - "1323:1323" # Echo API server port
       - "50051:50051" # gRPC telemetry server port
     networks:
-      - caddy-proxy-network
+      - junjo-network
     env_file:
       - .env
     healthcheck:
@@ -36,56 +36,16 @@ services:
       # Development ports (Vite)
       - "5151:5151" # Vite server
       - "5152:5151" # Vite hmr (map hmr port to host port)
-      - "5153:80" # Production port to Nginx mapping
+      - "5153:80" # Production port to web server mapping
     env_file:
       - .env
     depends_on:
       junjo-server-backend:
         condition: service_healthy # Wait for junjo-server-backend to be healthy before starting junjo-server-frontend
 
-  junjo-jaeger:
-    image: jaegertracing/jaeger:2.3.0
-    container_name: junjo-jaeger
-    volumes:
-      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
-      - jaeger_badger_store:/data/jaeger/badger/jaeger
-      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
-    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
-    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
-    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
-    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
-    command: --config /jaeger/config.yml
-    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
-    networks:
-      - caddy-proxy-network
-
-  junjo-caddy:
-    build:
-      context: ./caddy
-    container_name: junjo-caddy
-    restart: unless-stopped
-    env_file:
-      - .env
-    ports:
-      - "80:80" # For HTTP -> HTTPS redirect (optional in dev)
-      - "443:443" # For HTTPS
-      - "443:443/udp" # For HTTP/3
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
-      - caddy_data:/data # Persist Caddy data (certificates)
-    networks:
-      - caddy-proxy-network
-    depends_on:
-      - junjo-server-backend
-      - junjo-server-frontend
-      - junjo-jaeger
-
 volumes:
   frontend-modules: # Dev only: Named volume for node_modules
-  jaeger_badger_store: # Jaeger data
-  jaeger_badger_store_archive: # Jaeger archive
-  caddy_data: # Persistent caddy data (certificates, configuration)
 
 networks:
-  caddy-proxy-network:
-    external: true # Server shared network
+  junjo-network:
+    driver: bridge

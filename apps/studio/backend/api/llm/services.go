@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 const geminiAPIBaseURL = "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -20,7 +21,10 @@ func NewGeminiService() *GeminiService {
 
 // GenerateContent sends a request to the Gemini API to generate content.
 func (s *GeminiService) GenerateContent(requestBody GeminiRequest) ([]byte, error) {
-	apiKey := ""
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("GEMINI_API_KEY environment variable is not set")
+	}
 
 	// Construct the full API URL with the model from the request
 	apiURL := fmt.Sprintf("%s%s:generateContent", geminiAPIBaseURL, requestBody.Model)

@@ -22,14 +22,10 @@ _Junjo Server Frontend Screenshot_
 
 **Components:** This repository is orchestrated with [Docker Compose](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/docker-compose.yml). 
 
-- Caddy reverse proxy and SSL management
 - Session cookie authentication
 - Junjo Server pre-build images:
   - Docker hub junjo-server-backend: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
   - Docker hub junjo-server-frontend: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
-- A Jaeger instance
-  - Depends on the Caddy reverse proxy to provide an authentication layer
-- A sample Junjo Python Library Application
 - Local development and production environment variable configurability
 
 The [README.md](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/README.md) will walk you through the deployment process on a Digital Ocean Droplet virtual machine (or any VM provider of your choice). You can use this as the basis for your own deployment of Junjo Server.
@@ -62,8 +58,6 @@ The `JUNJO_SERVER_API_KEY` can be created in the Junjo Server frontend interface
 Below if a brief example of using the Junjo Server pre-built images from Docker Hub.
 
 For a more complete example, checkout the [Junjo Server Deployment Example Repository](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/docker-compose.yml).
-
-This example yaml file provides a complete, self-contained setup including the backend, frontend, Jaeger for tracing, and Caddy as a reverse proxy to provide an authentication layer for Jaeger.
 
 ```yaml
 services:
@@ -103,48 +97,6 @@ services:
       junjo-server-backend:
         condition: service_healthy
 
-  junjo-jaeger:
-    image: jaegertracing/jaeger:2.3.0
-    container_name: junjo-jaeger
-    volumes:
-      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
-      - jaeger_badger_store:/data/jaeger/badger/jaeger
-      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
-    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
-    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
-    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
-    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
-    command: --config /jaeger/config.yml
-    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
-    networks:
-      - junjo-network
-
-  caddy:
-    build:
-      context: ./caddy
-    container_name: junjo-caddy
-    restart: unless-stopped
-    env_file:
-      - .env
-    ports:
-      - "80:80" # For HTTP -> HTTPS redirect
-      - "443:443" # For HTTPS
-      - "443:443/udp" # For HTTP/3
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile # Mount your Caddyfile
-      - caddy_data:/data # Persist Caddy data (certificates)
-    networks:
-      - junjo-network
-    depends_on:
-      - junjo-server-backend
-      - junjo-server-frontend
-      - junjo-jaeger
-
-volumes:
-  jaeger_badger_store:
-  jaeger_badger_store_archive:
-  caddy_data: # Persistent caddy data (certificates, configuration)
-
 networks:
   junjo-network:
     driver: bridge
@@ -161,18 +113,6 @@ Docker is required for local development so your developer experience mirrors ho
 
 - **hot reloading** is supported in both the *frontend* and *backend*. 
 
-### Caddy Server
-- Caddy is utilized as a reverse proxy to facilitate authentication guarded access to the Jaeger instance.
-- It makes use of [xcaddy](https://github.com/caddyserver/xcaddy) to build a custom Caddy image with the `forward_auth` plugin
-
-### Jaeger
-
-- Jaeger is a light weight opentelemetry tracing platform.
-- Junjo automatically relays all traces to Jaeger, keeping Junjo focused on Workflow oriented traces.
-- Jaeger is included in this stack to capture all Otel traces for testing and demonstration purposes.
-- Junjo traces can be "inspected" to see more trace details in the Jaeger UI.
-- [ ] **TODO: _Jaeger will be a configurable option in the future, and not included by default._**
-
 #### Docker Commands
 
 Docker compose can be used to launch the frontend and backend together, with hot reloading for local development.
@@ -183,7 +123,7 @@ Docker compose can be used to launch the frontend and backend together, with hot
 
 ```bash
 # Create the network (if it does not already exist)
-$ docker network create caddy-proxy-network
+$ docker network create junjo-network
 
 # Start the frontend and backend
 $ docker compose up --build
@@ -196,8 +136,6 @@ $ docker compose down -v
 
 - Frontend: https://localhost:5151
 - Backend API: https://localhost:1323/
-- Jaeger UI: https://localhost/jaeger 
-  - This is routed through Caddy reverse proxy forward_auth for authentication via the Backend API's cookie header validation
 
 #### Troubleshooting
 

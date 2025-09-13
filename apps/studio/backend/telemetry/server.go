@@ -42,13 +42,8 @@ func NewGRPCServer(dbConn *sql.DB) (*grpc.Server, net.Listener, error) { // Retu
 		return nil, nil, fmt.Errorf("failed to listen: %v", err)
 	}
 
-	// --- Initialize Jaeger Forwarder ---
-	// Hardcode the internal Docker Compose service name and default OTLP gRPC port
-	jaegerEndpoint := "junjo-jaeger:4317"
-	jaegerFwd := NewJaegerForwarder(jaegerEndpoint) // jaegerFwd is local scope now
-
-	// --- Initialize OTLP Services, passing the forwarder ---
-	otelTraceSvc := NewOtelTraceService(jaegerFwd)
+	// --- Initialize OTLP Services ---
+	otelTraceSvc := NewOtelTraceService()
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(ApiKeyAuthInterceptor),

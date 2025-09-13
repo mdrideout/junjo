@@ -14,24 +14,17 @@ type otelTraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
 	mu            sync.Mutex // Protect shared data
 	receivedSpans []*tracepb.Span
-
-	// Jaeger Forwarder
-	forwarder *JaegerForwarder // Optional, if you want to forward to Jaeger
 }
 
 // NewOtelTraceService creates a new trace service.
-// It accepts an optional JaegerForwarder for sending data onwards.
-func NewOtelTraceService(jf *JaegerForwarder) *otelTraceService {
+func NewOtelTraceService() *otelTraceService {
 	fmt.Println("Initializing OtelTraceService...")
 	s := &otelTraceService{
 		receivedSpans: make([]*tracepb.Span, 0),
-		forwarder:     jf, // Store the provided forwarder (can be nil)
 	}
-	if jf != nil {
-		fmt.Println("OtelTraceService configured WITH Jaeger forwarding.")
-	} else {
-		fmt.Println("OtelTraceService configured WITHOUT Jaeger forwarding.")
-	}
+
+	fmt.Println("OtelTraceService configured.")
+
 	return s
 }
 
@@ -57,15 +50,6 @@ func (s *otelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 			}
 		}
 	}
-
-	// --- Forwarding via JaegerForwarder ---
-	if s.forwarder != nil {
-		// Delegate forwarding to the JaegerForwarder instance
-		// Use context.Background() for the goroutine to detach it from the incoming request's context
-		// if forwarding can take time or you don't want incoming request cancellation to stop it.
-		go s.forwarder.ForwardTraces(context.Background(), req)
-	}
-	// --- End of Forwarding ---
 
 	// Return a response to the client
 	return &coltracepb.ExportTraceServiceResponse{}, nil
