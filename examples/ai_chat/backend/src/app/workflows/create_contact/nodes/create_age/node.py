@@ -18,7 +18,7 @@ class SelectAgeNode(Node[CreateContactStore]):
         min_age, max_age = 18, 65
 
         # use Beta(α,β) for skew
-        alpha, beta = 1.5, 10.0
+        alpha, beta = 1.7, 9.0
         fraction = random.betavariate(alpha, beta)
         age = int(min_age + (max_age - min_age) * fraction)
 
