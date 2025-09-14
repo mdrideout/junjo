@@ -30,4 +30,7 @@ message ReadSpansResponse {
 
   // The raw, serialized protobuf bytes of the OTel span.
   bytes span_bytes = 2;
+
+  // The raw, serialized protobuf bytes of the OTel resource.
+  bytes resource_bytes = 3;
 }

@@ -26,6 +26,8 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
+	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -102,10 +104,33 @@ func main() {
 				}
 
 				if len(processedSpans) > 0 {
-					// TODO: The service name should be retrieved from the resource spans,
-					// but the current ingestion service only provides the span.
-					// This needs to be addressed in the ingestion service.
-					serviceName := "NO_SERVICE_NAME"
+					// Extract the service name from the first span's resource
+					// All spans in a batch should have the same service name
+					var serviceName string
+					if len(spans) > 0 {
+						// Unmarshal the resource bytes
+						var resource resourcepb.Resource
+						if err := proto.Unmarshal(spans[0].ResourceBytes, &resource); err != nil {
+							log.Printf("Error unmarshaling resource: %v", err)
+							serviceName = "NO_SERVICE_NAME"
+						} else {
+							// Extract service name from resource attributes
+							for _, attr := range resource.Attributes {
+								if attr.Key == "service.name" {
+									if stringValue, ok := attr.Value.Value.(*commonpb.AnyValue_StringValue); ok {
+										serviceName = stringValue.StringValue
+										break
+									}
+								}
+							}
+							if serviceName == "" {
+								serviceName = "NO_SERVICE_NAME"
+							}
+						}
+					} else {
+						serviceName = "NO_SERVICE_NAME"
+					}
+
 					if err := telemetry.BatchProcessSpans(context.Background(), serviceName, processedSpans); err != nil {
 						log.Printf("Error processing spans batch: %v", err)
 					} else {

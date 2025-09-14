@@ -24,6 +24,7 @@ func NewOtelTraceService(store *storage.Storage) *OtelTraceService {
 
 func (s *OtelTraceService) Export(ctx context.Context, req *coltracepb.ExportTraceServiceRequest) (*coltracepb.ExportTraceServiceResponse, error) {
 	for _, resourceSpans := range req.ResourceSpans {
+		resource := resourceSpans.Resource
 		for _, scopeSpans := range resourceSpans.ScopeSpans {
 			for _, span := range scopeSpans.Spans {
 				traceID := hex.EncodeToString(span.TraceId)
@@ -31,7 +32,7 @@ func (s *OtelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 				log.Printf("Received Span ID: %s, Trace ID: %s, Name: %s", spanID, traceID, span.Name)
 
 				// Write the span to the WAL
-				if err := s.store.WriteSpan(span); err != nil {
+				if err := s.store.WriteSpan(span, resource); err != nil {
 					log.Printf("Error writing span to WAL: %v", err)
 					// Decide on error handling: continue, or return an error to the client?
 					// For a WAL, we generally want to be resilient, so we'll log and continue.

@@ -10,6 +10,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// SpanWithResource holds a span and its associated resource.
+type SpanWithResource struct {
+	KeyUlid       []byte
+	SpanBytes     []byte
+	ResourceBytes []byte
+}
+
 // Client provides a client for the internal ingestion service.
 type Client struct {
 	conn   *grpc.ClientConn
@@ -39,7 +46,7 @@ func (c *Client) Close() {
 }
 
 // ReadSpans reads a batch of spans from the ingestion service.
-func (c *Client) ReadSpans(ctx context.Context, startKey []byte, batchSize uint32) ([]*pb.ReadSpansResponse, error) {
+func (c *Client) ReadSpans(ctx context.Context, startKey []byte, batchSize uint32) ([]*SpanWithResource, error) {
 	req := &pb.ReadSpansRequest{
 		StartKeyUlid: startKey,
 		BatchSize:    batchSize,
@@ -50,7 +57,7 @@ func (c *Client) ReadSpans(ctx context.Context, startKey []byte, batchSize uint3
 		return nil, err
 	}
 
-	var spans []*pb.ReadSpansResponse
+	var spans []*SpanWithResource
 	for {
 		res, err := stream.Recv()
 		if err == io.EOF {
@@ -59,7 +66,11 @@ func (c *Client) ReadSpans(ctx context.Context, startKey []byte, batchSize uint3
 		if err != nil {
 			return nil, err
 		}
-		spans = append(spans, res)
+		spans = append(spans, &SpanWithResource{
+			KeyUlid:       res.KeyUlid,
+			SpanBytes:     res.SpanBytes,
+			ResourceBytes: res.ResourceBytes,
+		})
 	}
 
 	return spans, nil

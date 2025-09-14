@@ -8,6 +8,7 @@ import (
 
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/oklog/ulid/v2"
+	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -69,11 +70,17 @@ func (s *Storage) Sync() error {
 	return s.db.Sync()
 }
 
-// WriteSpan serializes a protobuf span and writes it to BadgerDB.
+// WriteSpan serializes a SpanData struct and writes it to BadgerDB.
 // The key is a monotonic ULID to ensure chronological order and prevent collisions.
-func (s *Storage) WriteSpan(span *tracepb.Span) error {
-	// Serialize the span to a byte slice
-	spanBytes, err := proto.Marshal(span)
+func (s *Storage) WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) error {
+	// Create a SpanData struct
+	spanData := &SpanData{
+		Span:     span,
+		Resource: resource,
+	}
+
+	// Serialize the SpanData to a byte slice
+	dataBytes, err := MarshalSpanData(spanData)
 	if err != nil {
 		return err
 	}
@@ -87,13 +94,13 @@ func (s *Storage) WriteSpan(span *tracepb.Span) error {
 	// Perform the write within a transaction
 	return s.db.Update(func(txn *badger.Txn) error {
 		// The key is the binary representation of the ULID.
-		return txn.Set(key[:], spanBytes)
+		return txn.Set(key[:], dataBytes)
 	})
 }
 
 // ReadSpans iterates through the database and sends key-value pairs to the provided channel.
 // It uses prefetching to optimize for sequential reads.
-func (s *Storage) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, value []byte) error) error {
+func (s *Storage) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, spanBytes, resourceBytes []byte) error) error {
 	return s.db.View(func(txn *badger.Txn) error {
 		// Enable prefetching for faster iteration. The default prefetch size is 100.
 		opts := badger.DefaultIteratorOptions
@@ -124,8 +131,34 @@ func (s *Storage) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key
 				return err
 			}
 
-			// The sendFunc sends the key-value pair to the client stream.
-			if err := sendFunc(key, val); err != nil {
+			// Unmarshal the value to SpanData
+			spanData, err := UnmarshalSpanData(val)
+			if err != nil {
+				log.Printf("Error unmarshaling span data: %v", err)
+				// Skip corrupted data
+				count++
+				it.Next()
+				continue
+			}
+
+			// Marshal the span and resource back to bytes for sending
+			spanBytes, err := proto.Marshal(spanData.Span)
+			if err != nil {
+				log.Printf("Error marshaling span: %v", err)
+				count++
+				it.Next()
+				continue
+			}
+			resourceBytes, err := proto.Marshal(spanData.Resource)
+			if err != nil {
+				log.Printf("Error marshaling resource: %v", err)
+				count++
+				it.Next()
+				continue
+			}
+
+			// The sendFunc sends the key and the span/resource bytes to the client stream.
+			if err := sendFunc(key, spanBytes, resourceBytes); err != nil {
 				return err // Propagate error from the send function (e.g., client disconnected)
 			}
 

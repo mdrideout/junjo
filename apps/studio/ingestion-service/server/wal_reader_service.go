@@ -23,10 +23,11 @@ func (s *WALReaderService) ReadSpans(req *pb.ReadSpansRequest, stream pb.Interna
 	log.Printf("Received ReadSpans request. StartKey: %x, BatchSize: %d", req.StartKeyUlid, req.BatchSize)
 
 	var spansStreamed int32
-	sendFunc := func(key, value []byte) error {
+	sendFunc := func(key, spanBytes, resourceBytes []byte) error {
 		res := &pb.ReadSpansResponse{
-			KeyUlid:   key,
-			SpanBytes: value,
+			KeyUlid:       key,
+			SpanBytes:     spanBytes,
+			ResourceBytes: resourceBytes,
 		}
 		spansStreamed++
 		return stream.Send(res)
