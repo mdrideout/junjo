@@ -6,6 +6,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.8.0
 	github.com/oklog/ulid/v2 v2.1.1
 	go.opentelemetry.io/proto/otlp v1.8.0
+	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.8
 )
 
@@ -27,5 +28,4 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
-	google.golang.org/grpc v1.75.0 // indirect
 )

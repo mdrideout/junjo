@@ -90,3 +90,48 @@ func (s *Storage) WriteSpan(span *tracepb.Span) error {
 		return txn.Set(key[:], spanBytes)
 	})
 }
+
+// ReadSpans iterates through the database and sends key-value pairs to the provided channel.
+// It uses prefetching to optimize for sequential reads.
+func (s *Storage) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, value []byte) error) error {
+	return s.db.View(func(txn *badger.Txn) error {
+		// Enable prefetching for faster iteration. The default prefetch size is 100.
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = true
+
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		// If startKey is nil, we start from the beginning. Otherwise, we seek to the key *after* the provided one.
+		// This prevents re-reading the last processed span.
+		if len(startKey) == 0 {
+			it.Rewind()
+		} else {
+			// To seek to the *next* key, we append a zero byte to the startKey.
+			// This works because keys are sorted lexicographically.
+			it.Seek(append(startKey, 0))
+		}
+
+		var count uint32
+		for it.Valid() && count < batchSize {
+			item := it.Item()
+			key := item.Key()
+
+			// ValueCopy is used here because we need to send the value over the stream.
+			// The callback-based Value() is more for cases where the value might be discarded.
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+
+			// The sendFunc sends the key-value pair to the client stream.
+			if err := sendFunc(key, val); err != nil {
+				return err // Propagate error from the send function (e.g., client disconnected)
+			}
+
+			count++
+			it.Next()
+		}
+		return nil
+	})
+}

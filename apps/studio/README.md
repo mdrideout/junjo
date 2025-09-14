@@ -23,7 +23,7 @@ The Junjo Server backend is composed of two primary services:
 
 2.  **`ingestion-service`**: A lightweight, high-throughput Go service responsible for ingesting OpenTelemetry (OTel) data. It exposes a gRPC endpoint to receive OTel spans and immediately writes them to a BadgerDB instance, which acts as a durable Write-Ahead Log (WAL). This decouples the data ingestion from the main backend, ensuring resilience and scalability.
 
-The `backend` service will, in a future version, read from the `ingestion-service`'s WAL to index telemetry data into DuckDB.
+The `backend` service polls the `ingestion-service`'s internal gRPC API to read batches of spans from the WAL, which it then indexes into DuckDB.
 
 ---
 

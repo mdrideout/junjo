@@ -33,10 +33,17 @@ services:
       - ./.dbdata/badgerdb:/dbdata/badgerdb # BadgerDB storage
     ports:
       - "50051:50051" # gRPC telemetry server port
+      - "50052:50052" # Internal gRPC server port
     networks:
       - junjo-network
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   junjo-server-frontend:
     container_name: junjo-server-frontend
@@ -57,6 +64,8 @@ services:
     depends_on:
       junjo-server-backend:
         condition: service_healthy # Wait for junjo-server-backend to be healthy before starting junjo-server-frontend
+      ingestion-service:
+        condition: service_healthy
 
 volumes:
   frontend-modules: # Dev only: Named volume for node_modules

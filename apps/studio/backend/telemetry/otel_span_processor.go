@@ -144,13 +144,9 @@ func convertEventsToJson(events []*tracepb.Span_Event) (string, error) {
 	return string(jsonBytes), nil
 }
 
-// ProcessSpan processes a single OpenTelemetry span (protobuf).
-func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) error {
-	db := db_duckdb.DB
-	if db == nil {
-		return fmt.Errorf("database connection is nil")
-	}
-
+// processSpan processes a single OpenTelemetry span and prepares it for insertion.
+// It is designed to be called within a transaction.
+func processSpan(tx *sql.Tx, ctx context.Context, service_name string, span *tracepb.Span) error {
 	// 1. Encode IDs CORRECTLY
 	traceID := hex.EncodeToString(span.TraceId)
 	spanID := hex.EncodeToString(span.SpanId)
@@ -234,7 +230,7 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 
 	// Insert into `spans`
 	spanInsertQuery := `
-		INSERT INTO spans (
+		INSERT OR IGNORE INTO spans (
 			trace_id, span_id, parent_span_id, service_name, name, kind, start_time, end_time,
 			status_code, status_message, attributes_json, events_json, links_json,
 			trace_flags, trace_state, junjo_id, junjo_parent_id, junjo_span_type,
@@ -248,7 +244,7 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 	// 	junjoInitialState, junjoFinalState,
 	// })
 
-	_, err = db.ExecContext(ctx, spanInsertQuery,
+	_, err = tx.ExecContext(ctx, spanInsertQuery,
 		traceID, spanID, parentSpanID, service_name, span.Name, kindStr, startTime, endTime,
 		statusCode, statusMessage, attributesJSON, eventsJSON, "[]",
 		span.Flags, traceState, junjoID, junjoParentID, junjoSpanType,
@@ -260,7 +256,7 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 
 	// Insert State Patches
 	patchInsertQuery := `
-		INSERT INTO state_patches (patch_id, service_name, trace_id, span_id, workflow_id, node_id, event_time, patch_json, patch_store_id)
+		INSERT OR IGNORE INTO state_patches (patch_id, service_name, trace_id, span_id, workflow_id, node_id, event_time, patch_json, patch_store_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 	for _, event := range span.Events {
@@ -271,11 +267,38 @@ func ProcessSpan(ctx context.Context, service_name string, span *tracepb.Span) e
 			patchID := uuid.NewString()
 			workflowID := workflowID
 			nodeID := nodeID
-			_, err = db.ExecContext(ctx, patchInsertQuery, patchID, service_name, traceID, spanID, workflowID, nodeID, eventTime, patchJSON, patchStoreID)
+			_, err = tx.ExecContext(ctx, patchInsertQuery, patchID, service_name, traceID, spanID, workflowID, nodeID, eventTime, patchJSON, patchStoreID)
 			if err != nil {
 				log.Printf("Error inserting patch: %v", err)
 			}
 		}
+	}
+
+	return nil
+}
+
+// BatchProcessSpans processes a batch of OpenTelemetry spans in a single transaction.
+func BatchProcessSpans(ctx context.Context, serviceName string, spans []*tracepb.Span) error {
+	db := db_duckdb.DB
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() // Rollback on error
+
+	for _, span := range spans {
+		if err := processSpan(tx, ctx, serviceName, span); err != nil {
+			// The error is already logged in processSpan, so we just need to rollback
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

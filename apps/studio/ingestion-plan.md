@@ -32,10 +32,10 @@ graph TD
 The project will be executed in the following phases. The scope of this project is limited to building the ingestion writer. The internal read API is a future enhancement.
 
 - [x] **Phase 1: Project Scaffolding & Configuration**
-- [-] **Phase 2: Implement Ingestion Logic with BadgerDB**
-- [ ] **Phase 3: Transplant and Refactor gRPC Server**
-- [ ] **Phase 4: Decouple from Main Backend**
-- [ ] **Phase 5: Documentation & Final Review**
+- [x] **Phase 2: Implement Ingestion Logic with BadgerDB**
+- [x] **Phase 3: Transplant and Refactor gRPC Server**
+- [x] **Phase 4: Decouple from Main Backend**
+- [x] **Phase 5: Documentation & Final Review**
 
 ## 3. Detailed Phase Breakdown
 

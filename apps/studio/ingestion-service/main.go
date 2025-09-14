@@ -40,17 +40,29 @@ func main() {
 
 	log.Println("Storage initialized successfully.")
 
-	// --- gRPC Server Setup ---
-	grpcServer, lis, err := server.NewGRPCServer(store)
+	// --- Public gRPC Server Setup ---
+	publicGRPCServer, publicLis, err := server.NewGRPCServer(store)
 	if err != nil {
-		log.Fatalf("Failed to create gRPC server: %v", err)
+		log.Fatalf("Failed to create public gRPC server: %v", err)
 	}
 
-	// Start the server in a goroutine so it doesn't block.
 	go func() {
-		log.Printf("gRPC server listening at %v", lis.Addr())
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve gRPC: %v", err)
+		log.Printf("Public gRPC server listening at %v", publicLis.Addr())
+		if err := publicGRPCServer.Serve(publicLis); err != nil {
+			log.Fatalf("Failed to serve public gRPC: %v", err)
+		}
+	}()
+
+	// --- Internal gRPC Server Setup ---
+	internalGRPCServer, internalLis, err := server.NewInternalGRPCServer(store)
+	if err != nil {
+		log.Fatalf("Failed to create internal gRPC server: %v", err)
+	}
+
+	go func() {
+		log.Printf("Internal gRPC server listening at %v", internalLis.Addr())
+		if err := internalGRPCServer.Serve(internalLis); err != nil {
+			log.Fatalf("Failed to serve internal gRPC: %v", err)
 		}
 	}()
 
@@ -59,9 +71,10 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit // Block until a signal is received.
 
-	log.Println("Shutting down gRPC server...")
-	grpcServer.GracefulStop()
-	log.Println("gRPC server stopped.")
+	log.Println("Shutting down gRPC servers...")
+	publicGRPCServer.GracefulStop()
+	internalGRPCServer.GracefulStop()
+	log.Println("gRPC servers stopped.")
 
 	log.Println("Attempting to sync database to disk...")
 	if err := store.Sync(); err != nil {
