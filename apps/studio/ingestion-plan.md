@@ -64,7 +64,7 @@ The project will be executed in the following phases. The scope of this project 
     -   Initialize the BadgerDB connection via the `storage` package.
     -   Start the gRPC server with the OTel services.
     -   It will *not* have any connection to DuckDB.
-4.  **API Key Validation**: The `otel_api_key_interceptor.go` will be moved and will continue to connect to the main application's SQLite database to validate API keys, ensuring ingestion remains secure.
+4.  **JWT-Based Authentication**: The old API key validation has been replaced with a JWT-based interceptor. The `ingestion-service` now validates JWTs issued by the main backend, ensuring secure and modern authentication for all incoming OTel data. The API key is used to issue the JWT.
 
 ### Phase 4: Decouple from Main Backend
 
@@ -106,8 +106,77 @@ The main `backend` service is a **client** of the `ingestion-service`'s internal
 
 This pull-based mechanism effectively decouples the high-throughput ingestion from the more resource-intensive and potentially slower indexing process, creating a resilient and scalable system.
 
-# Future: Authentication
-Implement a JWT-based authentication system where the Junjo client exchanges for a JWT with  the backend, and uses that JWT to authenticate with the ingestion service.
+# Authentication
+
+Authentication has been upgraded from a static API key to a dynamic JWT-based flow. This enhances security by using short-lived, signed tokens instead of long-lived static keys. The backend acts as the identity provider, issuing JWTs to clients in exchange for a valid API key.
+
+**Architecture Diagram:**
+
+```mermaid
+sequenceDiagram
+    participant Client as Junjo Client (OTel SDK)
+    participant Backend as Junjo Backend
+    participant Ingestion as Ingestion Service
+
+    Client->>Backend: 1. Request JWT with API Key
+    activate Backend
+    Backend-->>Client: 2. Return Signed JWT
+    deactivate Backend
+
+    loop Span Export
+        Client->>Ingestion: 3. Export Spans (with JWT in metadata)
+        activate Ingestion
+        Ingestion->>Ingestion: 4. Validate JWT Signature & Claims
+        Ingestion-->>Client: 5. Acknowledge Spans
+        deactivate Ingestion
+    end
+```
+
+### Detailed Authentication Flow
+
+1.  **Token Exchange**:
+    *   On initialization, the Junjo client library will use the `JUNJO_SERVER_API_KEY` to make a REST API call to a new endpoint on the backend, e.g., `/api/v1/auth/token`.
+    *   The backend validates the API key. If it's valid, it generates a signed JWT with a reasonable expiration time (e.g., 1 hour).
+    *   The backend returns the JWT to the client.
+
+2.  **Span Export with JWT**:
+    *   The client library configures its OTel gRPC exporter to add the JWT to the metadata of every outgoing request to the ingestion service.
+    *   The standard practice is to use the `Authorization` header with the `Bearer` scheme: `Authorization: Bearer <jwt>`.
+
+3.  **Token Validation**:
+    *   The ingestion service will have a gRPC interceptor that inspects the metadata of incoming requests for the JWT.
+    *   It will validate the JWT's signature using a public key shared with the backend.
+    *   It will also check the token's claims, such as `exp` (expiration) and `iss` (issuer), to ensure it's valid.
+    *   If the token is invalid, the request is rejected with an `Unauthenticated` error.
+
+4.  **Token Refresh**:
+    *   The client library will be responsible for managing the JWT's lifecycle.
+    *   Before the token expires, the library will automatically perform the token exchange again to get a new JWT. This process should be seamless and not interrupt the exporting of spans.
+
+### Component Responsibilities
+
+*   **Junjo Client Library (`init_otel`)**:
+    *   Implement a "Token Provider" that handles the JWT exchange and refresh logic.
+    *   Modify the `JunjoServerOtelExporter` to use a gRPC interceptor that injects the token into the request headers.
+    *   Handle errors gracefully, e.g., if the backend is unavailable for a token refresh, it should retry with an exponential backoff strategy.
+
+*   **Junjo Backend**:
+    *   **Done:** A new endpoint `/api/v1/otel/token` has been created to exchange a valid API key for a JWT.
+    *   **Done:** Logic to validate API keys and issue signed JWTs has been implemented.
+    *   **Done:** The private key for signing is managed securely.
+    *   **Done:** A JWKS (JSON Web Key Set) endpoint at `/.well-known/jwks.json` has been implemented to publish the public key for JWT validation. This allows for dynamic key rotation.
+
+*   **Ingestion Service**:
+    *   **Done:** A unary gRPC interceptor (`JWTInterceptor`) has been added to the server.
+    *   **Done:** The interceptor successfully extracts and validates JWTs from the `Authorization` header in the request metadata.
+    *   **Done:** The service fetches the public key from the backend's JWKS endpoint to verify token signatures. It also implements a reactive refetching mechanism to handle key rotation seamlessly.
+    *   **Done:** The old API key interceptor has been removed.
+
+### Reliability & Security Considerations
+
+*   **Token Expiration**: Short-lived tokens enhance security. The client's ability to refresh them automatically ensures reliability.
+*   **Key Management**: Using a JWKS endpoint for public key distribution is the most secure and flexible approach. It allows for automated key rotation.
+*   **Backend Unavailability**: If the backend is down, clients with valid, unexpired JWTs can continue to send data to the ingestion service. New clients or those with expired tokens will be blocked until the backend recovers. The client library's retry logic is crucial here.
 
 # Future: Badger Size Management
 Implement a mechanism to request deletion of indexed data, or deletion of data older than a certain timestamp.

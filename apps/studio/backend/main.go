@@ -16,6 +16,7 @@ import (
 	"junjo-server/db_duckdb"
 	"junjo-server/db_gen"
 	"junjo-server/ingestion_client"
+	"junjo-server/jwks"
 	m "junjo-server/middleware"
 	"junjo-server/telemetry"
 	u "junjo-server/utils"
@@ -63,6 +64,9 @@ func main() {
 		log.Fatalf("Failed to create ingestion client: %v", err)
 	}
 	defer ingestionClient.Close()
+
+	// Initialize JWKS
+	jwks.Init()
 
 	// Start a background goroutine to poll for spans
 	go func() {
@@ -227,6 +231,9 @@ func main() {
 	auth.InitRoutes(e)
 	api.InitRoutes(e)
 	api_keys.InitRoutes(e)
+
+	// JWKS endpoint
+	e.GET("/.well-known/jwks.json", jwks.HandleJWKSRequest)
 
 	// Ping route
 	e.GET("/ping", func(c echo.Context) error {

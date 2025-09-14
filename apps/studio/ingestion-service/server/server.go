@@ -36,8 +36,9 @@ func NewGRPCServer(store *storage.Storage) (*grpc.Server, net.Listener, error) {
 	otelLogsSvc := NewOtelLogsService()
 	otelMetricSvc := NewOtelMetricService()
 
-	// TODO: Add back the API Key interceptor
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(JWTInterceptor()),
+	)
 
 	// Register OTLP services
 	coltracepb.RegisterTraceServiceServer(grpcServer, otelTraceSvc)
