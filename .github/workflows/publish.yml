@@ -23,6 +23,12 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install protobuf compiler
+        run: pip install grpcio-tools
+
+      - name: Generate protobuf files
+        run: make proto
+
       - name: Build package
         run: |
           pip install build

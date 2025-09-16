@@ -1,8 +1,12 @@
-
+import backoff
+import grpc
+from loguru import logger
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from .junjo_server.proto_gen import auth_pb2, auth_pb2_grpc
 
 
 class JunjoServerOtelExporter:
@@ -41,12 +45,18 @@ class JunjoServerOtelExporter:
         self._port = port
         self._api_key = api_key
         self._insecure = insecure
+        self._token = None
+
+        # Authenticate with Junjo Server
+        self._authenticate()
 
         # Set the endpoint for the Junjo Server
         self._endpoint = f"{self._host}:{self._port}"
 
         # Define headers
-        exporter_headers = {"x-api-key": self._api_key}
+        exporter_headers = (
+            ("authorization", f"Bearer {self._token}"),
+        )
 
         # Set OTLP Span Exporter for Junjo Server
         oltp_exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers)
@@ -56,6 +66,20 @@ class JunjoServerOtelExporter:
         self._metric_reader = PeriodicExportingMetricReader(
             OTLPMetricExporter(endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers)
         )
+
+    @backoff.on_exception(backoff.expo, grpc.RpcError, max_tries=5)
+    def _authenticate(self):
+        """
+        Authenticate with the Junjo Server and get a JWT.
+        """
+        logger.info("Authenticating with Junjo Server...")
+        channel = grpc.insecure_channel(f"{self._host}:{self._port}")
+        stub = auth_pb2_grpc.AuthServiceStub(channel)
+        request = auth_pb2.GetTokenRequest(api_key=self._api_key)
+        response = stub.GetToken(request)
+        self._token = response.jwt
+        logger.info("Successfully authenticated with Junjo Server.")
+        logger.debug(f"Received JWT: {self._token}")
 
     @property
     def span_processor(self):
