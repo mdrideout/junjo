@@ -7,9 +7,10 @@ import (
 )
 
 // CreateAPIKey inserts a new API key into the database.
-func CreateAPIKey(ctx context.Context, key string, name string) (db_gen.ApiKey, error) {
+func CreateAPIKey(ctx context.Context, id string, key string, name string) (db_gen.ApiKey, error) {
 	queries := db_gen.New(db.DB)
 	apiKey, err := queries.CreateAPIKey(ctx, db_gen.CreateAPIKeyParams{
+		ID:   id,
 		Key:  key,
 		Name: name,
 	})

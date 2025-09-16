@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"sync"
+	"time"
 )
 
 // JWK represents a JSON Web Key.
@@ -41,22 +43,33 @@ func Init() {
 		keySet = &KeySet{
 			keys: make(map[string]*rsa.PublicKey),
 		}
-		// Perform an initial fetch.
-		if err := keySet.fetchKeys(); err != nil {
-			// In a real application, you might want to handle this more gracefully.
-			// For now, we'll just log the error.
-			fmt.Printf("Initial JWKS fetch failed: %v\n", err)
-		}
+		// We don't block startup on this fetch. Instead, we retry in the background.
+		go func() {
+			for {
+				err := keySet.fetchKeys()
+				if err == nil {
+					slog.Info("Initial JWKS fetch succeeded")
+					return // Exit goroutine on success
+				}
+				slog.Error("Initial JWKS fetch failed, retrying in 5 seconds...", "error", err)
+				time.Sleep(5 * time.Second)
+			}
+		}()
 	})
 }
 
 // fetchKeys fetches the JWKS from the backend and replaces the existing KeySet.
 func (ks *KeySet) fetchKeys() error {
+	slog.Info("Attempting to fetch JWKS from backend...")
 	resp, err := http.Get("http://junjo-server-backend:1323/.well-known/jwks.json")
 	if err != nil {
 		return fmt.Errorf("error fetching JWKS: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch JWKS: received status code %d", resp.StatusCode)
+	}
 
 	var jwks JWKS
 	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
@@ -68,13 +81,13 @@ func (ks *KeySet) fetchKeys() error {
 		n, err := base64.RawURLEncoding.DecodeString(key.N)
 		if err != nil {
 			// Log the error but continue processing other keys.
-			fmt.Printf("Error decoding N for key %s: %v\n", key.Kid, err)
+			slog.Error("Error decoding N for key", "kid", key.Kid, "error", err)
 			continue
 		}
 		e, err := base64.RawURLEncoding.DecodeString(key.E)
 		if err != nil {
 			// Log the error but continue processing other keys.
-			fmt.Printf("Error decoding E for key %s: %v\n", key.Kid, err)
+			slog.Error("Error decoding E for key", "kid", key.Kid, "error", err)
 			continue
 		}
 		newKeys[key.Kid] = &rsa.PublicKey{
@@ -114,12 +127,14 @@ func GetKey(kid string) (*rsa.PublicKey, error) {
 
 	// If the key is still not found, refetch the JWKS.
 	if err := keySet.fetchKeys(); err != nil {
+		slog.Error("Error refetching JWKS", "error", err)
 		return nil, fmt.Errorf("error refetching JWKS: %w", err)
 	}
 
 	// After refetching, check for the key one last time.
 	key, ok = keySet.keys[kid]
 	if !ok {
+		slog.Error("Key not found after JWKS refetch", "kid", kid)
 		return nil, fmt.Errorf("key not found after refetch")
 	}
 

@@ -1,101 +1,72 @@
+// File: db_init.go
+
 package db
 
 import (
 	"context"
 	"database/sql"
-	_ "embed"
+	"embed" // Import the 'embed' package to include migration files in the binary
 	"fmt"
 	"log"
 
+	"github.com/pressly/goose/v3" // Import the Goose library
 	_ "modernc.org/sqlite"
 )
 
-// embed the schema files
+// The //go:embed directive tells the Go compiler to embed the contents of the
+// 'migrations' directory into the 'embedMigrations' variable.
+//
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
-//go:embed users/schema.sql
-var usersSchema string
-
-//go:embed api_keys/schema.sql
-var apiKeysSchema string
-
-//go:embed state/schema.sql
-var stateSchema string
-
-// Database
+// Global database connection variable.
 var DB *sql.DB
 
-// Connect initializes the database connection
+// Connect initializes the database connection and runs all pending migrations.
 func Connect() {
 	ctx := context.Background()
 	dbPath := "/dbdata/sqlite/app_data.db"
 
-	// Open the database connection
+	// Open the database connection using the sqlite driver.
 	var err error
 	DB, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 
-	// Verify the connection
-	err = DB.Ping()
-	if err != nil {
+	if err = DB.Ping(); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-
 	fmt.Println("Successfully connected to the SQLite database!")
 
-	// Enable WAL (Write-Ahead Logging) mode for better concurrency and performance.
-	// WAL provides better concurrency and crash recovery.
+	// --- Goose Migration Logic ---
+	// Tell Goose to use the embedded files as the source for migrations.
+	goose.SetBaseFS(embedMigrations)
+
+	// Set the database dialect for Goose.
+	if err := goose.SetDialect("sqlite"); err != nil {
+		log.Fatalf("Failed to set goose dialect: %v", err)
+	}
+
+	// Run all 'up' migrations. Goose keeps track of which migrations have
+	// already been applied and only runs the new ones.
+	if err := goose.Up(DB, "migrations"); err != nil {
+		log.Fatalf("Failed to run goose migrations: %v", err)
+	}
+	log.Println("Database migrations applied successfully!")
+
+	// --- Performance & Safety PRAGMAs ---
 	_, err = DB.ExecContext(ctx, "PRAGMA journal_mode=WAL")
 	if err != nil {
 		log.Fatalf("Failed to set WAL mode: %v", err)
 	}
-
-	// Set synchronous to NORMAL. This improves performance by reducing the fsync calls.
-	// It offers a balance between speed and data safety.
-	// In NORMAL mode, fsync operations happen less frequently.
 	_, err = DB.ExecContext(ctx, "PRAGMA synchronous = NORMAL")
 	if err != nil {
 		log.Fatalf("Failed to set synchronous mode: %v", err)
 	}
-
-	// Initialize tables
-	if err := initializeTables(ctx); err != nil {
-		log.Fatalf("Failed to initialize tables: %v", err)
-	}
 }
 
-// initializeTables creates tables if they don't exist
-func initializeTables(ctx context.Context) error {
-	tables := map[string]string{
-		"users":        usersSchema,
-		"api_keys":     apiKeysSchema,
-		"poller_state": stateSchema,
-	}
-
-	for tableName, schema := range tables {
-		// Check if table exists
-		var exists string
-		err := DB.QueryRowContext(ctx,
-			"SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
-			tableName).Scan(&exists)
-
-		if err != nil && err != sql.ErrNoRows {
-			return fmt.Errorf("failed to check if table %s exists: %v", tableName, err)
-		}
-
-		// Create table if it doesn't exist
-		if exists == "" {
-			if _, err := DB.ExecContext(ctx, schema); err != nil {
-				return fmt.Errorf("failed to create table %s: %v", tableName, err)
-			}
-			fmt.Printf("Created table: %s\n", tableName)
-		}
-	}
-	return nil
-}
-
-// Close closes the database connection
+// Close safely closes the database connection.
 func Close() {
 	if DB != nil {
 		DB.Close()

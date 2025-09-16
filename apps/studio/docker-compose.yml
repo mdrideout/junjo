@@ -10,7 +10,8 @@ services:
       - ./.dbdata/sqlite:/dbdata/sqlite # SQLite storage
       - ./.dbdata/duckdb:/dbdata/duckdb # DuckDB storage
     ports:
-      - "1323:1323" # Echo API server port
+      - "1323:1323" # Public API server port for Junjo UX
+      - "50053:50053" # Internal gRPC server port
     networks:
       - junjo-network
     env_file:
@@ -32,7 +33,7 @@ services:
       - ./ingestion-service:/app
       - ./.dbdata/badgerdb:/dbdata/badgerdb # BadgerDB storage
     ports:
-      - "50051:50051" # gRPC telemetry server port
+      - "50051:50051" # Public gRPC telemetry server port for Junjo SDK Otel Exporter
       - "50052:50052" # Internal gRPC server port
     networks:
       - junjo-network

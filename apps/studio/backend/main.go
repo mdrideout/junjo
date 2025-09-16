@@ -10,6 +10,7 @@ import (
 
 	"context"
 	"junjo-server/api"
+	"junjo-server/api/otel_token"
 	"junjo-server/api_keys"
 	"junjo-server/auth"
 	"junjo-server/db"
@@ -18,8 +19,10 @@ import (
 	"junjo-server/ingestion_client"
 	"junjo-server/jwks"
 	m "junjo-server/middleware"
+	pb "junjo-server/proto_gen"
 	"junjo-server/telemetry"
 	u "junjo-server/utils"
+	"net"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -30,6 +33,7 @@ import (
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -239,6 +243,24 @@ func main() {
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
 	})
+
+	// --- Internal gRPC Server Setup ---
+	go func() {
+		internalGrpcAddr := ":50053"
+		lis, err := net.Listen("tcp", internalGrpcAddr)
+		if err != nil {
+			log.Fatalf("Failed to listen for internal gRPC: %v", err)
+		}
+
+		grpcServer := grpc.NewServer()
+		internalAuthSvc := otel_token.NewInternalAuthService()
+		pb.RegisterInternalAuthServiceServer(grpcServer, internalAuthSvc)
+
+		log.Printf("Internal gRPC server listening at %v", lis.Addr())
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve internal gRPC: %v", err)
+		}
+	}()
 
 	// Start the server
 	e.Logger.Fatal(e.Start(serverHostPort))

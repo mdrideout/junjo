@@ -10,12 +10,38 @@ This is the backend GO application running in a docker container of the junjo-se
 
 ## Code Generation
 
+### Database Migrations & Code Generation
+
+This project uses [Goose](https://github.com/pressly/goose) for database migrations and [sqlc](https://sqlc.dev/) to compile type-safe Go code from SQL queries.
+
+The database schema is defined through migration files in `db/migrations/`. When you make changes to these migrations, you should regenerate the Go code to keep it in sync:
+
+```bash
+# Regenerate Go database code from migrations (from ./backend)
+$ make db-regenerate
+```
+
+This command will:
+1. Apply all migrations to a temporary in-memory database
+2. Dump the resulting schema to `db/schema.sql`
+3. Generate Go code from the updated schema using sqlc
+
+If you need to create a new migration file:
+
+```bash
+# Create a new migration file (from ./backend)
+$ make db-new-migration name=your_migration_name
+```
+
 ### sqlc
 
-This project uses [sqlc](https://sqlc.dev/) to compile type-safe code from SQL.
+You can also run sqlc generation independently:
 
 ```bash
 # Generate GO code from SQL (from ./backend)
+$ make sqlc-generate
+
+# or directly with sqlc
 $ sqlc generate
 ```
 

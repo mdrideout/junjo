@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"junjo-server/ingestion-service/backend_client"
+	"junjo-server/ingestion-service/jwks"
 	"junjo-server/ingestion-service/server"
 	"junjo-server/ingestion-service/storage"
 )
@@ -40,8 +42,25 @@ func main() {
 
 	log.Println("Storage initialized successfully.")
 
-	// --- Public gRPC Server Setup ---
-	publicGRPCServer, publicLis, err := server.NewGRPCServer(store)
+	// Initialize JWKS
+	jwks.Init()
+
+	// --- Dependency Injection Setup ---
+	// The main function acts as the injector, creating and wiring together the
+	// components of the application.
+
+	// 1. Create the AuthClient: This client is responsible for communicating with
+	//    the backend's internal authentication service.
+	authClient, err := backend_client.NewAuthClient()
+	if err != nil {
+		log.Fatalf("Failed to create backend auth client: %v", err)
+	}
+	defer authClient.Close()
+
+	// 2. Create the Public gRPC Server: This server handles all incoming public
+	//    requests. It is injected with the components it depends on, such as the
+	//    storage layer and the AuthClient (which is passed to the AuthService).
+	publicGRPCServer, publicLis, err := server.NewGRPCServer(store, authClient)
 	if err != nil {
 		log.Fatalf("Failed to create public gRPC server: %v", err)
 	}

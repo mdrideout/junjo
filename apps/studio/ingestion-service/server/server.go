@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	"junjo-server/ingestion-service/backend_client"
 	"junjo-server/ingestion-service/storage"
 
 	"google.golang.org/grpc"
@@ -21,7 +22,7 @@ import (
 )
 
 // NewGRPCServer creates and configures the gRPC server for the ingestion service.
-func NewGRPCServer(store *storage.Storage) (*grpc.Server, net.Listener, error) {
+func NewGRPCServer(store *storage.Storage, authClient *backend_client.AuthClient) (*grpc.Server, net.Listener, error) {
 	listenAddr := ":50051"
 	if port := os.Getenv("GRPC_PORT"); port != "" {
 		listenAddr = ":" + port
@@ -31,19 +32,21 @@ func NewGRPCServer(store *storage.Storage) (*grpc.Server, net.Listener, error) {
 		return nil, nil, fmt.Errorf("failed to listen: %v", err)
 	}
 
-	// --- Initialize OTLP Services ---
+	// --- Initialize Services ---
 	otelTraceSvc := NewOtelTraceService(store)
 	otelLogsSvc := NewOtelLogsService()
 	otelMetricSvc := NewOtelMetricService()
+	authSvc := NewAuthService(authClient)
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(JWTInterceptor()),
 	)
 
-	// Register OTLP services
+	// Register services
 	coltracepb.RegisterTraceServiceServer(grpcServer, otelTraceSvc)
 	colmetricpb.RegisterMetricsServiceServer(grpcServer, otelMetricSvc)
 	collogspb.RegisterLogsServiceServer(grpcServer, otelLogsSvc)
+	pb.RegisterAuthServiceServer(grpcServer, authSvc)
 
 	reflection.Register(grpcServer)
 
