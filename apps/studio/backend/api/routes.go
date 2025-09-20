@@ -3,7 +3,6 @@ package api
 import (
 	"junjo-server/api/llm"
 	otel "junjo-server/api/otel"
-	"junjo-server/api/otel_token"
 
 	"github.com/labstack/echo/v4"
 )
@@ -17,5 +16,4 @@ func InitRoutes(e *echo.Echo) {
 	e.GET("/otel/trace/:traceId/span/:spanId", otel.GetSpan)
 
 	llm.RegisterRoutes(e)
-	otel_token.InitRoutes(e)
 }

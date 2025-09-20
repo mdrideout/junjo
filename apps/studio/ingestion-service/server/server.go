@@ -36,17 +36,15 @@ func NewGRPCServer(store *storage.Storage, authClient *backend_client.AuthClient
 	otelTraceSvc := NewOtelTraceService(store)
 	otelLogsSvc := NewOtelLogsService()
 	otelMetricSvc := NewOtelMetricService()
-	authSvc := NewAuthService(authClient)
 
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(JWTInterceptor()),
+		grpc.UnaryInterceptor(ApiKeyAuthInterceptor(authClient)),
 	)
 
 	// Register services
 	coltracepb.RegisterTraceServiceServer(grpcServer, otelTraceSvc)
 	colmetricpb.RegisterMetricsServiceServer(grpcServer, otelMetricSvc)
 	collogspb.RegisterLogsServiceServer(grpcServer, otelLogsSvc)
-	pb.RegisterAuthServiceServer(grpcServer, authSvc)
 
 	reflection.Register(grpcServer)
 

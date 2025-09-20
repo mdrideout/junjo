@@ -10,14 +10,13 @@ import (
 
 	"context"
 	"junjo-server/api"
-	"junjo-server/api/otel_token"
+	"junjo-server/api/internal_auth"
 	"junjo-server/api_keys"
 	"junjo-server/auth"
 	"junjo-server/db"
 	"junjo-server/db_duckdb"
 	"junjo-server/db_gen"
 	"junjo-server/ingestion_client"
-	"junjo-server/jwks"
 	m "junjo-server/middleware"
 	pb "junjo-server/proto_gen"
 	"junjo-server/telemetry"
@@ -69,12 +68,9 @@ func main() {
 	}
 	defer ingestionClient.Close()
 
-	// Initialize JWKS
-	jwks.Init()
-
 	// Start a background goroutine to poll for spans
 	go func() {
-		ticker := time.NewTicker(3 * time.Second) // Poll every 3 seconds
+		ticker := time.NewTicker(5 * time.Second) // Poll every 3 seconds
 		defer ticker.Stop()
 
 		queries := db_gen.New(db.DB)
@@ -236,9 +232,6 @@ func main() {
 	api.InitRoutes(e)
 	api_keys.InitRoutes(e)
 
-	// JWKS endpoint
-	e.GET("/.well-known/jwks.json", jwks.HandleJWKSRequest)
-
 	// Ping route
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
@@ -253,7 +246,7 @@ func main() {
 		}
 
 		grpcServer := grpc.NewServer()
-		internalAuthSvc := otel_token.NewInternalAuthService()
+		internalAuthSvc := internal_auth.NewInternalAuthService()
 		pb.RegisterInternalAuthServiceServer(grpcServer, internalAuthSvc)
 
 		log.Printf("Internal gRPC server listening at %v", lis.Addr())

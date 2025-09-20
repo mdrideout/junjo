@@ -40,24 +40,24 @@ func (c *AuthClient) Close() {
 	}
 }
 
-// ExchangeApiKeyForJwt calls the backend to exchange an API key for a JWT.
-func (c *AuthClient) ExchangeApiKeyForJwt(ctx context.Context, apiKey string) (string, int64, error) {
-	req := &pb.ExchangeApiKeyForJwtRequest{
+// ValidateApiKey calls the backend to validate an API key.
+func (c *AuthClient) ValidateApiKey(ctx context.Context, apiKey string) (bool, error) {
+	req := &pb.ValidateApiKeyRequest{
 		ApiKey: apiKey,
 	}
 
-	var res *pb.ExchangeApiKeyForJwtResponse
+	var res *pb.ValidateApiKeyResponse
 	var err error
 	backoff := 1 * time.Second
 	maxBackoff := 10 * time.Second
 
 	for i := 0; i < 5; i++ { // Retry up to 5 times
-		res, err = c.client.ExchangeApiKeyForJwt(ctx, req)
+		res, err = c.client.ValidateApiKey(ctx, req)
 		if err == nil {
-			return res.Jwt, res.ExpiresAt, nil
+			return res.IsValid, nil
 		}
 
-		log.Printf("Failed to exchange API key, retrying in %v: %v", backoff, err)
+		log.Printf("Failed to validate API key, retrying in %v: %v", backoff, err)
 		time.Sleep(backoff)
 		backoff *= 2
 		if backoff > maxBackoff {
@@ -65,5 +65,5 @@ func (c *AuthClient) ExchangeApiKeyForJwt(ctx context.Context, apiKey string) (s
 		}
 	}
 
-	return "", 0, fmt.Errorf("failed to exchange API key after multiple retries: %w", err)
+	return false, fmt.Errorf("failed to validate API key after multiple retries: %w", err)
 }

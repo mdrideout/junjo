@@ -4,29 +4,6 @@ package ingestion;
 
 option go_package = ".;proto_gen";
 
-// -----------------------------------------------------------------------------
-// Public-Facing Services (on ingestion-service)
-// -----------------------------------------------------------------------------
-
-// AuthService provides a public endpoint for clients to exchange an API key
-// for a short-lived JWT. This is the single point of contact for auth.
-service AuthService {
-  // GetToken exchanges a Junjo API Key for a JWT.
-  rpc GetToken(GetTokenRequest) returns (GetTokenResponse) {}
-}
-
-message GetTokenRequest {
-  // The long-lived API key provided to the user.
-  string api_key = 1;
-}
-
-message GetTokenResponse {
-  // The short-lived JSON Web Token (JWT) to be used for authenticating
-  // OTel data exports.
-  string jwt = 1;
-  // The time at which the token expires, in UTC seconds since the epoch.
-  int64 expires_at = 2;
-}
 
 
 // -----------------------------------------------------------------------------
@@ -34,20 +11,18 @@ message GetTokenResponse {
 // -----------------------------------------------------------------------------
 
 // InternalAuthService provides a private API for the ingestion-service to
-// validate API keys and receive signed JWTs from the backend.
+// validate API keys.
 service InternalAuthService {
-  // ExchangeApiKeyForJwt validates an API key and returns a signed JWT.
-  rpc ExchangeApiKeyForJwt(ExchangeApiKeyForJwtRequest) returns (ExchangeApiKeyForJwtResponse) {}
+  // ValidateApiKey checks if an API key is valid.
+  rpc ValidateApiKey(ValidateApiKeyRequest) returns (ValidateApiKeyResponse) {}
 }
 
-message ExchangeApiKeyForJwtRequest {
+message ValidateApiKeyRequest {
   // The API key to be validated.
   string api_key = 1;
 }
 
-message ExchangeApiKeyForJwtResponse {
-  // The signed JWT.
-  string jwt = 1;
-  // The expiration time of the token.
-  int64 expires_at = 2;
+message ValidateApiKeyResponse {
+  // Whether the API key is valid.
+  bool is_valid = 1;
 }

@@ -19,117 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_GetToken_FullMethodName = "/ingestion.AuthService/GetToken"
-)
-
-// AuthServiceClient is the client API for AuthService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// AuthService provides a public endpoint for clients to exchange an API key
-// for a short-lived JWT. This is the single point of contact for auth.
-type AuthServiceClient interface {
-	// GetToken exchanges a Junjo API Key for a JWT.
-	GetToken(ctx context.Context, in *GetTokenRequest, opts ...grpc.CallOption) (*GetTokenResponse, error)
-}
-
-type authServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
-	return &authServiceClient{cc}
-}
-
-func (c *authServiceClient) GetToken(ctx context.Context, in *GetTokenRequest, opts ...grpc.CallOption) (*GetTokenResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetTokenResponse)
-	err := c.cc.Invoke(ctx, AuthService_GetToken_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// AuthServiceServer is the server API for AuthService service.
-// All implementations must embed UnimplementedAuthServiceServer
-// for forward compatibility.
-//
-// AuthService provides a public endpoint for clients to exchange an API key
-// for a short-lived JWT. This is the single point of contact for auth.
-type AuthServiceServer interface {
-	// GetToken exchanges a Junjo API Key for a JWT.
-	GetToken(context.Context, *GetTokenRequest) (*GetTokenResponse, error)
-	mustEmbedUnimplementedAuthServiceServer()
-}
-
-// UnimplementedAuthServiceServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedAuthServiceServer struct{}
-
-func (UnimplementedAuthServiceServer) GetToken(context.Context, *GetTokenRequest) (*GetTokenResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetToken not implemented")
-}
-func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
-func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
-
-// UnsafeAuthServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AuthServiceServer will
-// result in compilation errors.
-type UnsafeAuthServiceServer interface {
-	mustEmbedUnimplementedAuthServiceServer()
-}
-
-func RegisterAuthServiceServer(s grpc.ServiceRegistrar, srv AuthServiceServer) {
-	// If the following call pancis, it indicates UnimplementedAuthServiceServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&AuthService_ServiceDesc, srv)
-}
-
-func _AuthService_GetToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTokenRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).GetToken(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_GetToken_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).GetToken(ctx, req.(*GetTokenRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var AuthService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "ingestion.AuthService",
-	HandlerType: (*AuthServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "GetToken",
-			Handler:    _AuthService_GetToken_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/auth.proto",
-}
-
-const (
-	InternalAuthService_ExchangeApiKeyForJwt_FullMethodName = "/ingestion.InternalAuthService/ExchangeApiKeyForJwt"
+	InternalAuthService_ValidateApiKey_FullMethodName = "/ingestion.InternalAuthService/ValidateApiKey"
 )
 
 // InternalAuthServiceClient is the client API for InternalAuthService service.
@@ -137,10 +27,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // InternalAuthService provides a private API for the ingestion-service to
-// validate API keys and receive signed JWTs from the backend.
+// validate API keys.
 type InternalAuthServiceClient interface {
-	// ExchangeApiKeyForJwt validates an API key and returns a signed JWT.
-	ExchangeApiKeyForJwt(ctx context.Context, in *ExchangeApiKeyForJwtRequest, opts ...grpc.CallOption) (*ExchangeApiKeyForJwtResponse, error)
+	// ValidateApiKey checks if an API key is valid.
+	ValidateApiKey(ctx context.Context, in *ValidateApiKeyRequest, opts ...grpc.CallOption) (*ValidateApiKeyResponse, error)
 }
 
 type internalAuthServiceClient struct {
@@ -151,10 +41,10 @@ func NewInternalAuthServiceClient(cc grpc.ClientConnInterface) InternalAuthServi
 	return &internalAuthServiceClient{cc}
 }
 
-func (c *internalAuthServiceClient) ExchangeApiKeyForJwt(ctx context.Context, in *ExchangeApiKeyForJwtRequest, opts ...grpc.CallOption) (*ExchangeApiKeyForJwtResponse, error) {
+func (c *internalAuthServiceClient) ValidateApiKey(ctx context.Context, in *ValidateApiKeyRequest, opts ...grpc.CallOption) (*ValidateApiKeyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExchangeApiKeyForJwtResponse)
-	err := c.cc.Invoke(ctx, InternalAuthService_ExchangeApiKeyForJwt_FullMethodName, in, out, cOpts...)
+	out := new(ValidateApiKeyResponse)
+	err := c.cc.Invoke(ctx, InternalAuthService_ValidateApiKey_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,10 +56,10 @@ func (c *internalAuthServiceClient) ExchangeApiKeyForJwt(ctx context.Context, in
 // for forward compatibility.
 //
 // InternalAuthService provides a private API for the ingestion-service to
-// validate API keys and receive signed JWTs from the backend.
+// validate API keys.
 type InternalAuthServiceServer interface {
-	// ExchangeApiKeyForJwt validates an API key and returns a signed JWT.
-	ExchangeApiKeyForJwt(context.Context, *ExchangeApiKeyForJwtRequest) (*ExchangeApiKeyForJwtResponse, error)
+	// ValidateApiKey checks if an API key is valid.
+	ValidateApiKey(context.Context, *ValidateApiKeyRequest) (*ValidateApiKeyResponse, error)
 	mustEmbedUnimplementedInternalAuthServiceServer()
 }
 
@@ -180,8 +70,8 @@ type InternalAuthServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInternalAuthServiceServer struct{}
 
-func (UnimplementedInternalAuthServiceServer) ExchangeApiKeyForJwt(context.Context, *ExchangeApiKeyForJwtRequest) (*ExchangeApiKeyForJwtResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ExchangeApiKeyForJwt not implemented")
+func (UnimplementedInternalAuthServiceServer) ValidateApiKey(context.Context, *ValidateApiKeyRequest) (*ValidateApiKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateApiKey not implemented")
 }
 func (UnimplementedInternalAuthServiceServer) mustEmbedUnimplementedInternalAuthServiceServer() {}
 func (UnimplementedInternalAuthServiceServer) testEmbeddedByValue()                             {}
@@ -204,20 +94,20 @@ func RegisterInternalAuthServiceServer(s grpc.ServiceRegistrar, srv InternalAuth
 	s.RegisterService(&InternalAuthService_ServiceDesc, srv)
 }
 
-func _InternalAuthService_ExchangeApiKeyForJwt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExchangeApiKeyForJwtRequest)
+func _InternalAuthService_ValidateApiKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateApiKeyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalAuthServiceServer).ExchangeApiKeyForJwt(ctx, in)
+		return srv.(InternalAuthServiceServer).ValidateApiKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InternalAuthService_ExchangeApiKeyForJwt_FullMethodName,
+		FullMethod: InternalAuthService_ValidateApiKey_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalAuthServiceServer).ExchangeApiKeyForJwt(ctx, req.(*ExchangeApiKeyForJwtRequest))
+		return srv.(InternalAuthServiceServer).ValidateApiKey(ctx, req.(*ValidateApiKeyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -230,8 +120,8 @@ var InternalAuthService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InternalAuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ExchangeApiKeyForJwt",
-			Handler:    _InternalAuthService_ExchangeApiKeyForJwt_Handler,
+			MethodName: "ValidateApiKey",
+			Handler:    _InternalAuthService_ValidateApiKey_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
