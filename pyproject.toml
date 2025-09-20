@@ -21,7 +21,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "backoff>=2.2.1",
     "grpcio>=1.70.0",
     "jsonpatch>=1.33",
     "nanoid>=2.0.0",
