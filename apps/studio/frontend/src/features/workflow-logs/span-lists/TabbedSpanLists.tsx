@@ -8,7 +8,7 @@ import SpanExceptionsList from '../workflow-detail/SpanExceptionsList'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
 enum TabOptions {
-  NESTED = 'Nested Spans',
+  NESTED = 'Workflow Spans',
   FLAT = 'State Updates',
   EXCEPTIONS = 'Workflow Exceptions',
 }

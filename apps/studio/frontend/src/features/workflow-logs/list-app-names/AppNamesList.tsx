@@ -41,13 +41,13 @@ export default function AppNamesList() {
           <tr key={item} className={'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600'}>
             <td className={'px-4 py-1.5'}>{item}</td>
             <td
-              className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
+              className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer underline'}
               onClick={() => navigate(`${item}`)}
             >
               Workflow Executions
             </td>
             <td
-              className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'}
+              className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer underline'}
               onClick={() => navigate(`/traces/${item}`)}
             >
               Traces
