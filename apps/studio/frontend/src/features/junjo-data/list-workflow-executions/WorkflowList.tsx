@@ -27,6 +27,7 @@ export default function WorkflowsList() {
       <thead>
         <tr>
           <th className={'px-4 py-1'}>Workflow</th>
+          <th className={'px-4 py-1'}>Trace ID</th>
           <th className={'px-4 py-1'}>Span ID</th>
           <th className={'px-4 py-1'}>Start Time</th>
           <th className={'px-4 py-1'}>Nodes</th>

@@ -18,7 +18,7 @@ import TabbedSpanLists from '../span-lists/TabbedSpanLists'
 import WorkflowDetailStateNav from './WorkflowDetailStateNav'
 
 export default function WorkflowDetailPage() {
-  const { serviceName, workflowSpanId } = useParams()
+  const { serviceName, traceId, workflowSpanId } = useParams()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
@@ -39,8 +39,9 @@ export default function WorkflowDetailPage() {
     return <ErrorPage title={'Error'} message={`Error loading workflow span`} />
   }
 
-  if (!workflowSpanId || !serviceName || !span) {
-    return <div>No logs found.</div>
+  // No data rendering
+  if (!serviceName || !traceId || !workflowSpanId || !span) {
+    return <div className={'p-2'}>No logs found.</div>
   }
 
   // Human readable start ingest time
