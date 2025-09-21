@@ -7,19 +7,19 @@ import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowDetailNavButtonsProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtonsProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanId } = props
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
   const prevSpanID = useAppSelector((state: RootState) =>
-    selectPrevWorkflowSpanID(state, { serviceName, spanID: workflowSpanID }),
+    selectPrevWorkflowSpanID(state, { serviceName, spanID: workflowSpanId }),
   )
   const nextSpanID = useAppSelector((state: RootState) =>
-    selectNextWorkflowSpanID(state, { serviceName, spanID: workflowSpanID }),
+    selectNextWorkflowSpanID(state, { serviceName, spanID: workflowSpanId }),
   )
 
   const disablePrev = prevSpanID === undefined

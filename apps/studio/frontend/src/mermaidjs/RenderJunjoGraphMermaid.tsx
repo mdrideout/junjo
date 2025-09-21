@@ -16,11 +16,11 @@ interface RenderJunjoGraphMermaidProps {
   mermaidFlowString: string
   mermaidUniqueId: string
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
-  const { mermaidFlowString, mermaidUniqueId, serviceName, workflowSpanID } = props
+  const { mermaidFlowString, mermaidUniqueId, serviceName, workflowSpanId } = props
   const dispatch = useAppDispatch()
   const svgContainerRef = useRef<HTMLDivElement>(null)
   const [highlightTrigger, setHighlightTrigger] = useState(0) // State to trigger re-render
@@ -42,7 +42,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
   )
 
@@ -50,9 +50,9 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
-    [serviceName, workflowSpanID],
+    [serviceName, workflowSpanId],
   )
 
   // Get all spans for this workflow

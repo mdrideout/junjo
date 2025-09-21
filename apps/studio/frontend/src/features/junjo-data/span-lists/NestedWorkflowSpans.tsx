@@ -17,7 +17,7 @@ import NestedSpanRow from './NestedSpanRow'
 
 interface NestedWorkflowSpansProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 /**
@@ -27,7 +27,7 @@ interface NestedWorkflowSpansProps {
  * @returns
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanId } = props
   const dispatch = useAppDispatch()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
@@ -44,9 +44,9 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
-    [serviceName, workflowSpanID],
+    [serviceName, workflowSpanId],
   )
 
   // 2. Use the memoized props object in useAppSelector
@@ -60,7 +60,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   })
 
   // Filter the spans to only include the top level spans
-  const topLevelSpans = spans.filter((span) => span.parent_span_id === workflowSpanID)
+  const topLevelSpans = spans.filter((span) => span.parent_span_id === workflowSpanId)
 
   // Scroll To Span
   useEffect(() => {

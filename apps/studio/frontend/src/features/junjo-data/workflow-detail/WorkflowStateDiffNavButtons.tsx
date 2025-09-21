@@ -7,20 +7,20 @@ import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowStateEventNavButtonsProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanId } = props
   const dispatch = useAppDispatch()
 
   // Memoize the props object for the selector
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
-    [serviceName, workflowSpanID],
+    [serviceName, workflowSpanId],
   )
   const workflowStateEvents = useAppSelector((state: RootState) =>
     selectAllWorkflowStateEvents(state, selectorProps),
@@ -34,7 +34,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   const span = useAppSelector((state: RootState) =>
     selectStateEventParentSpan(state, {
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
       stateEventId: activeSetStateEvent?.attributes.id,
     }),
   )

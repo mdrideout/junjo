@@ -5,11 +5,11 @@ import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils
 
 interface WorkflowDetailStateNavProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanId } = props
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
@@ -32,7 +32,7 @@ export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProp
       </div>
       <div className={'font-mono flex items-center gap-x-2'}>
         {start_micro}
-        <WorkflowStateEventNavButtons serviceName={serviceName} workflowSpanID={workflowSpanID} />
+        <WorkflowStateEventNavButtons serviceName={serviceName} workflowSpanId={workflowSpanId} />
       </div>
     </div>
   )

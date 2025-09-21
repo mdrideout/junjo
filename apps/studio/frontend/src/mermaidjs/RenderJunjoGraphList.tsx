@@ -6,17 +6,17 @@ import RenderJunjoGraphMermaid from './RenderJunjoGraphMermaid'
 
 interface RenderJunjoGraphListProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
   showEdgeLabels: boolean
 }
 
 export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
-  const { serviceName, workflowSpanID, showEdgeLabels } = props
+  const { serviceName, workflowSpanId, showEdgeLabels } = props
 
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
   )
 
@@ -36,7 +36,7 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
           mermaidFlowString={mermaidFlowString}
           mermaidUniqueId={uniqueMermaidId}
           serviceName={serviceName}
-          workflowSpanID={workflowSpan.span_id}
+          workflowSpanId={workflowSpan.span_id}
         />
       </div>
     )

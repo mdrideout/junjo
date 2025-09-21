@@ -15,7 +15,7 @@ enum TabOptions {
 
 interface TabbedSpanListsProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 /**
@@ -44,15 +44,15 @@ const TabButton = ({
 }
 
 export default function TabbedSpanLists(props: TabbedSpanListsProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanId } = props
   const [activeTab, setActiveTab] = useState<TabOptions>(TabOptions.NESTED)
 
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
-    [serviceName, workflowSpanID],
+    [serviceName, workflowSpanId],
   )
 
   const exceptionSpans = useAppSelector((state: RootState) => selectAllExceptionSpans(state, selectorProps))
@@ -69,10 +69,10 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
       </div>
       <div className={'overflow-y-scroll pr-2.5 border-t border-zinc-200 dark:border-zinc-700'}>
         {activeTab === TabOptions.FLAT && (
-          <FlatStateEventsList serviceName={serviceName} workflowSpanID={workflowSpanID} />
+          <FlatStateEventsList serviceName={serviceName} workflowSpanId={workflowSpanId} />
         )}
         {activeTab === TabOptions.NESTED && (
-          <NestedWorkflowSpans serviceName={serviceName} workflowSpanID={workflowSpanID} />
+          <NestedWorkflowSpans serviceName={serviceName} workflowSpanId={workflowSpanId} />
         )}
         {activeTab === TabOptions.EXCEPTIONS && <SpanExceptionsList spans={exceptionSpans} />}
       </div>

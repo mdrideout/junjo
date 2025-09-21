@@ -55,7 +55,7 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/logs/:serviceName/:workflowSpanID"
+                  path="/workflows/:serviceName/:traceId/:workflowSpanId"
                   element={
                     <AuthGuard>
                       <WorkflowDetailPage />

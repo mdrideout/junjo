@@ -9,11 +9,11 @@ import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 
 interface FlatStateEventsListProps {
   serviceName: string
-  workflowSpanID: string
+  workflowSpanId: string
 }
 
 export default function FlatStateEventsList(props: FlatStateEventsListProps) {
-  const { serviceName, workflowSpanID } = props
+  const { serviceName, workflowSpanId } = props
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
 
@@ -21,9 +21,9 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
   const selectorProps = useMemo(
     () => ({
       serviceName,
-      spanID: workflowSpanID,
+      spanID: workflowSpanId,
     }),
-    [serviceName, workflowSpanID],
+    [serviceName, workflowSpanId],
   )
 
   const events = useAppSelector((state: RootState) => selectAllWorkflowStateEvents(state, selectorProps))

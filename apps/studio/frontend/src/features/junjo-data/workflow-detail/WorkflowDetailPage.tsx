@@ -18,13 +18,13 @@ import TabbedSpanLists from '../span-lists/TabbedSpanLists'
 import WorkflowDetailStateNav from './WorkflowDetailStateNav'
 
 export default function WorkflowDetailPage() {
-  const { serviceName, workflowSpanID } = useParams()
+  const { serviceName, workflowSpanId } = useParams()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
   const loading = useAppSelector(selectWorkflowExecutionsLoading)
   const error = useAppSelector(selectWorkflowExecutionsError)
-  const span = useAppSelector((state: RootState) => selectWorkflowSpan(state, { spanID: workflowSpanID }))
+  const span = useAppSelector((state: RootState) => selectWorkflowSpan(state, { spanID: workflowSpanId }))
 
   // Fetch the data if the workflow span ID is not found
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function WorkflowDetailPage() {
     return <ErrorPage title={'Error'} message={`Error loading workflow span`} />
   }
 
-  if (!workflowSpanID || !serviceName || !span) {
+  if (!workflowSpanId || !serviceName || !span) {
     return <div>No logs found.</div>
   }
 
@@ -66,14 +66,14 @@ export default function WorkflowDetailPage() {
             </Link>
             <div>&rarr;</div>
             <div>
-              {span.name} <span className={'text-xs font-normal'}>({workflowSpanID})</span>
+              {span.name} <span className={'text-xs font-normal'}>({workflowSpanId})</span>
             </div>
           </div>
           <div className={'text-zinc-400 text-xs'}>
             {readableStart} &mdash; {durationString}
           </div>
         </div>
-        <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanID={workflowSpanID} />
+        <WorkflowDetailNavButtons serviceName={serviceName} workflowSpanId={workflowSpanId} />
       </div>
 
       <hr className={'my-4'} />
@@ -96,16 +96,16 @@ export default function WorkflowDetailPage() {
         </div>
         <RenderJunjoGraphList
           serviceName={serviceName}
-          workflowSpanID={workflowSpanID}
+          workflowSpanId={workflowSpanId}
           showEdgeLabels={mermaidEdgeLabels}
         />
       </div>
       <div className={'pt-2 px-2 pb-2'}>
-        <WorkflowDetailStateNav serviceName={serviceName} workflowSpanID={workflowSpanID} />
+        <WorkflowDetailStateNav serviceName={serviceName} workflowSpanId={workflowSpanId} />
       </div>
 
       <div className={'grow w-full flex gap-x-4 justify-between overflow-hidden'}>
-        <TabbedSpanLists serviceName={serviceName} workflowSpanID={workflowSpanID} />
+        <TabbedSpanLists serviceName={serviceName} workflowSpanId={workflowSpanId} />
         <WorkflowDetailStateDiff defaultWorkflowSpan={span} />
       </div>
     </div>
