@@ -26,6 +26,9 @@ export const otelSlice = createSlice({
     handleSetActiveSpan: (_state, _action: PayloadAction<OtelSpan>) => {
       // Handled by listener middleware
     },
+    handleSetActiveSetStateEvent: (_state, _action: PayloadAction<JunjoSetStateEvent>) => {
+      // Handled by listener middleware
+    },
     setActiveSpan: (state, action: PayloadAction<OtelSpan | null>) => {
       state.activeSpan = action.payload
     },

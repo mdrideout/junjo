@@ -1,31 +1,21 @@
-import { useParams } from 'react-router'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import {
-  selectServiceWorkflows,
-  selectWorkflowsError,
-  selectWorkflowsLoading,
-} from '../../otel/store/selectors'
-import { RootState } from '../../../root-store/store'
 import { useEffect } from 'react'
-import { OtelStateActions } from '../../otel/store/slice'
+import { WorkflowExecutionsStateActions } from './store/slice'
 import WorkflowListRow from './WorkflowListItem'
 
 export default function WorkflowsList() {
-  const { serviceName } = useParams<{ serviceName: string }>()
   const dispatch = useAppDispatch()
 
-  const loading = useAppSelector(selectWorkflowsLoading)
-  const error = useAppSelector(selectWorkflowsError)
-  const workflowSpans = useAppSelector((state: RootState) => selectServiceWorkflows(state, { serviceName }))
+  const loading = useAppSelector((state) => state.workflowExecutionsState.loading)
+  const error = useAppSelector((state) => state.workflowExecutionsState.error)
+  const workflowSpans = useAppSelector((state) => state.workflowExecutionsState.workflowExecutions)
 
-  // Fetch the serviceNames
   useEffect(() => {
-    console.log('Fetching workflows data...')
-    dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
-  }, [])
+    dispatch(WorkflowExecutionsStateActions.fetchWorkflowExecutions())
+  }, [dispatch])
 
   if (loading) {
-    return null
+    return <div>Loading...</div>
   }
 
   if (error) {

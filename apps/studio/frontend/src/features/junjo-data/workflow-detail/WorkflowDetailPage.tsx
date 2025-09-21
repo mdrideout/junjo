@@ -2,9 +2,13 @@ import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { selectWorkflowsError, selectWorkflowsLoading, selectWorkflowSpan } from '../../otel/store/selectors'
+import {
+  selectWorkflowExecutionsError,
+  selectWorkflowExecutionsLoading,
+  selectWorkflowSpan,
+} from './store/selectors'
 import { RootState } from '../../../root-store/store'
-import { OtelStateActions } from '../../otel/store/slice'
+import { WorkflowExecutionsStateActions } from '../list-workflow-executions/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
@@ -18,18 +22,16 @@ export default function WorkflowDetailPage() {
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
-  const loading = useAppSelector(selectWorkflowsLoading)
-  const error = useAppSelector(selectWorkflowsError)
-  const span = useAppSelector((state: RootState) =>
-    selectWorkflowSpan(state, { serviceName, spanID: workflowSpanID }),
-  )
+  const loading = useAppSelector(selectWorkflowExecutionsLoading)
+  const error = useAppSelector(selectWorkflowExecutionsError)
+  const span = useAppSelector((state: RootState) => selectWorkflowSpan(state, { spanID: workflowSpanID }))
 
   // Fetch the data if the workflow span ID is not found
   useEffect(() => {
     if (!span) {
-      dispatch(OtelStateActions.fetchWorkflowsData({ serviceName }))
+      dispatch(WorkflowExecutionsStateActions.fetchWorkflowExecutions())
     }
-  }, [serviceName, workflowSpanID, span])
+  }, [dispatch, span])
 
   if (loading) return null
 

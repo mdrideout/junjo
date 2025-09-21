@@ -2,7 +2,7 @@ import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons'
 import { useNavigate } from 'react-router'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectNextWorkflowSpanID, selectPrevWorkflowSpanID } from '../../otel/store/selectors'
+import { selectNextWorkflowSpanID, selectPrevWorkflowSpanID } from './store/selectors'
 import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowDetailNavButtonsProps {

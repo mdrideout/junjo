@@ -4,9 +4,13 @@ import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 
 import { RootState } from '../root-store/store'
-import { identifyWorkflowChain, selectAllSpanChildSpans } from '../features/otel/store/selectors'
+import {
+  identifyWorkflowChain,
+  selectAllSpanChildSpans,
+  selectFirstJunjoParentSpan,
+} from '../features/otel/store/selectors'
 import { JunjoSpanType } from '../features/otel/schemas/schemas'
-import { WorkflowDetailStateActions } from '../features/workflow-logs/workflow-detail/store/slice'
+import { WorkflowDetailStateActions } from '../features/junjo-data/workflow-detail/store/slice'
 
 interface RenderJunjoGraphMermaidProps {
   mermaidFlowString: string
@@ -29,6 +33,12 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
   // SELECTORS
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const firstJunjoSpan = useAppSelector((state: RootState) =>
+    selectFirstJunjoParentSpan(state, {
+      serviceName,
+      spanID: activeSpan?.span_id,
+    }),
+  )
   const workflowChain = useAppSelector((state: RootState) =>
     identifyWorkflowChain(state, {
       serviceName,
@@ -187,8 +197,9 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     }
   }, [mermaidFlowString, mermaidUniqueId])
 
-  // --- Effect for Active Node Highlighting ---
-  // This effect runs when the activeSpan changes or the container ref is available
+  // --- Effect for Junjo Node Highlighting ---
+  // This effect runs when the firstJunjoSpan changes or the container ref is available
+  // This will highlight the first found JunjoSpan based on the activeSpan
   useEffect(() => {
     // Ensure the container ref is available
     if (!svgContainerRef.current) {
@@ -204,9 +215,9 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     }
 
     // --- Add active class to the new active node ---
-    if (activeSpan) {
+    if (firstJunjoSpan) {
       // Construct the base ID prefix we expect
-      const baseTargetId = `flowchart-${activeSpan.junjo_id}`
+      const baseTargetId = `flowchart-${firstJunjoSpan.junjo_id}`
 
       // Use querySelector with an attribute "starts with" selector [id^=...]
       // Query within the specific svgContainerRef.current for better scoping

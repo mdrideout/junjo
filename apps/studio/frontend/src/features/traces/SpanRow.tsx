@@ -1,6 +1,6 @@
 import { getSpanDurationString } from '../../util/duration-utils'
 import { OtelSpan } from '../otel/schemas/schemas'
-import { SpanIconConstructor } from '../workflow-logs/span-lists/determine-span-icon'
+import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-icon'
 
 interface SpanRowProps {
   span: OtelSpan

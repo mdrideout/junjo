@@ -30,6 +30,9 @@ var queryRootSpansFiltered string
 //go:embed query_span.sql
 var querySpan string
 
+//go:embed query_workflow_executions.sql
+var queryWorkflowExecutions string
+
 func GetDistinctServiceNames(c echo.Context) error {
 	c.Logger().Printf("Running GetDistinctServiceNames function")
 
@@ -466,4 +469,59 @@ func GetSpan(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, result)
+}
+
+func GetWorkflowExecutions(c echo.Context) error {
+	c.Logger().Printf("Running GetWorkflowExecutions function")
+
+	db := db_duckdb.DB
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	// Execute the query
+	rows, err := db.Query(queryWorkflowExecutions)
+	if err != nil {
+		c.Logger().Printf("Error querying database: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})
+	}
+	defer rows.Close()
+
+	// Get Column Names
+	columns, err := rows.Columns()
+	if err != nil {
+		c.Logger().Printf("Error getting columns: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to get columns: %v", err)})
+	}
+
+	// Prepare data structures for dynamic scanning
+	count := len(columns)
+	values := make([]interface{}, count)
+	valuePtrs := make([]interface{}, count)
+	for i := range columns {
+		valuePtrs[i] = &values[i]
+	}
+
+	// Final results storage
+	results := []map[string]interface{}{}
+
+	// Start processing each row
+	for rows.Next() {
+		if err := rows.Scan(valuePtrs...); err != nil {
+			c.Logger().Printf("Error scanning row: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("failed to scan row: %v", err)})
+		}
+
+		// Create a map for the current row
+		rowMap := make(map[string]interface{})
+
+		for i, colName := range columns {
+			rowMap[colName] = values[i]
+		}
+
+		// Append this row to the results
+		results = append(results, rowMap)
+	}
+
+	return c.JSON(http.StatusOK, results)
 }

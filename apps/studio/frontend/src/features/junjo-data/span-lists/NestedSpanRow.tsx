@@ -14,7 +14,9 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   const { span, isActiveSpan } = props
   const dispatch = useAppDispatch()
 
-  const spanTypeOther = span.junjo_span_type === JunjoSpanType.OTHER
+  // Determine the type of span
+  const nonJunjoSpan = span.junjo_span_type === JunjoSpanType.OTHER
+  const junjoSpan = !nonJunjoSpan
 
   const start_time = span.start_time
   const end_time = span.end_time
@@ -28,16 +30,15 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   // Create the name
   const name = spanNameConstructor(span)
 
-  // console.log('Span attributes: ', span.attributes_json)
+  // console.log('Span attributes: ', span)
 
   return (
-    <div className={`p-1 ${spanTypeOther ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}>
-      <div className={`flex gap-x-2 ${spanTypeOther ? 'items-start' : 'items-center'}`}>
+    <div className={`p-1 ${nonJunjoSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}>
+      <div className={`flex gap-x-2 ${nonJunjoSpan ? 'items-start' : 'items-center'}`}>
         <SpanIconConstructor span={span} active={isActiveSpan} />
         <div className={'w-full flex gap-x-2 justify-between items-end'}>
           <div className={'flex gap-x-2 items-center'}>
-            {/* Workflow Spans Get Clickable Titles */}
-            {!spanTypeOther ? (
+            {junjoSpan && (
               <div className={'flex gap-x-2 items-center'}>
                 <button
                   className={`cursor-pointer text-left hover:underline`}
@@ -49,10 +50,18 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                   {name}
                 </button>
               </div>
-            ) : (
-              <div className={'flex gap-x-2 items-center'}>
-                <span>{name}</span>
-              </div>
+            )}
+
+            {nonJunjoSpan && (
+              <button
+                className={`cursor-pointer text-left hover:underline`}
+                onClick={() => {
+                  console.log('Clicked span:', span.name)
+                  dispatch(WorkflowDetailStateActions.handleSetActiveSpan(span))
+                }}
+              >
+                {name}
+              </button>
             )}
 
             {hasExceptions && (
