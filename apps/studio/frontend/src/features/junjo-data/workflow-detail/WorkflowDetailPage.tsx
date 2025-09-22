@@ -2,13 +2,8 @@ import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import {
-  selectWorkflowExecutionsError,
-  selectWorkflowExecutionsLoading,
-  selectWorkflowSpan,
-} from './store/selectors'
+import { selectWorkflowSpan } from '../../traces/store/selectors'
 import { RootState } from '../../../root-store/store'
-import { WorkflowExecutionsStateActions } from '../list-workflow-executions/store/slice'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
@@ -16,20 +11,27 @@ import { Switch } from 'radix-ui'
 import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 import TabbedSpanLists from '../span-lists/TabbedSpanLists'
 import WorkflowDetailStateNav from './WorkflowDetailStateNav'
+import { TracesStateActions } from '../../traces/store/slice'
 
 export default function WorkflowDetailPage() {
   const { serviceName, traceId, workflowSpanId } = useParams()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
-  const loading = useAppSelector(selectWorkflowExecutionsLoading)
-  const error = useAppSelector(selectWorkflowExecutionsError)
-  const span = useAppSelector((state: RootState) => selectWorkflowSpan(state, { spanID: workflowSpanId }))
+  const loading = useAppSelector((state: RootState) => state.tracesState.loading)
+  const error = useAppSelector((state: RootState) => state.tracesState.error)
+  const span = useAppSelector((state: RootState) =>
+    selectWorkflowSpan(state, {
+      traceId: traceId,
+      spanId: workflowSpanId,
+    }),
+  )
 
-  // Fetch the data if the workflow span ID is not found
+  // Data fetching
   useEffect(() => {
+    // If the span does not yet exist in state, fetch it
     if (!span) {
-      dispatch(WorkflowExecutionsStateActions.fetchWorkflowExecutions())
+      dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
     }
   }, [dispatch, span])
 

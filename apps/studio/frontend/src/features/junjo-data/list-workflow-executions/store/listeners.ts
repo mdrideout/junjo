@@ -7,7 +7,7 @@ export const workflowExecutionsListenerMiddleware = createListenerMiddleware()
 const startListener = workflowExecutionsListenerMiddleware.startListening.withTypes<RootState, AppDispatch>()
 
 startListener({
-  actionCreator: WorkflowExecutionsStateActions.fetchWorkflowExecutions,
+  actionCreator: WorkflowExecutionsStateActions.fetchWorkflowExecutionsDEPRECATED,
   effect: async (action, { getState, dispatch }) => {
     const { loading } = getState().workflowExecutionsState
     if (loading) return

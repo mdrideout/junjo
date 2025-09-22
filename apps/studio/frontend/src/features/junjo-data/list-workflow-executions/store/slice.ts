@@ -19,7 +19,8 @@ export const workflowExecutionsSlice = createSlice({
   initialState,
   reducers: {
     // Listener Middleware Triggers
-    fetchWorkflowExecutions: (_state) => {
+    // DEPRECATED
+    fetchWorkflowExecutionsDEPRECATED: (_state) => {
       // Handled by listener middleware
     },
 

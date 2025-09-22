@@ -11,7 +11,7 @@ export default function WorkflowsList() {
   const workflowSpans = useAppSelector((state) => state.workflowExecutionsState.workflowExecutions)
 
   useEffect(() => {
-    dispatch(WorkflowExecutionsStateActions.fetchWorkflowExecutions())
+    dispatch(WorkflowExecutionsStateActions.fetchWorkflowExecutionsDEPRECATED())
   }, [dispatch])
 
   if (loading) {
