@@ -548,6 +548,8 @@ export const identifyWorkflowChain = createWorkflowChainSelector(
       if (!serviceWorkflowData) return workflowSpanChain
 
       // Combine all spans for easier lookup *inside* the memoized function
+
+      // TODO: for RenderJunjoGraphMermaid: This can operate off the new traces store
       const allSpans = [...serviceWorkflowData.workflowLineage, ...serviceWorkflowData.workflowSpans]
 
       // Find the actual starting span object using the stable ID *inside* the memoized function

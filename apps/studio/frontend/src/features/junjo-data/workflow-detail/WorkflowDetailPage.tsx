@@ -98,9 +98,9 @@ export default function WorkflowDetailPage() {
           </div>
         </div>
         <RenderJunjoGraphList
-          serviceName={serviceName}
           workflowSpanId={workflowSpanId}
           showEdgeLabels={mermaidEdgeLabels}
+          traceId={traceId}
         />
       </div>
       <div className={'pt-2 px-2 pb-2'}>
