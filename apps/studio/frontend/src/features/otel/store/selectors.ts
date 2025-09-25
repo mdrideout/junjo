@@ -355,7 +355,6 @@ export const selectActiveSpansWorkflowSpan = createSelector(
       }
 
       // If no parent span is found, break the recursion
-      console.warn('No workflow span found for active span:', activeSpan)
       return undefined
     }
     // Start the recursion with the event span
@@ -652,45 +651,3 @@ export const selectNextWorkflowSpanID = (
   if (spanIndex === -1 || spanIndex === workflowSpans.length - 1) return undefined
   return workflowSpans[spanIndex + 1].span_id
 }
-
-/*********************** NEW RAW OTEL SELECTORS ************************/
-
-/**
- * Select First Junjo Parent Span
- * Given a span, find the first parent span that is a Junjo span (not 'other').
- * This includes the starting span itself.
- * @returns {OtelSpan | undefined}
- */
-export const selectFirstJunjoParentSpan = createSelector(
-  [selectWorkflowDetailActiveSpan, selectAllSpanChildSpans, selectWorkflowsLineageSpans],
-  (activeSpan, childSpans, lineageSpans): OtelSpan | undefined => {
-    if (!activeSpan) return undefined
-
-    // combine the workflow span and child spans
-    const allSpans = [...lineageSpans, ...childSpans].filter((span) => span !== undefined)
-
-    // Recursively check the parent spans to find the first junjo span
-    function recursivelyCheckParentSpansForJunjoSpan(span: OtelSpan): OtelSpan | undefined {
-      console.log('Checking for parent span: ', span)
-      // Check if the span is a junjo span (and not 'other' which is an empty string enum (falsy)), return it
-      if (span.junjo_span_type) {
-        console.log('Found junjo span: ', span)
-        return span
-      }
-
-      // if not, get the parent span and recursively call this function to check it
-      const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
-      if (parentSpan) {
-        console.log('Parent span found: ', parentSpan)
-        return recursivelyCheckParentSpansForJunjoSpan(parentSpan)
-      }
-
-      console.log('No parent span found')
-
-      // If no parent span is found, break the recursion
-      return undefined
-    }
-    // Start the recursion with the event span
-    return recursivelyCheckParentSpansForJunjoSpan(activeSpan)
-  },
-)

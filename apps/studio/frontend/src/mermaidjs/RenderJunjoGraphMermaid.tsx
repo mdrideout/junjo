@@ -1,13 +1,17 @@
 import mermaid from 'mermaid'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 import { RootState } from '../root-store/store'
-import { selectAllSpanChildSpans, selectFirstJunjoParentSpan } from '../features/otel/store/selectors'
 import { JunjoSpanType, OtelSpan } from '../features/otel/schemas/schemas'
 import { WorkflowDetailStateActions } from '../features/junjo-data/workflow-detail/store/slice'
+import {
+  selectActiveSpanFirstJunjoParent,
+  selectTraceSpansForTraceId,
+} from '../features/traces/store/selectors'
 
 interface RenderJunjoGraphMermaidProps {
+  traceId: string
   workflowChain: OtelSpan[]
   mermaidFlowString: string
   mermaidUniqueId: string
@@ -15,7 +19,7 @@ interface RenderJunjoGraphMermaidProps {
 }
 
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
-  const { workflowChain, mermaidFlowString, mermaidUniqueId, workflowSpanId } = props
+  const { traceId, workflowChain, mermaidFlowString, mermaidUniqueId } = props
   const dispatch = useAppDispatch()
   const svgContainerRef = useRef<HTMLDivElement>(null)
   const [highlightTrigger, setHighlightTrigger] = useState(0) // State to trigger re-render
@@ -28,27 +32,11 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
   // SELECTORS
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
-  const firstJunjoSpan = useAppSelector((state: RootState) =>
-    selectFirstJunjoParentSpan(state, {
-      serviceName,
-      spanID: activeSpan?.span_id,
-    }),
-  )
+  const firstJunjoSpan = useAppSelector((state: RootState) => selectActiveSpanFirstJunjoParent(state))
+  const traceSpans = useAppSelector((state: RootState) => selectTraceSpansForTraceId(state, { traceId }))
 
-  // 1. Memoize the props object for the selector
-  const selectorProps = useMemo(
-    () => ({
-      serviceName,
-      spanID: workflowSpanId,
-    }),
-    [serviceName, workflowSpanId],
-  )
-
-  // Get all spans for this workflow
-  const workflowChildSpans = useAppSelector((state: RootState) =>
-    selectAllSpanChildSpans(state, selectorProps),
-  )
-  const nodeSpans = workflowChildSpans.filter(
+  // Identify Node / Subflow Spans
+  const nodeSpans = traceSpans.filter(
     (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
   )
 
@@ -91,10 +79,11 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
       if (junjoID) {
         // Set the active SetState event to the first event in this node
-        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+        // dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+        console.log('TODO: Remove set state action code.')
 
         // Get the span with the junjo.id that matches the junjoID
-        const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
+        const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.handleSetActiveSpan(clickedSpan))
         }
@@ -102,7 +91,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
       }
     },
-    [dispatch, workflowChildSpans],
+    [dispatch, traceSpans],
   )
 
   // --- Subflow Click Handler ---
@@ -115,7 +104,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
         // Get the span with the junjo.id that matches the junjoID
-        const clickedSpan = workflowChildSpans.find((span) => span.junjo_id === junjoID)
+        const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.handleSetActiveSpan(clickedSpan))
         }
@@ -123,7 +112,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
       }
     },
-    [dispatch, workflowChildSpans],
+    [dispatch, traceSpans],
   )
 
   /**

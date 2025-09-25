@@ -4,11 +4,15 @@ import { JunjoSpanType, OtelSpan } from '../../otel/schemas/schemas'
 import { selectWorkflowDetailActiveSpan } from '../../otel/store/selectors'
 
 export const selectTracesState = (state: RootState) => state.tracesState
-
+export const selectTraceSpans = (state: RootState) => state.tracesState.traceSpans
 export const selectTracesLoading = (state: RootState) => state.tracesState.loading
 export const selectTracesError = (state: RootState) => state.tracesState.error
 
-export const selectWorkflowSpan = createSelector(
+/**
+ * Selector: Select Span By Id
+ * Given a traceId and spanId, return the span with that id
+ */
+export const selectSpanById = createSelector(
   [
     (state: RootState) => state.tracesState.traceSpans,
     (_state: RootState, props: { traceId: string | undefined; spanId: string | undefined }) => props.traceId,
@@ -23,6 +27,23 @@ export const selectWorkflowSpan = createSelector(
       return undefined
     }
     return spans.find((item) => item.span_id === spanId)
+  },
+)
+
+/**
+ * Selector: Select Trace Spans
+ * Returns all spans for a given traceId
+ */
+export const selectTraceSpansForTraceId = createSelector(
+  [
+    (state: RootState) => state.tracesState.traceSpans,
+    (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
+  ],
+  (traceSpans, traceId): OtelSpan[] => {
+    if (!traceId) {
+      return []
+    }
+    return traceSpans[traceId]
   },
 )
 
@@ -141,5 +162,47 @@ export const identifySpanWorkflowChain = createWorkflowChainSelector(
     memoizeOptions: {
       resultEqualityCheck: workflowChainListEquality,
     },
+  },
+)
+
+/**
+ * Select Active Span's First Junjo Parent Span
+ * For the active span, find the first parent span that is a Junjo span (not 'other').
+ * This includes the starting span itself.
+ * This allows is to quickly find the closest parent Junjo span that contains this span
+ * to identify workflows, subflows, nodes, etc.
+ * @returns {OtelSpan | undefined}
+ */
+export const selectActiveSpanFirstJunjoParent = createSelector(
+  [selectWorkflowDetailActiveSpan, selectTraceSpans],
+  (activeSpan, traces): OtelSpan | undefined => {
+    if (!activeSpan) return undefined
+
+    // Get all Otel Spans for the active span's trace
+    const allSpans: OtelSpan[] = traces[activeSpan.trace_id]
+
+    // Recursively check the parent spans to find the first junjo span
+    function recursivelyCheckParentSpansForJunjoSpan(span: OtelSpan): OtelSpan | undefined {
+      console.log('Checking for parent span: ', span)
+      // Check if the span is a junjo span (and not 'other' which is an empty string enum (falsy)), return it
+      if (span.junjo_span_type) {
+        console.log('Found junjo span: ', span)
+        return span
+      }
+
+      // if not, get the parent span and recursively call this function to check it
+      const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
+      if (parentSpan) {
+        console.log('Parent span found: ', parentSpan)
+        return recursivelyCheckParentSpansForJunjoSpan(parentSpan)
+      }
+
+      console.log('No parent span found')
+
+      // If no parent span is found, break the recursion
+      return undefined
+    }
+    // Start the recursion with the event span
+    return recursivelyCheckParentSpansForJunjoSpan(activeSpan)
   },
 )

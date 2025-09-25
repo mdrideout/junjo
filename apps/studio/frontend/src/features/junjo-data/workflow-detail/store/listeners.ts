@@ -1,7 +1,7 @@
 import { createListenerMiddleware } from '@reduxjs/toolkit/react'
 import { AppDispatch, RootState } from '../../../../root-store/store'
 import { WorkflowDetailStateActions } from './slice'
-import { selectFirstJunjoParentSpan } from '../../../otel/store/selectors'
+import { selectActiveSpanFirstJunjoParent } from '../../../traces/store/selectors'
 
 export const workflowDetailListenerMiddleware = createListenerMiddleware()
 const startListener = workflowDetailListenerMiddleware.startListening.withTypes<RootState, AppDispatch>()
@@ -16,10 +16,7 @@ startListener({
     dispatch(WorkflowDetailStateActions.setActiveSpan(span))
 
     // Find the first parent Junjo span to highlight in the diagram
-    const firstJunjoSpan = selectFirstJunjoParentSpan(getState(), {
-      serviceName: span.service_name,
-      spanID: span.span_id,
-    })
+    const firstJunjoSpan = selectActiveSpanFirstJunjoParent(getState())
 
     console.log('First junjo span: ', firstJunjoSpan)
 

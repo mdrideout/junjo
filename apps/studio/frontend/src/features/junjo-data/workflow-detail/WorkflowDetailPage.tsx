@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { selectWorkflowSpan } from '../../traces/store/selectors'
+import { selectSpanById } from '../../traces/store/selectors'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
@@ -21,7 +21,7 @@ export default function WorkflowDetailPage() {
   const loading = useAppSelector((state: RootState) => state.tracesState.loading)
   const error = useAppSelector((state: RootState) => state.tracesState.error)
   const span = useAppSelector((state: RootState) =>
-    selectWorkflowSpan(state, {
+    selectSpanById(state, {
       traceId: traceId,
       spanId: workflowSpanId,
     }),
