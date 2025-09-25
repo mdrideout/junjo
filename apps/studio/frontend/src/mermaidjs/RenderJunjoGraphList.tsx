@@ -2,6 +2,7 @@ import { identifySpanWorkflowChain } from '../features/traces/store/selectors'
 import { JunjoGraph } from '../junjo-graph/junjo-graph'
 import { useAppSelector } from '../root-store/hooks'
 import { RootState } from '../root-store/store'
+import RenderJunjoGraphMermaid from './RenderJunjoGraphMermaid'
 
 interface RenderJunjoGraphListProps {
   traceId: string
@@ -37,12 +38,12 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>
         <div className={'font-bold text-sm'}>{workflowSpan.name}</div>
         [Mermaid here]
-        {/* <RenderJunjoGraphMermaid
+        <RenderJunjoGraphMermaid
+          workflowChain={workflowChain}
           mermaidFlowString={mermaidFlowString}
           mermaidUniqueId={uniqueMermaidId}
-          serviceName={serviceName}
           workflowSpanId={workflowSpan.span_id}
-        /> */}
+        />
       </div>
     )
   })

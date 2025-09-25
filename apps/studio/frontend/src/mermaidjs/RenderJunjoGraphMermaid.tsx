@@ -1,26 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react' // Import useState
 import mermaid from 'mermaid'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
-
 import { RootState } from '../root-store/store'
-import {
-  identifyWorkflowChain,
-  selectAllSpanChildSpans,
-  selectFirstJunjoParentSpan,
-} from '../features/otel/store/selectors'
-import { JunjoSpanType } from '../features/otel/schemas/schemas'
+import { selectAllSpanChildSpans, selectFirstJunjoParentSpan } from '../features/otel/store/selectors'
+import { JunjoSpanType, OtelSpan } from '../features/otel/schemas/schemas'
 import { WorkflowDetailStateActions } from '../features/junjo-data/workflow-detail/store/slice'
 
 interface RenderJunjoGraphMermaidProps {
+  workflowChain: OtelSpan[]
   mermaidFlowString: string
   mermaidUniqueId: string
-  serviceName: string
   workflowSpanId: string
 }
 
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
-  const { mermaidFlowString, mermaidUniqueId, serviceName, workflowSpanId } = props
+  const { workflowChain, mermaidFlowString, mermaidUniqueId, workflowSpanId } = props
   const dispatch = useAppDispatch()
   const svgContainerRef = useRef<HTMLDivElement>(null)
   const [highlightTrigger, setHighlightTrigger] = useState(0) // State to trigger re-render
@@ -37,12 +32,6 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     selectFirstJunjoParentSpan(state, {
       serviceName,
       spanID: activeSpan?.span_id,
-    }),
-  )
-  const workflowChain = useAppSelector((state: RootState) =>
-    identifyWorkflowChain(state, {
-      serviceName,
-      spanID: workflowSpanId,
     }),
   )
 

@@ -522,7 +522,7 @@ const createWorkflowChainSelector = createSelectorCreator(lruMemoize, workflowCh
  *
  * @returns {OtelSpan | undefined}
  */
-export const identifyWorkflowChain = createWorkflowChainSelector(
+export const identifyWorkflowChainDEPRECATED = createWorkflowChainSelector(
   [
     // Input 1: All workflow data
     selectWorkflowsData,
