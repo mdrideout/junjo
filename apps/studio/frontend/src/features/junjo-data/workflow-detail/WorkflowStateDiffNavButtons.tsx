@@ -1,30 +1,23 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllWorkflowStateEvents, selectStateEventParentSpan } from '../../otel/store/selectors'
+import { selectStateEventParentSpan } from '../../otel/store/selectors'
 import { useEffect, useMemo } from 'react'
 import { WorkflowDetailStateActions } from './store/slice'
 
 interface WorkflowStateEventNavButtonsProps {
-  serviceName: string
+  traceId: string
   workflowSpanId: string
 }
 
 export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
-  const { serviceName, workflowSpanId } = props
+  const { traceId, workflowSpanId } = props
   const dispatch = useAppDispatch()
 
-  // Memoize the props object for the selector
-  const selectorProps = useMemo(
-    () => ({
-      serviceName,
-      spanID: workflowSpanId,
-    }),
-    [serviceName, workflowSpanId],
-  )
-  const workflowStateEvents = useAppSelector((state: RootState) =>
-    selectAllWorkflowStateEvents(state, selectorProps),
-  )
+  // const workflowStateEvents = useAppSelector((state: RootState) =>
+  //   selectAllWorkflowStateEvents(state, selectorProps),
+  // )
+  const workflowStateEvents = []
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,

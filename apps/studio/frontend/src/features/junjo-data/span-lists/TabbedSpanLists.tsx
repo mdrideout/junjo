@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import NestedWorkflowSpans from './NestedWorkflowSpans'
 import FlatStateEventsList from './FlatStateEventsList'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
+import { selectTraceExceptionSpans } from '../../traces/store/selectors'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllExceptionSpans } from '../../otel/store/selectors'
 import SpanExceptionsList from '../workflow-detail/SpanExceptionsList'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
 enum TabOptions {
   NESTED = 'Workflow Spans',
@@ -14,7 +14,7 @@ enum TabOptions {
 }
 
 interface TabbedSpanListsProps {
-  serviceName: string
+  traceId: string
   workflowSpanId: string
 }
 
@@ -44,18 +44,14 @@ const TabButton = ({
 }
 
 export default function TabbedSpanLists(props: TabbedSpanListsProps) {
-  const { serviceName, workflowSpanId } = props
+  const { traceId, workflowSpanId } = props
   const [activeTab, setActiveTab] = useState<TabOptions>(TabOptions.NESTED)
 
-  const selectorProps = useMemo(
-    () => ({
-      serviceName,
-      spanID: workflowSpanId,
+  const exceptionSpans = useAppSelector((state: RootState) =>
+    selectTraceExceptionSpans(state, {
+      traceId,
     }),
-    [serviceName, workflowSpanId],
   )
-
-  const exceptionSpans = useAppSelector((state: RootState) => selectAllExceptionSpans(state, selectorProps))
   const hasExceptions = exceptionSpans.length > 0
 
   return (
@@ -68,11 +64,11 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
         )}
       </div>
       <div className={'overflow-y-scroll pr-2.5 border-t border-zinc-200 dark:border-zinc-700'}>
-        {activeTab === TabOptions.FLAT && (
-          <FlatStateEventsList serviceName={serviceName} workflowSpanId={workflowSpanId} />
-        )}
         {activeTab === TabOptions.NESTED && (
-          <NestedWorkflowSpans serviceName={serviceName} workflowSpanId={workflowSpanId} />
+          <NestedWorkflowSpans traceId={traceId} workflowSpanId={workflowSpanId} />
+        )}
+        {activeTab === TabOptions.FLAT && (
+          <FlatStateEventsList traceId={traceId} workflowSpanId={workflowSpanId} />
         )}
         {activeTab === TabOptions.EXCEPTIONS && <SpanExceptionsList spans={exceptionSpans} />}
       </div>

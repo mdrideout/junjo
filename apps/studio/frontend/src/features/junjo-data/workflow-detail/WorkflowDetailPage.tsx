@@ -20,7 +20,7 @@ export default function WorkflowDetailPage() {
 
   const loading = useAppSelector((state: RootState) => state.tracesState.loading)
   const error = useAppSelector((state: RootState) => state.tracesState.error)
-  const span = useAppSelector((state: RootState) =>
+  const workflowSpan = useAppSelector((state: RootState) =>
     selectSpanById(state, {
       traceId: traceId,
       spanId: workflowSpanId,
@@ -30,10 +30,10 @@ export default function WorkflowDetailPage() {
   // Data fetching
   useEffect(() => {
     // If the span does not yet exist in state, fetch it
-    if (!span) {
+    if (!workflowSpan) {
       dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
     }
-  }, [dispatch, span])
+  }, [dispatch, workflowSpan])
 
   if (loading) return null
 
@@ -42,16 +42,16 @@ export default function WorkflowDetailPage() {
   }
 
   // No data rendering
-  if (!serviceName || !traceId || !workflowSpanId || !span) {
+  if (!serviceName || !traceId || !workflowSpanId || !workflowSpan) {
     return <div className={'p-2'}>No logs found.</div>
   }
 
   // Human readable start ingest time
-  const date = new Date(span.start_time)
+  const date = new Date(workflowSpan.start_time)
   const readableStart = date.toLocaleString()
 
   // Parse duration
-  const durationString = getSpanDurationString(span.start_time, span.end_time)
+  const durationString = getSpanDurationString(workflowSpan.start_time, workflowSpan.end_time)
 
   return (
     <div className={'px-2 py-3 flex flex-col h-dvh overflow-hidden'}>
@@ -69,7 +69,7 @@ export default function WorkflowDetailPage() {
             </Link>
             <div>&rarr;</div>
             <div>
-              {span.name} <span className={'text-xs font-normal'}>({workflowSpanId})</span>
+              {workflowSpan.name} <span className={'text-xs font-normal'}>({workflowSpanId})</span>
             </div>
           </div>
           <div className={'text-zinc-400 text-xs'}>
@@ -108,8 +108,8 @@ export default function WorkflowDetailPage() {
       </div>
 
       <div className={'grow w-full flex gap-x-4 justify-between overflow-hidden'}>
-        <TabbedSpanLists serviceName={serviceName} workflowSpanId={workflowSpanId} />
-        <WorkflowDetailStateDiff defaultWorkflowSpan={span} />
+        <TabbedSpanLists traceId={traceId} workflowSpanId={workflowSpanId} />
+        <WorkflowDetailStateDiff defaultWorkflowSpan={workflowSpan} />
       </div>
     </div>
   )

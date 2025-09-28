@@ -8,26 +8,19 @@ import { SpanIconConstructor } from './determine-span-icon'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 
 interface FlatStateEventsListProps {
-  serviceName: string
+  traceId: string
   workflowSpanId: string
 }
 
 export default function FlatStateEventsList(props: FlatStateEventsListProps) {
-  const { serviceName, workflowSpanId } = props
+  const { traceId, workflowSpanId } = props
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
 
-  // Memoize the props object for the selector
-  const selectorProps = useMemo(
-    () => ({
-      serviceName,
-      spanID: workflowSpanId,
-    }),
-    [serviceName, workflowSpanId],
-  )
-
-  const events = useAppSelector((state: RootState) => selectAllWorkflowStateEvents(state, selectorProps))
-  const spans = useAppSelector((state: RootState) => selectAllSpanChildSpans(state, selectorProps))
+  // const events = useAppSelector((state: RootState) => selectAllWorkflowStateEvents(state, selectorProps))
+  const events = []
+  // const spans = useAppSelector((state: RootState) => selectAllSpanChildSpans(state, selectorProps))
+  const spans = []
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )

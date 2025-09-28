@@ -1,13 +1,6 @@
 import { createSelector, createSelectorCreator, lruMemoize } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
-import {
-  JunjoExceptionEventSchema,
-  JunjoSetStateEvent,
-  JunjoSetStateEventSchema,
-  JunjoSpanType,
-  OtelSpan,
-} from '../schemas/schemas'
-import { isoStringToMicrosecondsSinceEpoch } from '../../../util/duration-utils'
+import { JunjoSetStateEvent, JunjoSetStateEventSchema, JunjoSpanType, OtelSpan } from '../schemas/schemas'
 
 // Base Selector
 export const selectOtelState = (state: RootState) => state.otelState
@@ -65,83 +58,43 @@ export const selectSpanChildren = createSelector(
   },
 )
 
-// Memoized selectAllSpanChildSpans (Recursive children - Using inline prop selector)
-export const selectAllSpanChildSpans = createSelector(
-  [
-    selectWorkflowsData,
-    (_state: RootState, props: { serviceName: string | undefined; spanID: string | undefined }) => props,
-  ],
-  (workflowsData, props): OtelSpan[] => {
-    const { serviceName, spanID } = props
-    if (!serviceName || !spanID) return [] // Stable empty array reference
+// /**
+//  * Selector: Select First Child State Event Of A Given Span
+//  * This selector finds the first set_state event in the child spans of a given span
+//  * @returns {JunjoSetStateEvent | undefined}
+//  */
+// export const selectFirstStateEventInSpanOrChildren = createSelector(
+//   [selectWorkflowSpan, selectSpanAndChildren],
+//   (workflowSpan, childSpans): JunjoSetStateEvent | undefined => {
+//     // Extract all the state_events from the child spans
+//     const stateEvents: JunjoSetStateEvent[] = []
 
-    const allSpans = workflowsData[serviceName]?.workflowSpans
-    if (!allSpans) return [] // Stable empty array reference
+//     const combinedSpans = [workflowSpan, ...childSpans]
 
-    // Find starting span without calling another selector directly inside result func
-    const startingSpan = allSpans.find((item) => item.span_id === spanID)
-    if (!startingSpan) return [] // Stable empty array reference
+//     combinedSpans.forEach((span) => {
+//       if (!span) return // Skip if span is undefined
 
-    // Logic to find children - this computation only runs if workflowsData or props change
-    const children: OtelSpan[] = []
-    const queue: OtelSpan[] = [startingSpan]
-    const visited = new Set<string>() // Prevent cycles
-    visited.add(startingSpan.span_id)
+//       // Basic check if events_json exists and is an array
+//       if (Array.isArray(span.events_json)) {
+//         span.events_json.forEach((event) => {
+//           // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
+//           const parsedEvent = JunjoSetStateEventSchema.safeParse(event)
+//           if (!parsedEvent.success) {
+//             console.error('Error parsing event in selector:', parsedEvent.error)
+//             return
+//           }
+//           stateEvents.push(parsedEvent.data)
+//         })
+//       }
+//     })
 
-    while (queue.length > 0) {
-      const currentSpan = queue.shift()!
-      // .filter creates a new array, but it's okay inside the memoized function
-      const childSpans = allSpans.filter((s) => s.parent_span_id === currentSpan.span_id)
-      for (const child of childSpans) {
-        if (!visited.has(child.span_id)) {
-          children.push(child)
-          queue.push(child)
-          visited.add(child.span_id)
-        }
-      }
-    }
-    // The returned 'children' array reference is memoized by createSelector
-    return children
-  },
-)
+//     // Sort the state events by their timeUnixNano in ascending order
+//     const sortedEvents = [...stateEvents].sort((a, b) => a.timeUnixNano - b.timeUnixNano)
 
-/**
- * Selector: Select First Child State Event Of A Given Span
- * This selector finds the first set_state event in the child spans of a given span
- * @returns {JunjoSetStateEvent | undefined}
- */
-export const selectFirstStateEventInSpanOrChildren = createSelector(
-  [selectWorkflowSpan, selectAllSpanChildSpans],
-  (workflowSpan, childSpans): JunjoSetStateEvent | undefined => {
-    // Extract all the state_events from the child spans
-    const stateEvents: JunjoSetStateEvent[] = []
-
-    const combinedSpans = [workflowSpan, ...childSpans]
-
-    combinedSpans.forEach((span) => {
-      if (!span) return // Skip if span is undefined
-
-      // Basic check if events_json exists and is an array
-      if (Array.isArray(span.events_json)) {
-        span.events_json.forEach((event) => {
-          // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
-          const parsedEvent = JunjoSetStateEventSchema.safeParse(event)
-          if (!parsedEvent.success) {
-            console.error('Error parsing event in selector:', parsedEvent.error)
-            return
-          }
-          stateEvents.push(parsedEvent.data)
-        })
-      }
-    })
-
-    // Sort the state events by their timeUnixNano in ascending order
-    const sortedEvents = [...stateEvents].sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-
-    // Return the first event in the sorted array
-    return sortedEvents[0]
-  },
-)
+//     // Return the first event in the sorted array
+//     return sortedEvents[0]
+//   },
+// )
 
 /**
  * Select all of a workflow's lineage spans
@@ -187,71 +140,39 @@ export const selectWorkflowsLineageSpans = createSelector(
   },
 )
 
-/**
- * Select All Workflow State Events
- * Memoized selectAllWorkflowStateEvents (Depends on memoized selectAllSpanChildSpans)
- * No direct prop selector needed here, as props are passed to selectAllSpanChildSpans implicitly
- * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
- */
-export const selectAllWorkflowStateEvents = createSelector(
-  [selectWorkflowSpan, selectAllSpanChildSpans],
-  (workflowSpan, childSpans): JunjoSetStateEvent[] => {
-    const junjoSetStateEvents: JunjoSetStateEvent[] = []
+// /**
+//  * Select All Workflow State Events
+//  * Memoized selectAllWorkflowStateEvents (Depends on memoized selectAllSpanChildSpans)
+//  * No direct prop selector needed here, as props are passed to selectAllSpanChildSpans implicitly
+//  * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
+//  */
+// export const selectAllWorkflowStateEvents = createSelector(
+//   [selectWorkflowSpan, selectSpanAndChildren],
+//   (workflowSpan, childSpans): JunjoSetStateEvent[] => {
+//     const junjoSetStateEvents: JunjoSetStateEvent[] = []
 
-    // Combine the workflow span and child spans
-    const allSpans = [workflowSpan, ...childSpans].filter((span) => span !== undefined)
+//     // Combine the workflow span and child spans
+//     const allSpans = [workflowSpan, ...childSpans].filter((span) => span !== undefined)
 
-    allSpans.forEach((span) => {
-      // Basic check if events_json exists and is an array
-      if (Array.isArray(span.events_json)) {
-        span.events_json.forEach((event) => {
-          try {
-            const parsedEvent = JunjoSetStateEventSchema.parse(event)
-            junjoSetStateEvents.push(parsedEvent)
-          } catch (error) {
-            // Consider less noisy logging or specific handling
-            // console.error('Error parsing event in selector:', error);
-          }
-        })
-      }
-    })
+//     allSpans.forEach((span) => {
+//       // Basic check if events_json exists and is an array
+//       if (Array.isArray(span.events_json)) {
+//         span.events_json.forEach((event) => {
+//           try {
+//             const parsedEvent = JunjoSetStateEventSchema.parse(event)
+//             junjoSetStateEvents.push(parsedEvent)
+//           } catch (error) {
+//             // Consider less noisy logging or specific handling
+//             // console.error('Error parsing event in selector:', error);
+//           }
+//         })
+//       }
+//     })
 
-    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-    return junjoSetStateEvents
-  },
-)
-
-/**
- * Select Spans with Exceptions
- * For a given workflow span, create a list of all of the workflow span's exceptions,
- * including its lineage and child spans.
- * @returns {OtelSpan[]} sorted by their timeUnixNano
- */
-export const selectAllExceptionSpans = createSelector(
-  [selectAllSpanChildSpans, selectWorkflowsLineageSpans],
-  (childSpans, lineageSpans): OtelSpan[] => {
-    const exceptionSpans: OtelSpan[] = []
-
-    // combine the workflow span and child spans
-    const allSpans = [...lineageSpans, ...childSpans].filter((span) => span !== undefined)
-    if (!allSpans) return [] // Stable empty array reference
-
-    for (const span of allSpans) {
-      // Basic check if events_json exists and is an array
-
-      const hasExceptions = span.events_json.some((event) => {
-        const parsedEvent = JunjoExceptionEventSchema.safeParse(event)
-        return parsedEvent.success && parsedEvent.data.attributes['exception.type'] !== undefined
-      })
-
-      if (hasExceptions) {
-        exceptionSpans.push(span)
-      }
-    }
-
-    return exceptionSpans
-  },
-)
+//     junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+//     return junjoSetStateEvents
+//   },
+// )
 
 /**
  * Select: Span Has Exceptions
@@ -263,42 +184,6 @@ export const selectSpanHasExceptions = createSelector([selectWorkflowSpan], (spa
     return event.attributes && event.attributes['exception.type'] !== undefined
   })
 })
-
-/**
- * Workflow Execution Request Has Exceptions
- * Checks if the workflow span and its lineage spans or child spans have any exceptions.
- * Optimized to return early if any exceptions are found.
- * TODO: For performance, consider moving this to when the data is loaded.
- * @returns {boolean}
- */
-export const workflowExecutionRequestHasExceptions = createSelector(
-  [selectWorkflowsLineageSpans, selectAllSpanChildSpans],
-  (lineageSpans, childSpans): boolean => {
-    // 2) Check lineage spans
-    for (const span of lineageSpans) {
-      if (Array.isArray(span.events_json)) {
-        for (const ev of span.events_json) {
-          if (ev.attributes?.['exception.type'] !== undefined) {
-            return true
-          }
-        }
-      }
-    }
-
-    // 3) Check child spans
-    for (const span of childSpans) {
-      if (Array.isArray(span.events_json)) {
-        for (const ev of span.events_json) {
-          if (ev.attributes?.['exception.type'] !== undefined) {
-            return true
-          }
-        }
-      }
-    }
-
-    return false
-  },
-)
 
 /**
  * Select Workflow Span By Store ID
@@ -316,119 +201,6 @@ export const selectWorkflowSpanByStoreID = createSelector(
     if (!serviceData) return undefined
 
     return serviceData.workflowSpans.find((span) => span.junjo_wf_store_id === props.storeID)
-  },
-)
-
-/**
- * Select Active Span's Workflow Span
- * Allows for the selection of a workflow span from the active span.
- *
- * The input selectors select all spans umbrellad under the top-level workflow span.
- * The current span's workflow span may be a lower level subflow or a workflow span.
- *
- * If: the active span is a workflow span, return it
- * Else: Recursively check the parent spans to find the workflow span
- */
-export const selectActiveSpansWorkflowSpan = createSelector(
-  [selectWorkflowDetailActiveSpan, selectAllSpanChildSpans, selectWorkflowsLineageSpans],
-  (activeSpan, childSpans, lineageSpans): OtelSpan | undefined => {
-    if (!activeSpan) return undefined
-
-    // combine the workflow span and child spans
-    const allSpans = [...lineageSpans, ...childSpans].filter((span) => span !== undefined)
-    // console.log(`Checking active span's workflow span...`)
-    // console.log('Active Span: ', activeSpan)
-    // console.log('All Spans: ', allSpans)
-
-    // Recursively check the parent spans to find the first workflow / subflow span
-    function recursivelyCheckParentSpansForWorkflowSpan(span: OtelSpan): OtelSpan | undefined {
-      // Check if the span is a workflow or subflow, return it
-      if (span.junjo_span_type === JunjoSpanType.WORKFLOW || span.junjo_span_type === JunjoSpanType.SUBFLOW) {
-        // Add to the beginning of the chain and continue traversing
-        return span
-      }
-
-      // if not, get the parent span and recursively call this function to check it
-      const parentSpan = allSpans.find((s) => s.span_id === span.parent_span_id)
-      if (parentSpan) {
-        return recursivelyCheckParentSpansForWorkflowSpan(parentSpan)
-      }
-
-      // If no parent span is found, break the recursion
-      return undefined
-    }
-    // Start the recursion with the event span
-    return recursivelyCheckParentSpansForWorkflowSpan(activeSpan)
-  },
-)
-
-/**
- * Select: Active Store ID
- * This selector finds the store ID of the store that the current span acts on.
- *
- * If: the activeSpan is a subflow, this is the parent_store.id
- *     (because the pre_run and post_run functions operate on the parent store)
- *
- * Else: For all other spans, it's the store.id of the current workflow.
- */
-export const selectActiveStoreID = createSelector(
-  [selectActiveSetStateEvent, selectWorkflowDetailActiveSpan, selectActiveSpansWorkflowSpan],
-  (activeSetStateEvent, activeSpan, activeWorkflowSpan): string | undefined => {
-    if (!activeSpan) return undefined
-    if (!activeWorkflowSpan) return undefined
-
-    // If there is an active set_state event, return its store ID
-    if (activeSetStateEvent) {
-      return activeSetStateEvent.attributes['junjo.store.id']
-    }
-
-    // Else, if there is no active set_state event, return the store ID that the current span acts on
-    if (activeSpan.junjo_span_type === 'subflow') {
-      return activeSpan.attributes_json['junjo.workflow.parent_store.id']
-    }
-
-    // Otherwise, return the store ID of the current workflow
-    return activeWorkflowSpan?.junjo_wf_store_id
-  },
-)
-
-/**
- * Select Set State Events by Store ID
- */
-export const selectSetStateEventsByStoreID = createSelector(
-  [
-    selectWorkflowSpan,
-    selectAllSpanChildSpans,
-    (_state: RootState, props: { storeID: string | undefined }) => props,
-  ],
-  (workflowSpan, childSpans, { storeID }): JunjoSetStateEvent[] => {
-    const junjoSetStateEvents: JunjoSetStateEvent[] = []
-    if (!storeID) return junjoSetStateEvents
-
-    // combine the workflow span and child spans
-    const allSpans = [workflowSpan, ...childSpans].filter((span) => span !== undefined)
-
-    allSpans.forEach((span) => {
-      // Basic check if events_json exists and is an array
-      if (Array.isArray(span.events_json)) {
-        span.events_json.forEach((event) => {
-          try {
-            // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
-            const parsedEvent = JunjoSetStateEventSchema.parse(event)
-            if (parsedEvent.attributes['junjo.store.id'] === storeID) {
-              junjoSetStateEvents.push(parsedEvent)
-            }
-          } catch (error) {
-            // Consider less noisy logging or specific handling
-            // console.error('Error parsing event in selector:', error);
-          }
-        })
-      }
-    })
-
-    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-    // createSelector memoizes this returned reference
-    return junjoSetStateEvents
   },
 )
 
@@ -462,28 +234,6 @@ export const selectStateEventsBySpanId = (
   junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
   return junjoSetStateEvents
 }
-
-/**
- * Select State Event Parent Span
- * @returns {OtelSpan | undefined}
- */
-export const selectStateEventParentSpan = createSelector(
-  [
-    selectAllSpanChildSpans,
-    (_state: RootState, props: { stateEventId: string | undefined }) => props.stateEventId,
-  ],
-  (childSpans, stateEventId): OtelSpan | undefined => {
-    if (!stateEventId) return undefined
-
-    // Find the span that contains this state event
-    const span = childSpans.find((span) => {
-      // Check if the span's events_json array contains an event with the matching id
-      const hasEvent = span.events_json.some((event) => event.attributes?.id === stateEventId)
-      return hasEvent
-    })
-    return span
-  },
-)
 
 /**
  * Workflow Chain Equality Check
@@ -595,36 +345,5 @@ export const identifyWorkflowChainDEPRECATED = createWorkflowChainSelector(
     memoizeOptions: {
       resultEqualityCheck: workflowChainListEquality,
     },
-  },
-)
-
-/**
- * Select: Before Span State Event In Workflow
- * This selector finds the last set_state event before the current span starts in the same workflow
- *
- * 1. Find all set_state events that operate on the same store ID (meaning, we know the workflow is the same)
- * 2. Find the last set_state event before the active span starts
- *
- * @returns {JunjoSetStateEvent | undefined}
- */
-export const selectBeforeSpanStateEventInWorkflow = createSelector(
-  [selectWorkflowDetailActiveSpan, selectSetStateEventsByStoreID],
-  (activeSpan, storeStateEvents): JunjoSetStateEvent | undefined => {
-    if (!activeSpan) return undefined
-
-    // Sort the store events by their timeUnixNano in ascending order
-    const sortedEvents = [...storeStateEvents].sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-
-    // compute active span start in nanoseconds
-    const spanStartTimeMicro = isoStringToMicrosecondsSinceEpoch(activeSpan.start_time)
-    const spanStartTimeNano = spanStartTimeMicro * 1000
-
-    // walk from the end (because in ascending order) to find the greatest event that is < spanStartTimeNano
-    for (let i = sortedEvents.length - 1; i >= 0; i--) {
-      if (sortedEvents[i].timeUnixNano < spanStartTimeNano) {
-        return sortedEvents[i]
-      }
-    }
-    return undefined
   },
 )

@@ -2,8 +2,7 @@ import { Fragment } from 'react/jsx-runtime'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
-import { selectAllSpanChildSpans } from '../../otel/store/selectors'
-import { JSX, useEffect, useMemo, useRef } from 'react'
+import { JSX, useEffect, useRef } from 'react'
 import {
   JunjoSpanType,
   NodeEventType,
@@ -14,9 +13,10 @@ import {
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import NestedSpanRow from './NestedSpanRow'
+import { selectSpanAndChildren } from '../../traces/store/selectors'
 
 interface NestedWorkflowSpansProps {
-  serviceName: string
+  traceId: string
   workflowSpanId: string
 }
 
@@ -27,7 +27,7 @@ interface NestedWorkflowSpansProps {
  * @returns
  */
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
-  const { serviceName, workflowSpanId } = props
+  const { traceId, workflowSpanId } = props
   const dispatch = useAppDispatch()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
@@ -40,17 +40,14 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
     (state: RootState) => state.workflowDetailState.scrollToStateEventId,
   )
 
-  // 1. Memoize the props object for the selector
-  const selectorProps = useMemo(
-    () => ({
-      serviceName,
-      spanID: workflowSpanId,
+  // Get the workflow span and its children
+  const spans = useAppSelector((state: RootState) =>
+    selectSpanAndChildren(state, {
+      traceId,
+      spanId: workflowSpanId,
     }),
-    [serviceName, workflowSpanId],
   )
 
-  // 2. Use the memoized props object in useAppSelector
-  const spans = useAppSelector((state: RootState) => selectAllSpanChildSpans(state, selectorProps))
   // Sort the spans by start time
   spans.sort((a, b) => {
     const aTime = isoStringToMicrosecondsSinceEpoch(a.start_time)

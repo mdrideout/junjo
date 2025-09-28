@@ -4,9 +4,8 @@ import { getSpanDurationString } from '../../../util/duration-utils'
 import { OtelSpan } from '../../otel/schemas/schemas'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { workflowExecutionRequestHasExceptions } from '../../otel/store/selectors'
-import { useMemo } from 'react'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import { selectTraceExceptionSpans } from '../../traces/store/selectors'
 
 // Define the shape of one span; replace `any` with your real type if you have one
 interface Props {
@@ -20,19 +19,12 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
   const startString = new Date(workflowSpan.start_time).toLocaleString()
   const durationString = getSpanDurationString(workflowSpan.start_time, workflowSpan.end_time)
 
-  // Memoize the props object for the selector
-  const selectorProps = useMemo(
-    () => ({
-      serviceName: workflowSpan.service_name,
-      spanID: workflowSpan.span_id,
+  const exceptionSpans = useAppSelector((state: RootState) =>
+    selectTraceExceptionSpans(state, {
+      traceId: workflowSpan.trace_id,
     }),
-    [workflowSpan.service_name, workflowSpan.span_id],
   )
-
-  // Check if there are any exceptions in the events_json
-  const hasExceptions = useAppSelector((state: RootState) =>
-    workflowExecutionRequestHasExceptions(state, selectorProps),
-  )
+  const hasExceptions = exceptionSpans.length > 0
 
   const destination = `/workflows/${workflowSpan.service_name}/${workflowSpan.trace_id}/${workflowSpan.span_id}`
 

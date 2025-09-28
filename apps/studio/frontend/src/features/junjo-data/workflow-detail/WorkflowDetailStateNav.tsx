@@ -32,7 +32,8 @@ export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProp
       </div>
       <div className={'font-mono flex items-center gap-x-2'}>
         {start_micro}
-        <WorkflowStateEventNavButtons serviceName={serviceName} workflowSpanId={workflowSpanId} />
+        {/* <WorkflowStateEventNavButtons serviceName={serviceName} workflowSpanId={workflowSpanId} /> */}
+        [buttons here]
       </div>
     </div>
   )
