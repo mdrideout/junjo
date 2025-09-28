@@ -1,9 +1,9 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectStateEventParentSpan } from '../../otel/store/selectors'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { WorkflowDetailStateActions } from './store/slice'
+import { selectAllWorkflowStateEvents, selectStateEventParentSpan } from '../../traces/store/selectors'
 
 interface WorkflowStateEventNavButtonsProps {
   traceId: string
@@ -14,20 +14,21 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
   const { traceId, workflowSpanId } = props
   const dispatch = useAppDispatch()
 
-  // const workflowStateEvents = useAppSelector((state: RootState) =>
-  //   selectAllWorkflowStateEvents(state, selectorProps),
-  // )
-  const workflowStateEvents = []
+  const workflowStateEvents = useAppSelector((state: RootState) =>
+    selectAllWorkflowStateEvents(state, {
+      traceId,
+      spanId: workflowSpanId,
+    }),
+  )
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )
 
   // Get the span that contains this workflow state event
-  const span = useAppSelector((state: RootState) =>
+  const eventSpan = useAppSelector((state: RootState) =>
     selectStateEventParentSpan(state, {
-      serviceName,
-      spanID: workflowSpanId,
+      traceId,
       stateEventId: activeSetStateEvent?.attributes.id,
     }),
   )
@@ -42,10 +43,10 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
 
   // Effect to update the active span when the activeSetStateEvent changes
   useEffect(() => {
-    if (span) {
-      dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+    if (eventSpan) {
+      dispatch(WorkflowDetailStateActions.setActiveSpan(eventSpan))
     }
-  }, [span, dispatch])
+  }, [eventSpan, dispatch])
 
   const handleNextPatchClick = () => {
     if (activeSetStateEvent) {
@@ -72,7 +73,7 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
 
   return (
     <div className={'flex gap-x-2 -mt-[1px]'}>
-      ({activePatchIndex + 1} / {workflowStateEvents.length}) &mdash;{' '}
+      ({activePatchIndex + 1} / {workflowStateEvents.length}){' '}
       <button
         className={
           'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'

@@ -2,14 +2,15 @@ import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
+import { PlayIcon } from '@heroicons/react/24/solid'
 
 interface WorkflowDetailStateNavProps {
-  serviceName: string
+  traceId: string
   workflowSpanId: string
 }
 
 export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProps) {
-  const { serviceName, workflowSpanId } = props
+  const { traceId, workflowSpanId } = props
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
@@ -31,9 +32,9 @@ export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProp
         {atts['junjo.store.name']} &rarr; {atts['junjo.store.action']} &rarr; {atts.id}
       </div>
       <div className={'font-mono flex items-center gap-x-2'}>
+        <PlayIcon className={'size-4 text-orange-300'} />
         {start_micro}
-        {/* <WorkflowStateEventNavButtons serviceName={serviceName} workflowSpanId={workflowSpanId} /> */}
-        [buttons here]
+        <WorkflowStateEventNavButtons traceId={traceId} workflowSpanId={workflowSpanId} />
       </div>
     </div>
   )

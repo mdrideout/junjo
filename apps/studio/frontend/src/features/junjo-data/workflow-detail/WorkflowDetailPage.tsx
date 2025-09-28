@@ -104,7 +104,7 @@ export default function WorkflowDetailPage() {
         />
       </div>
       <div className={'pt-2 px-2 pb-2'}>
-        <WorkflowDetailStateNav serviceName={serviceName} workflowSpanId={workflowSpanId} />
+        <WorkflowDetailStateNav traceId={traceId} workflowSpanId={workflowSpanId} />
       </div>
 
       <div className={'grow w-full flex gap-x-4 justify-between overflow-hidden'}>

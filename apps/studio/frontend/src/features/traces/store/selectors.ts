@@ -414,7 +414,7 @@ export const selectActiveStoreID = createSelector(
  */
 export const selectStateEventParentSpan = createSelector(
   [
-    selectSpanAndChildren,
+    selectTraceSpansForTraceId,
     (_state: RootState, props: { stateEventId: string | undefined }) => props.stateEventId,
   ],
   (childSpans, stateEventId): OtelSpan | undefined => {
