@@ -25,8 +25,6 @@ export class JunjoGraph {
    * @returns an instance of JunjoGraph
    */
   static fromJson(json: Record<string, any>): JunjoGraph {
-    console.log('Junjo Graph Raw JSON: ', json)
-
     try {
       const parsedData = JGraphSchema.safeParse(json)
 

@@ -13,17 +13,12 @@ interface RenderJunjoGraphListProps {
 export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
   const { traceId, workflowSpanId, showEdgeLabels } = props
 
-  console.log('Workflow span id: ', workflowSpanId)
-  console.log('Trace id: ', traceId)
-
   const workflowChain = useAppSelector((state: RootState) =>
     identifySpanWorkflowChain(state, {
       traceId,
       workflowSpanId,
     }),
   )
-
-  console.log('Workflow Chain: ', workflowChain)
 
   return workflowChain.map((workflowSpan) => {
     // Parse mermaid flow string
