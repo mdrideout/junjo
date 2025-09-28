@@ -152,25 +152,6 @@ export const selectSpanHasExceptions = createSelector([selectWorkflowSpan], (spa
 })
 
 /**
- * Select Workflow Span By Store ID
- * Allows for the selection of a workflow span by its store ID
- */
-export const selectWorkflowSpanByStoreID = createSelector(
-  [
-    selectWorkflowsData,
-    (_state: RootState, props: { serviceName: string | undefined; storeID: string | undefined }) => props,
-  ],
-  (workflowsData, props): OtelSpan | undefined => {
-    if (!props.storeID || !props.serviceName) return undefined
-
-    const serviceData = workflowsData[props.serviceName ?? '']
-    if (!serviceData) return undefined
-
-    return serviceData.workflowSpans.find((span) => span.junjo_wf_store_id === props.storeID)
-  },
-)
-
-/**
  * Select All Span State Events
  * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
  */

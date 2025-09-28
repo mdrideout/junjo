@@ -6,7 +6,6 @@ import { detailedDiff, diff } from 'deep-object-diff'
 import { TriangleDownIcon } from '@radix-ui/react-icons'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectWorkflowSpanByStoreID } from '../../otel/store/selectors'
 import * as jsonpatch from 'fast-json-patch'
 import { OtelSpan } from '../../otel/schemas/schemas'
 import SpanExceptionsList from './SpanExceptionsList'
@@ -15,6 +14,7 @@ import {
   selectActiveStoreID,
   selectBeforeSpanStateEventInWorkflow,
   selectStateEventsByJunjoStoreId,
+  selectWorkflowSpanByStoreId,
 } from '../../traces/store/selectors'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
@@ -64,8 +64,6 @@ const TabButton = ({
 export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffProps) {
   const { defaultWorkflowSpan } = props
   const hasMountedRef = useRef(false)
-  const serviceName = defaultWorkflowSpan.service_name
-  const defaultWorkflowSpanID = defaultWorkflowSpan.span_id
 
   const openExceptionsTrigger = useAppSelector(
     (state: RootState) => state.workflowDetailState.openExceptionsTrigger,
@@ -87,19 +85,15 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   const activeWorkflowSpan = useAppSelector((state: RootState) => selectActiveSpanJunjoWorkflow(state))
 
   // The Active Store is the store that the active span is acting on
-  const activeStoreID = useAppSelector((state: RootState) => selectActiveStoreID(state))
+  const activeStoreId = useAppSelector((state: RootState) => selectActiveStoreID(state))
 
   // This is the workflow span that owns the store that the active span is acting on
   // The active span may be a subflow operating on a parent store.
-  const activeStoreWorkflowSpanSelectorProps = useMemo(
-    () => ({
-      serviceName,
-      storeID: activeStoreID,
-    }),
-    [serviceName, activeStoreID],
-  )
   const activeStoreWorkflowSpan = useAppSelector((state: RootState) =>
-    selectWorkflowSpanByStoreID(state, activeStoreWorkflowSpanSelectorProps),
+    selectWorkflowSpanByStoreId(state, {
+      traceId: defaultWorkflowSpan.trace_id,
+      storeId: activeStoreId,
+    }),
   )
 
   // Get Active Workflow State Events
@@ -110,7 +104,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     selectStateEventsByJunjoStoreId(state, {
       traceId: activeWorkflowSpan?.trace_id,
       spanId: activeWorkflowSpan?.span_id,
-      storeId: activeStoreID,
+      storeId: activeStoreId,
     }),
   )
 
@@ -128,7 +122,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     selectBeforeSpanStateEventInWorkflow(state, {
       traceId: activeWorkflowSpan?.trace_id,
       spanId: activeWorkflowSpan?.span_id,
-      storeId: activeStoreID,
+      storeId: activeStoreId,
     }),
   )
 
@@ -139,6 +133,17 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   // Infer Changes & Detailed tab data using deep-object-diff
   const changesJson = diff(beforeJson, afterJson)
   const detailedJson = detailedDiff(beforeJson, afterJson)
+
+  const patchJson = useMemo(() => {
+    const patchString = activeSetStateEvent?.attributes['junjo.state_json_patch']
+    if (!patchString) return {}
+    try {
+      return JSON.parse(patchString)
+    } catch (e) {
+      console.error('Failed to parse patch string', e)
+      return { error: 'Failed to parse patch JSON' }
+    }
+  }, [activeSetStateEvent])
 
   // JSON Renderer Theme Decider
   const displayTheme = prefersDarkMode ? vscodeTheme : lightTheme
@@ -176,82 +181,82 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }
   }, [activeTab, hasExceptions])
 
-  // /**
-  //  * Accumulate State Patches To Index (inclusive)
-  //  *
-  //  * Given a patch index, this function will accumulate the patches up to and including the patch at the given index.
-  //  *
-  //  * @returns {[Record<string, any>, Record<string, any>]} - before / after state
-  //  */
-  // const accumulateStatePathesToIndex = (patchIndex: number): [Record<string, any>, Record<string, any>] => {
-  //   // If there are no patches, just set the original state
-  //   if (activeStoreStateEvents.length === 0) {
-  //     return [workflowStateStart, workflowStateStart]
-  //   }
+  /**
+   * Accumulate State Patches To Index (inclusive)
+   *
+   * Given a patch index, this function will accumulate the patches up to and including the patch at the given index.
+   *
+   * @returns {[Record<string, any>, Record<string, any>]} - before / after state
+   */
+  const accumulateStatePathesToIndex = (patchIndex: number): [Record<string, any>, Record<string, any>] => {
+    // If there are no patches, just set the original state
+    if (activeStoreStateEvents.length === 0) {
+      return [workflowStateStart, workflowStateStart]
+    }
 
-  //   // If the patch index is out of bounds, return (there is no patch)
-  //   if (patchIndex < 0 || patchIndex >= activeStoreStateEvents.length) {
-  //     return [workflowStateStart, workflowStateStart]
-  //   }
+    // If the patch index is out of bounds, return (there is no patch)
+    if (patchIndex < 0 || patchIndex >= activeStoreStateEvents.length) {
+      return [workflowStateStart, workflowStateStart]
+    }
 
-  //   // Starting points for accumulating patches
-  //   let beforeCumulativeState = structuredClone(workflowStateStart)
-  //   let afterCumulativeState = structuredClone(workflowStateStart)
+    // Starting points for accumulating patches
+    let beforeCumulativeState = structuredClone(workflowStateStart)
+    let afterCumulativeState = structuredClone(workflowStateStart)
 
-  //   // Apply patches to the cumulative state
-  //   for (let i = 0; i <= patchIndex; i++) {
-  //     const thisEvent = activeStoreStateEvents[i]
+    // Apply patches to the cumulative state
+    for (let i = 0; i <= patchIndex; i++) {
+      const thisEvent = activeStoreStateEvents[i]
 
-  //     const patchString = thisEvent.attributes['junjo.state_json_patch']
-  //     const patch = JSON.parse(patchString)
-  //     // console.log(`Patch ${i} of ${patchIndex}`)
-  //     // console.log('Patch string: ', patchString)
-  //     // console.log('Patch: ', patch)
+      const patchString = thisEvent.attributes['junjo.state_json_patch']
+      const patch = JSON.parse(patchString)
+      // console.log(`Patch ${i} of ${patchIndex}`)
+      // console.log('Patch string: ', patchString)
+      // console.log('Patch: ', patch)
 
-  //     // Apply to after state
-  //     afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
+      // Apply to after state
+      afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
 
-  //     // Apply to before state if i is less than patchIndex
-  //     if (i < patchIndex) {
-  //       beforeCumulativeState = jsonpatch.applyPatch(beforeCumulativeState, patch).newDocument
-  //     }
-  //   }
+      // Apply to before state if i is less than patchIndex
+      if (i < patchIndex) {
+        beforeCumulativeState = jsonpatch.applyPatch(beforeCumulativeState, patch).newDocument
+      }
+    }
 
-  //   return [beforeCumulativeState, afterCumulativeState]
-  // }
+    return [beforeCumulativeState, afterCumulativeState]
+  }
 
-  // /**
-  //  * Run the patch accumulation functions based on the active span / active state event
-  //  */
-  // useEffect(() => {
-  //   // If there is no active set state event,
-  //   // use the index of the set_state event that occurs most recently before
-  //   // the active span start time
-  //   // NOTE: THIS DEPENDS ON THE AUTOMATIC SELECTION OF THE FIRST STATE EVENT INSIDE SPANS WITH STATE EVENTS
-  //   //       OTHERWISE, the ux diffs may not make sense.
-  //   //       Spans with no state events have the same before / after state (equal to the AFTER state of the most recent prior state event)
-  //   if (!activeSetStateEvent) {
-  //     // The index of the set state event that occurs just prior to the active span, in the list of state events for the active workflow's store
-  //     const indexOfBeforeActiveSpanSetStateEventInsideActiveStore = activeStoreStateEvents.findIndex(
-  //       (event) => event.attributes.id === beforeActiveSpanStateEvent?.attributes.id,
-  //     )
-  //     const [_before, after] = accumulateStatePathesToIndex(
-  //       indexOfBeforeActiveSpanSetStateEventInsideActiveStore,
-  //     )
-  //     setBeforeJson(after)
-  //     setAfterJson(after)
-  //     return
-  //   }
+  /**
+   * Run the patch accumulation functions based on the active span / active state event
+   */
+  useEffect(() => {
+    // If there is no active set state event,
+    // use the index of the set_state event that occurs most recently before
+    // the active span start time
+    // NOTE: THIS DEPENDS ON THE AUTOMATIC SELECTION OF THE FIRST STATE EVENT INSIDE SPANS WITH STATE EVENTS
+    //       OTHERWISE, the ux diffs may not make sense.
+    //       Spans with no state events have the same before / after state (equal to the AFTER state of the most recent prior state event)
+    if (!activeSetStateEvent) {
+      // The index of the set state event that occurs just prior to the active span, in the list of state events for the active workflow's store
+      const indexOfBeforeActiveSpanSetStateEventInsideActiveStore = activeStoreStateEvents.findIndex(
+        (event) => event.attributes.id === beforeActiveSpanStateEvent?.attributes.id,
+      )
+      const [_before, after] = accumulateStatePathesToIndex(
+        indexOfBeforeActiveSpanSetStateEventInsideActiveStore,
+      )
+      setBeforeJson(after)
+      setAfterJson(after)
+      return
+    }
 
-  //   // If there is an active set state event, use the index of that event
-  //   // The before / after is based on the before patch state, and after patch state
-  //   const indexOfActiveSetStateEventInsideActiveStore = activeStoreStateEvents.findIndex(
-  //     (event) => event.attributes.id === activeSetStateEvent?.attributes.id,
-  //   )
-  //   const [before, after] = accumulateStatePathesToIndex(indexOfActiveSetStateEventInsideActiveStore)
-  //   setBeforeJson(before)
-  //   setAfterJson(after)
-  // }, [activeStoreStateEvents, activeWorkflowSpan, activeSetStateEvent, beforeActiveSpanStateEvent])
+    // If there is an active set state event, use the index of that event
+    // The before / after is based on the before patch state, and after patch state
+    const indexOfActiveSetStateEventInsideActiveStore = activeStoreStateEvents.findIndex(
+      (event) => event.attributes.id === activeSetStateEvent?.attributes.id,
+    )
+    const [before, after] = accumulateStatePathesToIndex(indexOfActiveSetStateEventInsideActiveStore)
+    setBeforeJson(before)
+    setAfterJson(after)
+  }, [activeStoreStateEvents, activeWorkflowSpan, activeSetStateEvent, beforeActiveSpanStateEvent])
 
   // Get Tab Collapsed Level
   const getTabCollapsedLevel = (tab: DiffTabOptions) => {
@@ -277,7 +282,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       case DiffTabOptions.DETAILED:
         return detailedJson
       case DiffTabOptions.PATCH:
-        return { TODO: 'CURRENT PATCH JSON HERE' }
+        return patchJson
       default:
         return {}
     }

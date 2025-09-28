@@ -173,6 +173,19 @@ export const identifySpanWorkflowChain = createWorkflowChainSelector(
 )
 
 /**
+ * Select Workflow Span By Store ID
+ * Allows for the selection of a workflow span for a given storeId
+ */
+export const selectWorkflowSpanByStoreId = createSelector(
+  [selectTraceSpansForTraceId, (_state: RootState, props: { storeId: string | undefined }) => props.storeId],
+  (traceSpans, storeId): OtelSpan | undefined => {
+    if (!traceSpans || !storeId) return undefined
+
+    return traceSpans.find((span) => span.junjo_wf_store_id === storeId)
+  },
+)
+
+/**
  * Select Active Span's First Junjo Parent Span
  * For the active span, find the first parent span that is a Junjo span (not 'other').
  * This includes the starting span itself.
