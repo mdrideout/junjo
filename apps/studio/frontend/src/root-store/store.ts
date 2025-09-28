@@ -8,8 +8,8 @@ import { apiKeysReducer } from '../features/api-keys/slice'
 import { apiKeysStateListenerMiddleware } from '../features/api-keys/listeners'
 import { workflowDetailListenerMiddleware } from '../features/junjo-data/workflow-detail/store/listeners'
 import promptPlaygroundSlice from '../features/prompt-playground/store/slice'
-import workflowExecutionsSlice from '../features/junjo-data/list-workflow-executions/store/slice'
-import { workflowExecutionsListenerMiddleware } from '../features/junjo-data/list-workflow-executions/store/listeners'
+import workflowSpanListSlice from '../features/junjo-data/list-spans-workflow/store/slice'
+import { workflowExecutionsListenerMiddleware } from '../features/junjo-data/list-spans-workflow/store/listeners'
 import tracesSlice from '../features/traces/store/slice'
 import { otelStateListenerMiddleware as tracesStateListenerMiddleware } from '../features/traces/store/listeners'
 
@@ -20,7 +20,7 @@ export const store = configureStore({
     usersState: usersSlice,
     apiKeysState: apiKeysReducer,
     promptPlaygroundState: promptPlaygroundSlice,
-    workflowExecutionsState: workflowExecutionsSlice,
+    workflowSpanListState: workflowSpanListSlice,
     tracesState: tracesSlice,
   },
 

@@ -2,30 +2,30 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { OtelSpan } from '../../../otel/schemas/schemas'
 
-interface WorkflowExecutionsState {
-  workflowExecutions: OtelSpan[]
+interface WorkflowSpanListState {
+  workflowSpanList: OtelSpan[]
   loading: boolean
   error: boolean
 }
 
-const initialState: WorkflowExecutionsState = {
-  workflowExecutions: [],
+const initialState: WorkflowSpanListState = {
+  workflowSpanList: [],
   loading: false,
   error: false,
 }
 
-export const workflowExecutionsSlice = createSlice({
-  name: 'workflowExecutionsState',
+export const workflowSpanListSlice = createSlice({
+  name: 'workflowSpanListState',
   initialState,
   reducers: {
     // Listener Middleware Triggers
     // DEPRECATED
-    fetchWorkflowExecutionsDEPRECATED: (_state) => {
+    fetchSpansTypeWorkflow: (_state) => {
       // Handled by listener middleware
     },
 
     setWorkflowExecutionsData: (state, action: PayloadAction<OtelSpan[]>) => {
-      state.workflowExecutions = action.payload
+      state.workflowSpanList = action.payload
     },
     setWorkflowExecutionsLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload
@@ -36,5 +36,5 @@ export const workflowExecutionsSlice = createSlice({
   },
 })
 
-export const WorkflowExecutionsStateActions = workflowExecutionsSlice.actions
-export default workflowExecutionsSlice.reducer
+export const WorkflowExecutionsStateActions = workflowSpanListSlice.actions
+export default workflowSpanListSlice.reducer

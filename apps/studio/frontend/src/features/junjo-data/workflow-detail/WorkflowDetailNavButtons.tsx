@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { WorkflowDetailStateActions } from './store/slice'
-import { selectNextWorkflowSpanID, selectPrevWorkflowSpanID } from './store/selectors'
+import { selectNextWorkflowSpan, selectPrevWorkflowSpan } from '../list-spans-workflow/store/selectors'
+import { useEffect } from 'react'
+import { WorkflowExecutionsStateActions } from '../list-spans-workflow/store/slice'
 
 interface WorkflowDetailNavButtonsProps {
   serviceName: string
@@ -15,15 +17,19 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
-  const prevSpanID = useAppSelector((state: RootState) =>
-    selectPrevWorkflowSpanID(state, { serviceName, spanID: workflowSpanId }),
+  useEffect(() => {
+    dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow())
+  }, [dispatch])
+
+  const prevWorkflowSpan = useAppSelector((state: RootState) =>
+    selectPrevWorkflowSpan(state, { serviceName, spanID: workflowSpanId }),
   )
-  const nextSpanID = useAppSelector((state: RootState) =>
-    selectNextWorkflowSpanID(state, { serviceName, spanID: workflowSpanId }),
+  const nextWorkflowSpan = useAppSelector((state: RootState) =>
+    selectNextWorkflowSpan(state, { serviceName, spanID: workflowSpanId }),
   )
 
-  const disablePrev = prevSpanID === undefined
-  const disableNext = nextSpanID === undefined
+  const disablePrev = prevWorkflowSpan === undefined
+  const disableNext = nextWorkflowSpan === undefined
 
   const handlePrevClick = () => {
     if (!disablePrev) {
@@ -32,7 +38,9 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
       dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
       // Navigate
-      navigate(`/logs/${serviceName}/${prevSpanID}`)
+      navigate(
+        `/workflows/${prevWorkflowSpan.service_name}/${prevWorkflowSpan.trace_id}/${prevWorkflowSpan.span_id}`,
+      )
     }
   }
 
@@ -43,7 +51,9 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
       dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
       // Navigate
-      navigate(`/logs/${serviceName}/${nextSpanID}`)
+      navigate(
+        `/workflows/${nextWorkflowSpan.service_name}/${nextWorkflowSpan.trace_id}/${nextWorkflowSpan.span_id}`,
+      )
     }
   }
 

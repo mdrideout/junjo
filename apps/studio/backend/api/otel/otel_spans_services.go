@@ -30,8 +30,8 @@ var queryRootSpansFiltered string
 //go:embed query_span.sql
 var querySpan string
 
-//go:embed query_workflow_executions.sql
-var queryWorkflowExecutions string
+//go:embed query_spans_type_workflow.sql
+var querySpansTypeWorkflow string
 
 func GetDistinctServiceNames(c echo.Context) error {
 	c.Logger().Printf("Running GetDistinctServiceNames function")
@@ -471,8 +471,8 @@ func GetSpan(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-func GetWorkflowExecutions(c echo.Context) error {
-	c.Logger().Printf("Running GetWorkflowExecutions function")
+func GetSpansTypeWorkflow(c echo.Context) error {
+	c.Logger().Printf("Running GetSpansTypeWorkflow function")
 
 	db := db_duckdb.DB
 	if db == nil {
@@ -480,7 +480,7 @@ func GetWorkflowExecutions(c echo.Context) error {
 	}
 
 	// Execute the query
-	rows, err := db.Query(queryWorkflowExecutions)
+	rows, err := db.Query(querySpansTypeWorkflow)
 	if err != nil {
 		c.Logger().Printf("Error querying database: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})

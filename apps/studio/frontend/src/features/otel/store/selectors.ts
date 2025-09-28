@@ -628,26 +628,3 @@ export const selectBeforeSpanStateEventInWorkflow = createSelector(
     return undefined
   },
 )
-
-export const selectPrevWorkflowSpanID = (
-  state: RootState,
-  props: { serviceName: string | undefined; spanID: string | undefined },
-) => {
-  const workflowSpans = selectServiceWorkflows(state, { serviceName: props.serviceName })
-  if (!workflowSpans) return undefined
-
-  const spanIndex = workflowSpans.findIndex((item) => item.span_id === props.spanID)
-  if (spanIndex === -1 || spanIndex === 0) return undefined
-  return workflowSpans[spanIndex - 1].span_id
-}
-
-export const selectNextWorkflowSpanID = (
-  state: RootState,
-  props: { serviceName: string | undefined; spanID: string | undefined },
-) => {
-  const workflowSpans = selectServiceWorkflows(state, { serviceName: props.serviceName })
-  if (!workflowSpans) return undefined
-  const spanIndex = workflowSpans.findIndex((item) => item.span_id === props.spanID)
-  if (spanIndex === -1 || spanIndex === workflowSpans.length - 1) return undefined
-  return workflowSpans[spanIndex + 1].span_id
-}

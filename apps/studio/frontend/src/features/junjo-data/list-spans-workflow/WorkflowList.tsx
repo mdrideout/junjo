@@ -6,12 +6,12 @@ import WorkflowListRow from './WorkflowListItem'
 export default function WorkflowsList() {
   const dispatch = useAppDispatch()
 
-  const loading = useAppSelector((state) => state.workflowExecutionsState.loading)
-  const error = useAppSelector((state) => state.workflowExecutionsState.error)
-  const workflowSpans = useAppSelector((state) => state.workflowExecutionsState.workflowExecutions)
+  const loading = useAppSelector((state) => state.workflowSpanListState.loading)
+  const error = useAppSelector((state) => state.workflowSpanListState.error)
+  const workflowSpans = useAppSelector((state) => state.workflowSpanListState.workflowSpanList)
 
   useEffect(() => {
-    dispatch(WorkflowExecutionsStateActions.fetchWorkflowExecutionsDEPRECATED())
+    dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow())
   }, [dispatch])
 
   if (loading) {

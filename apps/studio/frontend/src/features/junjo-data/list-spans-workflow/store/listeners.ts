@@ -1,22 +1,22 @@
 import { createListenerMiddleware } from '@reduxjs/toolkit/react'
 import { AppDispatch, RootState } from '../../../../root-store/store'
 import { WorkflowExecutionsStateActions } from './slice'
-import { getWorkflowExecutions } from '../fetch/get-workflow-executions'
+import { getSpansTypeWorkflow } from '../fetch/get-spans-type-workflow'
 
 export const workflowExecutionsListenerMiddleware = createListenerMiddleware()
 const startListener = workflowExecutionsListenerMiddleware.startListening.withTypes<RootState, AppDispatch>()
 
 startListener({
-  actionCreator: WorkflowExecutionsStateActions.fetchWorkflowExecutionsDEPRECATED,
-  effect: async (action, { getState, dispatch }) => {
-    const { loading } = getState().workflowExecutionsState
+  actionCreator: WorkflowExecutionsStateActions.fetchSpansTypeWorkflow,
+  effect: async (_action, { getState, dispatch }) => {
+    const { loading } = getState().workflowSpanListState
     if (loading) return
 
     dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(false))
     dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsLoading(true))
 
     try {
-      const data = await getWorkflowExecutions()
+      const data = await getSpansTypeWorkflow()
       dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsData(data))
     } catch (error) {
       dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(true))
