@@ -429,3 +429,35 @@ export const selectStateEventParentSpan = createSelector(
     return span
   },
 )
+
+/**
+ * Select All Workflow State Events
+ * Given a traceId and workflowSpanId, this selector finds all state events
+ * operating on the same store as the workflowSpan.
+ *
+ * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
+ */
+export const selectAllWorkflowStateEvents = createSelector(
+  [selectSpanAndChildren],
+  (spans): JunjoSetStateEvent[] => {
+    const junjoSetStateEvents: JunjoSetStateEvent[] = []
+
+    spans.forEach((span) => {
+      // Basic check if events_json exists and is an array
+      if (Array.isArray(span.events_json)) {
+        span.events_json.forEach((event) => {
+          try {
+            const parsedEvent = JunjoSetStateEventSchema.parse(event)
+            junjoSetStateEvents.push(parsedEvent)
+          } catch (error) {
+            // Consider less noisy logging or specific handling
+            // console.error('Error parsing event in selector:', error);
+          }
+        })
+      }
+    })
+
+    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
+    return junjoSetStateEvents
+  },
+)

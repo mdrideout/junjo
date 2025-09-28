@@ -1,11 +1,11 @@
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { selectAllSpanChildSpans, selectAllWorkflowStateEvents } from '../../otel/store/selectors'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
 import { SpanIconConstructor } from './determine-span-icon'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import { selectAllWorkflowStateEvents, selectSpanAndChildren } from '../../traces/store/selectors'
 
 interface FlatStateEventsListProps {
   traceId: string
@@ -17,10 +17,18 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
 
-  // const events = useAppSelector((state: RootState) => selectAllWorkflowStateEvents(state, selectorProps))
-  const events = []
-  // const spans = useAppSelector((state: RootState) => selectAllSpanChildSpans(state, selectorProps))
-  const spans = []
+  const events = useAppSelector((state: RootState) =>
+    selectAllWorkflowStateEvents(state, {
+      traceId,
+      spanId: workflowSpanId,
+    }),
+  )
+  const spans = useAppSelector((state: RootState) =>
+    selectSpanAndChildren(state, {
+      traceId,
+      spanId: workflowSpanId,
+    }),
+  )
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )

@@ -140,40 +140,6 @@ export const selectWorkflowsLineageSpans = createSelector(
   },
 )
 
-// /**
-//  * Select All Workflow State Events
-//  * Memoized selectAllWorkflowStateEvents (Depends on memoized selectAllSpanChildSpans)
-//  * No direct prop selector needed here, as props are passed to selectAllSpanChildSpans implicitly
-//  * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
-//  */
-// export const selectAllWorkflowStateEvents = createSelector(
-//   [selectWorkflowSpan, selectSpanAndChildren],
-//   (workflowSpan, childSpans): JunjoSetStateEvent[] => {
-//     const junjoSetStateEvents: JunjoSetStateEvent[] = []
-
-//     // Combine the workflow span and child spans
-//     const allSpans = [workflowSpan, ...childSpans].filter((span) => span !== undefined)
-
-//     allSpans.forEach((span) => {
-//       // Basic check if events_json exists and is an array
-//       if (Array.isArray(span.events_json)) {
-//         span.events_json.forEach((event) => {
-//           try {
-//             const parsedEvent = JunjoSetStateEventSchema.parse(event)
-//             junjoSetStateEvents.push(parsedEvent)
-//           } catch (error) {
-//             // Consider less noisy logging or specific handling
-//             // console.error('Error parsing event in selector:', error);
-//           }
-//         })
-//       }
-//     })
-
-//     junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-//     return junjoSetStateEvents
-//   },
-// )
-
 /**
  * Select: Span Has Exceptions
  */
