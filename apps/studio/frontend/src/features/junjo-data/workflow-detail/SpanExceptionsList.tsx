@@ -27,7 +27,7 @@ export default function SpanExceptionsList(props: SpanExceptionsListProps) {
         console.log('Exceptions:', exceptions)
 
         return (
-          <div key={`span-exception-wrap-${span.span_id}`} className={'px-1 pt-1 pb-5 mb-4'}>
+          <div key={`span-exception-wrap-${span.span_id}`} className={'px-1 pt-2 pb-5 mb-4'}>
             <div className={'flex gap-x-2 items-center'}>
               <SpanIconConstructor span={span} active={false} />
               <button
@@ -43,30 +43,32 @@ export default function SpanExceptionsList(props: SpanExceptionsListProps) {
                 {span?.name}
               </button>
             </div>
-            {exceptions.map((exception, index) => (
-              <div
-                key={`exception-${index}-${exception.timeUnixNano}`}
-                className={`text-sm px-4.5 mt-1 mb-5 pb-5 pt-1 border-l ml-[9.5px] border-b last:border-b-0 border-zinc-300 dark:border-zinc-700  ${false ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
-              >
-                <div className={'font-bold'}>Message</div>
+            {exceptions.map((exception, index) => {
+              return (
                 <div
-                  className={
-                    'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'
-                  }
+                  key={`exception-${index}-${exception.timeUnixNano}`}
+                  className={`text-sm px-4.5 mt-1 mb-5 pb-5 pt-1 border-l ml-[9.5px] border-b last:border-b-0 border-zinc-300 dark:border-zinc-700  ${false ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
                 >
-                  {exception.attributes['exception.message']}
+                  <div className={'font-bold'}>Message</div>
+                  <div
+                    className={
+                      'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'
+                    }
+                  >
+                    {exception.attributes['exception.message']}
+                  </div>
+                  <div className={'h-4'}></div>
+                  <div className={'font-bold'}>Stack trace</div>
+                  <div
+                    className={
+                      'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'
+                    }
+                  >
+                    {exception.attributes['exception.stacktrace']}
+                  </div>
                 </div>
-                <div className={'h-4'}></div>
-                <div className={'font-bold'}>Stack trace</div>
-                <div
-                  className={
-                    'whitespace-pre-wrap font-mono word-break text-zinc-600 dark:text-zinc-400 text-xs'
-                  }
-                >
-                  {exception.attributes['exception.stacktrace']}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )
       })}

@@ -50,7 +50,7 @@ export const selectTraceSpansForTraceId = createSelector(
     if (!traceId) {
       return []
     }
-    return traceSpans[traceId]
+    return traceSpans[traceId] ?? []
   },
 )
 

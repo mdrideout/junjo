@@ -16,6 +16,7 @@ import {
   selectBeforeSpanStateEventInWorkflow,
   selectStateEventsByJunjoStoreId,
 } from '../../traces/store/selectors'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -47,7 +48,10 @@ const TabButton = ({
       className={`leading-tight px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm font-medium border-b transition-all duration-200 cursor-pointer ${activeTab === tab ? 'border-zinc-600 ' : 'border-transparent'}`}
       onClick={() => tabChangeHandler(tab)}
     >
-      {tab}
+      <div className={'flex items-center gap-x-1 text-left'}>
+        {tab === DiffTabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-5 text-red-700'} />}
+        {tab}
+      </div>
     </button>
   )
 }
