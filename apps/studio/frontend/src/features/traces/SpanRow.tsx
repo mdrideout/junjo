@@ -1,6 +1,7 @@
 import { getSpanDurationString } from '../../util/duration-utils'
-import { OtelSpan } from '../traces/schemas/schemas'
+import { JunjoSpanType, OtelSpan } from '../traces/schemas/schemas'
 import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-icon'
+import { Link } from 'react-router'
 
 interface SpanRowProps {
   span: OtelSpan
@@ -20,6 +21,9 @@ export default function SpanRow(props: SpanRowProps) {
     return event.attributes && event.attributes['exception.type'] !== undefined
   })
 
+  // Is Junjo Workflow Span
+  const isJunjoWorkflowSpan = span.junjo_span_type === JunjoSpanType.WORKFLOW
+
   return (
     <div className="p-1">
       <div className="flex gap-x-1 items-center">
@@ -29,8 +33,17 @@ export default function SpanRow(props: SpanRowProps) {
           onClick={() => onClick(span)}
         >
           <div className={'flex gap-x-2 items-center text-sm'}>
-            <span>{span.name}</span>
-
+            <div>{span.name}</div>
+            {isJunjoWorkflowSpan && (
+              <Link
+                className={
+                  'mt-[1px] cursor-pointer text-white bg-zinc-700 hover:bg-zinc-600 rounded-lg px-1.5 text-xs'
+                }
+                to={`/workflows/${span.service_name}/${span.trace_id}/${span.span_id}/${span.span_id}`}
+              >
+                Workflow Explorer &rarr;
+              </Link>
+            )}
             {hasExceptions && (
               <button
                 className={
