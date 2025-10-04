@@ -129,7 +129,9 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   )
 
   // Local State
-  const [activeTab, setActiveTab] = useState<DiffTabOptions>(DiffTabOptions.AFTER)
+  const [activeTab, setActiveTab] = useState<DiffTabOptions>(
+    activeSetStateEvent ? DiffTabOptions.AFTER : DiffTabOptions.SPAN_DETAILS,
+  )
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
   // Infer Changes & Detailed tab data using deep-object-diff
@@ -182,6 +184,18 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       setActiveTab(DiffTabOptions.AFTER)
     }
   }, [activeTab, hasExceptions])
+
+  // When the active state event is cleared, go to the span details tab
+  // When a state event is selected, and we are on the span details tab, go to the after tab
+  useEffect(() => {
+    if (activeSetStateEvent === null) {
+      setActiveTab(DiffTabOptions.SPAN_DETAILS)
+    } else {
+      if (activeTab === DiffTabOptions.SPAN_DETAILS) {
+        setActiveTab(DiffTabOptions.AFTER)
+      }
+    }
+  }, [activeSetStateEvent, activeTab])
 
   /**
    * Accumulate State Patches To Index (inclusive)
@@ -292,14 +306,15 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   return (
     <div className={'flex-1/2 flex flex-col pr-2.5'}>
-      <div className={'flex gap-x-2'}>
+      <div className={'flex gap-x-2 items-center'}>
+        <div className={`leading-tight pl-2 py-1 text-sm font-bold`}>State:</div>
         <TabButton tab={DiffTabOptions.BEFORE} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={DiffTabOptions.AFTER} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         {activeSetStateEvent && (
           <TabButton tab={DiffTabOptions.PATCH} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
         <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
-        <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={setActiveTab} />|
         {activeSpan && (
           <TabButton
             tab={DiffTabOptions.SPAN_DETAILS}

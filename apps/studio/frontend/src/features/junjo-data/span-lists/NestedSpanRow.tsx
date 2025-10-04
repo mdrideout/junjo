@@ -4,6 +4,7 @@ import { JunjoSpanType, OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from './determine-span-icon'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import { spanNameConstructor } from './span-name-constructor'
+import { useNavigate, useParams } from 'react-router'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -13,6 +14,8 @@ interface NestedSpanRowProps {
 export default function NestedSpanRow(props: NestedSpanRowProps) {
   const { span, isActiveSpan } = props
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const { serviceName, traceId, workflowSpanId } = useParams()
 
   // Determine the type of span
   const nonJunjoSpan = span.junjo_span_type === JunjoSpanType.OTHER
@@ -30,8 +33,6 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   // Create the name
   const name = spanNameConstructor(span)
 
-  // console.log('Span attributes: ', span)
-
   return (
     <div className={`p-1 ${nonJunjoSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}>
       <div className={`flex gap-x-2 ${nonJunjoSpan ? 'items-start' : 'items-center'}`}>
@@ -43,8 +44,14 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 <button
                   className={`cursor-pointer text-left hover:underline`}
                   onClick={() => {
-                    console.log('Clicked span:', span.name)
                     dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                    dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+
+                    // Preserve existing params and set the new spanId
+                    const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
+                    navigate(newPath, {
+                      replace: true,
+                    })
                   }}
                 >
                   {name}
@@ -56,8 +63,14 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
               <button
                 className={`cursor-pointer text-left hover:underline`}
                 onClick={() => {
-                  console.log('Clicked span:', span.name)
                   dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                  dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+
+                  // Preserve existing params and set the new spanId
+                  const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
+                  navigate(newPath, {
+                    replace: true,
+                  })
                 }}
               >
                 {name}
@@ -73,6 +86,13 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 onClick={() => {
                   // Set this span as the active span
                   dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                  dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+
+                  // Preserve existing params and set the new spanId
+                  const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
+                  navigate(newPath, {
+                    replace: true,
+                  })
 
                   // Set this exception as the active
                   dispatch(WorkflowDetailStateActions.setOpenExceptionsTrigger())

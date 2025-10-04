@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { selectSpanById } from '../../traces/store/selectors'
+import { selectSpanById, selectTraceSpansForTraceId } from '../../traces/store/selectors'
 import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
@@ -12,9 +12,10 @@ import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 import TabbedSpanLists from '../span-lists/TabbedSpanLists'
 import WorkflowDetailStateNav from './WorkflowDetailStateNav'
 import { TracesStateActions } from '../../traces/store/slice'
+import { WorkflowDetailStateActions } from './store/slice'
 
 export default function WorkflowDetailPage() {
-  const { serviceName, traceId, workflowSpanId } = useParams()
+  const { serviceName, traceId, workflowSpanId, spanId } = useParams()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
@@ -26,6 +27,8 @@ export default function WorkflowDetailPage() {
       spanId: workflowSpanId,
     }),
   )
+  const traceSpans = useAppSelector((state: RootState) => selectTraceSpansForTraceId(state, { traceId }))
+  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
 
   // Data fetching
   useEffect(() => {
@@ -34,6 +37,16 @@ export default function WorkflowDetailPage() {
       dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
     }
   }, [dispatch, workflowSpan])
+
+  // IF: activeSpan is null and there is a spanId in the URL, set the active span
+  useEffect(() => {
+    if (!activeSpan && spanId) {
+      const span = traceSpans.find((s) => s.span_id === spanId)
+      if (span) {
+        dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+      }
+    }
+  }, [spanId, traceSpans, activeSpan])
 
   if (loading) return null
 

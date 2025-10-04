@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
 import { JSX, useEffect, useRef } from 'react'
+import { Link, useParams } from 'react-router'
 import {
   JunjoSpanType,
   NodeEventType,
@@ -29,13 +30,14 @@ interface NestedWorkflowSpansProps {
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { traceId, workflowSpanId } = props
   const dispatch = useAppDispatch()
+  const { serviceName } = useParams()
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
 
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
-  const scrollToSpanId = useAppSelector((state: RootState) => state.workflowDetailState.scrollToSpanId)
+  const activeSpanId = activeSpan ? activeSpan.span_id : null
   const scrollToStateEventId = useAppSelector(
     (state: RootState) => state.workflowDetailState.scrollToStateEventId,
   )
@@ -61,8 +63,8 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
   // Scroll To Span
   useEffect(() => {
-    if (scrollToSpanId && scrollableContainerRef.current) {
-      const targetSpanId = `#nested-span-${scrollToSpanId}`
+    if (activeSpanId && scrollableContainerRef.current) {
+      const targetSpanId = `#nested-span-${activeSpanId}`
       console.log(`Scrolling to span: ${targetSpanId}`)
       const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
       if (targetElement) {
@@ -73,7 +75,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         })
       }
     }
-  }, [scrollToSpanId])
+  }, [activeSpanId])
 
   // Scroll To State Event
   useEffect(() => {
@@ -253,6 +255,11 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
   return (
     <div ref={scrollableContainerRef}>
+      <div className={'pl-1.5 mt-2 underline text-sm mb-2'}>
+        <Link to={`/traces/${serviceName}/${traceId}`} className={'hover:underline'}>
+          View full trace
+        </Link>
+      </div>
       {topLevelRows.map((row) => {
         return (
           <Fragment key={`row-${row.time}`}>

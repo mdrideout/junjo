@@ -5,7 +5,6 @@ import { JunjoSetStateEvent, OtelSpan } from '../../../traces/schemas/schemas'
 interface WorkflowDetailState {
   activeSpan: OtelSpan | null
   activeSetStateEvent: JunjoSetStateEvent | null
-  scrollToSpanId: string | null
   scrollToStateEventId: string | null
   openExceptionsTrigger: number | null
 }
@@ -13,7 +12,6 @@ interface WorkflowDetailState {
 const initialState: WorkflowDetailState = {
   activeSpan: null,
   activeSetStateEvent: null,
-  scrollToSpanId: null,
   scrollToStateEventId: null,
   openExceptionsTrigger: null,
 }
@@ -27,9 +25,6 @@ export const otelSlice = createSlice({
     },
     setActiveSetStateEvent: (state, action: PayloadAction<JunjoSetStateEvent | null>) => {
       state.activeSetStateEvent = action.payload
-    },
-    setScrollToSpanId: (state, action: PayloadAction<string | null>) => {
-      state.scrollToSpanId = action.payload
     },
     setScrollToStateEventId: (state, action: PayloadAction<string | null>) => {
       state.scrollToStateEventId = action.payload

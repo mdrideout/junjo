@@ -9,6 +9,7 @@ import {
   selectActiveSpanFirstJunjoParent,
   selectTraceSpansForTraceId,
 } from '../features/traces/store/selectors'
+import { useNavigate, useParams } from 'react-router'
 
 interface RenderJunjoGraphMermaidProps {
   traceId: string
@@ -23,6 +24,8 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const dispatch = useAppDispatch()
   const svgContainerRef = useRef<HTMLDivElement>(null)
   const [highlightTrigger, setHighlightTrigger] = useState(0) // State to trigger re-render
+  const navigate = useNavigate()
+  const { serviceName, traceId: traceIdParam, workflowSpanId } = useParams()
 
   // Generate a unique ID for the container div and SVG
   const containerId = `mermaid-container-${mermaidUniqueId}`
@@ -82,12 +85,19 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
+          dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+
+          // Preserve existing params and set the new spanId
+          const newPath = `/workflows/${serviceName}/${traceIdParam}/${workflowSpanId}/${clickedSpan.span_id}`
+          navigate(newPath, {
+            replace: true,
+          })
         }
       } else {
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
       }
     },
-    [dispatch, traceSpans],
+    [dispatch, traceSpans, navigate, serviceName, traceIdParam, workflowSpanId],
   )
 
   // --- Subflow Click Handler ---
@@ -103,12 +113,19 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
+          dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+
+          // Preserve existing params and set the new spanId
+          const newPath = `/workflows/${serviceName}/${traceIdParam}/${workflowSpanId}/${clickedSpan.span_id}`
+          navigate(newPath, {
+            replace: true,
+          })
         }
       } else {
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
       }
     },
-    [dispatch, traceSpans],
+    [dispatch, traceSpans, navigate, serviceName, traceIdParam, workflowSpanId],
   )
 
   /**
