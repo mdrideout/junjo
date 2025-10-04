@@ -44,7 +44,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                   className={`cursor-pointer text-left hover:underline`}
                   onClick={() => {
                     console.log('Clicked span:', span.name)
-                    dispatch(WorkflowDetailStateActions.handleSetActiveSpan(span))
+                    dispatch(WorkflowDetailStateActions.setActiveSpan(span))
                   }}
                 >
                   {name}
@@ -57,7 +57,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 className={`cursor-pointer text-left hover:underline`}
                 onClick={() => {
                   console.log('Clicked span:', span.name)
-                  dispatch(WorkflowDetailStateActions.handleSetActiveSpan(span))
+                  dispatch(WorkflowDetailStateActions.setActiveSpan(span))
                 }}
               >
                 {name}

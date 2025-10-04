@@ -78,14 +78,10 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       // Get the ID from the mermaid element
       const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
       if (junjoID) {
-        // Set the active SetState event to the first event in this node
-        // dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
-        console.log('TODO: Remove set state action code.')
-
         // Get the span with the junjo.id that matches the junjoID
         const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
-          dispatch(WorkflowDetailStateActions.handleSetActiveSpan(clickedSpan))
+          dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
         }
       } else {
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)
@@ -106,7 +102,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         // Get the span with the junjo.id that matches the junjoID
         const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
         if (clickedSpan) {
-          dispatch(WorkflowDetailStateActions.handleSetActiveSpan(clickedSpan))
+          dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
         }
       } else {
         console.warn('Could not extract Junjo ID from clicked element:', targetElement)

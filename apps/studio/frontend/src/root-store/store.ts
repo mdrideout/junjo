@@ -4,7 +4,6 @@ import usersSlice from '../features/users/slice'
 import { usersStateListenerMiddleware } from '../features/users/listeners'
 import { apiKeysReducer } from '../features/api-keys/slice'
 import { apiKeysStateListenerMiddleware } from '../features/api-keys/listeners'
-import { workflowDetailListenerMiddleware } from '../features/junjo-data/workflow-detail/store/listeners'
 import promptPlaygroundSlice from '../features/prompt-playground/store/slice'
 import workflowSpanListSlice from '../features/junjo-data/list-spans-workflow/store/slice'
 import { workflowExecutionsListenerMiddleware } from '../features/junjo-data/list-spans-workflow/store/listeners'
@@ -25,7 +24,6 @@ export const store = configureStore({
     getDefaultMiddleware()
       // Listener middleware must be prepended
       .prepend(
-        workflowDetailListenerMiddleware.middleware,
         usersStateListenerMiddleware.middleware,
         apiKeysStateListenerMiddleware.middleware,
         workflowExecutionsListenerMiddleware.middleware,
