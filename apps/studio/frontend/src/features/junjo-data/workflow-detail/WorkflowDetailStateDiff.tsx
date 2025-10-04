@@ -17,6 +17,7 @@ import {
   selectWorkflowSpanByStoreId,
 } from '../../traces/store/selectors'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
+import SpanAttributesContent from '../../traces/SpanAttributesContent'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -25,6 +26,7 @@ enum DiffTabOptions {
   CHANGES = 'Changes',
   DETAILED = 'Detailed',
   EXCEPTIONS = 'Node Exceptions',
+  SPAN_DETAILS = 'Span Details',
 }
 
 interface WorkflowDetailStateDiffProps {
@@ -298,6 +300,13 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         )}
         <TabButton tab={DiffTabOptions.CHANGES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={DiffTabOptions.DETAILED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        {activeSpan && (
+          <TabButton
+            tab={DiffTabOptions.SPAN_DETAILS}
+            activeTab={activeTab}
+            tabChangeHandler={setActiveTab}
+          />
+        )}
         {hasExceptions && (
           <TabButton tab={DiffTabOptions.EXCEPTIONS} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
@@ -308,8 +317,14 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
           <SpanExceptionsList spans={[activeSpan]} />
         </div>
       )}
+      {/* Attributes View */}
+      {activeSpan && activeTab === DiffTabOptions.SPAN_DETAILS && (
+        <div className={'grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700 p-4'}>
+          <SpanAttributesContent span={activeSpan} />
+        </div>
+      )}
       {/* JSON View */}
-      {activeTab !== DiffTabOptions.EXCEPTIONS && (
+      {activeTab !== DiffTabOptions.EXCEPTIONS && activeTab !== DiffTabOptions.SPAN_DETAILS && (
         <div
           className={
             'workflow-logs-json-container grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'
