@@ -9,6 +9,7 @@ import { GeminiTextRequest } from './schemas/gemini-text-request'
 import ModelSelector from './components/ModelSelector'
 import { Switch } from '../../components/catalyst/switch'
 import { getSpanDurationString } from '../../util/duration-utils'
+import CircularProgress from '../../components/CircularProgress'
 
 export default function PromptPlaygroundPage() {
   const { serviceName, traceId, spanId } = useParams<{
@@ -161,13 +162,22 @@ export default function PromptPlaygroundPage() {
         responseMimeType: 'application/json',
       }
     }
-    dispatch(PromptPlaygroundActions.setOutput(null))
-    const result = await geminiTextRequest(payload)
-    if (result.candidates && result.candidates.length > 0) {
-      const text = result.candidates[0].content.parts[0].text
-      dispatch(PromptPlaygroundActions.setOutput(text))
+
+    try {
+      dispatch(PromptPlaygroundActions.setOutput(null))
+      dispatch(PromptPlaygroundActions.setLoading(true))
+      dispatch(PromptPlaygroundActions.setError(false))
+      const result = await geminiTextRequest(payload)
+      if (result.candidates && result.candidates.length > 0) {
+        const text = result.candidates[0].content.parts[0].text
+        dispatch(PromptPlaygroundActions.setOutput(text))
+      }
+      setTestEndTime(new Date().toISOString())
+    } catch {
+      dispatch(PromptPlaygroundActions.setError(true))
+    } finally {
+      dispatch(PromptPlaygroundActions.setLoading(false))
     }
-    setTestEndTime(new Date().toISOString())
   }
 
   return (
@@ -316,12 +326,26 @@ export default function PromptPlaygroundPage() {
                   />
                 </div>
               </div>
+              {jsonMode && (
+                <div className={'text-xs text-zinc-500 mb-4'}>
+                  JSON Note: IF your original LLM request provided a typed schema / model with the request,
+                  these playground outputs will be missing that context, and results may be different.
+                </div>
+              )}
+
               <button
                 type="submit"
                 className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
                 disabled={outputLoading}
               >
-                {outputLoading ? 'Loading...' : 'Generate'}
+                {outputLoading ? (
+                  <div className="flex items-center gap-2">
+                    <CircularProgress />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  'Generate'
+                )}
               </button>
               {outputError && <div className="text-red-500 mt-2">Error generating content</div>}
             </form>
