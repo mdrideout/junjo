@@ -1,6 +1,6 @@
 import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
-import { OtelSpan } from '../otel/schemas/schemas'
+import { OtelSpan } from '../traces/schemas/schemas'
 import { API_HOST } from '../../config'
 import TraceListItem from './TraceListItem'
 

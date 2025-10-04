@@ -4,9 +4,9 @@ import {
   selectServiceNames,
   selectServiceNamesError,
   selectServiceNamesLoading,
-} from '../../otel/store/selectors'
+} from '../../traces/store/selectors'
 import { useEffect } from 'react'
-import { OtelStateActions } from '../../otel/store/slice'
+import { TracesStateActions } from '../../traces/store/slice'
 
 export default function AppNamesList() {
   const navigate = useNavigate()
@@ -18,7 +18,7 @@ export default function AppNamesList() {
 
   // Fetch the serviceNames
   useEffect(() => {
-    dispatch(OtelStateActions.fetchServiceNames())
+    dispatch(TracesStateActions.fetchServiceNames())
   }, [])
 
   if (loading) {

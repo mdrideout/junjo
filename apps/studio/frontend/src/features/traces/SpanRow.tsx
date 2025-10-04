@@ -1,5 +1,5 @@
 import { getSpanDurationString } from '../../util/duration-utils'
-import { OtelSpan } from '../otel/schemas/schemas'
+import { OtelSpan } from '../traces/schemas/schemas'
 import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-icon'
 
 interface SpanRowProps {

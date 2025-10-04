@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { OtelSpan } from '../../../otel/schemas/schemas'
+import { OtelSpan } from '../../../traces/schemas/schemas'
 
 interface WorkflowSpanListState {
   workflowSpanList: OtelSpan[]

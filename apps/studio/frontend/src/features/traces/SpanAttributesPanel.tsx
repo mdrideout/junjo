@@ -1,6 +1,6 @@
-import { OtelSpan } from '../otel/schemas/schemas'
 import SpanAttributeKeyValueViewer from '../../components/SpanAttributeKeyValueViewer'
-import { isLLMSpan } from '../otel/utils/span-utils'
+import { OtelSpan } from './schemas/schemas'
+import { isLLMSpan } from './utils/span-utils'
 import { Link } from 'react-router'
 
 interface SpanAttributesPanelProps {

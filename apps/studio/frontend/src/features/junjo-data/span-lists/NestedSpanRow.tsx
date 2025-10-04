@@ -1,6 +1,6 @@
 import { useAppDispatch } from '../../../root-store/hooks'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import { JunjoSpanType, OtelSpan } from '../../otel/schemas/schemas'
+import { JunjoSpanType, OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from './determine-span-icon'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import { spanNameConstructor } from './span-name-constructor'

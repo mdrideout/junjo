@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { extractJunjoIdFromMermaidElementId } from './mermaid-render-utils'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 import { RootState } from '../root-store/store'
-import { JunjoSpanType, OtelSpan } from '../features/otel/schemas/schemas'
+import { JunjoSpanType, OtelSpan } from '../features/traces/schemas/schemas'
 import { WorkflowDetailStateActions } from '../features/junjo-data/workflow-detail/store/slice'
 import {
   selectActiveSpanFirstJunjoParent,

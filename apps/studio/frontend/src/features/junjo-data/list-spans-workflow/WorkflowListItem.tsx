@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import { OtelSpan } from '../../otel/schemas/schemas'
+import { OtelSpan } from '../../traces/schemas/schemas'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'

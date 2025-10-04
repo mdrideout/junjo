@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { API_HOST } from '../../../../config'
-import { OtelSpan, OtelSpanSchema } from '../../../otel/schemas/schemas'
+import { OtelSpan, OtelSpanSchema } from '../../../traces/schemas/schemas'
 
 /**
  * Get Spans - Type Workflow

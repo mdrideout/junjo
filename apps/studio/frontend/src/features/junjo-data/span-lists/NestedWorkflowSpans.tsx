@@ -9,7 +9,7 @@ import {
   JunjoSetStateEvent,
   JunjoSetStateEventSchema,
   OtelSpan,
-} from '../../otel/schemas/schemas'
+} from '../../traces/schemas/schemas'
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import NestedSpanRow from './NestedSpanRow'

@@ -1,6 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit'
-import otelSlice from '../features/otel/store/slice'
-import { otelStateListenerMiddleware } from '../features/otel/store/listeners'
 import workflowDetailSlice from '../features/junjo-data/workflow-detail/store/slice'
 import usersSlice from '../features/users/slice'
 import { usersStateListenerMiddleware } from '../features/users/listeners'
@@ -15,7 +13,6 @@ import { otelStateListenerMiddleware as tracesStateListenerMiddleware } from '..
 
 export const store = configureStore({
   reducer: {
-    otelState: otelSlice,
     workflowDetailState: workflowDetailSlice,
     usersState: usersSlice,
     apiKeysState: apiKeysReducer,
@@ -28,7 +25,6 @@ export const store = configureStore({
     getDefaultMiddleware()
       // Listener middleware must be prepended
       .prepend(
-        otelStateListenerMiddleware.middleware,
         workflowDetailListenerMiddleware.middleware,
         usersStateListenerMiddleware.middleware,
         apiKeysStateListenerMiddleware.middleware,

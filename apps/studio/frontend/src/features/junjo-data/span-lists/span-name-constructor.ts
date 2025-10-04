@@ -1,8 +1,8 @@
 import {
   OpenInferenceLLMAttributesSchema,
   OpenInferenceSpanKind,
-} from '../../otel/schemas/attribute-schemas-openinference'
-import { OtelSpan } from '../../otel/schemas/schemas'
+} from '../../traces/schemas/attribute-schemas-openinference'
+import { OtelSpan } from '../../traces/schemas/schemas'
 
 /**
  * Span Name Constructor

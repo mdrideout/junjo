@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { RootState } from '../../../../root-store/store'
-import { OtelSpan } from '../../../otel/schemas/schemas'
+import { OtelSpan } from '../../../traces/schemas/schemas'
 
 // Base Selector
 export const selectWorkflowExecutionsState = (state: RootState) => state.workflowSpanListState

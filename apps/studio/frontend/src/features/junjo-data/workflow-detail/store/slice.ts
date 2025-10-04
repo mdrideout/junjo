@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { JunjoSetStateEvent, OtelSpan } from '../../../otel/schemas/schemas'
+import { JunjoSetStateEvent, OtelSpan } from '../../../traces/schemas/schemas'
 
 interface WorkflowDetailState {
   activeSpan: OtelSpan | null

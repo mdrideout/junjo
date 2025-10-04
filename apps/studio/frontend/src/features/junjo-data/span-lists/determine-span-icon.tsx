@@ -1,5 +1,5 @@
 import { JSX } from 'react'
-import { JunjoSpanType, OtelSpan } from '../../otel/schemas/schemas'
+import { JunjoSpanType, OtelSpan } from '../../traces/schemas/schemas'
 import {
   CubeIcon,
   Square3Stack3DIcon,
@@ -10,7 +10,7 @@ import {
   CodeBracketIcon,
   ArrowsRightLeftIcon,
 } from '@heroicons/react/24/solid'
-import { OpenInferenceSpanKind } from '../../otel/schemas/attribute-schemas-openinference'
+import { OpenInferenceSpanKind } from '../../traces/schemas/attribute-schemas-openinference'
 
 /**
  * Span Icon Constructor

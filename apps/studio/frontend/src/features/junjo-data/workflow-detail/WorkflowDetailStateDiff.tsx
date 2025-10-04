@@ -7,7 +7,7 @@ import { TriangleDownIcon } from '@radix-ui/react-icons'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import * as jsonpatch from 'fast-json-patch'
-import { OtelSpan } from '../../otel/schemas/schemas'
+import { OtelSpan } from '../../traces/schemas/schemas'
 import SpanExceptionsList from './SpanExceptionsList'
 import {
   selectActiveSpanJunjoWorkflow,

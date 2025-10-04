@@ -6,14 +6,22 @@ import {
   JunjoSetStateEventSchema,
   JunjoSpanType,
   OtelSpan,
-} from '../../otel/schemas/schemas'
-import { selectActiveSetStateEvent, selectWorkflowDetailActiveSpan } from '../../otel/store/selectors'
+} from '../../traces/schemas/schemas'
 import { isoStringToMicrosecondsSinceEpoch } from '../../../util/duration-utils'
+import {
+  selectActiveSetStateEvent,
+  selectWorkflowDetailActiveSpan,
+} from '../../junjo-data/workflow-detail/store/selectors'
 
 export const selectTracesState = (state: RootState) => state.tracesState
 export const selectTraceSpans = (state: RootState) => state.tracesState.traceSpans
 export const selectTracesLoading = (state: RootState) => state.tracesState.loading
 export const selectTracesError = (state: RootState) => state.tracesState.error
+
+// Selectors - Service Names
+export const selectServiceNamesLoading = (state: RootState) => state.tracesState.serviceNames.loading
+export const selectServiceNamesError = (state: RootState) => state.tracesState.serviceNames.error
+export const selectServiceNames = (state: RootState) => state.tracesState.serviceNames.data
 
 /**
  * Selector: Select Span By Id

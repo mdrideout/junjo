@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router'
 import { getSpanDurationString } from '../../util/duration-utils'
-import { OtelSpan } from '../otel/schemas/schemas'
+import { OtelSpan } from '../traces/schemas/schemas'
 
 interface Props {
   trace: OtelSpan

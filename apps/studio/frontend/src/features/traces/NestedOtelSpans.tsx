@@ -1,6 +1,6 @@
 import { Fragment } from 'react/jsx-runtime'
 import { isoStringToMicrosecondsSinceEpoch } from '../../util/duration-utils'
-import { OtelSpan } from '../otel/schemas/schemas'
+import { OtelSpan } from '../traces/schemas/schemas'
 import { JSX, useMemo } from 'react'
 import SpanRow from './SpanRow'
 

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { OtelSpan, OtelSpanSchema } from '../../otel/schemas/schemas'
+import { OtelSpan, OtelSpanSchema } from '../../traces/schemas/schemas'
 import { API_HOST } from '../../../config'
 
 const GetTraceSpansResponseSchema = z.array(OtelSpanSchema)
