@@ -31,7 +31,7 @@ export default function TracesListPage() {
               checked={filterLLM}
               onChange={(e) => setFilterLLM(e.target.checked)}
             />
-            <span className="ml-2 text-sm">LLM Spans</span>
+            <span className="ml-2 text-sm">Has LLM Spans</span>
           </label>
         </div>
       </div>
