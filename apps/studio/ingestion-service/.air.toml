@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 
 [build]
 args_bin = []
-bin = "./tmp/main"
+# bin = "./tmp/main" # This is commented out to force air to use the build `cmd` and `bin` directives below.
 cmd = "go build -o ./tmp/main ."
 delay = 1000
 exclude_dir = ["assets", "tmp", "vendor", "testdata"]
@@ -12,7 +12,7 @@ exclude_file = []
 exclude_regex = ["_test.go"]
 exclude_unchanged = false
 follow_symlink = false
-# full_bin = "go run main.go" # This is commented out to force air to use the build `cmd` and `bin` directives below.
+full_bin = "go run main.go"
 include_dir = []
 include_ext = ["go", "tpl", "tmpl", "html"]
 include_file = []
