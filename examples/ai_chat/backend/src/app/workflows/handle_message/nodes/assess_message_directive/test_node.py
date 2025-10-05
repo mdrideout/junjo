@@ -10,6 +10,9 @@ from app.workflows.handle_message.store import (
     MessageWorkflowStore,
 )
 
+# Running this test:
+# pytest src/app/workflows/handle_message/nodes/assess_message_directive/test_node.py
+
 
 class TestAssessMessageDirectiveNode:
     @pytest.mark.asyncio(loop_scope="session")
