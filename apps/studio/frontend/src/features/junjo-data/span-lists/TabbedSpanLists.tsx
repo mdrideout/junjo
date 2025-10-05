@@ -36,7 +36,7 @@ const TabButton = ({
       onClick={() => tabChangeHandler(tab)}
     >
       <div className={'flex items-center gap-x-1'}>
-        {tab === TabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-5 text-red-700'} />}
+        {tab === TabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-4 text-red-700'} />}
         <div>{tab}</div>
       </div>
     </button>

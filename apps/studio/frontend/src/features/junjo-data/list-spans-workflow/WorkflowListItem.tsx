@@ -82,7 +82,7 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
       <td className="p-0">
         <Link to={destination} onClick={handleLinkClick} className="block px-4 py-1.5 h-full">
           {hasExceptions && (
-            <ExclamationTriangleIcon className="size-5 m-auto text-red-700 dark:text-red-300" />
+            <ExclamationTriangleIcon className="size-4 m-auto text-red-700 dark:text-red-300" />
           )}
         </Link>
       </td>

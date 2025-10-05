@@ -25,7 +25,7 @@ enum DiffTabOptions {
   PATCH = 'Patch',
   CHANGES = 'Changes',
   DETAILED = 'Detailed',
-  EXCEPTIONS = 'Node Exceptions',
+  EXCEPTIONS = 'Exceptions',
   SPAN_DETAILS = 'Span Details',
 }
 
@@ -51,7 +51,7 @@ const TabButton = ({
       onClick={() => tabChangeHandler(tab)}
     >
       <div className={'flex items-center gap-x-1 text-left'}>
-        {tab === DiffTabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-5 text-red-700'} />}
+        {tab === DiffTabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-4 text-red-700'} />}
         {tab}
       </div>
     </button>
@@ -128,10 +128,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }),
   )
 
+  // Default Tab
+  const defaultTab = activeSetStateEvent ? DiffTabOptions.AFTER : DiffTabOptions.SPAN_DETAILS
+
   // Local State
-  const [activeTab, setActiveTab] = useState<DiffTabOptions>(
-    activeSetStateEvent ? DiffTabOptions.AFTER : DiffTabOptions.SPAN_DETAILS,
-  )
+  const [activeTab, setActiveTab] = useState<DiffTabOptions>(defaultTab)
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(false)
 
   // Infer Changes & Detailed tab data using deep-object-diff
@@ -181,7 +182,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   // Detect if there are no exceptions, and we are on the exceptions tab, and switch to After tab
   useEffect(() => {
     if (activeTab === DiffTabOptions.EXCEPTIONS && !hasExceptions) {
-      setActiveTab(DiffTabOptions.AFTER)
+      setActiveTab(defaultTab)
     }
   }, [activeTab, hasExceptions])
 
@@ -195,7 +196,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         setActiveTab(DiffTabOptions.AFTER)
       }
     }
-  }, [activeSetStateEvent, activeTab])
+  }, [activeSetStateEvent])
 
   /**
    * Accumulate State Patches To Index (inclusive)

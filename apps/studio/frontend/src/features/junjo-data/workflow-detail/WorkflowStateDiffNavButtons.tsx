@@ -38,8 +38,8 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
     (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
   )
 
-  const disablePrev = activePatchIndex === 0
-  const disableNext = activePatchIndex + 1 === workflowStateEvents.length
+  const disablePrev = !activeSetStateEvent || activePatchIndex === 0
+  const disableNext = !activeSetStateEvent || activePatchIndex + 1 === workflowStateEvents.length
 
   // Effect to update the active span when the activeSetStateEvent changes
   useEffect(() => {
@@ -73,7 +73,11 @@ export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNa
 
   return (
     <div className={'flex gap-x-2 -mt-[1px]'}>
-      ({activePatchIndex + 1} / {workflowStateEvents.length}){' '}
+      {activeSetStateEvent && (
+        <div>
+          ({activePatchIndex + 1} / {workflowStateEvents.length}){' '}
+        </div>
+      )}
       <button
         className={
           'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'

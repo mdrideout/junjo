@@ -16,7 +16,7 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
         <div className="mb-4">
           <Link
             to={`/traces/${span.service_name}/${span.trace_id}/${span.span_id}/prompt-playground`}
-            className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 text-white hover:bg-zinc-800"
+            className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 dark:bg-zinc-700 text-white hover:bg-zinc-800"
           >
             Open in Playground
           </Link>
