@@ -48,7 +48,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /ingestion-service
 
 # --- 3. Final Production Image ---
-FROM alpine:latest
+FROM alpine:latest AS production
 
 WORKDIR /
 

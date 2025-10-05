@@ -8,6 +8,10 @@ RUN npm install --prefix ./
 # ---- Builder Stage ----
 # Builds the production-ready static assets.
 FROM base as builder
+
+COPY package*.json ./
+RUN npm install --prefix ./
+
 COPY . .
 RUN npm run build
 
