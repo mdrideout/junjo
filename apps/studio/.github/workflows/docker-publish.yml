@@ -32,6 +32,14 @@ jobs:
             platform: linux/arm64
             arch: arm64
             runs-on: ubuntu-24.04-arm
+          - service: ingestion-service
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: ingestion-service
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: read
@@ -85,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [backend, frontend]
+        service: [backend, frontend, ingestion-service]
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -123,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [backend, frontend]
+        service: [backend, frontend, ingestion-service]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4

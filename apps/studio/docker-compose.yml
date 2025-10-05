@@ -23,8 +23,8 @@ services:
       retries: 25
       start_period: 5s
 
-  ingestion-service:
-    container_name: ingestion-service
+  junjo-server-ingestion:
+    container_name: junjo-server-ingestion
     restart: unless-stopped
     build:
       context: ./ingestion-service
@@ -65,7 +65,7 @@ services:
     depends_on:
       junjo-server-backend:
         condition: service_healthy # Wait for junjo-server-backend to be healthy before starting junjo-server-frontend
-      ingestion-service:
+      junjo-server-ingestion:
         condition: service_healthy
 
 volumes:

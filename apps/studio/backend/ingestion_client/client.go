@@ -25,7 +25,7 @@ type Client struct {
 
 // NewClient creates a new gRPC client for the ingestion service.
 func NewClient() (*Client, error) {
-	addr := "ingestion-service:50052"
+	addr := "junjo-server-ingestion:50052"
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
