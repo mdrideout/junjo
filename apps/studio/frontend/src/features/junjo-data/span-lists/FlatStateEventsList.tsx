@@ -33,7 +33,6 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
-  const scrollToSpanId = useAppSelector((state: RootState) => state.workflowDetailState.scrollToSpanId)
   const scrollToStateEventId = useAppSelector(
     (state: RootState) => state.workflowDetailState.scrollToStateEventId,
   )
@@ -60,21 +59,22 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
     }
   }, [scrollToStateEventId])
 
-  // Scroll To First Matching Node Span
-  useEffect(() => {
-    if (scrollToSpanId && scrollableContainerRef.current) {
-      const targetSpanId = `.flat-span-${scrollToSpanId}`
-      console.log(`Scrolling to span: ${targetSpanId}`)
-      const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest',
-        })
-      }
-    }
-  }, [scrollToSpanId])
+  // TODO: Update to match how the nested spans work.
+  // // Scroll To First Matching Node Span
+  // useEffect(() => {
+  //   if (scrollToSpanId && scrollableContainerRef.current) {
+  //     const targetSpanId = `.flat-span-${scrollToSpanId}`
+  //     console.log(`Scrolling to span: ${targetSpanId}`)
+  //     const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
+  //     if (targetElement) {
+  //       targetElement.scrollIntoView({
+  //         behavior: 'smooth',
+  //         block: 'nearest',
+  //         inline: 'nearest',
+  //       })
+  //     }
+  //   }
+  // }, [scrollToSpanId])
 
   return (
     <div ref={scrollableContainerRef} className={'flex flex-col text-sm'}>

@@ -1,6 +1,5 @@
 import {
   AvatarIcon,
-  BarChartIcon,
   DashboardIcon,
   ExitIcon,
   ExternalLinkIcon,
