@@ -70,7 +70,6 @@ jobs:
             type=sha,prefix=,suffix=,format=short
           flavor: |
             suffix=-${{ matrix.arch }}
-            latest=false
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
