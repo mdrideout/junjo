@@ -66,7 +66,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{github.event_name == 'release'}}
+            type=raw,value=latest
             type=sha,prefix=,suffix=,format=short
           flavor: |
             suffix=-${{ matrix.arch }}
@@ -111,7 +111,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{github.event_name == 'release'}}
+            type=raw,value=latest
 
       - name: Create and push manifest
         run: |
