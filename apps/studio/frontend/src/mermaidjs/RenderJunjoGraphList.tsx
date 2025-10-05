@@ -1,22 +1,22 @@
-import { identifyWorkflowChain } from '../features/otel/store/selectors'
+import { identifySpanWorkflowChain } from '../features/traces/store/selectors'
 import { JunjoGraph } from '../junjo-graph/junjo-graph'
 import { useAppSelector } from '../root-store/hooks'
 import { RootState } from '../root-store/store'
 import RenderJunjoGraphMermaid from './RenderJunjoGraphMermaid'
 
 interface RenderJunjoGraphListProps {
-  serviceName: string
-  workflowSpanID: string
+  traceId: string
+  workflowSpanId: string
   showEdgeLabels: boolean
 }
 
 export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
-  const { serviceName, workflowSpanID, showEdgeLabels } = props
+  const { traceId, workflowSpanId, showEdgeLabels } = props
 
   const workflowChain = useAppSelector((state: RootState) =>
-    identifyWorkflowChain(state, {
-      serviceName,
-      spanID: workflowSpanID,
+    identifySpanWorkflowChain(state, {
+      traceId,
+      workflowSpanId,
     }),
   )
 
@@ -33,10 +33,11 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>
         <div className={'font-bold text-sm'}>{workflowSpan.name}</div>
         <RenderJunjoGraphMermaid
+          traceId={traceId}
+          workflowChain={workflowChain}
           mermaidFlowString={mermaidFlowString}
           mermaidUniqueId={uniqueMermaidId}
-          serviceName={serviceName}
-          workflowSpanID={workflowSpan.span_id}
+          workflowSpanId={workflowSpan.span_id}
         />
       </div>
     )

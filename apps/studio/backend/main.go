@@ -1,26 +1,39 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
+	"context"
 	"junjo-server/api"
+	"junjo-server/api/internal_auth"
 	"junjo-server/api_keys"
 	"junjo-server/auth"
 	"junjo-server/db"
 	"junjo-server/db_duckdb"
+	"junjo-server/db_gen"
+	"junjo-server/ingestion_client"
 	m "junjo-server/middleware"
+	pb "junjo-server/proto_gen"
 	"junjo-server/telemetry"
 	u "junjo-server/utils"
+	"net"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
+	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -47,6 +60,96 @@ func main() {
 		log.Fatalf("duckdb err: %v", duck_err)
 	}
 	defer db_duckdb.Close()
+
+	// Ingestion Client
+	ingestionClient, err := ingestion_client.NewClient()
+	if err != nil {
+		log.Fatalf("Failed to create ingestion client: %v", err)
+	}
+	defer ingestionClient.Close()
+
+	// Start a background goroutine to poll for spans
+	go func() {
+		ticker := time.NewTicker(5 * time.Second) // Poll every 3 seconds
+		defer ticker.Stop()
+
+		queries := db_gen.New(db.DB)
+		var lastKey []byte
+		// At startup, try to load the last processed key from the database.
+		retrievedKey, err := queries.GetPollerState(context.Background())
+		if err != nil && err != sql.ErrNoRows {
+			log.Fatalf("Failed to load poller state: %v", err)
+		} else if err == sql.ErrNoRows {
+			log.Println("No previous poller state found. Starting from the beginning.")
+		} else {
+			lastKey = retrievedKey
+			log.Printf("Resuming poller from last key: %x", lastKey)
+		}
+
+		for range ticker.C {
+			log.Println("Polling for new spans...")
+			spans, err := ingestionClient.ReadSpans(context.Background(), lastKey, 100)
+			if err != nil {
+				log.Printf("Error reading spans: %v", err)
+				continue
+			}
+
+			if len(spans) > 0 {
+				lastKey = spans[len(spans)-1].KeyUlid
+				log.Printf("Received %d spans. Last key: %x", len(spans), lastKey)
+				var processedSpans []*tracepb.Span
+				for _, receivedSpan := range spans {
+					var span tracepb.Span
+					if err := proto.Unmarshal(receivedSpan.SpanBytes, &span); err != nil {
+						log.Printf("Error unmarshaling span: %v", err)
+						continue // Skip to the next span
+					}
+					processedSpans = append(processedSpans, &span)
+				}
+
+				if len(processedSpans) > 0 {
+					// Extract the service name from the first span's resource
+					// All spans in a batch should have the same service name
+					var serviceName string
+					if len(spans) > 0 {
+						// Unmarshal the resource bytes
+						var resource resourcepb.Resource
+						if err := proto.Unmarshal(spans[0].ResourceBytes, &resource); err != nil {
+							log.Printf("Error unmarshaling resource: %v", err)
+							serviceName = "NO_SERVICE_NAME"
+						} else {
+							// Extract service name from resource attributes
+							for _, attr := range resource.Attributes {
+								if attr.Key == "service.name" {
+									if stringValue, ok := attr.Value.Value.(*commonpb.AnyValue_StringValue); ok {
+										serviceName = stringValue.StringValue
+										break
+									}
+								}
+							}
+							if serviceName == "" {
+								serviceName = "NO_SERVICE_NAME"
+							}
+						}
+					} else {
+						serviceName = "NO_SERVICE_NAME"
+					}
+
+					if err := telemetry.BatchProcessSpans(context.Background(), serviceName, processedSpans); err != nil {
+						log.Printf("Error processing spans batch: %v", err)
+					} else {
+						// If the batch was processed successfully, update the last key in the database.
+						err := queries.UpsertPollerState(context.Background(), lastKey)
+						if err != nil {
+							log.Printf("Failed to save poller state: %v", err)
+						}
+					}
+				}
+			} else {
+				log.Println("No new spans found.")
+			}
+		}
+	}()
 
 	// Initialize Echo
 	e := echo.New()
@@ -121,19 +224,6 @@ func main() {
 		},
 	}))
 
-	// --- gRPC Server Setup (Start in a Goroutine) ---
-	grpcServer, lis, err := telemetry.NewGRPCServer(db.DB)
-	if err != nil {
-		log.Fatalf("failed to create gRPC server: %v", err)
-	}
-
-	go func() { // Start the gRPC server in a separate goroutine!
-		log.Printf("gRPC server listening at %v", lis.Addr())
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve gRPC: %v", err)
-		}
-	}()
-
 	// Auth Middleware
 	e.Use(m.Auth()) // Auth guard all routes by default
 
@@ -146,6 +236,24 @@ func main() {
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
 	})
+
+	// --- Internal gRPC Server Setup ---
+	go func() {
+		internalGrpcAddr := ":50053"
+		lis, err := net.Listen("tcp", internalGrpcAddr)
+		if err != nil {
+			log.Fatalf("Failed to listen for internal gRPC: %v", err)
+		}
+
+		grpcServer := grpc.NewServer()
+		internalAuthSvc := internal_auth.NewInternalAuthService()
+		pb.RegisterInternalAuthServiceServer(grpcServer, internalAuthSvc)
+
+		log.Printf("Internal gRPC server listening at %v", lis.Addr())
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve internal gRPC: %v", err)
+		}
+	}()
 
 	// Start the server
 	e.Logger.Fatal(e.Start(serverHostPort))

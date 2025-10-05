@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package span_data_container;
+
+option go_package = ".;proto_gen";
+
+// SpanDataContainer is a wrapper for storing a span and its resource together.
+message SpanDataContainer {
+  bytes span_bytes = 1;
+  bytes resource_bytes = 2;
+}

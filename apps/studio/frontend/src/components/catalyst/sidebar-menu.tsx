@@ -59,14 +59,6 @@ export default function SidebarMenu() {
                 <LockClosedIcon />
                 <SidebarLabel>API Keys</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="//localhost/jaeger" target="_blank">
-                <BarChartIcon />
-                <SidebarLabel>
-                  <div className="flex items-center gap-x-2">
-                    Jaeger <ExternalLinkIcon className="size-3" />
-                  </div>
-                </SidebarLabel>
-              </SidebarItem>
 
               <SidebarItem href="/sign-out">
                 <ExitIcon />

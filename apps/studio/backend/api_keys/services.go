@@ -37,7 +37,13 @@ func HandleCreateAPIKey(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to generate API key")
 	}
 
-	apiKey, err := CreateAPIKey(c.Request().Context(), newKey, req.Name)
+	newID, err := gonanoid.New()
+	if err != nil {
+		c.Logger().Error("Failed to generate new ID:", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to generate new ID")
+	}
+
+	apiKey, err := CreateAPIKey(c.Request().Context(), newID, newKey, req.Name)
 	if err != nil {
 		c.Logger().Error("Failed to create API key in database:", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to save API key")

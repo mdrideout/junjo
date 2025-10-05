@@ -3,7 +3,7 @@
 # We use an official Go image. This is simple, reliable, and
 # contains all necessary build tools.
 # =================================================================
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 
 # This build stage is where we compile the application.
 # It contains the Go toolchain and C compilers (build-essential).
@@ -79,7 +79,7 @@ CMD ["/server"]
 # STAGE 3: Development
 # Builds an image for local development with hot-reloading.
 # =================================================================
-FROM golang:1.24-bookworm AS development
+FROM golang:1.25-bookworm AS development
 
 # Set a label for diagnostics.
 LABEL stage=development

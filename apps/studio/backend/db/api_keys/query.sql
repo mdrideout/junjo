@@ -1,8 +1,8 @@
 -- name: CreateAPIKey :one
 INSERT INTO
-  api_keys (key, name)
+  api_keys (id, key, name)
 VALUES
-  (?, ?) RETURNING *;
+  (?, ?, ?) RETURNING *;
 
 -- name: GetAPIKey :one
 SELECT

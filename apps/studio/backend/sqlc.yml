@@ -4,9 +4,8 @@ sql:
     queries: 
       - "db/users/query.sql"
       - "db/api_keys/query.sql"
-    schema:
-      - "db/users/schema.sql"
-      - "db/api_keys/schema.sql"
+      - "db/state/query.sql"
+    schema: "db/schema.sql"
     gen:
       go:
         package: "db_gen"
