@@ -296,7 +296,11 @@ func GetSpan(c echo.Context) error {
 }
 
 func GetSpansTypeWorkflow(c echo.Context) error {
-	c.Logger().Printf("Running GetSpansTypeWorkflow function")
+	serviceName := c.Param("serviceName")
+	if serviceName == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "serviceName parameter is required"})
+	}
+	c.Logger().Printf("Running GetSpansTypeWorkflow function for service %s", serviceName)
 
 	db := db_duckdb.DB
 	if db == nil {
@@ -304,7 +308,7 @@ func GetSpansTypeWorkflow(c echo.Context) error {
 	}
 
 	// Execute the query
-	rows, err := db.Query(querySpansTypeWorkflow)
+	rows, err := db.Query(querySpansTypeWorkflow, serviceName)
 	if err != nil {
 		c.Logger().Printf("Error querying database: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("database query failed: %v", err)})

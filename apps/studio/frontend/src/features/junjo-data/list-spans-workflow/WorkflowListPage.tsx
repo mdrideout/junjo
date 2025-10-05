@@ -10,6 +10,10 @@ import WorkflowList from './WorkflowList'
 export default function WorkflowListPage() {
   const { serviceName } = useParams()
 
+  if (!serviceName) {
+    return <div>Service name is required</div>
+  }
+
   // Human readable start ingest time
   const date = new Date()
   const readableDate = date.toLocaleString()
@@ -30,7 +34,7 @@ export default function WorkflowListPage() {
       </div>
       <hr className={'my-6'} />
       <div className={'grow overflow-scroll'}>
-        <WorkflowList />
+        <WorkflowList serviceName={serviceName} />
       </div>
     </div>
   )

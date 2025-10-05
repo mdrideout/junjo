@@ -19,8 +19,7 @@ export const workflowSpanListSlice = createSlice({
   initialState,
   reducers: {
     // Listener Middleware Triggers
-    // DEPRECATED
-    fetchSpansTypeWorkflow: (_state) => {
+    fetchSpansTypeWorkflow: (_state, _action: PayloadAction<string>) => {
       // Handled by listener middleware
     },
 

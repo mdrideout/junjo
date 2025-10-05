@@ -8,7 +8,7 @@ const startListener = workflowExecutionsListenerMiddleware.startListening.withTy
 
 startListener({
   actionCreator: WorkflowExecutionsStateActions.fetchSpansTypeWorkflow,
-  effect: async (_action, { getState, dispatch }) => {
+  effect: async (action, { getState, dispatch }) => {
     const { loading } = getState().workflowSpanListState
     if (loading) return
 
@@ -16,7 +16,8 @@ startListener({
     dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsLoading(true))
 
     try {
-      const data = await getSpansTypeWorkflow()
+      const serviceName = action.payload
+      const data = await getSpansTypeWorkflow(serviceName)
       dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsData(data))
     } catch (error) {
       dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(true))

@@ -3,7 +3,12 @@ import { useEffect } from 'react'
 import { WorkflowExecutionsStateActions } from './store/slice'
 import WorkflowListRow from './WorkflowListItem'
 
-export default function WorkflowsList() {
+interface WorkflowsListProps {
+  serviceName: string
+}
+
+export default function WorkflowsList(props: WorkflowsListProps) {
+  const { serviceName } = props
   const dispatch = useAppDispatch()
 
   const loading = useAppSelector((state) => state.workflowSpanListState.loading)
@@ -11,8 +16,8 @@ export default function WorkflowsList() {
   const workflowSpans = useAppSelector((state) => state.workflowSpanListState.workflowSpanList)
 
   useEffect(() => {
-    dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow())
-  }, [dispatch])
+    dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow(serviceName))
+  }, [dispatch, serviceName])
 
   if (loading) {
     return <div>Loading...</div>

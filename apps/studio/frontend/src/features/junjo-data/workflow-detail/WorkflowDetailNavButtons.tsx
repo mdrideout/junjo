@@ -18,8 +18,8 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
   const dispatch = useAppDispatch()
 
   useEffect(() => {
-    dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow())
-  }, [dispatch])
+    dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow(serviceName))
+  }, [dispatch, serviceName])
 
   const prevWorkflowSpan = useAppSelector((state: RootState) =>
     selectPrevWorkflowSpan(state, { serviceName, spanID: workflowSpanId }),

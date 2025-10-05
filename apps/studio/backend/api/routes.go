@@ -13,7 +13,7 @@ func InitRoutes(e *echo.Echo) {
 	e.GET("/otel/service/:serviceName/root-spans-filtered", otel.GetRootSpansFiltered)
 	e.GET("/otel/trace/:traceId/nested-spans", otel.GetNestedSpans)
 	e.GET("/otel/trace/:traceId/span/:spanId", otel.GetSpan)
-	e.GET("/otel/spans/type/workflow", otel.GetSpansTypeWorkflow)
+	e.GET("/otel/spans/type/workflow/:serviceName", otel.GetSpansTypeWorkflow)
 
 	llm.RegisterRoutes(e)
 }

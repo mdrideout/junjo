@@ -4,11 +4,12 @@ import { OtelSpan, OtelSpanSchema } from '../../../traces/schemas/schemas'
 
 /**
  * Get Spans - Type Workflow
- * Fetches all spans where the type is a junjo workflow.
+ * Fetches all spans where the type is a junjo workflow for a specific service.
+ * @param serviceName - The service name to filter by
  * @returns
  */
-export async function getSpansTypeWorkflow(): Promise<OtelSpan[]> {
-  const response = await fetch(`${API_HOST}/otel/spans/type/workflow`, {
+export async function getSpansTypeWorkflow(serviceName: string): Promise<OtelSpan[]> {
+  const response = await fetch(`${API_HOST}/otel/spans/type/workflow/${serviceName}`, {
     credentials: 'include',
   })
 
