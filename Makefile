@@ -12,10 +12,10 @@ proto:
 		$(PROTO_SRC_DIR)/*.proto
 
 	# Post-process every _pb2_grpc.py file for relative imports.
-	# Adjust the sed -i option as needed for your OS.
+	# Cross-platform sed command (works on both macOS and Linux)
 	@for file in $(PROTO_OUT_DIR)/*_pb2_grpc.py; do \
 		echo "Fixing imports in $$file"; \
-		sed -i '' 's/^import \(.*_pb2\) as \(.*\)/from . import \1 as \2/' $$file; \
+		sed -i.bak 's/^import \(.*_pb2\) as \(.*\)/from . import \1 as \2/' $$file && rm -f $$file.bak; \
 	done
 
 clean:
