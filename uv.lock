@@ -876,7 +876,7 @@ wheels = [
 
 [[package]]
 name = "junjo"
-version = "0.50.1"
+version = "0.60.0"
 source = { editable = "." }
 dependencies = [
     { name = "grpcio" },

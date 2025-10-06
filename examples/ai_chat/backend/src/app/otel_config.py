@@ -36,13 +36,13 @@ def init_otel(service_name: str):
     )
 
     # Set up span processors
-    # Add the Junjo span processor (Junjo Server and Jaeger)
+    # Add the Junjo span processor
     # Add more span processors if desired
     tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)
 
     # Set up metrics
-    #    - Construct with the Junjo metric reader (Junjo Server and Jaeger)
+    #    - Construct with the Junjo metric reader
     #    - Add more metric readers if desired
     junjo_server_metric_reader = junjo_server_exporter.metric_reader
     meter_provider = MeterProvider(
