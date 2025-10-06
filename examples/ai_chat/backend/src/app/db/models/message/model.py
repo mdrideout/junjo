@@ -16,3 +16,4 @@ class MessagesTable(SQABase):
     contact_id: Mapped[str] = mapped_column(String(21), ForeignKey("contacts.id", ondelete="CASCADE"), nullable=True)
     chat_id: Mapped[str] = mapped_column(String(21), ForeignKey("chats.id", ondelete="CASCADE"), nullable=True)
     message: Mapped[str] = mapped_column(String(2500), nullable=False)
+    image_id: Mapped[str] = mapped_column(String(21), nullable=True)

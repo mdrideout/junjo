@@ -22,7 +22,7 @@ class TestCreateBioNode:
         self, test_case: dict
     ):
         """
-        Test that the node sets the correct message_directive for valid messages.
+        Test that the created contact bio fulfills our criteria.
         """
         # Arrange
         logger.info(f"Running test case: {test_case}")

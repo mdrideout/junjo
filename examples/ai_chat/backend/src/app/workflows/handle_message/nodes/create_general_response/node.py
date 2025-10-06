@@ -21,19 +21,19 @@ class CreateGeneralResponseNode(Node[MessageWorkflowStore]):
             raise ValueError("Contact is required to execute this node.")
 
         # Construct the prompt
-        prompt = create_general_response_workflow_prompt(state.conversation_history, contact, state.received_message.message)
+        prompt = create_general_response_workflow_prompt(
+            state.conversation_history, contact, state.received_message.message
+        )
         logger.info(f"Creating response with prompt: {prompt}")
 
         # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-001")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash")
         gemini_result = await gemini_tool.text_request()
         logger.info(f"Gemini result: {gemini_result}")
 
         # Create a message for the database
         message_create = MessageCreate(
-            chat_id=state.received_message.chat_id,
-            contact_id=contact.id,
-            message=gemini_result
+            chat_id=state.received_message.chat_id, contact_id=contact.id, message=gemini_result
         )
 
         # Insert the message into the database

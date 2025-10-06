@@ -7,7 +7,7 @@ def create_bio_prompt(personality_traits: PersonalityTraits, city: str, state: s
 
     # Create the prompt
     return f"""
-Create a short social media bio for a person based on the following information:
+Create a short dating profile bio for a person based on the following information:
 
 Traits: {personality_traits.model_dump_json()}
 Location: {city}, {state}
@@ -18,7 +18,7 @@ The bio should be realistic and directly relate to the traits and location provi
 Do not include the traits or location in the bio.
 
 Include the following:
-- History
+- Some personal history
 - Hobbies
 - Work (a specific job title and employer)
 - Family status (kids, spouse, single, divorced, etc.)

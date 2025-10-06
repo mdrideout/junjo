@@ -7,6 +7,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor
 
 from app.avatar.routes import avatar_router
+from app.chat_image.routes import chat_image_router
 from app.db.db_config import engine, init_db
 from app.db.models.chat.routes import chat_router
 from app.db.models.chat_members.routes import chat_members_router
@@ -29,6 +30,7 @@ setup_logging()
 # Setup OpenTelemetry before anything else happens
 init_otel(service_name=APP_NAME)
 
+
 # Dependency to manage the lifespan of the application
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,7 +50,7 @@ app = FastAPI(lifespan=lifespan)
 FastAPIInstrumentor.instrument_app(app)
 
 # OTEL: Instrument Gemini AI tracing
-GoogleGenAiSdkInstrumentor().instrument()
+# GoogleGenAiSdkInstrumentor().instrument()
 
 origins = [
     "http://localhost:5173",
@@ -62,10 +64,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Routes
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
 
 # Add routers
 app.include_router(chat_router)  # Chat API Router)
@@ -73,5 +77,6 @@ app.include_router(chat_members_router)  # Chat API Router
 app.include_router(contact_router)  # Contact API Router
 app.include_router(message_router)  # Message API Router
 app.include_router(queries_router)  # Queries API Router
-app.include_router(workflows_junjo_router) # Workflows API Router
+app.include_router(workflows_junjo_router)  # Workflows API Router
 app.include_router(avatar_router)  # Avatar API Router
+app.include_router(chat_image_router)  # Chat Image API Router

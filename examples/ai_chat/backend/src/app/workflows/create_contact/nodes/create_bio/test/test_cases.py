@@ -56,6 +56,7 @@ test_cases = [
         "attractiveness": 0.12,
         "trauma": 0.04
       },
+      "sex": "FEMALE"
     },
     {
       "age": 47,

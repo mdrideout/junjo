@@ -1,4 +1,3 @@
-
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
@@ -14,12 +13,12 @@ class JunjoServerOtelExporter:
     """
 
     def __init__(
-            self,
-            host: str,
-            port: str,
-            api_key: str,
-            insecure: bool = False,
-        ):
+        self,
+        host: str,
+        port: str,
+        api_key: str,
+        insecure: bool = False,
+    ):
         """
         Export OpenTelemetry data to Junjo Server.
 
@@ -46,15 +45,21 @@ class JunjoServerOtelExporter:
         self._endpoint = f"{self._host}:{self._port}"
 
         # Define headers
-        exporter_headers = {"x-api-key": self._api_key}
+        exporter_headers = (("x-junjo-api-key", self._api_key),)
 
         # Set OTLP Span Exporter for Junjo Server
-        oltp_exporter = OTLPSpanExporter(endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers)
+        oltp_exporter = OTLPSpanExporter(
+            endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers
+        )
         self._span_processor = BatchSpanProcessor(oltp_exporter)
 
         # --- Add Metric Reader ---
         self._metric_reader = PeriodicExportingMetricReader(
-            OTLPMetricExporter(endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers)
+            OTLPMetricExporter(
+                endpoint=self._endpoint,
+                insecure=self._insecure,
+                headers=exporter_headers,
+            )
         )
 
     @property

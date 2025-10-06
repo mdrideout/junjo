@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "junjo"
-version = "0.50.1"
+version = "0.60.0"
 description = "A graph workflow execution library for building agentic AI workflows."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -48,6 +48,7 @@ dev = [
     "grpcio-tools",
     "build>=1.2.1",
     "twine>=6.1.0",
+    "pre-commit",
 ]
 graphviz = ["graphviz"]
 

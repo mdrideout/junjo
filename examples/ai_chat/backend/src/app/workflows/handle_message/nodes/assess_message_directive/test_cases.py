@@ -61,5 +61,29 @@ test_cases = [
     "state_expected": {
       "message_directive": MessageDirective.DATE_IDEA_RESEARCH
     }
+  },
+  {
+    "state_input": {
+      "received_message": {
+        "message": "Can you draw me a picture of a cat?",
+        "chat_id": "mock_chat_id",
+        "contact_id": "mock_contact_id"
+      }
+    },
+    "state_expected": {
+      "message_directive": MessageDirective.IMAGE_RESPONSE
+    }
+  },
+  {
+    "state_input": {
+      "received_message": {
+        "message": "I'd love to see something visual related to our conversation.",
+        "chat_id": "mock_chat_id",
+        "contact_id": "mock_contact_id"
+      }
+    },
+    "state_expected": {
+      "message_directive": MessageDirective.IMAGE_RESPONSE
+    }
   }
 ]

@@ -1,6 +1,7 @@
 import os
 
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
 from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
@@ -23,6 +24,9 @@ def init_otel(service_name: str):
     # Set up tracing for this application
     tracer_provider = TracerProvider(resource=resource)
 
+    # Instrument Google GenAI
+    GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
+
     # Construct a Junjo exporter for Junjo Server (see junjo-server docker-compose.yml)
     junjo_server_exporter = JunjoServerOtelExporter(
         host="localhost",
@@ -32,13 +36,13 @@ def init_otel(service_name: str):
     )
 
     # Set up span processors
-    # Add the Junjo span processor (Junjo Server and Jaeger)
+    # Add the Junjo span processor
     # Add more span processors if desired
     tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)
 
     # Set up metrics
-    #    - Construct with the Junjo metric reader (Junjo Server and Jaeger)
+    #    - Construct with the Junjo metric reader
     #    - Add more metric readers if desired
     junjo_server_metric_reader = junjo_server_exporter.metric_reader
     meter_provider = MeterProvider(

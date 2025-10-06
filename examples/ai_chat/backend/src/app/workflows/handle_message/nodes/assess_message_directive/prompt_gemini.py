@@ -1,19 +1,22 @@
+from app.db.models.message.schemas import MessageRead
 from app.workflows.handle_message.schemas import MessageDirective
 
 
-def assess_message_directive_prompt(most_recent_message: str) -> str:
+def assess_message_directive_prompt(history: list[MessageRead]) -> str:
     """Create a message response using history and contact bio information."""
     # Create the prompt
     return f"""
-You are an AI chat app message analyzer. It is your job to select the most appropriate repsonse directive category for the next AI step.
+You are are chatting with a match in a dating app where sending photos is allowed and common.
+Your task is to select the best response type for the next AI step based on the RECENT_MESSAGES below.
 
-You have received the following message:
-{most_recent_message}
+# RECENT_MESSAGES:
+{history}
 
-These are the response directive categories to choose from:
-1. {MessageDirective.DATE_IDEA_RESEARCH} - the user wants you to suggest date ideas.
-2. {MessageDirective.WORK_RELATED_RESPONSE} - the user wants you to talk about work-related topics.
-3. {MessageDirective.GENERAL_RESPONSE} - anything that does not fit into the other categories.
+# RESPONSE_TYPE OPTIONS:
+- {MessageDirective.DATE_IDEA_RESEARCH} - respond with date ideas.
+- {MessageDirective.WORK_RELATED_RESPONSE} - respond about a work-related topic.
+- {MessageDirective.IMAGE_RESPONSE} - respond with both an image and text.
+- {MessageDirective.GENERAL_RESPONSE} - respond with just text on any other topic.
 
-Return the category as a string value and nothing else. No quotes or punctuation.
+Return a single RESPONSE_TYPE from above as a string value and nothing else. No quotes or punctuation.
 """.strip()

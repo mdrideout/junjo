@@ -14,6 +14,14 @@
    api
 
 .. toctree::
+   :maxdepth: 2
+   :caption: OpenTelemetry:
+   :hidden:
+
+   junjo_server
+   opentelemetry
+
+.. toctree::
    :maxdepth: 1
    :caption: External Links
    :hidden:
@@ -36,14 +44,18 @@ Junjo 順序 - Python API Reference
 
 `Junjo on PyPI <https://pypi.org/project/junjo/>`_
 
-Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
+Junjo is a modern Python library for building, executing, testing, and debugging complex, graph-based AI workflows.
 
-Whether you're building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges.
+Junjo makes it easy to build a graph of possible paths for an AI to take. When the graph executed, the LLM will autonomously traverse the graph, choosing the next node as it goes based on application state and edge conditions.
+
+Whether you're building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges, and telemetry to make it easy to debug.
 
 .. image:: _static/junjo-screenshot.png
    :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo Server
    :align: center
    :width: 600px
+
+*A screenshot of Junjo's companion open-telemetry ingestion server to make debugging graph workflow state easy.*
 
 Junjo remains decoupled from any specific AI model or framework. Simply wrap your existing business logic in a Junjo node, organize them into a Graph with conditional edges, and then execute the graph. Junjo will handle the rest, including task orchestration, error handling, and logging to any OpenTelemetry destination.
 

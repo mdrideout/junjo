@@ -157,3 +157,11 @@ $ uv run pytest
 3. Copy the .proto files from the junjo-server project to `src/telemetry/junjo_server/proto`
 4. Run `make proto` from the project root to generate the `proto_gen` files for the client
 5. Update any required changes to the `src/telemetry/junjo_server/client.py` file (type changes, fields, etc.)
+
+### Pre-commit Hook
+
+This project uses a pre-commit hook to automatically generate the protobuf files. To install the hook, run the following command:
+
+```bash
+pre-commit install
+```

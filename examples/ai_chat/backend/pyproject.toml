@@ -17,10 +17,12 @@ dependencies = [
     "opentelemetry-api>=1.31.0",
     "opentelemetry-sdk>=1.31.0",
     "opentelemetry-instrumentation-fastapi>=0.52b0",
-    "opentelemetry-instrumentation-google-genai>=0.1b0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
+    "pytest-dotenv",
     "junjo",
+    "pillow>=11.3.0",
+    "openinference-instrumentation-google-genai>=0.1.1",
 ]
 
 [tool.ruff]

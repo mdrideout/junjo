@@ -16,6 +16,7 @@ class MessageRepository:
                 contact_id=message.contact_id,
                 chat_id=message.chat_id,
                 message=message.message,
+                image_id=message.image_id,
             )
 
             async with async_session() as session:
@@ -38,7 +39,6 @@ class MessageRepository:
                 return schemas.MessageRead.model_validate(db_obj)
         except SQLAlchemyError as e:
             raise e
-
 
     @staticmethod
     async def read_all(skip: int = 0, limit: int | None = None) -> list[schemas.MessageRead]:
@@ -68,21 +68,14 @@ class MessageRepository:
                 if limit is not None:
                     stmt = stmt.limit(limit)
 
-
                 db_messages = (await session.execute(stmt)).scalars().all()
-                return [
-                    schemas.MessageRead.model_validate(db_message)
-                    for db_message in db_messages
-                ]
+                return [schemas.MessageRead.model_validate(db_message) for db_message in db_messages]
         except SQLAlchemyError as e:
             raise e
 
     @staticmethod
     async def read_all_by_chat_id_newer_than_message_id(
-        chat_id: str,
-        message_id: str,
-        skip: int = 0,
-        limit: int | None = None
+        chat_id: str, message_id: str, skip: int = 0, limit: int | None = None
     ) -> list[schemas.MessageRead]:
         try:
             async with async_session() as session:
@@ -91,16 +84,14 @@ class MessageRepository:
 
                 # Subquery to get the created_at of the comparison message.
                 subquery = (
-                    select(MessagesTableAlias.created_at)
-                    .where(MessagesTableAlias.id == message_id)
-                    .scalar_subquery()
+                    select(MessagesTableAlias.created_at).where(MessagesTableAlias.id == message_id).scalar_subquery()
                 )
 
                 # Check if message_id exists before proceeding.
                 exists_stmt = select(exists().where(model.MessagesTable.id == message_id))
                 message_exists = await session.execute(exists_stmt)
                 if not message_exists.scalar():
-                  raise ValueError(f"Message with id {message_id} does not exist")
+                    raise ValueError(f"Message with id {message_id} does not exist")
 
                 # Main query to select messages newer than the subquery result.
                 stmt = (
@@ -115,14 +106,11 @@ class MessageRepository:
                     stmt = stmt.limit(limit)
 
                 db_messages = (await session.execute(stmt)).scalars().all()
-                return [
-                    schemas.MessageRead.model_validate(db_message)
-                    for db_message in db_messages
-                ]
+                return [schemas.MessageRead.model_validate(db_message) for db_message in db_messages]
         except SQLAlchemyError as e:
             raise e
         except ValueError as e:
-          raise e
+            raise e
 
     @staticmethod
     async def delete(id: str) -> bool:
@@ -137,4 +125,3 @@ class MessageRepository:
                 return True
         except SQLAlchemyError as e:
             raise e
-

@@ -1,4 +1,3 @@
-
 from junjo.node import Node
 from loguru import logger
 from nanoid import generate
@@ -53,7 +52,7 @@ class CreateAvatarNode(Node[AvatarSubflowStore]):
         logger.info(f"Creating image with prompt: {prompt}")
 
         # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-preview-image-generation")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash-image-preview")
         image_bytes = await gemini_tool.gemini_image_request()
         logger.info(f"Gemini result image size: {len(image_bytes) / 1024} kb")
 

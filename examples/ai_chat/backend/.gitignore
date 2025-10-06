@@ -1,3 +1,5 @@
 logs
 sqlite-data
 avatars
+chat-images
+**.egg-info

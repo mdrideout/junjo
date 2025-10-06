@@ -1,9 +1,11 @@
 import os
+from io import BytesIO
 from typing import TypeVar
 
 from google import genai
 from google.genai import types
 from loguru import logger
+from PIL import Image
 from pydantic import BaseModel
 
 # Define a TypeVar bound to BaseModel for the schema request
@@ -48,6 +50,7 @@ class GeminiTool:
         """
         Sends a text request to the Gemini AI model.
         """
+        logger.debug(f"Making text request with model: {self._model}, prompt: {self._prompt}")
         response = await self._client.aio.models.generate_content(model=self._model, contents=self._prompt)
 
         text = response.text
@@ -68,6 +71,7 @@ class GeminiTool:
         """
         logger.info(f"Making schema request with prompt: {self._prompt}")
 
+        logger.debug(f"Making schema request with model: {self._model}, prompt: {self._prompt}, schema: {schema}")
         response = await self._client.aio.models.generate_content(
             model=self._model,
             contents=self._prompt,
@@ -86,18 +90,51 @@ class GeminiTool:
 
         return validated
 
+
+    async def imagen_3_request(self) -> bytes:
+        """
+        Sends a request to the Gemini AI model for an image.
+        """
+        bytes = None
+
+        logger.debug(f"Making imagen_3_request with model: {self._model}, prompt: {self._prompt}")
+        response = await self._client.aio.models.generate_images(
+            model=self._model,
+            prompt=self._prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=1, aspect_ratio="1:1", person_generation=types.PersonGeneration.ALLOW_ADULT
+            ),
+        )
+
+        if not response.generated_images:
+            logger.error(f"No generated images in response: {response}")
+            raise ValueError("No generated images in response")
+
+        for generated_image in response.generated_images:
+            if not generated_image.image:
+                logger.error(f"No image in generated image: {generated_image}")
+                raise ValueError("No image in generated image")
+
+            # Get the image bytes
+            bytes = generated_image.image.image_bytes
+
+        if not bytes:
+            logger.error(f"No image bytes in generated image: {generated_image}")
+            raise ValueError("No image bytes in generated image")
+
+        return bytes
+
     async def gemini_image_request(self) -> bytes:
         """
         Sends a request to the Gemini AI model for an image.
         """
         bytes = None
 
+        logger.debug(f"Making gemini_image_request with model: {self._model}, prompt: {self._prompt}")
         response = await self._client.aio.models.generate_content(
             model=self._model,
             contents=self._prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=['TEXT', 'IMAGE']
-            )
+            config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
         )
 
         if not response.candidates:
@@ -130,36 +167,74 @@ class GeminiTool:
 
         return bytes
 
-    async def imagen_3_request(self) -> bytes:
+    async def gemini_image_edit_request(self, image_bytes: bytes) -> tuple[bytes | None, str | None]:
         """
         Sends a request to the Gemini AI model for an image.
         """
-        bytes = None
 
-        response = await self._client.aio.models.generate_images(
+        bytes_response = None
+        text_response = None
+
+        image = Image.open(BytesIO(image_bytes))
+
+        logger.debug(f"Making gemini_image_edit_request with model: {self._model}, prompt: {self._prompt}")
+        response = await self._client.aio.models.generate_content(
             model=self._model,
-            prompt=self._prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                aspect_ratio="1:1",
-                person_generation=types.PersonGeneration.ALLOW_ADULT
+            contents=[self._prompt, image],
+            config=types.GenerateContentConfig(
+                safety_settings=[
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+                        threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                ]
             ),
         )
 
-        if not response.generated_images:
-            logger.error(f"No generated images in response: {response}")
-            raise ValueError("No generated images in response")
+        if not response.candidates:
+            logger.error(f"No candidates in response: {response}")
+            raise ValueError("No candidates in response")
 
-        for generated_image in response.generated_images:
-            if not generated_image.image:
-                logger.error(f"No image in generated image: {generated_image}")
-                raise ValueError("No image in generated image")
+        if not response.candidates[0].content:
+            # If prohibited content
+            if response.candidates[0].finish_reason is not None:
+                logger.warning(f"Prohibited content detected in response. Finish Reason: {response.candidates[0].finish_reason}")
+                return None, str(response.candidates[0].finish_reason)
 
-            # Get the image bytes
-            bytes = generated_image.image.image_bytes
+            logger.error(f"No content in response: {response}")
+            raise ValueError("No content in response")
 
-        if not bytes:
-            logger.error(f"No image bytes in generated image: {generated_image}")
-            raise ValueError("No image bytes in generated image")
+        if not response.candidates[0].content.parts:
+            logger.error(f"No parts in response: {response}")
+            raise ValueError("No parts in response")
 
-        return bytes
+        for part in response.candidates[0].content.parts:
+            if part.text is not None:
+                # Log the text part
+                logger.info(f"gemini_image_edit_request text: {part.text}")
+                text_response = part.text
+
+            if part.inline_data:
+                # Get the image bytes from the inline data
+                bytes_response = part.inline_data.data
+
+        if not bytes_response:
+            logger.error(f"No image bytes in response: {response}")
+
+        return bytes_response, text_response
