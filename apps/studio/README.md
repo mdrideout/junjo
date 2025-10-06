@@ -17,11 +17,13 @@ _Junjo Server Frontend Screenshot_
 
 ## Architecture Overview
 
-The Junjo Server backend is composed of two primary services:
+The Junjo Server is composed of three primary services:
 
 1.  **`junjo-server-backend`**: The main application server. It's an Echo-based Go application responsible for the HTTP API, user authentication, and all business logic. It uses SQLite for primary data and DuckDB for analytical queries on telemetry data.
 
 2.  **`ingestion-service`**: A lightweight, high-throughput Go service responsible for ingesting OpenTelemetry (OTel) data. It exposes a gRPC endpoint to receive OTel spans and immediately writes them to a BadgerDB instance, which acts as a durable Write-Ahead Log (WAL). This decouples the data ingestion from the main backend, ensuring resilience and scalability.
+
+3.  **`junjo-server-frontend`**: The web UI providing the user interface for debugging and monitoring Junjo workflows.
 
 The `backend` service polls the `ingestion-service`'s internal gRPC API to read batches of spans from the WAL, which it then indexes into DuckDB.
 
@@ -52,6 +54,7 @@ Junjo is designed to be low resource. It uses SQLite, DuckDB, and BadgerDB for s
 Junjo Server is built and deployed to **Docker Hub** whenever a new release is published on GitHub.
 
 - **Backend**: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
+- **Ingestion Service**: [https://hub.docker.com/r/mdrideout/junjo-server-ingestion-service](https://hub.docker.com/r/mdrideout/junjo-server-ingestion-service)
 - **Frontend**: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
 
 ## Database Access
@@ -102,8 +105,8 @@ services:
       - ./.dbdata/sqlite:/dbdata/sqlite
       - ./.dbdata/duckdb:/dbdata/duckdb
     ports:
-      - "1323:1323"
-      - "50051:50051"
+      - "1323:1323" # Public API server port
+      - "50053:50053" # Internal gRPC server port
     networks:
       - junjo-network
     env_file:
@@ -114,6 +117,26 @@ services:
       interval: 5s
       timeout: 3s
       retries: 25
+      start_period: 5s
+
+  junjo-server-ingestion:
+    image: mdrideout/junjo-server-ingestion-service:latest
+    container_name: junjo-server-ingestion
+    restart: unless-stopped
+    volumes:
+      - ./.dbdata/badgerdb:/dbdata/badgerdb
+    ports:
+      - "50051:50051" # Public gRPC telemetry server port (where data is received)
+      - "50052:50052" # Internal gRPC server port
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
       start_period: 5s
 
   junjo-server-frontend:
@@ -128,6 +151,8 @@ services:
       - junjo-network
     depends_on:
       junjo-server-backend:
+        condition: service_healthy
+      junjo-server-ingestion:
         condition: service_healthy
 
 networks:
@@ -148,7 +173,7 @@ Docker is required for local development so your developer experience mirrors ho
 
 #### Docker Commands
 
-Docker compose can be used to launch the frontend and backend together, with hot reloading for local development.
+Docker compose can be used to launch all services (frontend, backend, and ingestion) together, with hot reloading for local development.
 
 > Ensure the project root `.env` file contains `JUNJO_BUILD_TARGET=development`
 
@@ -158,7 +183,7 @@ Docker compose can be used to launch the frontend and backend together, with hot
 # Create the network (if it does not already exist)
 $ docker network create junjo-network
 
-# Start the frontend and backend
+# Start all services
 $ docker compose up --build
 
 # Close and clear volumes
