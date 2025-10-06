@@ -86,9 +86,28 @@ $ uv pip install -e ".[dev,graphviz]"
 
 ### Junjo Server
 
-[Junjo Server](https://github.com/mdrideout/junjo-server) is an optional, free, open-source companion telemetry server that can ingest OpenTelemetry traces from Junjo, and visualize the workflow execution graph structures.
+[Junjo Server](https://github.com/mdrideout/junjo-server) is an optional, free, open-source companion telemetry visualization platform for debugging Junjo workflows.
 
-The user interface makes it easy to observe and debug workflow executions. Step through every single state machine update to see how data changes throughout the workflow's lifecycle. 
+**Quick Start:**
+
+```bash
+# Create docker-compose.yml (see docs for full example)
+# Start services
+docker compose up -d
+
+# Access UI at http://localhost:5153
+```
+
+**Features:**
+- Interactive graph visualization with execution path tracking
+- State step debugging - see every state change in chronological order
+- LLM decision tracking and trace timeline
+- Multi-execution comparison
+- Built specifically for graph-based AI workflows
+
+**Architecture:** Three-service Docker setup (backend, ingestion service, frontend) that runs on minimal resources (1GB RAM, shared vCPU).
+
+See the [Junjo Server documentation](https://python-api.junjo.ai/junjo_server.html) for complete setup and configuration.
 
 ### Graphviz
 

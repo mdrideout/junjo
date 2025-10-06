@@ -4,7 +4,7 @@ PROTO_SRC_DIR := ./src/junjo/telemetry/junjo_server/proto
 PROTO_OUT_DIR := ./src/junjo/telemetry/junjo_server/proto_gen
 
 proto:
-	uv run python -m grpc_tools.protoc \
+	python -m grpc_tools.protoc \
 		-I$(PROTO_SRC_DIR) \
 		--python_out=$(PROTO_OUT_DIR) \
 		--grpc_python_out=$(PROTO_OUT_DIR) \

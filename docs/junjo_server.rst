@@ -40,19 +40,85 @@ Junjo Server solves this by providing **complete execution transparency**.
 
 *Interactive workflow graph showing execution path and state changes*
 
-Installation
-============
+Installation & Setup
+====================
 
-Junjo Server runs as a Docker container:
+Junjo Server is composed of three Docker services that work together:
+
+1. **Backend**: API server and data processing (SQLite + DuckDB)
+2. **Ingestion Service**: High-throughput OpenTelemetry data receiver (BadgerDB)
+3. **Frontend**: Web UI for visualization and debugging
+
+Quick Start with Docker Compose
+--------------------------------
+
+**Minimal Docker Compose Example:**
+
+.. code-block:: yaml
+    :caption: docker-compose.yml
+
+    services:
+      junjo-server-backend:
+        image: mdrideout/junjo-server-backend:latest
+        ports:
+          - "1323:1323"   # HTTP API
+          - "50053:50053" # Internal gRPC
+        volumes:
+          - ./.dbdata/sqlite:/dbdata/sqlite
+          - ./.dbdata/duckdb:/dbdata/duckdb
+        env_file: .env
+        networks:
+          - junjo-network
+
+      junjo-server-ingestion:
+        image: mdrideout/junjo-server-ingestion-service:latest
+        ports:
+          - "50051:50051" # OTel data ingestion (your app connects here)
+          - "50052:50052" # Internal gRPC
+        volumes:
+          - ./.dbdata/badgerdb:/dbdata/badgerdb
+        env_file: .env
+        networks:
+          - junjo-network
+
+      junjo-server-frontend:
+        image: mdrideout/junjo-server-frontend:latest
+        ports:
+          - "5153:80" # Web UI
+        env_file: .env
+        networks:
+          - junjo-network
+        depends_on:
+          - junjo-server-backend
+          - junjo-server-ingestion
+
+    networks:
+      junjo-network:
+        driver: bridge
+
+**Start the services:**
 
 .. code-block:: bash
 
-    # Pull and run Junjo Server
-    docker run -p 50051:50051 -p 3000:3000 junjo/junjo-server:latest
+    # Create .env file (see Configuration section below)
+    cp .env.example .env
+    
+    # Start all services
+    docker compose up -d
+    
+    # Access the UI
+    open http://localhost:5153
 
-Access the UI at http://localhost:3000
+Resource Requirements
+---------------------
 
-For production setup and advanced configuration, see the `Junjo Server repository <https://github.com/mdrideout/junjo-server>`_.
+Junjo Server is designed to run on minimal resources:
+
+- **CPU**: Single shared vCPU is sufficient
+- **RAM**: 1GB minimum
+- **Storage**: Uses SQLite, DuckDB, and BadgerDB (all embedded databases)
+
+This makes it affordable to deploy on small cloud VMs.
 
 Configuration
 =============
@@ -60,7 +126,7 @@ Configuration
 Step 1: Generate an API Key
 ----------------------------
 
-1. Open Junjo Server UI at http://localhost:3000
+1. Open Junjo Server UI at http://localhost:5153
 2. Navigate to Settings → API Keys
 3. Create a new API key
 4. Copy the key to your environment
@@ -107,8 +173,8 @@ Create an OpenTelemetry configuration file:
         
         # Configure Junjo Server exporter
         junjo_exporter = JunjoServerOtelExporter(
-            host="localhost",
-            port="50051",
+            host="localhost",  # Junjo Server ingestion service host
+            port="50051",      # Port 50051 receives OpenTelemetry data
             api_key=api_key,
             insecure=True  # Use False in production with TLS
         )
@@ -288,6 +354,32 @@ You can use Junjo Server alongside other platforms:
 
 Platforms like Jaeger, Grafana, Honeycomb, etc. will receive all Junjo spans with their custom attributes, though they won't have Junjo Server's specialized workflow visualization.
 
+Architecture Details
+====================
+
+Junjo Server uses a three-service architecture for scalability and reliability:
+
+.. code-block:: text
+
+    Your Application (Junjo Python Library)
+           ↓ (sends OTel spans via gRPC)
+    Ingestion Service :50051
+           ↓ (writes to BadgerDB WAL)
+           ↓ (backend polls via internal gRPC :50052)
+    Backend Service :1323
+           ↓ (stores in SQLite + DuckDB)
+           ↓ (serves HTTP API)
+    Frontend :5153
+           (web UI)
+
+**Port Reference:**
+
+- **50051**: Public gRPC - Your application sends telemetry here
+- **50052**: Internal gRPC - Backend reads from ingestion service
+- **50053**: Internal gRPC - Backend server communication
+- **1323**: Public HTTP - API server
+- **5153**: Public HTTP - Web UI
+
 Troubleshooting
 ===============
 
@@ -295,9 +387,10 @@ No data appearing in Junjo Server
 ----------------------------------
 
 - Verify API key is set correctly: ``echo $JUNJO_SERVER_API_KEY``
-- Check Junjo Server is running: http://localhost:3000
-- Ensure port 50051 is accessible
+- Check services are running: ``docker compose ps``
+- Ensure ingestion service is accessible on port 50051
 - Look for connection errors in your application logs
+- Check ingestion service logs: ``docker compose logs junjo-server-ingestion``
 
 Missing LLM data
 ----------------
@@ -310,8 +403,17 @@ Performance issues
 ------------------
 
 - Use sampling for high-volume workflows
-- Consider metric export interval adjustments
-- See Junjo Server docs for retention settings
+- The ingestion service uses BadgerDB as a write-ahead log for durability
+- Backend polls and indexes data asynchronously
+- See `Junjo Server repository <https://github.com/mdrideout/junjo-server>`_ for tuning options
+
+Docker Compose not starting
+----------------------------
+
+- Ensure Docker network exists: ``docker network create junjo-network``
+- Check environment variables are set in ``.env``
+- View logs: ``docker compose logs``
+- Try: ``docker compose down -v && docker compose up --build``
 
 Next Steps
 ==========
