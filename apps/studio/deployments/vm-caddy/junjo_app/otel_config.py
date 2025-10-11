@@ -2,7 +2,8 @@ import os
 
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
 
-from opentelemetry import trace
+from opentelemetry import metrics, trace
+from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
@@ -38,5 +39,14 @@ def setup_telemetry():
     # Add more span processors if desired
     tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)
+
+    # Set up metrics
+    #    - Construct with the Junjo metric reader (Junjo Server and Jaeger)
+    #    - Add more metric readers if desired
+    junjo_server_metric_reader = junjo_server_exporter.metric_reader
+    meter_provider = MeterProvider(
+        resource=resource, metric_readers=[junjo_server_metric_reader]
+    )
+    metrics.set_meter_provider(meter_provider)
 
     return
