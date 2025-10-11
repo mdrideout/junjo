@@ -1,8 +1,33 @@
 # Caddyfile for Junjo Local Dev & Production Deployment
 
-# This Caddyfile uses the JUNJO_PROD_AUTH_DOMAIN environment variable to define
-# the production domain. Set this in your .env file.
-# Example: JUNJO_PROD_AUTH_DOMAIN=junjo-deploy.example.rideout.dev
+# ----------------------------------------------------------------------------------------
+# Local Development (no SSL)
+# Access services at http://localhost on their respective ports
+# ----------------------------------------------------------------------------------------
+# Comment this section for production
+http://localhost {
+	log
+
+	handle {
+		reverse_proxy junjo-server-frontend:80
+	}
+}
+
+http://localhost:1323 {
+	log
+
+	handle {
+		reverse_proxy junjo-server-backend:1323
+	}
+}
+
+http://localhost:50051 {
+	log
+
+	handle {
+		reverse_proxy junjo-server-ingestion:50051
+	}
+}
 
 # ----------------------------------------------------------------------------------------
 # Production Domain & Subdomains
@@ -10,34 +35,47 @@
 # - Frontend:   junjo-server-frontend:80        https://{$JUNJO_PROD_AUTH_DOMAIN}
 # - Backend:    junjo-server-backend:1323       https://api.{$JUNJO_PROD_AUTH_DOMAIN}
 # - Ingestion:  junjo-server-ingestion:50051    grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+#
+# Uses JUNJO_PROD_AUTH_DOMAIN .env variable to define the production domain.
+# Example: JUNJO_PROD_AUTH_DOMAIN=junjo.example.dev
+#
+# SSL Note: This example assumes your domain is registered with Cloudflare.
+#           If you are using a different DNS provider, you will need to configure
+#           Caddy accordingly.
+#           - https://github.com/caddyserver/xcaddy
+#           - https://caddyserver.com/docs/quick-starts/https
 # ----------------------------------------------------------------------------------------
-{$JUNJO_PROD_AUTH_DOMAIN}, *.{$JUNJO_PROD_AUTH_DOMAIN} {
-	log
 
-	# For automatic SSL (via xcaddy cloudflare plugin)
-	tls {
-		dns cloudflare {$CF_API_TOKEN} # Created inside CloudFlare and set in the .env file
-		resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin
+# Comment the above local development section for production
+# Uncomment the following section in your production environment
+# {$JUNJO_PROD_AUTH_DOMAIN}, *.{$JUNJO_PROD_AUTH_DOMAIN} {
+# 	log
 
-		# To use the Let's Encrypt staging environment, set the following in your .env file:
-		# JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE="ca https://acme-staging-v02.api.letsencrypt.org/directory"
-		{$JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE}
-	}
+# 	# For automatic SSL (via xcaddy cloudflare plugin)
+# 	tls {
+# 		dns cloudflare {$CF_API_TOKEN} # Created inside CloudFlare and set in the .env file
+# 		resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin
 
-	# API Backend: api.{$JUNJO_PROD_AUTH_DOMAIN}
-	@api host api.{$JUNJO_PROD_AUTH_DOMAIN}
-	handle @api {
-		reverse_proxy junjo-server-backend:1323
-	}
+# 		# To use the Let's Encrypt staging environment, set the following in your .env file:
+#     # See the README for more information
+# 		# JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE="ca https://acme-staging-v02.api.letsencrypt.org/directory"
+# 		{$JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE}
+# 	}
 
-	# gRPC Ingestion: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-	@grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-	handle @grpc {
-		reverse_proxy junjo-server-ingestion:50051
-	}
+# 	# API Backend: api.{$JUNJO_PROD_AUTH_DOMAIN}
+# 	@api host api.{$JUNJO_PROD_AUTH_DOMAIN}
+# 	handle @api {
+# 		reverse_proxy junjo-server-backend:1323
+# 	}
 
-	# Fallback for the root domain
-	handle {
-		reverse_proxy junjo-server-frontend:80
-	}
-}
+# 	# gRPC Ingestion: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+# 	@grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+# 	handle @grpc {
+# 		reverse_proxy junjo-server-ingestion:50051
+# 	}
+
+# 	# Fallback for the root domain
+# 	handle {
+# 		reverse_proxy junjo-server-frontend:80
+# 	}
+# }

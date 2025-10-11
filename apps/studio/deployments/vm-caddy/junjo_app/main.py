@@ -39,25 +39,28 @@ class EndNode(Node[AppStore]):
         print("Workflow finished.")
         await asyncio.sleep(1)
 
-# 4. Instantiate Nodes
-start_node = StartNode()
-increment_node = IncrementNode()
-end_node = EndNode()
+# 4. Define the Graph Factory
+def create_app_graph():
+    """Factory function that creates a new graph instance for each workflow execution."""
+    # Instantiate Nodes
+    start_node = StartNode()
+    increment_node = IncrementNode()
+    end_node = EndNode()
 
-# 5. Define the Graph
-app_graph = Graph(
-    source=start_node,
-    sink=end_node,
-    edges=[
-        Edge(tail=start_node, head=increment_node),
-        Edge(tail=increment_node, head=end_node),
-    ]
-)
+    # Create and return the Graph
+    return Graph(
+        source=start_node,
+        sink=end_node,
+        edges=[
+            Edge(tail=start_node, head=increment_node),
+            Edge(tail=increment_node, head=end_node),
+        ]
+    )
 
-# 6. Create the Workflow
+# 5. Create the Workflow
 app_workflow = Workflow[AppState, AppStore](
     name="Example Deployment Workflow",
-    graph=app_graph,
+    graph_factory=create_app_graph,
     store_factory=lambda: AppStore(initial_state=AppState())
 )
 

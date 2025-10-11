@@ -71,7 +71,7 @@ Copy the example environment file and update it with your own secret key.
 cp .env.example .env
 ```
 
-Open `.env` in your editor and replace `your_secret_key` with a new key. You can generate one with the following command:
+Update the `JUNJO_SESSION_SECRET` environment variable. Open `.env` in your editor and replace `your_secret_key` with a new key. You can generate one with the following command:
 
 ```bash
 openssl rand -base64 48
@@ -79,7 +79,7 @@ openssl rand -base64 48
 
 ### 3. Run the Application
 
-Start all the services using Docker Compose:
+The `caddy/Caddyfile` is configured for local development by default (no SSL required). Start all the services using Docker Compose:
 
 ```bash
 docker compose up --build
@@ -241,6 +241,11 @@ cp .env.example .env
 # Edit the .env to add variables for production, including
 # JUNJO_ENV="production", JUNJO_PROD_AUTH_DOMAIN, JUNJO_SESSION_SECRET, CF_API_TOKEN
 vi .env
+
+# Configure Caddy for production
+# Edit caddy/Caddyfile: comment out the local development section
+# and uncomment the production section. See the Caddyfile for detailed instructions.
+vi caddy/Caddyfile
 
 # The JUNJO_SERVER_API_KEY variable will be set later after we create an API key in the Junjo Server UI.
 ```
