@@ -148,6 +148,10 @@ Create a Droplet with the following specifications *($6/mo)*:
 
 This single VM can ingest telemetry from an unlimited number of AI applications running anywhere.
 
+#### 1a. Add a static IP address
+
+This will allow us to point a domain to this VM and complete the following SSL setup.
+
 ### 2. DNS Configuration & Service Endpoints
 
 #### Domain Setup
@@ -164,7 +168,7 @@ The `JUNJO_PROD_AUTH_DOMAIN` environment variable defines your primary productio
 
 #### DNS Configuration
 
-Configure your DNS provider with A records pointing to your server's IP address:
+Configure your DNS provider with A records pointing to your server's IP address. The following A records assume the following environment variable: `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`
 
 | Record Type | Hostname | Value | TTL |
 |-------------|----------|-------|-----|
@@ -182,6 +186,14 @@ Assuming `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`, your deployment will be acc
 | **Web UI** | `https://junjo.example.com` | View and debug AI workflow executions |
 | **API** | `https://api.junjo.example.com` | Backend HTTP API |
 | **Ingestion** | `grpc.junjo.example.com:443` | **Your AI applications send telemetry here** |
+
+#### CORS Settings
+
+Update the allowed origins in the `.env` file to include your production domain:
+
+```yaml
+JUNJO_ALLOW_ORIGINS=http://junjo.example.com,https://junjo.example.com
+```
 
 #### Connecting Your AI Applications
 
@@ -221,13 +233,13 @@ From your local machine, copy the repository files to the server:
 ```bash
 # Copy via rsync (run from your local machine)
 # Exclude hidden files except for .env.example
-rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/path/on/local/machine/ root@[your-ip-address]:junjo-server/
+rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/project/root/path/on/local/machine root@[your-ip-address]:
 
 # SSH back into the server
 ssh root@[your-ip-address]
 
-# Navigate to the deployment directory
-cd ~/junjo-server
+# Navigate to the deployment directory (should be the same folder name as the repository root)
+cd ~/junjo-server-deployment-example
 
 # Verify files were copied correctly
 ls -a
@@ -253,16 +265,18 @@ vi caddy/Caddyfile
 #### Start The Services
 
 ```bash
-# Pull latest images and start services
+# Pull latest images and start services - thie xcaddy build may take a few minutes
 docker compose pull && docker compose up -d --build
 
 # Monitor startup logs
 docker logs -f junjo-caddy  # Check for successful SSL certificate generation
+
+# You should find a message in the logs that contains ..."msg":"authorization finalized"...
 ```
 
 #### Create API Key
 
-1. Access the frontend at `https://junjo.example.com` (replace with your domain)
+1. Access the frontend at `https://junjo.example.com` (same as your `JUNJO_PROD_AUTH_DOMAIN`)
 2. Create a user account and sign in
 3. Navigate to API Keys and create a new key
 4. Update `.env` with your API key:
