@@ -1,4 +1,4 @@
-# Deploy Junjo Server
+# Junjo Server - Production VM Deployment Example
 
 This repository walks you through creating a production-ready deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
 
