@@ -2,6 +2,19 @@
 
 This repository walks you through creating a production-ready deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Quick Start (Local Development)](#quick-start-local-development)
+- [Production VM Deployment](#production-vm-deployment)
+  - [1. Creating a VM (Digital Ocean Example)](#1-creating-a-vm-digital-ocean-example)
+  - [2. DNS Configuration & Service Endpoints](#2-dns-configuration--service-endpoints)
+  - [3. Server Configuration](#3-server-configuration)
+  - [4. Block Storage (Optional)](#4-block-storage-optional)
+  - [5. Services Architecture](#5-services-architecture)
+- [Miscellaneous](#miscellaneous)
+  - [SSL Testing with Let's Encrypt Staging](#ssl-testing-with-lets-encrypt-staging)
+
 ## Overview
 
 Deploy Junjo Server as a centralized observability backend for your AI applications. Once deployed, your Python applications can send OpenTelemetry data to Junjo Server using the `JunjoServerOtelExporter`, giving you:
@@ -72,13 +85,25 @@ Start all the services using Docker Compose:
 docker compose up --build
 ```
 
-This command will build the `junjo-app` image and pull the necessary images for the other services. It may take a few minutes the first time you run it.
-
 ### 4. Access the Services
 
 Once all the services are running, you can access them in your browser:
 
 *   **Junjo Server UI**: [http://localhost:5153](http://localhost:5153)
+
+The **demo application (`junjo-app`) automatically starts running a workflow every 5 seconds**, continuously sending telemetry to Junjo Server. You'll see new workflow runs appearing in real-time!
+
+Watch the demo app in action:
+```bash
+# View demo app logs
+docker logs -f junjo-app
+
+# You'll see output like:
+# Executing workflow...
+# Workflow started.
+# Counter incremented to: 1
+# Workflow finished.
+```
 
 #### Junjo Setup Steps:
 
@@ -92,7 +117,11 @@ Once all the services are running, you can access them in your browser:
 
 > **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
 
-You should see workflow runs appearing in the Junjo Server UI every 5 seconds. You can click on a run to see detailed execution information.
+**What You'll See:**
+- New workflow runs appearing every 5 seconds in the UI
+- Each run shows the complete execution trace (3 nodes: Start → Increment → End)
+- Click any run to explore the workflow execution details, timing, and state changes
+- This demonstrates real-time telemetry ingestion and visualization
 
 ### 5. Stopping the Application
 
@@ -108,7 +137,20 @@ docker compose down -v
 
 Deploy Junjo Server to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo Server instance via the gRPC ingestion endpoint.
 
-### Domain Configuration
+### 1. Creating a VM (Digital Ocean Example)
+
+Create a Droplet with the following specifications *($6/mo)*:
+
+- **OS**: Debian 13
+- **RAM**: 1GB
+- **vCPU**: 1
+- **Disk**: 25GB SSD
+
+This single VM can ingest telemetry from an unlimited number of AI applications running anywhere.
+
+### 2. DNS Configuration & Service Endpoints
+
+#### Domain Setup
 
 The `JUNJO_PROD_AUTH_DOMAIN` environment variable defines your primary production domain and controls:
 
@@ -120,7 +162,18 @@ The `JUNJO_PROD_AUTH_DOMAIN` environment variable defines your primary productio
 - A wildcard DNS record for your domain (e.g., `*.example.com`)
 - Cloudflare API token for automatic SSL (or configure alternative DNS provider)
 
-### Service Endpoints
+#### DNS Configuration
+
+Configure your DNS provider with A records pointing to your server's IP address:
+
+| Record Type | Hostname | Value | TTL |
+|-------------|----------|-------|-----|
+| A | `*.junjo.example.com` | `your-server-ip` | 300 |
+| A | `junjo.example.com` | `your-server-ip` | 300 |
+
+> Replace `junjo.example.com` with your actual domain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all subdomains (api, grpc) route to your server.
+
+#### Service Endpoints
 
 Assuming `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`, your deployment will be accessible at:
 
@@ -147,20 +200,99 @@ junjo_exporter = JunjoServerOtelExporter(
 
 See the `junjo_app/` directory for a complete working example.
 
-### Caddy Server / Reverse Proxy
+### 3. Server Configuration
 
-One would typically manage and deploy Caddy (or other reverse proxy) separately from the Junjo Server for their virtual machine. You may have a server-wide docker network and many 
-other container services running on the same machine that you'd like to control individually.
+#### SSH into the Server
 
-This example bundles Caddy **with** the example Junjo App and Junjo Server instance for turn-key demonstration purposes.
+```bash
+ssh root@[your-ip-address]
+```
 
-The `Caddyfile` can be used as a demonstration for:
+#### Install Docker & Docker Compose
 
-- `:80` local and `*.{$JUNJO_PROD_AUTH_DOMAIN}` production deployment
-- Cloudflare DNS setup example
-- Subdomain service access configuration through Caddy
+1. Follow [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/) instructions
+2. Install rsync: `sudo apt install rsync`
+3. Disconnect from SSH for the next steps
 
-## Services Architecture
+#### Copy Files & Launch
+
+From your local machine, copy the repository files to the server:
+
+```bash
+# Copy via rsync (run from your local machine)
+# Exclude hidden files except for .env.example
+rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/path/on/local/machine/ root@[your-ip-address]:junjo-server/
+
+# SSH back into the server
+ssh root@[your-ip-address]
+
+# Navigate to the deployment directory
+cd ~/junjo-server
+
+# Verify files were copied correctly
+ls -a
+
+# Generate a session secret key and keep it for JUNJO_SESSION_SECRET variable
+openssl rand -base64 48
+
+# Copy the example environment variable file to a new .env
+cp .env.example .env
+
+# Edit the .env to add variables for production, including
+# JUNJO_ENV="production", JUNJO_PROD_AUTH_DOMAIN, JUNJO_SESSION_SECRET, CF_API_TOKEN
+vi .env
+
+# The JUNJO_SERVER_API_KEY variable will be set later after we create an API key in the Junjo Server UI.
+```
+
+#### Start The Services
+
+```bash
+# Pull latest images and start services
+docker compose pull && docker compose up -d --build
+
+# Monitor startup logs
+docker logs -f junjo-caddy  # Check for successful SSL certificate generation
+```
+
+#### Create API Key
+
+1. Access the frontend at `https://junjo.example.com` (replace with your domain)
+2. Create a user account and sign in
+3. Navigate to API Keys and create a new key
+4. Update `.env` with your API key:
+   ```bash
+   vi .env  # Set JUNJO_SERVER_API_KEY
+   ```
+5. Restart the demo app to apply the key:
+   ```bash
+   docker compose restart junjo-app
+   ```
+
+#### Verify Deployment
+
+```bash
+# Check all containers are running
+docker container ls
+
+# Watch application logs
+docker logs -f junjo-app
+```
+
+Your Junjo Server is now live! Visit the Web UI to see workflow runs from the demo application.
+
+### 4. Block Storage (Optional)
+
+**Recommended for production deployments.** Block storage separates your persistent data from the VM instance, providing better durability and backup capabilities. Benefits include:
+
+- **Independence**: Data survives VM rebuilds or migrations
+- **Scalability**: Resize storage independently of compute resources
+- **Better backups**: Use cloud provider snapshot features
+- **Portability**: Detach and reattach volumes to different VMs
+
+Most cloud providers (Digital Ocean, AWS, GCP, Azure, Hetzner) offer block storage through their dashboards. Create a volume, attach it to your VM, mount it to `/mnt/junjo-data`, then update the volume paths in `docker-compose.yml` to point to `/mnt/junjo-data/sqlite`, `/mnt/junjo-data/duckdb`, and `/mnt/junjo-data/badgerdb`.
+
+### 5. Services Architecture
 
 This deployment includes several interconnected services. The **core Junjo Server services** provide the observability platform, while **infrastructure services** handle routing and SSL.
 
@@ -193,81 +325,27 @@ This deployment includes several interconnected services. The **core Junjo Serve
 #### `junjo-app`
 *   **Source**: [`junjo_app/`](junjo_app/)
 *   **Purpose**: Example showing how to integrate Junjo Server into your Python applications
-*   **Details**: Runs a simple Junjo workflow in a loop, sending OpenTelemetry data to the ingestion service. Use this as a reference when building your own integrations. **Remove this service in production** if you don't need the demo.
+*   **Details**: Runs a simple 3-node Junjo workflow (StartNode → IncrementNode → EndNode) in a continuous loop, executing **every 5 seconds**. Each execution generates a complete OpenTelemetry trace showing state changes, node timing, and workflow decision flow. This continuous telemetry stream demonstrates real-time ingestion and visualization.
 
-## Digital Ocean VM Deployment Example
+**What the Demo Does:**
+- Executes a workflow that increments a counter
+- Sends complete trace data to `junjo-server-ingestion` via gRPC
+- Creates visible workflow runs in the Junjo Server UI every 5 seconds
+- Shows how to configure `JunjoServerOtelExporter` in your own applications
+- Watch it running: `docker logs -f junjo-app`
 
-Start by creating a fresh basic Digital Ocean Droplet VM (or a VM from another provider) with the following configuration _($6/mo)_.
+**For Production:**
+Use `junjo_app/` as a reference implementation. **Remove this service** from `docker-compose.yml` if you don't need the demo running continuously.
 
-- Debian 13
-- 1GB RAM
-- 1vCPU
-- 25GB SSD
+---
 
-This single VM can and Junjo Server instance can ingest data from an unlimited number of AI applications running anywhere. You can run your AI backends on the same VM, or on a separate VM.
+# Miscellaneous
 
-Next: Configure the VM and deploy Junjo Server.
+## SSL Testing with Let's Encrypt Staging
 
-### SSH into the server
+Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment, use the Let's Encrypt staging environment to avoid production rate limits during testing.
 
-```bash
-$ ssh root@[your-ip-address]
-```
-
-### Install Docker & Docker Compose
-
-1. Follow [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/) instructions.
-2. Install rsync `sudo apt install rsync`
-3. Disconnect from ssh for next steps
-
-### Copy Files & Launch
-
-These commands will copy the files from your machine to the remote server.
-
-```bash
-# Copy via rsync (ssh must be disconnected to execute)
-# Exclude hidden files except for .env.example
-$ rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/path/on/local/machine/ root@[your-ip-address]:folder_name/
-
-# ssh into the server again
-$ ssh root@[your-ip-address]
-
-# cd into to the folder you uploaded the project to
-$ cd ~/folder_name
-
-# Verify all files were copied correctly
-$ ls -a
-
-# Copy the .env.example file and rename it to .env
-$ cp .env.example .env
-
-# Edit the .env file and update the required environment variables (the JUNJO_SERVER_API_KEY can be added after the Junjo Server is running)
-$ sudo vi .env
-
-# Exit the vi text editor with escape key, then type :wq to save and quit
-
-# Pull the latest Junjo Server images and launch the docker compose configuration in detached mode so it runs in the background
-# This will start all of the services
-$ docker compose pull && docker compose up -d --build
-
-# Create & Set the Junjo Server API Key
-# 1. Access the frontend and create an API key.
-# 2. Edit the .env file again and set the JUNJO_SERVER_API_KEY
-# 3. Restart the Junjo App so that it picks up the new API key and can deliver telemetry to the Junjo Server
-$ docker compose restart junjo-app
-
-# List containers
-$ docker container ls
-
-# Watch logs of the container (check caddy for successful SSL)
-$ docker logs -f caddy
-```
-
-## Caddy SSL Staging / Testing
-
-Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment it is recommended to use the Let's Encrypt staging environment to avoid rate limits during testing. Just a few `docker compose down -v` and `docker compose up -d --build` commands can exhaust your rate limit.
-
-To use Let's Encrypt staging certificates, uncomment the following line in your `.env` file.
+To enable staging certificates, uncomment the following line in your `.env` file:
 
 ```yaml
 # === FOR SSL TESTING ============================================================================>
@@ -275,25 +353,24 @@ To use Let's Encrypt staging certificates, uncomment the following line in your 
 JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE="ca https://acme-staging-v02.api.letsencrypt.org/directory"
 ```
 
-Caddy will then automatically use the Let's Encrypt staging environment when generating certificates.
+Caddy will automatically use the Let's Encrypt staging environment when generating certificates.
 
-Without manually trusting these staging certificates, you will see a "Your connection is not private" warning in your browser.
+**Note:** Without manually trusting these staging certificates, you will see a "Your connection is not private" warning in your browser.
 
-Follow the instructions below for downloading and trusting the staging certificates on a MacOS system, allowing complete testing.
+### Trusting Staging Certificates (macOS)
 
-### Staging SSL Testing Instructions:
+To test your setup without browser warnings, add the staging certificate to your macOS Keychain Access:
 
-To test your setup, you can add a staging certificate to your MacOS Keychain Access and trust it. The following steps will guide you through the process:
+1. Download the staging certificates:
+   ```bash
+   bash download_staging_certs.sh
+   ```
 
-1. Run the certificate download script:
+2. Open the `.certs` folder in Finder and double-click the `.pem` files to add them to Keychain Access
 
-```bash
-# Download the staging certificates to the .certs directory in this project directory
-$ bash download_staging_certs.sh
-```
+3. In Keychain Access, double-click each new certificate and expand the "Trust" section
 
-2. Open the `.certs` folder in Finder and double-click on the `.pem` files to add them to "Keychain Access".
-3. Inside Keychain Access, double-click the new certificates and expand the "Trust" section
-4. Select "Always Trust" on both of them
-5. Restart chrome or safari and you should be able to access the site
+4. Select "Always Trust" for both certificates
+
+5. Restart your browser (Chrome or Safari)
 

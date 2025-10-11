@@ -1,3 +1,32 @@
+# ============================================================================
+# JUNJO SERVER - PRODUCTION VM DEPLOYMENT
+# ============================================================================
+# This docker-compose configuration deploys Junjo Server with persistent
+# data storage. All databases are stored in bind-mounted directories.
+#
+# DATA STORAGE STRATEGY:
+#
+# LOCAL DEVELOPMENT:
+#   Data stored in ./.dbdata/ (gitignored, created automatically)
+#
+# PRODUCTION - VM SSD:
+#   Store the data on the virutal machine's SSD (common Debian path)
+#     - /var/lib/junjo-server/sqlite:/dbdata/sqlite
+#     - /var/lib/junjo-server/duckdb:/dbdata/duckdb
+#     - /var/lib/junjo-server/badgerdb:/dbdata/badgerdb
+#
+# PRODUCTION - Block Storage (Recommended):
+#   Mount block storage to /mnt/junjo-data, then update volumes below:
+#     - /mnt/junjo-data/sqlite:/dbdata/sqlite
+#     - /mnt/junjo-data/duckdb:/dbdata/duckdb
+#     - /mnt/junjo-data/badgerdb:/dbdata/badgerdb
+#
+#   Block Storage Benefits: Separate from VM, scalable, backup-friendly, survives VM rebuilds
+#   Follow your VM providers instructions for mounting block storage and
+#   to find the path to mount it in your VM.
+#
+# ============================================================================
+
 services:
   junjo-app:
     build: ./junjo_app
@@ -15,8 +44,14 @@ services:
     container_name: junjo-server-backend
     restart: unless-stopped
     volumes:
+      # LOCAL DEVELOPMENT: Relative path to project directory
       - ./.dbdata/sqlite:/dbdata/sqlite
       - ./.dbdata/duckdb:/dbdata/duckdb
+
+      # PRODUCTION (Recommended): Block storage mounted to /mnt/junjo-data
+      # Uncomment these and comment out the local development paths above:
+      # - /mnt/junjo-data/sqlite:/dbdata/sqlite
+      # - /mnt/junjo-data/duckdb:/dbdata/duckdb
     ports:
       - "1323:1323"
       - "50053:50053"
@@ -39,7 +74,12 @@ services:
     container_name: junjo-server-ingestion
     restart: unless-stopped
     volumes:
+      # LOCAL DEVELOPMENT: Relative path to project directory
       - ./.dbdata/badgerdb:/dbdata/badgerdb
+
+      # PRODUCTION (Recommended): Block storage mounted to /mnt/junjo-data
+      # Uncomment this and comment out the local development path above:
+      # - /mnt/junjo-data/badgerdb:/dbdata/badgerdb
     ports:
       - "50051:50051" # Public gRPC telemetry server port
       - "50052:50052" # Internal gRPC server port
@@ -89,7 +129,7 @@ services:
       - junjo-server-frontend
 
 volumes:
-  caddy_data: # Persistent caddy data (certificates, configuration)
+  caddy_data: # Persistent Caddy data (SSL certificates, configuration)
 
 networks:
   junjo-network:
