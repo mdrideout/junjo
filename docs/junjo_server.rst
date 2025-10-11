@@ -1,7 +1,7 @@
 .. _junjo_server:
 
 ##############################################################
-Junjo Server - Workflow Debugging & Visualization
+Junjo Server Intro
 ##############################################################
 
 .. meta::

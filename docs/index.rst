@@ -15,10 +15,11 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: OpenTelemetry:
+   :caption: Junjo Server:
    :hidden:
 
    junjo_server
+   deployment
    opentelemetry
 
 .. toctree::
