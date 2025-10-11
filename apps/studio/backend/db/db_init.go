@@ -55,15 +55,22 @@ func Connect() {
 	}
 	log.Println("Database migrations applied successfully!")
 
-	// --- Performance & Safety PRAGMAs ---
-	_, err = DB.ExecContext(ctx, "PRAGMA journal_mode=WAL")
+	// --- Safety & Performance PRAGMAs ---
+	// Use DELETE mode (traditional rollback journal) for maximum safety and simplicity.
+	// This is appropriate for low-throughput, critical data like users and API keys.
+	_, err = DB.ExecContext(ctx, "PRAGMA journal_mode=DELETE")
 	if err != nil {
-		log.Fatalf("Failed to set WAL mode: %v", err)
+		log.Fatalf("Failed to set journal mode: %v", err)
 	}
-	_, err = DB.ExecContext(ctx, "PRAGMA synchronous = NORMAL")
+
+	// Use FULL synchronous mode to ensure every transaction is fully synced to disk
+	// before the commit returns. This prevents data loss on power failure or crash.
+	_, err = DB.ExecContext(ctx, "PRAGMA synchronous=FULL")
 	if err != nil {
 		log.Fatalf("Failed to set synchronous mode: %v", err)
 	}
+
+	log.Println("SQLite configured for maximum data safety (DELETE journal, FULL sync)")
 }
 
 // Close safely closes the database connection.
