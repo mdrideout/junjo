@@ -104,7 +104,7 @@ docker compose down -v
 
 ---
 
-## Production Deployment
+# Production VM Deployment
 
 Deploy Junjo Server to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo Server instance via the gRPC ingestion endpoint.
 
@@ -197,14 +197,16 @@ This deployment includes several interconnected services. The **core Junjo Serve
 
 ## Digital Ocean VM Deployment Example
 
-The following assumes a fresh Digital Ocean Droplet VM with the following configuration:
+Start by creating a fresh basic Digital Ocean Droplet VM (or a VM from another provider) with the following configuration _($6/mo)_.
 
-- Debian 12
+- Debian 13
 - 1GB RAM
 - 1vCPU
-- 25GB Disk
+- 25GB SSD
 
-The following are instructions for baseline server setup and deployment of the Junjo Server and Junjo App.
+This single VM can and Junjo Server instance can ingest data from an unlimited number of AI applications running anywhere. You can run your AI backends on the same VM, or on a separate VM.
+
+Next: Configure the VM and deploy Junjo Server.
 
 ### SSH into the server
 
