@@ -105,7 +105,7 @@ docker logs -f junjo-app
 # Workflow finished.
 ```
 
-#### Junjo Setup Steps:
+#### App API Key Setup Steps:
 
 1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
 2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo Server UI.

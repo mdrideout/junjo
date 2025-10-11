@@ -57,12 +57,14 @@ def create_app_graph():
         ]
     )
 
-# 5. Create the Workflow
-app_workflow = Workflow[AppState, AppStore](
-    name="Example Deployment Workflow",
-    graph_factory=create_app_graph,
-    store_factory=lambda: AppStore(initial_state=AppState())
-)
+# 5. Create the Workflow Factory
+def create_app_workflow():
+    """Factory function that creates a new workflow instance for each execution."""
+    return Workflow[AppState, AppStore](
+        name="Example Deployment Workflow",
+        graph_factory=create_app_graph,
+        store_factory=lambda: AppStore(initial_state=AppState())
+    )
 
 # --- Main Execution Loop ---
 async def main():
@@ -70,8 +72,9 @@ async def main():
     print("Starting Junjo application...")
     while True:
         print("\nExecuting workflow...")
-        await app_workflow.execute()
-        final_state = await app_workflow.get_state_json()
+        workflow = create_app_workflow()
+        await workflow.execute()
+        final_state = await workflow.get_state_json()
         print(f"Final state: {final_state}")
         await asyncio.sleep(5)
 
