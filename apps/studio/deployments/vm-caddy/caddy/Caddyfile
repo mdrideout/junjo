@@ -4,41 +4,12 @@
 # the production domain. Set this in your .env file.
 # Example: JUNJO_PROD_AUTH_DOMAIN=junjo-deploy.example.rideout.dev
 
-# ---------------------------
-# Local Jaeger
-# This block is ONLY for local development access to Jaeger.
-# Ex: http://localhost/jaeger (port 80)
-# ---------------------------
-:80 {
-	log
-
-	@jaegerPath path /jaeger*
-
-	handle @jaegerPath {
-		# Validate all jaeger requests with the backend auth service (validates cookies)
-		forward_auth junjo-server-backend:1323 {
-			uri /auth-test
-			copy_headers Cookie
-
-			# Redirect to the FE app sign-in page if the auth service returns a 4xx status
-			@bad status 4xx
-			handle_response @bad {
-				redir http://localhost:5153/sign-in 302
-			}
-		}
-
-		# If auth succeeds (200 response), continue the request to the Jaeger UI.
-		reverse_proxy junjo-jaeger:16686
-	}
-}
-
 # ----------------------------------------------------------------------------------------
 # Production Domain & Subdomains
 #   Name        Container Name & Port           Access URL
-# - Frontend:   junjo-server-frontend:5153      https://{$JUNJO_PROD_AUTH_DOMAIN}
-# - Jaeger      junjo-jaeger:16686              https://{$JUNJO_PROD_AUTH_DOMAIN}/jaeger
+# - Frontend:   junjo-server-frontend:80        https://{$JUNJO_PROD_AUTH_DOMAIN}
 # - Backend:    junjo-server-backend:1323       https://api.{$JUNJO_PROD_AUTH_DOMAIN}
-# - gRPC:       junjo-server-backend:50051      https://grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+# - Ingestion:  junjo-server-ingestion:50051    grpc.{$JUNJO_PROD_AUTH_DOMAIN}
 # ----------------------------------------------------------------------------------------
 {$JUNJO_PROD_AUTH_DOMAIN}, *.{$JUNJO_PROD_AUTH_DOMAIN} {
 	log
@@ -59,29 +30,10 @@
 		reverse_proxy junjo-server-backend:1323
 	}
 
-	# gRPC Backend: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+	# gRPC Ingestion: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
 	@grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
 	handle @grpc {
-		reverse_proxy junjo-server-backend:50051
-	}
-
-	# Handle Jaeger UI requests with forward authentication.
-	@jaegerPath path /jaeger*
-	handle @jaegerPath {
-		# Validate all jaeger requests with the backend auth service (validates cookies)
-		forward_auth junjo-server-backend:1323 {
-			uri /auth-test
-			copy_headers Cookie
-
-			# Redirect to the FE app sign-in page if the auth service returns a 4xx status
-			@bad status 4xx
-			handle_response @bad {
-				redir https://{$JUNJO_PROD_AUTH_DOMAIN}/sign-in 302
-			}
-		}
-
-		# If auth succeeds (200 response), continue the request to the Jaeger UI.
-		reverse_proxy junjo-jaeger:16686
+		reverse_proxy junjo-server-ingestion:50051
 	}
 
 	# Fallback for the root domain

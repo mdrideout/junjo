@@ -1,15 +1,49 @@
-# Junjo Server Deployment Example
+# Deploy Junjo Server
 
-This repository provides a complete, deployable example of a custom Junjo application running alongside the Junjo Server in a Docker Compose environment. It is designed to be a starting point for users who want to build and deploy their own Junjo-powered applications.
+This repository walks you through creating a production-ready deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
+
+## Overview
+
+Deploy Junjo Server as a centralized observability backend for your AI applications. Once deployed, your Python applications can send OpenTelemetry data to Junjo Server using the `JunjoServerOtelExporter`, giving you:
+
+- **Complete workflow visibility**: See every step your LLM takes in a sequence of events
+- **Decision transparency**: Understand what data your AI is using to make decisions
+- **Debugging interface**: Web UI for exploring and analyzing workflow executions
+- **Production-ready**: Includes reverse proxy with automatic SSL, session management, and scalable ingestion
+
+This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo Server into your own projects.
+
+## What's Included
+
+This deployment provides everything you need to run Junjo Server in production:
+
+### Core Services
+- **Junjo Server Backend**: HTTP API, authentication, and business logic (SQLite + DuckDB)
+- **Junjo Server Ingestion**: High-throughput OpenTelemetry gRPC endpoint (BadgerDB WAL)
+- **Junjo Server Frontend**: Web-based debugging and workflow visualization interface
+
+### Infrastructure
+- **Caddy Reverse Proxy**: Automatic HTTPS with Let's Encrypt, subdomain routing
+- **Docker Compose**: Complete orchestration with health checks and dependency management
+- **Example Python App**: Reference implementation showing how to connect your AI applications
+
+### Production Features
+- Session-based authentication with cookie management
+- Automatic SSL certificate generation and renewal
+- Cloudflare DNS integration for wildcard domains
+- Persistent data storage with volume management
+- Scalable architecture with decoupled ingestion
 
 ## Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
 
-## Getting Started
+## Quick Start (Local Development)
 
-### 1. Clone the Repository
+Test the deployment locally before deploying to production. The following steps will run Junjo Server on your local machine with the demo application.
+
+### 1. Clone this Repository
 
 ```bash
 git clone https://github.com/mdrideout/junjo-server-deployment-example.git
@@ -45,7 +79,6 @@ This command will build the `junjo-app` image and pull the necessary images for 
 Once all the services are running, you can access them in your browser:
 
 *   **Junjo Server UI**: [http://localhost:5153](http://localhost:5153)
-*   **Jaeger UI for Tracing**: [http://localhost/jaeger](http://localhost/jaeger)
 
 #### Junjo Setup Steps:
 
@@ -59,7 +92,7 @@ Once all the services are running, you can access them in your browser:
 
 > **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
 
-You should see workflow runs appearing in the Junjo Server UI every 5 seconds. You can click on a run to see the detailed trace in Jaeger.
+You should see workflow runs appearing in the Junjo Server UI every 5 seconds. You can click on a run to see detailed execution information.
 
 ### 5. Stopping the Application
 
@@ -69,24 +102,50 @@ To stop all the services, press `Ctrl+C` in the terminal where `docker compose` 
 docker compose down -v
 ```
 
+---
+
 ## Production Deployment
 
-The `JUNJO_PROD_AUTH_DOMAIN` environment variable is used to define the primary production domain. The domain sets:
+Deploy Junjo Server to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo Server instance via the gRPC ingestion endpoint.
 
-1. The Junjo Server frontend access domain.
-2. The session cookie domain + subdomains (all subdomains are covered)
-   1. Requires a wildcard DNS record.
+### Domain Configuration
 
-### Accessing Production Services:
+The `JUNJO_PROD_AUTH_DOMAIN` environment variable defines your primary production domain and controls:
 
-Assuming the `JUNJO_PROD_AUTH_DOMAIN` is set to `junjo.example.com`, you can access the services at:
+1. **Frontend Access**: The web UI domain for viewing workflows
+2. **Session Cookies**: Domain-wide authentication (covers all subdomains)
+3. **API & gRPC Endpoints**: Subdomain routing for backend services
 
-*   Junjo Server UI: [https://junjo.example.com](https://junjo.example.com)
-*   Jaeger UI: [https://junjo.example.com/jaeger](https://junjo.example.com/jaeger)
-*   Junjo Server API: [https://api.junjo.example.com](https://api.junjo.example.com)
-*   Junjo Server gRPC: [grpc.junjo.example.com](grpc.junjo.example.com)
-    *   This is the endpoint for delivering open telemetry data to Junjo Server from your python application setup with a `JunjoServerOtelExporter`
-    *   In this repository example, we use the docker container service name on the junjo-network
+**Requirements:**
+- A wildcard DNS record for your domain (e.g., `*.example.com`)
+- Cloudflare API token for automatic SSL (or configure alternative DNS provider)
+
+### Service Endpoints
+
+Assuming `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`, your deployment will be accessible at:
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| **Web UI** | `https://junjo.example.com` | View and debug AI workflow executions |
+| **API** | `https://api.junjo.example.com` | Backend HTTP API |
+| **Ingestion** | `grpc.junjo.example.com:443` | **Your AI applications send telemetry here** |
+
+#### Connecting Your AI Applications
+
+Configure your Python applications to send OpenTelemetry data to the ingestion endpoint:
+
+```python
+from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+
+junjo_exporter = JunjoServerOtelExporter(
+    host="grpc.junjo.example.com",  # Your production domain
+    port="443",                       # HTTPS port (Caddy handles SSL)
+    api_key="your_api_key",          # Created in Junjo Server UI
+    insecure=False,                   # Use SSL in production
+)
+```
+
+See the `junjo_app/` directory for a complete working example.
 
 ### Caddy Server / Reverse Proxy
 
@@ -97,42 +156,44 @@ This example bundles Caddy **with** the example Junjo App and Junjo Server insta
 
 The `Caddyfile` can be used as a demonstration for:
 
-- Secure Jaeger access via forward_auth
 - `:80` local and `*.{$JUNJO_PROD_AUTH_DOMAIN}` production deployment
 - Cloudflare DNS setup example
 - Subdomain service access configuration through Caddy
 
-## Services
+## Services Architecture
 
-### `junjo-app`
+This deployment includes several interconnected services. The **core Junjo Server services** provide the observability platform, while **infrastructure services** handle routing and SSL.
 
-*   **Description**: A custom Python application that runs a simple Junjo workflow in a loop.
-*   **Source**: See the `junjo_app/` directory.
-*   **Details**: This application is configured to send OpenTelemetry data to the `junjo-server-backend` via gRPC. This allows you to see the workflow's execution traces in the Junjo Server UI.
+### Core Junjo Server Services
 
-### `junjo-server-backend`
+#### `junjo-server-ingestion`
+*   **Image**: `mdrideout/junjo-server-ingestion-service:latest`
+*   **Purpose**: High-throughput OpenTelemetry data ingestion
+*   **Details**: Lightweight Go service that receives telemetry via gRPC (port 50051) and writes to BadgerDB as a Write-Ahead Log. This decoupled architecture ensures data isn't lost during backend maintenance or restarts.
 
-*   **Description**: The backend service for the Junjo Server.
+#### `junjo-server-backend`
 *   **Image**: `mdrideout/junjo-server-backend:latest`
-*   **Details**: This service receives telemetry data, stores it, and serves the API for the frontend.
+*   **Purpose**: API server, authentication, and data processing
+*   **Details**: Go-based Echo application that handles HTTP API requests (port 1323), user authentication, and business logic. Polls the ingestion service's WAL to index telemetry into DuckDB for fast querying. Uses SQLite for user/session data.
 
-### `junjo-server-frontend`
-
-*   **Description**: The web interface for the Junjo Server.
+#### `junjo-server-frontend`
 *   **Image**: `mdrideout/junjo-server-frontend:latest`
-*   **Details**: This service provides the user interface for viewing workflow runs and telemetry.
+*   **Purpose**: Web-based debugging interface
+*   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 80 (internally), proxied through Caddy.
 
-### `junjo-jaeger`
+### Infrastructure Services
 
-*   **Description**: The Jaeger all-in-one instance for distributed tracing.
-*   **Image**: `jaegertracing/jaeger:2.3.0`
-*   **Details**: The Junjo Server is integrated with Jaeger to provide detailed traces of workflow executions.
-
-### `caddy`
-
-*   **Description**: A modern, powerful reverse proxy.
+#### `caddy`
 *   **Source**: [`caddy/`](caddy/)
-*   **Details**: Caddy routes incoming traffic to the appropriate services based on the path. The configuration can be found in the [`caddy/Caddyfile`](caddy/Caddyfile). For production use, you would replace `localhost` with your domain name, and Caddy would automatically handle HTTPS for you.
+*   **Purpose**: Reverse proxy with automatic HTTPS
+*   **Details**: Routes traffic to appropriate services, handles SSL certificate generation/renewal via Let's Encrypt, and provides subdomain-based routing. See [`caddy/Caddyfile`](caddy/Caddyfile) for configuration.
+
+### Demo Application (Reference Implementation)
+
+#### `junjo-app`
+*   **Source**: [`junjo_app/`](junjo_app/)
+*   **Purpose**: Example showing how to integrate Junjo Server into your Python applications
+*   **Details**: Runs a simple Junjo workflow in a loop, sending OpenTelemetry data to the ingestion service. Use this as a reference when building your own integrations. **Remove this service in production** if you don't need the demo.
 
 ## Digital Ocean VM Deployment Example
 

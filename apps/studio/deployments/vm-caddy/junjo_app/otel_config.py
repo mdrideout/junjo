@@ -27,14 +27,14 @@ def setup_telemetry():
 
     # Construct a Junjo exporter for Junjo Server (see junjo-server docker-compose.yml)
     junjo_server_exporter = JunjoServerOtelExporter(
-        host="junjo-server-backend",
+        host="junjo-server-ingestion",
         port="50051",
         api_key=JUNJO_SERVER_API_KEY,
         insecure=True,
     )
 
     # Set up span processors
-    # Add the Junjo span processor (Junjo Server and Jaeger)
+    # Add the Junjo span processor
     # Add more span processors if desired
     tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)

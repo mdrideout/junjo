@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - junjo-server-backend
+      - junjo-server-ingestion
 
   junjo-server-backend:
     image: mdrideout/junjo-server-backend:latest
@@ -19,7 +19,7 @@ services:
       - ./.dbdata/duckdb:/dbdata/duckdb
     ports:
       - "1323:1323"
-      - "50051:50051"
+      - "50053:50053"
     networks:
       - junjo-network
     env_file:
@@ -30,6 +30,28 @@ services:
       interval: 5s
       timeout: 3s
       retries: 25
+      start_period: 5s
+    depends_on:
+      - junjo-server-ingestion
+
+  junjo-server-ingestion:
+    image: mdrideout/junjo-server-ingestion-service:latest
+    container_name: junjo-server-ingestion
+    restart: unless-stopped
+    volumes:
+      - ./.dbdata/badgerdb:/dbdata/badgerdb
+    ports:
+      - "50051:50051" # Public gRPC telemetry server port
+      - "50052:50052" # Internal gRPC server port
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
       start_period: 5s
 
   junjo-server-frontend:
@@ -45,22 +67,6 @@ services:
     depends_on:
       junjo-server-backend:
         condition: service_healthy
-
-  junjo-jaeger:
-    image: jaegertracing/jaeger:2.3.0
-    container_name: junjo-jaeger
-    volumes:
-      - ./jaeger/config.yml:/jaeger/config.yml # Mount the config file
-      - jaeger_badger_store:/data/jaeger/badger/jaeger
-      - jaeger_badger_store_archive:/data/jaeger/badger/jaeger_archive
-    # ports: # No ports should be directly exposed - traces are relayed through junjo-server-backend
-    # - "16686:16686" # Jaeger UI - uses Caddy reverse proxy
-    # - "4317:4317" # OTLP gRPC - uses internal network forwarding from junjo-server-backend
-    # - "4318:4318" # OTLP HTTP - uses internal network forwarding from junjo-server-backend
-    command: --config /jaeger/config.yml
-    user: root # Currently requires root for writing to the vol (track: https://github.com/jaegertracing/jaeger/issues/6458)
-    networks:
-      - junjo-network
 
   caddy:
     build:
@@ -81,11 +87,8 @@ services:
     depends_on:
       - junjo-server-backend
       - junjo-server-frontend
-      - junjo-jaeger
 
 volumes:
-  jaeger_badger_store:
-  jaeger_badger_store_archive:
   caddy_data: # Persistent caddy data (certificates, configuration)
 
 networks:
