@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -53,7 +54,17 @@ func main() {
 	}
 	defer authClient.Close()
 
-	// 2. Create the Public gRPC Server: This server handles all incoming public
+	// 2. Wait for the backend to be ready before accepting any traffic.
+	//    This ensures that API key validation will work from the very first request,
+	//    preventing the startup race condition where the ingestion service starts
+	//    before the backend's gRPC server is ready.
+	//    We wait indefinitely since the ingestion service cannot function without the backend.
+	log.Println("Waiting for backend to be ready (no timeout - will wait indefinitely)...")
+	if err := authClient.WaitUntilReady(context.Background()); err != nil {
+		log.Fatalf("Backend connection failed: %v", err)
+	}
+
+	// 3. Create the Public gRPC Server: This server handles all incoming public
 	//    requests. It is injected with the components it depends on, such as the
 	//    storage layer and the AuthClient.
 	publicGRPCServer, publicLis, err := server.NewGRPCServer(store, authClient)
