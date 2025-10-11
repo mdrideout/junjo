@@ -110,9 +110,9 @@ docker logs -f junjo-app
 1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
 2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo Server UI.
 3.  Set this key as the `JUNJO_SERVER_API_KEY` environment variable in your `.env` file.
-4.  Restart the `junjo-app` container to apply the new API key:
+4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
     ```bash
-    docker compose restart junjo-app
+    docker compose up --force-recreate --no-deps junjo-app -d
     ```
 
 > **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
