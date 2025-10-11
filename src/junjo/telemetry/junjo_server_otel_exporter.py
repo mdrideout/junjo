@@ -49,7 +49,10 @@ class JunjoServerOtelExporter:
 
         # Set OTLP Span Exporter for Junjo Server
         oltp_exporter = OTLPSpanExporter(
-            endpoint=self._endpoint, insecure=self._insecure, headers=exporter_headers
+            endpoint=self._endpoint,
+            insecure=self._insecure,
+            headers=exporter_headers,
+            timeout=120
         )
         self._span_processor = BatchSpanProcessor(oltp_exporter)
 
@@ -69,3 +72,37 @@ class JunjoServerOtelExporter:
     @property
     def metric_reader(self):
         return self._metric_reader
+
+    def flush(self, timeout_millis: float = 120000) -> bool:
+        """
+        Flush all pending telemetry manually.
+
+        This method blocks until all telemetry is exported or the timeout is reached.
+        It leverages the existing retry/timeout logic in the underlying gRPC exporters.
+        It can be used to force a flush of all pending telemetry before the application exits.
+
+        Args:
+            timeout_millis: Maximum time to wait for flush in milliseconds.
+                           Defaults to 120000ms (120 seconds) to match the
+                           exporter timeout and allow for retries.
+
+        Returns:
+            True if all telemetry was flushed successfully, False otherwise.
+        """
+        success = True
+
+        # Flush span processor
+        try:
+            if not self._span_processor.force_flush(int(timeout_millis)):
+                success = False
+        except Exception:
+            success = False
+
+        # Flush metric reader
+        try:
+            if not self._metric_reader.force_flush(timeout_millis):
+                success = False
+        except Exception:
+            success = False
+
+        return success

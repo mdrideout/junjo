@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "junjo"
-version = "0.60.2"
+version = "0.61.0"
 description = "A graph workflow execution library for building agentic AI workflows."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,11 +21,11 @@ classifiers = [
 ]
 
 dependencies = [
-    "grpcio>=1.70.0",
+    "grpcio>=1.75.1",
     "jsonpatch>=1.33",
     "nanoid>=2.0.0",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
-    "opentelemetry-sdk>=1.30.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.37.0",
+    "opentelemetry-sdk>=1.37.0",
     "pydantic>=2.10.6",
 ]
 
