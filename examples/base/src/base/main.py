@@ -12,7 +12,7 @@ async def main():
     load_dotenv()
 
     # Setup OpenTelemetry before anything else happens
-    init_otel(service_name="Junjo Base Example")
+    exporter = init_otel(service_name="Junjo Base Example")
 
     # Subscribe to state changes
     def on_state_change(new_state: SampleWorkflowState):
@@ -27,6 +27,11 @@ async def main():
     await unsubscribe()
 
     print("Done executing the base example workflow.")
+
+    # Flush telemetry before exit
+    if exporter is not None:
+        print("Flushing telemetry...")
+        exporter.flush()
     return
 
 if __name__ == "__main__":

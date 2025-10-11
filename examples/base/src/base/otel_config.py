@@ -8,7 +8,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
 
-def init_otel(service_name: str):
+def init_otel(service_name: str) -> JunjoServerOtelExporter | None:
     """Configure OpenTelemetry for this application."""
 
     # Load the JUNJO_SERVER_API_KEY from the environment variable
@@ -16,7 +16,7 @@ def init_otel(service_name: str):
     if JUNJO_SERVER_API_KEY is None:
         print("JUNJO_SERVER_API_KEY environment variable is not set. "
                          "Generate a new API key in the Junjo Server UI.")
-        return
+        return None
 
     # Configure OpenTelemetry for this application
     # Create the OpenTelemetry Resource to identify this service
@@ -51,3 +51,5 @@ def init_otel(service_name: str):
     # Instrument OpenInference Libraries
     # Google genai
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
+
+    return junjo_server_exporter
