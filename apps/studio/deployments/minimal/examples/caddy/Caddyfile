@@ -1,0 +1,83 @@
+# ========================================================================================
+# Junjo Server - Caddy Reverse Proxy Configuration
+#
+# This is a reference configuration for Caddy Server to route traffic to Junjo Server
+# services. Choose either LOCAL DEVELOPMENT or PRODUCTION configuration below.
+#
+# Service Routing:
+#   - Frontend:   junjo-server-frontend:80            https://junjo.example.com
+#   - Backend:    junjo-server-backend:1323           https://api.junjo.example.com
+#   - Ingestion:  junjo-server-ingestion:50051        https://grpc.junjo.example.com
+#
+# Instructions:
+#   1. For local development: Uncomment the LOCAL section, comment out PRODUCTION
+#   2. For production: Comment out LOCAL, uncomment PRODUCTION
+#
+# See Caddy docs: https://caddyserver.com/docs/quick-starts/https
+# ========================================================================================
+
+# ========================================================================================
+# LOCAL DEVELOPMENT CONFIGURATION
+# ========================================================================================
+# Uncomment this section for local development (no SSL/TLS)
+
+localhost:8080, localhost:8081, localhost:8082 {
+	# Frontend: localhost:8080
+	@frontend host localhost:8080
+	handle @frontend {
+		reverse_proxy junjo-server-frontend:80
+	}
+
+	# API Backend: localhost:8081
+	@api host localhost:8081
+	handle @api {
+		reverse_proxy junjo-server-backend:1323
+	}
+
+	# gRPC Ingestion: localhost:8082
+	@grpc host localhost:8082
+	handle @grpc {
+		reverse_proxy junjo-server-ingestion:50051
+	}
+
+	# Fallback
+	handle {
+		respond "Junjo Server - Use localhost:8080 (frontend), localhost:8081 (api), or localhost:8082 (grpc)" 200
+	}
+}
+
+# ========================================================================================
+# PRODUCTION CONFIGURATION
+# ========================================================================================
+# Uncomment this section for production deployment with SSL/TLS
+#
+# Requirements:
+#   - Domain name with wildcard DNS record (*.junjo.example.com)
+#   - Caddy with Cloudflare DNS plugin: https://github.com/caddy-dns/cloudflare
+#   - CloudFlare API token in CF_API_TOKEN environment variable
+#   - Alternative SSL: Use Let's Encrypt HTTP challenge (remove tls block)
+
+# junjo.example.com, *.junjo.example.com {
+# 	# Automatic SSL via Cloudflare DNS (requires xcaddy with cloudflare plugin)
+# 	tls {
+# 		dns cloudflare {$CF_API_TOKEN}
+# 		resolvers 1.1.1.1
+# 	}
+#
+# 	# API Backend: api.junjo.example.com
+# 	@api host api.junjo.example.com
+# 	handle @api {
+# 		reverse_proxy junjo-server-backend:1323
+# 	}
+#
+# 	# gRPC Ingestion: grpc.junjo.example.com
+# 	@grpc host grpc.junjo.example.com
+# 	handle @grpc {
+# 		reverse_proxy junjo-server-ingestion:50051
+# 	}
+#
+# 	# Frontend: junjo.example.com (root domain)
+# 	handle {
+# 		reverse_proxy junjo-server-frontend:80
+# 	}
+# }

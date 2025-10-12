@@ -1,1 +1,5 @@
+# Environment files (contains secrets)
 .env
+
+# Database data directories (contains user data)
+.dbdata/
