@@ -29,21 +29,36 @@ The `backend` service polls the `ingestion-service`'s internal gRPC API to read 
 
 ---
 
-## Turn-Key Example Repository
+## Turn-Key Example Repositories
 
-**Junjo Server Deployment Example [https://github.com/mdrideout/junjo-server-deployment-example](https://github.com/mdrideout/junjo-server-deployment-example)**.
+### Junjo Server Bare Bones
 
-- _A complete example of a Junjo Server deployment, including a Junjo Python Library application._
+**[https://github.com/mdrideout/junjo-server-bare-bones](https://github.com/mdrideout/junjo-server-bare-bones)**
 
-**Components:** This repository is orchestrated with [Docker Compose](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/docker-compose.yml). 
+A minimal, standalone Junjo Server repository with just the core Junjo Server components.
 
-- Session cookie authentication
-- Junjo Server pre-build images:
-  - Docker hub junjo-server-backend: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
-  - Docker hub junjo-server-frontend: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
-- Local development and production environment variable configurability
+- Quick setup and testing of Junjo Server
+- Docker Compose orchestration
+- Unopinionated for integration into a variety of deployment scenarios
+- Junjo Server pre-built images from Docker Hub
+
+### Junjo Server Deployment Example
+
+**[https://github.com/mdrideout/junjo-server-deployment-example](https://github.com/mdrideout/junjo-server-deployment-example)**
+
+A complete, production-ready example deployment that includes a **Junjo Python Library application** alongside the server infrastructure. This repository demonstrates:
+
+- End-to-end production use case deployment example
+- A guide for deploying on a Digital Ocean Droplet (or any VM provider)
+- A Caddy reverse proxy setup for secure external access of resources
 
 The [README.md](https://github.com/mdrideout/junjo-server-deployment-example/blob/master/README.md) will walk you through the deployment process on a Digital Ocean Droplet virtual machine (or any VM provider of your choice). You can use this as the basis for your own deployment of Junjo Server.
+
+### Pre-Build Junjo Server service images:
+
+  - Docker hub junjo-server-backend: [https://hub.docker.com/r/mdrideout/junjo-server-backend](https://hub.docker.com/r/mdrideout/junjo-server-backend)
+  - Docker hub junjo-server-frontend: [https://hub.docker.com/r/mdrideout/junjo-server-frontend](https://hub.docker.com/r/mdrideout/junjo-server-frontend)
+  - Docker hub junjo-server-ingestion-service: [https://hub.docker.com/r/mdrideout/junjo-server-ingestion-service](https://hub.docker.com/r/mdrideout/junjo-server-ingestion-service)
 
 ### VM Resource Requirements
 
