@@ -3,6 +3,44 @@ Junjo Server Deployment
 
 Junjo Server can be deployed in various ways depending on your needs. Being based on docker containers, it's easy to deploy Junjo Server anywhere with docker compose.
 
+Bare-Bones Template (Recommended Starting Point)
+-------------------------------------------------
+
+For a minimal, flexible Docker Compose setup that you can customize for your specific infrastructure needs, use the `Junjo Server Bare-Bones Template <https://github.com/mdrideout/junjo-server-bare-bones>`_.
+
+This GitHub template repository provides:
+
+- **Minimal configuration** - Just the three core services (frontend, backend, ingestion)
+- **Maximum flexibility** - Bring your own reverse proxy, SSL/TLS, and networking
+- **Multiple deployment scenarios** - Local development, cloud platforms, or custom infrastructure
+- **Clean starting point** - No opinionated configurations to remove
+
+**Perfect for:**
+
+- Teams with existing infrastructure
+- Custom deployment requirements
+- Local development environments
+- Learning Junjo Server architecture
+- Integration into existing docker-compose.yml files
+
+**Quick start:**
+
+.. code-block:: bash
+
+    # Use as GitHub template or clone
+    git clone https://github.com/mdrideout/junjo-server-bare-bones.git
+    cd junjo-server-bare-bones
+
+    # Configure environment
+    cp .env.example .env
+    # Edit .env with your settings
+
+    # Start services
+    docker compose up -d
+
+    # Access UI
+    open http://localhost:5153
+
 Digital Ocean VM Deployment Example
 ------------------------------------
 

@@ -19,6 +19,7 @@
    :hidden:
 
    junjo_server
+   docker_reference
    deployment
    opentelemetry
 

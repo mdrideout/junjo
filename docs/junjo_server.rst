@@ -49,10 +49,36 @@ Junjo Server is composed of three Docker services that work together:
 2. **Ingestion Service**: High-throughput OpenTelemetry data receiver (BadgerDB)
 3. **Frontend**: Web UI for visualization and debugging
 
-Quick Start with Docker Compose
---------------------------------
+Quick Start Options
+-------------------
 
-**Minimal Docker Compose Example:**
+Option 1: Use the Bare-Bones Template (Recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The easiest way to get started is with the `Junjo Server Bare-Bones Template <https://github.com/mdrideout/junjo-server-bare-bones>`_, a GitHub template repository with a ready-to-use Docker Compose configuration:
+
+.. code-block:: bash
+
+    # Clone the template repository
+    git clone https://github.com/mdrideout/junjo-server-bare-bones.git
+    cd junjo-server-bare-bones
+
+    # Configure environment
+    cp .env.example .env
+    # Edit .env with your settings
+
+    # Start services
+    docker compose up -d
+
+    # Access UI
+    open http://localhost:5153
+
+This template provides a minimal, flexible foundation you can customize for your needs. See :doc:`deployment` for more details.
+
+Option 2: Create Your Own Docker Compose File
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you prefer to integrate Junjo Server into an existing project, here's a minimal Docker Compose example:
 
 .. code-block:: yaml
     :caption: docker-compose.yml
