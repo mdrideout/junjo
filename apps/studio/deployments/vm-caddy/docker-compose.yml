@@ -66,8 +66,6 @@ services:
       timeout: 3s
       retries: 25
       start_period: 5s
-    depends_on:
-      - junjo-server-ingestion
 
   junjo-server-ingestion:
     image: mdrideout/junjo-server-ingestion-service:latest
@@ -87,6 +85,9 @@ services:
       - junjo-network
     env_file:
       - .env
+    depends_on:
+      junjo-server-backend:
+        condition: service_healthy # Wait for backend server to be healthy before starting
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
