@@ -1,6 +1,8 @@
 # Junjo Server - Production VM Deployment Example
 
-This repository walks you through creating a production-ready deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
+This repository walks you through creating a complete production deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
+
+**Bare Bones Github Template:** For a bare-bones Junjo Server template with no pre-configuration or opinions about deployment environments, check out the [Junjo Server Bare Bones Template](https://github.com/mdrideout/junjo-server-bare-bones)
 
 ## Table of Contents
 
