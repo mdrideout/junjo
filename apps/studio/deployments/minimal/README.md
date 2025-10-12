@@ -113,21 +113,23 @@ Junjo Server consists of three Docker services:
 
 4. Start services:
    ```bash
-   docker compose up -d
+   docker compose up --build
    ```
 
 5. Access the frontend:
    - **Frontend UI:** `http://localhost:5153`
+     - _Troubleshooting: Try clearing your cookies if you encounter issues._
    - Create your first API key in the UI
 
-6. Configure your Python application (same VM/Docker network):
+6. Configure your Junjo Python application's exporter:
    ```python
-   junjo_server_exporter = JunjoServerOtelExporter(
-       host="junjo-server-ingestion",  # Docker service name
-       port="50051",
-       api_key=JUNJO_SERVER_API_KEY,
-       insecure=True,
-   )
+	 	# Local example
+		junjo_server_exporter = JunjoServerOtelExporter(
+        host="localhost", # (could also be your docker network container name 'junjo-server-ingestion')
+        port="50051",
+        api_key=JUNJO_SERVER_API_KEY,
+        insecure=True, # (would be False in production)
+  	)
    ```
 
 **Note:** The default `.env.example` is configured for local development (`JUNJO_ENV="development"`). For production deployment with a reverse proxy, see [Scenario 2](#scenario-2-external-access-reverse-proxy-required) and change `JUNJO_ENV="production"`.
