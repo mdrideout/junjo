@@ -1,7 +1,7 @@
 import { Link, useParams, useNavigate } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../traces/schemas/schemas'
-import { API_HOST } from '../../config'
+import { getApiHost } from '../../config'
 import NestedOtelSpans from './NestedOtelSpans'
 import SpanAttributesPanel from './SpanAttributesPanel'
 
@@ -22,7 +22,10 @@ export default function TraceDetails() {
       try {
         setLoading(true)
         setError(false)
-        const response = await fetch(`${API_HOST}/otel/trace/${traceId}/nested-spans`, {
+        // Use Python backend endpoint
+        const endpoint = `/api/v1/observability/traces/${traceId}/spans`
+        const apiHost = getApiHost(endpoint)
+        const response = await fetch(`${apiHost}${endpoint}`, {
           credentials: 'include',
         })
         if (!response.ok) {
@@ -98,7 +101,7 @@ export default function TraceDetails() {
             />
           </div>
           <div className="w-1/3 border-l border-zinc-300 dark:border-zinc-700 overflow-y-auto">
-            <SpanAttributesPanel span={selectedSpan} />
+            <SpanAttributesPanel span={selectedSpan} origin="traces" />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../../components/catalyst/button'
 import {
   Dialog,
@@ -10,15 +10,23 @@ import {
 import { useAppDispatch } from '../../root-store/hooks'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { ApiKeysStateActions } from './slice'
-import { API_HOST } from '../../config'
+import { getApiHost } from '../../config'
 
 export default function CreateApiKeyDialog() {
   const dispatch = useAppDispatch()
-  let [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   // Loading and error states
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Reset error and loading states when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setError(null)
+      setLoading(false)
+    }
+  }, [isOpen])
 
   // Handle form submission
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -32,7 +40,8 @@ export default function CreateApiKeyDialog() {
 
     // Perform setup
     try {
-      const response = await fetch(`${API_HOST}/api_keys`, {
+      const apiHost = getApiHost('/api_keys')
+      const response = await fetch(`${apiHost}/api_keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
@@ -50,8 +59,8 @@ export default function CreateApiKeyDialog() {
       // Refresh the list
       dispatch(ApiKeysStateActions.fetchApiKeysData({ force: true }))
       setIsOpen(false)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
@@ -79,9 +88,9 @@ export default function CreateApiKeyDialog() {
             <div className="flex flex-col gap-y-2">
               <input type="hidden" name="actionType" value="createApiKey" />
               <input
-                type="name"
+                data-autofocus
                 name="name"
-                placeholder="Name"
+                placeholder="Key Name"
                 required
                 className="py-1 px-2 rounded-sm border border-zinc-300 dark:border-zinc-600"
               />

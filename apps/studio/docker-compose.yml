@@ -1,47 +1,76 @@
-services:
-  junjo-server-backend:
-    container_name: junjo-server-backend
-    restart: unless-stopped
-    build:
-      context: ./backend
-      target: ${JUNJO_BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
-    volumes:
-      - ./backend:/app # Mount the backend code for hot reloading
-      - ./.dbdata/sqlite:/dbdata/sqlite # SQLite storage
-      - ./.dbdata/duckdb:/dbdata/duckdb # DuckDB storage
-    ports:
-      - "1323:1323" # Public API server port for Junjo UX
-      - "50053:50053" # Internal gRPC server port
-    networks:
-      - junjo-network
-    env_file:
-      - .env
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 25
-      start_period: 5s
+# Junjo AI Studio - Universal Docker Compose Configuration
+#
+# This single compose file works for both development and production by using
+# the JUNJO_BUILD_TARGET environment variable to control build stages.
+#
+# DEVELOPMENT MODE (with hot-reloading):
+#   Set in .env: JUNJO_BUILD_TARGET=development
+#   - Backend: uvicorn --reload watches Python files
+#   - Ingestion: Air watches Go files
+#   - Frontend: Vite HMR watches React/TypeScript files
+#
+# PRODUCTION MODE (optimized builds):
+#   Set in .env: JUNJO_BUILD_TARGET=production
+#   - Backend: Production uvicorn without reload
+#   - Ingestion: Compiled Go binary
+#   - Frontend: Static files served by nginx
+#
+# Source code volumes are always mounted but only used in development mode.
+# In production mode, the compiled/optimized code inside the container is used.
 
-  junjo-server-ingestion:
-    container_name: junjo-server-ingestion
+services:
+  junjo-ai-studio-backend:
+    container_name: junjo-ai-studio-backend
     restart: unless-stopped
     build:
-      context: ./ingestion-service
+      context: .
+      dockerfile: backend/Dockerfile
       target: ${JUNJO_BUILD_TARGET:-production}
     volumes:
-      - ./ingestion-service:/app
-      - ./.dbdata/badgerdb:/dbdata/badgerdb # BadgerDB storage
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      # Source code (enables hot-reload in development mode via uvicorn --reload)
+      - ./backend/app:/app/app
     ports:
-      - "50051:50051" # Public gRPC telemetry server port for Junjo SDK Otel Exporter
-      - "50052:50052" # Internal gRPC server port
+      - "1323:1323"  # HTTP API (public)
+      # Port 50053 (internal gRPC for API key validation) is NOT exposed - only accessible via Docker network
     networks:
       - junjo-network
     env_file:
       - .env
+    environment:
+      # Override host/port for Docker network communication
+      - INGESTION_HOST=junjo-ai-studio-ingestion
+      - INGESTION_PORT=50052
+      # Enable migrations on startup
+      - RUN_MIGRATIONS=true
+      # DB paths inherited from .env (JUNJO_SQLITE_PATH, JUNJO_DUCKDB_PATH)
+
+  junjo-ai-studio-ingestion:
+    container_name: junjo-ai-studio-ingestion
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      # Source code (enables hot-reload in development mode via Air)
+      - ./ingestion:/app
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+    ports:
+      - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
+      # Port 50052 (internal gRPC) is NOT exposed - only accessible via Docker network
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_PORT=50053
     depends_on:
-      junjo-server-backend:
-        condition: service_healthy # Wait for backend HTTP server to be healthy before starting
+      junjo-ai-studio-backend:
+        condition: service_started
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
@@ -49,31 +78,32 @@ services:
       retries: 5
       start_period: 5s
 
-  junjo-server-frontend:
-    container_name: junjo-server-frontend
+  junjo-ai-studio-frontend:
+    container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     build:
-      context: ./frontend
-      target: ${JUNJO_BUILD_TARGET:-production} # Default to 'production', set to "development" for local air hot-reloading
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: ${JUNJO_BUILD_TARGET:-production}
     volumes:
-      - frontend-modules:/app/node_modules # Dev only: Named volume for node_modules
-      - ./frontend:/app # Dev only: Mount the frontend code for hot reloading
+      # Preserve node_modules (performance optimization for development)
+      - frontend-modules:/app/node_modules
+      # Source code (enables hot-reload in development mode via Vite HMR)
+      - ./frontend:/app
     ports:
-      # Development ports (Vite)
-      - "5151:5151" # Vite server
-      - "5152:5151" # Vite hmr (map hmr port to host port)
-      - "5153:80" # Production port to web server mapping
+      - "5151:5151"
+      - "5152:5151"
+      - "5153:80"
     env_file:
       - .env
     depends_on:
-      junjo-server-backend:
-        condition: service_healthy # Wait for junjo-server-backend to be healthy before starting junjo-server-frontend
-      junjo-server-ingestion:
-        condition: service_healthy
+      junjo-ai-studio-backend:
+        condition: service_started
 
 volumes:
-  frontend-modules: # Dev only: Named volume for node_modules
+  frontend-modules:
 
 networks:
   junjo-network:
+    name: junjo_network
     driver: bridge

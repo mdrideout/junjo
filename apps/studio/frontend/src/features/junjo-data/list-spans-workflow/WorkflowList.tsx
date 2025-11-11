@@ -24,7 +24,12 @@ export default function WorkflowsList(props: WorkflowsListProps) {
   }
 
   if (error) {
-    return <div>Error loading workflow executions.</div>
+    return (
+      <div className="text-red-600 p-4">
+        <div className="font-semibold">Error loading workflow executions</div>
+        <div className="text-sm mt-1">{error}</div>
+      </div>
+    )
   }
 
   return (

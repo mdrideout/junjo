@@ -1,8 +1,12 @@
-import { API_HOST } from '../../../config'
+import { getApiHost } from '../../../config'
 import z from 'zod'
 
 export const fetchServiceNames = async (): Promise<string[]> => {
-  const response = await fetch(`${API_HOST}/otel/span-service-names`, {
+  // Use Python backend endpoint
+  const endpoint = '/api/v1/observability/services'
+  const apiHost = getApiHost(endpoint)
+
+  const response = await fetch(`${apiHost}${endpoint}`, {
     method: 'GET',
     credentials: 'include',
     headers: {

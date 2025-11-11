@@ -45,8 +45,9 @@ export function isoStringToMicrosecondsSinceEpoch(isoString: string) {
   // Remove the timezone (assuming 'Z' or an offset) from the fraction
   const fractionPart = fractionPartWithZone.replace(/[^0-9]/g, '')
 
-  // Pad the fraction to 6 digits (microseconds)
-  const fractionPadded = fractionPart.padEnd(6, '0')
+  // Limit to 6 digits (microseconds), then pad if needed
+  const fractionTrimmed = fractionPart.substring(0, 6)
+  const fractionPadded = fractionTrimmed.padEnd(6, '0')
   const totalFractionMicro = parseInt(fractionPadded, 10)
 
   // Get milliseconds already included in date.getTime() and convert to microseconds.

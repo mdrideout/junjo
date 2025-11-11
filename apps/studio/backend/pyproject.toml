@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "junjo-backend"
+version = "0.1.0"
+description = "Junjo AI Studio Python Backend - LLM Observability Platform"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.120.4",
+    "uvicorn[standard]>=0.38.0",
+    "pydantic[email]>=2.12.3",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
+    "python-multipart>=0.0.20",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "alembic>=1.14.0",
+    "aiosqlite>=0.20.0",                                # Async SQLite driver
+    "greenlet>=3.2.4",                                  # Required for SQLAlchemy async
+    "duckdb>=1.4.1",
+    "opentelemetry-instrumentation-sqlalchemy>=0.59b0",
+    "nanoid>=2.0.0",
+    "bcrypt>=5.0.0",
+    "starlette-securecookies>=1.1.1",
+    "itsdangerous>=2.2.0",
+    "asgi-csrf>=0.11",
+    "grpcio>=1.76.0",
+    "grpcio-tools>=1.76.0",
+    "protobuf>=6.33.0",
+    "opentelemetry-proto>=1.38.0",
+    "litellm>=1.79.0",
+    "google-genai>=1.47.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "httpx>=0.28.0",         # For testing FastAPI
+    "ruff>=0.14.3",          # Linting
+]
+
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = [
+    "app/proto_gen",  # Auto-generated protobuf files
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]                        # Line too long
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests", "app"]
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, uses real DB)",
+    "security: Security tests (auth bypass, SQL injection, XSS)",
+    "concurrency: Concurrency and race condition tests",
+    "error_recovery: Error recovery and resilience tests",
+    "slow: Slow tests (>1 second)",
+    "requires_gemini_api: Tests requiring GEMINI_API_KEY environment variable",
+    "requires_openai_api: Tests requiring OPENAI_API_KEY environment variable",
+    "requires_anthropic_api: Tests requiring ANTHROPIC_API_KEY environment variable",
+    "requires_grpc_server: Tests requiring gRPC server running on port 50053",
+]

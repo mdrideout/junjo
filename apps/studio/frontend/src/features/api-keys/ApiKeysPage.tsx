@@ -4,6 +4,7 @@ import { RootState } from '../../root-store/store'
 import TrashIcon from '@heroicons/react/24/outline/TrashIcon'
 import ApiKeyCopyButton from './ApiKeyCopyButton'
 import CreateApiKeyDialog from './CreateApiKeyDialog'
+import OtelExporterGuide from './components/OtelExporterGuide'
 import { ApiKeysStateActions } from './slice'
 
 export default function ApiKeysPage() {
@@ -25,7 +26,7 @@ export default function ApiKeysPage() {
 
   // Render the list
   return (
-    <div className={'px-3 py-4 flex flex-col h-dvh overflow-hidden'}>
+    <div className={'px-3 py-4 flex flex-col h-dvh overflow-y-auto'}>
       <div className={'flex gap-x-3 px-2 items-center'}>
         <div className={'flex gap-x-3 font-bold'}>API Keys</div>
         <CreateApiKeyDialog />
@@ -51,22 +52,22 @@ export default function ApiKeysPage() {
             <tbody>
               {apiKeys.map((apiKey) => {
                 // Make date human readable
-                const createdAt = new Date(apiKey.CreatedAt)
+                const createdAt = new Date(apiKey.created_at)
                 const createdAtString = createdAt.toLocaleString()
-                const truncatedKey = apiKey.Key.length > 12 ? apiKey.Key.slice(0, 12) + '...' : apiKey.Key
+                const truncatedKey = apiKey.key.length > 12 ? apiKey.key.slice(0, 12) + '...' : apiKey.key
 
                 return (
                   <tr
-                    key={apiKey.Key}
+                    key={apiKey.id}
                     className={'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600'}
                   >
-                    <td className={'px-4 py-1.5'}>{apiKey.Name}</td>
+                    <td className={'px-4 py-1.5'}>{apiKey.name}</td>
                     <td className={'px-4 py-1.5 font-mono'}>{createdAtString}</td>
                     <td className={'px-4 py-1.5 font-mono'}>{truncatedKey}</td>
 
                     {/* Copy button */}
                     <td className={' text-center'}>
-                      <ApiKeyCopyButton apiKey={apiKey.Key} />
+                      <ApiKeyCopyButton apiKey={apiKey.key} />
                     </td>
 
                     {/* Delete button */}
@@ -74,8 +75,8 @@ export default function ApiKeysPage() {
                       <button
                         className={'p-1 hover:bg-zinc-300 dark:hover:bg-zinc-700 rounded-md cursor-pointer'}
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete key ${apiKey.Name}?`)) {
-                            dispatch(ApiKeysStateActions.deleteApiKey({ key: apiKey.Key }))
+                          if (confirm(`Are you sure you want to delete key ${apiKey.name}?`)) {
+                            dispatch(ApiKeysStateActions.deleteApiKey({ id: apiKey.id }))
                           }
                         }}
                       >
@@ -88,6 +89,11 @@ export default function ApiKeysPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Getting Started Guide - Below the table */}
+      <div className={'px-2 mt-12'}>
+        <OtelExporterGuide />
       </div>
     </div>
   )

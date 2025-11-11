@@ -5,13 +5,13 @@ import { OtelSpan } from '../../../traces/schemas/schemas'
 interface WorkflowSpanListState {
   workflowSpanList: OtelSpan[]
   loading: boolean
-  error: boolean
+  error: string | null
 }
 
 const initialState: WorkflowSpanListState = {
   workflowSpanList: [],
   loading: false,
-  error: false,
+  error: null,
 }
 
 export const workflowSpanListSlice = createSlice({
@@ -29,7 +29,7 @@ export const workflowSpanListSlice = createSlice({
     setWorkflowExecutionsLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload
     },
-    setWorkflowExecutionsError: (state, action: PayloadAction<boolean>) => {
+    setWorkflowExecutionsError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload
     },
   },

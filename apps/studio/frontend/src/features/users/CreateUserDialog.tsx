@@ -10,7 +10,7 @@ import {
 import { UserPlusIcon } from '@heroicons/react/24/solid'
 import { useAppDispatch } from '../../root-store/hooks'
 import { UsersStateActions } from './slice'
-import { API_HOST } from '../../config'
+import { getApiHost } from '../../config'
 
 export default function CreateUserDialog() {
   const dispatch = useAppDispatch()
@@ -33,7 +33,8 @@ export default function CreateUserDialog() {
 
     // Perform setup
     try {
-      const response = await fetch(`${API_HOST}/users`, {
+      const endpoint = '/users'
+      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -41,10 +42,13 @@ export default function CreateUserDialog() {
       })
 
       if (!response.ok) {
-        console.log('Reason: ', await response.json())
+        const errorData = await response.json()
+        console.log('Reason: ', errorData)
 
         if (response.status === 409) {
           throw new Error('User already exists.')
+        } else if (response.status === 400) {
+          throw new Error(errorData.detail || 'Invalid request.')
         } else {
           throw new Error('User creation failed. Please check server logs.')
         }

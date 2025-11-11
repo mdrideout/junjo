@@ -7,7 +7,7 @@ export default function DashboardPage() {
       </div>
       <hr className={'my-4'} />
       <div className={'px-2'}>
-        <p>Welcome to Junjo Server. This dashboard is on our roadmap.</p>
+        <p>Welcome to Junjo AI Studio.</p>
       </div>
     </div>
   )

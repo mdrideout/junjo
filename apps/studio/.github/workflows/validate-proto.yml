@@ -1,0 +1,92 @@
+# This workflow validates that proto files are up-to-date in the repository.
+# It regenerates proto files and fails if any changes are detected.
+# This ensures developers cannot push stale proto code.
+
+name: Validate Proto Files
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate-proto:
+    name: Validate Proto Files Are Up-to-Date
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: ingestion/go.sum
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          # Install protoc v30.2 (locked version for consistency)
+          PROTOC_VERSION=30.2
+          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+          sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc
+          sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*'
+          rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
+
+          # Install Go plugins with locked versions to prevent drift
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+
+          # Install Python tools (--system flag for CI environment)
+          uv pip install --system grpcio-tools==1.76.0
+
+          # Verify installation
+          protoc --version
+          protoc-gen-go --version
+          protoc-gen-go-grpc --version
+
+      - name: Regenerate Go proto files
+        run: |
+          cd ingestion
+          make proto
+          cd ..
+
+      - name: Regenerate Python proto files
+        run: |
+          cd backend
+          ./scripts/generate_proto.sh
+          cd ..
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet; then
+            echo "❌ ERROR: Proto files are out of date!"
+            echo ""
+            echo "The following files have uncommitted changes:"
+            git diff --name-only
+            echo ""
+            echo "📋 Full diff:"
+            git diff
+            echo ""
+            echo "🔧 To fix this issue:"
+            echo "  1. Run: ./scripts/install-git-hooks.sh (to install pre-commit hooks)"
+            echo "  2. Or regenerate manually:"
+            echo "     cd ingestion && make proto"
+            echo "     cd ../backend && ./scripts/generate_proto.sh"
+            echo "  3. Commit the updated proto files"
+            echo ""
+            exit 1
+          fi
+          echo "✅ Proto files are up-to-date"

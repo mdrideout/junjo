@@ -1,7 +1,94 @@
+# Temporary files
 tmp
 /tmp/
+
+# Environment variables
 .env
-dbdata/
+
+# Database files
+# All local/dev database data stored in .dbdata/ directory:
+#   .dbdata/sqlite/     - SQLite databases (Python/Go backends)
+#   .dbdata/duckdb/     - DuckDB analytics data
+#   .dbdata/badgerdb/   - Ingestion service data
 .dbdata/
+dbdata/                    # Legacy - can be removed after migration
+wal-data/                  # Legacy - can be removed after migration
+*.db
+*.db-shm
+*.db-wal
+*.duckdb
+
+# System files
 .DS_Store
 .gitleaks/**
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Linting
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Logs
+*.log
+
+# Generated Protocol Buffers
+# Note: Proto files ARE committed to ensure:
+#   1. Local testing works without protoc installed
+#   2. Integration tests can run immediately
+#   3. Pre-commit hooks auto-regenerate them
+#   4. Docker builds also regenerate (defense in depth)
+# proto_gen/
+# **/proto_gen/

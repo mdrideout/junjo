@@ -48,7 +48,9 @@ NC='\033[0m' # No Color
 # Use printf for better compatibility and control over newlines
 printf "${BOLD}${GREEN}\n"
 printf "  ----------------------------------\n\n"
-printf "  🎏 Junjo Server UI is running ($JUNJO_ENV) 🎏\n\n"
+printf "  🎏 Junjo AI Studio UI is running 🎏\n\n"
+printf "  Environment: $JUNJO_ENV\n"
+printf "  Build Target: $JUNJO_BUILD_TARGET\n"
 printf "  Frontend Access: ${FRONTEND_HOST}\n\n"
 printf "  ----------------------------------\n\n"
 printf "${NC}"

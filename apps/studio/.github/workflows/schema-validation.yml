@@ -1,0 +1,75 @@
+name: API Schema Validation
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/app/**/schemas.py'
+      - 'backend/scripts/export_openapi_schema.py'
+      - 'backend/scripts/ci_validate_schemas.sh'
+      - 'frontend/src/**/*schema*.ts'
+      - 'frontend/src/__tests__/contracts/**'
+      - '.github/workflows/schema-validation.yml'
+  pull_request:
+    paths:
+      - 'backend/app/**/schemas.py'
+      - 'backend/scripts/export_openapi_schema.py'
+      - 'backend/scripts/ci_validate_schemas.sh'
+      - 'frontend/src/**/*schema*.ts'
+      - 'frontend/src/__tests__/contracts/**'
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  validate-schemas:
+    name: Validate API Schemas (Frontend ↔ Backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          uv sync --all-extras --locked
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run schema validation pipeline
+        working-directory: backend
+        env:
+          # Required for loading FastAPI app configuration
+          JUNJO_SESSION_SECRET: ${{ secrets.JUNJO_SESSION_SECRET }}
+          JUNJO_SECURE_COOKIE_KEY: ${{ secrets.JUNJO_SECURE_COOKIE_KEY }}
+        run: |
+          chmod +x scripts/ci_validate_schemas.sh
+          ./scripts/ci_validate_schemas.sh
+
+      - name: Upload OpenAPI schema on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-schema
+          path: backend/openapi.json
+          retention-days: 7

@@ -38,7 +38,7 @@ startListener({
   effect: async ({ payload }, { dispatch }) => {
     dispatch(ApiKeysStateActions.setLoading(true))
     try {
-      await deleteApiKey(payload.key)
+      await deleteApiKey(payload.id)
     } catch {
       dispatch(ApiKeysStateActions.setError(true))
     } finally {

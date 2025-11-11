@@ -1,0 +1,31 @@
+# Gitleaks configuration for Junjo AI Studio
+# https://github.com/gitleaks/gitleaks
+
+title = "Junjo AI Studio Gitleaks Config"
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+[allowlist]
+description = "Allowlist test fixtures and known false positives"
+
+# Allowlist test files with hardcoded test API keys and GitHub Actions workflows
+paths = [
+    '''backend/app/features/internal_auth/test_.*\.py''',
+    '''backend_python/app/features/internal_auth/test_.*\.py''',
+    '''.*test_.*\.py''',
+    '''\.github/workflows/.*\.yml''',                            # GitHub Actions workflows with test credentials
+]
+
+# Allowlist specific test key patterns
+regexes = [
+    '''9hppr92Y5kZqx4EvQ0oLRFzJ0LGozRO3oIIWrcx6B4qCmI59A8eFJFtbORy8LXBz''', # Test API key fixture
+    '''test_api_key_.*''',                                                  # Test key patterns
+    '''production_test_key''',                                              # Test key variable names
+    '''tHYEOeDANnwNydQHmitFdkBYbuIrY68Xo1aPZ6WCPVI=''',                     # CI test session secret
+    '''2AorEiMD7P/kiosXFgLvahxdABNVYMUzWHPghTweskk=''',                     # CI test secure cookie key (base64, 32 bytes)
+]
+
+# Allowlist by commit message patterns (array of strings)
+commits = ['''test.*fixture''', '''test.*data''']

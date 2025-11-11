@@ -76,11 +76,11 @@ export default function SidebarMenu() {
               </div>
             </SidebarLabel>
           </SidebarItem>
-          <SidebarItem href="https://github.com/mdrideout/junjo-server" target="_blank">
+          <SidebarItem href="https://github.com/mdrideout/junjo-ai-studio" target="_blank">
             <GitHubLogoIcon />
             <SidebarLabel>
               <div className="flex items-center gap-x-2">
-                junjo-server github <ExternalLinkIcon className="size-3" />
+                junjo-ai-studio github <ExternalLinkIcon className="size-3" />
               </div>
             </SidebarLabel>
           </SidebarItem>

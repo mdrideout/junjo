@@ -1,105 +1,96 @@
-# =================================================================
-# STAGE 1: Builder
-# We use an official Go image. This is simple, reliable, and
-# contains all necessary build tools.
-# =================================================================
-FROM golang:1.25-bookworm AS builder
+# Stage 1: Base - Install dependencies using uv
+FROM python:3.13-slim-trixie AS base
 
-# This build stage is where we compile the application.
-# It contains the Go toolchain and C compilers (build-essential).
-
-WORKDIR /app
-
-# 1. Optimize Docker's layer cache for Go modules.
-#    This step only re-runs if your dependencies change.
-COPY go.mod go.sum ./
-RUN go mod download
-
-# 2. Copy the rest of your application's source code.
-COPY . .
-
-# 3. Generate code before building.
-#    This ensures the build is self-contained and doesn't rely on
-#    pre-committed generated files.
-RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-ENV PATH=$PATH:/root/go/bin
-RUN mkdir -p proto_gen db_gen
-RUN make proto
-RUN sqlc generate
-
-# 4. Build the application binary.
-#    - TARGETARCH is an automatic build argument from Docker Buildx. It
-#      makes your build portable across architectures (e.g., amd64, arm64).
-#    - CGO_ENABLED=1 is set here, accommodating your need for DuckDB.
-#    - -ldflags "-w -s" strips debug symbols, creating a smaller binary.
-ARG TARGETARCH
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-w -s" -v -o /server .
-
-
-# =================================================================
-# STAGE 2: Production (The default final stage)
-# Builds a minimal, secure image for deployment.
-# It starts from a clean Debian base, NOT from the builder.
-# =================================================================
-FROM debian:bookworm-slim AS production
-
-# Add curl to enable healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install build dependencies and tools using apt-get
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    libffi-dev \
     curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Set a label to identify the image stage, useful for diagnostics.
-LABEL stage=production
+# Install protoc v30.2 for consistency (Python uses grpcio-tools but scripts may need protoc)
+RUN PROTOC_VERSION=30.2 && \
+    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*' && \
+    rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
 
-# Copy essential runtime files from the 'builder' stage.
-# ca-certificates are necessary for your app to make secure HTTPS calls.
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Create a dedicated, non-root user for security. This is a critical
-# best practice to limit the blast radius of any potential vulnerability.
-RUN groupadd --system app && useradd --system --gid app app
-USER app
-
-# Copy ONLY the compiled binary from the 'builder' stage.
-# The final image will NOT contain source code or build tools.
-COPY --from=builder /server /server
-
-# Expose the application ports.
-EXPOSE 1323
-EXPOSE 50051
-
-# Set the command to run your application.
-CMD ["/server"]
-
-
-# =================================================================
-# STAGE 3: Development
-# Builds an image for local development with hot-reloading.
-# =================================================================
-FROM golang:1.25-bookworm AS development
-
-# Set a label for diagnostics.
-LABEL stage=development
-
+# Set working directory
 WORKDIR /app
 
-# As before, cache module downloads.
-COPY go.mod go.sum ./
-RUN go mod download
+# Copy shared proto files (needed for code generation)
+COPY proto/ ../proto/
 
-# Install 'air' for hot-reloading.
-RUN go install github.com/air-verse/air@latest
+# Copy dependency files
+COPY backend/pyproject.toml backend/uv.lock* ./
 
-# Copy the source code for 'air' to watch.
-COPY . .
+# Install dependencies into virtual environment
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --no-dev
 
-# Expose ports needed for development.
+# Stage 2: Production - Final image
+FROM python:3.13-slim-trixie AS production
+
+# Install tini and libstdc++6 using apt-get
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tini \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy virtual environment from base stage
+COPY --from=base /app/.venv ./.venv
+
+# Set PATH to use virtual environment
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH=/app
+
+# Copy application code first
+COPY backend/app ./app
+
+# Copy proto generation script and shared proto files
+COPY backend/scripts/generate_proto.sh /tmp/generate_proto.sh
+COPY proto/ ../proto/
+
+# Generate proto files using unified script
+RUN chmod +x /tmp/generate_proto.sh && \
+    /tmp/generate_proto.sh /app/app/proto_gen /app/../proto && \
+    rm /tmp/generate_proto.sh
+
+# Copy Alembic configuration and migrations
+COPY backend/alembic.ini ./alembic.ini
+COPY backend/migrations ./migrations
+
+# Copy entrypoint script
+COPY backend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create data directory
+RUN mkdir -p ./dbdata
+
+# Expose ports
+# HTTP API (public - mapped to host in docker-compose.yml)
 EXPOSE 1323
-EXPOSE 50051
+# Internal gRPC for API key validation (NOT mapped to host - internal Docker network only)
+EXPOSE 50053
 
-# The command to run the hot-reloader. Air will re-compile and re-run
-# your app inside the container whenever you save a file on your host machine.
-CMD ["air"]
+# Use tini with entrypoint script for proper signal handling and migrations
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
+
+# Run uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323"]
+
+# Stage 3: Development - Add dev dependencies and hot reload
+FROM production AS development
+
+# Override CMD for hot reload
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323", "--reload"]

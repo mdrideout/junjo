@@ -1,9 +1,4 @@
-// This file provides a centralized configuration for the frontend application.
-
-// The API_HOST is determined by checking for a runtime configuration object
-// injected by the `prod-startup.sh` script in the production Docker container.
-// If the runtime configuration is not found, it defaults to the local
-// development server.
+// Centralized configuration for the frontend application
 
 declare global {
   interface Window {
@@ -14,5 +9,9 @@ declare global {
 }
 
 export const API_HOST = window.runtimeConfig?.API_HOST || 'http://localhost:1323'
+
+export function getApiHost(_endpoint: string): string {
+  return API_HOST
+}
 
 console.log('Junjo Frontend API Host:', API_HOST)

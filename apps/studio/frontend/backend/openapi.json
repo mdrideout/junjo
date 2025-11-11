@@ -1,0 +1,1487 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Junjo AI Studio",
+    "description": "LLM Observability Platform - Python Backend",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/users/db-has-users": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Db Has Users",
+        "description": "Check if any users exist.\n\nReturns:\n    DbHasUsersResponse with users_exist boolean",
+        "operationId": "db_has_users_users_db_has_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DbHasUsersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/create-first-user": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create First User",
+        "description": "Create the first user (only allowed if no users exist).\n\nAutomatically signs in the user after successful creation by setting session.\n\nMirrors Go implementation: only works if database has no users.\n\nArgs:\n    user_request: CreateUserRequest with email and password\n    request: FastAPI request object (for session creation)\n\nReturns:\n    UserResponse with success message\n\nRaises:\n    HTTPException: 400 if users already exist, 409 if email exists",
+        "operationId": "create_first_user_users_create_first_user_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign-in": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign In",
+        "description": "Sign in with email and password.\n\nSets userEmail in request.session, which is automatically:\n1. Signed by SessionMiddleware (integrity)\n2. Encrypted by SecureCookiesMiddleware (confidentiality)\n\nMirrors Go implementation in /backend/auth/services.go:155-214.\n\nArgs:\n    sign_in_request: SignInRequest with email and password\n    request: FastAPI request object\n\nReturns:\n    UserResponse with success message\n\nRaises:\n    HTTPException: 401 if credentials are invalid",
+        "operationId": "sign_in_sign_in_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign-out": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign Out",
+        "description": "Sign out by clearing the session.\n\nSessionMiddleware automatically deletes the cookie when session is cleared.\nMirrors Go implementation.\n\nArgs:\n    request: FastAPI request object\n\nReturns:\n    UserResponse with success message",
+        "operationId": "sign_out_sign_out_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth-test": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Auth Test",
+        "description": "Test authentication by returning the current user email.\n\nProtected by auth dependency - will return 401 if not authenticated.\n\nArgs:\n    current_user: Injected by CurrentUser dependency\n\nReturns:\n    AuthTestResponse with user email",
+        "operationId": "auth_test_auth_test_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "List Users",
+        "description": "List all users (auth required).\n\nUses CurrentUser dependency for auth check.\n\nArgs:\n    authenticated_user: Injected by CurrentUser dependency\n\nReturns:\n    List of UserRead objects",
+        "operationId": "list_users_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Users Users Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create User",
+        "description": "Create a new user (auth required).\n\nUses CurrentUser dependency for auth check.\n\nArgs:\n    request: CreateUserRequest with email and password\n    authenticated_user: Injected by CurrentUser dependency\n\nReturns:\n    UserResponse with success message\n\nRaises:\n    HTTPException: 409 if email already exists",
+        "operationId": "create_user_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Delete User",
+        "description": "Delete a user (auth required).\n\nUses CurrentUser dependency for auth check.\n\nArgs:\n    user_id: User ID to delete\n    authenticated_user: Injected by CurrentUser dependency\n\nReturns:\n    UserResponse with success message\n\nRaises:\n    HTTPException: 404 if user not found",
+        "operationId": "delete_user_users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api_keys": {
+      "get": {
+        "tags": [
+          "api_keys"
+        ],
+        "summary": "List Api Keys",
+        "description": "List all API keys, ordered by created_at descending (requires authentication).\n\nAny authenticated user can list keys (shared resource).\n\nArgs:\n    authenticated_user: Authenticated user from session (injected by FastAPI)\n\nReturns:\n    List of all API keys (or empty list if none exist)\n\nRaises:\n    HTTPException: 401 if not authenticated, 500 if listing fails",
+        "operationId": "list_api_keys_api_keys_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIKeyRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Api Keys Api Keys Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "api_keys"
+        ],
+        "summary": "Create Api Key",
+        "description": "Create a new API key (requires authentication).\n\nGenerates a unique 64-character alphanumeric key.\nAny authenticated user can create keys (shared resource).\n\nArgs:\n    request: APIKeyCreate with name\n    authenticated_user: Authenticated user from session (injected by FastAPI)\n\nReturns:\n    Created API key with id, key, name, created_at\n\nRaises:\n    HTTPException: 401 if not authenticated, 500 if creation fails",
+        "operationId": "create_api_key_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIKeyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api_keys/{id}": {
+      "delete": {
+        "tags": [
+          "api_keys"
+        ],
+        "summary": "Delete Api Key",
+        "description": "Delete an API key by ID (requires authentication).\n\nAny authenticated user can delete keys (shared resource).\n\nArgs:\n    id: API key ID to delete\n    authenticated_user: Authenticated user from session (injected by FastAPI)\n\nReturns:\n    204 No Content if successful\n\nRaises:\n    HTTPException: 401 if not authenticated, 404 if key not found, 500 if deletion fails",
+        "operationId": "delete_api_key_api_keys__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/generate": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Generate",
+        "description": "Generate LLM completion (unified endpoint for all providers).\n\nLiteLLM routes to the appropriate provider based on model prefix:\n- openai/gpt-4o \u2192 OpenAI\n- anthropic/claude-3-5-sonnet \u2192 Anthropic\n- gemini/gemini-2.5-pro \u2192 Gemini\n\nSupports reasoning/thinking via reasoning_effort parameter (auto-translates).\n\nRequires authentication.\n\nArgs:\n    request: Generation request with model, messages, and parameters\n    authenticated_user: Authenticated user from session (auth dependency)\n\nReturns:\n    Generation response with content and optional reasoning_content\n\nRaises:\n    HTTPException: 500 if generation fails",
+        "operationId": "generate_llm_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/providers/{provider}/models": {
+      "get": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "List Provider Models",
+        "description": "List models for specific provider.\n\nUses 2-tier strategy:\n1. Check cache (15-minute TTL)\n2. Fetch from provider API\n\nRequires authentication.\n\nArgs:\n    provider: Provider name (openai, anthropic, gemini)\n    authenticated_user: Authenticated user from session (auth dependency)\n\nReturns:\n    List of models for provider\n\nRaises:\n    HTTPException: 400 if provider invalid, 500 if API fails",
+        "operationId": "list_provider_models_llm_providers__provider__models_get",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/providers/{provider}/models/refresh": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Refresh Provider Models",
+        "description": "Force refresh models from provider API (bypass cache).\n\nRequires authentication.\n\nArgs:\n    provider: Provider name (openai, anthropic, gemini)\n    authenticated_user: Authenticated user from session (auth dependency)\n\nReturns:\n    Updated list of models\n\nRaises:\n    HTTPException: 400 if provider invalid, 500 if API fails",
+        "operationId": "refresh_provider_models_llm_providers__provider__models_refresh_post",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/services": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "List Services",
+        "description": "List all distinct service names.\n\nReturns:\n    List of service names in alphabetical order.\n\nExample:\n    GET /api/v1/observability/services\n    \u2192 [\"my-service\", \"another-service\"]",
+        "operationId": "list_services_api_v1_observability_services_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response List Services Api V1 Observability Services Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/services/{service_name}/spans": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Service Spans",
+        "description": "Get all spans for a service.\n\nArgs:\n    service_name: Name of the service.\n    limit: Maximum number of spans to return (default 500, max 10000).\n\nReturns:\n    List of spans ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/services/my-service/spans?limit=100",
+        "operationId": "get_service_spans_api_v1_observability_services__service_name__spans_get",
+        "parameters": [
+          {
+            "name": "service_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Service Name"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "description": "Maximum spans to return",
+              "default": 500,
+              "title": "Limit"
+            },
+            "description": "Maximum spans to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Service Spans Api V1 Observability Services  Service Name  Spans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/services/{service_name}/spans/root": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Root Spans",
+        "description": "Get root spans (no parent) for a service.\n\nRoot spans are entry points to traces (parent_span_id IS NULL).\n\nArgs:\n    service_name: Name of the service.\n    has_llm: If True, only return root spans from traces with LLM operations.\n    limit: Maximum number of spans to return (default 500, max 10000).\n\nReturns:\n    List of root spans ordered by start time (most recent first).\n\nExamples:\n    GET /api/v1/observability/services/my-service/spans/root\n    GET /api/v1/observability/services/my-service/spans/root?has_llm=true&limit=100",
+        "operationId": "get_root_spans_api_v1_observability_services__service_name__spans_root_get",
+        "parameters": [
+          {
+            "name": "service_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Service Name"
+            }
+          },
+          {
+            "name": "has_llm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Filter for traces containing LLM operations",
+              "default": false,
+              "title": "Has Llm"
+            },
+            "description": "Filter for traces containing LLM operations"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "description": "Maximum spans to return",
+              "default": 500,
+              "title": "Limit"
+            },
+            "description": "Maximum spans to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Root Spans Api V1 Observability Services  Service Name  Spans Root Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/services/{service_name}/workflows": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Workflow Spans",
+        "description": "Get workflow-type spans for a service.\n\nFilters spans where junjo_span_type = 'workflow'.\n\nArgs:\n    service_name: Name of the service.\n    limit: Maximum number of spans to return (default 500, max 10000).\n\nReturns:\n    List of workflow spans ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/services/my-service/workflows?limit=50",
+        "operationId": "get_workflow_spans_api_v1_observability_services__service_name__workflows_get",
+        "parameters": [
+          {
+            "name": "service_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Service Name"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "description": "Maximum spans to return",
+              "default": 500,
+              "title": "Limit"
+            },
+            "description": "Maximum spans to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Workflow Spans Api V1 Observability Services  Service Name  Workflows Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/traces/{trace_id}/spans": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Trace Spans",
+        "description": "Get all spans for a specific trace.\n\nArgs:\n    trace_id: Trace ID (32-character hex string).\n\nReturns:\n    List of all spans in the trace, ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/traces/0123456789abcdef0123456789abcdef/spans",
+        "operationId": "get_trace_spans_api_v1_observability_traces__trace_id__spans_get",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Trace Spans Api V1 Observability Traces  Trace Id  Spans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/traces/{trace_id}/spans/{span_id}": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Span",
+        "description": "Get a specific span by trace ID and span ID.\n\nArgs:\n    trace_id: Trace ID (32-character hex string).\n    span_id: Span ID (16-character hex string).\n\nReturns:\n    Span object if found, None otherwise.\n\nExample:\n    GET /api/v1/observability/traces/0123...abcdef/spans/0123456789abcdef",
+        "operationId": "get_span_api_v1_observability_traces__trace_id__spans__span_id__get",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trace Id"
+            }
+          },
+          {
+            "name": "span_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Span Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Span Api V1 Observability Traces  Trace Id  Spans  Span Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health",
+        "description": "Detailed health check endpoint.\n\nReturns:\n    HealthResponse with status, version, and application name.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "Root"
+        ],
+        "summary": "Root",
+        "description": "Root endpoint with API information.\n\nReturns:\n    Dictionary containing app name, version, and health check link.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Root  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "APIKeyCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "APIKeyCreate",
+        "description": "Schema for creating an API key.\n\nAttributes:\n    name: Human-readable name for the key"
+      },
+      "APIKeyRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier",
+            "examples": [
+              "key_9x7v6u5t4s3r2q1p"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "API key value (64-char alphanumeric)",
+            "examples": [
+              "sk_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Human-readable name",
+            "examples": [
+              "Production API Key"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when key was created",
+            "examples": [
+              "2025-01-15T10:30:00Z"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "key",
+          "name",
+          "created_at"
+        ],
+        "title": "APIKeyRead",
+        "description": "Schema for reading an API key.\n\nAttributes:\n    id: Unique identifier\n    key: API key value (64-char alphanumeric)\n    name: Human-readable name\n    created_at: Timestamp when key was created"
+      },
+      "AuthTestResponse": {
+        "properties": {
+          "user_email": {
+            "type": "string",
+            "format": "email",
+            "title": "User Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_email"
+        ],
+        "title": "AuthTestResponse",
+        "description": "Response for auth-test endpoint."
+      },
+      "Choice": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "finish_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "message"
+        ],
+        "title": "Choice",
+        "description": "Generation choice."
+      },
+      "CreateUserRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "CreateUserRequest",
+        "description": "Schema for user creation request (API endpoint)."
+      },
+      "DbHasUsersResponse": {
+        "properties": {
+          "users_exist": {
+            "type": "boolean",
+            "title": "Users Exist"
+          }
+        },
+        "type": "object",
+        "required": [
+          "users_exist"
+        ],
+        "title": "DbHasUsersResponse",
+        "description": "Response for db-has-users check."
+      },
+      "GenerateRequest": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "pattern": "^[a-z_]+/[a-z0-9._-]+$",
+            "title": "Model",
+            "description": "Model with provider prefix (e.g., 'gemini/gemini-2.5-flash', 'openai/gpt-4o')"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "Chat messages"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 2.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature",
+            "description": "Sampling temperature"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens",
+            "description": "Maximum tokens to generate"
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P",
+            "description": "Nucleus sampling parameter"
+          },
+          "stop": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop",
+            "description": "Stop sequences"
+          },
+          "reasoning_effort": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(minimal|low|medium|high)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Effort",
+            "description": "Reasoning effort: 'minimal', 'low', 'medium', 'high'. Auto-translates to provider thinking."
+          },
+          "max_completion_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Completion Tokens",
+            "description": "Max completion tokens (OpenAI reasoning models)"
+          },
+          "json_mode": {
+            "type": "boolean",
+            "title": "Json Mode",
+            "description": "Enable JSON output mode",
+            "default": false
+          },
+          "json_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Json Schema",
+            "description": "JSON schema for structured output"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "messages"
+        ],
+        "title": "GenerateRequest",
+        "description": "Unified LLM generation request.\n\nModel names use provider prefixes for LiteLLM routing:\n- openai/gpt-4o, openai/o1, openai/o3-mini\n- anthropic/claude-3-5-sonnet-20241022, anthropic/claude-3-7-sonnet-20250219\n- gemini/gemini-2.5-pro, gemini/gemini-2.5-flash"
+      },
+      "GenerateResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "object": {
+            "type": "string",
+            "title": "Object"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            },
+            "type": "array",
+            "title": "Choices"
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Usage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasoning_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Content",
+            "description": "Thinking/reasoning content for reasoning models"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "object",
+          "created",
+          "model",
+          "choices"
+        ],
+        "title": "GenerateResponse",
+        "description": "LLM generation response (OpenAI-compatible format).\n\nLiteLLM returns responses in OpenAI format regardless of provider."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Health status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "API version",
+            "default": "0.1.0"
+          },
+          "app_name": {
+            "type": "string",
+            "title": "App Name",
+            "description": "Application name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_name"
+        ],
+        "title": "HealthResponse",
+        "description": "Health check response"
+      },
+      "Message": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role: 'system', 'user', or 'assistant'"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Message content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "Message",
+        "description": "Chat message."
+      },
+      "ModelInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Full model name with prefix (e.g., 'openai/gpt-4o')"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "description": "Provider name: 'openai', 'anthropic', 'gemini'"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "Human-readable model name"
+          },
+          "supports_reasoning": {
+            "type": "boolean",
+            "title": "Supports Reasoning",
+            "description": "Supports reasoning/thinking",
+            "default": false
+          },
+          "supports_vision": {
+            "type": "boolean",
+            "title": "Supports Vision",
+            "description": "Supports vision/image inputs",
+            "default": false
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens",
+            "description": "Maximum context tokens"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "provider",
+          "display_name"
+        ],
+        "title": "ModelInfo",
+        "description": "Model information."
+      },
+      "ModelsResponse": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelInfo"
+            },
+            "type": "array",
+            "title": "Models"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models"
+        ],
+        "title": "ModelsResponse",
+        "description": "Model listing response."
+      },
+      "SignInRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "SignInRequest",
+        "description": "Schema for sign-in request."
+      },
+      "Usage": {
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "title": "Prompt Tokens"
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "title": "Completion Tokens"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens"
+        ],
+        "title": "Usage",
+        "description": "Token usage information."
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique user identifier",
+            "examples": [
+              "usr_2k4h6j8m9n0p1q2r"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "User email address",
+            "examples": [
+              "alice@example.com"
+            ]
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Whether the user account is active",
+            "examples": [
+              true
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when user was created",
+            "examples": [
+              "2025-01-15T10:30:00Z"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Timestamp when user was last updated",
+            "examples": [
+              "2025-01-15T10:30:00Z"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "UserRead",
+        "description": "Schema for reading a user (no password hash).\n\nAttributes:\n    id: Unique user identifier\n    email: User email address\n    is_active: Whether the user account is active\n    created_at: Timestamp when user was created\n    updated_at: Timestamp when user was last updated"
+      },
+      "UserResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "UserResponse",
+        "description": "Response after successful user operation."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

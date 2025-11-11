@@ -12,7 +12,7 @@ startListener({
     const { loading } = getState().workflowSpanListState
     if (loading) return
 
-    dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(false))
+    dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(null))
     dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsLoading(true))
 
     try {
@@ -20,7 +20,9 @@ startListener({
       const data = await getSpansTypeWorkflow(serviceName)
       dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsData(data))
     } catch (error) {
-      dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(true))
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      console.error('Error fetching workflow spans:', error)
+      dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(errorMessage))
     } finally {
       dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsLoading(false))
     }

@@ -1,16 +1,36 @@
-.DS_Store
-coverage.txt
-_test
-vendor
-.idea
-*.iml
-*.out
-.vscode
-tmp
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
 
-# Ignore environment file
+# Virtual environment
+.venv/
+venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checking
+.mypy_cache/
+.ruff_cache/
+
+# Environment
 .env
 
-# Generated code
-db_gen/**.*
-proto_gen/**/**.*
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Generated files
+openapi.json

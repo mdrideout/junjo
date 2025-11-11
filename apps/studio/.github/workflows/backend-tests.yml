@@ -1,0 +1,107 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'proto/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'proto/**'
+      - '.github/workflows/backend-tests.yml'
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Note: Proto files are validated by validate-proto.yml workflow
+    # This job assumes proto files are already generated and committed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          uv sync --all-extras --locked
+
+      - name: Run linting (ruff)
+        working-directory: backend
+        run: |
+          uv run ruff check app/
+
+      - name: Run backend tests
+        run: |
+          chmod +x backend/scripts/run-backend-tests.sh
+          ./backend/scripts/run-backend-tests.sh
+        env:
+          # Ensure clean test environment
+          PYTHONUNBUFFERED: "1"
+          # Required security settings for test environment
+          # These are test-only values, not production secrets
+          JUNJO_SESSION_SECRET: "tHYEOeDANnwNydQHmitFdkBYbuIrY68Xo1aPZ6WCPVI="
+          JUNJO_SECURE_COOKIE_KEY: "2AorEiMD7P/kiosXFgLvahxdABNVYMUzWHPghTweskk="
+          # API keys for integration tests (optional - tests may skip if not set)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: /tmp/backend-test.log
+          retention-days: 7
+
+  lint-format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          uv sync --all-extras --locked
+
+      - name: Run ruff check
+        working-directory: backend
+        run: |
+          uv run ruff check app/ --output-format=github
+
+      - name: Run ruff format check
+        working-directory: backend
+        run: |
+          uv run ruff format app/ --check

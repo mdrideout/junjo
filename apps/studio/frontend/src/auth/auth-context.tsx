@@ -1,6 +1,6 @@
 import { createContext, useState, ReactNode, useCallback, useEffect } from 'react'
 import { UsersExistSchema } from './schema'
-import { API_HOST } from '../config'
+import { getApiHost } from '../config'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -36,14 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSetupCheckLoading(true)
     try {
       // --- Use the dedicated setup status endpoint ---
-      const response = await fetch(`${API_HOST}/users/db-has-users`, {
+      const endpoint = '/users/db-has-users'
+      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
         method: 'GET',
       })
       if (response.ok) {
         const data = await response.json()
         const validated = UsersExistSchema.parse(data)
 
-        const needsSetup = validated.usersExist === false
+        const needsSetup = validated.users_exist === false
         setNeedsSetup(needsSetup)
       } else {
         // Handle errors fetching setup status (e.g., backend not ready?)
@@ -63,7 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuthStatus = useCallback(async () => {
     setAuthCheckLoading(true)
     try {
-      const response = await fetch(`${API_HOST}/auth-test`, {
+      const endpoint = '/auth-test'
+      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -98,7 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const response = await fetch(`${API_HOST}/sign-out`, {
+      const endpoint = '/sign-out'
+      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
         method: 'POST',
         credentials: 'include',
       })

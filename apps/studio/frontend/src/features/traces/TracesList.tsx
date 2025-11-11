@@ -1,7 +1,7 @@
 import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../traces/schemas/schemas'
-import { API_HOST } from '../../config'
+import { getApiHost } from '../../config'
 import TraceListItem from './TraceListItem'
 
 export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
@@ -15,10 +15,12 @@ export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
       try {
         setLoading(true)
         setError(false)
+        // Use Python backend endpoints
         const endpoint = filterLLM
-          ? `${API_HOST}/otel/service/${serviceName}/root-spans-filtered`
-          : `${API_HOST}/otel/service/${serviceName}/root-spans`
-        const response = await fetch(endpoint, {
+          ? `/api/v1/observability/services/${serviceName}/spans/root?has_llm=true`
+          : `/api/v1/observability/services/${serviceName}/spans/root`
+        const apiHost = getApiHost(endpoint)
+        const response = await fetch(`${apiHost}${endpoint}`, {
           credentials: 'include',
         })
         if (!response.ok) {

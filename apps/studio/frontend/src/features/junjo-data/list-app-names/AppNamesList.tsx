@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useNavigate, Link } from 'react-router'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import {
   selectServiceNames,
@@ -19,7 +19,7 @@ export default function AppNamesList() {
   // Fetch the serviceNames
   useEffect(() => {
     dispatch(TracesStateActions.fetchServiceNames())
-  }, [])
+  }, [dispatch])
 
   if (loading) {
     return null
@@ -27,6 +27,18 @@ export default function AppNamesList() {
 
   if (error) {
     return <div>Error fetching app names.</div> //Improved error display
+  }
+
+  if (serviceNames.length === 0) {
+    return (
+      <div className="text-sm text-zinc-600 dark:text-zinc-400">
+        No data received. See{' '}
+        <Link to="/api-keys" className="text-blue-600 dark:text-blue-400 hover:underline">
+          instructions on connecting your app with OpenTelemetry
+        </Link>
+        .
+      </div>
+    )
   }
 
   return (

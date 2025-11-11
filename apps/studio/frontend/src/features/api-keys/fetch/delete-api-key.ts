@@ -1,7 +1,8 @@
-import { API_HOST } from '../../../config'
+import { getApiHost } from '../../../config'
 
-export async function deleteApiKey(key: string): Promise<void> {
-  const res = await fetch(`${API_HOST}/api_keys/${encodeURIComponent(key)}`, {
+export async function deleteApiKey(id: string): Promise<void> {
+  const apiHost = getApiHost('/api_keys')
+  const res = await fetch(`${apiHost}/api_keys/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     credentials: 'include',
   })

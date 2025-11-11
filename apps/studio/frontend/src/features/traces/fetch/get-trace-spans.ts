@@ -1,11 +1,15 @@
 import { z } from 'zod'
 import { OtelSpan, OtelSpanSchema } from '../../traces/schemas/schemas'
-import { API_HOST } from '../../../config'
+import { getApiHost } from '../../../config'
 
 const GetTraceSpansResponseSchema = z.array(OtelSpanSchema)
 
 export async function getTraceSpans(traceId: string): Promise<OtelSpan[]> {
-  const response = await fetch(`${API_HOST}/otel/trace/${traceId}/nested-spans`, {
+  // Use Python backend endpoint
+  const endpoint = `/api/v1/observability/traces/${traceId}/spans`
+  const apiHost = getApiHost(endpoint)
+
+  const response = await fetch(`${apiHost}${endpoint}`, {
     credentials: 'include',
   })
 

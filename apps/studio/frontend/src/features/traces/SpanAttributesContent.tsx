@@ -5,17 +5,27 @@ import { Link } from 'react-router'
 
 interface SpanAttributesContentProps {
   span: OtelSpan
+  origin?: 'traces' | 'workflows'
+  workflowSpanId?: string
 }
 
 export default function SpanAttributesContent(props: SpanAttributesContentProps) {
-  const { span } = props
+  const { span, origin = 'traces', workflowSpanId } = props
+
+  // Generate playground link based on origin
+  const getPlaygroundLink = () => {
+    if (origin === 'workflows' && workflowSpanId) {
+      return `/workflows/${span.service_name}/${span.trace_id}/${workflowSpanId}/${span.span_id}/prompt-playground`
+    }
+    return `/traces/${span.service_name}/${span.trace_id}/${span.span_id}/prompt-playground`
+  }
 
   return (
     <>
       {isLLMSpan(span) && (
         <div className="mb-4">
           <Link
-            to={`/traces/${span.service_name}/${span.trace_id}/${span.span_id}/prompt-playground`}
+            to={getPlaygroundLink()}
             className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 dark:bg-zinc-700 text-white hover:bg-zinc-800"
           >
             Open in Playground

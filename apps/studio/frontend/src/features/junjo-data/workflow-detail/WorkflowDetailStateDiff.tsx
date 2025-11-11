@@ -336,7 +336,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       {/* Attributes View */}
       {activeSpan && activeTab === DiffTabOptions.SPAN_DETAILS && (
         <div className={'grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700 p-4'}>
-          <SpanAttributesContent span={activeSpan} />
+          <SpanAttributesContent span={activeSpan} origin="workflows" workflowSpanId={defaultWorkflowSpan.span_id} />
         </div>
       )}
       {/* JSON View */}

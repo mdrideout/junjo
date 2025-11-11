@@ -43,23 +43,23 @@ export default function UsersPage() {
           <tbody>
             {users.map((user) => {
               // Make date human readable
-              const createdAt = new Date(user.CreatedAt)
+              const createdAt = new Date(user.created_at)
               const createdAtString = createdAt.toLocaleString()
 
               return (
                 <tr
-                  key={user.ID}
+                  key={user.id}
                   className={'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600'}
                 >
-                  <td className={'px-4 py-1.5 font-mono'}>{user.ID}</td>
-                  <td className={'px-4 py-1.5'}>{user.Email}</td>
+                  <td className={'px-4 py-1.5 font-mono'}>{user.id}</td>
+                  <td className={'px-4 py-1.5'}>{user.email}</td>
                   <td className={'px-4 py-1.5 font-mono'}>{createdAtString}</td>
                   <td className={' text-center'}>
                     <button
                       className={'p-1 hover:bg-zinc-300 dark:hover:bg-zinc-700 rounded-md cursor-pointer'}
                       onClick={() => {
-                        if (confirm(`Are you sure you want to delete user ${user.Email}?`)) {
-                          dispatch(UsersStateActions.deleteUser({ id: user.ID }))
+                        if (confirm(`Are you sure you want to delete user ${user.email}?`)) {
+                          dispatch(UsersStateActions.deleteUser({ id: user.id }))
                         }
                       }}
                     >

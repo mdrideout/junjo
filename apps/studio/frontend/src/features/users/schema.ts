@@ -1,15 +1,22 @@
 import { z } from 'zod'
 
-// Schema for an individual user object
+/**
+ * Schema for an individual user object.
+ *
+ * Matches backend Pydantic schema in:
+ * backend/app/db_sqlite/users/schemas.py (UserRead)
+ */
 export const userSchema = z.object({
-  ID: z.number().int(),
-  Email: z.string(),
-  CreatedAt: z.string().datetime(), // Or z.coerce.date() if you want to parse it into a Date object
+  id: z.string(),
+  email: z.string().email(),
+  is_active: z.boolean(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
 })
 
 // Schema for the API response containing a list of users
 export const ListUsersResponseSchema = z.array(userSchema)
 
-// Optional: Define a type alias for better readability if needed elsewhere
+// Type aliases for better readability
 export type User = z.infer<typeof userSchema>
 export type ListUsersResponse = z.infer<typeof ListUsersResponseSchema>
