@@ -5,10 +5,10 @@ Uses modern SQLAlchemy 2.0 syntax with Mapped[] type hints.
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
 
+from app.common.datetime_utils import UTCDateTime, utcnow
 from app.common.utils import generate_id
 from app.db_sqlite.base import Base
 
@@ -32,7 +32,5 @@ class APIKeyTable(Base):
     # Human-readable name
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    # Timestamp
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
-    )
+    # Timestamp - Always UTC with timezone awareness
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, nullable=False, default=utcnow)

@@ -14,7 +14,7 @@ import openapiSpec from '../../../backend/openapi.json'
 
 // Initialize OpenAPI Backend with the specification
 export const api = new OpenAPIBackend({
-  definition: openapiSpec,
+  definition: openapiSpec as any, // Type assertion: OpenAPI 3.1.0 not fully typed by openapi-backend
   strict: false, // Don't fail on unknown operations
   validate: false, // Disable OpenAPI spec validation (FastAPI uses 3.1.0 with JSON Schema 2020-12)
   quick: true, // Skip validation during init (FastAPI 3.1.0 not fully compatible with openapi-backend)

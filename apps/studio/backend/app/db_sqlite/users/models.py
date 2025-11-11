@@ -5,10 +5,10 @@ Uses modern SQLAlchemy 2.0 syntax with Mapped[] type hints.
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
 
+from app.common.datetime_utils import UTCDateTime, utcnow
 from app.common.utils import generate_id
 from app.db_sqlite.base import Base
 
@@ -35,11 +35,9 @@ class UserTable(Base):
     # Account status
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
-    )
+    # Timestamps - Always UTC with timezone awareness
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, nullable=False, default=utcnow)
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, nullable=False, default=utcnow, onupdate=utcnow
     )

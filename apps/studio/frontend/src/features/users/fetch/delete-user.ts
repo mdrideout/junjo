@@ -5,7 +5,7 @@
  */
 import { getApiHost } from '../../../config'
 
-export const deleteUser = async (id: number): Promise<void> => {
+export const deleteUser = async (id: string): Promise<void> => {
   const endpoint = `/users/${id}`
   const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
     method: 'DELETE',

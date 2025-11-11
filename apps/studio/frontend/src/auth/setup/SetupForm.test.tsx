@@ -11,7 +11,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { renderWithProviders, userEvent } from '../test-utils/test-helpers'
 import SetupForm from './SetupForm'
-import * as router from 'react-router'
 
 // Mock useNavigate from react-router
 const mockNavigate = vi.fn()

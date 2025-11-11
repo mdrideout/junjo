@@ -2,7 +2,9 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer, field_validator
+
+from app.common.datetime_utils import format_iso8601_utc, validate_aware_datetime
 
 
 class UserCreate(BaseModel):
@@ -42,14 +44,29 @@ class UserRead(BaseModel):
     )
     created_at: datetime = Field(
         examples=["2025-01-15T10:30:00Z"],
-        description="Timestamp when user was created",
+        description="Timestamp when user was created (UTC)",
     )
     updated_at: datetime = Field(
         examples=["2025-01-15T10:30:00Z"],
-        description="Timestamp when user was last updated",
+        description="Timestamp when user was last updated (UTC)",
     )
 
     model_config = ConfigDict(from_attributes=True)
+
+    # Validator: Reject naive datetimes
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def validate_timezone_aware(cls, v: datetime) -> datetime:
+        """Ensure datetime is timezone-aware."""
+        if isinstance(v, datetime):
+            return validate_aware_datetime(v)
+        return v
+
+    # Serializer: Always output ISO 8601 with 'Z' suffix
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, dt: datetime) -> str:
+        """Serialize datetime as ISO 8601 with 'Z' suffix."""
+        return format_iso8601_utc(dt)
 
 
 class UserInDB(UserRead):

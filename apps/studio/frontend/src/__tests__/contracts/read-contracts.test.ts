@@ -44,6 +44,25 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
         expect(user).toHaveProperty('updated_at')
       }
     })
+
+    it('User timestamps have Z suffix and are valid ISO 8601', () => {
+      const { mock } = generateMock('list_users_users_get')
+      const result = ListUsersResponseSchema.parse(mock)
+
+      if (result.length > 0) {
+        const user = result[0]
+
+        // Verify timestamps have 'Z' suffix (UTC indicator)
+        expect(user.created_at.endsWith('Z')).toBe(true)
+        expect(user.updated_at.endsWith('Z')).toBe(true)
+
+        // Verify they're parseable as Date objects
+        const createdDate = new Date(user.created_at)
+        const updatedDate = new Date(user.updated_at)
+        expect(createdDate.toISOString()).toBe(user.created_at)
+        expect(updatedDate.toISOString()).toBe(user.updated_at)
+      }
+    })
   })
 
   describe('APIKeyRead Schema', () => {
@@ -65,6 +84,22 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
         expect(apiKey).toHaveProperty('key')
         expect(apiKey).toHaveProperty('name')
         expect(apiKey).toHaveProperty('created_at')
+      }
+    })
+
+    it('API key timestamps have Z suffix and are valid ISO 8601', () => {
+      const { mock } = generateMock('list_api_keys_api_keys_get')
+      const result = ListApiKeysResponseSchema.parse(mock)
+
+      if (result.length > 0) {
+        const apiKey = result[0]
+
+        // Verify timestamp has 'Z' suffix (UTC indicator)
+        expect(apiKey.created_at.endsWith('Z')).toBe(true)
+
+        // Verify it's parseable as a Date object
+        const createdDate = new Date(apiKey.created_at)
+        expect(createdDate.toISOString()).toBe(apiKey.created_at)
       }
     })
   })

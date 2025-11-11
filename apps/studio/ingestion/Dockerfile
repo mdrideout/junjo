@@ -26,11 +26,17 @@ RUN go mod download
 COPY ingestion/ .
 
 # Install protoc v30.2 and Go protobuf plugins with locked versions
+ARG TARGETARCH
 RUN PROTOC_VERSION=30.2 && \
-    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*' && \
-    rm protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
+    case ${TARGETARCH} in \
+        "amd64") PROTOC_ARCH="x86_64" ;; \
+        "arm64") PROTOC_ARCH="aarch_64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local bin/protoc && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
+    rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10 && \
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 
@@ -72,11 +78,17 @@ RUN go mod download
 COPY ingestion/ .
 
 # Install protoc v30.2 and Go protobuf plugins with locked versions
+ARG TARGETARCH
 RUN PROTOC_VERSION=30.2 && \
-    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*' && \
-    rm protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
+    case ${TARGETARCH} in \
+        "amd64") PROTOC_ARCH="x86_64" ;; \
+        "arm64") PROTOC_ARCH="aarch_64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local bin/protoc && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
+    rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10 && \
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 

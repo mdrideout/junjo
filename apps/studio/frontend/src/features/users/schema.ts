@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { utcDatetimeSchema } from '../../lib/datetime-utils'
 
 /**
  * Schema for an individual user object.
@@ -10,8 +11,8 @@ export const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   is_active: z.boolean(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: utcDatetimeSchema, // Always UTC with 'Z' suffix from backend
+  updated_at: utcDatetimeSchema, // Always UTC with 'Z' suffix from backend
 })
 
 // Schema for the API response containing a list of users

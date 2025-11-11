@@ -25,9 +25,8 @@ from app.db_sqlite.base import Base
 # Import all models DIRECTLY (CRITICAL - ensures Alembic sees all tables)
 # Add new models here as they are created
 from app.db_sqlite.users.models import UserTable  # noqa: F401
-
-# Future models:
-# from app.database.api_keys.models import APIKeyTable  # noqa: F401
+from app.db_sqlite.api_keys.models import APIKeyTable  # noqa: F401
+from app.db_sqlite.poller_state.models import PollerState  # noqa: F401
 
 # Alembic Config object
 config = context.config

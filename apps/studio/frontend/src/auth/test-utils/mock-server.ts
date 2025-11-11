@@ -10,7 +10,6 @@
 
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import { generateMock } from './openapi-mock-generator'
 
 // Base URL for API requests (matches development environment)
 const API_BASE = 'http://localhost:1323'

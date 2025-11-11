@@ -1820,6 +1820,97 @@ Examples of features in Junjo AI Studio:
 
 **Breaking down features:** Features can be subdivided if they grow very large. Use judgment to balance organization and simplicity.
 
+### Zod Schemas as Single Source of Truth
+
+**Principle:** Zod schemas provide BOTH TypeScript types AND runtime validation. This eliminates type duplication and ensures compile-time and runtime consistency.
+
+**Pattern:**
+```typescript
+// response-schemas.ts
+import { z } from 'zod'
+
+/**
+ * Response schema for user mutation operations.
+ *
+ * Used by:
+ * - POST /users/create-first-user
+ * - POST /sign-in
+ * - POST /sign-out
+ * - POST /users (create user)
+ * - DELETE /users/{user_id}
+ *
+ * Matches backend Pydantic schema:
+ * backend/app/db_sqlite/users/schemas.py (UserResponse)
+ */
+export const UserResponseSchema = z.object({
+  message: z.string(),
+})
+
+// Export TypeScript type inferred from Zod schema
+export type UserResponse = z.infer<typeof UserResponseSchema>
+```
+
+**Usage in Application Code:**
+```typescript
+// fetch/delete-user.ts
+import { UserResponseSchema, type UserResponse } from '../response-schemas'
+
+export const deleteUser = async (id: string): Promise<UserResponse> => {
+  const response = await fetch(`/users/${id}`, { method: 'DELETE' })
+  const data = await response.json()
+
+  // Runtime validation (catches backend contract changes)
+  return UserResponseSchema.parse(data)
+}
+```
+
+**Benefits:**
+- ✅ **Single Definition**: Write schema once, get both types and validation
+- ✅ **Type Inference**: TypeScript types automatically derived via `z.infer<typeof Schema>`
+- ✅ **Runtime Safety**: Catches backend contract drift at runtime
+- ✅ **No Duplication**: Eliminates need for separate type definitions
+- ✅ **Self-Documenting**: Schema structure documents expected data shape
+- ✅ **Refactoring Safety**: Changes propagate automatically through type system
+
+**When to use Zod schemas:**
+- ✅ API response/request validation (always)
+- ✅ Complex data structures requiring validation
+- ✅ Data from external sources (localStorage, URL params, etc.)
+- ❌ Simple component props (use plain TypeScript `interface` or `type`)
+- ❌ Internal utilities without external data
+- ❌ Configuration objects that are statically defined
+
+**Schema Organization:**
+- `schemas.ts` - Request/response schemas for GET operations
+- `response-schemas.ts` - Response schemas for POST/PUT/DELETE/PATCH operations
+- `request-schemas.ts` - Request body schemas (if needed for validation)
+
+**Example Schema File:**
+```typescript
+// features/api-keys/response-schemas.ts
+import { z } from 'zod'
+
+/**
+ * Response schema for API key creation.
+ *
+ * Used by: POST /api_keys
+ *
+ * This is the ONLY time the full API key (with secret) is returned.
+ * Subsequent GET requests only return APIKeyRead which excludes the secret key.
+ *
+ * Matches backend Pydantic schema:
+ * backend/app/db_sqlite/api_keys/schemas.py (APIKeyRead with key field)
+ */
+export const ApiKeyCreateResponseSchema = z.object({
+  id: z.string(),
+  key: z.string(), // Secret API key (only shown once on creation)
+  name: z.string(),
+  created_at: z.string().datetime(),
+})
+
+export type ApiKeyCreateResponse = z.infer<typeof ApiKeyCreateResponseSchema>
+```
+
 ### Test Organization
 
 Frontend tests use Vitest and should follow these patterns for maintainability.
@@ -1839,6 +1930,57 @@ frontend/src/features/feature-name/
   schemas/
     request-schema.ts
     request-schema.test.ts     # Schema validation tests
+```
+
+#### Global Test Directories
+
+**Purpose:** For cross-cutting test concerns that span multiple features or require centralized organization.
+
+**Location:** `frontend/src/__tests__/`
+
+**Structure:**
+```
+frontend/src/
+  __tests__/
+    contracts/
+      read-contracts.test.ts        # Contract tests for GET endpoints
+      mutation-contracts.test.ts    # Contract tests for POST/PUT/DELETE/PATCH
+    integration/
+      mutation-requests.test.ts     # Integration tests for mutation payloads
+      user-flows.test.ts            # End-to-end user flow tests
+```
+
+**When to use global `__tests__/`:**
+- ✅ **Contract tests** - Validate frontend/backend schema compatibility across all features
+- ✅ **API integration tests** - Test actual request/response payloads for mutations
+- ✅ **Cross-feature integration** - Tests that involve multiple features working together
+- ✅ **End-to-end flows** - Multi-step user journeys across features
+
+**When to use co-located tests:**
+- ✅ **Unit tests** - Test single utility function or component
+- ✅ **Component tests** - Test single React component in isolation
+- ✅ **Feature-specific logic** - Business logic contained within one feature
+
+**Example global test organization:**
+```typescript
+// __tests__/contracts/mutation-contracts.test.ts
+describe('API Contract: Mutation Operations Response Schemas', () => {
+  describe('Authentication', () => {
+    it('UserResponse schema matches create-first-user endpoint', () => {
+      const { mock } = generateMock('create_first_user_users_create_first_user_post')
+      const result = UserResponseSchema.parse(mock)
+      expect(result.message).toBeDefined()
+    })
+  })
+
+  describe('User Management', () => {
+    it('UserResponse schema matches delete user endpoint', () => {
+      const { mock } = generateMock('delete_user_users__user_id__delete')
+      const result = UserResponseSchema.parse(mock)
+      expect(result.message).toBeDefined()
+    })
+  })
+})
 ```
 
 #### Shared Test Fixtures and Mocks
@@ -2084,6 +2226,249 @@ Contract tests run automatically on PRs via `.github/workflows/schema-validation
 
 **Documentation:** See `backend/scripts/README_SCHEMA_VALIDATION.md` for detailed implementation guide.
 
+#### Contract Tests for Mutation Operations
+
+**Purpose:** Validate that frontend Zod schemas can parse responses from POST/PUT/DELETE/PATCH endpoints, and that path/query parameter types match between frontend and backend.
+
+**Location:** `frontend/src/__tests__/contracts/mutation-contracts.test.ts`
+
+**What to Test:**
+- ✅ Response body structure matches Zod schema
+- ✅ Path parameter types (especially string vs number)
+- ✅ Required fields are present in mock data
+- ✅ Field types match expected types
+- ✅ Enum values are valid
+- ✅ Nullable/optional fields are handled correctly
+
+**Pattern:**
+```typescript
+import { describe, it, expect } from 'vitest'
+import { api, generateMock } from '@/auth/test-utils/openapi-mock-generator'
+import { UserResponseSchema } from '@/auth/response-schemas'
+import { ApiKeyCreateResponseSchema } from '@/features/api-keys/response-schemas'
+
+describe('API Contract: Mutation Operations Response Schemas', () => {
+  describe('Authentication', () => {
+    it('UserResponse schema matches create-first-user endpoint', () => {
+      const { mock } = generateMock('create_first_user_users_create_first_user_post')
+      const result = UserResponseSchema.parse(mock)
+
+      expect(result.message).toBeDefined()
+      expect(typeof result.message).toBe('string')
+      expect(result.message.length).toBeGreaterThan(0)
+    })
+
+    it('UserResponse schema matches sign-in endpoint', () => {
+      const { mock } = generateMock('sign_in_sign_in_post')
+      const result = UserResponseSchema.parse(mock)
+
+      expect(result.message).toBeDefined()
+    })
+  })
+
+  describe('User Management', () => {
+    it('UserResponse schema matches delete user endpoint', () => {
+      const { mock } = generateMock('delete_user_users__user_id__delete')
+      const result = UserResponseSchema.parse(mock)
+
+      expect(result.message).toBeDefined()
+    })
+  })
+
+  describe('API Keys', () => {
+    it('ApiKeyCreateResponse schema matches create API key endpoint', () => {
+      const { mock } = generateMock('create_api_key_api_keys_post')
+      const result = ApiKeyCreateResponseSchema.parse(mock)
+
+      // Validate the secret key is present (only shown on creation)
+      expect(result.key).toBeDefined()
+      expect(typeof result.key).toBe('string')
+    })
+  })
+})
+```
+
+**Path Parameter Type Validation:**
+
+**Critical for preventing bugs:** Path parameters like `user_id` or `id` must have correct types in both frontend and backend. String IDs must not be treated as numbers.
+
+```typescript
+describe('Path Parameter Types', () => {
+  it('DELETE /users/{user_id} parameter is defined as string', () => {
+    const operation = api.getOperation('delete_user_users__user_id__delete')
+    const userIdParam = operation?.parameters?.find((p) => p.name === 'user_id')
+
+    expect(userIdParam).toBeDefined()
+    expect(userIdParam?.schema?.type).toBe('string')
+  })
+
+  it('DELETE /api_keys/{id} parameter is defined as string', () => {
+    const operation = api.getOperation('delete_api_key_api_keys__id__delete')
+    const idParam = operation?.parameters?.find((p) => p.name === 'id')
+
+    expect(idParam).toBeDefined()
+    expect(idParam?.schema?.type).toBe('string')
+  })
+})
+```
+
+**Why Path Parameter Tests Matter:**
+
+A common bug is treating string IDs as numbers:
+```typescript
+// ❌ Bug: Passing number when string expected
+await deleteUser(123)  // TypeScript error if tests are type-checked
+
+// ✅ Correct: String ID
+await deleteUser('usr_123')
+```
+
+**What Contract Tests for Mutations Catch:**
+- ✅ Backend changes response structure → Zod parse fails
+- ✅ Backend changes path parameter type (string → number) → Type validation fails
+- ✅ Frontend has wrong response field name → Zod parse fails
+- ✅ Backend adds required field to response → Zod parse fails if field missing
+- ✅ Field type mismatch (string vs number, string vs boolean) → Zod parse fails
+
+**Mutation Operations to Test:**
+
+```typescript
+// Authentication
+- POST /users/create-first-user → UserResponse
+- POST /sign-in → UserResponse
+- POST /sign-out → UserResponse
+
+// User Management
+- POST /users → UserResponse
+- DELETE /users/{user_id} → UserResponse
+
+// API Keys
+- POST /api_keys → ApiKeyCreateResponse (includes secret key)
+- DELETE /api_keys/{id} → 204 No Content (no response body)
+
+// LLM Operations
+- POST /llm/generate → GenerateResponse
+- POST /llm/providers/{provider}/models/refresh → ModelsResponse
+```
+
+**Adding New Mutation Contract Tests:**
+
+1. Create response Zod schema in appropriate `response-schemas.ts` file
+2. Add contract test in `mutation-contracts.test.ts`
+3. Include path parameter type validation if applicable
+4. Run `npm run test:contracts` to verify
+
+#### Integration Tests for Mutation Requests
+
+**Purpose:** Validate that the actual request payloads sent from frontend to backend have the correct structure, types, and values.
+
+**Distinction from Contract Tests:**
+- **Contract tests**: Validate that Zod schemas can parse OpenAPI mocks (schema compatibility)
+- **Integration tests**: Validate that actual `fetch()` calls send correct payloads (runtime behavior)
+
+**Location:** `frontend/src/__tests__/integration/mutation-requests.test.ts`
+
+**What to Test:**
+- ✅ Path parameters are correct type (string vs number)
+- ✅ Request body structure matches expectations
+- ✅ Required fields are included in request
+- ✅ Field values have correct types
+- ✅ Edge cases (special characters, long values, etc.)
+
+**Pattern:**
+```typescript
+import { describe, it, expect } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/auth/test-utils/mock-server'
+import { deleteUser } from '@/features/users/fetch/delete-user'
+
+describe('API Request Validation: Mutation Operations', () => {
+  describe('User Management', () => {
+    it('DELETE /users/{user_id} sends string ID in path parameter', async () => {
+      let capturedUserId: string | undefined
+
+      // Intercept the request and capture the parameter
+      server.use(
+        http.delete('http://localhost:1323/users/:user_id', ({ params }) => {
+          capturedUserId = params.user_id as string
+          return HttpResponse.json({ message: 'User deleted successfully' })
+        }),
+      )
+
+      // Call the actual delete function with a string ID
+      await deleteUser('usr_2k4h6j8m9n0p1q2r')
+
+      // Validate that the parameter is a string
+      expect(capturedUserId).toBeDefined()
+      expect(typeof capturedUserId).toBe('string')
+      expect(capturedUserId).toBe('usr_2k4h6j8m9n0p1q2r')
+    })
+  })
+
+  describe('Request Body Validation', () => {
+    it('POST /users sends correct request body structure', async () => {
+      let capturedBody: any
+
+      server.use(
+        http.post('http://localhost:1323/users', async ({ request }) => {
+          capturedBody = await request.json()
+          return HttpResponse.json({ message: 'User created successfully' })
+        }),
+      )
+
+      // Make request via fetch (simulating what component does)
+      await fetch('http://localhost:1323/users', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'newuser@example.com',
+          password: 'securePassword123'
+        }),
+      })
+
+      // Validate request body structure
+      expect(capturedBody).toBeDefined()
+      expect(capturedBody).toMatchObject({
+        email: expect.any(String),
+        password: expect.any(String),
+      })
+      expect(capturedBody.email).toMatch(/@/)
+      expect(capturedBody.password.length).toBeGreaterThanOrEqual(8)
+    })
+  })
+})
+```
+
+**Why Integration Tests for Requests Matter:**
+
+Contract tests validate responses, but don't test what the frontend actually sends. Integration tests catch bugs like:
+- ❌ Frontend sends `user_id` as number instead of string
+- ❌ Frontend omits required field in request body
+- ❌ Frontend sends wrong field names
+- ❌ Frontend doesn't URL-encode special characters in path params
+
+**Example Bug Caught:**
+```typescript
+// Redux action expects string
+deleteUser: (state, action: PayloadAction<{ id: string }>) => { }
+
+// But component passes number
+dispatch(UsersStateActions.deleteUser({ id: 123 }))  // ❌ Bug!
+
+// Integration test would catch this:
+it('sends string ID', async () => {
+  expect(typeof capturedUserId).toBe('string')  // ✗ Fails: got number
+})
+```
+
+**When to Write Integration Tests for Requests:**
+- ✅ Any DELETE operation with path parameter (validate type)
+- ✅ POST/PUT operations with request body (validate structure)
+- ✅ Operations with query parameters (validate encoding)
+- ✅ Operations with special characters in parameters
+- ✅ File upload operations (validate FormData structure)
+
 #### MSW (Mock Service Worker) for Integration Tests
 
 **Purpose:** Intercept HTTP requests at the network layer in tests, allowing you to mock API responses without modifying fetch() or component code.
@@ -2160,6 +2545,384 @@ describe('User List', () => {
 - [MSW Documentation](https://mswjs.io/)
 - [openapi-backend Documentation](https://github.com/anttiviljami/openapi-backend)
 - `frontend/src/auth/test-utils/openapi-mock-generator.ts` - Helper for generating OpenAPI mocks
+
+#### TypeScript Type-Checking for Test Files
+
+**Principle:** Test files should be fully type-checked by TypeScript, not excluded from compilation. This catches type errors in tests during development and prevents bugs.
+
+**Configuration:**
+```json
+// tsconfig.app.json
+{
+  "compilerOptions": { /* ... */ },
+  "include": ["src"]  // ✅ Includes test files (*.test.ts, *.test.tsx)
+  // ❌ NO "exclude" array for test files
+}
+```
+
+**Benefits:**
+- ✅ **Catch Type Errors Early**: Type mismatches in tests fail at build time
+- ✅ **Validate Mock Data**: Ensures mock data matches actual types
+- ✅ **Prevent Type Assertions**: Encourages proper Zod validation over `as` casts
+- ✅ **Refactoring Safety**: Type changes propagate to tests automatically
+- ✅ **Editor Support**: Full IntelliSense and autocomplete in tests
+
+**Pattern:**
+```typescript
+// ✅ Good: Let TypeScript infer types
+import { deleteUser } from '@/features/users/fetch/delete-user'
+import { UserResponseSchema } from '@/auth/response-schemas'
+
+it('deletes user and returns response', async () => {
+  const result = await deleteUser('usr_123')
+  const validated = UserResponseSchema.parse(result)
+
+  // TypeScript knows validated.message exists
+  expect(validated.message).toBeDefined()
+})
+
+// ❌ Bad: Type assertion bypasses type checking
+it('deletes user', async () => {
+  const result = await deleteUser('usr_123') as any
+  expect(result.message).toBeDefined()  // No type safety!
+})
+
+// ❌ Bad: Passing wrong type (would be caught by TypeScript)
+it('deletes user', async () => {
+  await deleteUser(123)  // Error: Argument of type 'number' not assignable to 'string'
+})
+```
+
+**How This Prevents Bugs:**
+
+Example bug: `user_id: string` vs `number` mismatch
+
+```typescript
+// Redux slice expects string
+deleteUser: (state, action: PayloadAction<{ id: string }>) => { }
+
+// Component code (would fail TypeScript check)
+dispatch(UsersStateActions.deleteUser({ id: 123 }))
+// Error: Type 'number' is not assignable to type 'string'
+
+// Test code (would also fail TypeScript check)
+it('dispatches delete action', () => {
+  store.dispatch(UsersStateActions.deleteUser({ id: 123 }))
+  // Error: Type 'number' is not assignable to type 'string'
+})
+```
+
+**When TypeScript type-checking is disabled for tests**, these errors are only caught at runtime (if at all).
+
+**Running Type Checks:**
+```bash
+# Type-check all code including tests
+npm run build  # Runs: tsc -b && vite build
+
+# In CI, this catches type errors before deployment
+```
+
+#### Testing Strategy Decision Tree
+
+**Use this guide to determine which type of test to write:**
+
+```
+┌─────────────────────────────────────┐
+│ What are you testing?               │
+└──────────────┬──────────────────────┘
+               │
+               ├─ API response structure? ──────────→ CONTRACT TEST
+               │  (Does Zod schema match OpenAPI?)    (mutation-contracts.test.ts or read-contracts.test.ts)
+               │
+               ├─ Request payload structure? ────────→ INTEGRATION TEST
+               │  (Does fetch() send correct data?)   (mutation-requests.test.ts)
+               │
+               ├─ Component behavior? ───────────────→ COMPONENT TEST
+               │  (Render, user interactions, state)  (Component.test.tsx, co-located)
+               │
+               ├─ Utility function? ─────────────────→ UNIT TEST
+               │  (Pure logic, no dependencies)       (utils/helper.test.ts, co-located)
+               │
+               ├─ Multiple features together? ───────→ INTEGRATION TEST
+               │  (Cross-feature interactions)        (__tests__/integration/)
+               │
+               └─ Complete user flow? ───────────────→ END-TO-END TEST
+                  (Multi-step journey)                (__tests__/integration/user-flows.test.ts)
+```
+
+**Examples:**
+
+**Scenario 1:** Backend adds a new required field to `UserRead` response
+- **Test Type:** Contract test
+- **Location:** `__tests__/contracts/read-contracts.test.ts`
+- **Why:** Validates frontend Zod schema can parse backend response
+
+**Scenario 2:** Deleteuser function should send string ID, not number
+- **Test Type:** Integration test for requests
+- **Location:** `__tests__/integration/mutation-requests.test.ts`
+- **Why:** Validates actual fetch() call sends correct parameter type
+
+**Scenario 3:** Login button should disable while submitting
+- **Test Type:** Component test
+- **Location:** `auth/sign-in/SignInForm.test.tsx`
+- **Why:** Tests component behavior and user interactions
+
+**Scenario 4:** `detectJsonSchema()` should extract OpenAI schema from attributes
+- **Test Type:** Unit test
+- **Location:** `utils/schema-detection.test.ts`
+- **Why:** Tests pure utility function in isolation
+
+**Scenario 5:** After sign-in, user should navigate to correct page based on API keys
+- **Test Type:** Integration test
+- **Location:** `auth/navigation-helpers.test.ts` or `__tests__/integration/`
+- **Why:** Tests multiple functions/API calls working together
+
+**Test Coverage Guidelines:**
+
+- **Contract tests**: Every API endpoint (GET, POST, PUT, DELETE)
+- **Integration tests**: All mutation operations with path/body parameters
+- **Component tests**: All user-facing components with interactions
+- **Unit tests**: All utility functions and business logic
+- **End-to-end tests**: Critical user flows (sign-up, API key creation, etc.)
+
+#### Common Testing Pitfalls
+
+**Pitfall 1: Type Assertions in Tests**
+
+❌ **Problem:**
+```typescript
+it('returns user data', async () => {
+  const result = await fetchUser('usr_123') as UserRead
+  expect(result.email).toBe('test@example.com')
+})
+```
+
+✅ **Solution:**
+```typescript
+it('returns user data', async () => {
+  const result = await fetchUser('usr_123')
+  const validated = UserReadSchema.parse(result)
+  expect(validated.email).toBe('test@example.com')
+})
+```
+
+**Why:** Type assertions (`as`) bypass TypeScript checking and don't validate runtime data. Use Zod schemas for both type safety and runtime validation.
+
+---
+
+**Pitfall 2: Excluding Test Files from TypeScript**
+
+❌ **Problem:**
+```json
+// tsconfig.app.json
+{
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+}
+```
+
+✅ **Solution:**
+```json
+// tsconfig.app.json
+{
+  "include": ["src"]
+  // No exclude for test files
+}
+```
+
+**Why:** Excluding tests means type errors in tests are only caught at runtime. TypeScript should check test code too.
+
+---
+
+**Pitfall 3: Testing Only GET Endpoints**
+
+❌ **Problem:**
+```typescript
+// Only tests read operations
+describe('API Contract', () => {
+  it('parses user list', () => { ... })
+  it('parses API key list', () => { ... })
+})
+```
+
+✅ **Solution:**
+```typescript
+// Tests both read and mutation operations
+describe('API Contract: Read Operations', () => {
+  it('parses user list', () => { ... })
+})
+
+describe('API Contract: Mutation Operations', () => {
+  it('parses create user response', () => { ... })
+  it('parses delete user response', () => { ... })
+})
+```
+
+**Why:** Mutation endpoints (POST/PUT/DELETE) can drift from contracts too. Test all endpoint types.
+
+---
+
+**Pitfall 4: Not Validating Path Parameter Types**
+
+❌ **Problem:**
+```typescript
+// Assumes path parameters are correct type
+it('deletes user', async () => {
+  await deleteUser('usr_123')
+  // No validation of parameter type
+})
+```
+
+✅ **Solution:**
+```typescript
+// Validates parameter type at contract level
+it('DELETE /users/{user_id} parameter is string type', () => {
+  const operation = api.getOperation('delete_user_users__user_id__delete')
+  const param = operation?.parameters?.find(p => p.name === 'user_id')
+  expect(param?.schema?.type).toBe('string')
+})
+
+// Validates parameter type at integration level
+it('sends string ID in path parameter', async () => {
+  let capturedId: string | undefined
+  server.use(
+    http.delete('/users/:user_id', ({ params }) => {
+      capturedId = params.user_id as string
+      return HttpResponse.json({ message: 'deleted' })
+    })
+  )
+
+  await deleteUser('usr_123')
+  expect(typeof capturedId).toBe('string')
+})
+```
+
+**Why:** String vs number type mismatches in path parameters are common bugs. Test both contract definition and runtime behavior.
+
+---
+
+**Pitfall 5: Duplicate Type Definitions**
+
+❌ **Problem:**
+```typescript
+// Duplicate definitions
+export interface UserResponse {
+  message: string
+}
+
+export const UserResponseSchema = z.object({
+  message: z.string()
+})
+```
+
+✅ **Solution:**
+```typescript
+// Single source of truth
+export const UserResponseSchema = z.object({
+  message: z.string()
+})
+
+export type UserResponse = z.infer<typeof UserResponseSchema>
+```
+
+**Why:** Duplicate definitions can drift apart. Use `z.infer<typeof Schema>` to derive TypeScript types from Zod schemas.
+
+---
+
+**Pitfall 6: Not Testing Request Payloads**
+
+❌ **Problem:**
+```typescript
+// Only tests that request succeeds
+it('creates API key', async () => {
+  await createApiKey({ name: 'Test Key' })
+  // No validation of request body sent to backend
+})
+```
+
+✅ **Solution:**
+```typescript
+// Tests request payload structure
+it('sends correct request body', async () => {
+  let capturedBody: any
+  server.use(
+    http.post('/api_keys', async ({ request }) => {
+      capturedBody = await request.json()
+      return HttpResponse.json({ id: 'key_123', ... })
+    })
+  )
+
+  await createApiKey({ name: 'Test Key' })
+
+  expect(capturedBody).toMatchObject({
+    name: expect.any(String)
+  })
+  expect(capturedBody.name).toBe('Test Key')
+})
+```
+
+**Why:** Frontend might send wrong data structure to backend. Integration tests should validate request payloads, not just responses.
+
+---
+
+**Pitfall 7: No Tests for Edge Cases**
+
+❌ **Problem:**
+```typescript
+// Only tests happy path
+it('deletes user', async () => {
+  await deleteUser('usr_123')
+})
+```
+
+✅ **Solution:**
+```typescript
+// Tests edge cases
+it('handles user ID with special characters', async () => {
+  await deleteUser('usr_abc-123_xyz')
+})
+
+it('handles very long user IDs', async () => {
+  const longId = 'usr_' + 'a'.repeat(100)
+  await deleteUser(longId)
+})
+
+it('handles error responses', async () => {
+  server.use(
+    http.delete('/users/:id', () => {
+      return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+    })
+  )
+
+  await expect(deleteUser('usr_invalid')).rejects.toThrow()
+})
+```
+
+**Why:** Edge cases and error handling are where bugs hide. Test special characters, long values, and error responses.
+
+---
+
+**Test Commands:**
+
+```bash
+# Run all tests
+npm test
+
+# Run tests once (CI mode)
+npm run test:run
+
+# Run only contract tests
+npm run test:contracts
+
+# Run with UI
+npm run test:ui
+
+# Run tests for specific file
+npm test -- user.test.ts
+
+# Run tests matching pattern
+npm test -- -t "API Contract"
+```
 
 ## Backend (Python) Organization
 

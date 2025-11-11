@@ -5,7 +5,7 @@
  * where to navigate users after sign-in based on their API key status.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from './test-utils/mock-server'
 import { getPostSignInDestination } from './navigation-helpers'

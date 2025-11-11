@@ -12,11 +12,17 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Install protoc v30.2 for consistency (Python uses grpcio-tools but scripts may need protoc)
+ARG TARGETARCH
 RUN PROTOC_VERSION=30.2 && \
-    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*' && \
-    rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
+    case ${TARGETARCH} in \
+        "amd64") PROTOC_ARCH="x86_64" ;; \
+        "arm64") PROTOC_ARCH="aarch_64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local bin/protoc && \
+    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
+    rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
