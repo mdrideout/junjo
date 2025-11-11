@@ -61,8 +61,9 @@ flowchart TD
 *   **Internal Authentication Endpoint**:
     *   `J[Backend Internal Auth]`: Private gRPC endpoint for validating API keys.
 *   **Key Files**:
-    *   [`backend/main.go`](backend/main.go): Main application entry point.
-    *   [`backend/api/internal_auth/grpc_api_key_auth.go`](backend/api/internal_auth/grpc_api_key_auth.go): Internal gRPC API key validation service.
+    *   `backend/app/main.py`: Main FastAPI application entry point
+    *   `backend/app/grpc_server.py`: Internal gRPC server lifecycle management
+    *   `backend/app/features/internal_auth/grpc_service.py`: InternalAuthService implementation
 
 ### `ingestion`
 
@@ -188,7 +189,7 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
 **Key Features:**
 - **Fail-closed security**: Returns `is_valid=False` on any error (database errors, exceptions)
 - **Async database access**: Uses SQLAlchemy async sessions with proper isolation
-- **No caching**: Unlike the Go implementation, caching is handled by the ingestion
+- **No caching**: Caching is handled by the ingestion service
 - **Structured logging**: Logs validation attempts with truncated key prefixes for security
 
 ### Database Access Pattern
@@ -248,23 +249,6 @@ junjo-ai-studio-ingestion:
 - Database isolation under load
 - Verify no race conditions
 
-### Migration Notes
-
-This Python gRPC implementation **replaces** the Go backend's internal auth service as part of the backend migration from Go to Python. Key differences:
-
-| Go Backend | Python Backend |
-|------------|----------------|
-| Port 50053 | Port 50053 (same) |
-| Separate gRPC server binary | Concurrent with FastAPI |
-| Uses Go's grpc library | Uses grpc.aio (Python async) |
-| Direct SQLite queries | SQLAlchemy async ORM |
-| Built-in caching | No caching (handled by client) |
-
-**Configuration:**
-- See `backend/.env.example` for `GRPC_PORT` configuration
-- See `docker-compose.yml` for security notes on port exposure
-- See `backend/app/database/README.md` for database patterns
-
 ## 4. Data Flow: WAL and Indexing
 
 The `ingestion` acts as a Write-Ahead Log (WAL) for the main `backend`. This decouples the high-throughput ingestion of OTel data from the more resource-intensive process of indexing that data for querying.
@@ -307,7 +291,6 @@ The system expects and utilizes the following OpenInference attributes on LLM sp
 The system includes utilities for mapping between OpenInference provider names and internal representations:
 
 *   **Frontend**: `frontend/src/features/prompt-playground/utils/provider-mapping.ts`
-*   **Backend**: `backend/api/llm/provider/provider_mapping.go`
 
 Current mappings:
 *   `"google"` (OpenInference) → `"gemini"` (Junjo internal)
@@ -354,17 +337,11 @@ sequenceDiagram
 The backend provides separate REST endpoints for each LLM provider:
 
 *   **OpenAI**: `POST /llm/openai/generate`
-    *   Handler: `backend/api/llm/openai/handler.go`
-    *   Schema: `backend/api/llm/openai/schemas.go`
 *   **Anthropic**: `POST /llm/anthropic/generate`
-    *   Handler: `backend/api/llm/anthropic/handler.go`
-    *   Schema: `backend/api/llm/anthropic/schemas.go`
 *   **Gemini**: `POST /llm/gemini/generate`
-    *   Handler: `backend/api/llm/gemini/handler.go`
-    *   Schema: `backend/api/llm/gemini/schemas.go`
 
 Each handler:
-1. Validates the request using Go structs
+1. Validates the request using Pydantic models
 2. Retrieves the API key from environment variables
 3. Forwards the request to the provider's API
 4. Returns the response (or error) to the frontend
@@ -634,44 +611,6 @@ await geminiRequest({
 })
 ```
 
-#### Backend Schema Support
-
-**OpenAI** (`backend/api/llm/openai/schemas.go`):
-```go
-type OpenAIJSONSchema struct {
-    Name   string                 `json:"name"`
-    Strict *bool                  `json:"strict,omitempty"`
-    Schema map[string]interface{} `json:"schema"`
-}
-
-type OpenAIResponseFormat struct {
-    Type       string            `json:"type"` // "json_schema" | "json_object" | "text"
-    JSONSchema *OpenAIJSONSchema `json:"json_schema,omitempty"`
-}
-```
-
-**Gemini** (`backend/api/llm/gemini/schemas.go`):
-```go
-type GeminiGenerationConfig struct {
-    Temperature         *float64               `json:"temperature,omitempty"`
-    ResponseMimeType    string                 `json:"responseMimeType,omitempty"`
-    ResponseJSONSchema  map[string]interface{} `json:"response_json_schema,omitempty"`
-    ThinkingConfig      *GeminiThinkingConfig  `json:"thinkingConfig,omitempty"`
-}
-```
-
-**Anthropic** (`backend/api/llm/anthropic/schemas.go`):
-```go
-type AnthropicRequest struct {
-    // ... other fields ...
-    Tools      []AnthropicTool      `json:"tools,omitempty"`
-    ToolChoice *AnthropicToolChoice `json:"tool_choice,omitempty"`
-
-    // Schema-less JSON mode fallback (when no schema available)
-    JSONMode bool `json:"jsonMode,omitempty"`
-}
-```
-
 #### Schema Format Compatibility
 
 **Good News**: All three providers now use JSON Schema format for structured outputs!
@@ -724,19 +663,10 @@ type AnthropicRequest struct {
 - Tests schema detection, edge cases, and robustness
 - 18 tests covering all providers and error conditions
 
-**Backend Tests**:
-- `backend/api/llm/openai/handler_test.go`: Tests OpenAI schema marshaling and request structure
-- `backend/api/llm/gemini/handler_test.go`: Tests Gemini schema marshaling and OpenAPI format
-
 Run tests:
 ```bash
 # Frontend
 cd frontend && npm run test:run
-
-# Backend
-cd backend
-go test ./api/llm/openai -v
-go test ./api/llm/gemini -v
 ```
 
 ### Model Capability Detection
@@ -987,28 +917,6 @@ from app.features.auth.dependencies import CurrentUserEmail
 router = APIRouter()
 ```
 
-**Go:**
-```go
-// Package comment
-package apikeys
-
-import (
-    // Standard library
-    "context"
-    "fmt"
-
-    // Third-party
-    "github.com/labstack/echo/v4"
-
-    // Local
-    "junjo-ai-studio/backend/db"
-    "junjo-ai-studio/backend/utils"
-)
-
-// Code starts here
-func Handler() { ... }
-```
-
 **TypeScript:**
 ```typescript
 /**
@@ -1037,266 +945,6 @@ export function Component() { ... }
 **Exceptions:**
 - Lazy imports for performance (rare, must be documented)
 - Conditional imports in dynamic scenarios (must be justified)
-
-## Backend (Go) Organization
-
-The backend is written in Go and follows Go community idioms and conventions.
-
-### Feature Structure
-
-```
-backend/api/
-  feature-name/
-    handler.go          # HTTP request handlers
-    service.go          # Business logic
-    repository.go       # Database operations
-    dto.go              # Request/response DTOs (Data Transfer Objects)
-    models.go           # Domain models (only if needed)
-    constants.go        # Feature-specific constants
-    handler_test.go     # Tests co-located with code
-    service_test.go
-    repository_test.go
-```
-
-### File Naming Conventions
-
-- **Package names**: Singular (e.g., `handler` not `handlers`)
-- **File names**: Use snake_case (e.g., `api_key_handler.go`)
-- **Test files**: Co-located with implementation (e.g., `handler_test.go` next to `handler.go`)
-
-### Layer Responsibilities
-
-#### handler.go - HTTP Handlers
-
-Handles HTTP requests and responses. This is the idiomatic Go term (not "controller" or "routes").
-
-**Responsibilities:**
-- Bind request data to DTOs
-- **Validate request data early** (before executing complex business logic)
-- Call service layer for business logic
-- Format and return HTTP responses
-- Handle HTTP-specific concerns (status codes, headers)
-
-Example:
-```go
-func (h *Handler) CreateAPIKey(c echo.Context) error {
-    var req dto.CreateAPIKeyRequest
-    if err := c.Bind(&req); err != nil {
-        return BadRequest(err)
-    }
-    if err := req.Validate(); err != nil {  // Early validation
-        return BadRequest(err)
-    }
-
-    userID := c.Get("user_id").(string)
-    apiKey, err := h.service.CreateAPIKey(ctx, userID, req)
-    if err != nil {
-        return InternalServerError(err)
-    }
-
-    return c.JSON(http.StatusCreated, apiKey)
-}
-```
-
-#### service.go - Business Logic
-
-Contains the core business logic and orchestration.
-
-**Responsibilities:**
-- Implement business rules and workflows
-- Coordinate between multiple repositories
-- Transform data between layers
-- Handle business-level errors
-
-#### repository.go - Database Operations
-
-Handles all database interactions.
-
-**Responsibilities:**
-- Execute database queries
-- **Implement authorization checks deep in the data layer** (defense in depth)
-- Transform database results to domain models or DTOs
-- Handle database-specific errors
-
-Example:
-```go
-func (r *Repository) CreateAPIKey(ctx context.Context, userID string, key APIKey) error {
-    // Defense in depth - check ownership even at DB layer
-    return r.queries.InsertAPIKeyForUser(ctx, userID, key)
-}
-```
-
-#### dto.go - Data Transfer Objects
-
-Defines request and response structures for the API layer.
-
-**DTOs are conventional in Go** and represent the API contract.
-
-Example:
-```go
-type CreateUserRequest struct {
-    Email    string `json:"email" validate:"required,email"`
-    Password string `json:"password" validate:"required,min=8"`
-}
-
-type UserResponse struct {
-    ID    string `json:"id"`
-    Email string `json:"email"`
-    // Password intentionally omitted
-}
-```
-
-**Struct Tags:**
-- `json:"field_name"` - JSON marshaling
-- `json:"-"` - Omit from JSON response
-- `db:"column_name"` - Database column mapping
-- `validate:"required,email"` - Validation rules
-
-#### models.go - Domain Models (Optional)
-
-Domain models represent internal business entities. **Only create separate domain models when:**
-- The API shape differs from internal representation
-- You have computed or derived fields
-- DTOs cannot be used throughout the entire chain (repository → handler)
-
-**Rule:** Avoid creating redundant schemas. Use DTOs throughout unless domain models are necessary.
-
-Example where domain models are needed:
-```go
-// dto.go
-type UserResponse struct {
-    ID    string `json:"id"`
-    Email string `json:"email"`
-}
-
-// models.go
-type User struct {
-    ID                  string
-    Email               string
-    PasswordHash        string    // Internal only
-    FailedLoginAttempts int       // Internal only
-    LastLoginIP         string    // Internal only
-    CreatedAt           time.Time
-}
-```
-
-### Database Schema and Queries
-
-The backend uses **sqlc** for type-safe SQL queries.
-
-**Structure:**
-- `backend/db/` - Centralized database schemas (`.sql` files for tables and schemas)
-- `backend/db/queries/` - SQL query files organized by domain
-- `backend/db_gen/` - Generated Go code from sqlc (do not edit manually)
-
-SQL files are written manually and sqlc generates proper Go structs and functions.
-
-### Interfaces
-
-Go interfaces define contracts between layers.
-
-**Where to define interfaces:** In the package that **uses** them (typically the service layer).
-
-Example:
-```go
-// api/apikeys/service.go
-type APIKeyRepository interface {
-    Create(ctx context.Context, key APIKey) error
-    GetByID(ctx context.Context, id string) (*APIKey, error)
-    Delete(ctx context.Context, id string) error
-}
-
-type Service struct {
-    repo APIKeyRepository  // Depends on interface, not concrete implementation
-}
-```
-
-**Why interfaces matter:**
-- Enable testing with mocks
-- Allow swapping implementations (e.g., PostgreSQL → DuckDB)
-- Reduce coupling between layers
-
-### Shared Code
-
-Shared code lives at the backend root level:
-- `backend/middleware/` - HTTP middleware (auth, logging, etc.)
-- `backend/auth/` - Authentication utilities
-- `backend/utils/` - General utilities
-- `backend/telemetry/` - OpenTelemetry instrumentation
-
-**Note:** Go idiomatically uses top-level packages for shared code rather than a `common/` directory.
-
-### Go Package Structure
-
-Go prefers **flat package structures**. Avoid deep nesting of subdirectories within a feature package.
-
-Example:
-```
-✅ Good: backend/api/apikeys/handler.go
-❌ Avoid: backend/api/apikeys/handlers/create_handler.go
-```
-
-### Constants and Enums
-
-Feature-specific constants:
-```go
-// api/apikeys/constants.go
-package apikeys
-
-const (
-    MaxAPIKeysPerUser = 10
-    APIKeyPrefix      = "sk_"
-)
-```
-
-For small constant sets, define them inline in the relevant file:
-```go
-// handler.go
-const maxRetries = 3
-```
-
-Shared constants:
-```go
-// backend/constants/constants.go
-```
-
-### Validation and Authorization Strategy
-
-**Validation:**
-- Validate **as early as possible** - in the handler layer before executing complex business logic
-- Use struct tags and validation libraries for consistency
-
-**Authorization:**
-- Implement **defense in depth**
-- Early checks in handlers for obvious authorization failures
-- **Deep authorization checks** in repository functions for data-level security
-- If the authorization check is the same as the query, build it into the query itself
-
-Example:
-```go
-// Early validation in handler
-func (h *Handler) GetAPIKey(c echo.Context) error {
-    userID := c.Get("user_id").(string)
-    keyID := c.Param("id")
-
-    // Call service, which calls repository with built-in authorization
-    apiKey, err := h.service.GetAPIKey(ctx, userID, keyID)
-    // ...
-}
-
-// Deep authorization in repository
-func (r *Repository) GetAPIKey(ctx context.Context, userID, keyID string) (*APIKey, error) {
-    // Query ensures user owns this key
-    return r.queries.GetAPIKeyByIDAndUserID(ctx, keyID, userID)
-}
-```
-
-### Testing
-
-- **Co-locate tests** with implementation: `handler_test.go` next to `handler.go`
-- Use Go's standard testing package
-- Test files use the `_test.go` suffix
-- Integration tests can live in `backend/tests/integration/`
 
 ## Frontend (React/TypeScript) Organization
 
@@ -2926,7 +2574,7 @@ npm test -- -t "API Contract"
 
 ## Backend (Python) Organization
 
-The Python backend is being built as a replacement for the Go backend, using FastAPI, SQLAlchemy, and modern Python idioms.
+The backend is built with Python, using FastAPI, SQLAlchemy, and modern Python idioms.
 
 ### Feature Structure
 
@@ -2994,9 +2642,9 @@ from app.features.otel_spans.repository import SpanRepository
 from app.features.auth import router  # Only works with __init__.py
 ```
 
-**Migration from package-level to explicit imports:**
+**Package-level vs explicit imports:**
 
-When removing `__init__.py` files, update imports to reference the specific module:
+When using namespace packages without `__init__.py` files, imports must reference the specific module:
 
 ```python
 # Before (with __init__.py that re-exports router)
@@ -3067,9 +2715,7 @@ async def get_current_user_email(request: Request) -> str:
 CurrentUserEmail = Annotated[str, Depends(get_current_user_email)]
 ```
 
-### API Contract Migration Strategy
-
-When migrating APIs from Go to Python (or between any languages with different naming conventions):
+### API Naming Conventions
 
 **Principle:** Use the backend's native convention in API responses.
 
@@ -3084,7 +2730,7 @@ When migrating APIs from Go to Python (or between any languages with different n
 3. Avoids transformation layer complexity
 4. Frontend is more flexible (can handle both conventions)
 
-**Migration Pattern:**
+**Example:**
 ```python
 # ✅ Python backend - use snake_case
 class UserResponse(BaseModel):
@@ -3101,12 +2747,6 @@ export const UserSchema = z.object({
   is_active: z.boolean(),
 })
 ```
-
-**When migrating an endpoint:**
-1. Implement Python API with snake_case responses
-2. Update corresponding frontend schemas/types to match
-3. Test E2E to verify frontend compatibility
-4. Document any breaking changes
 
 **Avoid:**
 - ❌ Adding `alias` or transformation layers in Python (unnecessary complexity)
@@ -3580,14 +3220,6 @@ frontend/src/features/prompt-playground/
 
 ## Summary
 
-**Backend (Go):**
-- Flat feature packages with handler, service, repository layers
-- DTOs for API contracts; domain models only when necessary
-- Validate early (handler), authorize deep (repository)
-- Co-located tests with `_test.go` suffix
-- Centralized DB schemas with sqlc
-- Shared code at root level
-
 **Backend (Python):**
 - Feature-based organization with router, service, dependencies layers
 - Pydantic models for validation and serialization
@@ -3835,85 +3467,3 @@ function detectJsonSchema(span): JsonSchemaInfo | null  // Same shape
 - Tests contain complex setup logic
 
 **Action:** Simplify code under test, extract test fixtures
-
-### Refactoring Timing Strategy
-
-#### When to Refactor
-
-**✅ Good times:**
-1. **Before adding new features** to an area
-   - Refactor first to make feature addition easier
-   - Clean code is easier to extend
-
-2. **After completing a feature** (cleanup phase)
-   - Code works, tests pass - now improve structure
-   - Fresh in your mind
-
-3. **When touching code** (Boy Scout Rule)
-   - Leave code cleaner than you found it
-   - Fix small issues while you're there
-
-4. **During code review** (if minor)
-   - Reviewer suggests improvements
-   - Quick wins that improve readability
-
-5. **Dedicated refactoring sessions**
-   - When technical debt is blocking progress
-   - Scheduled improvement time
-
-**❌ Bad times:**
-1. **During critical bug fixes** (unless refactoring IS the fix)
-   - Don't mix refactoring with emergency fixes
-   - Fix bug first, refactor later
-
-2. **Right before major deadlines**
-   - Risk of introducing bugs
-   - No time to properly test changes
-
-3. **When you don't understand the code**
-   - Understand first, refactor later
-   - Risk of breaking subtle behaviors
-
-4. **Just because you prefer a different style**
-   - Don't refactor working code for purely stylistic reasons
-   - Only refactor if it improves clarity or maintainability
-
-### Refactoring Decision Matrix
-
-Use this matrix to decide whether to refactor now:
-
-| Indicator | Severity | Action |
-|-----------|----------|--------|
-| Component > 600 lines | 🔴 Critical | Refactor before adding features |
-| Component 400-600 lines | 🟠 High | Plan refactoring soon |
-| Function > 50 lines | 🟡 Medium | Consider extracting sub-functions |
-| 3+ levels of nesting | 🟠 High | Refactor to early returns or extract |
-| Code duplication (3+ times) | 🟠 High | Extract to shared function |
-| Test mocks duplicated (2+ files) | 🟡 Medium | Extract to test fixtures |
-| Inconsistent return types | 🟡 Medium | Align types in related functions |
-| Need > 2 minutes to understand | 🟠 High | Simplify and document |
-| File name doesn't match contents | 🟡 Medium | Rename file or split contents |
-| Hard to write tests | 🟠 High | Decouple dependencies |
-
-### Example Refactoring Priority
-
-**Scenario:** You're about to add a 4th LLM provider (Cohere) to the Prompt Playground.
-
-**Current state assessment:**
-- ✅ PromptPlaygroundPage.tsx: 683 lines (🔴 Critical)
-- ✅ Request building logic duplicated 3 times (🟠 High)
-- ✅ `provider-warnings.ts` name doesn't match schema detection purpose (🟡 Medium)
-- ✅ No test fixtures - mocks duplicated in 2 files (🟡 Medium)
-
-**Recommended order:**
-1. **First:** Extract request builders to utils/ (🔴 + 🟠)
-   - Adding 4th provider will make duplication worse
-   - Makes component smaller
-2. **Second:** Break up PromptPlaygroundPage into sub-components (🔴)
-   - Component too large to add features safely
-3. **Third:** Extract test fixtures (🟡)
-   - Will need mocks for 4th provider
-4. **Fourth:** Rename `provider-warnings.ts` to `schema-detection.ts` (🟡)
-   - Quick win, improves clarity
-
-**Result:** Clean codebase ready for new provider with minimal risk.
