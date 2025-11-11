@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic_core import PydanticCustomError
 
 from app.common.datetime_utils import format_iso8601_utc, validate_aware_datetime
 
@@ -15,6 +16,18 @@ class APIKeyCreate(BaseModel):
     """
 
     name: str = Field(..., min_length=1)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_name_not_empty(cls, v: str) -> str:
+        """Validate API key name is not empty with custom error message."""
+        if len(v.strip()) < 1:
+            raise PydanticCustomError(
+                "string_too_short",
+                "API key name cannot be empty",
+                {},
+            )
+        return v
 
 
 class APIKeyRead(BaseModel):

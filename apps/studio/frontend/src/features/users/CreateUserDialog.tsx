@@ -43,15 +43,28 @@ export default function CreateUserDialog() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.log('Reason: ', errorData)
+        console.log('Error response:', errorData)
 
-        if (response.status === 409) {
-          throw new Error('User already exists.')
-        } else if (response.status === 400) {
-          throw new Error(errorData.detail || 'Invalid request.')
-        } else {
-          throw new Error('User creation failed. Please check server logs.')
+        // Try detail field (handles both Pydantic array and custom string)
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // Pydantic validation errors (422)
+            const errors = errorData.detail
+              .map((err: any) => err.msg || err.message)
+              .join('. ')
+            throw new Error(errors || 'Validation failed.')
+          }
+          // Custom error string (400, 409, etc.)
+          throw new Error(errorData.detail)
         }
+
+        // Try message field (fallback)
+        if (errorData.message) {
+          throw new Error(errorData.message)
+        }
+
+        // Final fallback with status code
+        throw new Error(`Request failed (${response.status})`)
       }
 
       // Refresh the users list

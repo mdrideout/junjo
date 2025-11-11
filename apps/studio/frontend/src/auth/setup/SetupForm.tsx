@@ -40,14 +40,28 @@ export default function SetupForm() {
 
       if (!response.ok) {
         const data = await response.json()
+        console.log('Error response:', data)
 
+        // Try detail field (handles both Pydantic array and custom string)
         if (data.detail) {
+          if (Array.isArray(data.detail)) {
+            // Pydantic validation errors (422)
+            const errors = data.detail
+              .map((err: any) => err.msg || err.message)
+              .join('. ')
+            throw new Error(errors || 'Validation failed.')
+          }
+          // Custom error string (400, 409, etc.)
           throw new Error(data.detail)
         }
+
+        // Try message field (fallback)
         if (data.message) {
           throw new Error(data.message)
         }
-        throw new Error('/users/create-first-user failed')
+
+        // Final fallback with status code
+        throw new Error(`Request failed (${response.status})`)
       }
 
       // Check auth status to verify session was created

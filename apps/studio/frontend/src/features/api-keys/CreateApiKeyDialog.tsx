@@ -51,9 +51,28 @@ export default function CreateApiKeyDialog() {
       const responseData = await response.json()
 
       if (!response.ok) {
-        console.error('API Key Creation Failed: ', responseData)
+        console.log('Error response:', responseData)
 
-        throw new Error('API Key Creation Failed.')
+        // Try detail field (handles both Pydantic array and custom string)
+        if (responseData.detail) {
+          if (Array.isArray(responseData.detail)) {
+            // Pydantic validation errors (422)
+            const errors = responseData.detail
+              .map((err: any) => err.msg || err.message)
+              .join('. ')
+            throw new Error(errors || 'Validation failed.')
+          }
+          // Custom error string (400, 409, etc.)
+          throw new Error(responseData.detail)
+        }
+
+        // Try message field (fallback)
+        if (responseData.message) {
+          throw new Error(responseData.message)
+        }
+
+        // Final fallback with status code
+        throw new Error(`Request failed (${response.status})`)
       }
 
       // Refresh the list

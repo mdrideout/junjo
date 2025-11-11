@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer, field_validator
+from pydantic_core import PydanticCustomError
 
 from app.common.datetime_utils import format_iso8601_utc, validate_aware_datetime
 
@@ -17,6 +18,18 @@ class UserCreate(BaseModel):
 
     email: EmailStr
     password: str = Field(..., min_length=8)
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password_length(cls, v: str) -> str:
+        """Validate password has minimum length with custom error message."""
+        if len(v) < 8:
+            raise PydanticCustomError(
+                "string_too_short",
+                "Password must be at least {min_length} characters",
+                {"min_length": 8, "actual_length": len(v)},
+            )
+        return v
 
 
 class UserRead(BaseModel):
@@ -94,6 +107,18 @@ class CreateUserRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(..., min_length=8)
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password_length(cls, v: str) -> str:
+        """Validate password has minimum length with custom error message."""
+        if len(v) < 8:
+            raise PydanticCustomError(
+                "string_too_short",
+                "Password must be at least {min_length} characters",
+                {"min_length": 8, "actual_length": len(v)},
+            )
+        return v
 
 
 class UserResponse(BaseModel):
