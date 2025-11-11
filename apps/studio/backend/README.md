@@ -396,9 +396,9 @@ The backend reads configuration from environment variables (`.env` file at repos
 JUNJO_BACKEND_PORT=1323         # Backend HTTP port
 GRPC_PORT=50053                 # Internal gRPC port
 
-# Database paths
-JUNJO_SQLITE_PATH=/dbdata/sqlite/junjo.db
-JUNJO_DUCKDB_PATH=/dbdata/duckdb/traces.duckdb
+# Database storage (where files are stored on host machine)
+JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
+# Note: Container paths are set automatically in docker-compose.yml
 
 # Logging
 JUNJO_LOG_LEVEL=info            # debug | info | warn | error

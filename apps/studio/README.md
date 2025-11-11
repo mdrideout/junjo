@@ -248,13 +248,8 @@ INGESTION_PORT=50051        # OTLP ingestion gRPC port (public)
 GRPC_PORT=50053             # Backend internal gRPC port
 
 # === Database Storage ==============================================
-# Host storage location (where database files are stored on host machine)
-HOST_DB_DATA_PATH=./.dbdata
-
-# Container paths (where apps look for databases inside containers)
-DB_SQLITE_PATH=/dbdata/sqlite/junjo.db
-DB_DUCKDB_PATH=/dbdata/duckdb/traces.duckdb
-BADGERDB_PATH=/dbdata/badgerdb
+# Where database files are stored on your host machine/VM
+JUNJO_HOST_DB_DATA_PATH=./.dbdata
 
 # === Logging =======================================================
 LOG_LEVEL=info              # debug | info | warn | error
@@ -270,14 +265,7 @@ GEMINI_API_KEY=...
 
 ### Database Storage Configuration
 
-Junjo AI Studio uses a **two-layer system** for database storage that separates host machine paths from container paths:
-
-#### Understanding the Two Layers
-
-1. **`HOST_DB_DATA_PATH`** - Where files are stored on your **host machine**
-2. **`DB_*_PATH` variables** - Where applications look **inside Docker containers**
-
-Docker mounts `HOST_DB_DATA_PATH` from your host to `/app/.dbdata` inside containers, making database files accessible to all services.
+Junjo AI Studio stores all database files in a single location that you configure. Simply set where you want the data stored on your host machine, and Docker handles the rest.
 
 #### Development Setup
 
@@ -285,7 +273,7 @@ For local development, use a relative path:
 
 ```bash
 # .env file
-HOST_DB_DATA_PATH=./.dbdata
+JUNJO_HOST_DB_DATA_PATH=./.dbdata
 JUNJO_BUILD_TARGET=development
 ```
 
@@ -314,7 +302,7 @@ sudo mount /dev/disk/by-id/google-junjo-data /mnt/junjo-data
 
 **2. Update your `.env` file:**
 ```bash
-HOST_DB_DATA_PATH=/mnt/junjo-data
+JUNJO_HOST_DB_DATA_PATH=/mnt/junjo-data
 JUNJO_BUILD_TARGET=production
 ```
 
@@ -331,9 +319,9 @@ docker compose up -d
 
 #### Important Notes
 
-- **Container paths** (`DB_SQLITE_PATH`, `DB_DUCKDB_PATH`, `BADGERDB_PATH`) should **not be changed** unless you modify the Dockerfiles
-- The `HOST_DB_DATA_PATH` variable works in `docker-compose.yml` through variable substitution: `${HOST_DB_DATA_PATH:-./.dbdata}`
-- If `HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
+- The `JUNJO_HOST_DB_DATA_PATH` variable is the ONLY path you need to configure
+- Container-internal paths are set automatically in `docker-compose.yml`
+- If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
 - All three services (backend, ingestion, frontend) share the same storage location
 
 #### Database Types
@@ -346,7 +334,7 @@ Junjo AI Studio uses three embedded databases:
 | **DuckDB** | Analytics queries on telemetry | Single file |
 | **BadgerDB** | Ingestion WAL (Write-Ahead Log) | Directory with multiple files |
 
-All are stored under `HOST_DB_DATA_PATH` on your host machine.
+All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine.
 
 ### Creating API Keys
 
@@ -421,7 +409,7 @@ services:
     container_name: junjo-server-backend
     restart: unless-stopped
     volumes:
-      - ${HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
       - "1323:1323"   # HTTP API (public)
       # Port 50053 (internal gRPC for API key validation) is NOT exposed - only accessible via Docker network
@@ -444,7 +432,7 @@ services:
     container_name: junjo-server-ingestion
     restart: unless-stopped
     volumes:
-      - ${HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
       - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
       # Port 50052 (internal gRPC for span reading) is NOT exposed - only accessible via Docker network

@@ -44,7 +44,9 @@ services:
       - INGESTION_PORT=50052
       # Enable migrations on startup
       - RUN_MIGRATIONS=true
-      # DB paths inherited from .env (JUNJO_SQLITE_PATH, JUNJO_DUCKDB_PATH)
+      # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
 
   junjo-ai-studio-ingestion:
     container_name: junjo-ai-studio-ingestion
@@ -68,6 +70,8 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
+      # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started

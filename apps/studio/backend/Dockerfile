@@ -81,7 +81,7 @@ COPY backend/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Create data directory
-RUN mkdir -p ./dbdata
+RUN mkdir -p ./.dbdata
 
 # Expose ports
 # HTTP API (public - mapped to host in docker-compose.yml)

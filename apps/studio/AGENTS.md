@@ -112,7 +112,7 @@ sequenceDiagram
 
 ## 3.1. Python Backend Internal Authentication gRPC Service
 
-The Python backend (`backend_python`) now provides an **internal gRPC server** running concurrently with its FastAPI REST API. This gRPC service handles API key validation requests from the `ingestion`.
+The Python backend (`backend`) now provides an **internal gRPC server** running concurrently with its FastAPI REST API. This gRPC service handles API key validation requests from the `ingestion`.
 
 ### Architecture Overview
 
@@ -125,10 +125,10 @@ Both servers share the same SQLite database connection pool and run asynchronous
 ### Concurrent Server Implementation
 
 **Key Files:**
-- `backend_python/app/main.py`: Orchestrates both servers using asyncio lifespan
-- `backend_python/app/grpc_server.py`: gRPC server lifecycle management
-- `backend_python/app/features/internal_auth/grpc_service.py`: InternalAuthService implementation
-- `backend_python/app/database/api_keys/repository.py`: API key database operations
+- `backend/app/main.py`: Orchestrates both servers using asyncio lifespan
+- `backend/app/grpc_server.py`: gRPC server lifecycle management
+- `backend/app/features/internal_auth/grpc_service.py`: InternalAuthService implementation
+- `backend/app/database/api_keys/repository.py`: API key database operations
 
 **Startup Flow:**
 ```python
@@ -193,7 +193,7 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
 
 ### Database Access Pattern
 
-The gRPC service uses the **high-concurrency async pattern** documented in `backend_python/app/database/README.md`:
+The gRPC service uses the **high-concurrency async pattern** documented in `backend/app/database/README.md`:
 
 ```python
 # Each validation creates its own database session
@@ -261,9 +261,9 @@ This Python gRPC implementation **replaces** the Go backend's internal auth serv
 | Built-in caching | No caching (handled by client) |
 
 **Configuration:**
-- See `backend_python/.env.example` for `GRPC_PORT` configuration
+- See `backend/.env.example` for `GRPC_PORT` configuration
 - See `docker-compose.yml` for security notes on port exposure
-- See `backend_python/app/database/README.md` for database patterns
+- See `backend/app/database/README.md` for database patterns
 
 ## 4. Data Flow: WAL and Indexing
 
@@ -2931,7 +2931,7 @@ The Python backend is being built as a replacement for the Go backend, using Fas
 ### Feature Structure
 
 ```
-backend_python/app/features/
+backend/app/features/
   feature-name/
     router.py           # FastAPI route handlers
     service.py          # Business logic
@@ -3118,11 +3118,11 @@ export const UserSchema = z.object({
 The database layer uses SQLAlchemy 2.0+ with async support and follows a repository pattern.
 
 **Structure:**
-- `backend_python/app/database/` - Centralized database configuration
-- `backend_python/app/database/{resource}/` - Per-resource repositories, models, schemas
-- `backend_python/alembic/` - Database migrations
+- `backend/app/database/` - Centralized database configuration
+- `backend/app/database/{resource}/` - Per-resource repositories, models, schemas
+- `backend/alembic/` - Database migrations
 
-**Important:** See `backend_python/app/database/README.md` for critical details on:
+**Important:** See `backend/app/database/README.md` for critical details on:
 - High-concurrency async patterns
 - Test database isolation with autouse fixtures
 - Dynamic vs static session access patterns
@@ -3148,8 +3148,8 @@ The database layer uses SQLAlchemy 2.0+ with async support and follows a reposit
 **Database isolation:**
 - Integration tests automatically get isolated temporary databases via autouse fixture
 - **No need to pass `test_db` parameter** to test functions (common mistake!)
-- The autouse fixture in `backend_python/conftest.py` handles setup/teardown automatically
-- **CRITICAL**: `conftest.py` must be at project root (`backend_python/conftest.py`), not in `tests/` directory, to work with co-located tests
+- The autouse fixture in `backend/conftest.py` handles setup/teardown automatically
+- **CRITICAL**: `conftest.py` must be at project root (`backend/conftest.py`), not in `tests/` directory, to work with co-located tests
 
 **Central model registration** (`app/database/models.py`):
 - All SQLAlchemy models must be imported in a central location
@@ -3159,7 +3159,7 @@ The database layer uses SQLAlchemy 2.0+ with async support and follows a reposit
 
 **CRITICAL - Read the database README:**
 
-See `backend_python/app/database/README.md` for complete details on:
+See `backend/app/database/README.md` for complete details on:
 - Why autouse fixtures eliminate the need for explicit `test_db` parameters
 - File-based vs in-memory test databases (and why file-based is required)
 - Dynamic session access pattern: `db_config.async_session()` not `from db_config import async_session`
@@ -3238,9 +3238,9 @@ See `backend/README.md` for detailed testing instructions.
 ### Shared Code
 
 Shared code lives at the app level:
-- `backend_python/app/common/` - Shared utilities, responses, types
-- `backend_python/app/config/` - Configuration and settings
-- `backend_python/app/database/` - Database configuration and shared models
+- `backend/app/common/` - Shared utilities, responses, types
+- `backend/app/config/` - Configuration and settings
+- `backend/app/database/` - Database configuration and shared models
 
 ## Examples
 
@@ -3593,7 +3593,7 @@ frontend/src/features/prompt-playground/
 - Pydantic models for validation and serialization
 - SQLAlchemy 2.0+ with async support and repository pattern
 - Co-located tests with `test_` prefix
-- Autouse fixtures for database isolation (see `backend_python/app/database/README.md`)
+- Autouse fixtures for database isolation (see `backend/app/database/README.md`)
 - Pytest markers for unit vs integration tests
 - Shared code in `app/common/`, `app/config/`, `app/database/`
 
