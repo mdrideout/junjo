@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { utcDatetimeSchema } from '../../lib/datetime-utils'
+import { utcDatetimeSchema } from '../../util/datetime-utils'
 
 /**
  * Response schema for API key creation.

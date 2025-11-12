@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { utcDatetimeSchema } from '../../lib/datetime-utils'
+import { utcDatetimeSchema } from '../../util/datetime-utils'
 
 // Python backend uses snake_case
 export const ApiKeySchema = z.object({
