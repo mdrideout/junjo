@@ -924,7 +924,7 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At",
-            "description": "Timestamp when key was created",
+            "description": "Timestamp when key was created (UTC)",
             "examples": [
               "2025-01-15T10:30:00Z"
             ]
@@ -1409,7 +1409,7 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At",
-            "description": "Timestamp when user was created",
+            "description": "Timestamp when user was created (UTC)",
             "examples": [
               "2025-01-15T10:30:00Z"
             ]
@@ -1418,7 +1418,7 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At",
-            "description": "Timestamp when user was last updated",
+            "description": "Timestamp when user was last updated (UTC)",
             "examples": [
               "2025-01-15T10:30:00Z"
             ]

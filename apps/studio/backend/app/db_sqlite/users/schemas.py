@@ -58,10 +58,12 @@ class UserRead(BaseModel):
     created_at: datetime = Field(
         examples=["2025-01-15T10:30:00Z"],
         description="Timestamp when user was created (UTC)",
+        json_schema_extra={"format": "date-time"},
     )
     updated_at: datetime = Field(
         examples=["2025-01-15T10:30:00Z"],
         description="Timestamp when user was last updated (UTC)",
+        json_schema_extra={"format": "date-time"},
     )
 
     model_config = ConfigDict(from_attributes=True)
