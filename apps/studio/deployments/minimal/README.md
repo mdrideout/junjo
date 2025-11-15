@@ -26,15 +26,16 @@ This is a **minimal build** template containing only the three essential Junjo A
 
 **Perfect For:**
 - Starting point for custom deployments
-- Understanding Junjo Server architecture
+- Understanding Junjo AI Studio architecture
 - Local development environments
 - Integration into existing infrastructure
 - Incorporating into an existing docker-compose.yml
 
 **Use the [Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example) if you want:**
-- Complete production-ready setup
 - Bundled reverse proxy (Caddy)
-- Demo application included
+- Turn-key virtual mchine configuration deployment instructions
+- Ready to accept custom domain names with SSL connections
+- A demo application included for testing your production deployment
 - Opinionated best practices
 
 ## Table of Contents
@@ -57,7 +58,6 @@ This is a **minimal build** template containing only the three essential Junjo A
 	- [Troubleshooting](#troubleshooting)
 		- [Session Cookie Issues](#session-cookie-issues)
 		- [Port Conflicts](#port-conflicts)
-		- [Volume Permissions](#volume-permissions)
 		- [Checking Logs](#checking-logs)
 
 ## Architecture
@@ -110,25 +110,33 @@ Junjo AI Studio consists of three Docker services:
    cp .env.example .env
    ```
 
-3. Generate and set your session secret:
+3. Generate and set your session secrets:
    ```bash
-   # Generate a secure key
-   openssl rand -base64 48
+   # Generate TWO separate keys (run this command twice)
+   openssl rand -base64 32
+   openssl rand -base64 32
 
-   # Edit .env and replace JUNJO_SESSION_SECRET with the generated value
+   # Edit .env and replace:
+   # - JUNJO_SESSION_SECRET with the first generated value
+   # - JUNJO_SECURE_COOKIE_KEY with the second generated value
    ```
 
-4. Start services:
+4. Create the Docker network (first time only):
+   ```bash
+   docker network create junjo_network
+   ```
+
+5. Start services:
    ```bash
    docker compose up -d
    ```
 
-5. Access the frontend:
+6. Access the frontend:
    - **Frontend UI:** `http://localhost:5153`
      - _Troubleshooting: Try clearing your cookies if you encounter issues._
    - Create your first API key in the UI
 
-6. Configure your Junjo Python application's exporter:
+7. Configure your Junjo Python application's exporter:
    ```python
 	 	# Local example
 		junjo_server_exporter = JunjoServerOtelExporter(
@@ -195,15 +203,15 @@ junjo_server_exporter = JunjoServerOtelExporter(
 **Access:**
 - Frontend: `https://junjo.example.com`
 - Backend API: `https://api.junjo.example.com`
-- Ingestion gRPC: `https://grpc.junjo.example.com`
+- Ingestion gRPC: `https://ingestion.junjo.example.com`
 
 **Python Configuration:**
 ```python
 junjo_server_exporter = JunjoServerOtelExporter(
-    host="grpc.junjo.example.com",   # Your domain
-    port="443",                       # HTTPS port
+    host="ingestion.junjo.example.com",   # Your domain
+    port="443",                       		# HTTPS port
     api_key=JUNJO_SERVER_API_KEY,
-    insecure=False,                   # TLS enabled
+    insecure=False,                   		# TLS enabled
 )
 ```
 
@@ -241,11 +249,11 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 **Volume Configuration:**
 ```
 Backend Service:
-├─ /dbdata/sqlite (SQLite database)
-└─ /dbdata/duckdb (DuckDB analytics)
+├─ /app/.dbdata/sqlite (SQLite database)
+└─ /app/.dbdata/duckdb (DuckDB analytics)
 
 Ingestion Service:
-└─ /dbdata/badgerdb (BadgerDB WAL)
+└─ /app/.dbdata/badgerdb (BadgerDB WAL)
 ```
 
 **Internal Networking:**
@@ -291,12 +299,12 @@ Services to Deploy:
 1. junjo-backend
    - Image: mdrideout/junjo-ai-studio-backend:latest
    - Port: 1323
-   - Volume: /dbdata/sqlite, /dbdata/duckdb
+   - Volume: /app/.dbdata
 
 2. junjo-ingestion
    - Image: mdrideout/junjo-ai-studio-ingestion:latest
    - Port: 50051
-   - Volume: /dbdata/badgerdb
+   - Volume: /app/.dbdata
 
 3. junjo-frontend
    - Image: mdrideout/junjo-ai-studio-frontend:latest
@@ -443,9 +451,6 @@ If you see "failed to get session" errors, clear your browser cookies for the do
 If ports 1323, 50051, or 5153 are already in use, find and kill the processes using those ports.
 
 **Note:** Ports 50052 and 50053 are internal-only (not exposed to host) and used for service-to-service communication within the Docker network.
-
-### Volume Permissions
-The backend requires root permissions to write to DuckDB volumes. If you encounter permission issues, ensure the user is set to `root` in the backend service configuration.
 
 ### Checking Logs
 ```bash
