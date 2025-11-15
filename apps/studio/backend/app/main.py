@@ -22,10 +22,12 @@ from securecookies import SecureCookiesMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.common.responses import HealthResponse
+from app.config.deployment_validation import log_deployment_configuration
 from app.config.logger import setup_logging
 from app.config.settings import settings
 from app.features.api_keys.router import router as api_keys_router
 from app.features.auth.router import router as auth_router
+from app.features.config.router import router as config_router
 from app.features.llm_playground.router import router as llm_playground_router
 from app.features.otel_spans.router import router as otel_spans_router
 from app.grpc_server import start_grpc_server_background, stop_grpc_server
@@ -73,37 +75,8 @@ async def lifespan(app: FastAPI):
     initialize_tables()
     logger.info("DuckDB tables initialized")
 
-    # Validate deployment configuration
-    logger.info("-" * 60)
-    if settings.session_cookie.junjo_env == "production":
-        # Production mode checks
-        logger.info("🔒 Production mode detected")
-
-        # Validate CORS origins
-        if not settings.cors_origins or settings.cors_origins == ["*"]:
-            logger.error(
-                "❌ PRODUCTION ERROR: CORS_ORIGINS must be explicitly configured. "
-                "Set CORS_ORIGINS environment variable to your frontend domain(s). "
-                "See docs/DEPLOYMENT.md for details."
-            )
-            raise ValueError("CORS_ORIGINS required in production")
-
-        logger.info("✅ HTTPS-only cookies enabled")
-        logger.info(f"✅ CORS origins configured: {settings.cors_origins}")
-        logger.info("✅ Session cookies: Encrypted (AES-256) + Signed (HMAC)")
-        logger.info("✅ CSRF protection: SameSite=Strict")
-        logger.info("")
-        logger.info("⚠️  DEPLOYMENT REQUIREMENT:")
-        logger.info("   Backend and frontend must be on same domain")
-        logger.info("   (e.g., api.example.com + app.example.com)")
-        logger.info("   See docs/DEPLOYMENT.md for setup instructions")
-    else:
-        # Development mode
-        logger.info("🔧 Development mode")
-        logger.info("⚠️  HTTPS-only cookies disabled (development only)")
-        logger.info("✅ Session cookies: Encrypted (AES-256) + Signed (HMAC)")
-        logger.info("✅ CSRF protection: SameSite=Strict")
-    logger.info("-" * 60)
+    # Log deployment configuration
+    log_deployment_configuration()
 
     # Start span ingestion poller as background task
     from app.features.span_ingestion.background_poller import span_ingestion_poller
@@ -174,16 +147,16 @@ app.add_middleware(
 #    This encrypts/decrypts all cookies before they reach SessionMiddleware
 app.add_middleware(
     SecureCookiesMiddleware,
-    secrets=[settings.session_cookie.secure_cookie_key],  # 32-byte encryption key
+    secrets=[settings.secure_cookie_key],  # 32-byte encryption key
 )
 
 # 2. Add SESSION middleware SECOND (inner layer)
 #    This signs/validates session data
 #    https_only should be True in production, False in development/test
-is_production = settings.session_cookie.junjo_env == "production"
+is_production = settings.junjo_env == "production"
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.session_cookie.session_secret,  # Signing key
+    secret_key=settings.session_secret,  # Signing key
     max_age=86400 * 30,  # 30 days (matches Go implementation)
     https_only=is_production,  # HTTPS required in production only
     same_site="strict",  # CSRF protection
@@ -196,6 +169,7 @@ app.add_middleware(
 # === ROUTERS ===
 app.include_router(auth_router, tags=["auth"])
 app.include_router(api_keys_router)
+app.include_router(config_router, prefix="/api")
 app.include_router(llm_playground_router, prefix="/llm", tags=["llm"])
 app.include_router(otel_spans_router, prefix="/api/v1/observability", tags=["observability"])
 
@@ -235,7 +209,7 @@ if __name__ == "__main__":
     import uvicorn
 
     # Auto-reload in development only
-    reload = settings.session_cookie.junjo_env == "development"
+    reload = settings.junjo_env == "development"
 
     uvicorn.run(
         "app.main:app",

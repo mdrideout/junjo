@@ -408,7 +408,7 @@ export default function PromptPlaygroundPage() {
           <div>&rarr;</div>
           <div>Prompt Playground</div>
         </div>
-        <div className={'text-zinc-400 text-xs'}>readableDate</div>
+        {/* <div className={'text-zinc-400 text-xs'}>readableDate</div> */}
       </div>
       <hr />
       <div className={'overflow-scroll pt-4 pb-10'}>
@@ -572,8 +572,8 @@ export default function PromptPlaygroundPage() {
 
               {jsonMode && !providerWarning && !jsonSchemaInfo && (
                 <div className={'text-xs text-zinc-500 mb-4'}>
-                  Note: No JSON schema detected from the original request. Using schema-less JSON mode.
-                  If the original request used a typed schema, results may differ.
+                  Note: No JSON schema detected from the original request. Using schema-less JSON mode. If the
+                  original request used a typed schema, results may differ.
                 </div>
               )}
 

@@ -15,6 +15,7 @@ paths = [
     '''backend/app/features/internal_auth/test_.*\.py''',
     '''backend_python/app/features/internal_auth/test_.*\.py''',
     '''.*test_.*\.py''',
+    '''.*\.test\.ts''',                                          # TypeScript test files with mock API keys
     '''\.github/workflows/.*\.yml''',                            # GitHub Actions workflows with test credentials
 ]
 

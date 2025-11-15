@@ -367,6 +367,28 @@
         }
       }
     },
+    "/api/config": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Get Config",
+        "description": "Get runtime configuration.\n\nReturns configuration values that the frontend needs to display,\nparticularly the OTLP endpoint for SDK setup instructions.\n\nThis endpoint is public (no authentication required) as it only\nexposes non-sensitive deployment configuration.",
+        "operationId": "get_config_api_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/llm/generate": {
       "post": {
         "tags": [
@@ -983,6 +1005,51 @@
         ],
         "title": "Choice",
         "description": "Generation choice."
+      },
+      "ConfigResponse": {
+        "properties": {
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "Current environment (development/production)"
+          },
+          "otlp_endpoint": {
+            "type": "string",
+            "title": "Otlp Endpoint",
+            "description": "OTLP ingestion endpoint for OpenTelemetry SDKs"
+          },
+          "frontend_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frontend Url",
+            "description": "Frontend URL (production only)"
+          },
+          "backend_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backend Url",
+            "description": "Backend URL (production only)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "environment",
+          "otlp_endpoint"
+        ],
+        "title": "ConfigResponse",
+        "description": "Runtime configuration response.\n\nExposes configuration that frontend needs to display to users,\nparticularly for SDK setup (OTLP endpoint)."
       },
       "CreateUserRequest": {
         "properties": {

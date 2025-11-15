@@ -22,12 +22,22 @@ def init_otel(service_name: str):
     tracer_provider = TracerProvider(resource=resource)
 
     # JunjoOtelExporter - works alongside Honeycomb, Signoz, Jaeger, etc.
+
+    # Local Development Example
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",        # Dev: localhost | Prod: grpc.junjo.example.com
-        port="50051",            # Dev: 50051 | Prod: 443 (or your port)
+        host="localhost",
+        port="50051",
         api_key="YOUR_API_KEY",  # From API Keys page (set as environment variable)
-        insecure=True,           # Set to False for production HTTPS
+        insecure=True,           # Development uses insecure gRPC
     )
+
+    # Production Example
+    # junjo_exporter = JunjoOtelExporter(
+    #     host="ingestion.example.com",   # Production assigned subdomain
+    #     port="443",                     # Standard HTTPS / SSL connection port
+    #     api_key="YOUR_API_KEY",         # From API Keys page (set as environment variable)
+    #     insecure=False,                 # Production requires secure HTTPS/TLS
+    # )
 
     # Add Junjo span processor (can coexist with other processors)
     tracer_provider.add_span_processor(junjo_exporter.span_processor)
