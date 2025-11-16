@@ -103,8 +103,8 @@ services:
     networks:
       - junjo-network
     depends_on:
-      - junjo-server-backend
-      - junjo-server-frontend
+      - junjo-ai-studio-backend
+      - junjo-ai-studio-frontend
 
 volumes:
   caddy_data: # Persistent Caddy data (SSL certificates, configuration)

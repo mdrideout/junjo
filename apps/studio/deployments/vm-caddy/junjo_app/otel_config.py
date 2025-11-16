@@ -7,16 +7,19 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
+
 def setup_telemetry():
     """
     Sets up the OpenTelemetry tracer and exporter.
     """
-    
+
     # Load the JUNJO_SERVER_API_KEY from the environment variable
     JUNJO_SERVER_API_KEY = os.getenv("JUNJO_SERVER_API_KEY")
     if JUNJO_SERVER_API_KEY is None:
-        print("JUNJO_SERVER_API_KEY environment variable is not set. "
-                         "Generate a new API key in the Junjo Server UI.")
+        print(
+            "JUNJO_SERVER_API_KEY environment variable is not set. "
+            "Generate a new API key in the Junjo Server UI."
+        )
         return
 
     # Configure OpenTelemetry for this application
@@ -26,9 +29,10 @@ def setup_telemetry():
     # Set up tracing for this application
     tracer_provider = TracerProvider(resource=resource)
 
-    # Construct a Junjo exporter for Junjo Server (see junjo-server docker-compose.yml)
+    # Construct a Junjo exporter for Junjo Server (see docker-compose.yml)
+    # Uses insecure docker compose instance host references because it's on the same docker network
     junjo_server_exporter = JunjoServerOtelExporter(
-        host="junjo-server-ingestion",
+        host="junjo-ai-studio-ingestion",
         port="50051",
         api_key=JUNJO_SERVER_API_KEY,
         insecure=True,

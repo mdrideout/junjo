@@ -67,8 +67,8 @@ Test the deployment locally before deploying to production. The following steps 
 ### 1. Clone this Repository
 
 ```bash
-git clone https://github.com/mdrideout/junjo-server-deployment-example.git
-cd junjo-server-deployment-example
+git clone https://github.com/mdrideout/junjo-ai-studio-deployment-example.git
+cd junjo-ai-studio-deployment-example
 ```
 
 ### 2. Configure Environment Variables
@@ -164,44 +164,37 @@ This will allow us to point a domain to this VM and complete the following SSL s
 
 #### Domain Setup
 
-The `JUNJO_PROD_AUTH_DOMAIN` environment variable defines your primary production domain and controls:
+Your production domain configuration is manually set in the `caddy/Caddyfile`. This gives you full control over:
 
 1. **Frontend Access**: The web UI domain for viewing workflows
 2. **Session Cookies**: Domain-wide authentication (covers all subdomains)
-3. **API & gRPC Endpoints**: Subdomain routing for backend services
+3. **API & Ingestion Endpoints**: Subdomain routing for backend services
 
 **Requirements:**
-- A wildcard DNS record for your domain (e.g., `*.example.com`)
+- A registered domain with DNS access
+- A records pointing to your server's IP
 - Cloudflare API token for automatic SSL (or configure alternative DNS provider)
 
 #### DNS Configuration
 
-Configure your DNS provider with A records pointing to your server's IP address. The following A records assume the following environment variable: `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`
+Configure your DNS provider with A records pointing to your server's IP address. This example uses `junjo.example.com`:
 
 | Record Type | Hostname | Value | TTL |
 |-------------|----------|-------|-----|
 | A | `*.junjo.example.com` | `your-server-ip` | 300 |
 | A | `junjo.example.com` | `your-server-ip` | 300 |
 
-> Replace `junjo.example.com` with your actual domain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all subdomains (api, grpc) route to your server.
+> Replace `junjo.example.com` with your actual subdomain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all sub-subdomains (api, ingestion) route to your server.
 
 #### Service Endpoints
 
-Assuming `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`, your deployment will be accessible at:
+Using `junjo.example.com` as an example, your deployment will be accessible at:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
 | **Web UI** | `https://junjo.example.com` | View and debug AI workflow executions |
 | **API** | `https://api.junjo.example.com` | Backend HTTP API |
-| **Ingestion** | `grpc.junjo.example.com:443` | **Your AI applications send telemetry here** |
-
-#### CORS Settings
-
-Update the allowed origins in the `.env` file to include your production domain:
-
-```yaml
-JUNJO_ALLOW_ORIGINS=http://junjo.example.com,https://junjo.example.com
-```
+| **Ingestion** | `ingestion.junjo.example.com:443` | **Your AI applications send telemetry here** |
 
 #### Connecting Your AI Applications
 
@@ -211,10 +204,10 @@ Configure your Python applications to send OpenTelemetry data to the ingestion e
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
 
 junjo_exporter = JunjoServerOtelExporter(
-    host="grpc.junjo.example.com",  # Your production domain
-    port="443",                       # HTTPS port (Caddy handles SSL)
-    api_key="your_api_key",          # Created in Junjo Server UI
-    insecure=False,                   # Use SSL in production
+    host="ingestion.junjo.example.com",  # Your production ingestion domain
+    port="443",                            # HTTPS port (Caddy handles SSL)
+    api_key="your_api_key",               # Created in Junjo AI Studio UI
+    insecure=False,                        # Use SSL in production
 )
 ```
 
@@ -247,27 +240,37 @@ rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/project/r
 ssh root@[your-ip-address]
 
 # Navigate to the deployment directory (should be the same folder name as the repository root)
-cd ~/junjo-server-deployment-example
+cd ~/junjo-ai-studio-deployment-example
 
 # Verify files were copied correctly
 ls -a
 
-# Generate a session secret key and keep it for JUNJO_SESSION_SECRET variable
-openssl rand -base64 48
+# Generate session secrets (generate BOTH with same command)
+openssl rand -base64 32
 
 # Copy the example environment variable file to a new .env
 cp .env.example .env
 
-# Edit the .env to add variables for production, including
-# JUNJO_ENV="production", JUNJO_PROD_AUTH_DOMAIN, JUNJO_SESSION_SECRET, CF_API_TOKEN
+# Edit the .env to configure production variables:
+# - JUNJO_ENV="production"
+# - JUNJO_PROD_FRONTEND_URL (e.g., https://junjo.example.com)
+# - JUNJO_PROD_BACKEND_URL (e.g., https://api.junjo.example.com)
+# - JUNJO_PROD_INGESTION_URL (e.g., https://ingestion.junjo.example.com)
+# - JUNJO_SESSION_SECRET (from openssl command above)
+# - JUNJO_SECURE_COOKIE_KEY (from openssl command above)
+# - CLOUDFLARE_API_TOKEN (from Cloudflare dashboard)
 vi .env
 
 # Configure Caddy for production
-# Edit caddy/Caddyfile: comment out the local development section
-# and uncomment the production section. See the Caddyfile for detailed instructions.
+# Edit caddy/Caddyfile:
+# 1. Comment out the local development section
+# 2. Uncomment the production section
+# 3. Replace 'junjo.your-domain.com' with your actual subdomain
+# 4. Replace 'your-email@example.com' with your email
+# See the Caddyfile for detailed instructions.
 vi caddy/Caddyfile
 
-# The JUNJO_SERVER_API_KEY variable will be set later after we create an API key in the Junjo Server UI.
+# The JUNJO_SERVER_API_KEY variable will be set later after we create an API key in the Junjo AI Studio UI.
 ```
 
 #### Start The Services
@@ -284,7 +287,7 @@ docker logs -f junjo-caddy  # Check for successful SSL certificate generation
 
 #### Create API Key
 
-1. Access the frontend at `https://junjo.example.com` (same as your `JUNJO_PROD_AUTH_DOMAIN`)
+1. Access the frontend at your production domain (e.g., `https://junjo.example.com`)
 2. Create a user account and sign in
 3. Navigate to API Keys and create a new key
 4. Update `.env` with your API key:
@@ -321,22 +324,22 @@ Most cloud providers (Digital Ocean, AWS, GCP, Azure, Hetzner) offer block stora
 
 ### 5. Services Architecture
 
-This deployment includes several interconnected services. The **core Junjo Server services** provide the observability platform, while **infrastructure services** handle routing and SSL.
+This deployment includes several interconnected services. The **core Junjo AI Studio services** provide the observability platform, while **infrastructure services** handle routing and SSL.
 
-### Core Junjo Server Services
+### Core Junjo AI Studio Services
 
-#### `junjo-server-ingestion`
-*   **Image**: `mdrideout/junjo-server-ingestion-service:latest`
+#### `junjo-ai-studio-ingestion`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.70.3`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
 *   **Details**: Lightweight Go service that receives telemetry via gRPC (port 50051) and writes to BadgerDB as a Write-Ahead Log. This decoupled architecture ensures data isn't lost during backend maintenance or restarts.
 
-#### `junjo-server-backend`
-*   **Image**: `mdrideout/junjo-server-backend:latest`
+#### `junjo-ai-studio-backend`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.70.3`
 *   **Purpose**: API server, authentication, and data processing
-*   **Details**: Go-based Echo application that handles HTTP API requests (port 1323), user authentication, and business logic. Polls the ingestion service's WAL to index telemetry into DuckDB for fast querying. Uses SQLite for user/session data.
+*   **Details**: Python FastAPI application that handles HTTP API requests (port 1323), user authentication, and business logic. Polls the ingestion service's WAL to index telemetry into DuckDB for fast querying. Uses SQLite for user/session data.
 
-#### `junjo-server-frontend`
-*   **Image**: `mdrideout/junjo-server-frontend:latest`
+#### `junjo-ai-studio-frontend`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.70.3`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 80 (internally), proxied through Caddy.
 
@@ -351,13 +354,13 @@ This deployment includes several interconnected services. The **core Junjo Serve
 
 #### `junjo-app`
 *   **Source**: [`junjo_app/`](junjo_app/)
-*   **Purpose**: Example showing how to integrate Junjo Server into your Python applications
+*   **Purpose**: Example showing how to integrate Junjo AI Studio into your Python applications
 *   **Details**: Runs a simple 3-node Junjo workflow (StartNode → IncrementNode → EndNode) in a continuous loop, executing **every 5 seconds**. Each execution generates a complete OpenTelemetry trace showing state changes, node timing, and workflow decision flow. This continuous telemetry stream demonstrates real-time ingestion and visualization.
 
 **What the Demo Does:**
 - Executes a workflow that increments a counter
-- Sends complete trace data to `junjo-server-ingestion` via gRPC
-- Creates visible workflow runs in the Junjo Server UI every 5 seconds
+- Sends complete trace data to `junjo-ai-studio-ingestion` via gRPC
+- Creates visible workflow runs in the Junjo AI Studio UI every 5 seconds
 - Shows how to configure `JunjoServerOtelExporter` in your own applications
 - Watch it running: `docker logs -f junjo-app`
 
@@ -370,7 +373,7 @@ Use `junjo_app/` as a reference implementation. **Remove this service** from `do
 
 ## SSL Testing with Let's Encrypt Staging
 
-Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment, use the Let's Encrypt staging environment to avoid production rate limits during testing.
+Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment, if you get rate limited, you can use the Let's Encrypt staging environment to avoid production rate limits during testing.
 
 To enable staging certificates, uncomment the following line in your `.env` file:
 
@@ -388,7 +391,12 @@ Caddy will automatically use the Let's Encrypt staging environment when generati
 
 To test your setup without browser warnings, add the staging certificate to your macOS Keychain Access:
 
-1. Download the staging certificates:
+1. Download the staging certificates (provide your domain as argument):
+   ```bash
+   bash download_staging_certs.sh junjo.example.com
+   ```
+
+   Or if you have `JUNJO_PROD_FRONTEND_URL` set in `.env`, the script will extract the domain automatically:
    ```bash
    bash download_staging_certs.sh
    ```

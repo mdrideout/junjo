@@ -1,8 +1,12 @@
 #!/bin/bash
 
-# This script reads a domain from a .env file, then downloads the specific
-# server certificate for that domain and its wildcard subdomain by finding
-# the correct certificate in the chain based on its Common Name (CN).
+# This script downloads the specific server certificate for a domain and its wildcard
+# subdomain by finding the correct certificate in the chain based on its Common Name (CN).
+#
+# Usage:
+#   ./download_staging_certs.sh your-domain.com
+#   OR
+#   ./download_staging_certs.sh (will extract domain from JUNJO_PROD_FRONTEND_URL in .env)
 
 # --- Configuration ---
 ENV_FILE=".env"
@@ -74,25 +78,43 @@ get_cert_by_cn() {
 
 # --- Main Script ---
 
-# Check if the .env file exists
-if [ ! -f "$ENV_FILE" ]; then
-  echo "Error: The '$ENV_FILE' file was not found in the current directory."
-  exit 1
-fi
-
 # Create the base output directory
 mkdir -p "$OUTPUT_DIR"
 echo "Certificates will be saved in the '$OUTPUT_DIR' directory."
 
-# Read the JUNJO_PROD_AUTH_DOMAIN from the .env file and strip quotes
-DOMAIN=$(grep '^JUNJO_PROD_AUTH_DOMAIN=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '"')
+# Get domain from command-line argument or extract from .env file
+if [ -n "$1" ]; then
+  DOMAIN="$1"
+  echo "Using domain from command-line argument: $DOMAIN"
+else
+  # Check if the .env file exists
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "Error: The '$ENV_FILE' file was not found in the current directory."
+    echo "Usage: $0 your-domain.com"
+    exit 1
+  fi
+
+  # Try to extract domain from JUNJO_PROD_FRONTEND_URL
+  FRONTEND_URL=$(grep '^JUNJO_PROD_FRONTEND_URL=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '"')
+
+  if [ -z "$FRONTEND_URL" ]; then
+    echo "Error: No domain provided and JUNJO_PROD_FRONTEND_URL is not set in '$ENV_FILE'."
+    echo "Usage: $0 your-domain.com"
+    exit 1
+  fi
+
+  # Extract domain from URL (remove https://, http://, and any path)
+  DOMAIN=$(echo "$FRONTEND_URL" | sed -E 's|^https?://||' | sed 's|/.*||')
+  echo "Extracted domain from JUNJO_PROD_FRONTEND_URL: $DOMAIN"
+fi
 
 if [ -z "$DOMAIN" ]; then
-  echo "Error: JUNJO_PROD_AUTH_DOMAIN is not set in the '$ENV_FILE' file."
+  echo "Error: Could not determine domain."
+  echo "Usage: $0 your-domain.com"
   exit 1
 fi
 
-echo "Found domain: $DOMAIN"
+echo "Using domain: $DOMAIN"
 
 # Download the server certificate for the root domain by matching its CN
 get_cert_by_cn "$DOMAIN" "$DOMAIN" "$OUTPUT_DIR" "$DOMAIN.pem"
