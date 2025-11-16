@@ -1,8 +1,14 @@
-# Junjo Server - Production VM Deployment Example
+# Junjo AI Studio - Production VM Deployment Example
 
-This repository walks you through creating a complete production deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
+This repository servces as a walkthrough example for the production deployment of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine. It demonstrates end-to-end how to setup a new Virtual Machine and run Junjo and Junjo AI Studio in production with real telemetry data.
 
-**Bare Bones Github Template:** For a bare-bones Junjo Server template with no pre-configuration or opinions about deployment environments, check out the [Junjo Server Bare Bones Template](https://github.com/mdrideout/junjo-server-bare-bones)
+This single Junjo AI Studio instance can support an unlimited number of users and junjo apps. 
+
+**See Also: Minimal Build Github Template:** For a minimal build repository template for Junjo AI Studio, without caddy, no example app, and no opinions about deployment environments, check out the [Junjo AI Studio - Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
+
+- Perfect for incorporating into an existing server or existing `docker-compose.yml` setup.
+
+---
 
 ## Table of Contents
 

@@ -1,33 +1,13 @@
 # ============================================================================
 # JUNJO SERVER - PRODUCTION VM DEPLOYMENT
 # ============================================================================
-# This docker-compose configuration deploys Junjo Server with persistent
-# data storage. All databases are stored in bind-mounted directories.
-#
-# DATA STORAGE STRATEGY:
-#
-# LOCAL DEVELOPMENT:
-#   Data stored in ./.dbdata/ (gitignored, created automatically)
-#
-# PRODUCTION - VM SSD:
-#   Store the data on the virutal machine's SSD (common Debian path)
-#     - /var/lib/junjo-server/sqlite:/dbdata/sqlite
-#     - /var/lib/junjo-server/duckdb:/dbdata/duckdb
-#     - /var/lib/junjo-server/badgerdb:/dbdata/badgerdb
-#
-# PRODUCTION - Block Storage (Recommended):
-#   Mount block storage to /mnt/junjo-data, then update volumes below:
-#     - /mnt/junjo-data/sqlite:/dbdata/sqlite
-#     - /mnt/junjo-data/duckdb:/dbdata/duckdb
-#     - /mnt/junjo-data/badgerdb:/dbdata/badgerdb
-#
-#   Block Storage Benefits: Separate from VM, scalable, backup-friendly, survives VM rebuilds
-#   Follow your VM providers instructions for mounting block storage and
-#   to find the path to mount it in your VM.
-#
+# This docker-compose configuration includes all required Junjo service
+# containers, as well as a Caddy reverse proxy container to route
+# web traffic to the appropriate container.
 # ============================================================================
 
 services:
+  # The sample junjo sdk powered app that sends telemetry
   junjo-app:
     build: ./junjo_app
     container_name: junjo-app
@@ -39,55 +19,51 @@ services:
     depends_on:
       - junjo-server-ingestion
 
-  junjo-server-backend:
-    image: mdrideout/junjo-server-backend:latest
-    container_name: junjo-server-backend
+  # Junjo AI Studio Services
+  junjo-ai-studio-backend:
+    image: mdrideout/junjo-ai-studio-backend:0.70.3
+    container_name: junjo-ai-studio-backend
     restart: unless-stopped
     volumes:
-      # LOCAL DEVELOPMENT: Relative path to project directory
-      - ./.dbdata/sqlite:/dbdata/sqlite
-      - ./.dbdata/duckdb:/dbdata/duckdb
-
-      # PRODUCTION (Recommended): Block storage mounted to /mnt/junjo-data
-      # Uncomment these and comment out the local development paths above:
-      # - /mnt/junjo-data/sqlite:/dbdata/sqlite
-      # - /mnt/junjo-data/duckdb:/dbdata/duckdb
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "1323:1323"
-      - "50053:50053"
+      - "1323:1323" # HTTP API (public)
     networks:
       - junjo-network
     env_file:
       - .env
-    user: root # requires root for writing to the duckdb vol
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 25
-      start_period: 5s
+    environment:
+      # Override host/port for Docker network communication
+      - INGESTION_HOST=junjo-ai-studio-ingestion
+      - INGESTION_PORT=50052
+      # Enable migrations on startup
+      - RUN_MIGRATIONS=true
+      # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
 
-  junjo-server-ingestion:
-    image: mdrideout/junjo-server-ingestion-service:latest
-    container_name: junjo-server-ingestion
+  junjo-ai-studio-ingestion:
+    image: mdrideout/junjo-ai-studio-ingestion:0.70.3
+    container_name: junjo-ai-studio-ingestion
     restart: unless-stopped
     volumes:
-      # LOCAL DEVELOPMENT: Relative path to project directory
-      - ./.dbdata/badgerdb:/dbdata/badgerdb
-
-      # PRODUCTION (Recommended): Block storage mounted to /mnt/junjo-data
-      # Uncomment this and comment out the local development path above:
-      # - /mnt/junjo-data/badgerdb:/dbdata/badgerdb
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "50051:50051" # Public gRPC telemetry server port
-      - "50052:50052" # Internal gRPC server port
+      - "50051:50051" # Public OTLP endpoint (authenticated via API key)
     networks:
       - junjo-network
     env_file:
       - .env
+    environment:
+      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_PORT=50053
+      # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
     depends_on:
-      junjo-server-backend:
-        condition: service_healthy # Wait for backend server to be healthy before starting
+      junjo-ai-studio-backend:
+        condition: service_started
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
@@ -95,20 +71,21 @@ services:
       retries: 5
       start_period: 5s
 
-  junjo-server-frontend:
-    image: mdrideout/junjo-server-frontend:latest
-    container_name: junjo-server-frontend
+  junjo-ai-studio-frontend:
+    image: mdrideout/junjo-ai-studio-frontend:0.70.3
+    container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:
-      - "5153:80" # Access the frontend at http://localhost:5153
+      - "5153:80" # Public frontend (production build - nginx serving static files on port 80)
     env_file:
       - .env
     networks:
       - junjo-network
     depends_on:
-      junjo-server-backend:
-        condition: service_healthy
+      junjo-ai-studio-backend:
+        condition: service_started
 
+  # Caddy Reverse Proxy (internet traffic routing to Junjo AI Studio services)
   caddy:
     build:
       context: ./caddy
@@ -134,4 +111,5 @@ volumes:
 
 networks:
   junjo-network:
+    name: junjo_network
     driver: bridge
