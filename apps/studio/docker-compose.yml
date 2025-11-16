@@ -32,7 +32,7 @@ services:
       # Source code (enables hot-reload in development mode via uvicorn --reload)
       - ./backend/app:/app/app
     ports:
-      - "1323:1323"  # HTTP API (public)
+      - "1323:1323" # HTTP API (public)
       # Port 50053 (internal gRPC for API key validation) is NOT exposed - only accessible via Docker network
     networks:
       - junjo-network
@@ -61,7 +61,7 @@ services:
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
+      - "50051:50051" # Public OTLP endpoint (authenticated via API key)
       # Port 50052 (internal gRPC) is NOT exposed - only accessible via Docker network
     networks:
       - junjo-network
@@ -100,6 +100,8 @@ services:
       - "5153:80"
     env_file:
       - .env
+    networks:
+      - junjo-network
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started
