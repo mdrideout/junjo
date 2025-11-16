@@ -11,7 +11,7 @@
 
 services:
   junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:latest
+    image: mdrideout/junjo-ai-studio-backend:0.70.3
     container_name: junjo-ai-studio-backend
     restart: unless-stopped
     volumes:
@@ -34,7 +34,7 @@ services:
       - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
 
   junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:latest
+    image: mdrideout/junjo-ai-studio-ingestion:0.70.3
     container_name: junjo-ai-studio-ingestion
     restart: unless-stopped
     volumes:
@@ -62,7 +62,7 @@ services:
       start_period: 5s
 
   junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:latest
+    image: mdrideout/junjo-ai-studio-frontend:0.70.3
     container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:
