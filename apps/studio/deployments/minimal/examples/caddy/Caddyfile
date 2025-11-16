@@ -1,83 +1,49 @@
 # ========================================================================================
-# Junjo AI Studio - Caddy Reverse Proxy Configuration
+# Junjo AI Studio - Example Caddy Reverse Proxy Configuration
 #
 # This is a reference configuration for Caddy Server to route traffic to Junjo AI Studio
-# services. Choose either LOCAL DEVELOPMENT or PRODUCTION configuration below.
+# services.
 #
 # Service Routing:
 #   - Frontend:   junjo-ai-studio-frontend:80         https://junjo.example.com
 #   - Backend:    junjo-ai-studio-backend:1323        https://api.junjo.example.com
-#   - Ingestion:  junjo-ai-studio-ingestion:50051     https://grpc.junjo.example.com
-#
-# Instructions:
-#   1. For local development: Uncomment the LOCAL section, comment out PRODUCTION
-#   2. For production: Comment out LOCAL, uncomment PRODUCTION
+#   - Ingestion:  junjo-ai-studio-ingestion:50051     https://ingestion.junjo.example.com
 #
 # See Caddy docs: https://caddyserver.com/docs/quick-starts/https
 # ========================================================================================
 
 # ========================================================================================
-# LOCAL DEVELOPMENT CONFIGURATION
+# PRODUCTION CONFIGURATION EXAMPLE
 # ========================================================================================
-# Uncomment this section for local development (no SSL/TLS)
+#
+# Requirements:
+#   - Domain name with wildcard DNS A records for:
+# 		- junjo.example.com
+# 		- *.junjo.example.com
+#   - Caddy with Cloudflare DNS plugin: https://github.com/caddy-dns/cloudflare
+#   - CloudFlare API token in CF_API_TOKEN environment variable
 
-localhost:8080, localhost:8081, localhost:8082 {
-	# Frontend: localhost:8080
-	@frontend host localhost:8080
-	handle @frontend {
-		reverse_proxy junjo-ai-studio-frontend:80
+# Junjo AI Studio routing block
+junjo.example.com, *.junjo.example.com {
+	tls your.email@gmail.com {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN} # Created inside CloudFlare and set in the .env file
+		resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin	
 	}
 
-	# API Backend: localhost:8081
-	@api host localhost:8081
+	# backend: api.junjo.example.com
+	@api host api.junjo.example.com
 	handle @api {
 		reverse_proxy junjo-ai-studio-backend:1323
 	}
 
-	# gRPC Ingestion: localhost:8082
-	@grpc host localhost:8082
-	handle @grpc {
-		reverse_proxy junjo-ai-studio-ingestion:50051
+	# ingestion: ingestion.junjo.example.com
+	@ingestion host ingestion.junjo.example.com
+	handle @ingestion {
+		reverse_proxy h2c://junjo-ai-studio-ingestion:50051
 	}
 
-	# Fallback
+	# frontend: Fallback for the root domain
 	handle {
-		respond "Junjo AI Studio - Use localhost:8080 (frontend), localhost:8081 (api), or localhost:8082 (grpc)" 200
+		reverse_proxy junjo-ai-studio-frontend:80
 	}
 }
-
-# ========================================================================================
-# PRODUCTION CONFIGURATION
-# ========================================================================================
-# Uncomment this section for production deployment with SSL/TLS
-#
-# Requirements:
-#   - Domain name with wildcard DNS record (*.junjo.example.com)
-#   - Caddy with Cloudflare DNS plugin: https://github.com/caddy-dns/cloudflare
-#   - CloudFlare API token in CF_API_TOKEN environment variable
-#   - Alternative SSL: Use Let's Encrypt HTTP challenge (remove tls block)
-
-# junjo.example.com, *.junjo.example.com {
-# 	# Automatic SSL via Cloudflare DNS (requires xcaddy with cloudflare plugin)
-# 	tls {
-# 		dns cloudflare {$CF_API_TOKEN}
-# 		resolvers 1.1.1.1
-# 	}
-#
-# 	# API Backend: api.junjo.example.com
-# 	@api host api.junjo.example.com
-# 	handle @api {
-# 		reverse_proxy junjo-ai-studio-backend:1323
-# 	}
-#
-# 	# gRPC Ingestion: grpc.junjo.example.com
-# 	@grpc host grpc.junjo.example.com
-# 	handle @grpc {
-# 		reverse_proxy junjo-ai-studio-ingestion:50051
-# 	}
-#
-# 	# Frontend: junjo.example.com (root domain)
-# 	handle {
-# 		reverse_proxy junjo-ai-studio-frontend:80
-# 	}
-# }
