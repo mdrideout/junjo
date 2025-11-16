@@ -1,20 +1,59 @@
+# Junjo AI Studio - Minimal Build (Production Images)
+#
+# This compose file uses pre-built production images from Docker Hub.
+# For the full source-based setup with development mode, see:
+# https://github.com/mdrideout/junjo-ai-studio
+#
+# Production images:
+#   - mdrideout/junjo-ai-studio-backend:latest
+#   - mdrideout/junjo-ai-studio-ingestion:latest
+#   - mdrideout/junjo-ai-studio-frontend:latest
+
 services:
-  junjo-server-ingestion:
-    image: mdrideout/junjo-server-ingestion-service:latest
-    container_name: junjo-server-ingestion
+  junjo-ai-studio-backend:
+    image: mdrideout/junjo-ai-studio-backend:latest
+    container_name: junjo-ai-studio-backend
     restart: unless-stopped
     volumes:
-      - ./.dbdata/badgerdb:/dbdata/badgerdb
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "50051:50051" # Public gRPC telemetry ingestion port
-      - "50052:50052" # Internal gRPC server port (backend polls this)
+      - "1323:1323" # HTTP API (public)
     networks:
       - junjo-network
     env_file:
       - .env
+    environment:
+      # Override host/port for Docker network communication
+      - INGESTION_HOST=junjo-ai-studio-ingestion
+      - INGESTION_PORT=50052
+      # Enable migrations on startup
+      - RUN_MIGRATIONS=true
+      # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+
+  junjo-ai-studio-ingestion:
+    image: mdrideout/junjo-ai-studio-ingestion:latest
+    container_name: junjo-ai-studio-ingestion
+    restart: unless-stopped
+    volumes:
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+    ports:
+      - "50051:50051" # Public OTLP endpoint (authenticated via API key)
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_PORT=50053
+      # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
     depends_on:
-      junjo-server-backend:
-        condition: service_healthy # Wait for backend server to be healthy before starting
+      junjo-ai-studio-backend:
+        condition: service_started
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
@@ -22,42 +61,19 @@ services:
       retries: 5
       start_period: 5s
 
-  junjo-server-backend:
-    image: mdrideout/junjo-server-backend:latest
-    container_name: junjo-server-backend
-    restart: unless-stopped
-    volumes:
-      - ./.dbdata/sqlite:/dbdata/sqlite
-      - ./.dbdata/duckdb:/dbdata/duckdb
-    ports:
-      - "1323:1323" # Public API server port
-      - "50053:50053" # Internal gRPC server port
-    networks:
-      - junjo-network
-    env_file:
-      - .env
-    user: root # requires root for writing to the duckdb vol
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1323/ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 25
-      start_period: 5s
-
-  junjo-server-frontend:
-    image: mdrideout/junjo-server-frontend:latest
-    container_name: junjo-server-frontend
+  junjo-ai-studio-frontend:
+    image: mdrideout/junjo-ai-studio-frontend:latest
+    container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:
-      - "5153:80" # Access the frontend at http://localhost:5153
+      - "5153:80" # Public frontend (production build - nginx serving static files on port 80)
     env_file:
       - .env
-    networks:
-      - junjo-network
     depends_on:
-      junjo-server-backend:
-        condition: service_healthy
+      junjo-ai-studio-backend:
+        condition: service_started
 
 networks:
   junjo-network:
+    name: junjo_network
     driver: bridge
