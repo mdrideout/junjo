@@ -9,7 +9,7 @@ http://localhost {
 	log
 
 	handle {
-		reverse_proxy junjo-server-frontend:80
+		reverse_proxy junjo-ai-studio-frontend:80
 	}
 }
 
@@ -17,7 +17,7 @@ http://localhost:1323 {
 	log
 
 	handle {
-		reverse_proxy junjo-server-backend:1323
+		reverse_proxy junjo-ai-studio-backend:1323
 	}
 }
 
@@ -25,19 +25,25 @@ http://localhost:50051 {
 	log
 
 	handle {
-		reverse_proxy junjo-server-ingestion:50051
+		reverse_proxy junjo-ai-studio-ingestion:50051
 	}
 }
 
 # ----------------------------------------------------------------------------------------
 # Production Domain & Subdomains
-#   Name        Container Name & Port           Access URL
-# - Frontend:   junjo-server-frontend:80        https://{$JUNJO_PROD_AUTH_DOMAIN}
-# - Backend:    junjo-server-backend:1323       https://api.{$JUNJO_PROD_AUTH_DOMAIN}
-# - Ingestion:  junjo-server-ingestion:50051    grpc.{$JUNJO_PROD_AUTH_DOMAIN}
+#   Name        Container Name & Port              Access URL
+# - Frontend:   junjo-ai-studio-frontend:80        https://junjo.your-domain.com
+# - Backend:    junjo-ai-studio-backend:1323       https://api.junjo.your-domain.com
+# - Ingestion:  junjo-ai-studio-ingestion:50051    https://ingestion.junjo.your-domain.com
 #
-# Uses JUNJO_PROD_AUTH_DOMAIN .env variable to define the production domain.
-# Example: JUNJO_PROD_AUTH_DOMAIN=junjo.example.dev
+# IMPORTANT: Manually edit the domains below to match your production setup.
+#            Replace 'junjo.your-domain.com' with your actual subdomain.
+#
+# Example Configuration:
+#   Subdomain: 	junjo.example.com
+#   Frontend: 	https://junjo.example.com
+#   Backend: 		https://api.junjo.example.com
+#   Ingestion: 	https://ingestion.junjo.example.com
 #
 # SSL Note: This example assumes your domain is registered with Cloudflare.
 #           If you are using a different DNS provider, you will need to configure
@@ -47,13 +53,14 @@ http://localhost:50051 {
 # ----------------------------------------------------------------------------------------
 
 # Comment the above local development section for production
-# Uncomment the following section in your production environment
-# {$JUNJO_PROD_AUTH_DOMAIN}, *.{$JUNJO_PROD_AUTH_DOMAIN} {
+# Uncomment and edit the following section in your production environment
+
+# junjo.your-domain.com, *.junjo.your-domain.com {
 # 	log
 
 # 	# For automatic SSL (via xcaddy cloudflare plugin)
-# 	tls {
-# 		dns cloudflare {$CF_API_TOKEN} # Created inside CloudFlare and set in the .env file
+# 	tls your-email@example.com {
+# 		dns cloudflare {env.CLOUDFLARE_API_TOKEN} # Created inside CloudFlare and set in the .env file
 # 		resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin
 
 # 		# To use the Let's Encrypt staging environment, set the following in your .env file:
@@ -62,20 +69,20 @@ http://localhost:50051 {
 # 		{$JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE}
 # 	}
 
-# 	# API Backend: api.{$JUNJO_PROD_AUTH_DOMAIN}
-# 	@api host api.{$JUNJO_PROD_AUTH_DOMAIN}
+# 	# backend
+# 	@api host api.junjo.your-domain.com
 # 	handle @api {
-# 		reverse_proxy junjo-server-backend:1323
+# 		reverse_proxy junjo-ai-studio-backend:1323
 # 	}
 
-# 	# gRPC Ingestion: grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-# 	@grpc host grpc.{$JUNJO_PROD_AUTH_DOMAIN}
-# 	handle @grpc {
-# 		reverse_proxy junjo-server-ingestion:50051
+# 	# ingestion
+# 	@ingestion host ingestion.junjo.your-domain.com
+# 	handle @ingestion {
+# 		reverse_proxy h2c://junjo-ai-studio-ingestion:50051
 # 	}
 
-# 	# Fallback for the root domain
+# 	# frontend: fallback for the root domain
 # 	handle {
-# 		reverse_proxy junjo-server-frontend:80
+# 		reverse_proxy junjo-ai-studio-frontend:80
 # 	}
 # }

@@ -1,8 +1,19 @@
-# Junjo Server - Production VM Deployment Example
+# Junjo AI Studio - Production VM Deployment Example
 
-This repository walks you through creating a complete production deployment of Junjo Server that you can run on a cheap VM, allowing your AI applications to send telemetry data for debugging, observability, and workflow analysis.
+This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
-**Bare Bones Github Template:** For a bare-bones Junjo Server template with no pre-configuration or opinions about deployment environments, check out the [Junjo Server Bare Bones Template](https://github.com/mdrideout/junjo-server-bare-bones)
+Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
+
+- ⚙️ Setup and configure a new Virtual Machine
+- 🔀 Turn-key Caddy reverse proxy with SSL support
+- 🎏 Example Junjo python SDK powered app (demonstrates real telemetry)
+- 🚀 Junjo AI Studio in production
+
+**See Also: Minimal Build Github Template:** For a minimal build repository template for Junjo AI Studio, without caddy, no example app, and no opinions about deployment environments, check out the [Junjo AI Studio - Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
+
+- Perfect for incorporating into an existing server or existing `docker-compose.yml` setup.
+
+---
 
 ## Table of Contents
 
@@ -19,65 +30,66 @@ This repository walks you through creating a complete production deployment of J
 
 ## Overview
 
-Deploy Junjo Server as a centralized observability backend for your AI applications. Once deployed, your Python applications can send OpenTelemetry data to Junjo Server using the `JunjoServerOtelExporter`, giving you:
+Deploy Junjo AI Studio as a centralized observability backend for your AI applications. Once deployed, your Python applications can send OpenTelemetry data to Junjo AI Studio using the `JunjoOtelExporter`, giving you:
 
 - **Complete workflow visibility**: See every step your LLM takes in a sequence of events
 - **Decision transparency**: Understand what data your AI is using to make decisions
-- **Debugging interface**: Web UI for exploring and analyzing workflow executions
-- **Production-ready**: Includes reverse proxy with automatic SSL, session management, and scalable ingestion
+- **Debugging interface**: Web UI for exploring and debugging workflow executions and state changes
+- **Production-ready**: Includes reverse proxy with automatic SSL, authentication and user management, and scalable ingestion
 
-This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo Server into your own projects.
-
-## What's Included
-
-This deployment provides everything you need to run Junjo Server in production:
+This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo AI Studio into your own projects.
 
 ### Core Services
-- **Junjo Server Backend**: HTTP API, authentication, and business logic (SQLite + DuckDB)
-- **Junjo Server Ingestion**: High-throughput OpenTelemetry gRPC endpoint (BadgerDB WAL)
-- **Junjo Server Frontend**: Web-based debugging and workflow visualization interface
+- **Junjo AI Studio Backend**: HTTP API, authentication, and business logic (SQLite + DuckDB)
+- **Junjo AI Studio Ingestion**: High-throughput OpenTelemetry gRPC endpoint (BadgerDB WAL)
+- **Junjo AI Studio Frontend**: Web-based debugging and workflow visualization interface
 
 ### Infrastructure
 - **Caddy Reverse Proxy**: Automatic HTTPS with Let's Encrypt, subdomain routing
 - **Docker Compose**: Complete orchestration with health checks and dependency management
 - **Example Python App**: Reference implementation showing how to connect your AI applications
 
-### Production Features
-- Session-based authentication with cookie management
-- Automatic SSL certificate generation and renewal
-- Cloudflare DNS integration for wildcard domains
-- Persistent data storage with volume management
-- Scalable architecture with decoupled ingestion
-
 ## Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
 
-## Quick Start (Local Development)
+## Local Quick Start
 
-Test the deployment locally before deploying to production. The following steps will run Junjo Server on your local machine with the demo application.
+The following steps will run Junjo AI Studio on your local machine with the demo application.
 
 ### 1. Clone this Repository
 
 ```bash
-git clone https://github.com/mdrideout/junjo-server-deployment-example.git
-cd junjo-server-deployment-example
+git clone https://github.com/mdrideout/junjo-ai-studio-deployment-example.git
+cd junjo-ai-studio-deployment-example
 ```
 
 ### 2. Configure Environment Variables
 
-Copy the example environment file and update it with your own secret key.
+Copy the example environment file and configure the required security keys.
 
 ```bash
 cp .env.example .env
 ```
 
-Update the `JUNJO_SESSION_SECRET` environment variable. Open `.env` in your editor and replace `your_secret_key` with a new key. You can generate one with the following command:
+**Generate and set TWO required security keys:**
 
-```bash
-openssl rand -base64 48
-```
+Both `JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` must be set for the backend to function properly.
+
+1. Generate the first key:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. Open `.env` in your editor and replace `your_base64_secret_here` in `JUNJO_SESSION_SECRET` with the generated key
+
+3. Generate the second key:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+4. Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with this second generated key
 
 ### 3. Run the Application
 
@@ -91,33 +103,28 @@ docker compose up --build
 
 Once all the services are running, you can access them in your browser:
 
-*   **Junjo Server UI**: [http://localhost:5153](http://localhost:5153)
+*   **Junjo AI Studio UI**: [http://localhost:5153](http://localhost:5153)
 
-The **demo application (`junjo-app`) automatically starts running a workflow every 5 seconds**, continuously sending telemetry to Junjo Server. You'll see new workflow runs appearing in real-time!
+#### 🚨 Demo App Requires Initial Setup
 
-Watch the demo app in action:
-```bash
-# View demo app logs
-docker logs -f junjo-app
+The **demo application (`junjo-app`) automatically starts**. When configured with an API key, it will continuously execute a simple workflow in a loop, sending telemetry to Junjo AI Studio. 
 
-# You'll see output like:
-# Executing workflow...
-# Workflow started.
-# Counter incremented to: 1
-# Workflow finished.
-```
+1. reate its API key
+2. Set the `.env` variable
+3. Restart the container
+4. Observe workflow runs appearing inside Junjo AI Studio
 
-#### App API Key Setup Steps:
+#### 🔑 App API Key Setup Steps:
 
 1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
-2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo Server UI.
-3.  Set this key as the `JUNJO_SERVER_API_KEY` environment variable in your `.env` file.
+2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo AI Studio UI.
+3.  Set this key as the `JUNJO_AI_STUDIO_API_KEY` environment variable in your `.env` file.
 4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
     ```bash
     docker compose up --force-recreate --no-deps junjo-app -d
     ```
 
-> **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
+> **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo AI Studio projects running on `localhost` and an old session cookie is interfering.
 
 **What You'll See:**
 - New workflow runs appearing every 5 seconds in the UI
@@ -137,7 +144,7 @@ docker compose down -v
 
 # Production VM Deployment
 
-Deploy Junjo Server to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo Server instance via the gRPC ingestion endpoint.
+Deploy Junjo AI Studio to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo AI Studio instance via the gRPC ingestion endpoint.
 
 ### 1. Creating a VM (Digital Ocean Example)
 
@@ -158,44 +165,37 @@ This will allow us to point a domain to this VM and complete the following SSL s
 
 #### Domain Setup
 
-The `JUNJO_PROD_AUTH_DOMAIN` environment variable defines your primary production domain and controls:
+Your production domain configuration is manually set in the `caddy/Caddyfile`. This gives you full control over:
 
 1. **Frontend Access**: The web UI domain for viewing workflows
 2. **Session Cookies**: Domain-wide authentication (covers all subdomains)
-3. **API & gRPC Endpoints**: Subdomain routing for backend services
+3. **API & Ingestion Endpoints**: Subdomain routing for backend services
 
 **Requirements:**
-- A wildcard DNS record for your domain (e.g., `*.example.com`)
+- A registered domain with DNS access
+- A records pointing to your server's IP
 - Cloudflare API token for automatic SSL (or configure alternative DNS provider)
 
 #### DNS Configuration
 
-Configure your DNS provider with A records pointing to your server's IP address. The following A records assume the following environment variable: `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`
+Configure your DNS provider with A records pointing to your server's IP address. This example uses `junjo.example.com`:
 
 | Record Type | Hostname | Value | TTL |
 |-------------|----------|-------|-----|
 | A | `*.junjo.example.com` | `your-server-ip` | 300 |
 | A | `junjo.example.com` | `your-server-ip` | 300 |
 
-> Replace `junjo.example.com` with your actual domain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all subdomains (api, grpc) route to your server.
+> Replace `junjo.example.com` with your actual subdomain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all sub-subdomains (api, ingestion) route to your server.
 
 #### Service Endpoints
 
-Assuming `JUNJO_PROD_AUTH_DOMAIN=junjo.example.com`, your deployment will be accessible at:
+Using `junjo.example.com` as an example, your deployment will be accessible at:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
 | **Web UI** | `https://junjo.example.com` | View and debug AI workflow executions |
 | **API** | `https://api.junjo.example.com` | Backend HTTP API |
-| **Ingestion** | `grpc.junjo.example.com:443` | **Your AI applications send telemetry here** |
-
-#### CORS Settings
-
-Update the allowed origins in the `.env` file to include your production domain:
-
-```yaml
-JUNJO_ALLOW_ORIGINS=http://junjo.example.com,https://junjo.example.com
-```
+| **Ingestion** | `ingestion.junjo.example.com:443` | **Your AI applications send telemetry here** |
 
 #### Connecting Your AI Applications
 
@@ -205,16 +205,18 @@ Configure your Python applications to send OpenTelemetry data to the ingestion e
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
 
 junjo_exporter = JunjoServerOtelExporter(
-    host="grpc.junjo.example.com",  # Your production domain
-    port="443",                       # HTTPS port (Caddy handles SSL)
-    api_key="your_api_key",          # Created in Junjo Server UI
-    insecure=False,                   # Use SSL in production
+    host="ingestion.junjo.example.com",  # Your production ingestion domain
+    port="443",                            # HTTPS port (Caddy handles SSL)
+    api_key="your_api_key",               # Created in Junjo AI Studio UI
+    insecure=False,                        # Use SSL in production
 )
 ```
 
 See the `junjo_app/` directory for a complete working example.
 
 ### 3. Server Configuration
+
+Your fresh debian server needs a few things to be installed to be able to run rsync and docker.
 
 #### SSH into the Server
 
@@ -226,68 +228,137 @@ ssh root@[your-ip-address]
 
 1. Follow [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/) instructions
 2. Install rsync: `sudo apt install rsync`
-3. Disconnect from SSH for the next steps
+3. Disconnect from SSH for the next steps: `exit`
 
-#### Copy Files & Launch
+#### Copy Files To Server
 
 From your local machine, copy the repository files to the server:
 
-```bash
-# Copy via rsync (run from your local machine)
-# Exclude hidden files except for .env.example
-rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/project/root/path/on/local/machine root@[your-ip-address]:
+- _Copies via rsync (run from your local machine), excludes hidden files except for .env.example_
+- Note the `:/projects` after the IP address
+- Uplads to `<server_root>/projects`
 
-# SSH back into the server
+```bash
+rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' /Users/user/project-root-folder/local/machine root@[your-ip-address]:/projects
+```
+
+### 4. Configure Files For Production
+
+The following steps walk you through configuring environment variables and Caddy for production.
+
+These changes can be made locally and rsync'd to the server, or you can make them on the server using the **vi** editor.
+- _Note: the above rsync command excludes `.env`  would require changes to rsync the .env file_
+
+#### SSH into the server again
+```bash
+# SSH into the server
 ssh root@[your-ip-address]
 
-# Navigate to the deployment directory (should be the same folder name as the repository root)
-cd ~/junjo-server-deployment-example
+# Change directory to the server root
+cd /
 
+# Find the projects folder
+ls -a
+
+# Navigate to projects
+cd projects
+
+# Verify all files are there
+ls -a
+```
+
+#### Verify Your Project Folder Is There
+
+This should show a folder for the repo you transferred via `rsync`.
+
+```bash
 # Verify files were copied correctly
 ls -a
 
-# Generate a session secret key and keep it for JUNJO_SESSION_SECRET variable
-openssl rand -base64 48
+# Change directories into the project folder
+cd <project-folder-name>
+```
 
+#### Environment Variable Setup
+
+```bash
 # Copy the example environment variable file to a new .env
 cp .env.example .env
 
-# Edit the .env to add variables for production, including
-# JUNJO_ENV="production", JUNJO_PROD_AUTH_DOMAIN, JUNJO_SESSION_SECRET, CF_API_TOKEN
+# Generate TWO security keys (run this command twice, use different values for each)
+openssl rand -base64 32  # First key - for JUNJO_SESSION_SECRET
+openssl rand -base64 32  # Second key - for JUNJO_SECURE_COOKIE_KEY
+
+# Edit the .env to configure production variables:
+# - JUNJO_ENV="production"
+# - JUNJO_PROD_FRONTEND_URL (e.g., https://junjo.example.com)
+# - JUNJO_PROD_BACKEND_URL (e.g., https://api.junjo.example.com)
+# - JUNJO_PROD_INGESTION_URL (e.g., https://ingestion.junjo.example.com)
+# - JUNJO_SESSION_SECRET (first generated key from above)
+# - JUNJO_SECURE_COOKIE_KEY (second generated key from above)
+# - CLOUDFLARE_API_TOKEN (For Caddy SSL certificate setup, created in the Cloudflare dashboard)
 vi .env
+```
 
-# Configure Caddy for production
-# Edit caddy/Caddyfile: comment out the local development section
-# and uncomment the production section. See the Caddyfile for detailed instructions.
+#### Caddyfile setup
+
+Configures the Caddy reverse proxy container to handle traffic from your production domains / subdomains.
+- _Note: goole `vi multiline comment / uncomment` for shortcuts_
+
+```bash
+# 1. Comment out the local development section
+# 2. Uncomment the production section
+# 3. Replace 'junjo.your-domain.com' with your actual subdomain
+# 4. Replace 'your-email@example.com' with your email
+# See the Caddyfile for detailed instructions.
 vi caddy/Caddyfile
-
-# The JUNJO_SERVER_API_KEY variable will be set later after we create an API key in the Junjo Server UI.
 ```
 
 #### Start The Services
 
+- Pull latest images and start services
+- Note: the first build of xcaddy image may take a few minutes, subsequent launches are faster.
+
 ```bash
-# Pull latest images and start services - thie xcaddy build may take a few minutes
 docker compose pull && docker compose up -d --build
+```
 
-# Monitor startup logs
-docker logs -f junjo-caddy  # Check for successful SSL certificate generation
+#### Validate SSL
 
-# You should find a message in the logs that contains ..."msg":"authorization finalized"...
+Proper DNS setup, Caddy setup, and Cloudflare Token setup will result in the following logs being visible.
+
+```bash
+# Check caddy logs for successful SSL setup
+docker logs -f junjo-caddy
+
+# Search logs for "authorization finalized"
+```
+
+*Example:*
+
+```bash
+{"level":"info","ts":1763843812.5458374,"msg":"authorization finalized","identifier":"*.junjo.example.com","authz_status":"valid"}
+{"level":"info","ts":1763843812.5465696,"msg":"validations succeeded; finalizing order"...
+{"level":"info","ts":1763843812.9823546,"msg":"authorization finalized","identifier":"junjo.example.com","authz_status":"valid"}
+{"level":"info","ts":1763843812.9825242,"msg":"validations succeeded; finalizing order"....
 ```
 
 #### Create API Key
 
-1. Access the frontend at `https://junjo.example.com` (same as your `JUNJO_PROD_AUTH_DOMAIN`)
+1. Access the frontend at your production domain (e.g., `https://junjo.example.com`)
 2. Create a user account and sign in
-3. Navigate to API Keys and create a new key
-4. Update `.env` with your API key:
+3. Create the API Key
+4. Update `.env` and set `JUNJO_AI_STUDIO_API_KEY` with your API key:
    ```bash
-   vi .env  # Set JUNJO_SERVER_API_KEY
+   vi .env
    ```
 5. Restart the demo app to apply the key:
    ```bash
-   docker compose restart junjo-app
+   docker compose up --force-recreate --no-deps junjo-app -d
+   ```
+6. View the logs of the sample junjo-app executing:
+   ```bash
+   docker logs -f junjo-app
    ```
 
 #### Verify Deployment
@@ -300,7 +371,7 @@ docker container ls
 docker logs -f junjo-app
 ```
 
-Your Junjo Server is now live! Visit the Web UI to see workflow runs from the demo application.
+Your Junjo AI Studio is now live! Visit the Web UI to see workflow runs from the demo application.
 
 ### 4. Block Storage (Optional)
 
@@ -311,26 +382,63 @@ Your Junjo Server is now live! Visit the Web UI to see workflow runs from the de
 - **Better backups**: Use cloud provider snapshot features
 - **Portability**: Detach and reattach volumes to different VMs
 
-Most cloud providers (Digital Ocean, AWS, GCP, Azure, Hetzner) offer block storage through their dashboards. Create a volume, attach it to your VM, mount it to `/mnt/junjo-data`, then update the volume paths in `docker-compose.yml` to point to `/mnt/junjo-data/sqlite`, `/mnt/junjo-data/duckdb`, and `/mnt/junjo-data/badgerdb`.
+#### Setup Instructions
+
+The docker-compose.yml is pre-configured to use the `JUNJO_HOST_DB_DATA_PATH` environment variable. You only need to configure this variable in your `.env` file.
+
+**Steps:**
+
+1. **Create and attach block storage volume** through your cloud provider's dashboard (Digital Ocean, AWS EBS, GCP Persistent Disk, Azure Disk, etc.)
+
+2. **Mount the volume to your VM**. Example for common providers:
+   ```bash
+   # DigitalOcean Volume
+   sudo mkdir -p /mnt/junjo-data
+   sudo mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_* /mnt/junjo-data
+
+   # AWS EBS
+   sudo mkdir -p /mnt/junjo-data
+   sudo mount /dev/xvdf /mnt/junjo-data
+
+   # Google Cloud Persistent Disk
+   sudo mkdir -p /mnt/junjo-data
+   sudo mount /dev/disk/by-id/google-* /mnt/junjo-data
+   ```
+
+3. **Update your `.env` file** to point to the mounted volume:
+   ```bash
+   JUNJO_HOST_DB_DATA_PATH=/mnt/junjo-data
+   ```
+
+4. **Restart services** to apply the new configuration:
+   ```bash
+   docker compose down
+   docker compose up -d
+   ```
+
+The databases will now be stored in:
+- `/mnt/junjo-data/sqlite/` (SQLite - user/session data)
+- `/mnt/junjo-data/duckdb/` (DuckDB - trace analytics)
+- `/mnt/junjo-data/badgerdb/` (BadgerDB - ingestion WAL)
 
 ### 5. Services Architecture
 
-This deployment includes several interconnected services. The **core Junjo Server services** provide the observability platform, while **infrastructure services** handle routing and SSL.
+This deployment includes several interconnected services. The **core Junjo AI Studio services** provide the observability platform, while **infrastructure services** handle routing and SSL.
 
-### Core Junjo Server Services
+### Core Junjo AI Studio Services
 
-#### `junjo-server-ingestion`
-*   **Image**: `mdrideout/junjo-server-ingestion-service:latest`
+#### `junjo-ai-studio-ingestion`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.70.3`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
 *   **Details**: Lightweight Go service that receives telemetry via gRPC (port 50051) and writes to BadgerDB as a Write-Ahead Log. This decoupled architecture ensures data isn't lost during backend maintenance or restarts.
 
-#### `junjo-server-backend`
-*   **Image**: `mdrideout/junjo-server-backend:latest`
+#### `junjo-ai-studio-backend`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.70.3`
 *   **Purpose**: API server, authentication, and data processing
-*   **Details**: Go-based Echo application that handles HTTP API requests (port 1323), user authentication, and business logic. Polls the ingestion service's WAL to index telemetry into DuckDB for fast querying. Uses SQLite for user/session data.
+*   **Details**: Python FastAPI application that handles HTTP API requests (port 1323), user authentication, and business logic. Polls the ingestion service's WAL to index telemetry into DuckDB for fast querying. Uses SQLite for user/session data.
 
-#### `junjo-server-frontend`
-*   **Image**: `mdrideout/junjo-server-frontend:latest`
+#### `junjo-ai-studio-frontend`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.70.3`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 80 (internally), proxied through Caddy.
 
@@ -345,13 +453,13 @@ This deployment includes several interconnected services. The **core Junjo Serve
 
 #### `junjo-app`
 *   **Source**: [`junjo_app/`](junjo_app/)
-*   **Purpose**: Example showing how to integrate Junjo Server into your Python applications
+*   **Purpose**: Example showing how to integrate Junjo AI Studio into your Python applications
 *   **Details**: Runs a simple 3-node Junjo workflow (StartNode → IncrementNode → EndNode) in a continuous loop, executing **every 5 seconds**. Each execution generates a complete OpenTelemetry trace showing state changes, node timing, and workflow decision flow. This continuous telemetry stream demonstrates real-time ingestion and visualization.
 
 **What the Demo Does:**
 - Executes a workflow that increments a counter
-- Sends complete trace data to `junjo-server-ingestion` via gRPC
-- Creates visible workflow runs in the Junjo Server UI every 5 seconds
+- Sends complete trace data to `junjo-ai-studio-ingestion` via gRPC
+- Creates visible workflow runs in the Junjo AI Studio UI every 5 seconds
 - Shows how to configure `JunjoServerOtelExporter` in your own applications
 - Watch it running: `docker logs -f junjo-app`
 
@@ -364,7 +472,7 @@ Use `junjo_app/` as a reference implementation. **Remove this service** from `do
 
 ## SSL Testing with Let's Encrypt Staging
 
-Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment, use the Let's Encrypt staging environment to avoid production rate limits during testing.
+Let's Encrypt rate limits SSL certificate issuance. When setting up a new environment, if you get rate limited, you can use the Let's Encrypt staging environment to avoid production rate limits during testing.
 
 To enable staging certificates, uncomment the following line in your `.env` file:
 
@@ -382,7 +490,12 @@ Caddy will automatically use the Let's Encrypt staging environment when generati
 
 To test your setup without browser warnings, add the staging certificate to your macOS Keychain Access:
 
-1. Download the staging certificates:
+1. Download the staging certificates (provide your domain as argument):
+   ```bash
+   bash download_staging_certs.sh junjo.example.com
+   ```
+
+   Or if you have `JUNJO_PROD_FRONTEND_URL` set in `.env`, the script will extract the domain automatically:
    ```bash
    bash download_staging_certs.sh
    ```

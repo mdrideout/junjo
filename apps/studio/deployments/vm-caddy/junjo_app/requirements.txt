@@ -1,2 +1,3 @@
-junjo[otel]
+junjo==0.61.1
 python-dotenv
+loguru
