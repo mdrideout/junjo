@@ -262,6 +262,9 @@ ls -a
 
 # Navigate to projects
 cd projects
+
+# Verify all files are there
+ls -a
 ```
 
 #### Verify Your Project Folder Is There
@@ -313,14 +316,31 @@ vi caddy/Caddyfile
 
 #### Start The Services
 
+- Pull latest images and start services
+- Note: the first build of xcaddy image may take a few minutes, subsequent launches are faster.
+
 ```bash
-# Pull latest images and start services - thie xcaddy build may take a few minutes
 docker compose pull && docker compose up -d --build
+```
 
-# Monitor startup logs
-docker logs -f junjo-caddy  # Check for successful SSL certificate generation
+#### Validate SSL
 
-# You should find a message in the logs that contains ..."msg":"authorization finalized"...
+Proper DNS setup, Caddy setup, and Cloudflare Token setup will result in the following logs being visible.
+
+```bash
+# Check caddy logs for successful SSL setup
+docker logs -f junjo-caddy
+
+# Search logs for "authorization finalized"
+```
+
+*Example:*
+
+```bash
+{"level":"info","ts":1763843812.5458374,"msg":"authorization finalized","identifier":"*.junjo.example.com","authz_status":"valid"}
+{"level":"info","ts":1763843812.5465696,"msg":"validations succeeded; finalizing order"...
+{"level":"info","ts":1763843812.9823546,"msg":"authorization finalized","identifier":"junjo.example.com","authz_status":"valid"}
+{"level":"info","ts":1763843812.9825242,"msg":"validations succeeded; finalizing order"....
 ```
 
 #### Create API Key
@@ -328,13 +348,17 @@ docker logs -f junjo-caddy  # Check for successful SSL certificate generation
 1. Access the frontend at your production domain (e.g., `https://junjo.example.com`)
 2. Create a user account and sign in
 3. Create the API Key
-4. Update `.env` with your API key:
+4. Update `.env` and set `JUNJO_AI_STUDIO_API_KEY` with your API key:
    ```bash
-   vi .env  # Set JUNJO_AI_STUDIO_API_KEY
+   vi .env
    ```
 5. Restart the demo app to apply the key:
    ```bash
-   docker compose restart junjo-app
+   docker compose up --force-recreate --no-deps junjo-app -d
+   ```
+6. View the logs of the sample junjo-app executing:
+   ```bash
+   docker logs -f junjo-app
    ```
 
 #### Verify Deployment
