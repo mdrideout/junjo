@@ -253,15 +253,27 @@ These changes can be made locally and rsync'd to the server, or you can make the
 ```bash
 # SSH into the server
 ssh root@[your-ip-address]
+
+# Change directory to the server root
+cd /
+
+# Find the projects folder
+ls -a
+
+# Navigate to projects
+cd projects
 ```
 
-#### Navigate to the project
-```bash
-# Navigate to the deployment directory (should be the same folder name as the repository root)
-cd ~/junjo-ai-studio-deployment-example
+#### Verify Your Project Folder Is There
 
+This should show a folder for the repo you transferred via `rsync`.
+
+```bash
 # Verify files were copied correctly
 ls -a
+
+# Change directories into the project folder
+cd <project-folder-name>
 ```
 
 #### Environment Variable Setup
