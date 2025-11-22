@@ -171,15 +171,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Protobuf generated code
-# We commit these files to the repository to ensure that the package can be
-# installed directly from GitHub without requiring the user to have the
-# protobuf compiler installed.
-# src/junjo/telemetry/junjo_server/proto_gen/**.*
-
-# Keep the init
-# !src/junjo/telemetry/junjo_server/proto_gen/__init__.py
-
 # Misc
 .DS_Store
 .gitleaks/**

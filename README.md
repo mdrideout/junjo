@@ -171,21 +171,3 @@ $ sphinx-build -b html docs docs/_build
 # Run the tests with uv
 $ uv run pytest
 ```
-
-## Code Generation
-
-### Protobuf schema generation
-
-1. Requires the optional `dev` dependencies to be installed via `uv pip install -e ".[dev]"`
-2. Requires [protoc](https://grpc.io/docs/protoc-installation/) which can be installed into your developer environment host machine ([instructions](https://grpc.io/docs/protoc-installation/)).
-3. Copy the .proto files from the junjo-server project to `src/telemetry/junjo_server/proto`
-4. Run `make proto` from the project root to generate the `proto_gen` files for the client
-5. Update any required changes to the `src/telemetry/junjo_server/client.py` file (type changes, fields, etc.)
-
-### Pre-commit Hook
-
-This project uses a pre-commit hook to automatically generate the protobuf files. To install the hook, run the following command:
-
-```bash
-pre-commit install
-```

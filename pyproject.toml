@@ -47,7 +47,6 @@ dev = [
     "sphinx-rtd-theme",
     "simple-sphinx-xml-sitemap",
     "mypy",
-    "grpcio-tools==1.76.0",
     "build>=1.2.1",
     "twine>=6.1.0",
     "pre-commit",
