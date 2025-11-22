@@ -1,6 +1,9 @@
 # Use an official Python runtime as a parent image
 FROM python:3.13-slim
 
+# Set Python to run in unbuffered mode to ensure logs stream in real-time
+ENV PYTHONUNBUFFERED=1
+
 # Set the working directory in the container
 WORKDIR /usr/src/app
 

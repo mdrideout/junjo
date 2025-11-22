@@ -1,6 +1,8 @@
 import os
+import time
 
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from loguru import logger
 
 from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
@@ -11,16 +13,37 @@ from opentelemetry.sdk.trace import TracerProvider
 def setup_telemetry():
     """
     Sets up the OpenTelemetry tracer and exporter.
+    Returns:
+        bool: True if setup was successful, False otherwise.
     """
 
-    # Load the JUNJO_SERVER_API_KEY from the environment variable
-    JUNJO_SERVER_API_KEY = os.getenv("JUNJO_SERVER_API_KEY")
-    if JUNJO_SERVER_API_KEY is None:
-        print(
-            "JUNJO_SERVER_API_KEY environment variable is not set. "
-            "Generate a new API key in the Junjo Server UI."
+    # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
+    JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+
+    if (
+        not JUNJO_AI_STUDIO_API_KEY
+        or JUNJO_AI_STUDIO_API_KEY == "junjo_ai_studio_api_key_here"
+    ):
+        time.sleep(4)
+
+        logger.error(
+            "\n"
+            "╔════════════════════════════════════════════════════════════════════════════╗\n"
+            "║ 🚨 API KEY 🔑 CONFIGURATION REQUIRED                                       ║\n"
+            "╠════════════════════════════════════════════════════════════════════════════╣\n"
+            "║                                                                            ║\n"
+            "║  The Junjo App requires a valid API Key to send telemetry.                 ║\n"
+            "║                                                                            ║\n"
+            "║  1. Go to your Junjo AI Studio UI: http://localhost:5153                   ║\n"
+            "║  2. Create a new API Key in the Settings                                   ║\n"
+            "║  3. Open your .env file                                                    ║\n"
+            "║  4. Set JUNJO_AI_STUDIO_API_KEY=<your-new-key>                             ║\n"
+            "║  5. Apply changes: docker compose up -d junjo-app                          ║\n"
+            "║     - The junjo-app container must rebuild to pickup .env changes          ║\n"
+            "║                                                                            ║\n"
+            "╚════════════════════════════════════════════════════════════════════════════╝\n"
         )
-        return
+        return False
 
     # Configure OpenTelemetry for this application
     # Create the OpenTelemetry Resource to identify this service
@@ -34,7 +57,7 @@ def setup_telemetry():
     junjo_server_exporter = JunjoServerOtelExporter(
         host="junjo-ai-studio-ingestion",
         port="50051",
-        api_key=JUNJO_SERVER_API_KEY,
+        api_key=JUNJO_AI_STUDIO_API_KEY,
         insecure=True,
     )
 
@@ -53,4 +76,4 @@ def setup_telemetry():
     )
     metrics.set_meter_provider(meter_provider)
 
-    return
+    return True

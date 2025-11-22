@@ -105,25 +105,20 @@ Once all the services are running, you can access them in your browser:
 
 *   **Junjo AI Studio UI**: [http://localhost:5153](http://localhost:5153)
 
-The **demo application (`junjo-app`) automatically starts running a workflow every 5 seconds**, continuously sending telemetry to Junjo AI Studio. You'll see new workflow runs appearing in real-time!
+#### 🚨 Demo App Requires Initial Setup
 
-Watch the demo app in action:
-```bash
-# View demo app logs
-docker logs -f junjo-app
+The **demo application (`junjo-app`) automatically starts**. When configured with an API key, it will continuously execute a simple workflow in a loop, sending telemetry to Junjo AI Studio. 
 
-# You'll see output like:
-# Executing workflow...
-# Workflow started.
-# Counter incremented to: 1
-# Workflow finished.
-```
+1. reate its API key
+2. Set the `.env` variable
+3. Restart the container
+4. Observe workflow runs appearing inside Junjo AI Studio
 
-#### App API Key Setup Steps:
+#### 🔑 App API Key Setup Steps:
 
 1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
 2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo AI Studio UI.
-3.  Set this key as the `JUNJO_SERVER_API_KEY` environment variable in your `.env` file.
+3.  Set this key as the `JUNJO_AI_STUDIO_API_KEY` environment variable in your `.env` file.
 4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
     ```bash
     docker compose up --force-recreate --no-deps junjo-app -d
@@ -278,7 +273,7 @@ vi .env
 # See the Caddyfile for detailed instructions.
 vi caddy/Caddyfile
 
-# The JUNJO_SERVER_API_KEY variable will be set later after we create an API key in the Junjo AI Studio UI.
+# The JUNJO_AI_STUDIO_API_KEY variable will be set later after we create an API key in the Junjo AI Studio UI.
 ```
 
 #### Start The Services
@@ -300,7 +295,7 @@ docker logs -f junjo-caddy  # Check for successful SSL certificate generation
 3. Navigate to API Keys and create a new key
 4. Update `.env` with your API key:
    ```bash
-   vi .env  # Set JUNJO_SERVER_API_KEY
+   vi .env  # Set JUNJO_AI_STUDIO_API_KEY
    ```
 5. Restart the demo app to apply the key:
    ```bash
