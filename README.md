@@ -11,7 +11,7 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 - [Python API Docs](https://python-api.junjo.ai/)
 - [PyPI](https://pypi.org/project/junjo/)
 
-#### Benefits: 
+#### Benefits:
 
 - Visualize your AI workflows
 - Redux inspired state management and state debugging tools
