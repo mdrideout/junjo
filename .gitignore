@@ -175,3 +175,6 @@ cython_debug/
 .DS_Store
 .gitleaks/**
 graphviz_out
+
+# Coding Agents
+.claude
