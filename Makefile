@@ -17,7 +17,7 @@ check-version:
 	@echo "✅ Version check passed: libprotoc $(REQUIRED_PROTOC_VERSION)"
 
 proto: check-version
-	python -m grpc_tools.protoc \
+	uv run python -m grpc_tools.protoc \
 		-I$(PROTO_SRC_DIR) \
 		--python_out=$(PROTO_OUT_DIR) \
 		--grpc_python_out=$(PROTO_OUT_DIR) \

@@ -35,12 +35,10 @@ jobs:
           sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*'
           rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
 
-          # Install Python tools (--system flag for CI environment)
-          uv pip install --system grpcio-tools==1.76.0
-
           # Verify installation
           protoc --version
-          python -m grpc_tools.protoc --version
+          # Use uv run to verify the tool version within the project environment
+          uv run python -m grpc_tools.protoc --version
 
       - name: Regenerate Proto Files
         run: |
