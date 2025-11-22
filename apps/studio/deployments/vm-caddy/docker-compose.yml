@@ -17,7 +17,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - junjo-server-ingestion
+      - junjo-ai-studio-ingestion
 
   # Junjo AI Studio Services
   junjo-ai-studio-backend:
