@@ -1,10 +1,10 @@
-# Junjo 順序
+# Junjo Python SDK
 
-> Japanese Translation: order, sequence, procedure
+> 順序 (junjo): order, sequence, procedure
 
 Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
 
-Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges.
+Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
 
 #### Docs
 
@@ -13,22 +13,27 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 
 #### Benefits:
 
-- Asyncio & Pydantic native
 - Visualize your AI workflows
-- Build in redux-inspired state machine
-- Create robust and predictable conditional chains of LLM calls
-- Organize complex workflow executions into a scalable clean Graph structure
-- Manage execution order, loops, and concurrency
-- Supports Eval-Driven Development techniques
-  - Test every node of your workflow to 100% evaluation accuracy
-  - Test your workflows with dozens or thousands of input cases
+- Redux inspired state management and state debugging tools
+- Concurrency and type safety native with asyncio and pydantic
+- Organize conditional chains of LLM calls into observable graph workflows
+- Easy patterns for directed graph loops, branching, and concurrency
+- Eval-Driven Development focused
+  - Easily build massive eval sets with mocked node state
+  - Programmatically build and update eval sets with agentic code assistants
+  - Eval patterns are based on pytest, leveraging its testing framework and capabilities
   - Rapidly iterate on your AI capabilities knowing for sure you're making progress
-- Native opentelemetry support for clear tracing, observability, and debugging
-  - Try our **optional, free, open source** companion [junjo-server](https://github.com/mdrideout/junjo-server) telemetry server.
+- OpenTelemetry native
+  - Provides organized, structured traces to any OpenTelemetry provider
+  - Companion open source **[Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio)** enhances debugging and evaluation of production data
 
-<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png" width="600" />
 
-_junjo-screenshot.png_
+<center>
+<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png" width="1000" />
+<br />Junjo AI Studio Screenshot
+</center>
+
+
 
 #### Decoupled
 
