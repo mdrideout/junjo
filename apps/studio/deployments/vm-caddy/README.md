@@ -228,7 +228,7 @@ ssh root@[your-ip-address]
 2. Install rsync: `sudo apt install rsync`
 3. Disconnect from SSH for the next steps
 
-#### Copy Files & Launch
+#### Copy Files To Server
 
 From your local machine, copy the repository files to the server:
 
@@ -236,16 +236,33 @@ From your local machine, copy the repository files to the server:
 # Copy via rsync (run from your local machine)
 # Exclude hidden files except for .env.example
 rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/project/root/path/on/local/machine root@[your-ip-address]:
+```
 
-# SSH back into the server
+### 4. Configure Files For Production
+
+The following steps walk you through configuring environment variables and Caddy for production.
+
+These changes can be made locally and rsync'd to the server, or you can make them on the server using the **vi** editor.
+- _Note: the above rsync command excludes `.env`  would require changes to rsync the .env file_
+
+#### SSH into the server again
+```bash
+# SSH into the server
 ssh root@[your-ip-address]
+```
 
+#### Navigate to the project
+```bash
 # Navigate to the deployment directory (should be the same folder name as the repository root)
 cd ~/junjo-ai-studio-deployment-example
 
 # Verify files were copied correctly
 ls -a
+```
 
+#### Environment Variable Setup
+
+```bash
 # Copy the example environment variable file to a new .env
 cp .env.example .env
 
@@ -260,20 +277,22 @@ openssl rand -base64 32  # Second key - for JUNJO_SECURE_COOKIE_KEY
 # - JUNJO_PROD_INGESTION_URL (e.g., https://ingestion.junjo.example.com)
 # - JUNJO_SESSION_SECRET (first generated key from above)
 # - JUNJO_SECURE_COOKIE_KEY (second generated key from above)
-# - CLOUDFLARE_API_TOKEN (from Cloudflare dashboard)
-# - JUNJO_HOST_DB_DATA_PATH (default: ./.dbdata, production with block storage: /mnt/junjo-data)
+# - CLOUDFLARE_API_TOKEN (For Caddy SSL certificate setup, created in the Cloudflare dashboard)
 vi .env
+```
 
-# Configure Caddy for production
-# Edit caddy/Caddyfile:
+#### Caddyfile setup
+
+Configures the Caddy reverse proxy container to handle traffic from your production domains / subdomains.
+- _Note: goole `vi multiline comment / uncomment` for shortcuts_
+
+```bash
 # 1. Comment out the local development section
 # 2. Uncomment the production section
 # 3. Replace 'junjo.your-domain.com' with your actual subdomain
 # 4. Replace 'your-email@example.com' with your email
 # See the Caddyfile for detailed instructions.
 vi caddy/Caddyfile
-
-# The JUNJO_AI_STUDIO_API_KEY variable will be set later after we create an API key in the Junjo AI Studio UI.
 ```
 
 #### Start The Services
@@ -292,7 +311,7 @@ docker logs -f junjo-caddy  # Check for successful SSL certificate generation
 
 1. Access the frontend at your production domain (e.g., `https://junjo.example.com`)
 2. Create a user account and sign in
-3. Navigate to API Keys and create a new key
+3. Create the API Key
 4. Update `.env` with your API key:
    ```bash
    vi .env  # Set JUNJO_AI_STUDIO_API_KEY
