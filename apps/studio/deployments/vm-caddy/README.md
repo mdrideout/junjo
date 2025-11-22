@@ -1,8 +1,13 @@
 # Junjo AI Studio - Production VM Deployment Example
 
-This repository servces as a walkthrough example for the production deployment of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine. It demonstrates end-to-end how to setup a new Virtual Machine and run Junjo and Junjo AI Studio in production with real telemetry data.
+This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
-This single Junjo AI Studio instance can support an unlimited number of users and junjo apps. 
+Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
+
+- ⚙️ Setup and configure a new Virtual Machine
+- 🔀 Turn-key Caddy reverse proxy with SSL support
+- 🎏 Example Junjo python SDK powered app (demonstrates real telemetry)
+- 🚀 Junjo AI Studio in production
 
 **See Also: Minimal Build Github Template:** For a minimal build repository template for Junjo AI Studio, without caddy, no example app, and no opinions about deployment environments, check out the [Junjo AI Studio - Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
 
@@ -25,44 +30,33 @@ This single Junjo AI Studio instance can support an unlimited number of users an
 
 ## Overview
 
-Deploy Junjo Server as a centralized observability backend for your AI applications. Once deployed, your Python applications can send OpenTelemetry data to Junjo Server using the `JunjoServerOtelExporter`, giving you:
+Deploy Junjo AI Studio as a centralized observability backend for your AI applications. Once deployed, your Python applications can send OpenTelemetry data to Junjo AI Studio using the `JunjoOtelExporter`, giving you:
 
 - **Complete workflow visibility**: See every step your LLM takes in a sequence of events
 - **Decision transparency**: Understand what data your AI is using to make decisions
-- **Debugging interface**: Web UI for exploring and analyzing workflow executions
-- **Production-ready**: Includes reverse proxy with automatic SSL, session management, and scalable ingestion
+- **Debugging interface**: Web UI for exploring and debugging workflow executions and state changes
+- **Production-ready**: Includes reverse proxy with automatic SSL, authentication and user management, and scalable ingestion
 
-This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo Server into your own projects.
-
-## What's Included
-
-This deployment provides everything you need to run Junjo Server in production:
+This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo AI Studio into your own projects.
 
 ### Core Services
-- **Junjo Server Backend**: HTTP API, authentication, and business logic (SQLite + DuckDB)
-- **Junjo Server Ingestion**: High-throughput OpenTelemetry gRPC endpoint (BadgerDB WAL)
-- **Junjo Server Frontend**: Web-based debugging and workflow visualization interface
+- **Junjo AI Studio Backend**: HTTP API, authentication, and business logic (SQLite + DuckDB)
+- **Junjo AI Studio Ingestion**: High-throughput OpenTelemetry gRPC endpoint (BadgerDB WAL)
+- **Junjo AI Studio Frontend**: Web-based debugging and workflow visualization interface
 
 ### Infrastructure
 - **Caddy Reverse Proxy**: Automatic HTTPS with Let's Encrypt, subdomain routing
 - **Docker Compose**: Complete orchestration with health checks and dependency management
 - **Example Python App**: Reference implementation showing how to connect your AI applications
 
-### Production Features
-- Session-based authentication with cookie management
-- Automatic SSL certificate generation and renewal
-- Cloudflare DNS integration for wildcard domains
-- Persistent data storage with volume management
-- Scalable architecture with decoupled ingestion
-
 ## Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
 
-## Quick Start (Local Development)
+## Local Quick Start
 
-Test the deployment locally before deploying to production. The following steps will run Junjo Server on your local machine with the demo application.
+The following steps will run Junjo AI Studio on your local machine with the demo application.
 
 ### 1. Clone this Repository
 
@@ -73,17 +67,29 @@ cd junjo-ai-studio-deployment-example
 
 ### 2. Configure Environment Variables
 
-Copy the example environment file and update it with your own secret key.
+Copy the example environment file and configure the required security keys.
 
 ```bash
 cp .env.example .env
 ```
 
-Update the `JUNJO_SESSION_SECRET` environment variable. Open `.env` in your editor and replace `your_secret_key` with a new key. You can generate one with the following command:
+**Generate and set TWO required security keys:**
 
-```bash
-openssl rand -base64 48
-```
+Both `JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` must be set for the backend to function properly.
+
+1. Generate the first key:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. Open `.env` in your editor and replace `your_base64_secret_here` in `JUNJO_SESSION_SECRET` with the generated key
+
+3. Generate the second key:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+4. Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with this second generated key
 
 ### 3. Run the Application
 
@@ -97,9 +103,9 @@ docker compose up --build
 
 Once all the services are running, you can access them in your browser:
 
-*   **Junjo Server UI**: [http://localhost:5153](http://localhost:5153)
+*   **Junjo AI Studio UI**: [http://localhost:5153](http://localhost:5153)
 
-The **demo application (`junjo-app`) automatically starts running a workflow every 5 seconds**, continuously sending telemetry to Junjo Server. You'll see new workflow runs appearing in real-time!
+The **demo application (`junjo-app`) automatically starts running a workflow every 5 seconds**, continuously sending telemetry to Junjo AI Studio. You'll see new workflow runs appearing in real-time!
 
 Watch the demo app in action:
 ```bash
@@ -116,14 +122,14 @@ docker logs -f junjo-app
 #### App API Key Setup Steps:
 
 1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
-2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo Server UI.
+2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo AI Studio UI.
 3.  Set this key as the `JUNJO_SERVER_API_KEY` environment variable in your `.env` file.
 4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
     ```bash
     docker compose up --force-recreate --no-deps junjo-app -d
     ```
 
-> **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo server projects running on `localhost` and an old session cookie is interfering.
+> **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo AI Studio projects running on `localhost` and an old session cookie is interfering.
 
 **What You'll See:**
 - New workflow runs appearing every 5 seconds in the UI
@@ -143,7 +149,7 @@ docker compose down -v
 
 # Production VM Deployment
 
-Deploy Junjo Server to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo Server instance via the gRPC ingestion endpoint.
+Deploy Junjo AI Studio to a cloud VM to provide a centralized observability backend for your AI applications running anywhere. Your applications will connect to your deployed Junjo AI Studio instance via the gRPC ingestion endpoint.
 
 ### 1. Creating a VM (Digital Ocean Example)
 
@@ -245,20 +251,22 @@ cd ~/junjo-ai-studio-deployment-example
 # Verify files were copied correctly
 ls -a
 
-# Generate session secrets (generate BOTH with same command)
-openssl rand -base64 32
-
 # Copy the example environment variable file to a new .env
 cp .env.example .env
+
+# Generate TWO security keys (run this command twice, use different values for each)
+openssl rand -base64 32  # First key - for JUNJO_SESSION_SECRET
+openssl rand -base64 32  # Second key - for JUNJO_SECURE_COOKIE_KEY
 
 # Edit the .env to configure production variables:
 # - JUNJO_ENV="production"
 # - JUNJO_PROD_FRONTEND_URL (e.g., https://junjo.example.com)
 # - JUNJO_PROD_BACKEND_URL (e.g., https://api.junjo.example.com)
 # - JUNJO_PROD_INGESTION_URL (e.g., https://ingestion.junjo.example.com)
-# - JUNJO_SESSION_SECRET (from openssl command above)
-# - JUNJO_SECURE_COOKIE_KEY (from openssl command above)
+# - JUNJO_SESSION_SECRET (first generated key from above)
+# - JUNJO_SECURE_COOKIE_KEY (second generated key from above)
 # - CLOUDFLARE_API_TOKEN (from Cloudflare dashboard)
+# - JUNJO_HOST_DB_DATA_PATH (default: ./.dbdata, production with block storage: /mnt/junjo-data)
 vi .env
 
 # Configure Caddy for production
@@ -309,7 +317,7 @@ docker container ls
 docker logs -f junjo-app
 ```
 
-Your Junjo Server is now live! Visit the Web UI to see workflow runs from the demo application.
+Your Junjo AI Studio is now live! Visit the Web UI to see workflow runs from the demo application.
 
 ### 4. Block Storage (Optional)
 
@@ -320,7 +328,44 @@ Your Junjo Server is now live! Visit the Web UI to see workflow runs from the de
 - **Better backups**: Use cloud provider snapshot features
 - **Portability**: Detach and reattach volumes to different VMs
 
-Most cloud providers (Digital Ocean, AWS, GCP, Azure, Hetzner) offer block storage through their dashboards. Create a volume, attach it to your VM, mount it to `/mnt/junjo-data`, then update the volume paths in `docker-compose.yml` to point to `/mnt/junjo-data/sqlite`, `/mnt/junjo-data/duckdb`, and `/mnt/junjo-data/badgerdb`.
+#### Setup Instructions
+
+The docker-compose.yml is pre-configured to use the `JUNJO_HOST_DB_DATA_PATH` environment variable. You only need to configure this variable in your `.env` file.
+
+**Steps:**
+
+1. **Create and attach block storage volume** through your cloud provider's dashboard (Digital Ocean, AWS EBS, GCP Persistent Disk, Azure Disk, etc.)
+
+2. **Mount the volume to your VM**. Example for common providers:
+   ```bash
+   # DigitalOcean Volume
+   sudo mkdir -p /mnt/junjo-data
+   sudo mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_* /mnt/junjo-data
+
+   # AWS EBS
+   sudo mkdir -p /mnt/junjo-data
+   sudo mount /dev/xvdf /mnt/junjo-data
+
+   # Google Cloud Persistent Disk
+   sudo mkdir -p /mnt/junjo-data
+   sudo mount /dev/disk/by-id/google-* /mnt/junjo-data
+   ```
+
+3. **Update your `.env` file** to point to the mounted volume:
+   ```bash
+   JUNJO_HOST_DB_DATA_PATH=/mnt/junjo-data
+   ```
+
+4. **Restart services** to apply the new configuration:
+   ```bash
+   docker compose down
+   docker compose up -d
+   ```
+
+The databases will now be stored in:
+- `/mnt/junjo-data/sqlite/` (SQLite - user/session data)
+- `/mnt/junjo-data/duckdb/` (DuckDB - trace analytics)
+- `/mnt/junjo-data/badgerdb/` (BadgerDB - ingestion WAL)
 
 ### 5. Services Architecture
 
