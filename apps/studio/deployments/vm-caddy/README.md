@@ -216,6 +216,8 @@ See the `junjo_app/` directory for a complete working example.
 
 ### 3. Server Configuration
 
+Your fresh debian server needs a few things to be installed to be able to run rsync and docker.
+
 #### SSH into the Server
 
 ```bash
@@ -226,16 +228,18 @@ ssh root@[your-ip-address]
 
 1. Follow [Install Docker Engine on Debian](https://docs.docker.com/engine/install/debian/) instructions
 2. Install rsync: `sudo apt install rsync`
-3. Disconnect from SSH for the next steps
+3. Disconnect from SSH for the next steps: `exit`
 
 #### Copy Files To Server
 
 From your local machine, copy the repository files to the server:
 
+- _Copies via rsync (run from your local machine), excludes hidden files except for .env.example_
+- Note the `:/projects` after the IP address
+- Uplads to `<server_root>/projects`
+
 ```bash
-# Copy via rsync (run from your local machine)
-# Exclude hidden files except for .env.example
-rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' ~/project/root/path/on/local/machine root@[your-ip-address]:
+rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' /Users/user/project-root-folder/local/machine root@[your-ip-address]:/projects
 ```
 
 ### 4. Configure Files For Production
