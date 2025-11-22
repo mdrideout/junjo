@@ -1,0 +1,47 @@
+name: Proto Integration Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  compare-protos:
+    name: Compare Protos with Junjo AI Studio
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Junjo SDK (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: junjo-sdk
+
+      - name: Checkout Junjo AI Studio
+        uses: actions/checkout@v4
+        with:
+          repository: mdrideout/junjo-ai-studio
+          path: junjo-ai-studio
+          # sparse-checkout can speed this up if the repo gets huge, 
+          # but for now full checkout is fine for verifying latest main.
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Compare Proto Files
+        run: |
+          # Make script executable
+          chmod +x junjo-sdk/scripts/compare_protos.py
+          
+          # Run comparison
+          # SDK Protos: src/junjo/telemetry/junjo_server/proto
+          # Studio Protos: proto
+          python junjo-sdk/scripts/compare_protos.py \
+            junjo-sdk/src/junjo/telemetry/junjo_server/proto \
+            junjo-ai-studio/proto
+
