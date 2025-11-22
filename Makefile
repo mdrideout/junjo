@@ -1,9 +1,22 @@
-.PHONY: proto clean
+.PHONY: proto clean check-version
 
 PROTO_SRC_DIR := ./src/junjo/telemetry/junjo_server/proto
 PROTO_OUT_DIR := ./src/junjo/telemetry/junjo_server/proto_gen
+REQUIRED_PROTOC_VERSION := 30.2
 
-proto:
+check-version:
+	@echo "Checking protoc version..."
+	@VERSION=$$(protoc --version 2>&1 | awk '{print $$2}'); \
+	if [ "$$VERSION" != "$(REQUIRED_PROTOC_VERSION)" ]; then \
+		echo "❌ Error: protoc version mismatch."; \
+		echo "   Expected: libprotoc $(REQUIRED_PROTOC_VERSION)"; \
+		echo "   Found:    libprotoc $$VERSION"; \
+		echo "   Please ensure protoc v$(REQUIRED_PROTOC_VERSION) is installed and in your PATH (see PROTO_VERSIONS.md)."; \
+		exit 1; \
+	fi
+	@echo "✅ Version check passed: libprotoc $(REQUIRED_PROTOC_VERSION)"
+
+proto: check-version
 	python -m grpc_tools.protoc \
 		-I$(PROTO_SRC_DIR) \
 		--python_out=$(PROTO_OUT_DIR) \

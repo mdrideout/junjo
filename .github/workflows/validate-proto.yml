@@ -1,0 +1,67 @@
+name: Validate Proto Files
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate-proto:
+    name: Validate Proto Files Are Up-to-Date
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          # Install protoc v30.2 (locked version for consistency)
+          PROTOC_VERSION=30.2
+          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+          sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc
+          sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*'
+          rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
+
+          # Install Python tools (--system flag for CI environment)
+          uv pip install --system grpcio-tools==1.76.0
+
+          # Verify installation
+          protoc --version
+          python -m grpc_tools.protoc --version
+
+      - name: Regenerate Proto Files
+        run: |
+          make proto
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet; then
+            echo "❌ ERROR: Proto files are out of date!"
+            echo ""
+            echo "The following files have uncommitted changes:"
+            git diff --name-only
+            echo ""
+            echo "📋 Full diff:"
+            git diff
+            echo ""
+            echo "🔧 To fix this issue:"
+            echo "  1. Manually install protoc v30.2: see PROTO_VERSIONS.md"
+            echo "  2. Install grpcio-tools==1.76.0: uv pip install grpcio-tools==1.76.0"
+            echo "  3. Run: make proto"
+            echo "  4. Commit the updated files"
+            exit 1
+          fi
+          echo "✅ Proto files are up-to-date"
