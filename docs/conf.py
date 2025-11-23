@@ -25,6 +25,7 @@ extensions = [
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
+html_favicon = "_static/favicon.webp"
 html_title = "Junjo AI Framework Python SDK Docs - API Reference | Junjo AI Studio"
 html_short_title = "Junjo Python Docs"
 html_baseurl = "https://python-api.junjo.ai/"
