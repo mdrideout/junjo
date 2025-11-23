@@ -73,9 +73,9 @@ class JunjoOtelExporter:
 
             junjo_exporter_prod = JunjoOtelExporter(
                 host="ingestion.junjo.example.com",   # Your domain
-                port="443",                       		# HTTPS port
+                port="443",                       	  # HTTPS port
                 api_key=JUNJO_AI_STUDIO_API_KEY,
-                insecure=False,                   		# TLS enabled
+                insecure=False,                   	  # TLS enabled
             )
 
             # Add to your tracer provider
