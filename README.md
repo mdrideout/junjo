@@ -29,8 +29,8 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 
 
 <center>
+<b>Junjo AI Studio Screenshot</b>
 <img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png" width="1000" />
-<br />Junjo AI Studio Screenshot
 </center>
 
 
@@ -263,8 +263,8 @@ python -m src.base.visualize
 ```
 
 <center>
+<b>Screenshot: Graphviz visualized Junjo workflow and subflow</b>
 <img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot-graphviz.png" width="1000" />
-<br />Screenshot: Graphviz visualized Junjo workflow and subflow
 </center>
 
 
