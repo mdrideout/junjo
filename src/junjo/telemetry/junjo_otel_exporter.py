@@ -7,6 +7,39 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 class JunjoOtelExporter:
     """
     An OpenTelemetry SpanExporter that sends spans to the Junjo AI Studio.
+
+    Junjo is designed to be compatible with existing OpenTelemetry configurations,
+    by adding to an existing configuration instead of creating a new one.
+
+    :param host: The hostname of the Junjo AI Studio.
+    :type host: str
+    :param port: The port of the Junjo AI Studio.
+    :type port: str
+    :param api_key: The API key for the Junjo AI Studio.
+    :type api_key: str
+    :param insecure: Whether to allow insecure connections to the Junjo AI Studio.
+                     Defaults to ``False``.
+    :type insecure: bool
+
+    Example:
+        .. code-block:: python
+
+            from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+            from opentelemetry.sdk.trace import TracerProvider
+            from opentelemetry import trace
+
+            # Initialize the exporter
+            junjo_exporter = JunjoOtelExporter(
+                host="localhost",
+                port="50051",
+                api_key="your_api_key",
+                insecure=True
+            )
+
+            # Add to your tracer provider
+            provider = TracerProvider()
+            provider.add_span_processor(junjo_exporter.span_processor)
+            trace.set_tracer_provider(provider)
     """
 
     def __init__(
@@ -17,23 +50,7 @@ class JunjoOtelExporter:
         insecure: bool = False,
     ):
         """
-        Export OpenTelemetry data to Junjo AI Studio.
-
-        Junjo is designed to be compatible with existing OpenTelemetry configurations,
-        by adding to an existing configuration instead of creating a new one.
-
-        If you have not already configured OpenTelemetry for your application,
-        follow these instructions: TODO: Add instructions.
-
-        :param host: The hostname of the Junjo AI Studio.
-        :type host: str
-        :param port: The port of the Junjo AI Studio.
-        :type port: str
-        :param api_key: The API key for the Junjo AI Studio.
-        :type api_key: str
-        :param insecure: Whether to allow insecure connections to the Junjo AI Studio.
-                         Defaults to ``False``.
-        :type insecure: bool
+        Initializes the JunjoOtelExporter.
         """
 
         # Set Class Instance Vars
