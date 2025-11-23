@@ -4,12 +4,9 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
-class JunjoServerOtelExporter:
+class JunjoOtelExporter:
     """
-    Export OpenTelemetry data to Junjo Server.
-
-    Junjo Server is capable of parsing and displaying enhanced
-    Graph Workflow visualizations, and data specific to Graph Workflow debugging.
+    An OpenTelemetry SpanExporter that sends spans to the Junjo AI Studio.
     """
 
     def __init__(
@@ -20,7 +17,7 @@ class JunjoServerOtelExporter:
         insecure: bool = False,
     ):
         """
-        Export OpenTelemetry data to Junjo Server.
+        Export OpenTelemetry data to Junjo AI Studio.
 
         Junjo is designed to be compatible with existing OpenTelemetry configurations,
         by adding to an existing configuration instead of creating a new one.
@@ -28,11 +25,15 @@ class JunjoServerOtelExporter:
         If you have not already configured OpenTelemetry for your application,
         follow these instructions: TODO: Add instructions.
 
-        Args:
-        - host: the hostname of the Junjo Server.
-        - port: the port of the Junjo Server.
-        - api_key: the API key for the Junjo Server.
-        - insecure: whether to allow insecure connections to the Junjo Server.
+        :param host: The hostname of the Junjo AI Studio.
+        :type host: str
+        :param port: The port of the Junjo AI Studio.
+        :type port: str
+        :param api_key: The API key for the Junjo AI Studio.
+        :type api_key: str
+        :param insecure: Whether to allow insecure connections to the Junjo AI Studio.
+                         Defaults to ``False``.
+        :type insecure: bool
         """
 
         # Set Class Instance Vars
@@ -41,13 +42,13 @@ class JunjoServerOtelExporter:
         self._api_key = api_key
         self._insecure = insecure
 
-        # Set the endpoint for the Junjo Server
+        # Set the endpoint for the Junjo AI Studio
         self._endpoint = f"{self._host}:{self._port}"
 
         # Define headers
         exporter_headers = (("x-junjo-api-key", self._api_key),)
 
-        # Set OTLP Span Exporter for Junjo Server
+        # Set OTLP Span Exporter for Junjo AI Studio
         oltp_exporter = OTLPSpanExporter(
             endpoint=self._endpoint,
             insecure=self._insecure,
@@ -67,10 +68,12 @@ class JunjoServerOtelExporter:
 
     @property
     def span_processor(self):
+        """Returns the configured span processor."""
         return self._span_processor
 
     @property
     def metric_reader(self):
+        """Returns the configured metric reader."""
         return self._metric_reader
 
     def flush(self, timeout_millis: float = 120000) -> bool:
@@ -81,13 +84,12 @@ class JunjoServerOtelExporter:
         It leverages the existing retry/timeout logic in the underlying gRPC exporters.
         It can be used to force a flush of all pending telemetry before the application exits.
 
-        Args:
-            timeout_millis: Maximum time to wait for flush in milliseconds.
-                           Defaults to 120000ms (120 seconds) to match the
-                           exporter timeout and allow for retries.
-
-        Returns:
-            True if all telemetry was flushed successfully, False otherwise.
+        :param timeout_millis: Maximum time to wait for flush in milliseconds.
+                               Defaults to 120000ms (120 seconds) to match the
+                               exporter timeout and allow for retries.
+        :type timeout_millis: float
+        :returns: ``True`` if all telemetry was flushed successfully, ``False`` otherwise.
+        :rtype: bool
         """
         success = True
 

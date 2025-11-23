@@ -15,10 +15,10 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: Junjo Server:
+   :caption: Junjo AI Studio:
    :hidden:
 
-   junjo_server
+   junjo_ai_studio
    docker_reference
    deployment
    opentelemetry
@@ -30,7 +30,7 @@
 
    Junjo PyPI <https://pypi.org/project/junjo/>
    GitHub - Junjo <https://github.com/mdrideout/junjo>
-   GitHub - Junjo Server <https://github.com/mdrideout/junjo-server>
+   GitHub - Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>
 
 
 .. toctree::
@@ -53,7 +53,7 @@ Junjo makes it easy to build a graph of possible paths for an AI to take. When t
 Whether you're building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define your logic as a clear graph of nodes and edges, and telemetry to make it easy to debug.
 
 .. image:: _static/junjo-screenshot.png
-   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo Server
+   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo AI Studio
    :align: center
    :width: 600px
 
@@ -61,7 +61,7 @@ Whether you're building a simple chatbot, a complex data manipulation pipeline, 
 
 Junjo remains decoupled from any specific AI model or framework. Simply wrap your existing business logic in a Junjo node, organize them into a Graph with conditional edges, and then execute the graph. Junjo will handle the rest, including task orchestration, error handling, and logging to any OpenTelemetry destination.
 
-Junjo's optional companion library, `Junjo Server <https://github.com/mdrideout/junjo-server>`_, provides additional features for observing graph execution telemetry, and visually stepping through state changes made by each node. This is particularly useful for debugging complex workflows or understanding how data flows through your application.
+Junjo's optional companion library, `Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_, provides additional features for observing graph execution telemetry, and visually stepping through state changes made by each node. This is particularly useful for debugging complex workflows or understanding how data flows through your application.
 
 With built-in support for fully type-safe (Pydantic) redux-inspired state management, conditional execution, concurrent tasks (asyncio), and native OpenTelemetry support, Junjo empowers you to create robust, observable, and scalable Python workflows. Dive into our documentation to learn how to streamline your task orchestration and gain deeper insights into your application's execution.
 

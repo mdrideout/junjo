@@ -38,7 +38,7 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 
 #### 🔍 Transparency
 
-Junjo strives to be the opposite of a "black box". Transparency, observability, eval driven developmentm, and production data debugging are requirements for AI applications handling mission critical data, that need repeatable and high accuracy chained LLM logic. 
+Junjo strives to be the opposite of a "black box". Transparency, observability, eval driven development, and production data debugging are requirements for AI applications handling mission critical data, that need repeatable and high accuracy chained LLM logic. 
 
 #### ⛓️‍💥 Decoupled
 
@@ -52,7 +52,7 @@ Junjo simply helps you organize your python functions (whether they be logic, LL
 
 #### 🥧 Conventional
 
-Junjo provides primitive building blocks that let you build any sort of executable workflow. From linear chains of LLM calls, to complex branching workflows with concurrent sublfows, to fully autonomous agents.
+Junjo provides primitive building blocks that let you build any sort of executable workflow. From linear chains of LLM calls, to complex branching workflows with concurrent subflows, to fully autonomous agents.
 
 Junjo uses conventional Pythonic architecture. Rather than obfuscating, proprietary decorators or runtime scripts that hijack execution, Junjo graph workflows are constructed conventionally with python classes and generics, and Pydantic models for type safe immutable state. 
 
@@ -66,7 +66,7 @@ Junjo organizes conventional OpenTelemetry spans into easy to understand groups.
 
 Junjo can work alongside other AI Agent frameworks. Junjo Workflows can be setup as **tools** that Autonomous Agent frameworks can call for high-accuracy repeatable processes (like RAG retrieval or complex document parsing logic). 
 
-Junjo workflow nodes can also contain autonomous agents from other frameworks (like [smolagents](https://github.com/huggingface/smolagents)) if you need to introduce autonomous capabilities from other libraires into a structured Junjo AI workflow.
+You can execute autonomous agent capabilities from other libraries inside a Junjo AI workflow. For example, a Junjo workflow node can run a [smolagents](https://github.com/huggingface/smolagents) tool calling agent as a single step within a greater Junjo workflow or subflow.
 
 ## Code Examples
 
@@ -227,7 +227,7 @@ docker compose up -d
 
 **Architecture:** Three-service Docker setup (backend, ingestion service, frontend) that runs on minimal resources (1GB RAM, shared vCPU).
 
-See the [Junjo AI Studio](https://python-api.junjo.ai/junjo_server.html) for complete setup and configuration.
+See the [Junjo AI Studio](https://python-api.junjo.ai/junjo_ai_studio.html) for complete setup and configuration.
 
 **Example Repositories:**
 

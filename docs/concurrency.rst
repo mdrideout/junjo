@@ -59,13 +59,13 @@ When defining your workflow's graph or subflow, you can easily execute nodes and
 Example execution visualization:
 
 .. image:: _static/concurrent-visual.png
-   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo Server, featuring a RunConcurrent node in the workflow's graph.
+   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo AI Studio, featuring a RunConcurrent node in the workflow's graph.
    :align: center
    :width: 600px
 
 This example demonstrates how `RunConcurrent` can be utilized to execute nodes in parallel. You can also execute entire `Subflow` instances in parallel.
 
-All state updates made by these nodes are concurrency safe due to the immutable nature of state updates. **Junjo Server** allows you to step through state updates incrementally to see which nodes update state and when, even during high concurrency.
+All state updates made by these nodes are concurrency safe due to the immutable nature of state updates. **Junjo AI Studio** allows you to step through state updates incrementally to see which nodes update state and when, even during high concurrency.
 
 Immutable State: Ensuring Concurrency Safety
 ============================================

@@ -1,6 +1,6 @@
 import os
 
-from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
 from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
@@ -11,11 +11,11 @@ from opentelemetry.sdk.trace import TracerProvider
 def init_otel(service_name: str):
     """Configure OpenTelemetry for this application."""
 
-    # Load the JUNJO_SERVER_API_KEY from the environment variable
-    JUNJO_SERVER_API_KEY = os.getenv("JUNJO_SERVER_API_KEY")
-    if JUNJO_SERVER_API_KEY is None:
-        raise ValueError("JUNJO_SERVER_API_KEY environment variable is not set."
-                         "Generate a new API key in the Junjo Server UI.")
+    # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
+    JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+    if JUNJO_AI_STUDIO_API_KEY is None:
+        raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable is not set."
+                         "Generate a new API key in the Junjo AI Studio UI.")
 
     # Configure OpenTelemetry for this application
     # Create the OpenTelemetry Resource to identify this service
@@ -27,25 +27,25 @@ def init_otel(service_name: str):
     # Instrument Google GenAI
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
-    # Construct a Junjo exporter for Junjo Server (see junjo-server docker-compose.yml)
-    junjo_server_exporter = JunjoServerOtelExporter(
+    # Construct a Junjo exporter for Junjo AI Studio
+    junjo_ai_studio_exporter = JunjoOtelExporter(
         host="localhost",
         port="50051",
-        api_key=JUNJO_SERVER_API_KEY,
+        api_key=JUNJO_AI_STUDIO_API_KEY,
         insecure=True,
     )
 
     # Set up span processors
     # Add the Junjo span processor
     # Add more span processors if desired
-    tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
+    tracer_provider.add_span_processor(junjo_ai_studio_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)
 
     # Set up metrics
     #    - Construct with the Junjo metric reader
     #    - Add more metric readers if desired
-    junjo_server_metric_reader = junjo_server_exporter.metric_reader
+    junjo_metric_reader = junjo_ai_studio_exporter.metric_reader
     meter_provider = MeterProvider(
-        resource=resource, metric_readers=[junjo_server_metric_reader]
+        resource=resource, metric_readers=[junjo_metric_reader]
     )
     metrics.set_meter_provider(meter_provider)

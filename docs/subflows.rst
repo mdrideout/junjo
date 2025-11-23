@@ -126,30 +126,32 @@ Now, implement the `SampleSubflow`:
           await parent_store.set_fact(subflow_state.fact)
           print("Subflow: post_run_actions executed, updated parent store.")
 
-  # Instantiate nodes for the subflow's internal graph
-  get_joke_node = GetJokeNode()
-  get_fact_node = GetFactNode()
+  def create_subflow_graph() -> Graph:
+      # Instantiate nodes for the subflow's internal graph
+      get_joke_node = GetJokeNode()
+      get_fact_node = GetFactNode()
 
-  # Define the internal graph for the SampleSubflow
-  sample_subflow_graph = Graph(
-      source=get_joke_node,
-      sink=get_fact_node, # For simplicity, joke then fact
-      edges=[
-          Edge(tail=get_joke_node, head=get_fact_node)
-      ]
-  )
+      # Define the internal graph for the SampleSubflow
+      return Graph(
+          source=get_joke_node,
+          sink=get_fact_node, # For simplicity, joke then fact
+          edges=[
+              Edge(tail=get_joke_node, head=get_fact_node)
+          ]
+      )
 
-  # Instantiate the Subflow
-  sample_subflow_instance = SampleSubflow(
-      name="Joke and Fact Finder",
-      graph=sample_subflow_graph,
-      store_factory=lambda: SampleSubflowStore(initial_state=SampleSubflowState())
-  )
+  def create_subflow_instance() -> SampleSubflow:
+      # Instantiate the Subflow
+      return SampleSubflow(
+          name="Joke and Fact Finder",
+          graph_factory=create_subflow_graph,
+          store_factory=lambda: SampleSubflowStore(initial_state=SampleSubflowState())
+      )
 
 In this example:
 - `pre_run_actions` copies `items` from the parent's state into the Subflow's state.
 - `post_run_actions` takes the `joke` and `fact` produced within the Subflow and updates the parent's state.
-- The `SampleSubflow` is instantiated with its own `Graph` (`sample_subflow_graph`) and a factory for its `SampleSubflowStore`.
+- The `SampleSubflow` is instantiated with its own `Graph` factory (`create_subflow_graph`) and a factory for its `SampleSubflowStore`.
 
 The `Graph` class is used consistently for both main workflows and Subflows, providing a unified way to define execution logic.
 
@@ -165,7 +167,7 @@ Example Parent Workflow Graph with a Subflow:
 
   from junjo import Workflow, Node, Edge, Graph
   # Assuming SampleWorkflowStore, SampleWorkflowState are defined
-  # Assuming sample_subflow_instance is the one created earlier
+  # Assuming create_subflow_instance is defined
 
   # Nodes for the parent workflow
   class ParentStartNode(Node[SampleWorkflowStore]):
@@ -178,21 +180,25 @@ Example Parent Workflow Graph with a Subflow:
           parent_state = await store.get_state()
           print(f"Parent Workflow: Finished. Joke: {parent_state.joke_from_subflow}, Fact: {parent_state.fact_from_subflow}")
 
-  parent_start_node = ParentStartNode()
-  parent_end_node = ParentEndNode()
+  def create_parent_graph() -> Graph:
+      parent_start_node = ParentStartNode()
+      parent_end_node = ParentEndNode()
+      
+      # Create a fresh subflow instance for this execution
+      sample_subflow_instance = create_subflow_instance()
 
-  # Define the parent workflow's graph, including the Subflow instance
-  parent_workflow_graph = Graph(
-      source=parent_start_node,
-      sink=parent_end_node,
-      edges=[
-          Edge(tail=parent_start_node, head=sample_subflow_instance), # Subflow as a node
-          Edge(tail=sample_subflow_instance, head=parent_end_node)
-      ]
-  )
+      # Define the parent workflow's graph, including the Subflow instance
+      return Graph(
+          source=parent_start_node,
+          sink=parent_end_node,
+          edges=[
+              Edge(tail=parent_start_node, head=sample_subflow_instance), # Subflow as a node
+              Edge(tail=sample_subflow_instance, head=parent_end_node)
+          ]
+      )
 
 In this structure:
-- `sample_subflow_instance` (our `Subflow`) is used directly as the `head` of one edge and the `tail` of another in the `parent_workflow_graph`.
+- `sample_subflow_instance` (our `Subflow`) is created fresh in `create_parent_graph` and used directly as the `head` of one edge and the `tail` of another.
 - The parent workflow's `Graph` orchestrates the flow *to* and *from* the Subflow, but the Subflow manages its own internal execution.
 
 Visualizing Subflows
@@ -209,13 +215,13 @@ This hierarchical visualization makes it easier to understand complex workflows 
    :align: center
    :width: 600px
 
-Subflows on Junjo Server
+Subflows on Junjo AI Studio
 ========================
 
-`Junjo Server <https://github.com/mdrideout/junjo-server>`_ will also intelligently render subflows, allowing one to step through node executions and state updates even in highly concurrent subflow executions.
+`Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_ will also intelligently render subflows, allowing one to step through node executions and state updates even in highly concurrent subflow executions.
 
 .. image:: _static/subflow-junjo-server-visual.png
-   :alt: A screenshot of a Junjo workflow graph's visual in Junjo Server, featuring a subflow rendering.
+   :alt: A screenshot of a Junjo workflow graph's visual in Junjo AI Studio, featuring a subflow rendering.
    :align: center
    :width: 600px
 

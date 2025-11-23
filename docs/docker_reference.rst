@@ -1,9 +1,9 @@
 Docker Reference
 ================
 
-Junjo Server is distributed as three Docker images that work together to provide a complete observability platform for AI workflows. This page provides detailed reference information for deploying and configuring these services.
+Junjo AI Studio is distributed as three Docker images that work together to provide a complete observability platform for AI workflows. This page provides detailed reference information for deploying and configuring these services.
 
-**Quick Start:** For a ready-to-use setup, see the `Junjo Server Bare-Bones Template <https://github.com/mdrideout/junjo-server-bare-bones>`_. For a complete production example with reverse proxy and HTTPS, see the `Junjo Server Deployment Example <https://github.com/mdrideout/junjo-server-deployment-example>`_. More details in :doc:`deployment`.
+**Quick Start:** For a ready-to-use setup, see the `Junjo AI Studio Minimal Build Template <https://github.com/mdrideout/junjo-ai-studio-minimal-build>`_. For a complete production example with reverse proxy and HTTPS, see the `Junjo AI Studio Deployment Example <https://github.com/mdrideout/junjo-ai-studio-deployment-example>`_. More details in :doc:`deployment`.
 
 Docker Images
 -------------
@@ -11,7 +11,7 @@ Docker Images
 Backend Service
 ~~~~~~~~~~~~~~~
 
-**Image:** `mdrideout/junjo-server-backend <https://hub.docker.com/r/mdrideout/junjo-server-backend>`_
+**Image:** `mdrideout/junjo-ai-studio-backend <https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend>`_
 
 The backend service provides the HTTP API, authentication, and data processing capabilities. It uses SQLite for metadata storage and DuckDB for analytical queries.
 
@@ -34,7 +34,7 @@ The backend service provides the HTTP API, authentication, and data processing c
 Ingestion Service
 ~~~~~~~~~~~~~~~~~
 
-**Image:** `mdrideout/junjo-server-ingestion-service <https://hub.docker.com/r/mdrideout/junjo-server-ingestion-service>`_
+**Image:** `mdrideout/junjo-ai-studio-ingestion <https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion>`_
 
 The ingestion service provides high-throughput OpenTelemetry data reception using BadgerDB as a write-ahead log. This decoupled architecture ensures telemetry data is never lost, even under heavy load.
 
@@ -56,7 +56,7 @@ The ingestion service provides high-throughput OpenTelemetry data reception usin
 Frontend Service
 ~~~~~~~~~~~~~~~~
 
-**Image:** `mdrideout/junjo-server-frontend <https://hub.docker.com/r/mdrideout/junjo-server-frontend>`_
+**Image:** `mdrideout/junjo-ai-studio-frontend <https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend>`_
 
 The frontend service provides the interactive web UI for visualizing and debugging AI workflows.
 
@@ -83,9 +83,9 @@ This configuration includes all three services with best practices for productio
 
     services:
       # Backend API and data processing service
-      junjo-server-backend:
-        image: mdrideout/junjo-server-backend:latest
-        container_name: junjo-server-backend
+      junjo-ai-studio-backend:
+        image: mdrideout/junjo-ai-studio-backend:latest
+        container_name: junjo-ai-studio-backend
         restart: unless-stopped
         ports:
           - "1323:1323"   # HTTP API (public)
@@ -113,9 +113,9 @@ This configuration includes all three services with best practices for productio
           start_period: 40s
 
       # OpenTelemetry data ingestion service
-      junjo-server-ingestion:
-        image: mdrideout/junjo-server-ingestion-service:latest
-        container_name: junjo-server-ingestion
+      junjo-ai-studio-ingestion:
+        image: mdrideout/junjo-ai-studio-ingestion:latest
+        container_name: junjo-ai-studio-ingestion
         restart: unless-stopped
         ports:
           - "50051:50051" # OTel gRPC ingestion (public, your apps connect here)
@@ -125,11 +125,11 @@ This configuration includes all three services with best practices for productio
           - ./dbdata/badgerdb:/dbdata/badgerdb
         environment:
           # API key for authentication (generate in web UI)
-          - JUNJO_SERVER_API_KEY=${JUNJO_SERVER_API_KEY}
+          - JUNJO_AI_STUDIO_API_KEY=${JUNJO_AI_STUDIO_API_KEY}
         networks:
           - junjo-network
         depends_on:
-          junjo-server-backend:
+          junjo-ai-studio-backend:
             condition: service_healthy # Wait for backend server to be healthy before starting
         healthcheck:
           test: ["CMD", "grpc_health_probe", "-addr=:50051"]
@@ -139,9 +139,9 @@ This configuration includes all three services with best practices for productio
           start_period: 40s
 
       # Web UI for visualization and debugging
-      junjo-server-frontend:
-        image: mdrideout/junjo-server-frontend:latest
-        container_name: junjo-server-frontend
+      junjo-ai-studio-frontend:
+        image: mdrideout/junjo-ai-studio-frontend:latest
+        container_name: junjo-ai-studio-frontend
         restart: unless-stopped
         ports:
           - "5153:80" # Web UI
@@ -151,9 +151,9 @@ This configuration includes all three services with best practices for productio
         networks:
           - junjo-network
         depends_on:
-          junjo-server-backend:
+          junjo-ai-studio-backend:
             condition: service_healthy
-          junjo-server-ingestion:
+          junjo-ai-studio-ingestion:
             condition: service_healthy
 
     networks:
@@ -169,8 +169,8 @@ For local development, you can use a simpler configuration:
     :caption: docker-compose.dev.yml
 
     services:
-      junjo-server-backend:
-        image: mdrideout/junjo-server-backend:latest
+      junjo-ai-studio-backend:
+        image: mdrideout/junjo-ai-studio-backend:latest
         ports:
           - "1323:1323"
           - "50053:50053"
@@ -183,8 +183,8 @@ For local development, you can use a simpler configuration:
         networks:
           - junjo-network
 
-      junjo-server-ingestion:
-        image: mdrideout/junjo-server-ingestion-service:latest
+      junjo-ai-studio-ingestion:
+        image: mdrideout/junjo-ai-studio-ingestion:latest
         ports:
           - "50051:50051"
           - "50052:50052"
@@ -193,8 +193,8 @@ For local development, you can use a simpler configuration:
         networks:
           - junjo-network
 
-      junjo-server-frontend:
-        image: mdrideout/junjo-server-frontend:latest
+      junjo-ai-studio-frontend:
+        image: mdrideout/junjo-ai-studio-frontend:latest
         ports:
           - "5153:80"
         environment:
@@ -246,12 +246,12 @@ Backend Service
 Ingestion Service
 ~~~~~~~~~~~~~~~~~
 
-``JUNJO_SERVER_API_KEY``
+``JUNJO_AI_STUDIO_API_KEY``
     **Required.** API key for authenticating telemetry ingestion requests
 
     - **Default:** None
-    - **Example:** ``JUNJO_SERVER_API_KEY=js_1234567890abcdef...``
-    - **Generate:** Create in the Junjo Server web UI under Settings → API Keys
+    - **Example:** ``JUNJO_AI_STUDIO_API_KEY=js_1234567890abcdef...``
+    - **Generate:** Create in the Junjo AI Studio web UI under Settings → API Keys
 
 Frontend Service
 ~~~~~~~~~~~~~~~~
@@ -348,7 +348,7 @@ See :doc:`deployment` for production deployment examples with Caddy reverse prox
 Resource Requirements
 ---------------------
 
-Junjo Server is designed to run on minimal resources:
+Junjo AI Studio is designed to run on minimal resources:
 
 **Minimum:**
 
@@ -414,20 +414,20 @@ Example Caddyfile:
 
     # Web UI
     junjo.example.com {
-        reverse_proxy junjo-server-frontend:80
+        reverse_proxy junjo-ai-studio-frontend:80
     }
 
     # Backend API
     api.junjo.example.com {
-        reverse_proxy junjo-server-backend:1323
+        reverse_proxy junjo-ai-studio-backend:1323
     }
 
     # Ingestion gRPC
     grpc.junjo.example.com {
-        reverse_proxy h2c://junjo-server-ingestion:50051
+        reverse_proxy h2c://junjo-ai-studio-ingestion:50051
     }
 
-See the `Junjo Server Deployment Example <https://github.com/mdrideout/junjo-server-deployment-example>`_ for a complete production setup.
+See the `Junjo AI Studio Deployment Example <https://github.com/mdrideout/junjo-ai-studio-deployment-example>`_ for a complete production setup.
 
 Backup and Recovery
 ~~~~~~~~~~~~~~~~~~~
@@ -496,8 +496,8 @@ Example multi-instance configuration:
 .. code-block:: yaml
 
     services:
-      junjo-server-ingestion:
-        image: mdrideout/junjo-server-ingestion-service:latest
+      junjo-ai-studio-ingestion:
+        image: mdrideout/junjo-ai-studio-ingestion:latest
         deploy:
           replicas: 3
         # ... rest of configuration
@@ -514,7 +514,7 @@ For most deployments, vertical scaling is sufficient:
 .. code-block:: yaml
 
     services:
-      junjo-server-backend:
+      junjo-ai-studio-backend:
         # ... existing config
         deploy:
           resources:
@@ -535,9 +535,9 @@ Check logs for specific errors:
 
 .. code-block:: bash
 
-    docker compose logs junjo-server-backend
-    docker compose logs junjo-server-ingestion
-    docker compose logs junjo-server-frontend
+    docker compose logs junjo-ai-studio-backend
+    docker compose logs junjo-ai-studio-ingestion
+    docker compose logs junjo-ai-studio-frontend
 
 Common issues:
 
@@ -579,6 +579,6 @@ If the web UI shows API errors:
 Next Steps
 ----------
 
-- See :doc:`junjo_server` for setup and configuration
+- See :doc:`junjo_ai_studio` for setup and configuration
 - Review :doc:`deployment` for production deployment examples
 - Explore :doc:`opentelemetry` for application instrumentation
