@@ -117,20 +117,26 @@ More advanced examples can be found in the `examples directory <https://github.c
                 ]
             )
 
-        # Create the workflow
-        sample_workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
-            name="Getting Started Example Workflow",
-            graph_factory=create_graph,
-            store_factory=lambda: SampleWorkflowStore(
-                initial_state=SampleWorkflowState(
-                    items=["laser", "coffee", "horse"]
+        def create_workflow() -> Workflow[SampleWorkflowState, SampleWorkflowStore]:
+            """
+            Factory function to create a new instance of the workflow.
+            This pattern is recommended to avoid concurrency issues and ensure
+            fresh state/store initialization for each execution.
+            """
+            return Workflow[SampleWorkflowState, SampleWorkflowStore](
+                name="Getting Started Example Workflow",
+                graph_factory=create_graph,
+                store_factory=lambda: SampleWorkflowStore(
+                    initial_state=SampleWorkflowState(
+                        items=["laser", "coffee", "horse"]
+                    )
                 )
             )
-        )
 
-        # Execute the workflow
-        await sample_workflow.execute()
-        print("Final state: ", await sample_workflow.get_state_json())
+        # Create and execute the workflow
+        workflow = create_workflow()
+        await workflow.execute()
+        print("Final state: ", await workflow.get_state_json())
 
     if __name__ == "__main__":
         import asyncio

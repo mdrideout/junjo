@@ -34,104 +34,39 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 </center>
 
 
+## Junjo's Philosophy
 
-#### Decoupled
+#### 🔍 Transparency
 
-Junjo doesn't change how you create AI / LLM calls. Use any AI or LLM service provider or library. Junjo simply helps you organize your python functions into a clean organized graph structure with predictable, testable execution.
+Junjo strives to be the opposite of a "black box". Transparency, observability, eval driven developmentm, and production data debugging are requirements for AI applications handling mission critical data, that need repeatable and high accuracy chained LLM logic. 
 
-Junjo provides the building blocks that let you make any sort of executable workflow. From linear function calls, to complex branching workflows with concurrent sublfows, to fully autonomous agents.
+#### ⛓️‍💥 Decoupled
 
-> 
-> There are zero proprietary AI / LLM implementations in Junjo. Use whatever LLM library you want.
-> 
-> All logs produced are opentelemetry compatible. Existing otel spans are annotated with workflow and node execution span wrappers.
-> 
+Junjo doesn't change how you implement LLM providers or make calls to their services. 
 
-It doesn't matter if the functions you add to a Junjo workflow are LLM API calls, database operations, or traditional business logic. You can write your business logic however you want. We just provide a convenient framework for organizing your desired flow into an executable graph.
+Continue using [google-genai](https://github.com/googleapis/python-genai), [openai-python](https://github.com/openai/openai-python), [grok / xai sdk](https://github.com/xai-org/xai-sdk-python), [anthropic-sdk-python](https://github.com/anthropics/anthropic-sdk-python), [LiteLLM](https://github.com/BerriAI/litellm) or even REST API requests to any provider.
 
-### Building AI Workflows and Agents as a Graph Workflow
+Junjo remains decoupled from LLM providers. There are no proprietary implementations, no hijacking of python docstrings, no confusing or obfuscating decorators, and no middleman proxies. 
 
-Agentic AI applications use LLMs to determine the order of execution of python functions. These functions may involve LLM requests, API requests, database CRUD operations, etc.
+Junjo simply helps you organize your python functions (whether they be logic, LLM calls, RAG retrieval, REST API calls, etc.) into a clean organized graph structure with predictable, testable, and observable execution.
 
-The simplest way to organize functions that can be / need to be executed in a certain order is in the form of a [directed graph](https://en.wikipedia.org/wiki/Directed_graph).
+#### 🥧 Conventional
 
-A directed graph gives one the building blocks to create any sort of agentic application, including:
+Junjo provides primitive building blocks that let you build any sort of executable workflow. From linear chains of LLM calls, to complex branching workflows with concurrent sublfows, to fully autonomous agents.
 
-- High precision workflows in the form of a Directed Acyclic Graph (DAG)
-- Autonomous AI Agents in the form of dynamically determined directed graphs
+Junjo uses conventional Pythonic architecture. Rather than obfuscating, proprietary decorators or runtime scripts that hijack execution, Junjo graph workflows are constructed conventionally with python classes and generics, and Pydantic models for type safe immutable state. 
 
-### Priorities
+State is modeled after the conventional [Elm Architecture](https://guide.elm-lang.org/architecture/), and inspired by [Redux](https://redux.js.org/) for clean separation of concerns, concurrency safety, and debuggability.
 
-Test (eval) driven development, repeatability, debuggability, and telemetry are **CRITICAL** for rapid iteration and development of Agentic applications.
+This helps your language server auto-complete methods and properties, and makes it easy for AI Coding agents to scaffold and understand massive Junjo workflows without needing to learn proprietary, library-specific logic patterns.
 
-Junjo prioritizes the following capabilities above all else to ensure these things are not an afterthought. 
+Junjo organizes conventional OpenTelemetry spans into easy to understand groups. Your existing OpenTelemetry provider will continue to work, now with enhanced span organization. [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) is a companion OpenTelemetry platform with enhanced visuals and debugging tools for Junjo workflows.
 
-1. Eval driven development / Test driven development with pytest
-1. Telemetry
-1. Visualization
-1. Type safety (pydantic)
-1. Concurrency safe (asyncio)
+#### 🤝 Compatible
 
-## Visualizing Your Workflows
+Junjo can work alongside other AI Agent frameworks. Junjo Workflows can be setup as **tools** that Autonomous Agent frameworks can call for high-accuracy repeatable processes (like RAG retrieval or complex document parsing logic). 
 
-### Junjo AI Studio
-
-[Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) is our open source companion telemetry and debugging platform. It ingests Junjo's OpenTelemetry spans, providing execution visualizations and step-by-step debugging of state changes made by LLMs.
-
-**Quick Start:**
-
-```bash
-# Create docker-compose.yml (see docs for full example)
-# Start services
-docker compose up -d
-
-# Access UI at http://localhost:5153
-```
-
-**Features:**
-- Interactive graph visualization with execution path tracking
-- State step debugging - see every state change in chronological order
-- LLM decision tracking and trace timeline
-- Multi-execution comparison
-- Built specifically for graph-based AI workflows
-
-**Architecture:** Three-service Docker setup (backend, ingestion service, frontend) that runs on minimal resources (1GB RAM, shared vCPU).
-
-See the [Junjo AI Studio](https://python-api.junjo.ai/junjo_server.html) for complete setup and configuration.
-
-**Example Repositories:**
-
-- [Junjo AI Studio - Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) - a docker compose environment of the essential Junjo AI Studio services.
-- [Junjo AI Studio - Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example) - a production VM ready deployment example, including Caddy reverse proxy and SSL certificate handling.
-
-### Graphviz
-
-Junjo can render workflow graphs as images. It requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image), as well as the above optional graphviz development dependencies in this python library.
-
-```bash
-# Install Graphviz on MacOS with homebrew
-$ brew install graphviz
-```
-
-```python
-# visualize.py
-from base.sample_workflow.graph import create_sample_workflow_graph
-
-def main():
-    # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
-    # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
-    create_sample_workflow_graph().export_graphviz_assets()
-
-if __name__ == "__main__":
-    main()
-```
-
-```bash
-# Run the visualizer
-python -m src.base.visualize
-```
-
-<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot-graphviz.png" width="600" />
+Junjo workflow nodes can also contain autonomous agents from other frameworks (like [smolagents](https://github.com/huggingface/smolagents)) if you need to introduce autonomous capabilities from other libraires into a structured Junjo AI workflow.
 
 ## Code Examples
 
@@ -141,7 +76,7 @@ _**Find several example Junjo applications inside the [examples](https://github.
 - [Getting Started](https://github.com/mdrideout/junjo/tree/main/examples/getting_started) - the basis of our getting started documentation
 - [Base Example](https://github.com/mdrideout/junjo/tree/main/examples/base) - a minimal python example showcasing several Junjo patterns
 
-### Getting Started
+### Getting Started Code
 
 This is a single-file implementation of a basic Junjo powered python application. See the [getting started](https://github.com/mdrideout/junjo/tree/main/examples/getting_started) directory for dependencies, requirements, and instructions to run this.
 
@@ -232,25 +167,105 @@ async def main():
             ]
         )
 
-    # Create the workflow
-    sample_workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
-        name="Getting Started Example Workflow",
-        graph_factory=create_graph,
-        store_factory=lambda: SampleWorkflowStore(
-            initial_state=SampleWorkflowState(
-                items=["laser", "coffee", "horse"]
+    def create_workflow() -> Workflow[SampleWorkflowState, SampleWorkflowStore]:
+        """
+        Factory function to create a new instance of the workflow.
+        This pattern is recommended to avoid concurrency issues and ensure
+        fresh state/store initialization for each execution.
+        """
+        return Workflow[SampleWorkflowState, SampleWorkflowStore](
+            name="Getting Started Example Workflow",
+            graph_factory=create_graph,
+            store_factory=lambda: SampleWorkflowStore(
+                initial_state=SampleWorkflowState(
+                    items=["laser", "coffee", "horse"]
+                )
             )
         )
-    )
 
-    # Execute the workflow
-    await sample_workflow.execute()
-    print("Final state: ", await sample_workflow.get_state_json())
+    # Create and execute the workflow
+    workflow = create_workflow()
+    await workflow.execute()
+    print("Final state: ", await workflow.get_state_json())
 
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 ```
+
+## Building AI Workflows and Agents as Graph Workflows
+
+Agentic AI applications use LLMs to determine the order of execution of python functions. These functions may involve LLM requests, API requests, database CRUD operations, etc.
+
+The simplest way to organize functions that can be / need to be conditionally executed in a certain order is in the form of a [directed graph](https://en.wikipedia.org/wiki/Directed_graph).
+
+A directed graph gives one the building blocks to create any sort of agentic application, including:
+
+- High precision workflows in the form of a Directed Acyclic Graph (DAG)
+- Autonomous AI Agents in the form of dynamically determined directed graphs
+
+## Junjo AI Studio
+
+[Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) is our open source companion telemetry and debugging platform. It ingests Junjo's OpenTelemetry spans, providing execution visualizations and step-by-step debugging of state changes made by LLMs.
+
+**Quick Start:**
+
+```bash
+# Create docker-compose.yml (see docs for full example)
+# Start services
+docker compose up -d
+
+# Access UI at http://localhost:5153
+```
+
+**Features:**
+- Interactive graph visualization with execution path tracking
+- State step debugging - see every state change in chronological order
+- LLM decision tracking and trace timeline
+- Multi-execution comparison
+- Built specifically for graph-based AI workflows
+
+**Architecture:** Three-service Docker setup (backend, ingestion service, frontend) that runs on minimal resources (1GB RAM, shared vCPU).
+
+See the [Junjo AI Studio](https://python-api.junjo.ai/junjo_server.html) for complete setup and configuration.
+
+**Example Repositories:**
+
+- [Junjo AI Studio - Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) - a docker compose environment of the essential Junjo AI Studio services.
+- [Junjo AI Studio - Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example) - a production VM ready deployment example, including Caddy reverse proxy and SSL certificate handling.
+
+
+## Graphviz
+
+Junjo can render workflow graphs as images. It requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image), as well as the above optional graphviz development dependencies in this python library.
+
+```bash
+# Install Graphviz on MacOS with homebrew
+$ brew install graphviz
+```
+
+```python
+# visualize.py
+from base.sample_workflow.graph import create_sample_workflow_graph
+
+def main():
+    # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
+    # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
+    create_sample_workflow_graph().export_graphviz_assets()
+
+if __name__ == "__main__":
+    main()
+```
+
+```bash
+# Run the visualizer
+python -m src.base.visualize
+```
+
+<center>
+<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot-graphviz.png" width="1000" />
+<br />Screenshot: Graphviz visualized Junjo workflow and subflow
+</center>
 
 
 ## Contributing
