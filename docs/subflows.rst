@@ -216,11 +216,11 @@ This hierarchical visualization makes it easier to understand complex workflows 
    :width: 600px
 
 Subflows on Junjo AI Studio
-========================
+============================
 
 `Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_ will also intelligently render subflows, allowing one to step through node executions and state updates even in highly concurrent subflow executions.
 
-.. image:: _static/subflow-junjo-server-visual.png
+.. image:: _static/subflow-junjo-ai-studio-visual.png
    :alt: A screenshot of a Junjo workflow graph's visual in Junjo AI Studio, featuring a subflow rendering.
    :align: center
    :width: 600px

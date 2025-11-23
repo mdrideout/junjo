@@ -46,7 +46,7 @@ $ python -m src.app.visualize
 
 ### Telemetry
 
-Have the [junjo-server](https://github.com/mdrideout/junjo-server?tab=readme-ov-file#docker-commands) running on your machine to see the telemetry and graph visualizations.
+Have the [junjo-ai-studio](https://github.com/mdrideout/junjo-ai-studio) running on your machine to see the telemetry and graph visualizations.
 
 ### Clearing the SQLite database
 

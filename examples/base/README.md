@@ -8,7 +8,7 @@ This is a basic single-file implementation of Junjo's Graph Workflow Execution. 
 - Concurrent execution
 - A Subflow
 - A Conditional that determines the next node based on the results of a state update
-- An opentelemetry exporter for Junjo Server (optional / not required)
+- An opentelemetry exporter for Junjo AI Studio (optional / not required)
 
 See the **ai_chat** example for a more advanced frontend / backend E2E experience that utilizes LLM API calls.
 
@@ -17,8 +17,8 @@ See the **ai_chat** example for a more advanced frontend / backend E2E experienc
 > Note: the following commands assume your terminal is located in this directory.
 
 - The graph workflow will run, logging node executions and state changes.
-- If [Junjo Server](https://github.com/mdrideout/junjo-server) is running, it will receive telemetry.
-  - Requires you to generate an API key inside the Junjo Server interface, and add it as a `.env` variable here.
+- If [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) is running, it will receive telemetry.
+  - Requires you to generate an API key inside the Junjo AI Studio interface, and add it as a `.env` variable here.
 
 ```bash
 # Run commands from this directory

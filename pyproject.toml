@@ -35,7 +35,7 @@ dependencies = [
 Docs = "https://python-api.junjo.ai/"
 Repository = "https://github.com/mdrideout/junjo"
 "Bug Tracker" = "https://github.com/mdrideout/junjo/issues"
-"Telemetry Server" = "https://github.com/mdrideout/junjo-server"
+"Telemetry + AI Studio" = "https://github.com/mdrideout/junjo-ai-studio"
 
 [project.optional-dependencies]
 dev = [

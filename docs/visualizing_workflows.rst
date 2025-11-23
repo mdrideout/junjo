@@ -6,7 +6,7 @@ Visualizing AI Workflows
 
 Understanding the structure and execution flow of your AI workflows and agents is crucial for development, debugging, and optimization. 
 
-This guide focuses on Junjo's built-in Graphviz integration to generate static diagrams of your workflow architecture as you code, and touches upon the dynamic visualization capabilities of Junjo Server.
+This guide focuses on Junjo's built-in Graphviz integration to generate static diagrams of your workflow architecture as you code, and touches upon the dynamic visualization capabilities of Junjo AI Studio.
 
 .. image:: _static/junjo-screenshot-graphviz.png
    :alt: Basic example of a Junjo workflow graph rendered by Graphviz
