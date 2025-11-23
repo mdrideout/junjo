@@ -1,0 +1,11 @@
+{% extends "furo/sidebar/brand.html" %}
+
+{% block brand_content %}
+  {# Check if a logo exists, if so, display it #}
+  {% if logo_url %}
+    <img class="sidebar-brand-image" src="{{ logo_url }}" alt="Logo"/>
+  {% endif %}
+  
+  {# Use shorttitle if it exists, otherwise fallback to project or html_title #}
+  <span class="sidebar-brand-text">{{ shorttitle|default(project)|default(docstitle) }}</span>
+{% endblock %}

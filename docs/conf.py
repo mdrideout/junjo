@@ -26,6 +26,7 @@ extensions = [
 
 html_theme = "furo"
 html_title = "Junjo AI Framework Python SDK Docs - API Reference | Junjo AI Studio"
+html_short_title = "Junjo Python Docs"
 html_baseurl = "https://python-api.junjo.ai/"
 
 # Hide the link to the rst source files
