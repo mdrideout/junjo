@@ -1,10 +1,10 @@
 Junjo AI Studio Deployment
-=======================
+===========================
 
 Junjo AI Studio can be deployed in various ways depending on your needs. Being based on docker containers, it's easy to deploy Junjo AI Studio anywhere with docker compose.
 
 Minimal Build Template (Recommended Starting Point)
--------------------------------------------------
+------------------------------------------------------
 
 For a minimal, flexible Docker Compose setup that you can customize for your specific infrastructure needs, use the `Junjo AI Studio Minimal Build Template <https://github.com/mdrideout/junjo-ai-studio-minimal-build>`_.
 

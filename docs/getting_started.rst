@@ -24,7 +24,7 @@ The following is a basic, single file example of how to use Junjo to create a si
 .. image:: _static/junjo-base-example-screenshot.png
    :alt: Example telemetry visualization of the getting started example
    :align: center
-   :width: 75%
+   :width: 100%
 
 *The above screenshot shows the telemetry visualization of this getting started example. Visually step through the workflow nodes and individual state updates.*
 
