@@ -214,7 +214,10 @@ class GeminiTool:
         if not response.candidates[0].content:
             # If prohibited content
             if response.candidates[0].finish_reason is not None:
-                logger.warning(f"Prohibited content detected in response. Finish Reason: {response.candidates[0].finish_reason}")
+                logger.warning(
+                    "Prohibited content detected in response."
+                    f"Finish Reason: {response.candidates[0].finish_reason}"
+                )
                 return None, str(response.candidates[0].finish_reason)
 
             logger.error(f"No content in response: {response}")
