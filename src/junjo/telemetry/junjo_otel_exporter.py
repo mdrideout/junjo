@@ -22,23 +22,65 @@ class JunjoOtelExporter:
     :type insecure: bool
 
     Example:
+        **Local Development:**
+
+        To send telemetry to a local Junjo AI Studio instance (e.g., running via Docker Compose):
+
         .. code-block:: python
 
+            import os
             from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
             from opentelemetry.sdk.trace import TracerProvider
             from opentelemetry import trace
 
-            # Initialize the exporter
-            junjo_exporter = JunjoOtelExporter(
+            # Retrieve API key from environment
+            JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+
+            # Option 1: Using localhost
+            junjo_exporter_local = JunjoOtelExporter(
                 host="localhost",
                 port="50051",
-                api_key="your_api_key",
-                insecure=True
+                api_key=JUNJO_AI_STUDIO_API_KEY,
+                insecure=True,
+            )
+
+            # Option 2: Using Docker service name (if running in same Docker network)
+            junjo_exporter_docker = JunjoOtelExporter(
+                host="junjo-ai-studio-ingestion",  # Docker service name
+                port="50051",
+                api_key=JUNJO_AI_STUDIO_API_KEY,
+                insecure=True,
             )
 
             # Add to your tracer provider
             provider = TracerProvider()
-            provider.add_span_processor(junjo_exporter.span_processor)
+            provider.add_span_processor(junjo_exporter_local.span_processor) # or junjo_exporter_docker.span_processor
+            trace.set_tracer_provider(provider)
+
+        **Production Deployment:**
+
+        For a production environment with TLS enabled (e.g., using a reverse proxy like Caddy):
+
+        .. code-block:: python
+
+            import os
+            from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+            from opentelemetry.sdk.trace import TracerProvider
+            from opentelemetry import trace
+
+            # Retrieve API key from environment
+            JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+
+            junjo_exporter_prod = JunjoOtelExporter(
+                host="ingestion.junjo.example.com",   # Your domain
+                port="443",                       		# HTTPS port
+                api_key=JUNJO_AI_STUDIO_API_KEY,
+                insecure=False,                   		# TLS enabled
+            )
+
+            # Add to your tracer provider
+            provider = TracerProvider()
+            provider.add_span_processor(junjo_exporter_prod.span_processor)
             trace.set_tracer_provider(provider)
     """
 
