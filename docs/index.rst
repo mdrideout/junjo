@@ -1,6 +1,6 @@
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Junjo Python SDK Docs:
    :hidden:
 
    getting_started
