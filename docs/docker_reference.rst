@@ -15,19 +15,8 @@ Backend Service
 
 The backend service provides the HTTP API, authentication, and data processing capabilities. It uses SQLite for metadata storage and DuckDB for analytical queries.
 
-**Ports:**
-
-- ``1323`` - HTTP API server (public)
-- ``50053`` - Internal gRPC for service communication (internal)
-
-**Volumes:**
-
-- ``/dbdata/sqlite`` - SQLite database directory (persistent)
-- ``/dbdata/duckdb`` - DuckDB database directory (persistent)
-
 **Notes:**
 
-- Requires root user or appropriate permissions for database write operations
 - Polls the ingestion service for new telemetry data
 - Processes and indexes traces for querying via the web UI
 
@@ -42,10 +31,6 @@ The ingestion service provides high-throughput OpenTelemetry data reception usin
 
 - ``50051`` - OpenTelemetry gRPC ingestion endpoint (public, your applications connect here)
 - ``50052`` - Internal gRPC for backend polling (internal)
-
-**Volumes:**
-
-- ``/dbdata/badgerdb`` - BadgerDB write-ahead log directory (persistent)
 
 **Notes:**
 
@@ -73,195 +58,180 @@ The frontend service provides the interactive web UI for visualizing and debuggi
 Complete Docker Compose Configuration
 --------------------------------------
 
-Production-Ready Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Minimal Build Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This configuration includes all three services with best practices for production deployment:
+This is the standard configuration for running Junjo AI Studio, suitable for both local development and as a starting point for production.
 
 .. code-block:: yaml
     :caption: docker-compose.yml
 
+    # Junjo AI Studio - Minimal Build
+    # A lightweight, self-hostable AI workflow debugging platform.
+    # https://github.com/mdrideout/junjo-ai-studio-minimal-build
+
     services:
-      # Backend API and data processing service
       junjo-ai-studio-backend:
-        image: mdrideout/junjo-ai-studio-backend:latest
+        image: mdrideout/junjo-ai-studio-backend:0.70.3
         container_name: junjo-ai-studio-backend
         restart: unless-stopped
-        ports:
-          - "1323:1323"   # HTTP API (public)
-          - "50053:50053" # Internal gRPC (backend communication)
         volumes:
-          # Persistent database storage
-          - ./dbdata/sqlite:/dbdata/sqlite
-          - ./dbdata/duckdb:/dbdata/duckdb
-        environment:
-          # Environment (production|development)
-          - JUNJO_ENV=${JUNJO_ENV:-production}
-          # CORS origins (comma-separated)
-          - JUNJO_ALLOW_ORIGINS=${JUNJO_ALLOW_ORIGINS}
-          # Session secret for authentication (generate with: openssl rand -hex 32)
-          - JUNJO_SESSION_SECRET=${JUNJO_SESSION_SECRET}
-          # Production authentication domain
-          - JUNJO_PROD_AUTH_DOMAIN=${JUNJO_PROD_AUTH_DOMAIN}
+          # Database storage (required for all modes)
+          - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+        ports:
+          - "1323:1323" # HTTP API (public)
         networks:
           - junjo-network
-        healthcheck:
-          test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:1323/health"]
-          interval: 30s
-          timeout: 10s
-          retries: 3
-          start_period: 40s
+        env_file:
+          - .env
+        environment:
+          # Override host/port for Docker network communication
+          - INGESTION_HOST=junjo-ai-studio-ingestion
+          - INGESTION_PORT=50052
+          # Enable migrations on startup
+          - RUN_MIGRATIONS=true
+          # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+          - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+          - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
 
-      # OpenTelemetry data ingestion service
       junjo-ai-studio-ingestion:
-        image: mdrideout/junjo-ai-studio-ingestion:latest
+        image: mdrideout/junjo-ai-studio-ingestion:0.70.3
         container_name: junjo-ai-studio-ingestion
         restart: unless-stopped
-        ports:
-          - "50051:50051" # OTel gRPC ingestion (public, your apps connect here)
-          - "50052:50052" # Internal gRPC (backend polling)
         volumes:
-          # BadgerDB write-ahead log
-          - ./dbdata/badgerdb:/dbdata/badgerdb
-        environment:
-          # API key for authentication (generate in web UI)
-          - JUNJO_AI_STUDIO_API_KEY=${JUNJO_AI_STUDIO_API_KEY}
+          # Database storage (required for all modes)
+          - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+        ports:
+          - "50051:50051" # Public OTLP endpoint (authenticated via API key)
         networks:
           - junjo-network
+        env_file:
+          - .env
+        environment:
+          - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+          - BACKEND_GRPC_PORT=50053
+          # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+          - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
         depends_on:
           junjo-ai-studio-backend:
-            condition: service_healthy # Wait for backend server to be healthy before starting
+            condition: service_started
         healthcheck:
-          test: ["CMD", "grpc_health_probe", "-addr=:50051"]
-          interval: 30s
-          timeout: 10s
-          retries: 3
-          start_period: 40s
+          test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+          interval: 5s
+          timeout: 3s
+          retries: 5
+          start_period: 5s
 
-      # Web UI for visualization and debugging
       junjo-ai-studio-frontend:
-        image: mdrideout/junjo-ai-studio-frontend:latest
+        image: mdrideout/junjo-ai-studio-frontend:0.70.3
         container_name: junjo-ai-studio-frontend
         restart: unless-stopped
         ports:
-          - "5153:80" # Web UI
-        environment:
-          # Backend API URL (adjust for your deployment)
-          - VITE_API_URL=${VITE_API_URL:-http://localhost:1323}
+          - "5153:80" # Public frontend (production build - nginx serving static files on port 80)
+        env_file:
+          - .env
         networks:
           - junjo-network
         depends_on:
           junjo-ai-studio-backend:
-            condition: service_healthy
-          junjo-ai-studio-ingestion:
-            condition: service_healthy
+            condition: service_started
 
     networks:
       junjo-network:
+        name: junjo_network
         driver: bridge
 
-Development Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Production Deployment
+---------------------
 
-For local development, you can use a simpler configuration:
+For a complete production setup on a Virtual Machine (VM) including:
 
-.. code-block:: yaml
-    :caption: docker-compose.dev.yml
+*   **Caddy Reverse Proxy** for automatic HTTPS
+*   **Subdomain routing** (e.g., ``junjo.example.com``)
+*   **Block storage** configuration
 
-    services:
-      junjo-ai-studio-backend:
-        image: mdrideout/junjo-ai-studio-backend:latest
-        ports:
-          - "1323:1323"
-          - "50053:50053"
-        volumes:
-          - ./.dbdata/sqlite:/dbdata/sqlite
-          - ./.dbdata/duckdb:/dbdata/duckdb
-        environment:
-          - JUNJO_ENV=development
-          - JUNJO_ALLOW_ORIGINS=http://localhost:5153
-        networks:
-          - junjo-network
-
-      junjo-ai-studio-ingestion:
-        image: mdrideout/junjo-ai-studio-ingestion:latest
-        ports:
-          - "50051:50051"
-          - "50052:50052"
-        volumes:
-          - ./.dbdata/badgerdb:/dbdata/badgerdb
-        networks:
-          - junjo-network
-
-      junjo-ai-studio-frontend:
-        image: mdrideout/junjo-ai-studio-frontend:latest
-        ports:
-          - "5153:80"
-        environment:
-          - VITE_API_URL=http://localhost:1323
-        networks:
-          - junjo-network
-
-    networks:
-      junjo-network:
-        driver: bridge
+Please refer to the `Junjo AI Studio Deployment Example <https://github.com/mdrideout/junjo-ai-studio-deployment-example>`_ repository.
 
 Environment Variables Reference
 --------------------------------
 
-Backend Service
-~~~~~~~~~~~~~~~
+This section details the environment variables used to configure Junjo AI Studio. These are typically defined in a ``.env`` file.
+
+Common Configuration
+~~~~~~~~~~~~~~~~~~~~
 
 ``JUNJO_ENV``
-    **Required.** Environment mode: ``production`` or ``development``
+    **Required.** Environment mode.
 
-    - **Default:** None
-    - **Example:** ``JUNJO_ENV=production``
+    - ``development`` (default): Uses localhost and standard ports.
+    - ``production``: Expects production hostname and subdomains.
 
 ``JUNJO_ALLOW_ORIGINS``
-    **Required.** Comma-separated list of allowed CORS origins for API requests
+    **Optional.** Comma-separated list of allowed CORS origins for API requests.
 
-    - **Default:** None
-    - **Example:** ``JUNJO_ALLOW_ORIGINS=https://junjo.example.com,https://www.example.com``
+    - **Development Default:** ``http://localhost:5151,http://localhost:5153``
+    - **Production:** Auto-derived from ``JUNJO_PROD_FRONTEND_URL`` if not set.
+
+Security (Backend)
+~~~~~~~~~~~~~~~~~~
+
+These keys secure session cookies and must be Base64-encoded strings.
 
 ``JUNJO_SESSION_SECRET``
-    **Required for production.** Secret key for session management and JWT tokens
+    **Required.** Signing key for session integrity (prevents tampering).
 
-    - **Default:** None
-    - **Example:** ``JUNJO_SESSION_SECRET=a1b2c3d4e5f6...`` (64 character hex string)
-    - **Generate with:** ``openssl rand -hex 32``
+    - **Generate:** ``openssl rand -base64 32``
 
-``JUNJO_PROD_AUTH_DOMAIN``
-    **Required for production.** The primary domain for authentication cookies
+``JUNJO_SECURE_COOKIE_KEY``
+    **Required.** Encryption key for session confidentiality (prevents reading).
 
-    - **Default:** None
-    - **Example:** ``JUNJO_PROD_AUTH_DOMAIN=junjo.example.com``
+    - **Generate:** ``openssl rand -base64 32``
 
-``JUNJO_BUILD_TARGET``
-    **Optional.** Build target for development purposes
-
-    - **Default:** ``production``
-    - **Example:** ``JUNJO_BUILD_TARGET=development``
-
-Ingestion Service
-~~~~~~~~~~~~~~~~~
-
-``JUNJO_AI_STUDIO_API_KEY``
-    **Required.** API key for authenticating telemetry ingestion requests
-
-    - **Default:** None
-    - **Example:** ``JUNJO_AI_STUDIO_API_KEY=js_1234567890abcdef...``
-    - **Generate:** Create in the Junjo AI Studio web UI under Settings → API Keys
-
-Frontend Service
+Database Storage
 ~~~~~~~~~~~~~~~~
 
-``VITE_API_URL``
-    **Optional.** Backend API URL for the frontend to connect to
+``JUNJO_HOST_DB_DATA_PATH``
+    **Required.** Path on the host machine where database files are stored.
 
-    - **Default:** ``http://localhost:1323`` (development)
-    - **Example:** ``VITE_API_URL=https://api.junjo.example.com``
-    - **Note:** In production with reverse proxy, this may be a relative path
+    - **Development Default:** ``./.dbdata`` (local directory)
+    - **Production:** Use a mounted block storage path (e.g., ``/mnt/junjo-data``).
+
+Logging
+~~~~~~~
+
+``JUNJO_LOG_LEVEL``
+    Minimum severity level for logs.
+
+    - Values: ``debug``, ``info`` (default), ``warn``, ``error``.
+
+``JUNJO_LOG_FORMAT``
+    Output format for logs.
+
+    - ``json`` (default): Machine-readable, recommended for production.
+    - ``text``: Human-readable, colored output for development.
+
+Production URLs (Required for Production)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When ``JUNJO_ENV=production``, these variables configure public access points.
+
+``JUNJO_PROD_FRONTEND_URL``
+    The public URL where users access the web UI (e.g., ``https://app.example.com``).
+
+``JUNJO_PROD_BACKEND_URL``
+    The public URL for the backend API (e.g., ``https://api.example.com``). Must share the same root domain as the frontend.
+
+``JUNJO_PROD_INGESTION_URL``
+    The public URL for the ingestion service (e.g., ``https://ingestion.example.com``).
+
+AI Service Keys (Optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+API keys for LLM features in the prompt playground.
+
+- ``GEMINI_API_KEY``
+- ``OPENAI_API_KEY``
+- ``ANTHROPIC_API_KEY``
 
 Volume Mounts
 -------------
@@ -341,7 +311,7 @@ These ports need to be accessible:
 
 - Frontend: ``https://junjo.example.com`` (Web UI)
 - Backend API: ``https://api.junjo.example.com`` (API)
-- Ingestion: ``grpc.junjo.example.com:443`` (gRPC with TLS)
+- Ingestion: ``ingestion.junjo.example.com`` (gRPC with TLS - see Caddyfile routing example)
 
 See :doc:`deployment` for production deployment examples with Caddy reverse proxy.
 
@@ -350,25 +320,11 @@ Resource Requirements
 
 Junjo AI Studio is designed to run on minimal resources:
 
-**Minimum:**
+**Minimum Recommended Resources:**
 
 - **CPU:** 1 shared vCPU
 - **RAM:** 1 GB
 - **Storage:** 10 GB (more for long-term trace retention)
-
-**Recommended for Production:**
-
-- **CPU:** 1-2 dedicated vCPUs
-- **RAM:** 2-4 GB
-- **Storage:** 25+ GB on block storage
-- **Network:** 1 Gbps
-
-Database Sizes
-~~~~~~~~~~~~~~
-
-- **BadgerDB (Ingestion):** Write-ahead log, periodically compacted
-- **SQLite (Backend):** Metadata and indexes, grows slowly
-- **DuckDB (Backend):** Analytical data, grows with trace retention
 
 Network Configuration
 ---------------------
@@ -382,18 +338,8 @@ All services should run on the same Docker network for internal communication:
 
     networks:
       junjo-network:
+        name: junjo_network
         driver: bridge
-
-Firewall Rules
-~~~~~~~~~~~~~~
-
-If using a firewall, allow these ports:
-
-- ``1323/tcp`` - Backend API (if accessing directly)
-- ``5153/tcp`` - Frontend web UI
-- ``50051/tcp`` - Ingestion gRPC endpoint
-- ``443/tcp`` - HTTPS (if using reverse proxy)
-- ``80/tcp`` - HTTP (for Let's Encrypt challenges)
 
 Production Deployment
 ---------------------
@@ -412,95 +358,35 @@ Example Caddyfile:
 .. code-block:: text
     :caption: Caddyfile
 
-    # Web UI
-    junjo.example.com {
-        reverse_proxy junjo-ai-studio-frontend:80
-    }
+    # Junjo AI Studio routing block
+    junjo.example.com, *.junjo.example.com {
+      tls your.email@gmail.com {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN} # Created inside CloudFlare and set in the .env file
+        resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin	
+      }
 
-    # Backend API
-    api.junjo.example.com {
+      # backend: api.junjo.example.com
+      @api host api.junjo.example.com
+      handle @api {
         reverse_proxy junjo-ai-studio-backend:1323
-    }
+      }
 
-    # Ingestion gRPC
-    grpc.junjo.example.com {
+      # ingestion: ingestion.junjo.example.com
+      @ingestion host ingestion.junjo.example.com
+      handle @ingestion {
         reverse_proxy h2c://junjo-ai-studio-ingestion:50051
+      }
+
+      # frontend: Fallback for the root domain
+      handle {
+        reverse_proxy junjo-ai-studio-frontend:80
+      }
     }
 
 See the `Junjo AI Studio Deployment Example <https://github.com/mdrideout/junjo-ai-studio-deployment-example>`_ for a complete production setup.
 
-Backup and Recovery
-~~~~~~~~~~~~~~~~~~~
-
-Backup all three database directories regularly:
-
-.. code-block:: bash
-
-    # Backup script example
-    tar -czf junjo-backup-$(date +%Y%m%d).tar.gz \
-        dbdata/sqlite \
-        dbdata/duckdb \
-        dbdata/badgerdb
-
-To restore, stop services, extract backup, and restart:
-
-.. code-block:: bash
-
-    docker compose down
-    tar -xzf junjo-backup-20241012.tar.gz
-    docker compose up -d
-
-Monitoring
-~~~~~~~~~~
-
-Monitor these key metrics:
-
-- **Disk usage:** Database directories
-- **Memory usage:** Each service container
-- **Network traffic:** Port 50051 (ingestion load)
-- **API response time:** Backend health endpoint
-- **Error logs:** ``docker compose logs``
-
-Health Checks
-~~~~~~~~~~~~~
-
-Services include health check endpoints:
-
-- **Backend:** ``http://localhost:1323/health``
-- **Ingestion:** gRPC health probe on port 50051
-
-Example monitoring with curl:
-
-.. code-block:: bash
-
-    # Check backend health
-    curl http://localhost:1323/health
-
-    # Check all services
-    docker compose ps
-
 Scaling Considerations
 ----------------------
-
-Horizontal Scaling
-~~~~~~~~~~~~~~~~~~
-
-For high-volume deployments:
-
-1. **Ingestion Service:** Can run multiple instances behind a load balancer
-2. **Backend Service:** Can run multiple instances with shared database volumes
-3. **Frontend Service:** Static assets, easily cached or CDN-distributed
-
-Example multi-instance configuration:
-
-.. code-block:: yaml
-
-    services:
-      junjo-ai-studio-ingestion:
-        image: mdrideout/junjo-ai-studio-ingestion:latest
-        deploy:
-          replicas: 3
-        # ... rest of configuration
 
 Vertical Scaling
 ~~~~~~~~~~~~~~~~
@@ -510,20 +396,7 @@ For most deployments, vertical scaling is sufficient:
 - Increase CPU/RAM allocation
 - Use faster disk (NVMe SSDs)
 - Increase Docker memory limits
-
-.. code-block:: yaml
-
-    services:
-      junjo-ai-studio-backend:
-        # ... existing config
-        deploy:
-          resources:
-            limits:
-              cpus: '2'
-              memory: 4G
-            reservations:
-              cpus: '1'
-              memory: 2G
+- Split frontend, backend, and ingestion services to separate virtual machines, scaling each's resources as necessary.
 
 Troubleshooting
 ---------------
@@ -545,26 +418,6 @@ Common issues:
 - Port conflicts (check with ``netstat -tlnp``)
 - Permission issues with volume mounts
 - Network not created (``docker network create junjo-network``)
-
-High Memory Usage
-~~~~~~~~~~~~~~~~~
-
-If services consume excessive memory:
-
-- Check BadgerDB size (``du -sh dbdata/badgerdb``)
-- Implement trace retention policies
-- Increase disk swap if needed
-- Add memory limits to docker-compose.yml
-
-Cannot Connect to Ingestion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If applications can't send telemetry:
-
-- Verify port 50051 is accessible: ``telnet localhost 50051``
-- Check firewall rules
-- Verify API key in application matches server
-- Check ingestion service logs for auth errors
 
 API Errors
 ~~~~~~~~~~
