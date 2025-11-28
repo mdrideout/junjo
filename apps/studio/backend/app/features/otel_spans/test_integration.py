@@ -175,7 +175,7 @@ class TestEndToEndSpanQuery:
             span_id="aabbccddeeff0011",
             junjo_id="wf-e2e-test",
         )
-        process_span_batch("my-service", [span])
+        process_span_batch([(span, "my-service")])
 
         # 2. Query via /workflows endpoint
         response = api_client.get("/api/v1/observability/services/my-service/workflows")
@@ -233,7 +233,7 @@ class TestEndToEndSpanQuery:
         )
 
         # 3. Process batch
-        process_span_batch("my-service", [parent, child1, child2])
+        process_span_batch([(parent, "my-service"), (child1, "my-service"), (child2, "my-service")])
 
         # 4. Query via /traces/{traceId}/spans
         response = api_client.get(f"/api/v1/observability/traces/{trace_id}/spans")
@@ -267,9 +267,15 @@ class TestAPIEndpoints:
     def test_list_services_returns_distinct_names(self, api_client, create_workflow_span):
         """Verify /services returns distinct service names alphabetically."""
         # Insert spans from 3 services
-        process_span_batch("service-c", [create_workflow_span(trace_id="c" * 32, span_id="c" * 16)])
-        process_span_batch("service-a", [create_workflow_span(trace_id="a" * 32, span_id="a" * 16)])
-        process_span_batch("service-b", [create_workflow_span(trace_id="b" * 32, span_id="b" * 16)])
+        process_span_batch(
+            [(create_workflow_span(trace_id="c" * 32, span_id="c" * 16), "service-c")]
+        )
+        process_span_batch(
+            [(create_workflow_span(trace_id="a" * 32, span_id="a" * 16), "service-a")]
+        )
+        process_span_batch(
+            [(create_workflow_span(trace_id="b" * 32, span_id="b" * 16), "service-b")]
+        )
 
         response = api_client.get("/api/v1/observability/services")
         assert response.status_code == 200
@@ -290,7 +296,7 @@ class TestAPIEndpoints:
             )
             # Modify timestamp to ensure ordering
             span.start_time_unix_nano = 1699876543000000000 + (i * 1000000000)
-            process_span_batch("my-service", [span])
+            process_span_batch([(span, "my-service")])
 
         # Request with limit=5
         response = api_client.get("/api/v1/observability/services/my-service/spans?limit=5")
@@ -329,7 +335,15 @@ class TestAPIEndpoints:
             trace_id=trace_id, span_id="bbbb000000000003", parent_span_id="aaaa000000000002"
         )
 
-        process_span_batch("my-service", [root1, root2, child1, child2, child3])
+        process_span_batch(
+            [
+                (root1, "my-service"),
+                (root2, "my-service"),
+                (child1, "my-service"),
+                (child2, "my-service"),
+                (child3, "my-service"),
+            ]
+        )
 
         # Query root spans only
         response = api_client.get("/api/v1/observability/services/my-service/spans/root")
@@ -366,7 +380,7 @@ class TestAPIEndpoints:
             junjo_id="no-llm-root",
         )
 
-        process_span_batch("my-service", [span_with_llm, span_no_llm])
+        process_span_batch([(span_with_llm, "my-service"), (span_no_llm, "my-service")])
 
         # Query with has_llm=true
         response = api_client.get(
@@ -391,8 +405,8 @@ class TestAPIEndpoints:
         node2 = create_node_span(trace_id="4" * 32, span_id="4444" + "0" * 12, node_id="n2")
         node3 = create_node_span(trace_id="5" * 32, span_id="5555" + "0" * 12, node_id="n3")
 
-        process_span_batch("my-service", [wf1, wf2])
-        process_span_batch("my-service", [node1, node2, node3])
+        process_span_batch([(wf1, "my-service"), (wf2, "my-service")])
+        process_span_batch([(node1, "my-service"), (node2, "my-service"), (node3, "my-service")])
 
         # Query workflows
         response = api_client.get("/api/v1/observability/services/my-service/workflows")
@@ -424,7 +438,7 @@ class TestAPIEndpoints:
             for i in range(2)
         ]
 
-        process_span_batch("my-service", target_spans + other_spans)
+        process_span_batch([(s, "my-service") for s in target_spans + other_spans])
 
         # Query target trace
         response = api_client.get(f"/api/v1/observability/traces/{target_trace}/spans")
@@ -443,7 +457,7 @@ class TestAPIEndpoints:
             span_id="aaabbbcccdddeeef",
             junjo_id="single-wf",
         )
-        process_span_batch("my-service", [span])
+        process_span_batch([(span, "my-service")])
 
         # Query specific span
         response = api_client.get(
@@ -483,7 +497,7 @@ class TestDataIntegrity:
         span.start_time_unix_nano = 1699876543123456789  # Specific microseconds
         span.end_time_unix_nano = 1699876544987654321
 
-        process_span_batch("my-service", [span])
+        process_span_batch([(span, "my-service")])
 
         # Query back
         response = api_client.get(
@@ -532,7 +546,7 @@ class TestDataIntegrity:
         )
         span.events.append(event)
 
-        process_span_batch("my-service", [span])
+        process_span_batch([(span, "my-service")])
 
         # Query back
         response = api_client.get(
@@ -559,7 +573,7 @@ class TestDataIntegrity:
             span_id="bbbb333344445555",
             has_state=True,
         )
-        process_span_batch("my-service", [span])
+        process_span_batch([(span, "my-service")])
 
         response = api_client.get(
             "/api/v1/observability/traces/bbbb3333444455556666777788889999aa/spans/bbbb333344445555"
@@ -581,7 +595,7 @@ class TestDataIntegrity:
             trace_id="AABBCCDDEEFF00112233445566778899",  # Uppercase input
             span_id="AABBCCDDEEFF0011",
         )
-        process_span_batch("my-service", [span])
+        process_span_batch([(span, "my-service")])
 
         response = api_client.get(
             "/api/v1/observability/traces/aabbccddeeff00112233445566778899/spans"

@@ -463,32 +463,37 @@ def process_state_patches(
                 # Python: match Go behavior (don't raise)
 
 
-def process_span_batch(service_name: str, spans: list[trace_pb2.Span]) -> None:
+def process_span_batch(spans_with_service_names: list[tuple[trace_pb2.Span, str]]) -> None:
     """Process batch of OTLP spans in a single transaction.
 
     This is the main entry point for span processing. It:
     1. Opens a DuckDB connection with context manager
     2. Begins a transaction
-    3. Processes each span (insert span + extract state patches)
+    3. Processes each span with its correct service_name (insert span + extract state patches)
     4. Commits transaction on success, rollback on error
 
     Args:
-        service_name: Service name from resource
-        spans: List of OTLP Span protobufs
+        spans_with_service_names: List of (span, service_name) tuples where each span
+            has its own service_name extracted from its resource attributes
 
     Raises:
         Exception: If any span processing fails (entire batch rolls back)
 
     Reference: otel_span_processor.go:280-305
     """
-    if not spans:
+    if not spans_with_service_names:
         return
+
+    # Count services for logging
+    from collections import Counter
+
+    service_counts = Counter(service_name for _, service_name in spans_with_service_names)
 
     with get_connection() as conn:
         try:
             conn.execute("BEGIN TRANSACTION")
 
-            for span in spans:
+            for span, service_name in spans_with_service_names:
                 # Process span and get identifiers for state patches
                 trace_id, span_id, workflow_id, node_id = process_single_span(
                     conn, service_name, span
@@ -500,7 +505,10 @@ def process_span_batch(service_name: str, spans: list[trace_pb2.Span]) -> None:
                 )
 
             conn.execute("COMMIT")
-            logger.info(f"Successfully processed batch of {len(spans)} spans")
+            logger.info(
+                f"Processed batch of {len(spans_with_service_names)} spans",
+                extra={"service_counts": dict(service_counts)},
+            )
 
         except Exception as e:
             conn.execute("ROLLBACK")
@@ -509,8 +517,8 @@ def process_span_batch(service_name: str, spans: list[trace_pb2.Span]) -> None:
                 extra={
                     "error": str(e),
                     "error_type": type(e).__name__,
-                    "batch_size": len(spans),
-                    "service_name": service_name,
+                    "batch_size": len(spans_with_service_names),
+                    "service_counts": dict(service_counts),
                 },
             )
             raise

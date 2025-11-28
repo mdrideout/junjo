@@ -339,7 +339,7 @@ class TestSpanProcessorIntegration:
         span = self.create_workflow_span()
 
         # Process span batch
-        process_span_batch(service_name, [span])
+        process_span_batch([(span, service_name)])
 
         # Verify span was inserted (using simpler queries to avoid pytz requirement)
         with get_connection() as conn:
@@ -396,7 +396,7 @@ class TestSpanProcessorIntegration:
         span = self.create_workflow_span()
 
         # Process span batch
-        process_span_batch(service_name, [span])
+        process_span_batch([(span, service_name)])
 
         # Verify state patch was inserted
         with get_connection() as conn:
@@ -425,7 +425,7 @@ class TestSpanProcessorIntegration:
         span = self.create_node_span()
 
         # Process span batch
-        process_span_batch(service_name, [span])
+        process_span_batch([(span, service_name)])
 
         # Verify span was inserted
         with get_connection() as conn:
@@ -446,7 +446,7 @@ class TestSpanProcessorIntegration:
         node_span = self.create_node_span()
 
         # Process both spans in one batch
-        process_span_batch(service_name, [workflow_span, node_span])
+        process_span_batch([(workflow_span, service_name), (node_span, service_name)])
 
         # Verify both were inserted
         with get_connection() as conn:
@@ -463,8 +463,8 @@ class TestSpanProcessorIntegration:
         span = self.create_workflow_span()
 
         # Process same span twice
-        process_span_batch(service_name, [span])
-        process_span_batch(service_name, [span])
+        process_span_batch([(span, service_name)])
+        process_span_batch([(span, service_name)])
 
         # Verify only one span exists
         with get_connection() as conn:
@@ -474,6 +474,52 @@ class TestSpanProcessorIntegration:
             ).fetchone()[0]
 
             assert count == 1  # Should only have one span, not two
+
+    def test_mixed_service_batch_correctly_tagged(self):
+        """Test that spans from different services in the same batch get correct service_name.
+
+        This is a regression test for the cross-service contamination bug where
+        all spans in a batch would get the service_name from the first span.
+        """
+        # Create 3 spans from different services
+        span1 = self.create_workflow_span()
+        span2 = self.create_node_span()
+        span3 = self.create_workflow_span()
+
+        # Change span IDs to make them unique
+        span1.span_id = bytes.fromhex("1111000000000001")
+        span2.span_id = bytes.fromhex("2222000000000001")
+        span3.span_id = bytes.fromhex("3333000000000001")
+
+        # Process all 3 spans in ONE batch with DIFFERENT service names
+        # This simulates the bug scenario: concurrent apps sending spans
+        process_span_batch(
+            [
+                (span1, "Junjo Base Example"),
+                (span2, "Junjo Deployment Example"),
+                (span3, "Another Service"),
+            ]
+        )
+
+        # Verify EACH span got its CORRECT service_name (not the first span's service_name)
+        with get_connection() as conn:
+            result1 = conn.execute(
+                "SELECT service_name FROM spans WHERE span_id = ?",
+                (span1.span_id.hex(),),
+            ).fetchone()
+            assert result1[0] == "Junjo Base Example"
+
+            result2 = conn.execute(
+                "SELECT service_name FROM spans WHERE span_id = ?",
+                (span2.span_id.hex(),),
+            ).fetchone()
+            assert result2[0] == "Junjo Deployment Example"  # NOT "Junjo Base Example"!
+
+            result3 = conn.execute(
+                "SELECT service_name FROM spans WHERE span_id = ?",
+                (span3.span_id.hex(),),
+            ).fetchone()
+            assert result3[0] == "Another Service"  # NOT "Junjo Base Example"!
 
 
 if __name__ == "__main__":

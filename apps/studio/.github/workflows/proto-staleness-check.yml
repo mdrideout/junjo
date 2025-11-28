@@ -1,8 +1,9 @@
-# This workflow validates that proto files are up-to-date in the repository.
-# It regenerates proto files and fails if any changes are detected.
-# This ensures developers cannot push stale proto code.
+# This workflow validates that generated proto files match their source .proto files.
+# It regenerates proto files and fails if any changes are detected (staleness check).
+# It also checks for orphaned schemas (generated code without source proto files).
+# This ensures developers cannot push stale or corrupted proto code.
 
-name: Validate Proto Files
+name: Proto Staleness Check
 
 on:
   pull_request:
@@ -67,6 +68,12 @@ jobs:
         run: |
           cd backend
           ./scripts/generate_proto.sh
+          cd ..
+
+      - name: Check for orphaned proto schemas
+        run: |
+          cd ingestion
+          make proto-check-orphans
           cd ..
 
       - name: Check for uncommitted changes

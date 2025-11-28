@@ -7,8 +7,8 @@
 # 3. Runs frontend contract tests to validate Zod schemas match OpenAPI
 #
 # Usage:
-#   From backend directory:  ./scripts/ci_validate_schemas.sh
-#   From repo root:          ./backend/scripts/ci_validate_schemas.sh
+#   From backend directory:  ./scripts/validate_rest_api_contracts.sh
+#   From repo root:          ./backend/scripts/validate_rest_api_contracts.sh
 #
 # Exit codes:
 #   0 - Validation passed

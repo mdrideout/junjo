@@ -1,4 +1,4 @@
-name: API Schema Validation
+name: REST API Contract Validation
 
 on:
   push:
@@ -6,22 +6,22 @@ on:
     paths:
       - 'backend/app/**/schemas.py'
       - 'backend/scripts/export_openapi_schema.py'
-      - 'backend/scripts/ci_validate_schemas.sh'
+      - 'backend/scripts/validate_rest_api_contracts.sh'
       - 'frontend/src/**/*schema*.ts'
       - 'frontend/src/__tests__/contracts/**'
-      - '.github/workflows/schema-validation.yml'
+      - '.github/workflows/rest-api-contract-validation.yml'
   pull_request:
     paths:
       - 'backend/app/**/schemas.py'
       - 'backend/scripts/export_openapi_schema.py'
-      - 'backend/scripts/ci_validate_schemas.sh'
+      - 'backend/scripts/validate_rest_api_contracts.sh'
       - 'frontend/src/**/*schema*.ts'
       - 'frontend/src/__tests__/contracts/**'
   workflow_dispatch:  # Allow manual triggers
 
 jobs:
-  validate-schemas:
-    name: Validate API Schemas (Frontend ↔ Backend)
+  validate-rest-api-contracts:
+    name: Validate REST API Contracts (Frontend ↔ Backend OpenAPI/Zod)
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -63,8 +63,8 @@ jobs:
           JUNJO_SESSION_SECRET: ${{ secrets.JUNJO_SESSION_SECRET }}
           JUNJO_SECURE_COOKIE_KEY: ${{ secrets.JUNJO_SECURE_COOKIE_KEY }}
         run: |
-          chmod +x scripts/ci_validate_schemas.sh
-          ./scripts/ci_validate_schemas.sh
+          chmod +x scripts/validate_rest_api_contracts.sh
+          ./scripts/validate_rest_api_contracts.sh
 
       - name: Upload OpenAPI schema on failure
         if: failure()

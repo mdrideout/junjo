@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fingestion.proto\x12\tingestion\">\n\x10ReadSpansRequest\x12\x16\n\x0estart_key_ulid\x18\x01 \x01(\x0c\x12\x12\n\nbatch_size\x18\x02 \x01(\r\"Q\n\x11ReadSpansResponse\x12\x10\n\x08key_ulid\x18\x01 \x01(\x0c\x12\x12\n\nspan_bytes\x18\x02 \x01(\x0c\x12\x16\n\x0eresource_bytes\x18\x03 \x01(\x0c\x32\x66\n\x18InternalIngestionService\x12J\n\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x00\x30\x01\x42\rZ\x0b.;proto_genb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fingestion.proto\x12\tingestion\">\n\x10ReadSpansRequest\x12\x16\n\x0estart_key_ulid\x18\x01 \x01(\x0c\x12\x12\n\nbatch_size\x18\x02 \x01(\r\"j\n\x11ReadSpansResponse\x12\x10\n\x08key_ulid\x18\x01 \x01(\x0c\x12\x12\n\nspan_bytes\x18\x02 \x01(\x0c\x12\x16\n\x0eresource_bytes\x18\x03 \x01(\x0c\x12\x17\n\x0fremaining_count\x18\x04 \x01(\x04\x32\x66\n\x18InternalIngestionService\x12J\n\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x00\x30\x01\x42\rZ\x0b.;proto_genb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,7 +35,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_READSPANSREQUEST']._serialized_start=30
   _globals['_READSPANSREQUEST']._serialized_end=92
   _globals['_READSPANSRESPONSE']._serialized_start=94
-  _globals['_READSPANSRESPONSE']._serialized_end=175
-  _globals['_INTERNALINGESTIONSERVICE']._serialized_start=177
-  _globals['_INTERNALINGESTIONSERVICE']._serialized_end=279
+  _globals['_READSPANSRESPONSE']._serialized_end=200
+  _globals['_INTERNALINGESTIONSERVICE']._serialized_start=202
+  _globals['_INTERNALINGESTIONSERVICE']._serialized_end=304
 # @@protoc_insertion_point(module_scope)

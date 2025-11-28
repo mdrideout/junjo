@@ -1,0 +1,12 @@
+# Junjo OTLP Exporter Configuration
+exporter:
+  host: "localhost"
+  port: "50051"
+  api_key: "your_api_key_here"
+  service_name: "default-service"  # Overridden by CLI
+  insecure: true  # Set false for production with TLS
+
+# App Configuration
+app:
+  num_workflows: 1  # Default, overridden by CLI
+  log_level: "INFO"

@@ -87,8 +87,11 @@ type ReadSpansResponse struct {
 	SpanBytes []byte `protobuf:"bytes,2,opt,name=span_bytes,json=spanBytes,proto3" json:"span_bytes,omitempty"`
 	// The raw, serialized protobuf bytes of the OTel resource.
 	ResourceBytes []byte `protobuf:"bytes,3,opt,name=resource_bytes,json=resourceBytes,proto3" json:"resource_bytes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// The number of spans remaining in the WAL after this batch was retrieved.
+	// This count is decremented atomically when the batch is read.
+	RemainingCount uint64 `protobuf:"varint,4,opt,name=remaining_count,json=remainingCount,proto3" json:"remaining_count,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReadSpansResponse) Reset() {
@@ -142,6 +145,13 @@ func (x *ReadSpansResponse) GetResourceBytes() []byte {
 	return nil
 }
 
+func (x *ReadSpansResponse) GetRemainingCount() uint64 {
+	if x != nil {
+		return x.RemainingCount
+	}
+	return 0
+}
+
 var File_ingestion_proto protoreflect.FileDescriptor
 
 const file_ingestion_proto_rawDesc = "" +
@@ -150,12 +160,13 @@ const file_ingestion_proto_rawDesc = "" +
 	"\x10ReadSpansRequest\x12$\n" +
 	"\x0estart_key_ulid\x18\x01 \x01(\fR\fstartKeyUlid\x12\x1d\n" +
 	"\n" +
-	"batch_size\x18\x02 \x01(\rR\tbatchSize\"t\n" +
+	"batch_size\x18\x02 \x01(\rR\tbatchSize\"\x9d\x01\n" +
 	"\x11ReadSpansResponse\x12\x19\n" +
 	"\bkey_ulid\x18\x01 \x01(\fR\akeyUlid\x12\x1d\n" +
 	"\n" +
 	"span_bytes\x18\x02 \x01(\fR\tspanBytes\x12%\n" +
-	"\x0eresource_bytes\x18\x03 \x01(\fR\rresourceBytes2f\n" +
+	"\x0eresource_bytes\x18\x03 \x01(\fR\rresourceBytes\x12'\n" +
+	"\x0fremaining_count\x18\x04 \x01(\x04R\x0eremainingCount2f\n" +
 	"\x18InternalIngestionService\x12J\n" +
 	"\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x000\x01B\rZ\v.;proto_genb\x06proto3"
 

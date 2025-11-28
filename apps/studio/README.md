@@ -208,7 +208,7 @@ The `backend` service polls the `ingestion`'s internal gRPC API to read batches 
 
 ---
 
-## Prerequisites
+## Prerequisites 
 
 ### Required
 - **Docker** and **Docker Compose** (for both development and production)
@@ -548,10 +548,12 @@ Junjo AI Studio has comprehensive test coverage across all services. Tests are o
 ```
 
 This script runs:
-1. **Backend tests** (unit, integration, gRPC) - Python/pytest
-2. **Frontend tests** (unit, integration, component) - TypeScript/Vitest
-3. **Contract tests** (API schema validation) - Validates frontend ↔ backend compatibility
-4. **Proto validation** - Ensures protobuf files are up-to-date
+0. **Proto version checking** - Warns if protoc version doesn't match required v30.2
+1. **Python linting** - Runs ruff check on backend code (matches pre-commit validation)
+2. **Backend tests** - Unit, integration, and gRPC tests (Python/pytest)
+3. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest)
+4. **Contract tests** - Validates frontend ↔ backend API schema compatibility
+5. **Proto validation** - Regenerates protos, checks for orphaned schemas, validates staleness
 
 ### Test Scripts Organization
 
@@ -560,7 +562,7 @@ This script runs:
 
 **Backend-specific:**
 - `./backend/scripts/run-backend-tests.sh` - All backend tests (unit, integration, gRPC)
-- `./backend/scripts/ci_validate_schemas.sh` - Contract tests (schema validation)
+- `./backend/scripts/validate_rest_api_contracts.sh` - Contract tests (schema validation)
 
 **Frontend-specific:**
 - `cd frontend && npm run test:run` - All frontend tests (exits after completion)
@@ -571,6 +573,62 @@ This script runs:
 - Backend: See [backend/README.md](backend/README.md#testing) for detailed test categories
 - Frontend: See [frontend/README.md](frontend/README.md) for component testing
 - Ingestion: See [ingestion/README.md](ingestion/README.md) for Go tests
+
+### Development Workflow & Validation
+
+Understanding what each validation tool does helps avoid surprises at commit time.
+
+#### What Each Tool Does
+
+| Validation | run-all-tests.sh | pre-commit hook | CI (GitHub Actions) |
+|------------|------------------|-----------------|---------------------|
+| **Proto version check** | ✅ Warns | ✅ Warns | ✅ Enforces |
+| **Python linting (ruff)** | ✅ Fails | ✅ Auto-fixes + fails | ✅ Enforces |
+| **Backend tests** | ✅ Runs all | ❌ | ✅ Enforces |
+| **Frontend tests** | ✅ Runs all | ❌ | ✅ Enforces |
+| **Contract tests** | ✅ Validates | ❌ | ✅ Enforces |
+| **Proto regeneration** | ✅ Regenerates | ✅ Regenerates + stages | ✅ Checks staleness |
+| **Proto orphan detection** | ✅ Fails | ✅ Fails | ✅ Enforces |
+| **Proto staleness check** | ✅ Fails on diff | ❌ (auto-fixes) | ✅ Enforces |
+
+#### Recommended Workflow
+
+**During development (before committing):**
+
+```bash
+# Option 1: Run everything at once (recommended)
+./run-all-tests.sh
+
+# Option 2: Run individual validations
+cd backend && uv run ruff check app/          # Linting
+./backend/scripts/run-backend-tests.sh        # Backend tests
+cd frontend && npm test                       # Frontend tests
+./backend/scripts/validate_rest_api_contracts.sh  # Contracts
+```
+
+**At commit time:**
+
+```bash
+git commit
+# Pre-commit hook runs automatically:
+# - Checks proto versions (warns if wrong)
+# - Regenerates proto files (stages changes)
+# - Runs orphan detection (blocks if missing .proto files)
+# - Runs ruff format (auto-fixes Python style)
+# - Runs ruff check (blocks if linting errors)
+```
+
+**Philosophy:**
+
+- **run-all-tests.sh**: Comprehensive validation during development - catches issues early
+- **pre-commit hook**: Safety net + auto-fixes - ensures commit quality
+- **CI**: Final enforcement - prevents merging broken code
+
+**Why run-all-tests.sh matches pre-commit:**
+
+Previously, run-all-tests.sh could pass but pre-commit would fail (orphaned schemas, linting errors). This wasted developer time debugging at commit stage. Now both tools perform the same core validations, with pre-commit adding auto-fixes.
+
+**Result:** No surprises at commit time. If run-all-tests.sh passes, pre-commit will too (except for auto-fixable style issues).
 
 ### Contract Testing
 
@@ -584,7 +642,7 @@ Junjo AI Studio uses **contract testing** to prevent frontend/backend API drift.
 
 **Run contract tests:**
 ```bash
-./backend/scripts/ci_validate_schemas.sh
+./backend/scripts/validate_rest_api_contracts.sh
 ```
 
 See [backend/scripts/README_SCHEMA_VALIDATION.md](backend/scripts/README_SCHEMA_VALIDATION.md) for detailed documentation.
@@ -593,8 +651,8 @@ See [backend/scripts/README_SCHEMA_VALIDATION.md](backend/scripts/README_SCHEMA_
 
 Tests run automatically on all PRs via GitHub Actions:
 - `.github/workflows/backend-tests.yml` - Backend test suite
-- `.github/workflows/schema-validation.yml` - Contract tests
-- `.github/workflows/validate-proto.yml` - Proto file validation
+- `.github/workflows/rest-api-contract-validation.yml` - REST API contract tests
+- `.github/workflows/proto-staleness-check.yml` - Proto file validation
 
 ---
 

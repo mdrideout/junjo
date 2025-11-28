@@ -5,11 +5,13 @@ on:
     branches: [main, master]
     paths:
       - 'backend/**'
+      - 'ingestion/**'
       - 'proto/**'
       - '.github/workflows/backend-tests.yml'
   pull_request:
     paths:
       - 'backend/**'
+      - 'ingestion/**'
       - 'proto/**'
       - '.github/workflows/backend-tests.yml'
   workflow_dispatch:  # Allow manual triggers
@@ -19,7 +21,7 @@ jobs:
     name: Run Backend Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Note: Proto files are validated by validate-proto.yml workflow
+    # Note: Proto files are validated by proto-staleness-check.yml workflow
     # This job assumes proto files are already generated and committed
 
     steps:
@@ -105,3 +107,22 @@ jobs:
         working-directory: backend
         run: |
           uv run ruff format app/ --check
+
+  go-tests:
+    name: Run Go (Ingestion) Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: ingestion/go.sum
+
+      - name: Run Go tests
+        working-directory: ingestion
+        run: go test -v ./...

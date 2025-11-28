@@ -5,6 +5,9 @@ tmp
 # Environment variables
 .env
 
+# E2E test app config (users should copy from config.yaml.example)
+e2e_test_apps/app/config.yaml
+
 # Database files
 # All local/dev database data stored in .dbdata/ directory:
 #   .dbdata/sqlite/     - SQLite databases (Python/Go backends)

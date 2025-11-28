@@ -100,6 +100,19 @@ generate_go_proto() {
   else
     echo "  ✓ Go proto files already up-to-date"
   fi
+
+  # Verify no orphaned schemas (missing .proto source files)
+  echo "  → Verifying proto schemas..."
+  if make proto-check-orphans > /dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${NC} Proto schema verification passed"
+  else
+    echo -e "  ${RED}❌ Orphaned proto schemas detected!${NC}"
+    echo ""
+    make proto-check-orphans  # Show detailed output
+    echo ""
+    echo -e "${YELLOW}Fix: Restore missing .proto files or run 'cd ingestion && make proto-clean'${NC}"
+    return 1
+  fi
 }
 
 # Function to generate Python proto files for backend

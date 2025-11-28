@@ -1,0 +1,32 @@
+{
+  "config": {
+    "num_services": 15,
+    "num_cycles": 75,
+    "duration_seconds": 30,
+    "concurrency": 15
+  },
+  "services": [
+    "brawny-independent-sloth",
+    "acrid-intrepid-albatross",
+    "quiet-kangaroo-of-thunder",
+    "industrious-panther-of-bloom",
+    "analytic-wisteria-seagull",
+    "tall-rebel-rook",
+    "auburn-copperhead-of-enrichment",
+    "ruddy-foamy-mongrel",
+    "interesting-peridot-sturgeon",
+    "tricky-groundhog-of-popularity",
+    "stoat-of-eminent-bliss",
+    "khaki-hare-of-feminism",
+    "secret-intrepid-pigeon",
+    "perfect-imaginary-whale",
+    "utopian-silkworm-of-promise"
+  ],
+  "results": {
+    "total_workflows": 1125,
+    "cycles_completed": 75,
+    "workflows_per_service": 75,
+    "duration_seconds": 35.01,
+    "throughput": 32.13
+  }
+}

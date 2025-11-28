@@ -47,7 +47,7 @@ const result = ListUsersResponseSchema.parse(mock) // ✅ or ❌
 - Frontend Zod schema can't parse it → **Test fails ❌**
 - Developer updates frontend schema → Test passes ✅
 
-### 4. CI/CD Integration (`ci_validate_schemas.sh`)
+### 4. CI/CD Integration (`validate_rest_api_contracts.sh`)
 
 ```bash
 1. Export OpenAPI schema from backend
@@ -61,7 +61,7 @@ const result = ListUsersResponseSchema.parse(mock) // ✅ or ❌
 
 ```bash
 cd backend
-./scripts/ci_validate_schemas.sh
+./scripts/validate_rest_api_contracts.sh
 ```
 
 Or run frontend tests directly:
@@ -77,7 +77,7 @@ npm run test:contracts
 - name: Validate API Schemas
   run: |
     cd backend
-    ./scripts/ci_validate_schemas.sh
+    ./scripts/validate_rest_api_contracts.sh
 ```
 
 ## What It Catches
@@ -143,6 +143,6 @@ Everything else is auto-generated:
 ## Files
 
 - `export_openapi_schema.py` - Generate OpenAPI from FastAPI
-- `ci_validate_schemas.sh` - Run full validation pipeline
+- `validate_rest_api_contracts.sh` - Run full validation pipeline
 - `frontend/src/auth/test-utils/openapi-mock-generator.ts` - openapi-backend wrapper
 - `frontend/src/__tests__/contracts/` - Contract validation tests

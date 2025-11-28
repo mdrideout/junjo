@@ -11,12 +11,11 @@ Port of: backend/main.go:78-160
 import asyncio
 
 from loguru import logger
-from opentelemetry.proto.resource.v1 import resource_pb2
-from opentelemetry.proto.trace.v1 import trace_pb2
 
 from app.config.settings import settings
 from app.db_sqlite.db_config import async_session
 from app.db_sqlite.poller_state.repository import PollerStateRepository
+from app.features.span_ingestion.batch_preparation import unmarshal_spans_with_service_names
 from app.features.span_ingestion.ingestion_client import IngestionClient
 from app.features.span_ingestion.span_processor import process_span_batch
 
@@ -28,9 +27,8 @@ async def span_ingestion_poller() -> None:
     1. Loads last_key from SQLite on startup (or starts from beginning)
     2. Every SPAN_POLL_INTERVAL seconds:
        - Reads spans from ingestion service
-       - Unmarshals OTLP protobufs
-       - Extracts service_name from resource
-       - Processes spans in batch (inserts to DuckDB)
+       - Unmarshals OTLP protobufs and extracts per-span service_name
+       - Processes spans in batch with correct service names (inserts to DuckDB)
        - Updates last_key in SQLite on success
     3. Handles errors gracefully (logs and continues)
     4. Supports graceful shutdown (cancellation)
@@ -69,85 +67,75 @@ async def span_ingestion_poller() -> None:
                 logger.debug("Polling for new spans")
 
                 # 1. Read spans from ingestion service
-                spans_with_resources = await client.read_spans(
+                spans_with_resources, remaining_count = await client.read_spans(
                     last_key, batch_size=settings.span_ingestion.SPAN_BATCH_SIZE
                 )
 
                 if not spans_with_resources:
-                    logger.debug("No new spans found")
-                    continue
-
-                logger.info(f"Received {len(spans_with_resources)} spans from ingestion service")
-
-                # 2. Update last_key for next poll
-                last_key = spans_with_resources[-1].key_ulid
-
-                # 3. Unmarshal span protobufs
-                processed_spans = []
-                for span_with_resource in spans_with_resources:
-                    try:
-                        span = trace_pb2.Span()
-                        span.ParseFromString(span_with_resource.span_bytes)
-                        processed_spans.append(span)
-                    except Exception as e:
-                        logger.warning(
-                            "Error unmarshaling span",
-                            extra={
-                                "key_ulid": span_with_resource.key_ulid.hex(),
-                                "error": str(e),
-                                "error_type": type(e).__name__,
-                            },
-                        )
-                        continue  # Skip corrupted span
-
-                if not processed_spans:
-                    logger.warning(
-                        "All spans failed to unmarshal, skipping batch",
-                        extra={"received": len(spans_with_resources)},
+                    logger.debug(
+                        "No new spans found",
+                        extra={"remaining_unretrieved": remaining_count},
                     )
                     continue
 
-                # 4. Extract service_name from first span's resource
-                service_name = "NO_SERVICE_NAME"
-                if spans_with_resources:
-                    try:
-                        resource = resource_pb2.Resource()
-                        resource.ParseFromString(spans_with_resources[0].resource_bytes)
+                logger.info(
+                    f"Received {len(spans_with_resources)} spans from ingestion service",
+                    extra={"remaining_unretrieved": remaining_count},
+                )
 
-                        for attr in resource.attributes:
-                            if attr.key == "service.name" and attr.value.HasField("string_value"):
-                                service_name = attr.value.string_value
-                                break
+                # 2. Update last_key for next poll (even if spans are empty/corrupted)
+                last_key = spans_with_resources[-1].key_ulid
 
-                        if service_name == "NO_SERVICE_NAME":
-                            logger.warning(
-                                "No service.name attribute found in resource, using default"
-                            )
-                    except Exception as e:
-                        logger.warning(
-                            "Error extracting service name, using default",
-                            extra={
-                                "error": str(e),
-                                "error_type": type(e).__name__,
-                            },
-                        )
+                # 3. Filter out dummy cursor-advancing spans (empty span_bytes)
+                real_spans = [s for s in spans_with_resources if s.span_bytes]
 
-                # 5. Process spans in batch (with transaction)
+                if not real_spans:
+                    # All spans were corrupted/empty - cursor was advanced automatically
+                    logger.info(
+                        "Cursor advanced past corrupted spans, no processable data in batch",
+                        extra={
+                            "batch_size": len(spans_with_resources),
+                            "remaining_unretrieved": remaining_count,
+                            "last_key": last_key.hex(),
+                        },
+                    )
+                    # Save the advanced cursor position
+                    async with async_session() as session:
+                        repo = PollerStateRepository(session)
+                        await repo.upsert_last_key(last_key)
+                        await session.commit()
+                    continue
+
+                # 4. Unmarshal spans and extract per-span service names
+                spans_with_service_names = unmarshal_spans_with_service_names(real_spans)
+
+                if not spans_with_service_names:
+                    logger.warning(
+                        "All spans failed to unmarshal, skipping batch",
+                        extra={"received": len(real_spans)},
+                    )
+                    # Still save cursor to avoid infinite retry
+                    async with async_session() as session:
+                        repo = PollerStateRepository(session)
+                        await repo.upsert_last_key(last_key)
+                        await session.commit()
+                    continue
+
+                # 4. Process spans in batch (single transaction, correct service names)
                 try:
-                    process_span_batch(service_name, processed_spans)
+                    process_span_batch(spans_with_service_names)
 
-                    # 6. Save poller state on success
+                    # 5. Save poller state on success
                     async with async_session() as session:
                         repo = PollerStateRepository(session)
                         await repo.upsert_last_key(last_key)
                         await session.commit()
 
                     logger.info(
-                        f"Successfully processed batch of {len(processed_spans)} spans, state saved",
+                        f"Successfully processed batch of {len(spans_with_service_names)} spans, state saved",
                         extra={
-                            "processed": len(processed_spans),
+                            "processed": len(spans_with_service_names),
                             "last_key": last_key.hex(),
-                            "service_name": service_name,
                         },
                     )
 
@@ -155,8 +143,7 @@ async def span_ingestion_poller() -> None:
                     logger.error(
                         "Error processing spans",
                         extra={
-                            "batch_size": len(processed_spans),
-                            "service_name": service_name,
+                            "batch_size": len(spans_with_service_names),
                             "error": str(e),
                             "error_type": type(e).__name__,
                         },

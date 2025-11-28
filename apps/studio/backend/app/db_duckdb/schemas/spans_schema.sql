@@ -34,3 +34,6 @@ CREATE INDEX IF NOT EXISTS idx_start_time ON spans (start_time);
 CREATE INDEX IF NOT EXISTS idx_end_time ON spans (end_time);
 CREATE INDEX IF NOT EXISTS idx_junjo_id ON spans (junjo_id);
 CREATE INDEX IF NOT EXISTS idx_junjo_span_type ON spans (junjo_span_type);
+-- Service-based query optimization
+CREATE INDEX IF NOT EXISTS idx_service_name ON spans (service_name);
+CREATE INDEX IF NOT EXISTS idx_service_junjo_type ON spans (service_name, junjo_span_type);

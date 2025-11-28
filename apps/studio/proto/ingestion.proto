@@ -33,4 +33,8 @@ message ReadSpansResponse {
 
   // The raw, serialized protobuf bytes of the OTel resource.
   bytes resource_bytes = 3;
+
+  // The number of spans remaining in the WAL after this batch was retrieved.
+  // This count is decremented atomically when the batch is read.
+  uint64 remaining_count = 4;
 }

@@ -109,7 +109,7 @@ curl http://localhost:1323/ping
 ./backend/scripts/run-backend-tests.sh
 
 # Run contract tests (schema validation)
-./backend/scripts/ci_validate_schemas.sh
+./backend/scripts/validate_rest_api_contracts.sh
 ```
 
 **All project tests:**
@@ -293,7 +293,7 @@ The backend uses **contract testing** to ensure frontend and backend schemas sta
 
 ```bash
 # From backend directory
-./scripts/ci_validate_schemas.sh
+./scripts/validate_rest_api_contracts.sh
 ```
 
 This script:

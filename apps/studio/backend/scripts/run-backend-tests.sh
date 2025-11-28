@@ -40,27 +40,67 @@ echo
 
 # Run gRPC integration tests (requires server)
 echo "=== gRPC Integration Tests ==="
-echo "Running migrations..."
-uv run alembic upgrade head
 
-echo "Starting backend server..."
-uv run uvicorn app.main:app --host 0.0.0.0 --port 1323 > /tmp/backend-test.log 2>&1 &
-SERVER_PID=$!
+# Check if required ports are available
+PORT_1323_PID=$(lsof -ti :1323 2>/dev/null || true)
+PORT_50053_PID=$(lsof -ti :50053 2>/dev/null || true)
 
-sleep 5
-curl -s http://localhost:1323/health > /dev/null || {
-    echo "❌ Server failed to start"
-    cat /tmp/backend-test.log
+if [ -n "$PORT_1323_PID" ] || [ -n "$PORT_50053_PID" ]; then
+    echo ""
+    echo "⚠️  Required ports are in use (needed for gRPC integration tests)"
+    echo ""
+    [ -n "$PORT_1323_PID" ] && echo "   Port 1323 (HTTP):  PID $PORT_1323_PID"
+    [ -n "$PORT_50053_PID" ] && echo "   Port 50053 (gRPC): PID $PORT_50053_PID"
+    echo ""
+    echo "Options:"
+    echo "  [k] Kill processes and continue"
+    echo "  [s] Skip gRPC tests and continue"
+    echo "  [q] Quit"
+    echo ""
+    read -p "Choice [k/s/q]: " choice
+    case "$choice" in
+        k|K)
+            echo "Killing processes..."
+            [ -n "$PORT_1323_PID" ] && kill -9 $PORT_1323_PID 2>/dev/null || true
+            [ -n "$PORT_50053_PID" ] && kill -9 $PORT_50053_PID 2>/dev/null || true
+            sleep 1  # Give OS time to release ports
+            ;;
+        s|S)
+            echo "Skipping gRPC tests..."
+            GRPC_RESULT=0  # Mark as passed (skipped)
+            # Jump to summary by setting a flag
+            SKIP_GRPC=1
+            ;;
+        *)
+            echo "Exiting."
+            exit 1
+            ;;
+    esac
+fi
+
+if [ "${SKIP_GRPC:-0}" != "1" ]; then
+    echo "Running migrations..."
+    uv run alembic upgrade head
+
+    echo "Starting backend server..."
+    uv run uvicorn app.main:app --host 0.0.0.0 --port 1323 > /tmp/backend-test.log 2>&1 &
+    SERVER_PID=$!
+
+    sleep 5
+    curl -s http://localhost:1323/health > /dev/null || {
+        echo "❌ Server failed to start"
+        cat /tmp/backend-test.log
+        kill $SERVER_PID 2>/dev/null || true
+        exit 1
+    }
+
+    echo "Running gRPC tests..."
+    uv run pytest -m "requires_grpc_server" -v || GRPC_RESULT=$?
+
+    # Cleanup
+    echo "Stopping server..."
     kill $SERVER_PID 2>/dev/null || true
-    exit 1
-}
-
-echo "Running gRPC tests..."
-uv run pytest -m "requires_grpc_server" -v || GRPC_RESULT=$?
-
-# Cleanup
-echo "Stopping server..."
-kill $SERVER_PID 2>/dev/null || true
+fi
 
 # Summary
 echo
@@ -68,12 +108,22 @@ echo "=========================================="
 echo "Test Results Summary:"
 echo "=========================================="
 echo "Unit tests:        $([ $UNIT_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
-echo "Integration tests: $([ $INTEGRATION_RESULT -eq 0 ] && echo '✓ PASSED' || echo '⚠ FAILED (expected Gemini API issue)')"
-echo "gRPC tests:        $([ $GRPC_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+echo "Integration tests: $([ $INTEGRATION_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+if [ "${SKIP_GRPC:-0}" = "1" ]; then
+    echo "gRPC tests:        ⏭ SKIPPED (ports in use)"
+else
+    echo "gRPC tests:        $([ $GRPC_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+fi
 echo "=========================================="
 
 # Exit with error if critical tests failed
-if [ $UNIT_RESULT -ne 0 ] || [ $GRPC_RESULT -ne 0 ]; then
+# (gRPC failures only count if tests were actually run)
+if [ $UNIT_RESULT -ne 0 ]; then
+    echo "❌ Critical tests failed"
+    exit 1
+fi
+
+if [ "${SKIP_GRPC:-0}" != "1" ] && [ $GRPC_RESULT -ne 0 ]; then
     echo "❌ Critical tests failed"
     exit 1
 fi
