@@ -5,7 +5,7 @@ package ingestion;
 option go_package = ".;proto_gen";
 
 // InternalIngestionService provides an API for the main backend to read
-// spans from the BadgerDB WAL.
+// spans from the SQLite WAL.
 service InternalIngestionService {
   // ReadSpans reads a batch of spans from the WAL, starting after the
   // specified ULID. This is a server-streaming RPC.

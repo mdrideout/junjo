@@ -27,7 +27,7 @@ if _version_not_supported:
 
 class InternalIngestionServiceStub(object):
     """InternalIngestionService provides an API for the main backend to read
-    spans from the BadgerDB WAL.
+    spans from the SQLite WAL.
     """
 
     def __init__(self, channel):
@@ -45,7 +45,7 @@ class InternalIngestionServiceStub(object):
 
 class InternalIngestionServiceServicer(object):
     """InternalIngestionService provides an API for the main backend to read
-    spans from the BadgerDB WAL.
+    spans from the SQLite WAL.
     """
 
     def ReadSpans(self, request, context):
@@ -74,7 +74,7 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class InternalIngestionService(object):
     """InternalIngestionService provides an API for the main backend to read
-    spans from the BadgerDB WAL.
+    spans from the SQLite WAL.
     """
 
     @staticmethod

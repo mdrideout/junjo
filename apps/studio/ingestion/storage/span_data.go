@@ -11,7 +11,7 @@ import (
 )
 
 // SpanData is a container for a span and its associated resource.
-// This is what we'll store in BadgerDB.
+// This is what we'll store in SQLite.
 type SpanData struct {
 	Span     *tracepb.Span
 	Resource *resourcepb.Resource

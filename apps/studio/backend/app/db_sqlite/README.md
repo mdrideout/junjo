@@ -219,7 +219,7 @@ Per PEP 249 and SQLAlchemy docs, all DBAPIs must support `rowcount` for UPDATE/D
 │   └── junjo.db              # Application database
 ├── duckdb/
 │   └── traces.duckdb         # Analytics data
-└── badgerdb/                 # Ingestion service data
+└── sqlite/wal.db             # Ingestion service WAL
 ```
 
 ### Docker

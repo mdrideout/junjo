@@ -19,8 +19,8 @@ func main() {
 	log := logger.InitLogger()
 	log.Info("starting ingestion service")
 
-	// --- BadgerDB Setup ---
-	dbPath := os.Getenv("JUNJO_BADGERDB_PATH")
+	// --- SQLite WAL Setup ---
+	dbPath := os.Getenv("JUNJO_WAL_SQLITE_PATH")
 	if dbPath == "" {
 		// Default to a local directory for development
 		homeDir, err := os.UserHomeDir()
@@ -28,16 +28,17 @@ func main() {
 			log.Error("failed to get user home directory", slog.Any("error", err))
 			os.Exit(1)
 		}
-		dbPath = filepath.Join(homeDir, ".junjo", "ingestion-wal")
+		dbPath = filepath.Join(homeDir, ".junjo", "ingestion-wal", "spans.db")
 	}
 
 	// Ensure the directory exists (0700 = owner-only access)
-	if err := os.MkdirAll(dbPath, 0700); err != nil {
-		log.Error("failed to create database directory", slog.String("path", dbPath), slog.Any("error", err))
+	dbDir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dbDir, 0700); err != nil {
+		log.Error("failed to create database directory", slog.String("path", dbDir), slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	log.Info("initializing badgerdb", slog.String("path", dbPath))
+	log.Info("initializing sqlite", slog.String("path", dbPath))
 	store, err := storage.NewStorage(dbPath)
 	if err != nil {
 		log.Error("failed to initialize storage", slog.Any("error", err))

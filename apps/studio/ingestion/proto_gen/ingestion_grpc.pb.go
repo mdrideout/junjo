@@ -27,7 +27,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // InternalIngestionService provides an API for the main backend to read
-// spans from the BadgerDB WAL.
+// spans from the SQLite WAL.
 type InternalIngestionServiceClient interface {
 	// ReadSpans reads a batch of spans from the WAL, starting after the
 	// specified ULID. This is a server-streaming RPC.
@@ -66,7 +66,7 @@ type InternalIngestionService_ReadSpansClient = grpc.ServerStreamingClient[ReadS
 // for forward compatibility.
 //
 // InternalIngestionService provides an API for the main backend to read
-// spans from the BadgerDB WAL.
+// spans from the SQLite WAL.
 type InternalIngestionServiceServer interface {
 	// ReadSpans reads a batch of spans from the WAL, starting after the
 	// specified ULID. This is a server-streaming RPC.

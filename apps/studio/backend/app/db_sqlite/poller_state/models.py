@@ -9,7 +9,7 @@ class PollerState(Base):
     """Poller state for span ingestion resumption.
 
     This is a single-row table (enforced by CHECK constraint) that tracks
-    the last processed ULID key from the ingestion service's BadgerDB WAL.
+    the last processed ULID key from the ingestion service's SQLite WAL.
 
     On startup, the poller reads this key to resume from where it left off.
     After each successful batch, the key is updated.

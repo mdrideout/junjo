@@ -19,7 +19,7 @@ func NewWALReaderService(store *storage.Storage) *WALReaderService {
 	return &WALReaderService{Store: store}
 }
 
-// ReadSpans streams spans from the BadgerDB WAL to the client.
+// ReadSpans streams spans from the SQLite WAL to the client.
 func (s *WALReaderService) ReadSpans(req *pb.ReadSpansRequest, stream pb.InternalIngestionService_ReadSpansServer) error {
 	ctx := stream.Context()
 	slog.DebugContext(ctx, "received readspans request", slog.String("start_key", string(req.StartKeyUlid)), slog.Int("batch_size", int(req.BatchSize)))

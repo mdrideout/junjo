@@ -179,11 +179,11 @@ The Junjo AI Studio is composed of three primary services:
   - Span querying & analytics
 
 ### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
-- **Tech Stack**: Go, gRPC, BadgerDB
+- **Tech Stack**: Go, gRPC, SQLite
 - **Responsibilities**:
   - OpenTelemetry OTLP/gRPC endpoint (port 50051)
   - High-throughput span ingestion
-  - Durable Write-Ahead Log (WAL) with BadgerDB
+  - Durable Write-Ahead Log (WAL) with SQLite
 
 ### 3. Frontend (`junjo-ai-studio-frontend`)
 - **Tech Stack**: React, TypeScript
@@ -194,9 +194,9 @@ The Junjo AI Studio is composed of three primary services:
 
 **Data Flow:**
 ```
-Junjo Python App → Ingestion Service (gRPC) → BadgerDB WAL
+Junjo Python App → Ingestion Service (gRPC) → SQLite WAL
                                                     ↓
-Backend Service ← polls for new spans ← BadgerDB WAL
+Backend Service ← polls for new spans ← SQLite WAL
        ↓
     DuckDB (analytics)
     SQLite (metadata)
@@ -217,7 +217,7 @@ The `backend` service polls the `ingestion`'s internal gRPC API to read batches 
 - **Go 1.21+** (for ingestion service development)
 - **Python 3.13+** with **uv** (for backend development)
 - **Node.js 18+** (for frontend development)
-- **BadgerDB CLI** (for database inspection)
+- **SQLite CLI** (for database inspection)
 
 ### For Production Deployment
 - A domain or subdomain for hosting (see [Deployment Requirements](#deployment-requirements))
@@ -344,7 +344,7 @@ Junjo AI Studio uses three embedded databases:
 |----------|---------|------|
 | **SQLite** | User data, API keys, sessions | Single file |
 | **DuckDB** | Analytics queries on telemetry | Single file |
-| **BadgerDB** | Ingestion WAL (Write-Ahead Log) | Directory with multiple files |
+| **SQLite WAL** | Ingestion WAL (Write-Ahead Log) | Single file with WAL |
 
 All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine.
 
@@ -452,7 +452,7 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
-      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
+      - JUNJO_WAL_SQLITE_PATH=/app/.dbdata/sqlite/wal.db
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started
@@ -489,7 +489,7 @@ For a more complete example with reverse proxy, see the [Junjo AI Studio Deploym
 
 Junjo AI Studio is designed to be low resource:
 - **Minimum**: Shared vCPU + 1GB RAM
-- **Databases**: SQLite, DuckDB, BadgerDB (all embedded, low overhead)
+- **Databases**: SQLite, DuckDB (all embedded, low overhead)
 - **Recommended**: 1 vCPU + 2GB RAM for production workloads
 
 ---
@@ -498,25 +498,15 @@ Junjo AI Studio is designed to be low resource:
 
 ### Database Access
 
-#### Inspecting BadgerDB
+#### Inspecting the Ingestion WAL
 
-BadgerDB is the Write-Ahead Log for ingested spans. You can inspect it using the BadgerDB CLI.
-
-**Install BadgerDB CLI:**
-```bash
-go install github.com/dgraph-io/badger/v4/badger@latest
-```
+The ingestion service uses SQLite WAL mode for the Write-Ahead Log. You can inspect it using the SQLite CLI.
 
 **Inspect data:**
 ```bash
-# Read the database (requires ingestion service to be stopped)
-badger stream --dir ./.dbdata/badgerdb
-
-# Read with cleanup (use if database wasn't shut down properly)
-badger stream --dir ./.dbdata/badgerdb --read_only=false
+# Check span count and metadata (requires ingestion service to be stopped)
+sqlite3 ./.dbdata/sqlite/wal.db "SELECT COUNT(*) FROM spans; SELECT * FROM metadata;"
 ```
-
-**Note**: BadgerDB is a directory-based database that creates multiple files (`value log`, `manifest`, etc.), unlike SQLite/DuckDB which are single-file databases.
 
 #### Accessing SQLite and DuckDB
 

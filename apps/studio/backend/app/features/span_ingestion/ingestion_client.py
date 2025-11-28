@@ -1,7 +1,7 @@
 """gRPC client for ingestion service span reading.
 
 This client connects to the ingestion service and reads spans from the
-BadgerDB WAL using server-streaming gRPC.
+SQLite WAL using server-streaming gRPC.
 
 Port of: backend/ingestion_client/client.go
 """
@@ -31,7 +31,7 @@ class IngestionClient:
     """Async gRPC client for reading spans from ingestion service.
 
     This client connects to the ingestion service's InternalIngestionService
-    and provides methods to read spans from the BadgerDB WAL.
+    and provides methods to read spans from the SQLite WAL.
 
     Usage:
         client = IngestionClient()

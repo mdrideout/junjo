@@ -23,7 +23,7 @@ const (
 
 // SpanDataContainer is a wrapper for storing a span and its resource together.
 // This is used internally by the ingestion service to persist spans and their
-// associated resources together in BadgerDB.
+// associated resources together in SQLite.
 //
 // Note: This is an internal-only proto, not part of the gRPC service API.
 type SpanDataContainer struct {

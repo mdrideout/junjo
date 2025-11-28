@@ -12,7 +12,7 @@ e2e_test_apps/app/config.yaml
 # All local/dev database data stored in .dbdata/ directory:
 #   .dbdata/sqlite/     - SQLite databases (Python/Go backends)
 #   .dbdata/duckdb/     - DuckDB analytics data
-#   .dbdata/badgerdb/   - Ingestion service data
+#   .dbdata/sqlite/wal.db - Ingestion service WAL
 .dbdata/
 dbdata/                    # Legacy - can be removed after migration
 wal-data/                  # Legacy - can be removed after migration

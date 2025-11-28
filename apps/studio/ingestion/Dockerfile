@@ -4,7 +4,8 @@ FROM golang:1.25-alpine AS development
 WORKDIR /app
 
 # Install tini for proper signal handling, even in development
-RUN apk add --no-cache tini
+# Install gcc, musl-dev, sqlite-dev for CGO (crawshaw.io/sqlite)
+RUN apk add --no-cache tini gcc musl-dev sqlite-dev
 
 # Install Air for hot-reloading
 RUN go install github.com/air-verse/air@latest
@@ -65,7 +66,8 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 # Install curl and unzip for downloading protoc
-RUN apk add --no-cache curl unzip
+# Install gcc, musl-dev, sqlite-dev for CGO (crawshaw.io/sqlite)
+RUN apk add --no-cache curl unzip gcc musl-dev sqlite-dev
 
 # Copy shared proto files
 COPY proto/ ../proto/
@@ -100,16 +102,16 @@ RUN protoc \
     --go-grpc_out=./proto_gen \
     ../proto/*.proto
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /ingestion
+# Build the application with CGO enabled for SQLite
+RUN CGO_ENABLED=1 GOOS=linux go build -o /ingestion
 
 # --- 3. Final Production Image ---
 FROM alpine:latest AS production
 
 WORKDIR /
 
-# Install tini for proper signal handling and grpc_health_probe
-RUN apk add --no-cache tini curl && \
+# Install tini for proper signal handling, sqlite-libs for runtime, and grpc_health_probe
+RUN apk add --no-cache tini sqlite-libs curl && \
     GRPC_HEALTH_PROBE_VERSION=v0.4.24 && \
     curl -sL https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 -o /usr/local/bin/grpc_health_probe && \
     chmod +x /usr/local/bin/grpc_health_probe && \

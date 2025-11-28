@@ -11,7 +11,7 @@ These define the gRPC service interfaces between components:
 
 ### Internal Storage Schemas
 These are used only for internal data persistence and are not part of service APIs:
-- **`span_data_container.proto`**: BadgerDB storage format for spans + resources (ingestion service only)
+- **`span_data_container.proto`**: SQLite WAL storage format for spans + resources (ingestion service only)
 
 ## Important: Schema Lifecycle Management
 
@@ -36,7 +36,7 @@ These are used only for internal data persistence and are not part of service AP
 - Persisted data was written using the schema
 
 **Before deleting a proto**:
-1. Check if it's used for storage (BadgerDB, DuckDB, etc.)
+1. Check if it's used for storage (SQLite WAL, DuckDB, etc.)
 2. If yes: Migrate existing data to new schema first
 3. Remove all references in code
 4. Clean and regenerate: `cd ingestion && make proto-clean`
@@ -46,7 +46,7 @@ These are used only for internal data persistence and are not part of service AP
 
 The `ingestion/Makefile` includes a `proto-check-orphans` target that checks for "orphaned schemas" - where generated `.pb.go` files exist but their source `.proto` files are missing.
 
-This was added after [commit 3be9fec](https://github.com/anthropics/junjo-ai-studio/commit/3be9fec) accidentally deleted `span_data_container.proto` during proto consolidation, causing BadgerDB corruption.
+This was added after [commit 3be9fec](https://github.com/anthropics/junjo-ai-studio/commit/3be9fec) accidentally deleted `span_data_container.proto` during proto consolidation, causing storage corruption.
 
 **Run verification after any proto refactoring**:
 ```bash
