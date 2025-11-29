@@ -417,3 +417,105 @@ func TestCloseAndReopen(t *testing.T) {
 		t.Errorf("Expected counter 5 after reopen, got %d", count)
 	}
 }
+
+func TestFlushStateOperations(t *testing.T) {
+	store, cleanup := setupTestStorage(t)
+	defer cleanup()
+
+	// Initial flush state should have zero values
+	state, err := store.GetFlushState()
+	if err != nil {
+		t.Fatalf("GetFlushState failed: %v", err)
+	}
+	if !state.LastFlushTime.IsZero() && state.LastFlushTime.Unix() != 0 {
+		t.Errorf("Expected zero LastFlushTime, got %v", state.LastFlushTime)
+	}
+	if state.FirstFlushedKey != nil {
+		t.Errorf("Expected nil FirstFlushedKey, got %x", state.FirstFlushedKey)
+	}
+	if state.LastFlushedKey != nil {
+		t.Errorf("Expected nil LastFlushedKey, got %x", state.LastFlushedKey)
+	}
+	if state.TotalFlushedRows != 0 {
+		t.Errorf("Expected 0 TotalFlushedRows, got %d", state.TotalFlushedRows)
+	}
+
+	// Update flush state
+	firstKey := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
+	lastKey := []byte{0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20}
+
+	if err := store.UpdateFlushState(firstKey, lastKey, 100); err != nil {
+		t.Fatalf("UpdateFlushState failed: %v", err)
+	}
+
+	// Verify updated state
+	state, err = store.GetFlushState()
+	if err != nil {
+		t.Fatalf("GetFlushState failed: %v", err)
+	}
+	if state.LastFlushTime.Unix() == 0 {
+		t.Error("Expected non-zero LastFlushTime after update")
+	}
+	if string(state.FirstFlushedKey) != string(firstKey) {
+		t.Errorf("FirstFlushedKey mismatch: got %x, want %x", state.FirstFlushedKey, firstKey)
+	}
+	if string(state.LastFlushedKey) != string(lastKey) {
+		t.Errorf("LastFlushedKey mismatch: got %x, want %x", state.LastFlushedKey, lastKey)
+	}
+	if state.TotalFlushedRows != 100 {
+		t.Errorf("Expected TotalFlushedRows 100, got %d", state.TotalFlushedRows)
+	}
+
+	// Update again - total should accumulate
+	newFirstKey := []byte{0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30}
+	newLastKey := []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40}
+
+	if err := store.UpdateFlushState(newFirstKey, newLastKey, 50); err != nil {
+		t.Fatalf("UpdateFlushState failed: %v", err)
+	}
+
+	state, err = store.GetFlushState()
+	if err != nil {
+		t.Fatalf("GetFlushState failed: %v", err)
+	}
+	if state.TotalFlushedRows != 150 {
+		t.Errorf("Expected TotalFlushedRows 150 after second update, got %d", state.TotalFlushedRows)
+	}
+	if string(state.FirstFlushedKey) != string(newFirstKey) {
+		t.Errorf("FirstFlushedKey should be updated to new key")
+	}
+	if string(state.LastFlushedKey) != string(newLastKey) {
+		t.Errorf("LastFlushedKey should be updated to new key")
+	}
+}
+
+func TestGetSpanCount(t *testing.T) {
+	store, cleanup := setupTestStorage(t)
+	defer cleanup()
+
+	// Initial count should be 0
+	count, err := store.GetSpanCount()
+	if err != nil {
+		t.Fatalf("GetSpanCount failed: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Expected initial count 0, got %d", count)
+	}
+
+	// Write some spans
+	for i := 0; i < 7; i++ {
+		span, resource := createTestSpan("trace", "span", "op")
+		if err := store.WriteSpan(span, resource); err != nil {
+			t.Fatalf("WriteSpan failed: %v", err)
+		}
+	}
+
+	// Count should be 7
+	count, err = store.GetSpanCount()
+	if err != nil {
+		t.Fatalf("GetSpanCount failed: %v", err)
+	}
+	if count != 7 {
+		t.Errorf("Expected count 7, got %d", count)
+	}
+}

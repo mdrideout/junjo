@@ -16,6 +16,7 @@ You are about to work on the Junjo AI Studio codebase to refactor from the exist
 
 ## For the refactor:
 1. Review @REFACTOR_V4_ARCHITECTURE.md
+   1. Review linked sub-documents for specific details
 2. Review @REFACTOR_V4_PLAN.md
 
 ## Methodology:
@@ -35,5 +36,16 @@ We prefer "grug" principles when coding. Single responsibility principle, YAGNI,
 - When adding dependencies or installing libraries, use CLI commands to install instead of editing the go.mod, pyproject.toml, package.json, etc. Do not include versions. Allow the CLI command to fetch and install  the latest version.
   - Ex: `go get modernc.org/sqlite` or `uv add junjo`
 
+## Tool Usage:
+- **ALWAYS prefer built-in Claude Code tools over bash commands for file operations:**
+  - Use **Grep tool** instead of `grep`, `rg`, `find | xargs grep`, etc.
+  - Use **Glob tool** instead of `find -name` for finding files by pattern
+  - Use **Read tool** instead of `cat`, `head`, `tail`
+- This avoids permission prompts and is more reliable
+- Only use Bash for actual system commands (git, go build, npm, docker, etc.)
+
 # When You Are Ready
-- Once you have thoroughly reviewed the documents, confirm your readiness outputting that you are ready to proceed with refactoring. You do not need to summarize or explain your understanding, or creating leading ideas of what should be next.
+- Once you have thoroughly reviewed the documents, confirm your readiness outputting that you are ready to proceed with refactoring. You do not need to summarize or explain your understanding.
+- Simply and concisely output:
+  - Where we left off, what is done
+  - What we should plan next

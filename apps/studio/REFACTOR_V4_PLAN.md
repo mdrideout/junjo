@@ -2,6 +2,11 @@
 
 This document tracks the incremental refactor from V3 to V4 architecture as defined in [REFACTOR_V4_ARCHITECTURE.md](./REFACTOR_V4_ARCHITECTURE.md).
 
+## Save Plans
+
+- Save your plans with REFACTOR_V4_PLAN_XXX_NAME.md
+- ex: REFACTOR_V4_PLAN_001_WAL.md
+
 ## Methodology
 
 - Piece-by-piece implementation with validation at each stage
@@ -14,7 +19,7 @@ This document tracks the incremental refactor from V3 to V4 architecture as defi
 | # | Document | Status | Description |
 |---|----------|--------|-------------|
 | 001 | [WAL Replacement](./REFACTOR_V4_PLAN_001_WAL.md) | ✅ Complete | Replaced BadgerDB with SQLite WAL in Go ingestion |
-| 002 | TBD | ⏳ Pending | Parquet flush from SQLite |
+| 002 | [Parquet Flush](./REFACTOR_V4_PLAN_002_PARQUET_FLUSH.md) | ✅ Complete | Background flusher writes spans to Parquet files |
 | 003 | TBD | ⏳ Pending | Python backend Parquet indexer |
 | 004 | TBD | ⏳ Pending | DataFusion query engine |
 | 005 | TBD | ⏳ Pending | LanceDB vector search |
@@ -22,7 +27,7 @@ This document tracks the incremental refactor from V3 to V4 architecture as defi
 
 ## Current Focus
 
-**001 - WAL Replacement** ✅: Replaced BadgerDB with SQLite WAL mode in the Go ingestion service using `crawshaw.io/sqlite` for optimal performance (30-50% less CPU overhead than pure-Go drivers).
+**002 - Parquet Flush** ✅: Implemented background flusher that reads spans from SQLite, converts to Arrow format, writes ZSTD-compressed Parquet files with date partitioning, deletes flushed spans, and tracks flush state.
 
 ## Architecture Overview (V4)
 

@@ -18,6 +18,14 @@ import (
 // MetadataKeyUnretrievedCount is the key for storing unretrieved span count
 const MetadataKeyUnretrievedCount = "unretrieved_count"
 
+// FlushState represents the current state of the flush process
+type FlushState struct {
+	LastFlushTime     time.Time
+	FirstFlushedKey   []byte
+	LastFlushedKey    []byte
+	TotalFlushedRows  int64
+}
+
 // --- Monotonic ULID Generator ---
 
 var (
@@ -107,6 +115,16 @@ func (s *Storage) initSchema() error {
 		);
 
 		INSERT OR IGNORE INTO metadata (key, value) VALUES ('unretrieved_count', 0);
+
+		CREATE TABLE IF NOT EXISTS flush_state (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			last_flush_time_unix INTEGER NOT NULL DEFAULT 0,
+			first_flushed_key_ulid BLOB,
+			last_flushed_key_ulid BLOB,
+			total_flushed_rows INTEGER NOT NULL DEFAULT 0
+		);
+
+		INSERT OR IGNORE INTO flush_state (id) VALUES (1);
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
@@ -391,4 +409,99 @@ func (s *Storage) ReconcileCount() error {
 	slog.Info("Counter reconciliation completed, no drift detected",
 		slog.Uint64("count", actualCount))
 	return nil
+}
+
+// --- Flush State Operations ---
+
+// GetFlushState returns the current flush state.
+func (s *Storage) GetFlushState() (*FlushState, error) {
+	conn := s.pool.Get(nil)
+	if conn == nil {
+		return nil, fmt.Errorf("failed to get connection from pool")
+	}
+	defer s.pool.Put(conn)
+
+	stmt := conn.Prep("SELECT last_flush_time_unix, first_flushed_key_ulid, last_flushed_key_ulid, total_flushed_rows FROM flush_state WHERE id = 1")
+	defer stmt.Reset()
+
+	hasRow, err := stmt.Step()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get flush state: %w", err)
+	}
+	if !hasRow {
+		// Should never happen due to INSERT OR IGNORE in schema
+		return &FlushState{}, nil
+	}
+
+	state := &FlushState{
+		LastFlushTime:    time.Unix(stmt.ColumnInt64(0), 0).UTC(),
+		TotalFlushedRows: stmt.ColumnInt64(3),
+	}
+
+	// Read first flushed key (may be NULL)
+	if stmt.ColumnLen(1) > 0 {
+		state.FirstFlushedKey = make([]byte, stmt.ColumnLen(1))
+		stmt.ColumnBytes(1, state.FirstFlushedKey)
+	}
+
+	// Read last flushed key (may be NULL)
+	if stmt.ColumnLen(2) > 0 {
+		state.LastFlushedKey = make([]byte, stmt.ColumnLen(2))
+		stmt.ColumnBytes(2, state.LastFlushedKey)
+	}
+
+	return state, nil
+}
+
+// UpdateFlushState updates the flush state after a successful flush.
+func (s *Storage) UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) error {
+	conn := s.pool.Get(nil)
+	if conn == nil {
+		return fmt.Errorf("failed to get connection from pool")
+	}
+	defer s.pool.Put(conn)
+
+	stmt := conn.Prep(`
+		UPDATE flush_state
+		SET last_flush_time_unix = ?,
+			first_flushed_key_ulid = ?,
+			last_flushed_key_ulid = ?,
+			total_flushed_rows = total_flushed_rows + ?
+		WHERE id = 1
+	`)
+	defer stmt.Reset()
+
+	stmt.BindInt64(1, time.Now().UTC().Unix())
+	stmt.BindBytes(2, firstKey)
+	stmt.BindBytes(3, lastKey)
+	stmt.BindInt64(4, rowsFlushed)
+
+	_, err := stmt.Step()
+	if err != nil {
+		return fmt.Errorf("failed to update flush state: %w", err)
+	}
+
+	return nil
+}
+
+// GetSpanCount returns the total number of spans in the database.
+func (s *Storage) GetSpanCount() (int64, error) {
+	conn := s.pool.Get(nil)
+	if conn == nil {
+		return 0, fmt.Errorf("failed to get connection from pool")
+	}
+	defer s.pool.Put(conn)
+
+	stmt := conn.Prep("SELECT COUNT(*) FROM spans")
+	defer stmt.Reset()
+
+	hasRow, err := stmt.Step()
+	if err != nil {
+		return 0, fmt.Errorf("failed to count spans: %w", err)
+	}
+	if !hasRow {
+		return 0, nil
+	}
+
+	return stmt.ColumnInt64(0), nil
 }

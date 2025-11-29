@@ -6,7 +6,9 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
+	"time"
 
 	"junjo-ai-studio/ingestion/backend_client"
 	"junjo-ai-studio/ingestion/logger"
@@ -47,6 +49,10 @@ func main() {
 	// We will call Close() explicitly in the shutdown block.
 
 	log.Info("storage initialized successfully")
+
+	// --- Flusher Setup ---
+	flusher := initFlusher(store, log)
+	flusher.Start()
 
 	// --- Dependency Injection Setup ---
 	// The main function acts as the injector, creating and wiring together the
@@ -114,6 +120,11 @@ func main() {
 	internalGRPCServer.GracefulStop()
 	log.Info("grpc servers stopped")
 
+	// Stop flusher (performs final flush before stopping)
+	log.Info("stopping flusher")
+	flusher.Stop()
+	log.Info("flusher stopped")
+
 	log.Info("syncing database to disk")
 	if err := store.Sync(); err != nil {
 		// Log this as a warning, but still attempt to close.
@@ -128,4 +139,63 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("database closed successfully")
+}
+
+// initFlusher creates a flusher with configuration from environment variables.
+func initFlusher(store *storage.Storage, log *slog.Logger) *storage.Flusher {
+	config := storage.DefaultFlusherConfig()
+
+	// SPAN_STORAGE_PATH: Base directory for Parquet files
+	if path := os.Getenv("SPAN_STORAGE_PATH"); path != "" {
+		config.OutputDir = path
+	} else {
+		// Default to a local directory for development
+		homeDir, _ := os.UserHomeDir()
+		config.OutputDir = filepath.Join(homeDir, ".junjo", "spans")
+	}
+
+	// FLUSH_INTERVAL: How often to check for flush conditions (default: 30s)
+	if interval := os.Getenv("FLUSH_INTERVAL"); interval != "" {
+		if d, err := time.ParseDuration(interval); err == nil {
+			config.FlushInterval = d
+		} else {
+			log.Warn("invalid FLUSH_INTERVAL, using default", slog.String("value", interval))
+		}
+	}
+
+	// FLUSH_MAX_AGE: Max age before flushing (default: 1h)
+	if maxAge := os.Getenv("FLUSH_MAX_AGE"); maxAge != "" {
+		if d, err := time.ParseDuration(maxAge); err == nil {
+			config.MaxFlushAge = d
+		} else {
+			log.Warn("invalid FLUSH_MAX_AGE, using default", slog.String("value", maxAge))
+		}
+	}
+
+	// FLUSH_MAX_ROWS: Max rows before flushing (default: 100000)
+	if maxRows := os.Getenv("FLUSH_MAX_ROWS"); maxRows != "" {
+		if n, err := strconv.ParseInt(maxRows, 10, 64); err == nil {
+			config.MaxRowCount = n
+		} else {
+			log.Warn("invalid FLUSH_MAX_ROWS, using default", slog.String("value", maxRows))
+		}
+	}
+
+	// FLUSH_MIN_ROWS: Minimum rows required to flush (default: 1000)
+	if minRows := os.Getenv("FLUSH_MIN_ROWS"); minRows != "" {
+		if n, err := strconv.ParseInt(minRows, 10, 64); err == nil {
+			config.MinRowCount = n
+		} else {
+			log.Warn("invalid FLUSH_MIN_ROWS, using default", slog.String("value", minRows))
+		}
+	}
+
+	log.Info("flusher configured",
+		slog.String("output_dir", config.OutputDir),
+		slog.Duration("flush_interval", config.FlushInterval),
+		slog.Duration("max_age", config.MaxFlushAge),
+		slog.Int64("max_rows", config.MaxRowCount),
+		slog.Int64("min_rows", config.MinRowCount))
+
+	return storage.NewFlusher(store, config)
 }

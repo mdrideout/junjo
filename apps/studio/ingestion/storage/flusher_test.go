@@ -1,0 +1,347 @@
+package storage
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
+	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+)
+
+func TestFlusherFlush(t *testing.T) {
+	// Create temp directories
+	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "test.db")
+	outputDir := filepath.Join(tmpDir, "spans")
+
+	// Create storage
+	storage, err := NewStorage(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create storage: %v", err)
+	}
+	defer storage.Close()
+
+	// Write test spans
+	for i := 0; i < 10; i++ {
+		span := createFlusherTestSpan(t, i)
+		resource := createFlusherTestResource("test-service")
+		if err := storage.WriteSpan(span, resource); err != nil {
+			t.Fatalf("Failed to write span %d: %v", i, err)
+		}
+	}
+
+	// Verify spans are in storage
+	count, err := storage.GetSpanCount()
+	if err != nil {
+		t.Fatalf("Failed to get span count: %v", err)
+	}
+	if count != 10 {
+		t.Fatalf("Expected 10 spans, got %d", count)
+	}
+
+	// Create and configure flusher
+	config := DefaultFlusherConfig()
+	config.OutputDir = outputDir
+	config.MinRowCount = 1 // Allow flushing small batches for testing
+
+	flusher := NewFlusher(storage, config)
+
+	// Perform manual flush (don't start background process)
+	if err := flusher.doFlush(); err != nil {
+		t.Fatalf("Flush failed: %v", err)
+	}
+
+	// Verify spans were deleted from SQLite
+	count, err = storage.GetSpanCount()
+	if err != nil {
+		t.Fatalf("Failed to get span count after flush: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Expected 0 spans after flush, got %d", count)
+	}
+
+	// Verify Parquet file was created
+	files, err := filepath.Glob(filepath.Join(outputDir, "year=*", "month=*", "day=*", "*.parquet"))
+	if err != nil {
+		t.Fatalf("Failed to glob parquet files: %v", err)
+	}
+	if len(files) != 1 {
+		t.Errorf("Expected 1 parquet file, got %d", len(files))
+	}
+
+	// Verify flush state was updated
+	state, err := storage.GetFlushState()
+	if err != nil {
+		t.Fatalf("Failed to get flush state: %v", err)
+	}
+	if state.TotalFlushedRows != 10 {
+		t.Errorf("Expected TotalFlushedRows=10, got %d", state.TotalFlushedRows)
+	}
+	if state.FirstFlushedKey == nil {
+		t.Error("FirstFlushedKey should not be nil")
+	}
+	if state.LastFlushedKey == nil {
+		t.Error("LastFlushedKey should not be nil")
+	}
+}
+
+func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "test.db")
+	outputDir := filepath.Join(tmpDir, "spans")
+
+	storage, err := NewStorage(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create storage: %v", err)
+	}
+	defer storage.Close()
+
+	// Write 5 spans
+	for i := 0; i < 5; i++ {
+		span := createFlusherTestSpan(t, i)
+		resource := createFlusherTestResource("test-service")
+		if err := storage.WriteSpan(span, resource); err != nil {
+			t.Fatalf("Failed to write span %d: %v", i, err)
+		}
+	}
+
+	config := DefaultFlusherConfig()
+	config.OutputDir = outputDir
+	config.MaxRowCount = 3 // Threshold below current count
+	config.MinRowCount = 1
+
+	flusher := NewFlusher(storage, config)
+
+	// Check and flush - should trigger due to row count
+	if err := flusher.checkAndFlush(); err != nil {
+		t.Fatalf("checkAndFlush failed: %v", err)
+	}
+
+	// Verify flush occurred
+	count, err := storage.GetSpanCount()
+	if err != nil {
+		t.Fatalf("Failed to get span count: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Expected 0 spans after flush, got %d", count)
+	}
+}
+
+func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "test.db")
+	outputDir := filepath.Join(tmpDir, "spans")
+
+	storage, err := NewStorage(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create storage: %v", err)
+	}
+	defer storage.Close()
+
+	// Write 2 spans
+	for i := 0; i < 2; i++ {
+		span := createFlusherTestSpan(t, i)
+		resource := createFlusherTestResource("test-service")
+		if err := storage.WriteSpan(span, resource); err != nil {
+			t.Fatalf("Failed to write span %d: %v", i, err)
+		}
+	}
+
+	config := DefaultFlusherConfig()
+	config.OutputDir = outputDir
+	config.MinRowCount = 10 // Higher than current count
+
+	flusher := NewFlusher(storage, config)
+
+	// Check and flush - should NOT trigger due to min row count
+	if err := flusher.checkAndFlush(); err != nil {
+		t.Fatalf("checkAndFlush failed: %v", err)
+	}
+
+	// Verify flush did NOT occur
+	count, err := storage.GetSpanCount()
+	if err != nil {
+		t.Fatalf("Failed to get span count: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("Expected 2 spans (no flush), got %d", count)
+	}
+}
+
+func TestFlusherCheckAndFlush_NoSpans(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "test.db")
+	outputDir := filepath.Join(tmpDir, "spans")
+
+	storage, err := NewStorage(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create storage: %v", err)
+	}
+	defer storage.Close()
+
+	config := DefaultFlusherConfig()
+	config.OutputDir = outputDir
+
+	flusher := NewFlusher(storage, config)
+
+	// Check and flush - should not error with no spans
+	if err := flusher.checkAndFlush(); err != nil {
+		t.Errorf("checkAndFlush failed with no spans: %v", err)
+	}
+}
+
+func TestFlusherStartStop(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "test.db")
+	outputDir := filepath.Join(tmpDir, "spans")
+
+	storage, err := NewStorage(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create storage: %v", err)
+	}
+	defer storage.Close()
+
+	config := DefaultFlusherConfig()
+	config.OutputDir = outputDir
+	config.FlushInterval = 100 * time.Millisecond
+
+	flusher := NewFlusher(storage, config)
+	flusher.Start()
+
+	// Let it run briefly
+	time.Sleep(50 * time.Millisecond)
+
+	// Stop should complete without hanging
+	done := make(chan struct{})
+	go func() {
+		flusher.Stop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flusher.Stop() timed out")
+	}
+}
+
+func TestGenerateOutputPath(t *testing.T) {
+	config := DefaultFlusherConfig()
+	config.OutputDir = "/app/.dbdata/spans"
+
+	flusher := &Flusher{config: config}
+
+	// Test with a specific time
+	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+	path := flusher.generateOutputPath(testTime, "my-service")
+
+	// Verify date partitioning
+	if !filepath.IsAbs(path) {
+		t.Errorf("Expected absolute path, got %s", path)
+	}
+
+	expectedPrefix := "/app/.dbdata/spans/year=2024/month=01/day=15/my-service_"
+	if len(path) < len(expectedPrefix) || path[:len(expectedPrefix)] != expectedPrefix {
+		t.Errorf("Path should start with %s, got %s", expectedPrefix, path)
+	}
+
+	if len(path) < 8 || path[len(path)-8:] != ".parquet" {
+		t.Errorf("Path should end with .parquet, got %s", path)
+	}
+}
+
+func TestSanitizeServiceName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"my-service", "my-service"},
+		{"my_service", "my_service"},
+		{"MyService123", "MyService123"},
+		{"my.service", "my_service"},
+		{"my/service", "my_service"},
+		{"my:service", "my_service"},
+		{"my service", "my_service"},
+		{"", "unknown"},
+		{"a@b#c$d%e^f&g*h", "a_b_c_d_e_f_g_h"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := sanitizeServiceName(tt.input)
+			if result != tt.expected {
+				t.Errorf("sanitizeServiceName(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+// Helper functions for flusher tests
+
+func createFlusherTestSpan(t *testing.T, index int) *tracepb.Span {
+	t.Helper()
+	traceID := make([]byte, 16)
+	spanID := make([]byte, 8)
+
+	// Use index to create unique IDs
+	traceID[0] = byte(index)
+	spanID[0] = byte(index)
+
+	return &tracepb.Span{
+		TraceId:           traceID,
+		SpanId:            spanID,
+		Name:              "test-operation",
+		Kind:              tracepb.Span_SPAN_KIND_SERVER,
+		StartTimeUnixNano: uint64(1700000000000000000 + int64(index)*1000000),
+		EndTimeUnixNano:   uint64(1700000001000000000 + int64(index)*1000000),
+		Attributes: []*commonpb.KeyValue{
+			{
+				Key:   "test.index",
+				Value: &commonpb.AnyValue{Value: &commonpb.AnyValue_IntValue{IntValue: int64(index)}},
+			},
+		},
+		Status: &tracepb.Status{
+			Code: tracepb.Status_STATUS_CODE_OK,
+		},
+	}
+}
+
+func createFlusherTestResource(serviceName string) *resourcepb.Resource {
+	return &resourcepb.Resource{
+		Attributes: []*commonpb.KeyValue{
+			{
+				Key:   "service.name",
+				Value: &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: serviceName}},
+			},
+		},
+	}
+}
