@@ -20,14 +20,14 @@ This document tracks the incremental refactor from V3 to V4 architecture as defi
 |---|----------|--------|-------------|
 | 001 | [WAL Replacement](./REFACTOR_V4_PLAN_001_WAL.md) | ✅ Complete | Replaced BadgerDB with SQLite WAL in Go ingestion |
 | 002 | [Parquet Flush](./REFACTOR_V4_PLAN_002_PARQUET_FLUSH.md) | ✅ Complete | Background flusher writes spans to Parquet files |
-| 003 | TBD | ⏳ Pending | Python backend Parquet indexer |
+| 003 | [Parquet Indexer](./REFACTOR_V4_PLAN_003_PARQUET_INDEXER.md) | ✅ Complete | Python backend Parquet indexer |
 | 004 | TBD | ⏳ Pending | DataFusion query engine |
 | 005 | TBD | ⏳ Pending | LanceDB vector search |
 | 006 | TBD | ⏳ Pending | Query orchestrator (live + historical merge) |
 
 ## Current Focus
 
-**002 - Parquet Flush** ✅: Implemented background flusher that reads spans from SQLite, converts to Arrow format, writes ZSTD-compressed Parquet files with date partitioning, deletes flushed spans, and tracks flush state.
+**003 - Parquet Indexer** ✅: Implemented background indexer that polls filesystem for Parquet files, reads span metadata via pyarrow, and indexes into DuckDB (parquet_files + span_metadata + services tables).
 
 **Post-002 Cleanup** ✅: Architectural consistency pass:
 - Config: Global singleton pattern via `config.Get()` (not dependency injection)

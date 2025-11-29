@@ -17,8 +17,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "sqlalchemy[asyncio]>=2.0.36",
     "alembic>=1.14.0",
-    "aiosqlite>=0.20.0",                                # Async SQLite driver
-    "greenlet>=3.2.4",                                  # Required for SQLAlchemy async
+    "aiosqlite>=0.20.0", # Async SQLite driver
+    "greenlet>=3.2.4", # Required for SQLAlchemy async
     "duckdb>=1.4.1",
     "opentelemetry-instrumentation-sqlalchemy>=0.59b0",
     "nanoid>=2.0.0",
@@ -33,6 +33,8 @@ dependencies = [
     "litellm>=1.79.0",
     "google-genai>=1.47.0",
     "tldextract>=5.1.3",
+    "pyarrow>=22.0.0",
+    "pytz>=2025.2",
 ]
 
 [project.optional-dependencies]

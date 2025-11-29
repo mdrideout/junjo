@@ -78,11 +78,17 @@ async def lifespan(app: FastAPI):
     # Log deployment configuration
     log_deployment_configuration()
 
-    # Start span ingestion poller as background task
-    from app.features.span_ingestion.background_poller import span_ingestion_poller
+    # V4 Architecture: Start Parquet indexer as background task
+    # Polls filesystem for Parquet files written by Go ingestion
+    from app.features.parquet_indexer.background_indexer import parquet_indexer
 
-    poller_task = asyncio.create_task(span_ingestion_poller())
-    logger.info("Span ingestion poller task created")
+    indexer_task = asyncio.create_task(parquet_indexer())
+    logger.info("Parquet indexer task created")
+
+    # V3 (disabled): gRPC-based span ingestion poller
+    # from app.features.span_ingestion.background_poller import span_ingestion_poller
+    # poller_task = asyncio.create_task(span_ingestion_poller())
+    # logger.info("Span ingestion poller task created")
 
     # Start gRPC server as background task
     grpc_task = asyncio.create_task(start_grpc_server_background())
@@ -93,13 +99,13 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down application")
 
-    # Stop span ingestion poller
-    if not poller_task.done():
-        poller_task.cancel()
+    # Stop Parquet indexer (V4)
+    if not indexer_task.done():
+        indexer_task.cancel()
         try:
-            await poller_task
+            await indexer_task
         except asyncio.CancelledError:
-            logger.info("Span ingestion poller cancelled")
+            logger.info("Parquet indexer cancelled")
 
     # Stop gRPC server
     await stop_grpc_server()

@@ -47,6 +47,8 @@ services:
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
       - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+      # V4: Parquet file storage path (shared with ingestion service)
+      - JUNJO_SPAN_STORAGE_PATH=/app/.dbdata/spans
 
   junjo-ai-studio-ingestion:
     container_name: junjo-ai-studio-ingestion
@@ -72,6 +74,8 @@ services:
       - BACKEND_GRPC_PORT=50053
       # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_WAL_SQLITE_PATH=/app/.dbdata/sqlite/wal.db
+      # V4: Parquet file output path (Python backend reads from same location)
+      - SPAN_STORAGE_PATH=/app/.dbdata/spans
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started

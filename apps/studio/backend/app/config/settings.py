@@ -205,6 +205,60 @@ class LLMSettings(BaseSettings):
     )
 
 
+class ParquetIndexerSettings(BaseSettings):
+    """Parquet indexer configuration for V4 architecture.
+
+    The indexer polls the filesystem for new Parquet files written by the
+    Go ingestion service, reads span metadata, and indexes it into DuckDB.
+    """
+
+    span_storage_path: Annotated[
+        str,
+        Field(
+            default="../.dbdata/spans",
+            description="Path to Parquet files (shared with Go ingestion)",
+            validation_alias="JUNJO_SPAN_STORAGE_PATH",
+        ),
+    ]
+    poll_interval: Annotated[
+        int,
+        Field(
+            default=30,
+            ge=5,
+            le=3600,
+            description="Indexer polling interval in seconds",
+            validation_alias="INDEXER_POLL_INTERVAL",
+        ),
+    ]
+    batch_size: Annotated[
+        int,
+        Field(
+            default=10,
+            ge=1,
+            le=100,
+            description="Maximum files to index per poll cycle",
+            validation_alias="INDEXER_BATCH_SIZE",
+        ),
+    ]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def span_storage_path_resolved(self) -> str:
+        """Resolved absolute path for span storage.
+
+        Returns:
+            Absolute path to span storage directory.
+        """
+        abs_path = Path(self.span_storage_path).resolve()
+        return str(abs_path)
+
+    model_config = SettingsConfigDict(
+        env_file=find_env_file(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class AppSettings(BaseSettings):
     """Main application settings"""
 
@@ -331,6 +385,10 @@ class AppSettings(BaseSettings):
     llm: Annotated[
         LLMSettings,
         Field(default_factory=LLMSettings, description="LLM provider API keys for LiteLLM"),
+    ]
+    parquet_indexer: Annotated[
+        ParquetIndexerSettings,
+        Field(default_factory=ParquetIndexerSettings, description="V4 Parquet indexer settings"),
     ]
 
     @field_validator("secure_cookie_key", mode="before")

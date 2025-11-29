@@ -53,7 +53,10 @@ def get_connection():
 def initialize_tables():
     """Initialize DuckDB tables and indexes.
 
-    Creates spans and state_patches tables if they don't exist.
+    V4 Architecture: Creates parquet_files, span_metadata, and services tables.
+    These tables store metadata for Parquet files written by Go ingestion.
+    Full span data (attributes, events) stays in Parquet files.
+
     Should be called on application startup.
 
     This is a synchronous function since it runs during app startup
@@ -61,17 +64,27 @@ def initialize_tables():
     """
     with get_connection() as conn:
         try:
-            # Read and execute schema files
             schema_dir = Path(__file__).parent / "schemas"
 
-            spans_schema = (schema_dir / "spans_schema.sql").read_text()
-            state_patches_schema = (schema_dir / "state_patches_schema.sql").read_text()
+            # V4 Schema: Parquet file registry and span metadata
+            # These tables index metadata from Parquet files for fast listing queries
+            v4_parquet_files = (schema_dir / "v4_parquet_files.sql").read_text()
+            v4_span_metadata = (schema_dir / "v4_span_metadata.sql").read_text()
+            v4_services = (schema_dir / "v4_services.sql").read_text()
+            v4_failed_files = (schema_dir / "v4_failed_files.sql").read_text()
 
-            # Execute DDL
-            conn.execute(spans_schema)
-            conn.execute(state_patches_schema)
+            conn.execute(v4_parquet_files)
+            conn.execute(v4_span_metadata)
+            conn.execute(v4_services)
+            conn.execute(v4_failed_files)
 
-            logger.info(f"DuckDB tables initialized: {settings.database.duckdb_path}")
+            logger.info(f"DuckDB V4 tables initialized: {settings.database.duckdb_path}")
+
+            # V3 Schema (disabled - kept for reference during migration)
+            # spans_schema = (schema_dir / "spans_schema.sql").read_text()
+            # state_patches_schema = (schema_dir / "state_patches_schema.sql").read_text()
+            # conn.execute(spans_schema)
+            # conn.execute(state_patches_schema)
 
         except Exception as e:
             logger.error(f"Failed to initialize DuckDB tables: {e}")
