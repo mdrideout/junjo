@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"os"
 	"strings"
 
 	"junjo-ai-studio/ingestion/backend_client"
-	"junjo-ai-studio/ingestion/logger"
+	"junjo-ai-studio/ingestion/config"
 	"junjo-ai-studio/ingestion/storage"
 
 	grpc_logging "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -27,25 +26,23 @@ import (
 )
 
 // NewGRPCServer creates and configures the gRPC server for the ingestion service.
-func NewGRPCServer(store *storage.Storage, authClient *backend_client.AuthClient, log *slog.Logger) (*grpc.Server, net.Listener, error) {
-	listenAddr := ":50051"
-	if port := os.Getenv("GRPC_PORT"); port != "" {
-		listenAddr = ":" + port
-	}
+func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthClient) (*grpc.Server, net.Listener, error) {
+	cfg := config.Get().Server
+	listenAddr := ":" + cfg.PublicPort
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to listen: %v", err)
 	}
 
 	// --- Initialize Services ---
-	otelTraceSvc := NewOtelTraceService(store)
+	otelTraceSvc := NewOtelTraceService(repo)
 	otelLogsSvc := NewOtelLogsService()
 	otelMetricSvc := NewOtelMetricService()
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpc_logging.UnaryServerInterceptor(
-				logger.InterceptorLogger(log),
+				interceptorLogger(),
 				grpc_logging.WithLogOnEvents(
 					grpc_logging.StartCall,
 					grpc_logging.FinishCall,
@@ -66,15 +63,16 @@ func NewGRPCServer(store *storage.Storage, authClient *backend_client.AuthClient
 }
 
 // NewInternalGRPCServer creates a new gRPC server for internal services.
-func NewInternalGRPCServer(store *storage.Storage, log *slog.Logger) (*grpc.Server, net.Listener, error) {
-	listenAddr := ":50052" // Default internal port
+func NewInternalGRPCServer(repo storage.SpanRepository) (*grpc.Server, net.Listener, error) {
+	cfg := config.Get().Server
+	listenAddr := ":" + cfg.InternalPort
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to listen on internal port: %v", err)
 	}
 
 	// --- Initialize Internal Services ---
-	walReaderSvc := NewWALReaderService(store)
+	walReaderSvc := NewWALReaderService(repo)
 
 	// Custom logging function that checks method name
 	logFunc := func(ctx context.Context, lvl grpc_logging.Level, msg string, fields ...any) {
@@ -93,9 +91,9 @@ func NewInternalGRPCServer(store *storage.Storage, log *slog.Logger) (*grpc.Serv
 
 		// Log health checks at DEBUG level, everything else at original level
 		if isHealthCheck {
-			log.Log(ctx, slog.LevelDebug, msg, fields...)
+			slog.Log(ctx, slog.LevelDebug, msg, fields...)
 		} else {
-			log.Log(ctx, slog.Level(lvl), msg, fields...)
+			slog.Log(ctx, slog.Level(lvl), msg, fields...)
 		}
 	}
 
@@ -118,4 +116,11 @@ func NewInternalGRPCServer(store *storage.Storage, log *slog.Logger) (*grpc.Serv
 	reflection.Register(grpcServer)
 
 	return grpcServer, lis, nil
+}
+
+// interceptorLogger returns a grpc_logging.Logger that uses the global slog.
+func interceptorLogger() grpc_logging.Logger {
+	return grpc_logging.LoggerFunc(func(ctx context.Context, lvl grpc_logging.Level, msg string, fields ...any) {
+		slog.Log(ctx, slog.Level(lvl), msg, fields...)
+	})
 }

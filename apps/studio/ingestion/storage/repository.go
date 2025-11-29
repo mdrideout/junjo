@@ -15,15 +15,27 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// MetadataKeyUnretrievedCount is the key for storing unretrieved span count
-const MetadataKeyUnretrievedCount = "unretrieved_count"
+// SpanRepository defines the data access interface for span storage.
+type SpanRepository interface {
+	// Span operations
+	WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) error
+	ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, spanBytes, resourceBytes []byte) error) (lastKeyProcessed []byte, corruptedCount uint32, err error)
+	DeleteSpansInRange(firstKey, lastKey []byte) error
+	GetSpanCount() (int64, error)
+	ReadAllSpansForFlush() (records []SpanRecord, firstKey, lastKey []byte, err error)
 
-// FlushState represents the current state of the flush process
-type FlushState struct {
-	LastFlushTime     time.Time
-	FirstFlushedKey   []byte
-	LastFlushedKey    []byte
-	TotalFlushedRows  int64
+	// Counter operations
+	GetUnretrievedCount() (uint64, error)
+	DecrementAndGetCount(n uint32) (uint64, error)
+	ReconcileCount() error
+
+	// Flush state
+	GetFlushState() (*FlushState, error)
+	UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) error
+
+	// Lifecycle
+	Sync() error
+	Close() error
 }
 
 // --- Monotonic ULID Generator ---
@@ -43,17 +55,15 @@ func newULID() (ulid.ULID, error) {
 	return ulid.New(ulid.Timestamp(time.Now()), &ulidGenerator)
 }
 
-// --- SQLite Storage Implementation ---
+// --- SQLiteRepository Implementation ---
 
-// Storage provides an interface for interacting with SQLite WAL storage.
-type Storage struct {
+// SQLiteRepository implements SpanRepository using SQLite.
+type SQLiteRepository struct {
 	pool *sqlitex.Pool
 }
 
-// NewStorage initializes a new SQLite database at the specified path.
-// It creates the schema, performs initial counter reconciliation, and starts
-// a background goroutine for periodic reconciliation.
-func NewStorage(path string) (*Storage, error) {
+// NewSQLiteRepository creates a new SQLiteRepository at the specified path.
+func NewSQLiteRepository(path string) (*SQLiteRepository, error) {
 	// Open connection pool with 10 connections
 	// URI format enables WAL mode and other pragmas
 	uri := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL", path)
@@ -64,16 +74,16 @@ func NewStorage(path string) (*Storage, error) {
 
 	slog.Info("sqlite opened", slog.String("path", path))
 
-	storage := &Storage{pool: pool}
+	repo := &SQLiteRepository{pool: pool}
 
 	// Initialize schema
-	if err := storage.initSchema(); err != nil {
+	if err := repo.initSchema(); err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
 	// Perform initial reconciliation on startup
-	if err := storage.ReconcileCount(); err != nil {
+	if err := repo.ReconcileCount(); err != nil {
 		slog.Warn("Initial counter reconciliation failed", slog.Any("error", err))
 	}
 
@@ -82,26 +92,23 @@ func NewStorage(path string) (*Storage, error) {
 		ticker := time.NewTicker(60 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
-			if err := storage.ReconcileCount(); err != nil {
+			if err := repo.ReconcileCount(); err != nil {
 				slog.Error("Periodic counter reconciliation failed", slog.Any("error", err))
 			}
 		}
 	}()
 
-	return storage, nil
+	return repo, nil
 }
 
 // initSchema creates the database tables if they don't exist.
-func (s *Storage) initSchema() error {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) initSchema() error {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
-	// Create spans table with ULID as primary key
-	// WITHOUT ROWID optimization for BLOB primary keys
-	// resource_bytes is nullable - all data is stored in span_bytes as SpanDataContainer
 	err := sqlitex.ExecScript(conn, `
 		CREATE TABLE IF NOT EXISTS spans (
 			key_ulid BLOB PRIMARY KEY,
@@ -134,27 +141,24 @@ func (s *Storage) initSchema() error {
 }
 
 // Close safely closes the SQLite connection pool.
-func (s *Storage) Close() error {
+func (r *SQLiteRepository) Close() error {
 	slog.Info("closing sqlite")
-	return s.pool.Close()
+	return r.pool.Close()
 }
 
 // Sync is a no-op for SQLite WAL mode - writes are already durable.
-// Kept for interface compatibility.
-func (s *Storage) Sync() error {
+func (r *SQLiteRepository) Sync() error {
 	slog.Info("sqlite sync (no-op in WAL mode)")
 	return nil
 }
 
 // WriteSpan serializes a span and resource and writes them to SQLite.
-// The key is a monotonic ULID to ensure chronological order.
-// This also atomically increments the unretrieved span counter.
-func (s *Storage) WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) error {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) error {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
 	// Create SpanData and serialize
 	spanData := &SpanData{
@@ -176,9 +180,7 @@ func (s *Storage) WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) e
 	defer sqlitex.Save(conn)(&err)
 
 	// Insert span
-	// span_bytes stores the full SpanDataContainer
-	// resource_bytes is left NULL - all data is in span_bytes
-	stmt := conn.Prep("INSERT INTO spans (key_ulid, span_bytes) VALUES (?, ?)")
+	stmt := conn.Prep(`INSERT INTO spans (key_ulid, span_bytes) VALUES (?, ?)`)
 	stmt.BindBytes(1, key[:])
 	stmt.BindBytes(2, dataBytes)
 
@@ -189,7 +191,7 @@ func (s *Storage) WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) e
 	}
 
 	// Increment counter
-	stmt = conn.Prep("UPDATE metadata SET value = value + 1 WHERE key = ?")
+	stmt = conn.Prep(`UPDATE metadata SET value = value + 1 WHERE key = ?`)
 	stmt.BindText(1, MetadataKeyUnretrievedCount)
 	_, err = stmt.Step()
 	stmt.Reset()
@@ -201,21 +203,19 @@ func (s *Storage) WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) e
 }
 
 // ReadSpans reads spans from the database starting after startKey.
-// It sends each span via the sendFunc callback.
-// Returns the last key processed, count of corrupted spans, and any error.
-func (s *Storage) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, spanBytes, resourceBytes []byte) error) (lastKeyProcessed []byte, corruptedCount uint32, err error) {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, spanBytes, resourceBytes []byte) error) (lastKeyProcessed []byte, corruptedCount uint32, err error) {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return nil, 0, fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
 	var stmt *sqlite.Stmt
 	if len(startKey) == 0 {
-		stmt = conn.Prep("SELECT key_ulid, span_bytes FROM spans ORDER BY key_ulid LIMIT ?")
+		stmt = conn.Prep(`SELECT key_ulid, span_bytes FROM spans ORDER BY key_ulid LIMIT ?`)
 		stmt.BindInt64(1, int64(batchSize))
 	} else {
-		stmt = conn.Prep("SELECT key_ulid, span_bytes FROM spans WHERE key_ulid > ? ORDER BY key_ulid LIMIT ?")
+		stmt = conn.Prep(`SELECT key_ulid, span_bytes FROM spans WHERE key_ulid > ? ORDER BY key_ulid LIMIT ?`)
 		stmt.BindBytes(1, startKey)
 		stmt.BindInt64(2, int64(batchSize))
 	}
@@ -278,17 +278,116 @@ func (s *Storage) ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key
 	return lastKeyProcessed, corruptedCount, nil
 }
 
-// --- Counter Operations ---
+// DeleteSpansInRange deletes all spans with keys between firstKey and lastKey (inclusive).
+func (r *SQLiteRepository) DeleteSpansInRange(firstKey, lastKey []byte) error {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
 
-// GetUnretrievedCount returns the current unretrieved span count.
-func (s *Storage) GetUnretrievedCount() (uint64, error) {
-	conn := s.pool.Get(nil)
+	stmt := conn.Prep(`DELETE FROM spans WHERE key_ulid >= ? AND key_ulid <= ?`)
+	defer stmt.Reset()
+
+	stmt.BindBytes(1, firstKey)
+	stmt.BindBytes(2, lastKey)
+
+	_, err := stmt.Step()
+	if err != nil {
+		return fmt.Errorf("failed to delete spans: %w", err)
+	}
+
+	return nil
+}
+
+// GetSpanCount returns the total number of spans in the database.
+func (r *SQLiteRepository) GetSpanCount() (int64, error) {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return 0, fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
-	stmt := conn.Prep("SELECT value FROM metadata WHERE key = ?")
+	stmt := conn.Prep(`SELECT COUNT(*) FROM spans`)
+	defer stmt.Reset()
+
+	hasRow, err := stmt.Step()
+	if err != nil {
+		return 0, fmt.Errorf("failed to count spans: %w", err)
+	}
+	if !hasRow {
+		return 0, nil
+	}
+
+	return stmt.ColumnInt64(0), nil
+}
+
+// ReadAllSpansForFlush reads all spans from SQLite and converts them to SpanRecords.
+func (r *SQLiteRepository) ReadAllSpansForFlush() ([]SpanRecord, []byte, []byte, error) {
+	var records []SpanRecord
+	var firstKey, lastKey []byte
+
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return nil, nil, nil, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	stmt := conn.Prep(`SELECT key_ulid, span_bytes FROM spans ORDER BY key_ulid`)
+	defer stmt.Reset()
+
+	for {
+		hasRow, err := stmt.Step()
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to step: %w", err)
+		}
+		if !hasRow {
+			break
+		}
+
+		// Read key
+		keyLen := stmt.ColumnLen(0)
+		key := make([]byte, keyLen)
+		stmt.ColumnBytes(0, key)
+
+		if firstKey == nil {
+			firstKey = key
+		}
+		lastKey = key
+
+		// Read span data
+		dataLen := stmt.ColumnLen(1)
+		dataBytes := make([]byte, dataLen)
+		stmt.ColumnBytes(1, dataBytes)
+
+		// Unmarshal span data
+		spanData, err := UnmarshalSpanData(dataBytes)
+		if err != nil {
+			slog.Warn("error unmarshaling span data during flush, skipping",
+				slog.String("key", fmt.Sprintf("%x", key)),
+				slog.Any("error", err))
+			continue
+		}
+
+		// Convert to record
+		record := ConvertSpanDataToRecord(spanData)
+		records = append(records, record)
+	}
+
+	return records, firstKey, lastKey, nil
+}
+
+// --- Counter Operations ---
+
+// GetUnretrievedCount returns the current unretrieved span count.
+func (r *SQLiteRepository) GetUnretrievedCount() (uint64, error) {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return 0, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	stmt := conn.Prep(`SELECT value FROM metadata WHERE key = ?`)
 	defer stmt.Reset()
 	stmt.BindText(1, MetadataKeyUnretrievedCount)
 
@@ -304,19 +403,19 @@ func (s *Storage) GetUnretrievedCount() (uint64, error) {
 }
 
 // DecrementAndGetCount decrements the span counter by n and returns the remaining count.
-func (s *Storage) DecrementAndGetCount(n uint32) (uint64, error) {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) DecrementAndGetCount(n uint32) (uint64, error) {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return 0, fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
 	var remaining uint64
 	var err error
 	defer sqlitex.Save(conn)(&err)
 
 	// Get current count
-	stmt := conn.Prep("SELECT value FROM metadata WHERE key = ?")
+	stmt := conn.Prep(`SELECT value FROM metadata WHERE key = ?`)
 	stmt.BindText(1, MetadataKeyUnretrievedCount)
 
 	hasRow, err := stmt.Step()
@@ -344,7 +443,7 @@ func (s *Storage) DecrementAndGetCount(n uint32) (uint64, error) {
 	remaining = count
 
 	// Update counter
-	stmt = conn.Prep("UPDATE metadata SET value = ? WHERE key = ?")
+	stmt = conn.Prep(`UPDATE metadata SET value = ? WHERE key = ?`)
 	stmt.BindInt64(1, int64(count))
 	stmt.BindText(2, MetadataKeyUnretrievedCount)
 
@@ -358,15 +457,15 @@ func (s *Storage) DecrementAndGetCount(n uint32) (uint64, error) {
 }
 
 // ReconcileCount counts actual spans and corrects the counter if drift is detected.
-func (s *Storage) ReconcileCount() error {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) ReconcileCount() error {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
 	// Count actual spans
-	stmt := conn.Prep("SELECT COUNT(*) FROM spans")
+	stmt := conn.Prep(`SELECT COUNT(*) FROM spans`)
 	hasRow, err := stmt.Step()
 	if err != nil {
 		stmt.Reset()
@@ -380,7 +479,7 @@ func (s *Storage) ReconcileCount() error {
 	stmt.Reset()
 
 	// Get stored counter (uses its own connection from pool)
-	storedCount, err := s.GetUnretrievedCount()
+	storedCount, err := r.GetUnretrievedCount()
 	if err != nil {
 		return err
 	}
@@ -394,7 +493,7 @@ func (s *Storage) ReconcileCount() error {
 			slog.Int64("drift", drift))
 
 		// Correct the counter
-		stmt = conn.Prep("UPDATE metadata SET value = ? WHERE key = ?")
+		stmt = conn.Prep(`UPDATE metadata SET value = ? WHERE key = ?`)
 		stmt.BindInt64(1, int64(actualCount))
 		stmt.BindText(2, MetadataKeyUnretrievedCount)
 
@@ -414,14 +513,14 @@ func (s *Storage) ReconcileCount() error {
 // --- Flush State Operations ---
 
 // GetFlushState returns the current flush state.
-func (s *Storage) GetFlushState() (*FlushState, error) {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) GetFlushState() (*FlushState, error) {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return nil, fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
-	stmt := conn.Prep("SELECT last_flush_time_unix, first_flushed_key_ulid, last_flushed_key_ulid, total_flushed_rows FROM flush_state WHERE id = 1")
+	stmt := conn.Prep(`SELECT last_flush_time_unix, first_flushed_key_ulid, last_flushed_key_ulid, total_flushed_rows FROM flush_state WHERE id = 1`)
 	defer stmt.Reset()
 
 	hasRow, err := stmt.Step()
@@ -454,12 +553,12 @@ func (s *Storage) GetFlushState() (*FlushState, error) {
 }
 
 // UpdateFlushState updates the flush state after a successful flush.
-func (s *Storage) UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) error {
-	conn := s.pool.Get(nil)
+func (r *SQLiteRepository) UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) error {
+	conn := r.pool.Get(nil)
 	if conn == nil {
 		return fmt.Errorf("failed to get connection from pool")
 	}
-	defer s.pool.Put(conn)
+	defer r.pool.Put(conn)
 
 	stmt := conn.Prep(`
 		UPDATE flush_state
@@ -482,26 +581,4 @@ func (s *Storage) UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) 
 	}
 
 	return nil
-}
-
-// GetSpanCount returns the total number of spans in the database.
-func (s *Storage) GetSpanCount() (int64, error) {
-	conn := s.pool.Get(nil)
-	if conn == nil {
-		return 0, fmt.Errorf("failed to get connection from pool")
-	}
-	defer s.pool.Put(conn)
-
-	stmt := conn.Prep("SELECT COUNT(*) FROM spans")
-	defer stmt.Reset()
-
-	hasRow, err := stmt.Step()
-	if err != nil {
-		return 0, fmt.Errorf("failed to count spans: %w", err)
-	}
-	if !hasRow {
-		return 0, nil
-	}
-
-	return stmt.ColumnInt64(0), nil
 }

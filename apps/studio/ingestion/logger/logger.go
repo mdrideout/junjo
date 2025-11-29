@@ -4,20 +4,15 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+
+	"junjo-ai-studio/ingestion/config"
 )
 
-// InitLogger initializes and returns a configured slog.Logger based on environment variables.
-// It reads JUNJO_LOG_LEVEL (default: info) and JUNJO_LOG_FORMAT (default: json) from the environment.
-// The logger is also set as the default global logger via slog.SetDefault().
-func InitLogger() *slog.Logger {
-	// Parse JUNJO_LOG_LEVEL from env (default: info)
-	level := parseLogLevel(os.Getenv("JUNJO_LOG_LEVEL"))
-
-	// Parse JUNJO_LOG_FORMAT from env (default: json)
-	format := os.Getenv("JUNJO_LOG_FORMAT")
-	if format == "" {
-		format = "json"
-	}
+// Init initializes the global slog logger from config.
+// Call once at startup before any logging.
+func Init() {
+	cfg := config.Get().Log
+	level := parseLogLevel(cfg.Level)
 
 	// Create handler based on format
 	var handler slog.Handler
@@ -26,16 +21,13 @@ func InitLogger() *slog.Logger {
 		AddSource: level == slog.LevelDebug, // Add source location for debug
 	}
 
-	if format == "json" {
+	if cfg.Format == "json" {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	} else {
 		handler = slog.NewTextHandler(os.Stdout, opts)
 	}
 
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-
-	return logger
+	slog.SetDefault(slog.New(handler))
 }
 
 // parseLogLevel converts a string log level to slog.Level.

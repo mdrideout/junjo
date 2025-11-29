@@ -12,14 +12,12 @@ import (
 
 type OtelTraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
-	store *storage.Storage
+	repo storage.SpanRepository
 }
 
 // NewOtelTraceService creates a new trace service.
-func NewOtelTraceService(store *storage.Storage) *OtelTraceService {
-	return &OtelTraceService{
-		store: store,
-	}
+func NewOtelTraceService(repo storage.SpanRepository) *OtelTraceService {
+	return &OtelTraceService{repo: repo}
 }
 
 func (s *OtelTraceService) Export(ctx context.Context, req *coltracepb.ExportTraceServiceRequest) (*coltracepb.ExportTraceServiceResponse, error) {
@@ -32,7 +30,7 @@ func (s *OtelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 				slog.InfoContext(ctx, "received span", slog.String("span_id", spanID), slog.String("trace_id", traceID), slog.String("name", span.Name))
 
 				// Write the span to the WAL
-				if err := s.store.WriteSpan(span, resource); err != nil {
+				if err := s.repo.WriteSpan(span, resource); err != nil {
 					slog.ErrorContext(ctx, "error writing span to wal", slog.Any("error", err))
 					// Decide on error handling: continue, or return an error to the client?
 					// For a WAL, we generally want to be resilient, so we'll log and continue.

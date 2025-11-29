@@ -11,12 +11,12 @@ import (
 // WALReaderService implements the gRPC server for reading from the WAL.
 type WALReaderService struct {
 	pb.UnimplementedInternalIngestionServiceServer
-	Store *storage.Storage
+	repo storage.SpanRepository
 }
 
 // NewWALReaderService creates a new WALReaderService.
-func NewWALReaderService(store *storage.Storage) *WALReaderService {
-	return &WALReaderService{Store: store}
+func NewWALReaderService(repo storage.SpanRepository) *WALReaderService {
+	return &WALReaderService{repo: repo}
 }
 
 // ReadSpans streams spans from the SQLite WAL to the client.
@@ -35,7 +35,7 @@ func (s *WALReaderService) ReadSpans(req *pb.ReadSpansRequest, stream pb.Interna
 		return stream.Send(res)
 	}
 
-	lastKeyProcessed, corruptedCount, err := s.Store.ReadSpans(req.StartKeyUlid, req.BatchSize, sendFunc)
+	lastKeyProcessed, corruptedCount, err := s.repo.ReadSpans(req.StartKeyUlid, req.BatchSize, sendFunc)
 	if err != nil {
 		// Don't log EOF errors, as they are expected when a client disconnects.
 		if err == io.EOF {
@@ -52,7 +52,7 @@ func (s *WALReaderService) ReadSpans(req *pb.ReadSpansRequest, stream pb.Interna
 	// Decrement the counter by total consumed and get the remaining count
 	var remainingCount uint64
 	if totalProcessed > 0 {
-		remainingCount, err = s.Store.DecrementAndGetCount(totalProcessed)
+		remainingCount, err = s.repo.DecrementAndGetCount(totalProcessed)
 		if err != nil {
 			slog.ErrorContext(ctx, "error decrementing span counter", slog.Any("error", err))
 			// Continue anyway - this is a non-critical error
@@ -60,7 +60,7 @@ func (s *WALReaderService) ReadSpans(req *pb.ReadSpansRequest, stream pb.Interna
 		}
 	} else {
 		// If no spans were processed at all, just get the current count
-		remainingCount, err = s.Store.GetUnretrievedCount()
+		remainingCount, err = s.repo.GetUnretrievedCount()
 		if err != nil {
 			slog.ErrorContext(ctx, "error getting unretrieved count", slog.Any("error", err))
 			remainingCount = 0

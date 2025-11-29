@@ -29,6 +29,11 @@ This document tracks the incremental refactor from V3 to V4 architecture as defi
 
 **002 - Parquet Flush** ✅: Implemented background flusher that reads spans from SQLite, converts to Arrow format, writes ZSTD-compressed Parquet files with date partitioning, deletes flushed spans, and tracks flush state.
 
+**Post-002 Cleanup** ✅: Architectural consistency pass:
+- Config: Global singleton pattern via `config.Get()` (not dependency injection)
+- Logging: Global `slog` only (not passing `*slog.Logger` around)
+- Removed all deprecated/backward-compatibility cruft (this is greenfield)
+
 ## Architecture Overview (V4)
 
 ```

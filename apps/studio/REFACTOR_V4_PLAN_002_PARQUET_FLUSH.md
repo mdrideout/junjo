@@ -176,6 +176,71 @@ This includes:
 - `parquet/compress` - Compression codecs (ZSTD)
 - `parquet/pqarrow` - Arrow-to-Parquet bridge
 
+## Post-Implementation Cleanup
+
+After initial implementation, an architectural consistency pass was performed:
+
+### Config: Global Singleton Pattern
+
+Changed from dependency injection to global singleton:
+
+```go
+// Before: Pass config to each constructor
+authClient, err := backend_client.NewAuthClient(cfg.Backend)
+flusher := storage.NewFlusher(repo, flusherConfig)
+server.NewGRPCServer(repo, authClient, log, cfg.Server)
+
+// After: Components call config.Get() internally
+authClient, err := backend_client.NewAuthClient()
+flusher := storage.NewFlusher(repo)
+server.NewGRPCServer(repo, authClient)
+```
+
+Added to `config/config.go`:
+- `Get()` - Returns global config singleton, loads on first call
+- `MustLoad()` - Call at startup, panics on error
+- `SetForTesting()` - Allows tests to set custom config
+
+### Logging: Global slog Only
+
+Changed from passing `*slog.Logger` to using global `slog`:
+
+```go
+// Before
+func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthClient, log *slog.Logger, cfg config.ServerConfig)
+
+// After
+func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthClient)
+```
+
+- `logger.Init()` calls `slog.SetDefault()` once at startup
+- All code uses `slog.Info()`, `slog.Error()`, etc. directly
+- Removed duplicate flusher config logging from `main.go`
+
+### Removed Deprecated Cruft
+
+Since this is greenfield V4, removed unnecessary backward compatibility:
+
+| Removed | From |
+|---------|------|
+| `type Storage = SQLiteRepository` | `storage/repository.go` |
+| `func NewStorage()` | `storage/repository.go` |
+| `func NewOtelTraceService(store *storage.Storage)` | `server/otel_trace_service.go` |
+| `func NewWALReaderService(store *storage.Storage)` | `server/wal_reader_service.go` |
+| `FlusherConfigFromConfig()` | `storage/flusher.go` |
+
+### Files Modified in Cleanup
+
+| File | Changes |
+|------|---------|
+| `config/config.go` | Added `Get()`, `MustLoad()`, `SetForTesting()` |
+| `logger/logger.go` | `InitLogger(cfg)` → `Init()` |
+| `main.go` | Simplified startup, removed duplicate logging |
+| `server/server.go` | Removed `log` and `cfg` parameters |
+| `storage/flusher.go` | Removed config parameter, uses `config.Get()` |
+| `storage/flusher_test.go` | Uses `config.SetForTesting()` |
+| `backend_client/auth_client.go` | Removed `cfg` parameter |
+
 ## Next Steps
 
 - **Plan 003**: Python backend Parquet indexer - Poll for new Parquet files, extract span summaries, update DuckDB metadata

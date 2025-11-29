@@ -1,6 +1,10 @@
 # Prepare for Task
 
-You are about to work on the Junjo AI Studio codebase to refactor from the existing architecture to "V4". Follow these steps to prepare:
+You are about to work on the Junjo AI Studio codebase to refactor from the existing architecture to "V4". 
+
+This is a greenfield refactor. We do not need to worry about migrations, backward compatibility, or making methods deprecated. Everything you build will be for new installs and fresh databases. 
+
+Follow these steps to prepare:
 
 ## For the existing codebase:
 1. Review the @README.md

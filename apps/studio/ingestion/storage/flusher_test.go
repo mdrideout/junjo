@@ -6,10 +6,21 @@ import (
 	"testing"
 	"time"
 
+	"junjo-ai-studio/ingestion/config"
+
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
+
+// setupTestConfig sets up config for testing with the given output directory.
+func setupTestConfig(t *testing.T, outputDir string) {
+	t.Helper()
+	cfg := config.Default()
+	cfg.Flusher.OutputDir = outputDir
+	cfg.Flusher.MinRows = 1 // Allow flushing small batches for testing
+	config.SetForTesting(cfg)
+}
 
 func TestFlusherFlush(t *testing.T) {
 	// Create temp directories
@@ -22,24 +33,27 @@ func TestFlusherFlush(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	outputDir := filepath.Join(tmpDir, "spans")
 
-	// Create storage
-	storage, err := NewStorage(dbPath)
+	// Set up test config
+	setupTestConfig(t, outputDir)
+
+	// Create repository
+	repo, err := NewSQLiteRepository(dbPath)
 	if err != nil {
-		t.Fatalf("Failed to create storage: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer storage.Close()
+	defer repo.Close()
 
 	// Write test spans
 	for i := 0; i < 10; i++ {
 		span := createFlusherTestSpan(t, i)
 		resource := createFlusherTestResource("test-service")
-		if err := storage.WriteSpan(span, resource); err != nil {
+		if err := repo.WriteSpan(span, resource); err != nil {
 			t.Fatalf("Failed to write span %d: %v", i, err)
 		}
 	}
 
 	// Verify spans are in storage
-	count, err := storage.GetSpanCount()
+	count, err := repo.GetSpanCount()
 	if err != nil {
 		t.Fatalf("Failed to get span count: %v", err)
 	}
@@ -47,12 +61,8 @@ func TestFlusherFlush(t *testing.T) {
 		t.Fatalf("Expected 10 spans, got %d", count)
 	}
 
-	// Create and configure flusher
-	config := DefaultFlusherConfig()
-	config.OutputDir = outputDir
-	config.MinRowCount = 1 // Allow flushing small batches for testing
-
-	flusher := NewFlusher(storage, config)
+	// Create flusher
+	flusher := NewFlusher(repo)
 
 	// Perform manual flush (don't start background process)
 	if err := flusher.doFlush(); err != nil {
@@ -60,7 +70,7 @@ func TestFlusherFlush(t *testing.T) {
 	}
 
 	// Verify spans were deleted from SQLite
-	count, err = storage.GetSpanCount()
+	count, err = repo.GetSpanCount()
 	if err != nil {
 		t.Fatalf("Failed to get span count after flush: %v", err)
 	}
@@ -78,7 +88,7 @@ func TestFlusherFlush(t *testing.T) {
 	}
 
 	// Verify flush state was updated
-	state, err := storage.GetFlushState()
+	state, err := repo.GetFlushState()
 	if err != nil {
 		t.Fatalf("Failed to get flush state: %v", err)
 	}
@@ -103,27 +113,29 @@ func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	outputDir := filepath.Join(tmpDir, "spans")
 
-	storage, err := NewStorage(dbPath)
+	// Set up test config with low row count threshold
+	cfg := config.Default()
+	cfg.Flusher.OutputDir = outputDir
+	cfg.Flusher.MaxRows = 3 // Threshold below current count
+	cfg.Flusher.MinRows = 1
+	config.SetForTesting(cfg)
+
+	repo, err := NewSQLiteRepository(dbPath)
 	if err != nil {
-		t.Fatalf("Failed to create storage: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer storage.Close()
+	defer repo.Close()
 
 	// Write 5 spans
 	for i := 0; i < 5; i++ {
 		span := createFlusherTestSpan(t, i)
 		resource := createFlusherTestResource("test-service")
-		if err := storage.WriteSpan(span, resource); err != nil {
+		if err := repo.WriteSpan(span, resource); err != nil {
 			t.Fatalf("Failed to write span %d: %v", i, err)
 		}
 	}
 
-	config := DefaultFlusherConfig()
-	config.OutputDir = outputDir
-	config.MaxRowCount = 3 // Threshold below current count
-	config.MinRowCount = 1
-
-	flusher := NewFlusher(storage, config)
+	flusher := NewFlusher(repo)
 
 	// Check and flush - should trigger due to row count
 	if err := flusher.checkAndFlush(); err != nil {
@@ -131,7 +143,7 @@ func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
 	}
 
 	// Verify flush occurred
-	count, err := storage.GetSpanCount()
+	count, err := repo.GetSpanCount()
 	if err != nil {
 		t.Fatalf("Failed to get span count: %v", err)
 	}
@@ -150,26 +162,28 @@ func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	outputDir := filepath.Join(tmpDir, "spans")
 
-	storage, err := NewStorage(dbPath)
+	// Set up test config with high min row count
+	cfg := config.Default()
+	cfg.Flusher.OutputDir = outputDir
+	cfg.Flusher.MinRows = 10 // Higher than current count
+	config.SetForTesting(cfg)
+
+	repo, err := NewSQLiteRepository(dbPath)
 	if err != nil {
-		t.Fatalf("Failed to create storage: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer storage.Close()
+	defer repo.Close()
 
 	// Write 2 spans
 	for i := 0; i < 2; i++ {
 		span := createFlusherTestSpan(t, i)
 		resource := createFlusherTestResource("test-service")
-		if err := storage.WriteSpan(span, resource); err != nil {
+		if err := repo.WriteSpan(span, resource); err != nil {
 			t.Fatalf("Failed to write span %d: %v", i, err)
 		}
 	}
 
-	config := DefaultFlusherConfig()
-	config.OutputDir = outputDir
-	config.MinRowCount = 10 // Higher than current count
-
-	flusher := NewFlusher(storage, config)
+	flusher := NewFlusher(repo)
 
 	// Check and flush - should NOT trigger due to min row count
 	if err := flusher.checkAndFlush(); err != nil {
@@ -177,7 +191,7 @@ func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
 	}
 
 	// Verify flush did NOT occur
-	count, err := storage.GetSpanCount()
+	count, err := repo.GetSpanCount()
 	if err != nil {
 		t.Fatalf("Failed to get span count: %v", err)
 	}
@@ -196,16 +210,15 @@ func TestFlusherCheckAndFlush_NoSpans(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	outputDir := filepath.Join(tmpDir, "spans")
 
-	storage, err := NewStorage(dbPath)
+	setupTestConfig(t, outputDir)
+
+	repo, err := NewSQLiteRepository(dbPath)
 	if err != nil {
-		t.Fatalf("Failed to create storage: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer storage.Close()
+	defer repo.Close()
 
-	config := DefaultFlusherConfig()
-	config.OutputDir = outputDir
-
-	flusher := NewFlusher(storage, config)
+	flusher := NewFlusher(repo)
 
 	// Check and flush - should not error with no spans
 	if err := flusher.checkAndFlush(); err != nil {
@@ -223,17 +236,19 @@ func TestFlusherStartStop(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	outputDir := filepath.Join(tmpDir, "spans")
 
-	storage, err := NewStorage(dbPath)
+	// Set up test config with short interval
+	cfg := config.Default()
+	cfg.Flusher.OutputDir = outputDir
+	cfg.Flusher.Interval = 100 * time.Millisecond
+	config.SetForTesting(cfg)
+
+	repo, err := NewSQLiteRepository(dbPath)
 	if err != nil {
-		t.Fatalf("Failed to create storage: %v", err)
+		t.Fatalf("Failed to create repository: %v", err)
 	}
-	defer storage.Close()
+	defer repo.Close()
 
-	config := DefaultFlusherConfig()
-	config.OutputDir = outputDir
-	config.FlushInterval = 100 * time.Millisecond
-
-	flusher := NewFlusher(storage, config)
+	flusher := NewFlusher(repo)
 	flusher.Start()
 
 	// Let it run briefly
@@ -255,10 +270,11 @@ func TestFlusherStartStop(t *testing.T) {
 }
 
 func TestGenerateOutputPath(t *testing.T) {
-	config := DefaultFlusherConfig()
-	config.OutputDir = "/app/.dbdata/spans"
+	cfg := config.Default()
+	cfg.Flusher.OutputDir = "/app/.dbdata/spans"
+	config.SetForTesting(cfg)
 
-	flusher := &Flusher{config: config}
+	flusher := NewFlusher(nil) // repo not needed for this test
 
 	// Test with a specific time
 	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
