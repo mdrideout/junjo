@@ -13,6 +13,13 @@
   - [3. Authentication](#3-authentication)
     - [API Key Auth (OTel Data)](#api-key-auth-otel-data)
     - [Session Cookie Auth (Web UI)](#session-cookie-auth-web-ui)
+  - [3.1. Python Backend Internal Authentication gRPC Service](#31-python-backend-internal-authentication-grpc-service)
+    - [Architecture Overview](#architecture-overview)
+    - [Concurrent Server Implementation](#concurrent-server-implementation)
+    - [gRPC Service Implementation](#grpc-service-implementation)
+    - [Database Access Pattern](#database-access-pattern)
+    - [Integration with Ingestion Service](#integration-with-ingestion-service)
+    - [Testing](#testing)
   - [4. Data Flow: WAL and Indexing](#4-data-flow-wal-and-indexing)
   - [5. OpenInference Conventions](#5-openinference-conventions)
   - [6. Prompt Playground](#6-prompt-playground)
@@ -288,15 +295,18 @@ junjo-ai-studio-ingestion:
 - Test valid keys, invalid keys, empty keys, database errors
 
 **Integration Tests** (`app/features/internal_auth/test_grpc_integration.py`):
-- Connect to real gRPC server on port 50053
-- Test with actual API keys from database
+- Connect to real in-process gRPC server (started by `grpc_server_for_tests` fixture)
+- Uses isolated test database (via `test_database` fixture)
+- Test with actual API keys created in the test DB
 - Verify server connectivity and response format
 
 **Concurrent Access Tests** (`app/features/internal_auth/test_concurrent_access.py`):
-- 50+ concurrent gRPC requests
+- 50+ concurrent gRPC requests against in-process server
 - Mixed FastAPI + gRPC traffic
 - Database isolation under load
 - Verify no race conditions
+
+**Testing Note**: Do NOT run `uvicorn` before running these tests. The tests manage their own gRPC server lifecycle to ensure database isolation. If port 50053 is in use by an external process, tests will fail.
 
 ## 4. Data Flow: WAL and Indexing
 
