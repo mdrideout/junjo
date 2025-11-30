@@ -45,7 +45,7 @@ async def test_validate_api_key_integration_with_production_key(test_api_key):
 @pytest.mark.integration
 @pytest.mark.requires_grpc_server
 @pytest.mark.asyncio
-async def test_validate_api_key_integration_invalid():
+async def test_validate_api_key_integration_invalid(grpc_server_for_tests):
     """
     Integration test: ValidateApiKey with an invalid API key.
 
@@ -69,7 +69,7 @@ async def test_validate_api_key_integration_invalid():
 @pytest.mark.integration
 @pytest.mark.requires_grpc_server
 @pytest.mark.asyncio
-async def test_validate_api_key_integration_empty():
+async def test_validate_api_key_integration_empty(grpc_server_for_tests):
     """
     Integration test: ValidateApiKey with an empty API key.
 
@@ -91,7 +91,7 @@ async def test_validate_api_key_integration_empty():
 @pytest.mark.integration
 @pytest.mark.requires_grpc_server
 @pytest.mark.asyncio
-async def test_grpc_server_connectivity():
+async def test_grpc_server_connectivity(grpc_server_for_tests):
     """
     Integration test: Verify gRPC server is accessible and responsive.
 

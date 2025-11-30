@@ -1,12 +1,16 @@
-"""gRPC client for ingestion service span reading.
+"""gRPC client for ingestion service span reading and WAL queries.
 
-This client connects to the ingestion service and reads spans from the
-SQLite WAL using server-streaming gRPC.
+This client connects to the ingestion service and provides:
+1. Span reading from SQLite WAL using server-streaming gRPC (for V3 flusher)
+2. WAL query operations for fusion queries (V4 - combining hot WAL + cold Parquet)
 
 Port of: backend/ingestion_client/client.go
 """
 
+import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 
 import grpc
 from loguru import logger
@@ -198,3 +202,214 @@ class IngestionClient:
                 extra={"error": str(e), "error_type": type(e).__name__},
             )
             raise
+
+    # =========================================================================
+    # WAL Query Methods (V4 Fusion Queries)
+    # =========================================================================
+
+    async def get_wal_spans_by_trace_id(self, trace_id: str) -> list[dict[str, Any]]:
+        """Get all spans from WAL matching a trace ID.
+
+        Used for fusion queries combining WAL and Parquet data.
+
+        Args:
+            trace_id: The trace ID to query (hex string)
+
+        Returns:
+            List of span dictionaries in API response format
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetWALSpansByTraceIdRequest(trace_id=trace_id)
+
+        spans = []
+        try:
+            async for span_data in self.stub.GetWALSpansByTraceId(request):
+                span_dict = _convert_span_data_to_api_format(span_data)
+                spans.append(span_dict)
+
+            logger.debug(
+                f"Got {len(spans)} spans from WAL for trace",
+                extra={"trace_id": trace_id, "count": len(spans)},
+            )
+            return spans
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting WAL spans by trace_id",
+                extra={
+                    "trace_id": trace_id,
+                    "code": str(e.code()),
+                    "details": e.details(),
+                },
+            )
+            raise
+
+    async def get_wal_distinct_service_names(self) -> list[str]:
+        """Get all distinct service names currently in the WAL.
+
+        Used to merge with Parquet-indexed services for complete listing.
+
+        Returns:
+            List of service name strings
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetWALDistinctServiceNamesRequest()
+
+        try:
+            response = await self.stub.GetWALDistinctServiceNames(request)
+            services = list(response.service_names)
+
+            logger.debug(
+                f"Retrieved {len(services)} distinct service names from WAL",
+                extra={"count": len(services)},
+            )
+            return services
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting WAL distinct service names",
+                extra={"code": str(e.code()), "details": e.details()},
+            )
+            raise
+
+    async def get_wal_root_spans(self, service_name: str, limit: int = 500) -> list[dict[str, Any]]:
+        """Get root spans (no parent) from the WAL for a service.
+
+        Used for trace listing, merged with Parquet root spans.
+
+        Args:
+            service_name: Service to filter by
+            limit: Maximum number of spans to return
+
+        Returns:
+            List of span dictionaries in API response format
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetWALRootSpansRequest(service_name=service_name, limit=limit)
+
+        spans = []
+        try:
+            async for span_data in self.stub.GetWALRootSpans(request):
+                span_dict = _convert_span_data_to_api_format(span_data)
+                spans.append(span_dict)
+
+            logger.debug(
+                f"Retrieved {len(spans)} root spans from WAL",
+                extra={"service_name": service_name, "count": len(spans), "limit": limit},
+            )
+            return spans
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting WAL root spans",
+                extra={
+                    "service_name": service_name,
+                    "code": str(e.code()),
+                    "details": e.details(),
+                },
+            )
+            raise
+
+
+def _convert_span_data_to_api_format(span_data: ingestion_pb2.SpanData) -> dict[str, Any]:
+    """Convert gRPC SpanData to API response format.
+
+    This matches the format returned by datafusion_query.py for Parquet spans.
+    """
+    # Parse JSON fields
+    attributes = _parse_json_safe(span_data.attributes_json, {})
+    events = _parse_json_safe(span_data.events_json, [])
+    # resource_attributes is available but not used in current API response
+    _ = _parse_json_safe(span_data.resource_attributes_json, {})
+
+    # Extract junjo fields from attributes
+    junjo_id = attributes.pop("junjo.id", "")
+    junjo_parent_id = attributes.pop("junjo.parent_id", "")
+    junjo_span_type = attributes.pop("junjo.span_type", "")
+    junjo_wf_state_start = attributes.pop("junjo.wf_state_start", {})
+    junjo_wf_state_end = attributes.pop("junjo.wf_state_end", {})
+    junjo_wf_graph_structure = attributes.pop("junjo.wf_graph_structure", {})
+    junjo_wf_store_id = attributes.pop("junjo.wf_store_id", "")
+
+    # Parse nested JSON in junjo fields if they're strings
+    if isinstance(junjo_wf_state_start, str):
+        junjo_wf_state_start = _parse_json_safe(junjo_wf_state_start, {})
+    if isinstance(junjo_wf_state_end, str):
+        junjo_wf_state_end = _parse_json_safe(junjo_wf_state_end, {})
+    if isinstance(junjo_wf_graph_structure, str):
+        junjo_wf_graph_structure = _parse_json_safe(junjo_wf_graph_structure, {})
+
+    # Map span_kind int to string (matching V3 behavior)
+    kind_map = {0: "INTERNAL", 1: "SERVER", 2: "CLIENT", 3: "PRODUCER", 4: "CONSUMER"}
+    kind_str = kind_map.get(span_data.span_kind, "INTERNAL")
+
+    # Format timestamps
+    start_time_str = _format_timestamp_ns(span_data.start_time_unix_nano)
+    end_time_str = _format_timestamp_ns(span_data.end_time_unix_nano)
+
+    return {
+        "trace_id": span_data.trace_id,
+        "span_id": span_data.span_id,
+        "parent_span_id": span_data.parent_span_id,
+        "service_name": span_data.service_name,
+        "name": span_data.name,
+        "kind": kind_str,
+        "start_time": start_time_str,
+        "end_time": end_time_str,
+        "status_code": str(span_data.status_code),
+        "status_message": span_data.status_message or "",
+        "attributes_json": attributes,
+        "events_json": events,
+        "links_json": [],  # Not in WAL schema
+        "trace_flags": 0,  # Not in WAL schema
+        "trace_state": None,  # Not in WAL schema
+        "junjo_id": junjo_id,
+        "junjo_parent_id": junjo_parent_id,
+        "junjo_span_type": junjo_span_type,
+        "junjo_wf_state_start": junjo_wf_state_start,
+        "junjo_wf_state_end": junjo_wf_state_end,
+        "junjo_wf_graph_structure": junjo_wf_graph_structure,
+        "junjo_wf_store_id": junjo_wf_store_id,
+    }
+
+
+def _parse_json_safe(value: str | None, default: Any) -> Any:
+    """Parse JSON string safely, returning default on failure."""
+    if value is None or value == "":
+        return default
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return default
+
+
+def _format_timestamp_ns(ts_ns: int) -> str:
+    """Format nanosecond timestamp to ISO8601 string with timezone."""
+    if ts_ns == 0:
+        return ""
+    seconds = ts_ns // 1_000_000_000
+    remaining_ns = ts_ns % 1_000_000_000
+    microseconds = remaining_ns // 1000
+    dt = datetime.fromtimestamp(seconds, tz=UTC)
+    dt = dt.replace(microsecond=microseconds)
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.%f") + "+00:00"

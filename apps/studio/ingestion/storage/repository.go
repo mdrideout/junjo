@@ -24,6 +24,11 @@ type SpanRepository interface {
 	GetSpanCount() (int64, error)
 	ReadAllSpansForFlush() (records []SpanRecord, firstKey, lastKey []byte, err error)
 
+	// WAL Query operations (for fusion queries)
+	GetWALSpansByTraceID(traceID string) ([]*SpanData, error)
+	GetDistinctServiceNames() ([]string, error)
+	GetRootSpans(serviceName string, limit int) ([]*SpanData, error)
+
 	// Counter operations
 	GetUnretrievedCount() (uint64, error)
 	DecrementAndGetCount(n uint32) (uint64, error)
@@ -113,8 +118,18 @@ func (r *SQLiteRepository) initSchema() error {
 		CREATE TABLE IF NOT EXISTS spans (
 			key_ulid BLOB PRIMARY KEY,
 			span_bytes BLOB NOT NULL,
-			resource_bytes BLOB
+			resource_bytes BLOB,
+			-- Indexed columns for WAL queries (extracted from span_bytes for efficient lookup)
+			trace_id TEXT,
+			service_name TEXT,
+			parent_span_id TEXT,
+			start_time_unix_nano INTEGER
 		) WITHOUT ROWID;
+
+		-- Indexes for WAL query operations
+		CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id);
+		CREATE INDEX IF NOT EXISTS idx_spans_service_name ON spans(service_name);
+		CREATE INDEX IF NOT EXISTS idx_spans_parent_span_id ON spans(parent_span_id);
 
 		CREATE TABLE IF NOT EXISTS metadata (
 			key TEXT PRIMARY KEY,
@@ -176,13 +191,36 @@ func (r *SQLiteRepository) WriteSpan(span *tracepb.Span, resource *resourcepb.Re
 		return fmt.Errorf("failed to generate ULID: %w", err)
 	}
 
+	// Extract indexed fields from span and resource
+	traceID := fmt.Sprintf("%x", span.GetTraceId())
+	parentSpanID := fmt.Sprintf("%x", span.GetParentSpanId())
+	if len(span.GetParentSpanId()) == 0 {
+		parentSpanID = "" // Root span has no parent
+	}
+	startTimeUnixNano := int64(span.GetStartTimeUnixNano())
+
+	// Extract service name from resource attributes
+	serviceName := ""
+	if resource != nil {
+		for _, attr := range resource.GetAttributes() {
+			if attr.GetKey() == "service.name" {
+				serviceName = attr.GetValue().GetStringValue()
+				break
+			}
+		}
+	}
+
 	// Begin transaction
 	defer sqlitex.Save(conn)(&err)
 
-	// Insert span
-	stmt := conn.Prep(`INSERT INTO spans (key_ulid, span_bytes) VALUES (?, ?)`)
+	// Insert span with indexed columns
+	stmt := conn.Prep(`INSERT INTO spans (key_ulid, span_bytes, trace_id, service_name, parent_span_id, start_time_unix_nano) VALUES (?, ?, ?, ?, ?, ?)`)
 	stmt.BindBytes(1, key[:])
 	stmt.BindBytes(2, dataBytes)
+	stmt.BindText(3, traceID)
+	stmt.BindText(4, serviceName)
+	stmt.BindText(5, parentSpanID)
+	stmt.BindInt64(6, startTimeUnixNano)
 
 	_, err = stmt.Step()
 	stmt.Reset()
@@ -581,4 +619,121 @@ func (r *SQLiteRepository) UpdateFlushState(firstKey, lastKey []byte, rowsFlushe
 	}
 
 	return nil
+}
+
+// --- WAL Query Operations ---
+
+// GetWALSpansByTraceID returns all spans matching a trace ID.
+// Used for fusion queries combining WAL and Parquet data.
+func (r *SQLiteRepository) GetWALSpansByTraceID(traceID string) ([]*SpanData, error) {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return nil, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	stmt := conn.Prep(`SELECT span_bytes FROM spans WHERE trace_id = ? ORDER BY start_time_unix_nano`)
+	defer stmt.Reset()
+	stmt.BindText(1, traceID)
+
+	var spans []*SpanData
+	for {
+		hasRow, err := stmt.Step()
+		if err != nil {
+			return nil, fmt.Errorf("failed to query spans by trace_id: %w", err)
+		}
+		if !hasRow {
+			break
+		}
+
+		// Read span data
+		dataLen := stmt.ColumnLen(0)
+		dataBytes := make([]byte, dataLen)
+		stmt.ColumnBytes(0, dataBytes)
+
+		// Unmarshal span data
+		spanData, err := UnmarshalSpanData(dataBytes)
+		if err != nil {
+			slog.Warn("error unmarshaling span data in GetWALSpansByTraceID, skipping",
+				slog.String("trace_id", traceID),
+				slog.Any("error", err))
+			continue
+		}
+
+		spans = append(spans, spanData)
+	}
+
+	return spans, nil
+}
+
+// GetDistinctServiceNames returns all distinct service names currently in the WAL.
+func (r *SQLiteRepository) GetDistinctServiceNames() ([]string, error) {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return nil, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	stmt := conn.Prep(`SELECT DISTINCT service_name FROM spans WHERE service_name IS NOT NULL AND service_name != '' ORDER BY service_name`)
+	defer stmt.Reset()
+
+	var services []string
+	for {
+		hasRow, err := stmt.Step()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get distinct service names: %w", err)
+		}
+		if !hasRow {
+			break
+		}
+
+		serviceName := stmt.ColumnText(0)
+		services = append(services, serviceName)
+	}
+
+	return services, nil
+}
+
+// GetRootSpans returns root spans (no parent) from the WAL for a service.
+func (r *SQLiteRepository) GetRootSpans(serviceName string, limit int) ([]*SpanData, error) {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return nil, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	// Root spans have empty parent_span_id
+	stmt := conn.Prep(`SELECT span_bytes FROM spans WHERE service_name = ? AND (parent_span_id IS NULL OR parent_span_id = '') ORDER BY start_time_unix_nano DESC LIMIT ?`)
+	defer stmt.Reset()
+	stmt.BindText(1, serviceName)
+	stmt.BindInt64(2, int64(limit))
+
+	var spans []*SpanData
+	for {
+		hasRow, err := stmt.Step()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get root spans: %w", err)
+		}
+		if !hasRow {
+			break
+		}
+
+		// Read span data
+		dataLen := stmt.ColumnLen(0)
+		dataBytes := make([]byte, dataLen)
+		stmt.ColumnBytes(0, dataBytes)
+
+		// Unmarshal span data
+		spanData, err := UnmarshalSpanData(dataBytes)
+		if err != nil {
+			slog.Warn("error unmarshaling span data in GetRootSpans, skipping",
+				slog.String("service_name", serviceName),
+				slog.Any("error", err))
+			continue
+		}
+
+		spans = append(spans, spanData)
+	}
+
+	return spans, nil
 }

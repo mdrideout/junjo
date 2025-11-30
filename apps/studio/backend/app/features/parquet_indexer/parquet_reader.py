@@ -7,6 +7,7 @@ Note: This module only reads metadata columns needed for listings.
 Full span data (attributes, events, resource_attributes) stays in Parquet.
 """
 
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -57,6 +58,7 @@ class SpanMetadata:
     status_code: int
     span_kind: int
     is_root: bool
+    junjo_span_type: str | None  # workflow, subflow, node, run_concurrent, or None
 
 
 @dataclass
@@ -73,7 +75,8 @@ class ParquetFileData:
 
 
 # Columns we need for metadata indexing
-# Excludes: attributes, events, resource_attributes, status_message (stay in Parquet)
+# Note: We include 'attributes' to extract junjo_span_type
+# Full attributes stay in Parquet for query-time access
 METADATA_COLUMNS = [
     "span_id",
     "trace_id",
@@ -85,6 +88,7 @@ METADATA_COLUMNS = [
     "duration_ns",
     "status_code",
     "span_kind",
+    "attributes",  # Need to extract junjo.span_type
 ]
 
 
@@ -125,6 +129,7 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
     duration_ns_list = table.column("duration_ns").to_pylist()
     status_codes = table.column("status_code").to_pylist()
     span_kinds = table.column("span_kind").to_pylist()
+    attributes_list = table.column("attributes").to_pylist()
 
     # For timestamps, we need to handle nanosecond precision manually
     # (pyarrow can't convert ns timestamps to Python datetime directly)
@@ -151,6 +156,16 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
         # Determine if root span (no parent)
         is_root = parent_id is None or parent_id == ""
 
+        # Extract junjo_span_type from attributes JSON
+        junjo_span_type: str | None = None
+        attrs_str = attributes_list[i]
+        if attrs_str:
+            try:
+                attrs = json.loads(attrs_str) if isinstance(attrs_str, str) else attrs_str
+                junjo_span_type = attrs.get("junjo.span_type")
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         spans.append(
             SpanMetadata(
                 span_id=span_ids[i],
@@ -164,6 +179,7 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
                 status_code=status_codes[i],
                 span_kind=span_kinds[i],
                 is_root=is_root,
+                junjo_span_type=junjo_span_type,
             )
         )
 

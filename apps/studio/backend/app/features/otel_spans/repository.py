@@ -1,144 +1,275 @@
-"""Repository for querying OTEL spans from DuckDB.
+"""Repository for querying OTEL spans from V4 architecture with WAL fusion.
 
-Provides data access methods for span query endpoints.
-Each method has a single responsibility following SRP.
+V4 Fusion Flow:
+1. Query DuckDB metadata (span_metadata, services, parquet_files) for filtering
+2. Use DataFusion to fetch full span data from Parquet files
+3. Query WAL via gRPC for hot data not yet flushed to Parquet
+4. Merge results, deduplicate by span_id (Parquet wins if same span exists in both)
+5. Parse/format response to match API contract
+
+This module provides data access methods for span query endpoints.
+Functions with "_fused" suffix query both Parquet and WAL, merging results.
 """
 
-import json
-
+import grpc
 from loguru import logger
 
-from app.db_duckdb.db_config import get_connection
+from app.db_duckdb import datafusion_query, v4_repository
+from app.features.span_ingestion.ingestion_client import IngestionClient
+
+# Module-level WAL client for reuse
+_wal_client: IngestionClient | None = None
 
 
-def _parse_json_fields(row: dict) -> dict:
-    """Parse JSON string fields to Python dicts/lists.
+async def _get_wal_client() -> IngestionClient:
+    """Get or create the WAL query client.
 
-    DuckDB returns JSON columns as strings, so we need to parse them.
+    Returns a connected client ready for queries.
+    The client is cached at module level for reuse.
+    """
+    global _wal_client
+    if _wal_client is None:
+        _wal_client = IngestionClient()
+        await _wal_client.connect()
+    return _wal_client
+
+
+async def _reset_wal_client() -> None:
+    """Reset the WAL client after an error.
+
+    This closes the existing client and clears the cache so the next
+    call to _get_wal_client() will create a fresh connection.
+    """
+    global _wal_client
+    if _wal_client is not None:
+        try:
+            await _wal_client.close()
+        except Exception:
+            pass  # Ignore close errors
+        _wal_client = None
+
+
+async def _get_wal_distinct_service_names() -> list[str]:
+    """Query distinct service names from WAL.
+
+    Returns empty list if WAL query fails (graceful degradation).
+    """
+    try:
+        client = await _get_wal_client()
+        return await client.get_wal_distinct_service_names()
+    except grpc.aio.AioRpcError as e:
+        logger.warning(
+            "WAL service names query failed, returning empty list",
+            extra={"code": str(e.code()), "details": e.details()},
+        )
+        await _reset_wal_client()
+        return []
+    except Exception as e:
+        logger.warning(
+            "WAL client error, returning empty list",
+            extra={"error": str(e), "error_type": type(e).__name__},
+        )
+        await _reset_wal_client()
+        return []
+
+
+async def _get_wal_spans_by_trace(trace_id: str) -> list[dict]:
+    """Query spans from WAL by trace ID.
+
+    Returns empty list if WAL query fails (graceful degradation).
+    """
+    try:
+        client = await _get_wal_client()
+        return await client.get_wal_spans_by_trace_id(trace_id)
+    except grpc.aio.AioRpcError as e:
+        logger.warning(
+            "WAL trace query failed, returning empty list",
+            extra={"trace_id": trace_id, "code": str(e.code()), "details": e.details()},
+        )
+        await _reset_wal_client()
+        return []
+    except Exception as e:
+        logger.warning(
+            "WAL client error, returning empty list",
+            extra={"trace_id": trace_id, "error": str(e), "error_type": type(e).__name__},
+        )
+        await _reset_wal_client()
+        return []
+
+
+async def _get_wal_root_spans(service_name: str, limit: int) -> list[dict]:
+    """Query root spans from WAL.
+
+    Returns empty list if WAL query fails (graceful degradation).
+    """
+    try:
+        client = await _get_wal_client()
+        return await client.get_wal_root_spans(service_name, limit)
+    except grpc.aio.AioRpcError as e:
+        logger.warning(
+            "WAL root spans query failed, returning empty list",
+            extra={"service_name": service_name, "code": str(e.code()), "details": e.details()},
+        )
+        await _reset_wal_client()
+        return []
+    except Exception as e:
+        logger.warning(
+            "WAL client error, returning empty list",
+            extra={"service_name": service_name, "error": str(e), "error_type": type(e).__name__},
+        )
+        await _reset_wal_client()
+        return []
+
+
+def _merge_spans(parquet_spans: list[dict], wal_spans: list[dict]) -> list[dict]:
+    """Merge spans from Parquet and WAL, deduplicating by span_id.
+
+    Parquet wins if the same span exists in both sources (it's the source of truth
+    once flushed).
 
     Args:
-        row: Raw row dictionary from DuckDB.
+        parquet_spans: Spans from Parquet files
+        wal_spans: Spans from WAL
 
     Returns:
-        Row with JSON fields parsed.
+        Merged list of spans, sorted by start_time DESC
     """
-    json_fields = [
-        "attributes_json",
-        "events_json",
-        "links_json",
-        "junjo_wf_state_start",
-        "junjo_wf_state_end",
-        "junjo_wf_graph_structure",
-    ]
+    # Build set of span IDs from Parquet (source of truth)
+    parquet_span_ids = {span["span_id"] for span in parquet_spans}
 
-    for field in json_fields:
-        if field in row and row[field] is not None:
-            if isinstance(row[field], str):
-                try:
-                    row[field] = json.loads(row[field])
-                except json.JSONDecodeError:
-                    logger.warning(f"Failed to parse JSON field {field}: {row[field]}")
+    # Start with all Parquet spans
+    merged = list(parquet_spans)
 
-    return row
+    # Add WAL spans that aren't in Parquet
+    for span in wal_spans:
+        if span["span_id"] not in parquet_span_ids:
+            merged.append(span)
+
+    # Sort by start_time DESC (most recent first)
+    merged.sort(key=lambda x: x.get("start_time", ""), reverse=True)
+
+    return merged
 
 
-def get_distinct_service_names() -> list[str]:
-    """Get list of all distinct service names from spans.
+def _merge_service_names(parquet_services: list[str], wal_services: list[str]) -> list[str]:
+    """Merge service names from Parquet and WAL.
+
+    Args:
+        parquet_services: Services from DuckDB metadata
+        wal_services: Services from WAL
+
+    Returns:
+        Sorted unique list of service names
+    """
+    return sorted(set(parquet_services) | set(wal_services))
+
+
+async def get_fused_distinct_service_names() -> list[str]:
+    """Get list of all distinct service names from Parquet and WAL.
+
+    Fusion query:
+    1. Query DuckDB services table (Parquet-indexed)
+    2. Query WAL for service names not yet flushed
+    3. Merge and deduplicate
 
     Returns:
         List of service names in alphabetical order.
-
-    Query: backend/api/otel/query_distinct_service_names.sql
     """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT DISTINCT service_name
-            FROM spans
-            ORDER BY service_name ASC
-            """
-        ).fetchall()
+    parquet_services = v4_repository.get_all_services()
+    wal_services = await _get_wal_distinct_service_names()
 
-        return [row[0] for row in result]
+    merged = _merge_service_names(parquet_services, wal_services)
+
+    logger.debug(
+        "Merged service names",
+        extra={
+            "parquet_count": len(parquet_services),
+            "wal_count": len(wal_services),
+            "merged_count": len(merged),
+        },
+    )
+
+    return merged
 
 
 def get_service_spans(service_name: str, limit: int = 500) -> list[dict]:
     """Get all spans for a service.
 
-    Args:
-        service_name: Name of the service to query.
-        limit: Maximum number of spans to return.
-
-    Returns:
-        List of span dictionaries.
-    """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT
-                trace_id, span_id, parent_span_id, service_name, name, kind,
-                strftime(start_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as start_time,
-                strftime(end_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as end_time,
-                status_code, status_message, attributes_json, events_json, links_json,
-                trace_flags, trace_state,
-                junjo_id, junjo_parent_id, junjo_span_type,
-                junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
-            FROM spans
-            WHERE service_name = ?
-            ORDER BY start_time DESC
-            LIMIT ?
-            """,
-            [service_name, limit],
-        ).fetchall()
-
-        # Get column names
-        columns = [desc[0] for desc in conn.description]
-
-        # Convert rows to dictionaries and parse JSON fields
-        return [_parse_json_fields(dict(zip(columns, row))) for row in result]
-
-
-def get_root_spans(service_name: str, limit: int = 500) -> list[dict]:
-    """Get root spans (no parent) for a service.
+    V4 Flow:
+    1. Get Parquet file paths for this service from DuckDB
+    2. Query Parquet files via DataFusion for full span data
 
     Args:
         service_name: Name of the service to query.
         limit: Maximum number of spans to return.
 
     Returns:
-        List of root span dictionaries.
-
-    Query: backend/api/otel/query_root_spans.sql
+        List of span dictionaries with full attributes.
     """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT
-                trace_id, span_id, parent_span_id, service_name, name, kind,
-                strftime(start_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as start_time,
-                strftime(end_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as end_time,
-                status_code, status_message, attributes_json, events_json, links_json,
-                trace_flags, trace_state,
-                junjo_id, junjo_parent_id, junjo_span_type,
-                junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
-            FROM spans
-            WHERE service_name = ?
-              AND parent_span_id IS NULL
-            ORDER BY start_time DESC
-            LIMIT ?
-            """,
-            [service_name, limit],
-        ).fetchall()
+    # Get file paths from metadata
+    file_paths = v4_repository.get_file_paths_for_service(service_name, limit=limit)
 
-        columns = [desc[0] for desc in conn.description]
-        return [_parse_json_fields(dict(zip(columns, row))) for row in result]
+    if not file_paths:
+        logger.debug(f"No Parquet files found for service: {service_name}")
+        return []
+
+    # Query Parquet files via DataFusion
+    return datafusion_query.get_service_spans(service_name, file_paths, limit=limit)
+
+
+async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict]:
+    """Get root spans (no parent) for a service from Parquet and WAL.
+
+    Fusion query:
+    1. Get file paths that contain root spans for this service
+    2. Query Parquet files filtering for root spans
+    3. Query WAL for root spans
+    4. Merge and deduplicate
+
+    Args:
+        service_name: Name of the service to query.
+        limit: Maximum number of spans to return.
+
+    Returns:
+        List of root span dictionaries, sorted by start_time DESC.
+    """
+    # Get file paths for root spans
+    file_paths = v4_repository.get_file_paths_for_service(service_name, limit=limit, is_root=True)
+
+    # Query Parquet for root spans
+    parquet_spans = []
+    if file_paths:
+        parquet_spans = datafusion_query.get_root_spans(service_name, file_paths, limit=limit)
+
+    # Query WAL for root spans
+    wal_spans = await _get_wal_root_spans(service_name, limit)
+
+    # Merge results
+    merged = _merge_spans(parquet_spans, wal_spans)
+
+    logger.debug(
+        "Merged root spans",
+        extra={
+            "service_name": service_name,
+            "parquet_count": len(parquet_spans),
+            "wal_count": len(wal_spans),
+            "merged_count": len(merged),
+        },
+    )
+
+    return merged[:limit]
 
 
 def get_root_spans_with_llm(service_name: str, limit: int = 500) -> list[dict]:
     """Get root spans that are part of traces containing LLM operations.
 
     Filters for traces that have at least one span with
-    attributes_json->>'openinference.span.kind' = 'LLM'.
+    attributes['openinference.span.kind'] = 'LLM'.
+
+    V4 Implementation Note:
+    This requires querying Parquet attributes since the LLM filter
+    isn't in span_metadata. We fetch root spans and filter in Python.
+    For better performance, consider adding an index field.
 
     Args:
         service_name: Name of the service to query.
@@ -146,36 +277,47 @@ def get_root_spans_with_llm(service_name: str, limit: int = 500) -> list[dict]:
 
     Returns:
         List of root span dictionaries from LLM traces.
-
-    Query: backend/api/otel/query_root_spans_filtered.sql
     """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT
-                trace_id, span_id, parent_span_id, service_name, name, kind,
-                strftime(start_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as start_time,
-                strftime(end_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as end_time,
-                status_code, status_message, attributes_json, events_json, links_json,
-                trace_flags, trace_state,
-                junjo_id, junjo_parent_id, junjo_span_type,
-                junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
-            FROM spans
-            WHERE service_name = ?
-              AND parent_span_id IS NULL
-              AND trace_id IN (
-                SELECT trace_id
-                FROM spans
-                WHERE json_extract(attributes_json, '$.\"openinference.span.kind\"') = '"LLM"'
-              )
-            ORDER BY start_time DESC
-            LIMIT ?
-            """,
-            [service_name, limit],
-        ).fetchall()
+    # Get all root spans first (we need to filter by LLM attribute)
+    file_paths = v4_repository.get_file_paths_for_service(
+        service_name,
+        limit=limit * 2,
+        is_root=True,  # Fetch more to filter
+    )
 
-        columns = [desc[0] for desc in conn.description]
-        return [_parse_json_fields(dict(zip(columns, row))) for row in result]
+    if not file_paths:
+        return []
+
+    # Query Parquet for root spans
+    all_root_spans = datafusion_query.get_root_spans(service_name, file_paths, limit=limit * 2)
+
+    if not all_root_spans:
+        return []
+
+    # Get trace IDs that have LLM spans
+    # First, find all trace IDs from root spans
+    trace_ids = {span["trace_id"] for span in all_root_spans}
+
+    # Query for traces with LLM spans
+    # This is expensive - for each trace, check if any span has LLM attribute
+    llm_trace_ids: set[str] = set()
+
+    for trace_id in trace_ids:
+        trace_file_paths = v4_repository.get_file_paths_for_trace(trace_id)
+        if not trace_file_paths:
+            continue
+
+        # Query all spans in trace and check for LLM attribute
+        trace_spans = datafusion_query.get_spans_by_trace_id(trace_id, trace_file_paths)
+        for span in trace_spans:
+            attrs = span.get("attributes_json", {})
+            if attrs.get("openinference.span.kind") == "LLM":
+                llm_trace_ids.add(trace_id)
+                break
+
+    # Filter root spans to only those in LLM traces
+    result = [span for span in all_root_spans if span["trace_id"] in llm_trace_ids]
+    return result[:limit]
 
 
 def get_workflow_spans(service_name: str, limit: int = 500) -> list[dict]:
@@ -183,74 +325,75 @@ def get_workflow_spans(service_name: str, limit: int = 500) -> list[dict]:
 
     Filters spans where junjo_span_type = 'workflow'.
 
+    V4 Implementation: Uses span_metadata.junjo_span_type index
+    for efficient filtering, then fetches full data from Parquet.
+
     Args:
         service_name: Name of the service to query.
         limit: Maximum number of spans to return.
 
     Returns:
         List of workflow span dictionaries.
-
-    Query: backend/api/otel/query_spans_type_workflow.sql
     """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT
-                trace_id, span_id, parent_span_id, service_name, name, kind,
-                strftime(start_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as start_time,
-                strftime(end_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as end_time,
-                status_code, status_message, attributes_json, events_json, links_json,
-                trace_flags, trace_state,
-                junjo_id, junjo_parent_id, junjo_span_type,
-                junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
-            FROM spans
-            WHERE junjo_span_type = 'workflow'
-              AND service_name = ?
-            ORDER BY start_time DESC
-            LIMIT ?
-            """,
-            [service_name, limit],
-        ).fetchall()
+    # Get file paths containing workflow spans (metadata-indexed)
+    file_paths = v4_repository.get_file_paths_for_junjo_type(service_name, "workflow", limit=limit)
 
-        columns = [desc[0] for desc in conn.description]
-        return [_parse_json_fields(dict(zip(columns, row))) for row in result]
+    if not file_paths:
+        return []
+
+    # Query Parquet for workflow spans
+    return datafusion_query.get_workflow_spans(service_name, file_paths, limit=limit)
 
 
-def get_trace_spans(trace_id: str) -> list[dict]:
-    """Get all spans for a specific trace.
+async def get_fused_trace_spans(trace_id: str) -> list[dict]:
+    """Get all spans for a specific trace from Parquet and WAL.
+
+    Fusion query:
+    1. Look up file paths containing this trace from DuckDB
+    2. Query Parquet files for all spans in the trace
+    3. Query WAL for spans in the trace
+    4. Merge and deduplicate by span_id
 
     Args:
         trace_id: Trace ID (32-char hex string).
 
     Returns:
-        List of span dictionaries ordered by start time.
-
-    Query: backend/api/otel/query_nested_spans.sql
+        List of span dictionaries ordered by start time DESC.
     """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT
-                trace_id, span_id, parent_span_id, service_name, name, kind,
-                strftime(start_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as start_time,
-                strftime(end_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as end_time,
-                status_code, status_message, attributes_json, events_json, links_json,
-                trace_flags, trace_state,
-                junjo_id, junjo_parent_id, junjo_span_type,
-                junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
-            FROM spans
-            WHERE trace_id = ?
-            ORDER BY start_time DESC
-            """,
-            [trace_id],
-        ).fetchall()
+    # Get file paths for this trace
+    file_paths = v4_repository.get_file_paths_for_trace(trace_id)
 
-        columns = [desc[0] for desc in conn.description]
-        return [_parse_json_fields(dict(zip(columns, row))) for row in result]
+    # Query Parquet for all spans in trace
+    parquet_spans = []
+    if file_paths:
+        parquet_spans = datafusion_query.get_spans_by_trace_id(trace_id, file_paths)
+
+    # Query WAL for spans in this trace
+    wal_spans = await _get_wal_spans_by_trace(trace_id)
+
+    # Merge results
+    merged = _merge_spans(parquet_spans, wal_spans)
+
+    logger.debug(
+        "Merged trace spans",
+        extra={
+            "trace_id": trace_id,
+            "parquet_count": len(parquet_spans),
+            "wal_count": len(wal_spans),
+            "merged_count": len(merged),
+        },
+    )
+
+    return merged
 
 
-def get_span(trace_id: str, span_id: str) -> dict | None:
-    """Get a specific span by trace ID and span ID.
+async def get_fused_span(trace_id: str, span_id: str) -> dict | None:
+    """Get a specific span by trace ID and span ID from Parquet or WAL.
+
+    Fusion query:
+    1. Look up file path(s) containing this span from DuckDB
+    2. Query Parquet file for the specific span (prefer if found)
+    3. If not in Parquet, check WAL
 
     Args:
         trace_id: Trace ID (32-char hex string).
@@ -258,29 +401,21 @@ def get_span(trace_id: str, span_id: str) -> dict | None:
 
     Returns:
         Span dictionary if found, None otherwise.
-
-    Query: backend/api/otel/query_span.sql
     """
-    with get_connection() as conn:
-        result = conn.execute(
-            """
-            SELECT
-                trace_id, span_id, parent_span_id, service_name, name, kind,
-                strftime(start_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as start_time,
-                strftime(end_time, '%Y-%m-%dT%H:%M:%S.%f') || '+00:00' as end_time,
-                status_code, status_message, attributes_json, events_json, links_json,
-                trace_flags, trace_state,
-                junjo_id, junjo_parent_id, junjo_span_type,
-                junjo_wf_state_start, junjo_wf_state_end, junjo_wf_graph_structure, junjo_wf_store_id
-            FROM spans
-            WHERE trace_id = ?
-              AND span_id = ?
-            """,
-            [trace_id, span_id],
-        ).fetchone()
+    # Get file path for this span
+    file_paths = v4_repository.get_file_paths_for_span(span_id)
 
-        if result is None:
-            return None
+    # Try Parquet first (source of truth)
+    if file_paths:
+        span = datafusion_query.get_span_by_id(span_id, trace_id, file_paths)
+        if span:
+            return span
 
-        columns = [desc[0] for desc in conn.description]
-        return _parse_json_fields(dict(zip(columns, result)))
+    # If not in Parquet, check WAL
+    wal_spans = await _get_wal_spans_by_trace(trace_id)
+    for span in wal_spans:
+        if span.get("span_id") == span_id:
+            return span
+
+    logger.debug(f"Span not found in Parquet or WAL: {span_id}")
+    return None

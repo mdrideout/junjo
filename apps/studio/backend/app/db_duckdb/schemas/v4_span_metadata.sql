@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS span_metadata (
     status_code TINYINT NOT NULL DEFAULT 0,
     span_kind TINYINT NOT NULL DEFAULT 0,
     is_root BOOLEAN NOT NULL DEFAULT FALSE,
+    junjo_span_type VARCHAR(32),  -- workflow, subflow, node, run_concurrent, or empty
     file_id INTEGER REFERENCES parquet_files(file_id)
 );
 
@@ -31,3 +32,6 @@ CREATE INDEX IF NOT EXISTS idx_span_metadata_root_time
 
 CREATE INDEX IF NOT EXISTS idx_span_metadata_file
     ON span_metadata (file_id);
+
+CREATE INDEX IF NOT EXISTS idx_span_metadata_junjo_type
+    ON span_metadata (junjo_span_type, service_name, start_time DESC);

@@ -34,7 +34,7 @@ async def list_services() -> list[str]:
         → ["my-service", "another-service"]
     """
     logger.debug("Fetching distinct service names")
-    return repository.get_distinct_service_names()
+    return await repository.get_fused_distinct_service_names()
 
 
 @router.get("/services/{service_name}/spans", response_model=list[dict[str, Any]])
@@ -86,7 +86,7 @@ async def get_root_spans(
 
     if has_llm:
         return repository.get_root_spans_with_llm(service_name, limit)
-    return repository.get_root_spans(service_name, limit)
+    return await repository.get_fused_root_spans(service_name, limit)
 
 
 @router.get("/services/{service_name}/workflows", response_model=list[dict[str, Any]])
@@ -126,7 +126,7 @@ async def get_trace_spans(trace_id: str) -> list[dict[str, Any]]:
         GET /api/v1/observability/traces/0123456789abcdef0123456789abcdef/spans
     """
     logger.debug(f"Fetching spans for trace: {trace_id}")
-    return repository.get_trace_spans(trace_id)
+    return await repository.get_fused_trace_spans(trace_id)
 
 
 @router.get("/traces/{trace_id}/spans/{span_id}", response_model=dict[str, Any] | None)
@@ -144,7 +144,7 @@ async def get_span(trace_id: str, span_id: str) -> dict[str, Any] | None:
         GET /api/v1/observability/traces/0123...abcdef/spans/0123456789abcdef
     """
     logger.debug(f"Fetching span: trace_id={trace_id}, span_id={span_id}")
-    span = repository.get_span(trace_id, span_id)
+    span = await repository.get_fused_span(trace_id, span_id)
 
     if span is None:
         logger.warning(f"Span not found: trace_id={trace_id}, span_id={span_id}")

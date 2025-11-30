@@ -35,6 +35,7 @@ dependencies = [
     "tldextract>=5.1.3",
     "pyarrow>=22.0.0",
     "pytz>=2025.2",
+    "datafusion>=50.1.0",
 ]
 
 [project.optional-dependencies]
@@ -78,4 +79,12 @@ markers = [
     "requires_openai_api: Tests requiring OPENAI_API_KEY environment variable",
     "requires_anthropic_api: Tests requiring ANTHROPIC_API_KEY environment variable",
     "requires_grpc_server: Tests requiring gRPC server running on port 50053",
+    "real_wal: Tests that start the Go ingestion service and test real WAL queries",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ruff>=0.14.3",
 ]

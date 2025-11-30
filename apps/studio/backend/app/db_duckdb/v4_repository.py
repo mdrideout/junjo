@@ -117,6 +117,7 @@ def batch_insert_span_metadata(file_id: int, spans: list[SpanMetadata]) -> int:
                 span.status_code,
                 span.span_kind,
                 span.is_root,
+                span.junjo_span_type,
                 file_id,
             )
             for span in spans
@@ -127,8 +128,8 @@ def batch_insert_span_metadata(file_id: int, spans: list[SpanMetadata]) -> int:
             INSERT INTO span_metadata (
                 span_id, trace_id, parent_span_id, service_name, name,
                 start_time, end_time, duration_ns, status_code, span_kind,
-                is_root, file_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                is_root, junjo_span_type, file_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -236,6 +237,7 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                     span.status_code,
                     span.span_kind,
                     span.is_root,
+                    span.junjo_span_type,
                     file_id,
                 )
                 for span in file_data.spans
@@ -246,8 +248,8 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                 INSERT INTO span_metadata (
                     span_id, trace_id, parent_span_id, service_name, name,
                     start_time, end_time, duration_ns, status_code, span_kind,
-                    is_root, file_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    is_root, junjo_span_type, file_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 rows,
             )
@@ -415,3 +417,262 @@ def clear_failed_file(file_path: str) -> bool:
             [file_path],
         ).fetchone()
         return result is not None
+
+
+# ============================================================================
+# Query Functions for DataFusion
+# ============================================================================
+# These functions query DuckDB metadata to find which Parquet files
+# need to be queried by DataFusion.
+
+
+def get_file_paths_for_trace(trace_id: str) -> list[str]:
+    """Get Parquet file paths that contain spans for a trace.
+
+    Uses span_metadata to find file_ids, then joins to parquet_files
+    for the actual file paths.
+
+    Args:
+        trace_id: The trace ID to look up
+
+    Returns:
+        List of Parquet file paths (may be empty if trace not found)
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            """
+            SELECT DISTINCT pf.file_path
+            FROM span_metadata sm
+            JOIN parquet_files pf ON sm.file_id = pf.file_id
+            WHERE sm.trace_id = ?
+            """,
+            [trace_id],
+        ).fetchall()
+        return [row[0] for row in result]
+
+
+def get_file_paths_for_span(span_id: str) -> list[str]:
+    """Get Parquet file path(s) containing a specific span.
+
+    Args:
+        span_id: The span ID to look up
+
+    Returns:
+        List of Parquet file paths (typically 1, may be 0 if not found)
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            """
+            SELECT DISTINCT pf.file_path
+            FROM span_metadata sm
+            JOIN parquet_files pf ON sm.file_id = pf.file_id
+            WHERE sm.span_id = ?
+            """,
+            [span_id],
+        ).fetchall()
+        return [row[0] for row in result]
+
+
+def get_file_paths_for_service(
+    service_name: str,
+    limit: int | None = None,
+    is_root: bool | None = None,
+) -> list[str]:
+    """Get Parquet file paths containing spans for a service.
+
+    Args:
+        service_name: The service name to filter by
+        limit: Optional limit on spans (affects which files are returned)
+        is_root: If True, only return files with root spans
+
+    Returns:
+        List of distinct Parquet file paths ordered by most recent first
+    """
+    with get_connection() as conn:
+        # Build query based on filters
+        sql = """
+            SELECT DISTINCT pf.file_path
+            FROM span_metadata sm
+            JOIN parquet_files pf ON sm.file_id = pf.file_id
+            WHERE sm.service_name = ?
+        """
+        params: list = [service_name]
+
+        if is_root is True:
+            sql += " AND sm.is_root = true"
+
+        # Order by most recent file first
+        sql += " ORDER BY pf.max_time DESC"
+
+        if limit:
+            # We need files that contain at least `limit` spans
+            # For simplicity, we fetch enough files to likely contain that many spans
+            # A more precise approach would require a subquery
+            sql += f" LIMIT {min(limit, 100)}"
+
+        result = conn.execute(sql, params).fetchall()
+        return [row[0] for row in result]
+
+
+def get_file_paths_for_time_range(
+    start_time: datetime,
+    end_time: datetime,
+    service_name: str | None = None,
+) -> list[str]:
+    """Get Parquet file paths overlapping a time range.
+
+    Uses parquet_files.min_time and max_time for efficient pruning.
+
+    Args:
+        start_time: Start of time range (inclusive)
+        end_time: End of time range (inclusive)
+        service_name: Optional service filter
+
+    Returns:
+        List of Parquet file paths that may contain spans in the range
+    """
+    with get_connection() as conn:
+        sql = """
+            SELECT file_path
+            FROM parquet_files
+            WHERE min_time <= ? AND max_time >= ?
+        """
+        params: list = [end_time, start_time]
+
+        if service_name:
+            sql += " AND service_name = ?"
+            params.append(service_name)
+
+        sql += " ORDER BY max_time DESC"
+
+        result = conn.execute(sql, params).fetchall()
+        return [row[0] for row in result]
+
+
+def get_all_services() -> list[str]:
+    """Get all service names from the services table.
+
+    Returns:
+        List of service names in alphabetical order
+    """
+    with get_connection() as conn:
+        result = conn.execute("SELECT service_name FROM services ORDER BY service_name").fetchall()
+        return [row[0] for row in result]
+
+
+def get_root_span_metadata(service_name: str, limit: int = 500) -> list[dict]:
+    """Get root span metadata for listing traces.
+
+    Returns lightweight span info for UI listing without needing Parquet.
+
+    Args:
+        service_name: Service to filter by
+        limit: Maximum spans to return
+
+    Returns:
+        List of span metadata dicts (not full spans - no attributes)
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            """
+            SELECT
+                sm.span_id, sm.trace_id, sm.parent_span_id,
+                sm.service_name, sm.name,
+                sm.start_time, sm.end_time,
+                sm.duration_ns, sm.status_code, sm.span_kind,
+                sm.is_root, pf.file_path
+            FROM span_metadata sm
+            JOIN parquet_files pf ON sm.file_id = pf.file_id
+            WHERE sm.service_name = ? AND sm.is_root = true
+            ORDER BY sm.start_time DESC
+            LIMIT ?
+            """,
+            [service_name, limit],
+        ).fetchall()
+
+        columns = [
+            "span_id",
+            "trace_id",
+            "parent_span_id",
+            "service_name",
+            "name",
+            "start_time",
+            "end_time",
+            "duration_ns",
+            "status_code",
+            "span_kind",
+            "is_root",
+            "file_path",
+        ]
+        return [dict(zip(columns, row)) for row in result]
+
+
+def get_span_metadata_for_trace(trace_id: str) -> list[dict]:
+    """Get all span metadata for a trace (for finding file paths).
+
+    Args:
+        trace_id: The trace ID
+
+    Returns:
+        List of span metadata dicts including file_path
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            """
+            SELECT
+                sm.span_id, sm.trace_id, sm.parent_span_id,
+                sm.service_name, sm.name,
+                sm.start_time, sm.end_time,
+                sm.duration_ns, sm.status_code, sm.span_kind,
+                sm.is_root, pf.file_path
+            FROM span_metadata sm
+            JOIN parquet_files pf ON sm.file_id = pf.file_id
+            WHERE sm.trace_id = ?
+            ORDER BY sm.start_time DESC
+            """,
+            [trace_id],
+        ).fetchall()
+
+        columns = [
+            "span_id",
+            "trace_id",
+            "parent_span_id",
+            "service_name",
+            "name",
+            "start_time",
+            "end_time",
+            "duration_ns",
+            "status_code",
+            "span_kind",
+            "is_root",
+            "file_path",
+        ]
+        return [dict(zip(columns, row)) for row in result]
+
+
+def get_file_paths_for_junjo_type(
+    service_name: str, junjo_span_type: str, limit: int = 500
+) -> list[str]:
+    """Get Parquet file paths containing spans of a specific junjo type.
+
+    Args:
+        service_name: Service to filter by
+        junjo_span_type: Type to filter by (workflow, subflow, node, run_concurrent)
+        limit: Maximum results
+
+    Returns:
+        List of file paths ordered by most recent first
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            """
+            SELECT DISTINCT pf.file_path
+            FROM span_metadata sm
+            JOIN parquet_files pf ON sm.file_id = pf.file_id
+            WHERE sm.service_name = ? AND sm.junjo_span_type = ?
+            ORDER BY pf.max_time DESC
+            LIMIT ?
+            """,
+            [service_name, junjo_span_type, limit],
+        ).fetchall()
+        return [row[0] for row in result]

@@ -41,6 +41,21 @@ class InternalIngestionServiceStub(object):
                 request_serializer=ingestion__pb2.ReadSpansRequest.SerializeToString,
                 response_deserializer=ingestion__pb2.ReadSpansResponse.FromString,
                 _registered_method=True)
+        self.GetWALSpansByTraceId = channel.unary_stream(
+                '/ingestion.InternalIngestionService/GetWALSpansByTraceId',
+                request_serializer=ingestion__pb2.GetWALSpansByTraceIdRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.SpanData.FromString,
+                _registered_method=True)
+        self.GetWALDistinctServiceNames = channel.unary_unary(
+                '/ingestion.InternalIngestionService/GetWALDistinctServiceNames',
+                request_serializer=ingestion__pb2.GetWALDistinctServiceNamesRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.GetWALDistinctServiceNamesResponse.FromString,
+                _registered_method=True)
+        self.GetWALRootSpans = channel.unary_stream(
+                '/ingestion.InternalIngestionService/GetWALRootSpans',
+                request_serializer=ingestion__pb2.GetWALRootSpansRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.SpanData.FromString,
+                _registered_method=True)
 
 
 class InternalIngestionServiceServicer(object):
@@ -56,6 +71,30 @@ class InternalIngestionServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetWALSpansByTraceId(self, request, context):
+        """GetWALSpansByTraceId returns all spans in the WAL matching a trace ID.
+        Used for fusion queries combining WAL and Parquet data.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetWALDistinctServiceNames(self, request, context):
+        """GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
+        Used to merge with Parquet-indexed services for complete listing.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetWALRootSpans(self, request, context):
+        """GetWALRootSpans returns root spans (no parent) from the WAL for a service.
+        Used for trace listing, merged with Parquet root spans.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_InternalIngestionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -63,6 +102,21 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
                     servicer.ReadSpans,
                     request_deserializer=ingestion__pb2.ReadSpansRequest.FromString,
                     response_serializer=ingestion__pb2.ReadSpansResponse.SerializeToString,
+            ),
+            'GetWALSpansByTraceId': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetWALSpansByTraceId,
+                    request_deserializer=ingestion__pb2.GetWALSpansByTraceIdRequest.FromString,
+                    response_serializer=ingestion__pb2.SpanData.SerializeToString,
+            ),
+            'GetWALDistinctServiceNames': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWALDistinctServiceNames,
+                    request_deserializer=ingestion__pb2.GetWALDistinctServiceNamesRequest.FromString,
+                    response_serializer=ingestion__pb2.GetWALDistinctServiceNamesResponse.SerializeToString,
+            ),
+            'GetWALRootSpans': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetWALRootSpans,
+                    request_deserializer=ingestion__pb2.GetWALRootSpansRequest.FromString,
+                    response_serializer=ingestion__pb2.SpanData.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -94,6 +148,87 @@ class InternalIngestionService(object):
             '/ingestion.InternalIngestionService/ReadSpans',
             ingestion__pb2.ReadSpansRequest.SerializeToString,
             ingestion__pb2.ReadSpansResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWALSpansByTraceId(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetWALSpansByTraceId',
+            ingestion__pb2.GetWALSpansByTraceIdRequest.SerializeToString,
+            ingestion__pb2.SpanData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWALDistinctServiceNames(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetWALDistinctServiceNames',
+            ingestion__pb2.GetWALDistinctServiceNamesRequest.SerializeToString,
+            ingestion__pb2.GetWALDistinctServiceNamesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWALRootSpans(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetWALRootSpans',
+            ingestion__pb2.GetWALRootSpansRequest.SerializeToString,
+            ingestion__pb2.SpanData.FromString,
             options,
             channel_credentials,
             insecure,

@@ -76,7 +76,7 @@ async def test_concurrent_grpc_requests(test_api_key):
 @pytest.mark.integration
 @pytest.mark.requires_grpc_server
 @pytest.mark.asyncio
-async def test_mixed_fastapi_and_grpc_requests():
+async def test_mixed_fastapi_and_grpc_requests(grpc_server_for_tests):
     """
     Test that FastAPI and gRPC requests can be handled concurrently.
 
