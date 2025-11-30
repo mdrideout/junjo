@@ -79,27 +79,15 @@ if [ -n "$PORT_1323_PID" ] || [ -n "$PORT_50053_PID" ]; then
 fi
 
 if [ "${SKIP_GRPC:-0}" != "1" ]; then
-    echo "Running migrations..."
-    uv run alembic upgrade head
-
-    echo "Starting backend server..."
-    uv run uvicorn app.main:app --host 0.0.0.0 --port 1323 > /tmp/backend-test.log 2>&1 &
-    SERVER_PID=$!
-
-    sleep 5
-    curl -s http://localhost:1323/health > /dev/null || {
-        echo "❌ Server failed to start"
-        cat /tmp/backend-test.log
-        kill $SERVER_PID 2>/dev/null || true
-        exit 1
-    }
-
     echo "Running gRPC tests..."
+    # We DO NOT start uvicorn here. The tests use the grpc_server_for_tests fixture
+    # in backend/app/features/internal_auth/conftest.py to start an in-process
+    # gRPC server that shares the isolated test database.
+    #
+    # If we started uvicorn here, it would use a different database connection
+    # than the test fixture, causing tests to fail because they couldn't find
+    # data (like API keys) that they just inserted into the fixture's DB.
     uv run pytest -m "requires_grpc_server" -v || GRPC_RESULT=$?
-
-    # Cleanup
-    echo "Stopping server..."
-    kill $SERVER_PID 2>/dev/null || true
 fi
 
 # Summary

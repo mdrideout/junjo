@@ -520,3 +520,201 @@ class TestSingleSpanFusion:
             span = await otel_repository.get_fused_span("nonexistent_trace", "nonexistent_span")
 
             assert span is None
+
+
+# ============================================================================
+# Service Span Fusion Tests
+# ============================================================================
+
+
+@pytest.mark.integration
+class TestServiceSpanFusion:
+    """Tests for service span fusion from Parquet and WAL."""
+
+    @pytest.mark.asyncio
+    async def test_service_spans_merge_parquet_and_wal(self, fusion_test_env):
+        """Should merge spans from both Parquet and WAL for a service."""
+        with patch.object(otel_repository, "_get_wal_spans_by_service", new_callable=AsyncMock) as mock:
+            # WAL returns a span for service-c (same service as Parquet split trace)
+            wal_span = create_api_span_dict(
+                trace_id="wal_trace_001",
+                span_id="wal_span_001",
+                parent_span_id=None,
+                service_name="service-c",
+                name="WALOnlySpan",
+                start_time="2025-11-30T06:00:00.000000+00:00",
+                end_time="2025-11-30T06:00:00.001000+00:00",
+            )
+            mock.return_value = [wal_span]
+
+            spans = await otel_repository.get_fused_service_spans("service-c")
+
+            # Should have Parquet spans + WAL span
+            span_ids = {span["span_id"] for span in spans}
+            assert fusion_test_env["split_root_span_id"] in span_ids  # Parquet
+            assert "wal_span_001" in span_ids  # WAL
+
+    @pytest.mark.asyncio
+    async def test_service_spans_parquet_wins_deduplication(self, fusion_test_env):
+        """Should prefer Parquet span when same span_id exists in both."""
+        with patch.object(otel_repository, "_get_wal_spans_by_service", new_callable=AsyncMock) as mock:
+            # WAL returns same span that's in Parquet but with different name
+            wal_duplicate = create_api_span_dict(
+                trace_id=fusion_test_env["split_trace_id"],
+                span_id=fusion_test_env["split_root_span_id"],  # Same ID as Parquet
+                parent_span_id=None,
+                service_name="service-c",
+                name="WALVersionOfSplitRoot",  # Different name
+                start_time="2025-11-30T05:00:00.000000+00:00",
+                end_time="2025-11-30T05:00:00.001000+00:00",
+            )
+            mock.return_value = [wal_duplicate]
+
+            spans = await otel_repository.get_fused_service_spans("service-c")
+
+            # Find the span with matching ID
+            matching = [s for s in spans if s["span_id"] == fusion_test_env["split_root_span_id"]]
+            assert len(matching) == 1
+            # Parquet version should win (has name "SplitTraceRoot")
+            assert matching[0]["name"] == "SplitTraceRoot"
+
+
+# ============================================================================
+# Workflow Span Fusion Tests
+# ============================================================================
+
+
+@pytest.mark.integration
+class TestWorkflowSpanFusion:
+    """Tests for workflow span fusion from Parquet and WAL."""
+
+    @pytest.mark.asyncio
+    async def test_workflow_spans_merge_parquet_and_wal(self, fusion_test_env):
+        """Should merge workflow spans from both Parquet and WAL."""
+        with patch.object(otel_repository, "_get_wal_workflow_spans", new_callable=AsyncMock) as mock:
+            # WAL returns a workflow span for service-c
+            wal_workflow = create_api_span_dict(
+                trace_id="wal_wf_trace",
+                span_id="wal_wf_span",
+                parent_span_id=None,
+                service_name="service-c",
+                name="WALWorkflow",
+                start_time="2025-11-30T06:00:00.000000+00:00",
+                end_time="2025-11-30T06:00:00.001000+00:00",
+                attributes={"junjo.span_type": "workflow"},
+            )
+            mock.return_value = [wal_workflow]
+
+            spans = await otel_repository.get_fused_workflow_spans("service-c")
+
+            # Should include WAL workflow span
+            span_ids = {span["span_id"] for span in spans}
+            assert "wal_wf_span" in span_ids
+
+    @pytest.mark.asyncio
+    async def test_workflow_spans_graceful_degradation(self, fusion_test_env):
+        """Should return Parquet results if WAL query fails."""
+        with patch.object(otel_repository, "_get_wal_workflow_spans", new_callable=AsyncMock) as mock:
+            mock.return_value = []  # WAL returns nothing
+
+            spans = await otel_repository.get_fused_workflow_spans("service-c")
+
+            # Should still work with just Parquet data
+            assert isinstance(spans, list)
+
+
+# ============================================================================
+# LLM Span Index Tests
+# ============================================================================
+
+
+@pytest.mark.integration
+class TestLLMSpanIndexing:
+    """Tests for LLM span indexing (openinference_span_kind)."""
+
+    @pytest.fixture
+    def llm_test_env(self, temp_parquet_dir, temp_duckdb):
+        """Create test environment with LLM spans indexed."""
+        # Create trace with LLM span
+        llm_trace_id = str(uuid.uuid4()).replace("-", "")
+        llm_span_id = str(uuid.uuid4()).replace("-", "")[:16]
+        root_span_id = str(uuid.uuid4()).replace("-", "")[:16]
+
+        base_time_ns = int(datetime.now(UTC).timestamp() * 1_000_000_000)
+
+        # Root span (not LLM)
+        root_span = create_span_data(
+            trace_id=llm_trace_id,
+            span_id=root_span_id,
+            parent_span_id=None,
+            service_name="llm-service",
+            name="LLMRequest",
+            start_ns=base_time_ns,
+        )
+
+        # LLM span with openinference.span.kind = 'LLM'
+        llm_span = create_span_data(
+            trace_id=llm_trace_id,
+            span_id=llm_span_id,
+            parent_span_id=root_span_id,
+            service_name="llm-service",
+            name="ChatCompletion",
+            start_ns=base_time_ns + 1000,
+            attributes={"openinference.span.kind": "LLM", "llm.model_name": "gpt-4"},
+        )
+
+        # Non-LLM trace
+        non_llm_trace_id = str(uuid.uuid4()).replace("-", "")
+        non_llm_span_id = str(uuid.uuid4()).replace("-", "")[:16]
+
+        non_llm_span = create_span_data(
+            trace_id=non_llm_trace_id,
+            span_id=non_llm_span_id,
+            parent_span_id=None,
+            service_name="llm-service",
+            name="RegularRequest",
+            start_ns=base_time_ns + 2000,
+        )
+
+        # Write to Parquet using existing helper
+        parquet_file = write_spans_to_parquet(
+            [root_span, llm_span, non_llm_span],
+            temp_parquet_dir,
+            "llm-service",
+        )
+
+        # Index the file
+        file_size = os.path.getsize(parquet_file)
+        file_data = read_parquet_metadata(parquet_file, file_size)
+        v4_repository.index_parquet_file(file_data)
+
+        return {
+            "llm_trace_id": llm_trace_id,
+            "llm_span_id": llm_span_id,
+            "root_span_id": root_span_id,
+            "non_llm_trace_id": non_llm_trace_id,
+        }
+
+    def test_llm_trace_ids_indexed(self, llm_test_env):
+        """LLM trace IDs should be efficiently queryable."""
+        llm_trace_ids = v4_repository.get_llm_trace_ids("llm-service", limit=100)
+
+        # Should find the LLM trace
+        assert llm_test_env["llm_trace_id"] in llm_trace_ids
+
+        # Should NOT find the non-LLM trace
+        assert llm_test_env["non_llm_trace_id"] not in llm_trace_ids
+
+    @pytest.mark.asyncio
+    async def test_fused_root_spans_with_llm(self, llm_test_env):
+        """Should return only root spans from LLM traces (fused)."""
+        with patch.object(otel_repository, "_get_wal_root_spans", new_callable=AsyncMock) as mock_root:
+            with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock_trace:
+                mock_root.return_value = []
+                mock_trace.return_value = []
+
+                spans = await otel_repository.get_fused_root_spans_with_llm("llm-service")
+
+                # Should return the root span from LLM trace
+                root_span_ids = {s["span_id"] for s in spans}
+                assert llm_test_env["root_span_id"] in root_span_ids

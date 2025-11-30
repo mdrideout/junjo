@@ -56,6 +56,16 @@ class InternalIngestionServiceStub(object):
                 request_serializer=ingestion__pb2.GetWALRootSpansRequest.SerializeToString,
                 response_deserializer=ingestion__pb2.SpanData.FromString,
                 _registered_method=True)
+        self.GetWALSpansByService = channel.unary_stream(
+                '/ingestion.InternalIngestionService/GetWALSpansByService',
+                request_serializer=ingestion__pb2.GetWALSpansByServiceRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.SpanData.FromString,
+                _registered_method=True)
+        self.GetWALWorkflowSpans = channel.unary_stream(
+                '/ingestion.InternalIngestionService/GetWALWorkflowSpans',
+                request_serializer=ingestion__pb2.GetWALWorkflowSpansRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.SpanData.FromString,
+                _registered_method=True)
 
 
 class InternalIngestionServiceServicer(object):
@@ -95,6 +105,22 @@ class InternalIngestionServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetWALSpansByService(self, request, context):
+        """GetWALSpansByService returns all spans from the WAL for a service.
+        Used for fusion queries combining WAL and Parquet data.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetWALWorkflowSpans(self, request, context):
+        """GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
+        Filters spans where junjo.span_type = 'workflow'.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_InternalIngestionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -116,6 +142,16 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
             'GetWALRootSpans': grpc.unary_stream_rpc_method_handler(
                     servicer.GetWALRootSpans,
                     request_deserializer=ingestion__pb2.GetWALRootSpansRequest.FromString,
+                    response_serializer=ingestion__pb2.SpanData.SerializeToString,
+            ),
+            'GetWALSpansByService': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetWALSpansByService,
+                    request_deserializer=ingestion__pb2.GetWALSpansByServiceRequest.FromString,
+                    response_serializer=ingestion__pb2.SpanData.SerializeToString,
+            ),
+            'GetWALWorkflowSpans': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetWALWorkflowSpans,
+                    request_deserializer=ingestion__pb2.GetWALWorkflowSpansRequest.FromString,
                     response_serializer=ingestion__pb2.SpanData.SerializeToString,
             ),
     }
@@ -228,6 +264,60 @@ class InternalIngestionService(object):
             target,
             '/ingestion.InternalIngestionService/GetWALRootSpans',
             ingestion__pb2.GetWALRootSpansRequest.SerializeToString,
+            ingestion__pb2.SpanData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWALSpansByService(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetWALSpansByService',
+            ingestion__pb2.GetWALSpansByServiceRequest.SerializeToString,
+            ingestion__pb2.SpanData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWALWorkflowSpans(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetWALWorkflowSpans',
+            ingestion__pb2.GetWALWorkflowSpansRequest.SerializeToString,
             ingestion__pb2.SpanData.FromString,
             options,
             channel_credentials,

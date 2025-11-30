@@ -515,9 +515,9 @@ class TestSingleSpanFetching:
 class TestWorkflowSpans:
     """Tests for workflow span filtering."""
 
-    def test_get_workflow_spans_returns_only_workflows(self, populated_v4_env):
+    async def test_get_workflow_spans_returns_only_workflows(self, populated_v4_env):
         """Should return only spans with junjo_span_type = 'workflow'."""
-        workflow_spans = otel_repository.get_workflow_spans("payment-service")
+        workflow_spans = await otel_repository.get_fused_workflow_spans("payment-service")
 
         # Only 1 workflow span in payment-service
         assert len(workflow_spans) == 1
@@ -528,9 +528,9 @@ class TestWorkflowSpans:
         assert wf_span["junjo_span_type"] == "workflow"
         assert wf_span["junjo_id"] == "wf-refund-001"
 
-    def test_get_workflow_spans_empty_for_service_without_workflows(self, populated_v4_env):
+    async def test_get_workflow_spans_empty_for_service_without_workflows(self, populated_v4_env):
         """Should return empty list for service with no workflow spans."""
-        workflow_spans = otel_repository.get_workflow_spans("order-service")
+        workflow_spans = await otel_repository.get_fused_workflow_spans("order-service")
 
         assert workflow_spans == []
 
@@ -544,9 +544,9 @@ class TestWorkflowSpans:
 class TestServiceSpans:
     """Tests for fetching all spans for a service."""
 
-    def test_get_service_spans_returns_all_spans(self, populated_v4_env):
+    async def test_get_service_spans_returns_all_spans(self, populated_v4_env):
         """Should return all spans for a service across all traces."""
-        spans = otel_repository.get_service_spans("payment-service")
+        spans = await otel_repository.get_fused_service_spans("payment-service")
 
         # payment-service has: trace1 (4 spans) + trace2 (3 spans) = 7 spans
         assert len(spans) == 7
@@ -556,9 +556,9 @@ class TestServiceSpans:
         assert populated_v4_env["payment_trace1_id"] in trace_ids
         assert populated_v4_env["payment_trace2_id"] in trace_ids
 
-    def test_get_service_spans_respects_limit(self, populated_v4_env):
+    async def test_get_service_spans_respects_limit(self, populated_v4_env):
         """Should respect the limit parameter."""
-        spans = otel_repository.get_service_spans("payment-service", limit=3)
+        spans = await otel_repository.get_fused_service_spans("payment-service", limit=3)
 
         assert len(spans) == 3
 
@@ -572,9 +572,9 @@ class TestServiceSpans:
 class TestSpanKindMapping:
     """Tests for span_kind integer to string mapping."""
 
-    def test_span_kind_maps_to_string(self, populated_v4_env):
+    async def test_span_kind_maps_to_string(self, populated_v4_env):
         """span_kind int should be mapped to string name."""
-        spans = otel_repository.get_service_spans("payment-service", limit=1)
+        spans = await otel_repository.get_fused_service_spans("payment-service", limit=1)
 
         # All test spans were created with span_kind=1 (SERVER)
         assert spans[0]["kind"] == "SERVER"
@@ -589,9 +589,9 @@ class TestSpanKindMapping:
 class TestTimestampFormatting:
     """Tests for timestamp formatting in API responses."""
 
-    def test_timestamps_are_iso8601_strings(self, populated_v4_env):
+    async def test_timestamps_are_iso8601_strings(self, populated_v4_env):
         """Timestamps should be ISO8601 formatted strings."""
-        spans = otel_repository.get_service_spans("payment-service", limit=1)
+        spans = await otel_repository.get_fused_service_spans("payment-service", limit=1)
 
         start_time = spans[0]["start_time"]
         end_time = spans[0]["end_time"]

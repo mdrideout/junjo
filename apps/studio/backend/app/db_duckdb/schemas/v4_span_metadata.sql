@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS span_metadata (
     span_kind TINYINT NOT NULL DEFAULT 0,
     is_root BOOLEAN NOT NULL DEFAULT FALSE,
     junjo_span_type VARCHAR(32),  -- workflow, subflow, node, run_concurrent, or empty
+    openinference_span_kind VARCHAR(32),  -- LLM, CHAIN, TOOL, AGENT, etc. (OpenInference semantic convention)
     file_id INTEGER REFERENCES parquet_files(file_id)
 );
 
@@ -35,3 +36,6 @@ CREATE INDEX IF NOT EXISTS idx_span_metadata_file
 
 CREATE INDEX IF NOT EXISTS idx_span_metadata_junjo_type
     ON span_metadata (junjo_span_type, service_name, start_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_span_metadata_openinference_kind
+    ON span_metadata (openinference_span_kind, service_name, trace_id);

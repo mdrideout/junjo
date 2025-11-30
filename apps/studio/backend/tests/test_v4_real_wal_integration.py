@@ -23,6 +23,7 @@ import json
 import os
 import signal
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -36,8 +37,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from loguru import logger
+from ulid import ULID
+from opentelemetry.proto.common.v1 import common_pb2
+from opentelemetry.proto.resource.v1 import resource_pb2
+from opentelemetry.proto.trace.v1 import trace_pb2
 
 from app.config.settings import settings
+from app.proto_gen import span_data_container_pb2
 from app.db_duckdb import v4_repository
 from app.features.otel_spans import repository as otel_repository
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
@@ -166,6 +172,92 @@ def write_spans_to_parquet(spans: list[dict], base_dir: str, service_name: str) 
     pq.write_table(table, file_path)
 
     return file_path
+
+
+# ============================================================================
+# WAL Direct Insertion Helpers
+# ============================================================================
+
+
+def create_wal_span_bytes(
+    trace_id: str,
+    span_id: str,
+    parent_span_id: str | None,
+    name: str,
+    service_name: str,
+    start_ns: int,
+    end_ns: int,
+    attributes: dict | None = None,
+) -> tuple[bytes, bytes]:
+    """Create protobuf-serialized span and resource bytes for WAL insertion.
+
+    Returns (span_bytes, resource_bytes) matching Go's storage format.
+    """
+    # Create span proto
+    span = trace_pb2.Span(
+        trace_id=bytes.fromhex(trace_id),
+        span_id=bytes.fromhex(span_id),
+        parent_span_id=bytes.fromhex(parent_span_id) if parent_span_id else b"",
+        name=name,
+        kind=trace_pb2.Span.SPAN_KIND_SERVER,
+        start_time_unix_nano=start_ns,
+        end_time_unix_nano=end_ns,
+    )
+
+    # Add attributes
+    if attributes:
+        for key, value in attributes.items():
+            attr = common_pb2.KeyValue(key=key)
+            attr.value.string_value = str(value)
+            span.attributes.append(attr)
+
+    # Create resource proto with service.name attribute
+    resource = resource_pb2.Resource()
+    service_attr = common_pb2.KeyValue(key="service.name")
+    service_attr.value.string_value = service_name
+    resource.attributes.append(service_attr)
+
+    return span.SerializeToString(), resource.SerializeToString()
+
+
+def insert_span_into_wal(
+    wal_path: str,
+    trace_id: str,
+    span_id: str,
+    parent_span_id: str | None,
+    name: str,
+    service_name: str,
+    start_ns: int,
+    end_ns: int,
+    attributes: dict | None = None,
+):
+    """Insert a span directly into the WAL SQLite database.
+
+    This bypasses OTLP ingestion and writes directly to the SQLite WAL
+    that the Go service uses, enabling true end-to-end fusion testing.
+    """
+    span_bytes, resource_bytes = create_wal_span_bytes(
+        trace_id, span_id, parent_span_id, name, service_name, start_ns, end_ns, attributes
+    )
+
+    # Create SpanDataContainer (matches Go's storage format)
+    container = span_data_container_pb2.SpanDataContainer(
+        span_bytes=span_bytes,
+        resource_bytes=resource_bytes,
+    )
+
+    # Generate ULID key (matching Go's format - 16 bytes)
+    key = ULID().bytes
+
+    conn = sqlite3.connect(wal_path)
+    conn.execute(
+        """INSERT INTO spans
+           (key_ulid, span_bytes, trace_id, service_name, parent_span_id, start_time_unix_nano)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (key, container.SerializeToString(), trace_id, service_name, parent_span_id or "", start_ns),
+    )
+    conn.commit()
+    conn.close()
 
 
 @pytest.fixture(scope="module")
@@ -329,6 +421,30 @@ def temp_duckdb():
 
         # Restore original path
         settings.database.duckdb_path = original_path
+
+
+@pytest.fixture
+async def wal_client_for_localhost(ingestion_service):
+    """Configure WAL client to use localhost instead of default settings.
+
+    This fixture patches the module-level WAL client in repository.py
+    to connect to the test ingestion service on localhost.
+    """
+    # Reset any existing WAL client before test
+    await otel_repository._reset_wal_client()
+
+    # Override settings to use localhost
+    original_host = settings.span_ingestion.INGESTION_HOST
+    original_port = settings.span_ingestion.INGESTION_PORT
+    settings.span_ingestion.INGESTION_HOST = "localhost"
+    settings.span_ingestion.INGESTION_PORT = ingestion_service["internal_port"]
+
+    yield
+
+    # Reset client and restore settings after test
+    await otel_repository._reset_wal_client()
+    settings.span_ingestion.INGESTION_HOST = original_host
+    settings.span_ingestion.INGESTION_PORT = original_port
 
 
 class TestRealWALServiceNameFusion:
@@ -553,6 +669,144 @@ class TestRealWALClientConnectivity:
             pytest.fail(f"Failed to query WAL spans by trace: {e.code()} - {e.details()}")
         finally:
             await client.close()
+
+
+# ============================================================================
+# True End-to-End WAL + Parquet Fusion Tests
+# ============================================================================
+
+
+class TestRealWALFusionWithData:
+    """Tests that insert data into both WAL and Parquet, then verify fusion.
+
+    These tests directly insert protobuf-serialized spans into the SQLite WAL
+    (bypassing OTLP ingestion) and verify the Go gRPC service returns them,
+    proving true end-to-end fusion of WAL + Parquet data.
+    """
+
+    @pytest.mark.asyncio
+    async def test_service_names_from_wal_appear_in_fusion(
+        self, ingestion_service, temp_duckdb, wal_client_for_localhost
+    ):
+        """Service names from WAL should appear in fused results."""
+        wal_path = ingestion_service["wal_path"]
+        now_ns = int(datetime.now(UTC).timestamp() * 1e9)
+
+        # Insert a span into WAL for "wal-only-service"
+        insert_span_into_wal(
+            wal_path=wal_path,
+            trace_id=uuid.uuid4().hex,
+            span_id=uuid.uuid4().hex[:16],
+            parent_span_id=None,
+            name="WALOnlyRoot",
+            service_name="wal-only-service",
+            start_ns=now_ns,
+            end_ns=now_ns + 100_000,
+        )
+
+        # Query fused service names
+        services = await otel_repository.get_fused_distinct_service_names()
+
+        # WAL service should be present
+        assert "wal-only-service" in services
+
+    @pytest.mark.asyncio
+    async def test_trace_spans_merge_wal_and_parquet(
+        self, ingestion_service, temp_duckdb, wal_client_for_localhost
+    ):
+        """A trace with root in Parquet and child in WAL should merge."""
+        wal_path = ingestion_service["wal_path"]
+        parquet_dir = ingestion_service["parquet_dir"]
+        now_ns = int(datetime.now(UTC).timestamp() * 1e9)
+
+        trace_id = uuid.uuid4().hex
+        root_span_id = uuid.uuid4().hex[:16]
+        child_span_id = uuid.uuid4().hex[:16]
+
+        # Create root span in Parquet
+        parquet_spans = [
+            create_span_data(
+                trace_id=trace_id,
+                span_id=root_span_id,
+                parent_span_id=None,
+                service_name="fusion-test-service",
+                name="ParquetRoot",
+                start_ns=now_ns,
+            )
+        ]
+        parquet_file = write_spans_to_parquet(parquet_spans, parquet_dir, "fusion-test-service")
+        file_size = os.path.getsize(parquet_file)
+        file_data = read_parquet_metadata(parquet_file, file_size)
+        v4_repository.index_parquet_file(file_data)
+
+        # Insert child span into WAL
+        insert_span_into_wal(
+            wal_path=wal_path,
+            trace_id=trace_id,
+            span_id=child_span_id,
+            parent_span_id=root_span_id,
+            name="WALChild",
+            service_name="fusion-test-service",
+            start_ns=now_ns + 1_000,
+            end_ns=now_ns + 2_000,
+        )
+
+        # Query fused trace spans
+        spans = await otel_repository.get_fused_trace_spans(trace_id)
+
+        # Should have both spans
+        assert len(spans) == 2
+        span_ids = {s["span_id"] for s in spans}
+        assert root_span_id in span_ids
+        assert child_span_id in span_ids
+
+    @pytest.mark.asyncio
+    async def test_parquet_wins_deduplication_with_real_wal(
+        self, ingestion_service, temp_duckdb, wal_client_for_localhost
+    ):
+        """When same span exists in both, Parquet version should win."""
+        wal_path = ingestion_service["wal_path"]
+        parquet_dir = ingestion_service["parquet_dir"]
+        now_ns = int(datetime.now(UTC).timestamp() * 1e9)
+
+        trace_id = uuid.uuid4().hex
+        span_id = uuid.uuid4().hex[:16]
+
+        # Create span in Parquet with name "ParquetVersion"
+        parquet_spans = [
+            create_span_data(
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=None,
+                service_name="dedup-test-service",
+                name="ParquetVersion",
+                start_ns=now_ns,
+            )
+        ]
+        parquet_file = write_spans_to_parquet(parquet_spans, parquet_dir, "dedup-test-service")
+        file_size = os.path.getsize(parquet_file)
+        file_data = read_parquet_metadata(parquet_file, file_size)
+        v4_repository.index_parquet_file(file_data)
+
+        # Insert SAME span into WAL with different name "WALVersion"
+        insert_span_into_wal(
+            wal_path=wal_path,
+            trace_id=trace_id,
+            span_id=span_id,
+            parent_span_id=None,
+            name="WALVersion",
+            service_name="dedup-test-service",
+            start_ns=now_ns,
+            end_ns=now_ns + 100_000,
+        )
+
+        # Query fused trace
+        spans = await otel_repository.get_fused_trace_spans(trace_id)
+
+        # Should have exactly 1 span (deduplicated)
+        assert len(spans) == 1
+        # Parquet version should win
+        assert spans[0]["name"] == "ParquetVersion"
 
 
 if __name__ == "__main__":

@@ -44,6 +44,7 @@ dev = [
     "pytest-asyncio>=1.2.0",
     "httpx>=0.28.0",         # For testing FastAPI
     "ruff>=0.14.3",          # Linting
+    "python-ulid>=3.0.0",    # ULID generation for WAL integration tests
 ]
 
 [tool.setuptools]
@@ -86,5 +87,6 @@ markers = [
 dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
+    "python-ulid>=3.1.0",
     "ruff>=0.14.3",
 ]

@@ -118,6 +118,7 @@ def batch_insert_span_metadata(file_id: int, spans: list[SpanMetadata]) -> int:
                 span.span_kind,
                 span.is_root,
                 span.junjo_span_type,
+                span.openinference_span_kind,
                 file_id,
             )
             for span in spans
@@ -128,8 +129,8 @@ def batch_insert_span_metadata(file_id: int, spans: list[SpanMetadata]) -> int:
             INSERT INTO span_metadata (
                 span_id, trace_id, parent_span_id, service_name, name,
                 start_time, end_time, duration_ns, status_code, span_kind,
-                is_root, junjo_span_type, file_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                is_root, junjo_span_type, openinference_span_kind, file_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -238,6 +239,7 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                     span.span_kind,
                     span.is_root,
                     span.junjo_span_type,
+                    span.openinference_span_kind,
                     file_id,
                 )
                 for span in file_data.spans
@@ -248,8 +250,8 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                 INSERT INTO span_metadata (
                     span_id, trace_id, parent_span_id, service_name, name,
                     start_time, end_time, duration_ns, status_code, span_kind,
-                    is_root, junjo_span_type, file_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    is_root, junjo_span_type, openinference_span_kind, file_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 rows,
             )
@@ -648,6 +650,32 @@ def get_span_metadata_for_trace(trace_id: str) -> list[dict]:
             "file_path",
         ]
         return [dict(zip(columns, row)) for row in result]
+
+
+def get_llm_trace_ids(service_name: str, limit: int = 500) -> set[str]:
+    """Get trace IDs that contain at least one LLM span.
+
+    Uses the openinference_span_kind index for efficient O(1) lookup.
+
+    Args:
+        service_name: Service to filter by
+        limit: Maximum traces to return
+
+    Returns:
+        Set of trace IDs that have LLM spans
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            """
+            SELECT DISTINCT trace_id
+            FROM span_metadata
+            WHERE service_name = ?
+              AND openinference_span_kind = 'LLM'
+            LIMIT ?
+            """,
+            [service_name, limit],
+        ).fetchall()
+        return {row[0] for row in result}
 
 
 def get_file_paths_for_junjo_type(

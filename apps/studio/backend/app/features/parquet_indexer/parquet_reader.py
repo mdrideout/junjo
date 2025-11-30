@@ -59,6 +59,7 @@ class SpanMetadata:
     span_kind: int
     is_root: bool
     junjo_span_type: str | None  # workflow, subflow, node, run_concurrent, or None
+    openinference_span_kind: str | None  # LLM, CHAIN, TOOL, AGENT, etc. (OpenInference)
 
 
 @dataclass
@@ -156,13 +157,15 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
         # Determine if root span (no parent)
         is_root = parent_id is None or parent_id == ""
 
-        # Extract junjo_span_type from attributes JSON
+        # Extract junjo_span_type and openinference.span.kind from attributes JSON
         junjo_span_type: str | None = None
+        openinference_span_kind: str | None = None
         attrs_str = attributes_list[i]
         if attrs_str:
             try:
                 attrs = json.loads(attrs_str) if isinstance(attrs_str, str) else attrs_str
                 junjo_span_type = attrs.get("junjo.span_type")
+                openinference_span_kind = attrs.get("openinference.span.kind")
             except (json.JSONDecodeError, TypeError):
                 pass
 
@@ -180,6 +183,7 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
                 span_kind=span_kinds[i],
                 is_root=is_root,
                 junjo_span_type=junjo_span_type,
+                openinference_span_kind=openinference_span_kind,
             )
         )
 

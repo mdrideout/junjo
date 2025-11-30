@@ -328,6 +328,98 @@ class IngestionClient:
             )
             raise
 
+    async def get_wal_spans_by_service(
+        self, service_name: str, limit: int = 500
+    ) -> list[dict[str, Any]]:
+        """Get all spans from WAL for a service.
+
+        Used for fusion queries combining WAL and Parquet data.
+
+        Args:
+            service_name: Service to filter by
+            limit: Maximum number of spans to return
+
+        Returns:
+            List of span dictionaries in API response format
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetWALSpansByServiceRequest(service_name=service_name, limit=limit)
+
+        spans = []
+        try:
+            async for span_data in self.stub.GetWALSpansByService(request):
+                span_dict = _convert_span_data_to_api_format(span_data)
+                spans.append(span_dict)
+
+            logger.debug(
+                f"Retrieved {len(spans)} spans from WAL for service",
+                extra={"service_name": service_name, "count": len(spans), "limit": limit},
+            )
+            return spans
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting WAL spans by service",
+                extra={
+                    "service_name": service_name,
+                    "code": str(e.code()),
+                    "details": e.details(),
+                },
+            )
+            raise
+
+    async def get_wal_workflow_spans(
+        self, service_name: str, limit: int = 500
+    ) -> list[dict[str, Any]]:
+        """Get workflow-type spans from WAL for a service.
+
+        Filters spans where junjo.span_type = 'workflow'.
+
+        Args:
+            service_name: Service to filter by
+            limit: Maximum number of workflow spans to return
+
+        Returns:
+            List of workflow span dictionaries in API response format
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetWALWorkflowSpansRequest(service_name=service_name, limit=limit)
+
+        spans = []
+        try:
+            async for span_data in self.stub.GetWALWorkflowSpans(request):
+                span_dict = _convert_span_data_to_api_format(span_data)
+                spans.append(span_dict)
+
+            logger.debug(
+                f"Retrieved {len(spans)} workflow spans from WAL",
+                extra={"service_name": service_name, "count": len(spans), "limit": limit},
+            )
+            return spans
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting WAL workflow spans",
+                extra={
+                    "service_name": service_name,
+                    "code": str(e.code()),
+                    "details": e.details(),
+                },
+            )
+            raise
+
 
 def _convert_span_data_to_api_format(span_data: ingestion_pb2.SpanData) -> dict[str, Any]:
     """Convert gRPC SpanData to API response format.

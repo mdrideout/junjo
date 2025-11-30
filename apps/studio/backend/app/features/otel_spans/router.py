@@ -55,7 +55,7 @@ async def get_service_spans(
         GET /api/v1/observability/services/my-service/spans?limit=100
     """
     logger.debug(f"Fetching spans for service: {service_name}, limit: {limit}")
-    return repository.get_service_spans(service_name, limit)
+    return await repository.get_fused_service_spans(service_name, limit)
 
 
 @router.get("/services/{service_name}/spans/root", response_model=list[dict[str, Any]])
@@ -85,7 +85,7 @@ async def get_root_spans(
     )
 
     if has_llm:
-        return repository.get_root_spans_with_llm(service_name, limit)
+        return await repository.get_fused_root_spans_with_llm(service_name, limit)
     return await repository.get_fused_root_spans(service_name, limit)
 
 
@@ -109,7 +109,7 @@ async def get_workflow_spans(
         GET /api/v1/observability/services/my-service/workflows?limit=50
     """
     logger.debug(f"Fetching workflow spans for service: {service_name}, limit: {limit}")
-    return repository.get_workflow_spans(service_name, limit)
+    return await repository.get_fused_workflow_spans(service_name, limit)
 
 
 @router.get("/traces/{trace_id}/spans", response_model=list[dict[str, Any]])

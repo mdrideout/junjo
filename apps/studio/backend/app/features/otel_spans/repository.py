@@ -121,6 +121,54 @@ async def _get_wal_root_spans(service_name: str, limit: int) -> list[dict]:
         return []
 
 
+async def _get_wal_spans_by_service(service_name: str, limit: int) -> list[dict]:
+    """Query spans from WAL by service name.
+
+    Returns empty list if WAL query fails (graceful degradation).
+    """
+    try:
+        client = await _get_wal_client()
+        return await client.get_wal_spans_by_service(service_name, limit)
+    except grpc.aio.AioRpcError as e:
+        logger.warning(
+            "WAL service spans query failed, returning empty list",
+            extra={"service_name": service_name, "code": str(e.code()), "details": e.details()},
+        )
+        await _reset_wal_client()
+        return []
+    except Exception as e:
+        logger.warning(
+            "WAL client error, returning empty list",
+            extra={"service_name": service_name, "error": str(e), "error_type": type(e).__name__},
+        )
+        await _reset_wal_client()
+        return []
+
+
+async def _get_wal_workflow_spans(service_name: str, limit: int) -> list[dict]:
+    """Query workflow spans from WAL.
+
+    Returns empty list if WAL query fails (graceful degradation).
+    """
+    try:
+        client = await _get_wal_client()
+        return await client.get_wal_workflow_spans(service_name, limit)
+    except grpc.aio.AioRpcError as e:
+        logger.warning(
+            "WAL workflow spans query failed, returning empty list",
+            extra={"service_name": service_name, "code": str(e.code()), "details": e.details()},
+        )
+        await _reset_wal_client()
+        return []
+    except Exception as e:
+        logger.warning(
+            "WAL client error, returning empty list",
+            extra={"service_name": service_name, "error": str(e), "error_type": type(e).__name__},
+        )
+        await _reset_wal_client()
+        return []
+
+
 def _merge_spans(parquet_spans: list[dict], wal_spans: list[dict]) -> list[dict]:
     """Merge spans from Parquet and WAL, deduplicating by span_id.
 
@@ -192,12 +240,14 @@ async def get_fused_distinct_service_names() -> list[str]:
     return merged
 
 
-def get_service_spans(service_name: str, limit: int = 500) -> list[dict]:
-    """Get all spans for a service.
+async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[dict]:
+    """Get all spans for a service from Parquet and WAL.
 
-    V4 Flow:
+    Fusion query:
     1. Get Parquet file paths for this service from DuckDB
     2. Query Parquet files via DataFusion for full span data
+    3. Query WAL for spans not yet flushed
+    4. Merge and deduplicate by span_id
 
     Args:
         service_name: Name of the service to query.
@@ -209,12 +259,28 @@ def get_service_spans(service_name: str, limit: int = 500) -> list[dict]:
     # Get file paths from metadata
     file_paths = v4_repository.get_file_paths_for_service(service_name, limit=limit)
 
-    if not file_paths:
-        logger.debug(f"No Parquet files found for service: {service_name}")
-        return []
-
     # Query Parquet files via DataFusion
-    return datafusion_query.get_service_spans(service_name, file_paths, limit=limit)
+    parquet_spans = []
+    if file_paths:
+        parquet_spans = datafusion_query.get_service_spans(service_name, file_paths, limit=limit)
+
+    # Query WAL for service spans
+    wal_spans = await _get_wal_spans_by_service(service_name, limit)
+
+    # Merge results
+    merged = _merge_spans(parquet_spans, wal_spans)
+
+    logger.debug(
+        "Merged service spans",
+        extra={
+            "service_name": service_name,
+            "parquet_count": len(parquet_spans),
+            "wal_count": len(wal_spans),
+            "merged_count": len(merged),
+        },
+    )
+
+    return merged[:limit]
 
 
 async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict]:
@@ -260,16 +326,17 @@ async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict
     return merged[:limit]
 
 
-def get_root_spans_with_llm(service_name: str, limit: int = 500) -> list[dict]:
+async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> list[dict]:
     """Get root spans that are part of traces containing LLM operations.
+
+    Fusion query:
+    1. Query Parquet for LLM trace IDs (indexed lookup)
+    2. Query Parquet for root spans in those traces
+    3. Query WAL for root spans, check which traces have LLM spans
+    4. Merge and deduplicate
 
     Filters for traces that have at least one span with
     attributes['openinference.span.kind'] = 'LLM'.
-
-    V4 Implementation Note:
-    This requires querying Parquet attributes since the LLM filter
-    isn't in span_metadata. We fetch root spans and filter in Python.
-    For better performance, consider adding an index field.
 
     Args:
         service_name: Name of the service to query.
@@ -278,55 +345,73 @@ def get_root_spans_with_llm(service_name: str, limit: int = 500) -> list[dict]:
     Returns:
         List of root span dictionaries from LLM traces.
     """
-    # Get all root spans first (we need to filter by LLM attribute)
-    file_paths = v4_repository.get_file_paths_for_service(
-        service_name,
-        limit=limit * 2,
-        is_root=True,  # Fetch more to filter
+    # Step 1: Get Parquet LLM trace IDs (indexed lookup - fast)
+    parquet_llm_trace_ids = v4_repository.get_llm_trace_ids(service_name, limit * 2)
+
+    # Step 2: Get Parquet root spans for LLM traces
+    parquet_spans = []
+    if parquet_llm_trace_ids:
+        file_paths = v4_repository.get_file_paths_for_service(
+            service_name,
+            limit=limit * 2,
+            is_root=True,
+        )
+        if file_paths:
+            all_parquet_root_spans = datafusion_query.get_root_spans(
+                service_name, file_paths, limit=limit * 2
+            )
+            parquet_spans = [
+                span for span in all_parquet_root_spans if span["trace_id"] in parquet_llm_trace_ids
+            ]
+
+    # Step 3: Get WAL root spans and filter for LLM traces
+    wal_spans = []
+    wal_root_spans = await _get_wal_root_spans(service_name, limit * 2)
+
+    if wal_root_spans:
+        # Get unique trace IDs from WAL root spans
+        wal_trace_ids = {span["trace_id"] for span in wal_root_spans}
+
+        # For each WAL trace, check if it contains LLM spans
+        wal_llm_trace_ids: set[str] = set()
+        for trace_id in wal_trace_ids:
+            trace_spans = await _get_wal_spans_by_trace(trace_id)
+            for span in trace_spans:
+                # Check if any span in trace has openinference.span.kind = 'LLM'
+                attrs = span.get("attributes_json", {})
+                if attrs.get("openinference.span.kind") == "LLM":
+                    wal_llm_trace_ids.add(trace_id)
+                    break
+
+        # Filter WAL root spans to only those in LLM traces
+        wal_spans = [span for span in wal_root_spans if span["trace_id"] in wal_llm_trace_ids]
+
+    # Step 4: Merge Parquet and WAL results
+    merged = _merge_spans(parquet_spans, wal_spans)
+
+    logger.debug(
+        "Merged LLM root spans",
+        extra={
+            "service_name": service_name,
+            "parquet_llm_trace_count": len(parquet_llm_trace_ids),
+            "parquet_span_count": len(parquet_spans),
+            "wal_span_count": len(wal_spans),
+            "merged_count": len(merged),
+        },
     )
 
-    if not file_paths:
-        return []
-
-    # Query Parquet for root spans
-    all_root_spans = datafusion_query.get_root_spans(service_name, file_paths, limit=limit * 2)
-
-    if not all_root_spans:
-        return []
-
-    # Get trace IDs that have LLM spans
-    # First, find all trace IDs from root spans
-    trace_ids = {span["trace_id"] for span in all_root_spans}
-
-    # Query for traces with LLM spans
-    # This is expensive - for each trace, check if any span has LLM attribute
-    llm_trace_ids: set[str] = set()
-
-    for trace_id in trace_ids:
-        trace_file_paths = v4_repository.get_file_paths_for_trace(trace_id)
-        if not trace_file_paths:
-            continue
-
-        # Query all spans in trace and check for LLM attribute
-        trace_spans = datafusion_query.get_spans_by_trace_id(trace_id, trace_file_paths)
-        for span in trace_spans:
-            attrs = span.get("attributes_json", {})
-            if attrs.get("openinference.span.kind") == "LLM":
-                llm_trace_ids.add(trace_id)
-                break
-
-    # Filter root spans to only those in LLM traces
-    result = [span for span in all_root_spans if span["trace_id"] in llm_trace_ids]
-    return result[:limit]
+    return merged[:limit]
 
 
-def get_workflow_spans(service_name: str, limit: int = 500) -> list[dict]:
-    """Get workflow-type spans for a service.
+async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[dict]:
+    """Get workflow-type spans for a service from Parquet and WAL.
+
+    Fusion query:
+    1. Query Parquet for workflow spans (indexed by junjo_span_type)
+    2. Query WAL for workflow spans
+    3. Merge and deduplicate
 
     Filters spans where junjo_span_type = 'workflow'.
-
-    V4 Implementation: Uses span_metadata.junjo_span_type index
-    for efficient filtering, then fetches full data from Parquet.
 
     Args:
         service_name: Name of the service to query.
@@ -338,11 +423,28 @@ def get_workflow_spans(service_name: str, limit: int = 500) -> list[dict]:
     # Get file paths containing workflow spans (metadata-indexed)
     file_paths = v4_repository.get_file_paths_for_junjo_type(service_name, "workflow", limit=limit)
 
-    if not file_paths:
-        return []
-
     # Query Parquet for workflow spans
-    return datafusion_query.get_workflow_spans(service_name, file_paths, limit=limit)
+    parquet_spans = []
+    if file_paths:
+        parquet_spans = datafusion_query.get_workflow_spans(service_name, file_paths, limit=limit)
+
+    # Query WAL for workflow spans
+    wal_spans = await _get_wal_workflow_spans(service_name, limit)
+
+    # Merge results
+    merged = _merge_spans(parquet_spans, wal_spans)
+
+    logger.debug(
+        "Merged workflow spans",
+        extra={
+            "service_name": service_name,
+            "parquet_count": len(parquet_spans),
+            "wal_count": len(wal_spans),
+            "merged_count": len(merged),
+        },
+    )
+
+    return merged[:limit]
 
 
 async def get_fused_trace_spans(trace_id: str) -> list[dict]:

@@ -188,6 +188,82 @@ func (s *WALReaderService) GetWALRootSpans(req *pb.GetWALRootSpansRequest, strea
 	return nil
 }
 
+// GetWALSpansByService returns all spans from the WAL for a service.
+// Used for fusion queries combining WAL and Parquet data.
+func (s *WALReaderService) GetWALSpansByService(req *pb.GetWALSpansByServiceRequest, stream grpc.ServerStreamingServer[pb.SpanData]) error {
+	ctx := stream.Context()
+	slog.DebugContext(ctx, "received GetWALSpansByService request",
+		slog.String("service_name", req.ServiceName),
+		slog.Int("limit", int(req.Limit)))
+
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 500 // Default limit
+	}
+
+	spans, err := s.repo.GetSpansByService(req.ServiceName, limit)
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting spans by service", slog.Any("error", err))
+		return err
+	}
+
+	for _, spanData := range spans {
+		pbSpan := convertStorageSpanDataToProto(spanData)
+		if err := stream.Send(pbSpan); err != nil {
+			if err == io.EOF {
+				slog.InfoContext(ctx, "client disconnected during GetWALSpansByService")
+				return nil
+			}
+			slog.ErrorContext(ctx, "error sending service span", slog.Any("error", err))
+			return err
+		}
+	}
+
+	slog.InfoContext(ctx, "streamed service spans",
+		slog.String("service_name", req.ServiceName),
+		slog.Int("spans_count", len(spans)))
+
+	return nil
+}
+
+// GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
+// Filters spans where junjo.span_type = 'workflow'.
+func (s *WALReaderService) GetWALWorkflowSpans(req *pb.GetWALWorkflowSpansRequest, stream grpc.ServerStreamingServer[pb.SpanData]) error {
+	ctx := stream.Context()
+	slog.DebugContext(ctx, "received GetWALWorkflowSpans request",
+		slog.String("service_name", req.ServiceName),
+		slog.Int("limit", int(req.Limit)))
+
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 500 // Default limit
+	}
+
+	spans, err := s.repo.GetWorkflowSpans(req.ServiceName, limit)
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting workflow spans", slog.Any("error", err))
+		return err
+	}
+
+	for _, spanData := range spans {
+		pbSpan := convertStorageSpanDataToProto(spanData)
+		if err := stream.Send(pbSpan); err != nil {
+			if err == io.EOF {
+				slog.InfoContext(ctx, "client disconnected during GetWALWorkflowSpans")
+				return nil
+			}
+			slog.ErrorContext(ctx, "error sending workflow span", slog.Any("error", err))
+			return err
+		}
+	}
+
+	slog.InfoContext(ctx, "streamed workflow spans",
+		slog.String("service_name", req.ServiceName),
+		slog.Int("spans_count", len(spans)))
+
+	return nil
+}
+
 // convertStorageSpanDataToProto converts a storage.SpanData to a pb.SpanData for gRPC responses.
 func convertStorageSpanDataToProto(data *storage.SpanData) *pb.SpanData {
 	span := data.Span
