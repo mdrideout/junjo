@@ -80,12 +80,6 @@ def initialize_tables():
 
             logger.info(f"DuckDB V4 tables initialized: {settings.database.duckdb_path}")
 
-            # V3 Schema (disabled - kept for reference during migration)
-            # spans_schema = (schema_dir / "spans_schema.sql").read_text()
-            # state_patches_schema = (schema_dir / "state_patches_schema.sql").read_text()
-            # conn.execute(spans_schema)
-            # conn.execute(state_patches_schema)
-
         except Exception as e:
             logger.error(f"Failed to initialize DuckDB tables: {e}")
             raise
