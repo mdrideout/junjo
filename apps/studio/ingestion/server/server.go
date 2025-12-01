@@ -63,7 +63,7 @@ func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthC
 }
 
 // NewInternalGRPCServer creates a new gRPC server for internal services.
-func NewInternalGRPCServer(repo storage.SpanRepository) (*grpc.Server, net.Listener, error) {
+func NewInternalGRPCServer(repo storage.SpanRepository, flusher *storage.Flusher) (*grpc.Server, net.Listener, error) {
 	cfg := config.Get().Server
 	listenAddr := ":" + cfg.InternalPort
 	lis, err := net.Listen("tcp", listenAddr)
@@ -72,7 +72,7 @@ func NewInternalGRPCServer(repo storage.SpanRepository) (*grpc.Server, net.Liste
 	}
 
 	// --- Initialize Internal Services ---
-	walReaderSvc := NewWALReaderService(repo)
+	walReaderSvc := NewWALReaderService(repo, flusher)
 
 	// Custom logging function that checks method name
 	logFunc := func(ctx context.Context, lvl grpc_logging.Level, msg string, fields ...any) {

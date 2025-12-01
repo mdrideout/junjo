@@ -66,6 +66,11 @@ class InternalIngestionServiceStub(object):
                 request_serializer=ingestion__pb2.GetWALWorkflowSpansRequest.SerializeToString,
                 response_deserializer=ingestion__pb2.SpanData.FromString,
                 _registered_method=True)
+        self.FlushWAL = channel.unary_unary(
+                '/ingestion.InternalIngestionService/FlushWAL',
+                request_serializer=ingestion__pb2.FlushWALRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.FlushWALResponse.FromString,
+                _registered_method=True)
 
 
 class InternalIngestionServiceServicer(object):
@@ -121,6 +126,13 @@ class InternalIngestionServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FlushWAL(self, request, context):
+        """FlushWAL triggers an immediate flush of WAL data to Parquet files.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_InternalIngestionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -153,6 +165,11 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
                     servicer.GetWALWorkflowSpans,
                     request_deserializer=ingestion__pb2.GetWALWorkflowSpansRequest.FromString,
                     response_serializer=ingestion__pb2.SpanData.SerializeToString,
+            ),
+            'FlushWAL': grpc.unary_unary_rpc_method_handler(
+                    servicer.FlushWAL,
+                    request_deserializer=ingestion__pb2.FlushWALRequest.FromString,
+                    response_serializer=ingestion__pb2.FlushWALResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -319,6 +336,33 @@ class InternalIngestionService(object):
             '/ingestion.InternalIngestionService/GetWALWorkflowSpans',
             ingestion__pb2.GetWALWorkflowSpansRequest.SerializeToString,
             ingestion__pb2.SpanData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FlushWAL(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/FlushWAL',
+            ingestion__pb2.FlushWALRequest.SerializeToString,
+            ingestion__pb2.FlushWALResponse.FromString,
             options,
             channel_credentials,
             insecure,

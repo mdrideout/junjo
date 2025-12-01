@@ -420,6 +420,45 @@ class IngestionClient:
             )
             raise
 
+    async def flush_wal(self) -> bool:
+        """Trigger manual WAL flush to Parquet files.
+
+        This calls the FlushWAL RPC to immediately flush any pending
+        WAL data to Parquet files. Useful for testing or ensuring
+        data is persisted before shutdown.
+
+        Returns:
+            True if flush succeeded, False otherwise
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.FlushWALRequest()
+
+        try:
+            response = await self.stub.FlushWAL(request)
+
+            if response.success:
+                logger.info("WAL flush completed successfully")
+            else:
+                logger.error(
+                    "WAL flush failed",
+                    extra={"error_message": response.error_message},
+                )
+
+            return response.success
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error flushing WAL",
+                extra={"code": str(e.code()), "details": e.details()},
+            )
+            raise
+
 
 def _convert_span_data_to_api_format(span_data: ingestion_pb2.SpanData) -> dict[str, Any]:
     """Convert gRPC SpanData to API response format.

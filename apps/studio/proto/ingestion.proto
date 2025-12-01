@@ -30,6 +30,9 @@ service InternalIngestionService {
   // GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
   // Filters spans where junjo.span_type = 'workflow'.
   rpc GetWALWorkflowSpans(GetWALWorkflowSpansRequest) returns (stream SpanData) {}
+
+  // FlushWAL triggers an immediate flush of WAL data to Parquet files.
+  rpc FlushWAL(FlushWALRequest) returns (FlushWALResponse) {}
 }
 
 // ReadSpansRequest defines the parameters for requesting a batch of spans.
@@ -113,4 +116,13 @@ message GetWALSpansByServiceRequest {
 message GetWALWorkflowSpansRequest {
   string service_name = 1;
   int32 limit = 2;  // Maximum number of workflow spans to return
+}
+
+// FlushWALRequest triggers a manual WAL flush.
+message FlushWALRequest {}
+
+// FlushWALResponse contains the result of a flush operation.
+message FlushWALResponse {
+  bool success = 1;
+  string error_message = 2;  // Error details if success=false
 }

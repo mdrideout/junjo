@@ -14,12 +14,13 @@ import (
 // WALReaderService implements the gRPC server for reading from the WAL.
 type WALReaderService struct {
 	pb.UnimplementedInternalIngestionServiceServer
-	repo storage.SpanRepository
+	repo    storage.SpanRepository
+	flusher *storage.Flusher
 }
 
 // NewWALReaderService creates a new WALReaderService.
-func NewWALReaderService(repo storage.SpanRepository) *WALReaderService {
-	return &WALReaderService{repo: repo}
+func NewWALReaderService(repo storage.SpanRepository, flusher *storage.Flusher) *WALReaderService {
+	return &WALReaderService{repo: repo, flusher: flusher}
 }
 
 // ReadSpans streams spans from the SQLite WAL to the client.
@@ -301,4 +302,30 @@ func convertStorageSpanDataToProto(data *storage.SpanData) *pb.SpanData {
 	_ = resource
 
 	return pbSpan
+}
+
+// FlushWAL triggers an immediate flush of WAL data to Parquet files.
+func (s *WALReaderService) FlushWAL(ctx context.Context, req *pb.FlushWALRequest) (*pb.FlushWALResponse, error) {
+	slog.InfoContext(ctx, "received FlushWAL request")
+
+	if s.flusher == nil {
+		slog.ErrorContext(ctx, "flusher not configured")
+		return &pb.FlushWALResponse{
+			Success:      false,
+			ErrorMessage: "flusher not configured",
+		}, nil
+	}
+
+	if err := s.flusher.Flush(); err != nil {
+		slog.ErrorContext(ctx, "flush failed", slog.Any("error", err))
+		return &pb.FlushWALResponse{
+			Success:      false,
+			ErrorMessage: err.Error(),
+		}, nil
+	}
+
+	slog.InfoContext(ctx, "FlushWAL completed successfully")
+	return &pb.FlushWALResponse{
+		Success: true,
+	}, nil
 }

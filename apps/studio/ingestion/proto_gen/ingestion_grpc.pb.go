@@ -25,6 +25,7 @@ const (
 	InternalIngestionService_GetWALRootSpans_FullMethodName            = "/ingestion.InternalIngestionService/GetWALRootSpans"
 	InternalIngestionService_GetWALSpansByService_FullMethodName       = "/ingestion.InternalIngestionService/GetWALSpansByService"
 	InternalIngestionService_GetWALWorkflowSpans_FullMethodName        = "/ingestion.InternalIngestionService/GetWALWorkflowSpans"
+	InternalIngestionService_FlushWAL_FullMethodName                   = "/ingestion.InternalIngestionService/FlushWAL"
 )
 
 // InternalIngestionServiceClient is the client API for InternalIngestionService service.
@@ -52,6 +53,8 @@ type InternalIngestionServiceClient interface {
 	// GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
 	// Filters spans where junjo.span_type = 'workflow'.
 	GetWALWorkflowSpans(ctx context.Context, in *GetWALWorkflowSpansRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error)
+	// FlushWAL triggers an immediate flush of WAL data to Parquet files.
+	FlushWAL(ctx context.Context, in *FlushWALRequest, opts ...grpc.CallOption) (*FlushWALResponse, error)
 }
 
 type internalIngestionServiceClient struct {
@@ -167,6 +170,16 @@ func (c *internalIngestionServiceClient) GetWALWorkflowSpans(ctx context.Context
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type InternalIngestionService_GetWALWorkflowSpansClient = grpc.ServerStreamingClient[SpanData]
 
+func (c *internalIngestionServiceClient) FlushWAL(ctx context.Context, in *FlushWALRequest, opts ...grpc.CallOption) (*FlushWALResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FlushWALResponse)
+	err := c.cc.Invoke(ctx, InternalIngestionService_FlushWAL_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InternalIngestionServiceServer is the server API for InternalIngestionService service.
 // All implementations must embed UnimplementedInternalIngestionServiceServer
 // for forward compatibility.
@@ -192,6 +205,8 @@ type InternalIngestionServiceServer interface {
 	// GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
 	// Filters spans where junjo.span_type = 'workflow'.
 	GetWALWorkflowSpans(*GetWALWorkflowSpansRequest, grpc.ServerStreamingServer[SpanData]) error
+	// FlushWAL triggers an immediate flush of WAL data to Parquet files.
+	FlushWAL(context.Context, *FlushWALRequest) (*FlushWALResponse, error)
 	mustEmbedUnimplementedInternalIngestionServiceServer()
 }
 
@@ -219,6 +234,9 @@ func (UnimplementedInternalIngestionServiceServer) GetWALSpansByService(*GetWALS
 }
 func (UnimplementedInternalIngestionServiceServer) GetWALWorkflowSpans(*GetWALWorkflowSpansRequest, grpc.ServerStreamingServer[SpanData]) error {
 	return status.Errorf(codes.Unimplemented, "method GetWALWorkflowSpans not implemented")
+}
+func (UnimplementedInternalIngestionServiceServer) FlushWAL(context.Context, *FlushWALRequest) (*FlushWALResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FlushWAL not implemented")
 }
 func (UnimplementedInternalIngestionServiceServer) mustEmbedUnimplementedInternalIngestionServiceServer() {
 }
@@ -315,6 +333,24 @@ func _InternalIngestionService_GetWALWorkflowSpans_Handler(srv interface{}, stre
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type InternalIngestionService_GetWALWorkflowSpansServer = grpc.ServerStreamingServer[SpanData]
 
+func _InternalIngestionService_FlushWAL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FlushWALRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalIngestionServiceServer).FlushWAL(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalIngestionService_FlushWAL_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalIngestionServiceServer).FlushWAL(ctx, req.(*FlushWALRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InternalIngestionService_ServiceDesc is the grpc.ServiceDesc for InternalIngestionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -325,6 +361,10 @@ var InternalIngestionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWALDistinctServiceNames",
 			Handler:    _InternalIngestionService_GetWALDistinctServiceNames_Handler,
+		},
+		{
+			MethodName: "FlushWAL",
+			Handler:    _InternalIngestionService_FlushWAL_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

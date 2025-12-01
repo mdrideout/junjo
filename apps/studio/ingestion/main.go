@@ -76,7 +76,7 @@ func main() {
 	}()
 
 	// Create the internal gRPC server
-	internalGRPCServer, internalLis, err := server.NewInternalGRPCServer(repo)
+	internalGRPCServer, internalLis, err := server.NewInternalGRPCServer(repo, flusher)
 	if err != nil {
 		slog.Error("failed to create internal grpc server", slog.Any("error", err))
 		os.Exit(1)

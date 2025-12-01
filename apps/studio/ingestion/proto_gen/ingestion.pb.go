@@ -588,6 +588,96 @@ func (x *GetWALWorkflowSpansRequest) GetLimit() int32 {
 	return 0
 }
 
+// FlushWALRequest triggers a manual WAL flush.
+type FlushWALRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FlushWALRequest) Reset() {
+	*x = FlushWALRequest{}
+	mi := &file_ingestion_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FlushWALRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FlushWALRequest) ProtoMessage() {}
+
+func (x *FlushWALRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ingestion_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FlushWALRequest.ProtoReflect.Descriptor instead.
+func (*FlushWALRequest) Descriptor() ([]byte, []int) {
+	return file_ingestion_proto_rawDescGZIP(), []int{9}
+}
+
+// FlushWALResponse contains the result of a flush operation.
+type FlushWALResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"` // Error details if success=false
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FlushWALResponse) Reset() {
+	*x = FlushWALResponse{}
+	mi := &file_ingestion_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FlushWALResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FlushWALResponse) ProtoMessage() {}
+
+func (x *FlushWALResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ingestion_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FlushWALResponse.ProtoReflect.Descriptor instead.
+func (*FlushWALResponse) Descriptor() ([]byte, []int) {
+	return file_ingestion_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *FlushWALResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *FlushWALResponse) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
 var File_ingestion_proto protoreflect.FileDescriptor
 
 const file_ingestion_proto_rawDesc = "" +
@@ -635,14 +725,19 @@ const file_ingestion_proto_rawDesc = "" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"U\n" +
 	"\x1aGetWALWorkflowSpansRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit2\xbb\x04\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\x11\n" +
+	"\x0fFlushWALRequest\"Q\n" +
+	"\x10FlushWALResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12#\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage2\x82\x05\n" +
 	"\x18InternalIngestionService\x12J\n" +
 	"\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x000\x01\x12W\n" +
 	"\x14GetWALSpansByTraceId\x12&.ingestion.GetWALSpansByTraceIdRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12{\n" +
 	"\x1aGetWALDistinctServiceNames\x12,.ingestion.GetWALDistinctServiceNamesRequest\x1a-.ingestion.GetWALDistinctServiceNamesResponse\"\x00\x12M\n" +
 	"\x0fGetWALRootSpans\x12!.ingestion.GetWALRootSpansRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12W\n" +
 	"\x14GetWALSpansByService\x12&.ingestion.GetWALSpansByServiceRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12U\n" +
-	"\x13GetWALWorkflowSpans\x12%.ingestion.GetWALWorkflowSpansRequest\x1a\x13.ingestion.SpanData\"\x000\x01B\rZ\v.;proto_genb\x06proto3"
+	"\x13GetWALWorkflowSpans\x12%.ingestion.GetWALWorkflowSpansRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12E\n" +
+	"\bFlushWAL\x12\x1a.ingestion.FlushWALRequest\x1a\x1b.ingestion.FlushWALResponse\"\x00B\rZ\v.;proto_genb\x06proto3"
 
 var (
 	file_ingestion_proto_rawDescOnce sync.Once
@@ -656,7 +751,7 @@ func file_ingestion_proto_rawDescGZIP() []byte {
 	return file_ingestion_proto_rawDescData
 }
 
-var file_ingestion_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ingestion_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ingestion_proto_goTypes = []any{
 	(*ReadSpansRequest)(nil),                   // 0: ingestion.ReadSpansRequest
 	(*ReadSpansResponse)(nil),                  // 1: ingestion.ReadSpansResponse
@@ -667,25 +762,29 @@ var file_ingestion_proto_goTypes = []any{
 	(*GetWALRootSpansRequest)(nil),             // 6: ingestion.GetWALRootSpansRequest
 	(*GetWALSpansByServiceRequest)(nil),        // 7: ingestion.GetWALSpansByServiceRequest
 	(*GetWALWorkflowSpansRequest)(nil),         // 8: ingestion.GetWALWorkflowSpansRequest
+	(*FlushWALRequest)(nil),                    // 9: ingestion.FlushWALRequest
+	(*FlushWALResponse)(nil),                   // 10: ingestion.FlushWALResponse
 }
 var file_ingestion_proto_depIdxs = []int32{
-	0, // 0: ingestion.InternalIngestionService.ReadSpans:input_type -> ingestion.ReadSpansRequest
-	3, // 1: ingestion.InternalIngestionService.GetWALSpansByTraceId:input_type -> ingestion.GetWALSpansByTraceIdRequest
-	4, // 2: ingestion.InternalIngestionService.GetWALDistinctServiceNames:input_type -> ingestion.GetWALDistinctServiceNamesRequest
-	6, // 3: ingestion.InternalIngestionService.GetWALRootSpans:input_type -> ingestion.GetWALRootSpansRequest
-	7, // 4: ingestion.InternalIngestionService.GetWALSpansByService:input_type -> ingestion.GetWALSpansByServiceRequest
-	8, // 5: ingestion.InternalIngestionService.GetWALWorkflowSpans:input_type -> ingestion.GetWALWorkflowSpansRequest
-	1, // 6: ingestion.InternalIngestionService.ReadSpans:output_type -> ingestion.ReadSpansResponse
-	2, // 7: ingestion.InternalIngestionService.GetWALSpansByTraceId:output_type -> ingestion.SpanData
-	5, // 8: ingestion.InternalIngestionService.GetWALDistinctServiceNames:output_type -> ingestion.GetWALDistinctServiceNamesResponse
-	2, // 9: ingestion.InternalIngestionService.GetWALRootSpans:output_type -> ingestion.SpanData
-	2, // 10: ingestion.InternalIngestionService.GetWALSpansByService:output_type -> ingestion.SpanData
-	2, // 11: ingestion.InternalIngestionService.GetWALWorkflowSpans:output_type -> ingestion.SpanData
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: ingestion.InternalIngestionService.ReadSpans:input_type -> ingestion.ReadSpansRequest
+	3,  // 1: ingestion.InternalIngestionService.GetWALSpansByTraceId:input_type -> ingestion.GetWALSpansByTraceIdRequest
+	4,  // 2: ingestion.InternalIngestionService.GetWALDistinctServiceNames:input_type -> ingestion.GetWALDistinctServiceNamesRequest
+	6,  // 3: ingestion.InternalIngestionService.GetWALRootSpans:input_type -> ingestion.GetWALRootSpansRequest
+	7,  // 4: ingestion.InternalIngestionService.GetWALSpansByService:input_type -> ingestion.GetWALSpansByServiceRequest
+	8,  // 5: ingestion.InternalIngestionService.GetWALWorkflowSpans:input_type -> ingestion.GetWALWorkflowSpansRequest
+	9,  // 6: ingestion.InternalIngestionService.FlushWAL:input_type -> ingestion.FlushWALRequest
+	1,  // 7: ingestion.InternalIngestionService.ReadSpans:output_type -> ingestion.ReadSpansResponse
+	2,  // 8: ingestion.InternalIngestionService.GetWALSpansByTraceId:output_type -> ingestion.SpanData
+	5,  // 9: ingestion.InternalIngestionService.GetWALDistinctServiceNames:output_type -> ingestion.GetWALDistinctServiceNamesResponse
+	2,  // 10: ingestion.InternalIngestionService.GetWALRootSpans:output_type -> ingestion.SpanData
+	2,  // 11: ingestion.InternalIngestionService.GetWALSpansByService:output_type -> ingestion.SpanData
+	2,  // 12: ingestion.InternalIngestionService.GetWALWorkflowSpans:output_type -> ingestion.SpanData
+	10, // 13: ingestion.InternalIngestionService.FlushWAL:output_type -> ingestion.FlushWALResponse
+	7,  // [7:14] is the sub-list for method output_type
+	0,  // [0:7] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ingestion_proto_init() }
@@ -699,7 +798,7 @@ func file_ingestion_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ingestion_proto_rawDesc), len(file_ingestion_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
