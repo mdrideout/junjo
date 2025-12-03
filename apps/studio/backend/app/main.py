@@ -25,6 +25,7 @@ from app.common.responses import HealthResponse
 from app.config.deployment_validation import log_deployment_configuration
 from app.config.logger import setup_logging
 from app.config.settings import settings
+from app.features.admin.router import router as admin_router
 from app.features.api_keys.router import router as api_keys_router
 from app.features.auth.router import router as auth_router
 from app.features.config.router import router as config_router
@@ -168,6 +169,7 @@ app.add_middleware(
 # Outgoing:  request.session modified → SessionMiddleware (sign) → SecureCookiesMiddleware (encrypt) → Browser
 
 # === ROUTERS ===
+app.include_router(admin_router, prefix="/api")
 app.include_router(auth_router, tags=["auth"])
 app.include_router(api_keys_router)
 app.include_router(config_router, prefix="/api")

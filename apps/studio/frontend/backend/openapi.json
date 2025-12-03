@@ -6,6 +6,28 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/admin/flush-wal": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Flush Wal",
+        "description": "Trigger WAL flush to Parquet files. Requires authentication.",
+        "operationId": "flush_wal_api_admin_flush_wal_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlushWALResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/db-has-users": {
       "get": {
         "tags": [
@@ -1085,6 +1107,25 @@
         ],
         "title": "DbHasUsersResponse",
         "description": "Response for db-has-users check."
+      },
+      "FlushWALResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "FlushWALResponse",
+        "description": "Response for WAL flush operation."
       },
       "GenerateRequest": {
         "properties": {
