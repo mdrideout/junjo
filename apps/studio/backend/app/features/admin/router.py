@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.features.auth.dependencies import CurrentUser
 from app.features.span_ingestion.ingestion_client import IngestionClient
@@ -13,8 +13,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 class FlushWALResponse(BaseModel):
     """Response for WAL flush operation."""
 
-    success: bool
-    message: str
+    success: bool = Field(examples=[True])
+    message: str = Field(examples=["WAL flush completed"])
 
 
 @router.post("/flush-wal", response_model=FlushWALResponse)

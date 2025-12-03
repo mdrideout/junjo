@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../auth/test-utils/mock-server'
 import { deleteUser } from '../../features/users/fetch/delete-user'
 import { deleteApiKey } from '../../features/api-keys/fetch/delete-api-key'
+import { flushWal } from '../../features/settings/fetch/flush-wal'
 
 describe('API Request Validation: Mutation Operations', () => {
   describe('User Management', () => {
@@ -81,6 +82,44 @@ describe('API Request Validation: Mutation Operations', () => {
 
       expect(capturedId).toBe(testId)
       expect(typeof capturedId).toBe('string')
+    })
+  })
+
+  describe('Admin Operations', () => {
+    it('POST /api/admin/flush-wal sends POST request with credentials', async () => {
+      let requestReceived = false
+      let requestMethod: string | undefined
+
+      server.use(
+        http.post('http://localhost:1323/api/admin/flush-wal', ({ request }) => {
+          requestReceived = true
+          requestMethod = request.method
+          return HttpResponse.json({
+            success: true,
+            message: 'WAL flush completed',
+          })
+        }),
+      )
+
+      const result = await flushWal()
+
+      expect(requestReceived).toBe(true)
+      expect(requestMethod).toBe('POST')
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('WAL flush completed')
+    })
+
+    it('POST /api/admin/flush-wal handles failure response', async () => {
+      server.use(
+        http.post('http://localhost:1323/api/admin/flush-wal', () => {
+          return HttpResponse.json(
+            { detail: 'WAL flush failed' },
+            { status: 500 },
+          )
+        }),
+      )
+
+      await expect(flushWal()).rejects.toThrow('Failed to flush WAL (500)')
     })
   })
 

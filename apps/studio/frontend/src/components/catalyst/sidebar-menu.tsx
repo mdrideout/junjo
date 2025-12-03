@@ -3,6 +3,7 @@ import {
   DashboardIcon,
   ExitIcon,
   ExternalLinkIcon,
+  GearIcon,
   GitHubLogoIcon,
   LockClosedIcon,
   RocketIcon,
@@ -57,6 +58,10 @@ export default function SidebarMenu() {
               <SidebarItem href="/api-keys">
                 <LockClosedIcon />
                 <SidebarLabel>API Keys</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/settings">
+                <GearIcon />
+                <SidebarLabel>Settings</SidebarLabel>
               </SidebarItem>
 
               <SidebarItem href="/sign-out">

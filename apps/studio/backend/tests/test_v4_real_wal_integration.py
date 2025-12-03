@@ -18,6 +18,7 @@ Usage:
     pytest tests/test_v4_real_wal_integration.py -v -m real_wal
 """
 
+import atexit
 import asyncio
 import json
 import os
@@ -348,14 +349,34 @@ def ingestion_service(backend_grpc_server):
         "JUNJO_LOG_FORMAT": "text",
     })
 
-    # Start the service
-    process = subprocess.Popen(
-        ["go", "run", "."],
+    # Build the binary first (avoids go run child process issues that can leave orphans)
+    binary_path = os.path.join(temp_dir, "ingestion-test")
+    build_result = subprocess.run(
+        ["go", "build", "-o", binary_path, "."],
         cwd=INGESTION_DIR,
+        capture_output=True,
+        text=True,
+    )
+    if build_result.returncode != 0:
+        pytest.fail(f"Failed to build ingestion service:\n{build_result.stderr}")
+
+    # Start the binary directly (not via go run)
+    process = subprocess.Popen(
+        [binary_path],
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+
+    # Register atexit handler to ensure cleanup on any exit (Ctrl+C, crash, etc)
+    def cleanup_on_exit():
+        try:
+            process.kill()
+        except Exception:
+            pass
+        kill_existing_ingestion_processes()
+
+    atexit.register(cleanup_on_exit)
 
     # Wait for internal service to be ready (internal port for WAL queries)
     if not wait_for_port(INGESTION_INTERNAL_PORT, timeout=60.0):
@@ -385,6 +406,9 @@ def ingestion_service(backend_grpc_server):
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         process.kill()
+
+    # Unregister atexit handler since we're doing normal cleanup
+    atexit.unregister(cleanup_on_exit)
 
     # Clean up temp directory
     import shutil
