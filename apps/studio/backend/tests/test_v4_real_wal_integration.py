@@ -653,7 +653,7 @@ class TestRealWALClientConnectivity:
 
     @pytest.mark.asyncio
     async def test_wal_root_spans_query(self, ingestion_service):
-        """The WAL client should be able to query root spans."""
+        """The WAL client should be able to query root spans via Arrow IPC."""
         client = IngestionClient(
             host="localhost",
             port=ingestion_service["internal_port"],
@@ -663,9 +663,13 @@ class TestRealWALClientConnectivity:
             await client.connect()
 
             # Query root spans for a non-existent service (should return empty, not error)
-            root_spans = await client.get_wal_root_spans("nonexistent-service", limit=10)
-            assert isinstance(root_spans, list)
-            assert len(root_spans) == 0
+            arrow_table = await client.get_wal_spans_arrow(
+                service_name="nonexistent-service",
+                root_only=True,
+                limit=10,
+            )
+            # Result is an Arrow table (may have no columns if empty)
+            assert arrow_table.num_rows == 0
 
         except grpc.aio.AioRpcError as e:
             pytest.fail(f"Failed to query WAL root spans: {e.code()} - {e.details()}")
@@ -674,7 +678,7 @@ class TestRealWALClientConnectivity:
 
     @pytest.mark.asyncio
     async def test_wal_trace_query(self, ingestion_service):
-        """The WAL client should be able to query spans by trace ID."""
+        """The WAL client should be able to query spans by trace ID via Arrow IPC."""
         client = IngestionClient(
             host="localhost",
             port=ingestion_service["internal_port"],
@@ -685,9 +689,9 @@ class TestRealWALClientConnectivity:
 
             # Query spans for a non-existent trace (should return empty, not error)
             fake_trace_id = uuid.uuid4().hex
-            spans = await client.get_wal_spans_by_trace_id(fake_trace_id)
-            assert isinstance(spans, list)
-            assert len(spans) == 0
+            arrow_table = await client.get_wal_spans_arrow(trace_id=fake_trace_id)
+            # Result is an Arrow table (may have no columns if empty)
+            assert arrow_table.num_rows == 0
 
         except grpc.aio.AioRpcError as e:
             pytest.fail(f"Failed to query WAL spans by trace: {e.code()} - {e.details()}")

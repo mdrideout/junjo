@@ -15,6 +15,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// SpanFilter defines filtering options for WAL span queries.
+type SpanFilter struct {
+	TraceID      string // Filter by trace ID (exact match)
+	ServiceName  string // Filter by service name (exact match)
+	RootOnly     bool   // Only return root spans (no parent)
+	WorkflowOnly bool   // Only return workflow spans (junjo.span_type = 'workflow')
+	Limit        int    // Maximum number of spans to return (0 = no limit)
+}
+
 // SpanRepository defines the data access interface for span storage.
 type SpanRepository interface {
 	// Span operations
@@ -24,12 +33,9 @@ type SpanRepository interface {
 	GetSpanCount() (int64, error)
 	ReadAllSpansForFlush() (records []SpanRecord, firstKey, lastKey []byte, err error)
 
-	// WAL Query operations (for fusion queries)
-	GetWALSpansByTraceID(traceID string) ([]*SpanData, error)
+	// WAL Query operations (unified Arrow-based query)
+	GetSpansFiltered(filter SpanFilter) ([]SpanRecord, error)
 	GetDistinctServiceNames() ([]string, error)
-	GetRootSpans(serviceName string, limit int) ([]*SpanData, error)
-	GetSpansByService(serviceName string, limit int) ([]*SpanData, error)
-	GetWorkflowSpans(serviceName string, limit int) ([]*SpanData, error)
 
 	// Counter operations
 	GetUnretrievedCount() (uint64, error)
@@ -625,24 +631,62 @@ func (r *SQLiteRepository) UpdateFlushState(firstKey, lastKey []byte, rowsFlushe
 
 // --- WAL Query Operations ---
 
-// GetWALSpansByTraceID returns all spans matching a trace ID.
-// Used for fusion queries combining WAL and Parquet data.
-func (r *SQLiteRepository) GetWALSpansByTraceID(traceID string) ([]*SpanData, error) {
+// GetSpansFiltered returns spans matching the filter criteria as SpanRecords.
+// This is the unified query method for Arrow-based data transfer.
+func (r *SQLiteRepository) GetSpansFiltered(filter SpanFilter) ([]SpanRecord, error) {
 	conn := r.pool.Get(nil)
 	if conn == nil {
 		return nil, fmt.Errorf("failed to get connection from pool")
 	}
 	defer r.pool.Put(conn)
 
-	stmt := conn.Prep(`SELECT span_bytes FROM spans WHERE trace_id = ? ORDER BY start_time_unix_nano`)
-	defer stmt.Reset()
-	stmt.BindText(1, traceID)
+	// Build dynamic SQL query based on filters
+	query := `SELECT span_bytes FROM spans WHERE 1=1`
+	var params []any
 
-	var spans []*SpanData
+	if filter.TraceID != "" {
+		query += ` AND trace_id = ?`
+		params = append(params, filter.TraceID)
+	}
+
+	if filter.ServiceName != "" {
+		query += ` AND service_name = ?`
+		params = append(params, filter.ServiceName)
+	}
+
+	if filter.RootOnly {
+		query += ` AND (parent_span_id IS NULL OR parent_span_id = '')`
+	}
+
+	// Order by time
+	query += ` ORDER BY start_time_unix_nano DESC`
+
+	// Apply limit if specified (we may need to fetch more for workflow filtering)
+	fetchLimit := filter.Limit
+	if filter.WorkflowOnly && fetchLimit > 0 {
+		// Fetch more to account for in-memory filtering
+		fetchLimit = fetchLimit * 3
+		if fetchLimit > 5000 {
+			fetchLimit = 5000
+		}
+	}
+	if fetchLimit > 0 {
+		query += fmt.Sprintf(` LIMIT %d`, fetchLimit)
+	}
+
+	stmt := conn.Prep(query)
+	defer stmt.Reset()
+
+	// Bind parameters
+	for i, param := range params {
+		stmt.BindText(i+1, param.(string))
+	}
+
+	var records []SpanRecord
 	for {
 		hasRow, err := stmt.Step()
 		if err != nil {
-			return nil, fmt.Errorf("failed to query spans by trace_id: %w", err)
+			return nil, fmt.Errorf("failed to query spans: %w", err)
 		}
 		if !hasRow {
 			break
@@ -656,16 +700,38 @@ func (r *SQLiteRepository) GetWALSpansByTraceID(traceID string) ([]*SpanData, er
 		// Unmarshal span data
 		spanData, err := UnmarshalSpanData(dataBytes)
 		if err != nil {
-			slog.Warn("error unmarshaling span data in GetWALSpansByTraceID, skipping",
-				slog.String("trace_id", traceID),
+			slog.Warn("error unmarshaling span data in GetSpansFiltered, skipping",
 				slog.Any("error", err))
 			continue
 		}
 
-		spans = append(spans, spanData)
+		// Apply workflow filter in memory if needed
+		if filter.WorkflowOnly {
+			isWorkflow := false
+			for _, attr := range spanData.Span.GetAttributes() {
+				if attr.GetKey() == "junjo.span_type" {
+					if attr.GetValue().GetStringValue() == "workflow" {
+						isWorkflow = true
+					}
+					break
+				}
+			}
+			if !isWorkflow {
+				continue
+			}
+		}
+
+		// Convert to SpanRecord
+		record := ConvertSpanDataToRecord(spanData)
+		records = append(records, record)
+
+		// Check if we've reached the actual limit
+		if filter.Limit > 0 && len(records) >= filter.Limit {
+			break
+		}
 	}
 
-	return spans, nil
+	return records, nil
 }
 
 // GetDistinctServiceNames returns all distinct service names currently in the WAL.
@@ -696,157 +762,3 @@ func (r *SQLiteRepository) GetDistinctServiceNames() ([]string, error) {
 	return services, nil
 }
 
-// GetRootSpans returns root spans (no parent) from the WAL for a service.
-func (r *SQLiteRepository) GetRootSpans(serviceName string, limit int) ([]*SpanData, error) {
-	conn := r.pool.Get(nil)
-	if conn == nil {
-		return nil, fmt.Errorf("failed to get connection from pool")
-	}
-	defer r.pool.Put(conn)
-
-	// Root spans have empty parent_span_id
-	stmt := conn.Prep(`SELECT span_bytes FROM spans WHERE service_name = ? AND (parent_span_id IS NULL OR parent_span_id = '') ORDER BY start_time_unix_nano DESC LIMIT ?`)
-	defer stmt.Reset()
-	stmt.BindText(1, serviceName)
-	stmt.BindInt64(2, int64(limit))
-
-	var spans []*SpanData
-	for {
-		hasRow, err := stmt.Step()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get root spans: %w", err)
-		}
-		if !hasRow {
-			break
-		}
-
-		// Read span data
-		dataLen := stmt.ColumnLen(0)
-		dataBytes := make([]byte, dataLen)
-		stmt.ColumnBytes(0, dataBytes)
-
-		// Unmarshal span data
-		spanData, err := UnmarshalSpanData(dataBytes)
-		if err != nil {
-			slog.Warn("error unmarshaling span data in GetRootSpans, skipping",
-				slog.String("service_name", serviceName),
-				slog.Any("error", err))
-			continue
-		}
-
-		spans = append(spans, spanData)
-	}
-
-	return spans, nil
-}
-
-// GetSpansByService returns all spans from the WAL for a service.
-// Used for fusion queries combining WAL and Parquet data.
-func (r *SQLiteRepository) GetSpansByService(serviceName string, limit int) ([]*SpanData, error) {
-	conn := r.pool.Get(nil)
-	if conn == nil {
-		return nil, fmt.Errorf("failed to get connection from pool")
-	}
-	defer r.pool.Put(conn)
-
-	stmt := conn.Prep(`SELECT span_bytes FROM spans WHERE service_name = ? ORDER BY start_time_unix_nano DESC LIMIT ?`)
-	defer stmt.Reset()
-	stmt.BindText(1, serviceName)
-	stmt.BindInt64(2, int64(limit))
-
-	var spans []*SpanData
-	for {
-		hasRow, err := stmt.Step()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get spans by service: %w", err)
-		}
-		if !hasRow {
-			break
-		}
-
-		// Read span data
-		dataLen := stmt.ColumnLen(0)
-		dataBytes := make([]byte, dataLen)
-		stmt.ColumnBytes(0, dataBytes)
-
-		// Unmarshal span data
-		spanData, err := UnmarshalSpanData(dataBytes)
-		if err != nil {
-			slog.Warn("error unmarshaling span data in GetSpansByService, skipping",
-				slog.String("service_name", serviceName),
-				slog.Any("error", err))
-			continue
-		}
-
-		spans = append(spans, spanData)
-	}
-
-	return spans, nil
-}
-
-// GetWorkflowSpans returns workflow-type spans for a service.
-// Filters spans where junjo.span_type = 'workflow'.
-func (r *SQLiteRepository) GetWorkflowSpans(serviceName string, limit int) ([]*SpanData, error) {
-	conn := r.pool.Get(nil)
-	if conn == nil {
-		return nil, fmt.Errorf("failed to get connection from pool")
-	}
-	defer r.pool.Put(conn)
-
-	// Query more spans than requested since we'll filter in memory
-	// We fetch limit*3 to have a good chance of getting enough workflow spans
-	fetchLimit := limit * 3
-	if fetchLimit > 5000 {
-		fetchLimit = 5000 // Cap the fetch limit
-	}
-
-	stmt := conn.Prep(`SELECT span_bytes FROM spans WHERE service_name = ? ORDER BY start_time_unix_nano DESC LIMIT ?`)
-	defer stmt.Reset()
-	stmt.BindText(1, serviceName)
-	stmt.BindInt64(2, int64(fetchLimit))
-
-	var spans []*SpanData
-	for {
-		hasRow, err := stmt.Step()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get workflow spans: %w", err)
-		}
-		if !hasRow {
-			break
-		}
-
-		// Read span data
-		dataLen := stmt.ColumnLen(0)
-		dataBytes := make([]byte, dataLen)
-		stmt.ColumnBytes(0, dataBytes)
-
-		// Unmarshal span data
-		spanData, err := UnmarshalSpanData(dataBytes)
-		if err != nil {
-			slog.Warn("error unmarshaling span data in GetWorkflowSpans, skipping",
-				slog.String("service_name", serviceName),
-				slog.Any("error", err))
-			continue
-		}
-
-		// Check if this span is a workflow span (junjo.span_type = 'workflow')
-		isWorkflow := false
-		for _, attr := range spanData.Span.GetAttributes() {
-			if attr.GetKey() == "junjo.span_type" {
-				if attr.GetValue().GetStringValue() == "workflow" {
-					isWorkflow = true
-				}
-				break
-			}
-		}
-
-		if isWorkflow {
-			spans = append(spans, spanData)
-			if len(spans) >= limit {
-				break
-			}
-		}
-	}
-
-	return spans, nil
-}

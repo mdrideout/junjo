@@ -20,11 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	InternalIngestionService_ReadSpans_FullMethodName                  = "/ingestion.InternalIngestionService/ReadSpans"
-	InternalIngestionService_GetWALSpansByTraceId_FullMethodName       = "/ingestion.InternalIngestionService/GetWALSpansByTraceId"
+	InternalIngestionService_GetWALSpansArrow_FullMethodName           = "/ingestion.InternalIngestionService/GetWALSpansArrow"
 	InternalIngestionService_GetWALDistinctServiceNames_FullMethodName = "/ingestion.InternalIngestionService/GetWALDistinctServiceNames"
-	InternalIngestionService_GetWALRootSpans_FullMethodName            = "/ingestion.InternalIngestionService/GetWALRootSpans"
-	InternalIngestionService_GetWALSpansByService_FullMethodName       = "/ingestion.InternalIngestionService/GetWALSpansByService"
-	InternalIngestionService_GetWALWorkflowSpans_FullMethodName        = "/ingestion.InternalIngestionService/GetWALWorkflowSpans"
 	InternalIngestionService_FlushWAL_FullMethodName                   = "/ingestion.InternalIngestionService/FlushWAL"
 )
 
@@ -38,21 +35,13 @@ type InternalIngestionServiceClient interface {
 	// ReadSpans reads a batch of spans from the WAL, starting after the
 	// specified ULID. This is a server-streaming RPC.
 	ReadSpans(ctx context.Context, in *ReadSpansRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadSpansResponse], error)
-	// GetWALSpansByTraceId returns all spans in the WAL matching a trace ID.
-	// Used for fusion queries combining WAL and Parquet data.
-	GetWALSpansByTraceId(ctx context.Context, in *GetWALSpansByTraceIdRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error)
+	// GetWALSpansArrow returns spans from WAL as Arrow IPC bytes.
+	// Supports filtering by trace_id, service_name, root_only, and workflow_only.
+	// Used for unified DataFusion queries combining WAL and Parquet data.
+	GetWALSpansArrow(ctx context.Context, in *GetWALSpansArrowRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArrowBatch], error)
 	// GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
 	// Used to merge with Parquet-indexed services for complete listing.
 	GetWALDistinctServiceNames(ctx context.Context, in *GetWALDistinctServiceNamesRequest, opts ...grpc.CallOption) (*GetWALDistinctServiceNamesResponse, error)
-	// GetWALRootSpans returns root spans (no parent) from the WAL for a service.
-	// Used for trace listing, merged with Parquet root spans.
-	GetWALRootSpans(ctx context.Context, in *GetWALRootSpansRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error)
-	// GetWALSpansByService returns all spans from the WAL for a service.
-	// Used for fusion queries combining WAL and Parquet data.
-	GetWALSpansByService(ctx context.Context, in *GetWALSpansByServiceRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error)
-	// GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
-	// Filters spans where junjo.span_type = 'workflow'.
-	GetWALWorkflowSpans(ctx context.Context, in *GetWALWorkflowSpansRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error)
 	// FlushWAL triggers an immediate flush of WAL data to Parquet files.
 	FlushWAL(ctx context.Context, in *FlushWALRequest, opts ...grpc.CallOption) (*FlushWALResponse, error)
 }
@@ -84,13 +73,13 @@ func (c *internalIngestionServiceClient) ReadSpans(ctx context.Context, in *Read
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type InternalIngestionService_ReadSpansClient = grpc.ServerStreamingClient[ReadSpansResponse]
 
-func (c *internalIngestionServiceClient) GetWALSpansByTraceId(ctx context.Context, in *GetWALSpansByTraceIdRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error) {
+func (c *internalIngestionServiceClient) GetWALSpansArrow(ctx context.Context, in *GetWALSpansArrowRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArrowBatch], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &InternalIngestionService_ServiceDesc.Streams[1], InternalIngestionService_GetWALSpansByTraceId_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &InternalIngestionService_ServiceDesc.Streams[1], InternalIngestionService_GetWALSpansArrow_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[GetWALSpansByTraceIdRequest, SpanData]{ClientStream: stream}
+	x := &grpc.GenericClientStream[GetWALSpansArrowRequest, ArrowBatch]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -101,7 +90,7 @@ func (c *internalIngestionServiceClient) GetWALSpansByTraceId(ctx context.Contex
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALSpansByTraceIdClient = grpc.ServerStreamingClient[SpanData]
+type InternalIngestionService_GetWALSpansArrowClient = grpc.ServerStreamingClient[ArrowBatch]
 
 func (c *internalIngestionServiceClient) GetWALDistinctServiceNames(ctx context.Context, in *GetWALDistinctServiceNamesRequest, opts ...grpc.CallOption) (*GetWALDistinctServiceNamesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -112,63 +101,6 @@ func (c *internalIngestionServiceClient) GetWALDistinctServiceNames(ctx context.
 	}
 	return out, nil
 }
-
-func (c *internalIngestionServiceClient) GetWALRootSpans(ctx context.Context, in *GetWALRootSpansRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &InternalIngestionService_ServiceDesc.Streams[2], InternalIngestionService_GetWALRootSpans_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GetWALRootSpansRequest, SpanData]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALRootSpansClient = grpc.ServerStreamingClient[SpanData]
-
-func (c *internalIngestionServiceClient) GetWALSpansByService(ctx context.Context, in *GetWALSpansByServiceRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &InternalIngestionService_ServiceDesc.Streams[3], InternalIngestionService_GetWALSpansByService_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GetWALSpansByServiceRequest, SpanData]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALSpansByServiceClient = grpc.ServerStreamingClient[SpanData]
-
-func (c *internalIngestionServiceClient) GetWALWorkflowSpans(ctx context.Context, in *GetWALWorkflowSpansRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpanData], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &InternalIngestionService_ServiceDesc.Streams[4], InternalIngestionService_GetWALWorkflowSpans_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GetWALWorkflowSpansRequest, SpanData]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALWorkflowSpansClient = grpc.ServerStreamingClient[SpanData]
 
 func (c *internalIngestionServiceClient) FlushWAL(ctx context.Context, in *FlushWALRequest, opts ...grpc.CallOption) (*FlushWALResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -190,21 +122,13 @@ type InternalIngestionServiceServer interface {
 	// ReadSpans reads a batch of spans from the WAL, starting after the
 	// specified ULID. This is a server-streaming RPC.
 	ReadSpans(*ReadSpansRequest, grpc.ServerStreamingServer[ReadSpansResponse]) error
-	// GetWALSpansByTraceId returns all spans in the WAL matching a trace ID.
-	// Used for fusion queries combining WAL and Parquet data.
-	GetWALSpansByTraceId(*GetWALSpansByTraceIdRequest, grpc.ServerStreamingServer[SpanData]) error
+	// GetWALSpansArrow returns spans from WAL as Arrow IPC bytes.
+	// Supports filtering by trace_id, service_name, root_only, and workflow_only.
+	// Used for unified DataFusion queries combining WAL and Parquet data.
+	GetWALSpansArrow(*GetWALSpansArrowRequest, grpc.ServerStreamingServer[ArrowBatch]) error
 	// GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
 	// Used to merge with Parquet-indexed services for complete listing.
 	GetWALDistinctServiceNames(context.Context, *GetWALDistinctServiceNamesRequest) (*GetWALDistinctServiceNamesResponse, error)
-	// GetWALRootSpans returns root spans (no parent) from the WAL for a service.
-	// Used for trace listing, merged with Parquet root spans.
-	GetWALRootSpans(*GetWALRootSpansRequest, grpc.ServerStreamingServer[SpanData]) error
-	// GetWALSpansByService returns all spans from the WAL for a service.
-	// Used for fusion queries combining WAL and Parquet data.
-	GetWALSpansByService(*GetWALSpansByServiceRequest, grpc.ServerStreamingServer[SpanData]) error
-	// GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
-	// Filters spans where junjo.span_type = 'workflow'.
-	GetWALWorkflowSpans(*GetWALWorkflowSpansRequest, grpc.ServerStreamingServer[SpanData]) error
 	// FlushWAL triggers an immediate flush of WAL data to Parquet files.
 	FlushWAL(context.Context, *FlushWALRequest) (*FlushWALResponse, error)
 	mustEmbedUnimplementedInternalIngestionServiceServer()
@@ -220,20 +144,11 @@ type UnimplementedInternalIngestionServiceServer struct{}
 func (UnimplementedInternalIngestionServiceServer) ReadSpans(*ReadSpansRequest, grpc.ServerStreamingServer[ReadSpansResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method ReadSpans not implemented")
 }
-func (UnimplementedInternalIngestionServiceServer) GetWALSpansByTraceId(*GetWALSpansByTraceIdRequest, grpc.ServerStreamingServer[SpanData]) error {
-	return status.Errorf(codes.Unimplemented, "method GetWALSpansByTraceId not implemented")
+func (UnimplementedInternalIngestionServiceServer) GetWALSpansArrow(*GetWALSpansArrowRequest, grpc.ServerStreamingServer[ArrowBatch]) error {
+	return status.Errorf(codes.Unimplemented, "method GetWALSpansArrow not implemented")
 }
 func (UnimplementedInternalIngestionServiceServer) GetWALDistinctServiceNames(context.Context, *GetWALDistinctServiceNamesRequest) (*GetWALDistinctServiceNamesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWALDistinctServiceNames not implemented")
-}
-func (UnimplementedInternalIngestionServiceServer) GetWALRootSpans(*GetWALRootSpansRequest, grpc.ServerStreamingServer[SpanData]) error {
-	return status.Errorf(codes.Unimplemented, "method GetWALRootSpans not implemented")
-}
-func (UnimplementedInternalIngestionServiceServer) GetWALSpansByService(*GetWALSpansByServiceRequest, grpc.ServerStreamingServer[SpanData]) error {
-	return status.Errorf(codes.Unimplemented, "method GetWALSpansByService not implemented")
-}
-func (UnimplementedInternalIngestionServiceServer) GetWALWorkflowSpans(*GetWALWorkflowSpansRequest, grpc.ServerStreamingServer[SpanData]) error {
-	return status.Errorf(codes.Unimplemented, "method GetWALWorkflowSpans not implemented")
 }
 func (UnimplementedInternalIngestionServiceServer) FlushWAL(context.Context, *FlushWALRequest) (*FlushWALResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FlushWAL not implemented")
@@ -271,16 +186,16 @@ func _InternalIngestionService_ReadSpans_Handler(srv interface{}, stream grpc.Se
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type InternalIngestionService_ReadSpansServer = grpc.ServerStreamingServer[ReadSpansResponse]
 
-func _InternalIngestionService_GetWALSpansByTraceId_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetWALSpansByTraceIdRequest)
+func _InternalIngestionService_GetWALSpansArrow_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetWALSpansArrowRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(InternalIngestionServiceServer).GetWALSpansByTraceId(m, &grpc.GenericServerStream[GetWALSpansByTraceIdRequest, SpanData]{ServerStream: stream})
+	return srv.(InternalIngestionServiceServer).GetWALSpansArrow(m, &grpc.GenericServerStream[GetWALSpansArrowRequest, ArrowBatch]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALSpansByTraceIdServer = grpc.ServerStreamingServer[SpanData]
+type InternalIngestionService_GetWALSpansArrowServer = grpc.ServerStreamingServer[ArrowBatch]
 
 func _InternalIngestionService_GetWALDistinctServiceNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWALDistinctServiceNamesRequest)
@@ -299,39 +214,6 @@ func _InternalIngestionService_GetWALDistinctServiceNames_Handler(srv interface{
 	}
 	return interceptor(ctx, in, info, handler)
 }
-
-func _InternalIngestionService_GetWALRootSpans_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetWALRootSpansRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(InternalIngestionServiceServer).GetWALRootSpans(m, &grpc.GenericServerStream[GetWALRootSpansRequest, SpanData]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALRootSpansServer = grpc.ServerStreamingServer[SpanData]
-
-func _InternalIngestionService_GetWALSpansByService_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetWALSpansByServiceRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(InternalIngestionServiceServer).GetWALSpansByService(m, &grpc.GenericServerStream[GetWALSpansByServiceRequest, SpanData]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALSpansByServiceServer = grpc.ServerStreamingServer[SpanData]
-
-func _InternalIngestionService_GetWALWorkflowSpans_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetWALWorkflowSpansRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(InternalIngestionServiceServer).GetWALWorkflowSpans(m, &grpc.GenericServerStream[GetWALWorkflowSpansRequest, SpanData]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InternalIngestionService_GetWALWorkflowSpansServer = grpc.ServerStreamingServer[SpanData]
 
 func _InternalIngestionService_FlushWAL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FlushWALRequest)
@@ -374,23 +256,8 @@ var InternalIngestionService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "GetWALSpansByTraceId",
-			Handler:       _InternalIngestionService_GetWALSpansByTraceId_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GetWALRootSpans",
-			Handler:       _InternalIngestionService_GetWALRootSpans_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GetWALSpansByService",
-			Handler:       _InternalIngestionService_GetWALSpansByService_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GetWALWorkflowSpans",
-			Handler:       _InternalIngestionService_GetWALWorkflowSpans_Handler,
+			StreamName:    "GetWALSpansArrow",
+			Handler:       _InternalIngestionService_GetWALSpansArrow_Handler,
 			ServerStreams: true,
 		},
 	},

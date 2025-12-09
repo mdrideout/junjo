@@ -122,6 +122,41 @@ def create_api_span_dict(
     }
 
 
+def create_wal_arrow_table(spans: list[dict]) -> pa.Table:
+    """Convert list of API span dicts to Arrow Table format for WAL mock.
+
+    The WAL returns Arrow IPC data with the same schema as Parquet files.
+    This helper converts API-format spans to that Arrow format.
+    """
+    if not spans:
+        return pa.table({})  # Empty table
+
+    now = datetime.now(UTC)
+    now_ns = int(now.timestamp() * 1e9)
+
+    arrow_rows = []
+    for span in spans:
+        attrs = span.get("attributes_json", {})
+        arrow_rows.append({
+            "span_id": span["span_id"],
+            "trace_id": span["trace_id"],
+            "parent_span_id": span.get("parent_span_id") or None,
+            "service_name": span["service_name"],
+            "name": span["name"],
+            "span_kind": 1,  # SERVER
+            "start_time": pa.scalar(now_ns, type=pa.timestamp("ns", tz="UTC")),
+            "end_time": pa.scalar(now_ns + 100_000, type=pa.timestamp("ns", tz="UTC")),
+            "duration_ns": 100_000,
+            "status_code": 0,
+            "status_message": None,
+            "attributes": json.dumps(attrs),
+            "events": "[]",
+            "resource_attributes": json.dumps({"service.name": span["service_name"]}),
+        })
+
+    return pa.Table.from_pylist(arrow_rows, schema=SPAN_SCHEMA)
+
+
 def write_spans_to_parquet(
     spans: list[dict], base_dir: str, service_name: str
 ) -> str:
@@ -376,12 +411,12 @@ class TestTraceSpanFusion:
     @pytest.mark.asyncio
     async def test_trace_spans_merge_parquet_and_wal(self, fusion_test_env):
         """Should merge spans from Parquet (root) and WAL (children)."""
-        with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock:
-            # WAL returns child spans not in Parquet
-            mock.return_value = [
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            # WAL returns child spans not in Parquet as Arrow table
+            mock.return_value = create_wal_arrow_table([
                 fusion_test_env["wal_child1"],
                 fusion_test_env["wal_child2"],
-            ]
+            ])
 
             trace_id = fusion_test_env["split_trace_id"]
             spans = await otel_repository.get_fused_trace_spans(trace_id)
@@ -397,7 +432,7 @@ class TestTraceSpanFusion:
     @pytest.mark.asyncio
     async def test_trace_spans_parquet_wins_deduplication(self, fusion_test_env):
         """Parquet should win if same span exists in both sources."""
-        with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock:
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
             # WAL also returns the root span (duplicate)
             wal_duplicate_root = create_api_span_dict(
                 trace_id=fusion_test_env["split_trace_id"],
@@ -408,7 +443,7 @@ class TestTraceSpanFusion:
                 start_time="2024-01-01T00:00:00.000000+00:00",
                 end_time="2024-01-01T00:00:00.000000+00:00",
             )
-            mock.return_value = [wal_duplicate_root]
+            mock.return_value = create_wal_arrow_table([wal_duplicate_root])
 
             trace_id = fusion_test_env["split_trace_id"]
             spans = await otel_repository.get_fused_trace_spans(trace_id)
@@ -422,9 +457,9 @@ class TestTraceSpanFusion:
     @pytest.mark.asyncio
     async def test_trace_spans_wal_only_trace(self, fusion_test_env):
         """Should return WAL spans for trace not in Parquet."""
-        with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock:
-            # WAL returns spans for service-b trace
-            mock.return_value = [fusion_test_env["wal_service_b_span"]]
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            # WAL returns spans for service-b trace as Arrow table
+            mock.return_value = create_wal_arrow_table([fusion_test_env["wal_service_b_span"]])
 
             trace_id = fusion_test_env["service_b_trace_id"]
             spans = await otel_repository.get_fused_trace_spans(trace_id)
@@ -445,8 +480,8 @@ class TestRootSpanFusion:
     @pytest.mark.asyncio
     async def test_root_spans_include_wal(self, fusion_test_env):
         """Should include root spans from WAL."""
-        with patch.object(otel_repository, "_get_wal_root_spans", new_callable=AsyncMock) as mock:
-            # WAL returns root span for service-c
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            # WAL returns root span for service-c as Arrow table
             wal_root = create_api_span_dict(
                 trace_id=uuid.uuid4().hex,
                 span_id="wal_new_root_01",
@@ -456,7 +491,7 @@ class TestRootSpanFusion:
                 start_time="2024-12-01T00:00:00.000000+00:00",
                 end_time="2024-12-01T00:00:00.000000+00:00",
             )
-            mock.return_value = [wal_root]
+            mock.return_value = create_wal_arrow_table([wal_root])
 
             root_spans = await otel_repository.get_fused_root_spans("service-c")
 
@@ -480,8 +515,8 @@ class TestSingleSpanFusion:
     @pytest.mark.asyncio
     async def test_get_span_from_parquet(self, fusion_test_env):
         """Should find span in Parquet."""
-        with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock:
-            mock.return_value = []
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            mock.return_value = pa.table({})  # Empty WAL
 
             trace_id = fusion_test_env["split_trace_id"]
             span_id = fusion_test_env["split_root_span_id"]
@@ -495,9 +530,9 @@ class TestSingleSpanFusion:
     @pytest.mark.asyncio
     async def test_get_span_from_wal_fallback(self, fusion_test_env):
         """Should find span in WAL if not in Parquet."""
-        with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock:
-            # WAL returns the span
-            mock.return_value = [fusion_test_env["wal_service_b_span"]]
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            # WAL returns the span as Arrow table
+            mock.return_value = create_wal_arrow_table([fusion_test_env["wal_service_b_span"]])
 
             trace_id = fusion_test_env["service_b_trace_id"]
             span_id = fusion_test_env["service_b_span_id"]
@@ -510,8 +545,8 @@ class TestSingleSpanFusion:
     @pytest.mark.asyncio
     async def test_get_span_not_found(self, fusion_test_env):
         """Should return None if span not in Parquet or WAL."""
-        with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock:
-            mock.return_value = []
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            mock.return_value = pa.table({})  # Empty WAL
 
             span = await otel_repository.get_fused_span("nonexistent_trace", "nonexistent_span")
 
@@ -530,7 +565,7 @@ class TestServiceSpanFusion:
     @pytest.mark.asyncio
     async def test_service_spans_merge_parquet_and_wal(self, fusion_test_env):
         """Should merge spans from both Parquet and WAL for a service."""
-        with patch.object(otel_repository, "_get_wal_spans_by_service", new_callable=AsyncMock) as mock:
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
             # WAL returns a span for service-c (same service as Parquet split trace)
             wal_span = create_api_span_dict(
                 trace_id="wal_trace_001",
@@ -541,7 +576,7 @@ class TestServiceSpanFusion:
                 start_time="2025-11-30T06:00:00.000000+00:00",
                 end_time="2025-11-30T06:00:00.001000+00:00",
             )
-            mock.return_value = [wal_span]
+            mock.return_value = create_wal_arrow_table([wal_span])
 
             spans = await otel_repository.get_fused_service_spans("service-c")
 
@@ -553,7 +588,7 @@ class TestServiceSpanFusion:
     @pytest.mark.asyncio
     async def test_service_spans_parquet_wins_deduplication(self, fusion_test_env):
         """Should prefer Parquet span when same span_id exists in both."""
-        with patch.object(otel_repository, "_get_wal_spans_by_service", new_callable=AsyncMock) as mock:
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
             # WAL returns same span that's in Parquet but with different name
             wal_duplicate = create_api_span_dict(
                 trace_id=fusion_test_env["split_trace_id"],
@@ -564,7 +599,7 @@ class TestServiceSpanFusion:
                 start_time="2025-11-30T05:00:00.000000+00:00",
                 end_time="2025-11-30T05:00:00.001000+00:00",
             )
-            mock.return_value = [wal_duplicate]
+            mock.return_value = create_wal_arrow_table([wal_duplicate])
 
             spans = await otel_repository.get_fused_service_spans("service-c")
 
@@ -587,8 +622,8 @@ class TestWorkflowSpanFusion:
     @pytest.mark.asyncio
     async def test_workflow_spans_merge_parquet_and_wal(self, fusion_test_env):
         """Should merge workflow spans from both Parquet and WAL."""
-        with patch.object(otel_repository, "_get_wal_workflow_spans", new_callable=AsyncMock) as mock:
-            # WAL returns a workflow span for service-c
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            # WAL returns a workflow span for service-c as Arrow table
             wal_workflow = create_api_span_dict(
                 trace_id="wal_wf_trace",
                 span_id="wal_wf_span",
@@ -599,7 +634,7 @@ class TestWorkflowSpanFusion:
                 end_time="2025-11-30T06:00:00.001000+00:00",
                 attributes={"junjo.span_type": "workflow"},
             )
-            mock.return_value = [wal_workflow]
+            mock.return_value = create_wal_arrow_table([wal_workflow])
 
             spans = await otel_repository.get_fused_workflow_spans("service-c")
 
@@ -610,8 +645,8 @@ class TestWorkflowSpanFusion:
     @pytest.mark.asyncio
     async def test_workflow_spans_graceful_degradation(self, fusion_test_env):
         """Should return Parquet results if WAL query fails."""
-        with patch.object(otel_repository, "_get_wal_workflow_spans", new_callable=AsyncMock) as mock:
-            mock.return_value = []  # WAL returns nothing
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            mock.return_value = pa.table({})  # Empty WAL
 
             spans = await otel_repository.get_fused_workflow_spans("service-c")
 
@@ -704,13 +739,11 @@ class TestLLMSpanIndexing:
     @pytest.mark.asyncio
     async def test_fused_root_spans_with_llm(self, llm_test_env):
         """Should return only root spans from LLM traces (fused)."""
-        with patch.object(otel_repository, "_get_wal_root_spans", new_callable=AsyncMock) as mock_root:
-            with patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock_trace:
-                mock_root.return_value = []
-                mock_trace.return_value = []
+        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
+            mock.return_value = pa.table({})  # Empty WAL
 
-                spans = await otel_repository.get_fused_root_spans_with_llm("llm-service")
+            spans = await otel_repository.get_fused_root_spans_with_llm("llm-service")
 
-                # Should return the root span from LLM trace
-                root_span_ids = {s["span_id"] for s in spans}
-                assert llm_test_env["root_span_id"] in root_span_ids
+            # Should return the root span from LLM trace
+            root_span_ids = {s["span_id"] for s in spans}
+            assert llm_test_env["root_span_id"] in root_span_ids

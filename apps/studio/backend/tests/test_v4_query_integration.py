@@ -36,20 +36,19 @@ from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
 # Mock WAL queries to return empty results (isolates Parquet-only testing)
 @pytest.fixture(autouse=True)
 def mock_wal_queries():
-    """Mock WAL query functions to return empty results.
+    """Mock WAL query functions to return empty Arrow tables.
 
     This isolates the V4 Parquet-only flow from WAL fusion.
+    With the new unified DataFusion architecture, WAL returns Arrow IPC data.
     """
     with patch.object(otel_repository, "_get_wal_distinct_service_names", new_callable=AsyncMock) as mock_services, \
-         patch.object(otel_repository, "_get_wal_spans_by_trace", new_callable=AsyncMock) as mock_trace, \
-         patch.object(otel_repository, "_get_wal_root_spans", new_callable=AsyncMock) as mock_root:
+         patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock_arrow:
         mock_services.return_value = []
-        mock_trace.return_value = []
-        mock_root.return_value = []
+        # Return empty Arrow table (mimics no WAL data)
+        mock_arrow.return_value = pa.table({})
         yield {
             "service_names": mock_services,
-            "trace_spans": mock_trace,
-            "root_spans": mock_root,
+            "arrow": mock_arrow,
         }
 
 

@@ -104,33 +104,69 @@ func (s *WALReaderService) ReadSpans(req *pb.ReadSpansRequest, stream pb.Interna
 	return nil
 }
 
-// GetWALSpansByTraceId returns all spans in the WAL matching a trace ID.
-// Used for fusion queries combining WAL and Parquet data.
-func (s *WALReaderService) GetWALSpansByTraceId(req *pb.GetWALSpansByTraceIdRequest, stream grpc.ServerStreamingServer[pb.SpanData]) error {
+// GetWALSpansArrow returns spans from WAL as Arrow IPC bytes.
+// Supports filtering by trace_id, service_name, root_only, and workflow_only.
+// Used for unified DataFusion queries combining WAL and Parquet data.
+func (s *WALReaderService) GetWALSpansArrow(req *pb.GetWALSpansArrowRequest, stream grpc.ServerStreamingServer[pb.ArrowBatch]) error {
 	ctx := stream.Context()
-	slog.DebugContext(ctx, "received GetWALSpansByTraceId request", slog.String("trace_id", req.TraceId))
 
-	spans, err := s.repo.GetWALSpansByTraceID(req.TraceId)
+	// Build filter from request
+	filter := storage.SpanFilter{
+		RootOnly:     req.RootOnly,
+		WorkflowOnly: req.WorkflowOnly,
+		Limit:        int(req.Limit),
+	}
+
+	// Handle optional fields
+	if req.TraceId != nil {
+		filter.TraceID = *req.TraceId
+	}
+	if req.ServiceName != nil {
+		filter.ServiceName = *req.ServiceName
+	}
+
+	slog.DebugContext(ctx, "received GetWALSpansArrow request",
+		slog.String("trace_id", filter.TraceID),
+		slog.String("service_name", filter.ServiceName),
+		slog.Bool("root_only", filter.RootOnly),
+		slog.Bool("workflow_only", filter.WorkflowOnly),
+		slog.Int("limit", filter.Limit))
+
+	// Query spans as SpanRecords
+	records, err := s.repo.GetSpansFiltered(filter)
 	if err != nil {
-		slog.ErrorContext(ctx, "error getting WAL spans by trace_id", slog.Any("error", err))
+		slog.ErrorContext(ctx, "error getting filtered spans", slog.Any("error", err))
 		return err
 	}
 
-	for _, spanData := range spans {
-		pbSpan := convertStorageSpanDataToProto(spanData)
-		if err := stream.Send(pbSpan); err != nil {
-			if err == io.EOF {
-				slog.InfoContext(ctx, "client disconnected during GetWALSpansByTraceId")
-				return nil
-			}
-			slog.ErrorContext(ctx, "error sending span", slog.Any("error", err))
-			return err
-		}
+	// Convert to Arrow IPC bytes
+	ipcBytes, err := storage.SpanRecordsToIPCBytes(records)
+	if err != nil {
+		slog.ErrorContext(ctx, "error serializing to Arrow IPC", slog.Any("error", err))
+		return err
 	}
 
-	slog.InfoContext(ctx, "streamed WAL spans for trace",
-		slog.String("trace_id", req.TraceId),
-		slog.Int("spans_count", len(spans)))
+	// Send as a single batch (could be chunked for very large results)
+	batch := &pb.ArrowBatch{
+		IpcBytes: ipcBytes,
+		RowCount: int32(len(records)),
+		IsLast:   true,
+	}
+
+	if err := stream.Send(batch); err != nil {
+		if err == io.EOF {
+			slog.InfoContext(ctx, "client disconnected during GetWALSpansArrow")
+			return nil
+		}
+		slog.ErrorContext(ctx, "error sending Arrow batch", slog.Any("error", err))
+		return err
+	}
+
+	slog.InfoContext(ctx, "streamed WAL spans as Arrow IPC",
+		slog.String("trace_id", filter.TraceID),
+		slog.String("service_name", filter.ServiceName),
+		slog.Int("row_count", len(records)),
+		slog.Int("ipc_bytes", len(ipcBytes)))
 
 	return nil
 }
@@ -150,158 +186,6 @@ func (s *WALReaderService) GetWALDistinctServiceNames(ctx context.Context, req *
 	return &pb.GetWALDistinctServiceNamesResponse{
 		ServiceNames: services,
 	}, nil
-}
-
-// GetWALRootSpans returns root spans (no parent) from the WAL for a service.
-func (s *WALReaderService) GetWALRootSpans(req *pb.GetWALRootSpansRequest, stream grpc.ServerStreamingServer[pb.SpanData]) error {
-	ctx := stream.Context()
-	slog.DebugContext(ctx, "received GetWALRootSpans request",
-		slog.String("service_name", req.ServiceName),
-		slog.Int("limit", int(req.Limit)))
-
-	limit := int(req.Limit)
-	if limit <= 0 {
-		limit = 500 // Default limit
-	}
-
-	spans, err := s.repo.GetRootSpans(req.ServiceName, limit)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting root spans", slog.Any("error", err))
-		return err
-	}
-
-	for _, spanData := range spans {
-		pbSpan := convertStorageSpanDataToProto(spanData)
-		if err := stream.Send(pbSpan); err != nil {
-			if err == io.EOF {
-				slog.InfoContext(ctx, "client disconnected during GetWALRootSpans")
-				return nil
-			}
-			slog.ErrorContext(ctx, "error sending root span", slog.Any("error", err))
-			return err
-		}
-	}
-
-	slog.InfoContext(ctx, "streamed root spans",
-		slog.String("service_name", req.ServiceName),
-		slog.Int("spans_count", len(spans)))
-
-	return nil
-}
-
-// GetWALSpansByService returns all spans from the WAL for a service.
-// Used for fusion queries combining WAL and Parquet data.
-func (s *WALReaderService) GetWALSpansByService(req *pb.GetWALSpansByServiceRequest, stream grpc.ServerStreamingServer[pb.SpanData]) error {
-	ctx := stream.Context()
-	slog.DebugContext(ctx, "received GetWALSpansByService request",
-		slog.String("service_name", req.ServiceName),
-		slog.Int("limit", int(req.Limit)))
-
-	limit := int(req.Limit)
-	if limit <= 0 {
-		limit = 500 // Default limit
-	}
-
-	spans, err := s.repo.GetSpansByService(req.ServiceName, limit)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting spans by service", slog.Any("error", err))
-		return err
-	}
-
-	for _, spanData := range spans {
-		pbSpan := convertStorageSpanDataToProto(spanData)
-		if err := stream.Send(pbSpan); err != nil {
-			if err == io.EOF {
-				slog.InfoContext(ctx, "client disconnected during GetWALSpansByService")
-				return nil
-			}
-			slog.ErrorContext(ctx, "error sending service span", slog.Any("error", err))
-			return err
-		}
-	}
-
-	slog.InfoContext(ctx, "streamed service spans",
-		slog.String("service_name", req.ServiceName),
-		slog.Int("spans_count", len(spans)))
-
-	return nil
-}
-
-// GetWALWorkflowSpans returns workflow-type spans from the WAL for a service.
-// Filters spans where junjo.span_type = 'workflow'.
-func (s *WALReaderService) GetWALWorkflowSpans(req *pb.GetWALWorkflowSpansRequest, stream grpc.ServerStreamingServer[pb.SpanData]) error {
-	ctx := stream.Context()
-	slog.DebugContext(ctx, "received GetWALWorkflowSpans request",
-		slog.String("service_name", req.ServiceName),
-		slog.Int("limit", int(req.Limit)))
-
-	limit := int(req.Limit)
-	if limit <= 0 {
-		limit = 500 // Default limit
-	}
-
-	spans, err := s.repo.GetWorkflowSpans(req.ServiceName, limit)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting workflow spans", slog.Any("error", err))
-		return err
-	}
-
-	for _, spanData := range spans {
-		pbSpan := convertStorageSpanDataToProto(spanData)
-		if err := stream.Send(pbSpan); err != nil {
-			if err == io.EOF {
-				slog.InfoContext(ctx, "client disconnected during GetWALWorkflowSpans")
-				return nil
-			}
-			slog.ErrorContext(ctx, "error sending workflow span", slog.Any("error", err))
-			return err
-		}
-	}
-
-	slog.InfoContext(ctx, "streamed workflow spans",
-		slog.String("service_name", req.ServiceName),
-		slog.Int("spans_count", len(spans)))
-
-	return nil
-}
-
-// convertStorageSpanDataToProto converts a storage.SpanData to a pb.SpanData for gRPC responses.
-func convertStorageSpanDataToProto(data *storage.SpanData) *pb.SpanData {
-	span := data.Span
-	resource := data.Resource
-
-	// Use span converter helpers from storage package
-	record := storage.ConvertSpanDataToRecord(data)
-
-	pbSpan := &pb.SpanData{
-		SpanId:                 record.SpanID,
-		TraceId:                record.TraceID,
-		ServiceName:            record.ServiceName,
-		Name:                   record.Name,
-		SpanKind:               int32(record.SpanKind),
-		StartTimeUnixNano:      record.StartTimeNanos,
-		EndTimeUnixNano:        record.EndTimeNanos,
-		DurationNs:             record.DurationNanos,
-		StatusCode:             int32(record.StatusCode),
-		AttributesJson:         record.Attributes,
-		EventsJson:             record.Events,
-		ResourceAttributesJson: record.ResourceAttributes,
-	}
-
-	// Handle nullable fields
-	if record.ParentSpanID != nil {
-		pbSpan.ParentSpanId = *record.ParentSpanID
-	}
-
-	if record.StatusMessage != nil {
-		pbSpan.StatusMessage = *record.StatusMessage
-	}
-
-	// Note: span and resource are available if we need direct access
-	_ = span
-	_ = resource
-
-	return pbSpan
 }
 
 // FlushWAL triggers an immediate flush of WAL data to Parquet files.

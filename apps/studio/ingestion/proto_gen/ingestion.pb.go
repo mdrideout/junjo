@@ -152,178 +152,116 @@ func (x *ReadSpansResponse) GetRemainingCount() uint64 {
 	return 0
 }
 
-// SpanData contains a fully decoded span with all fields extracted.
-// Used for query responses where the caller needs structured data.
-type SpanData struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	SpanId                 string                 `protobuf:"bytes,1,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`
-	TraceId                string                 `protobuf:"bytes,2,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	ParentSpanId           string                 `protobuf:"bytes,3,opt,name=parent_span_id,json=parentSpanId,proto3" json:"parent_span_id,omitempty"`
-	ServiceName            string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Name                   string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
-	SpanKind               int32                  `protobuf:"varint,6,opt,name=span_kind,json=spanKind,proto3" json:"span_kind,omitempty"`
-	StartTimeUnixNano      int64                  `protobuf:"varint,7,opt,name=start_time_unix_nano,json=startTimeUnixNano,proto3" json:"start_time_unix_nano,omitempty"`
-	EndTimeUnixNano        int64                  `protobuf:"varint,8,opt,name=end_time_unix_nano,json=endTimeUnixNano,proto3" json:"end_time_unix_nano,omitempty"`
-	DurationNs             int64                  `protobuf:"varint,9,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"`
-	StatusCode             int32                  `protobuf:"varint,10,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
-	StatusMessage          string                 `protobuf:"bytes,11,opt,name=status_message,json=statusMessage,proto3" json:"status_message,omitempty"`
-	AttributesJson         string                 `protobuf:"bytes,12,opt,name=attributes_json,json=attributesJson,proto3" json:"attributes_json,omitempty"`                           // JSON-encoded attributes
-	EventsJson             string                 `protobuf:"bytes,13,opt,name=events_json,json=eventsJson,proto3" json:"events_json,omitempty"`                                       // JSON-encoded events
-	ResourceAttributesJson string                 `protobuf:"bytes,14,opt,name=resource_attributes_json,json=resourceAttributesJson,proto3" json:"resource_attributes_json,omitempty"` // JSON-encoded resource attributes
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *SpanData) Reset() {
-	*x = SpanData{}
-	mi := &file_ingestion_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SpanData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SpanData) ProtoMessage() {}
-
-func (x *SpanData) ProtoReflect() protoreflect.Message {
-	mi := &file_ingestion_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SpanData.ProtoReflect.Descriptor instead.
-func (*SpanData) Descriptor() ([]byte, []int) {
-	return file_ingestion_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *SpanData) GetSpanId() string {
-	if x != nil {
-		return x.SpanId
-	}
-	return ""
-}
-
-func (x *SpanData) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
-func (x *SpanData) GetParentSpanId() string {
-	if x != nil {
-		return x.ParentSpanId
-	}
-	return ""
-}
-
-func (x *SpanData) GetServiceName() string {
-	if x != nil {
-		return x.ServiceName
-	}
-	return ""
-}
-
-func (x *SpanData) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *SpanData) GetSpanKind() int32 {
-	if x != nil {
-		return x.SpanKind
-	}
-	return 0
-}
-
-func (x *SpanData) GetStartTimeUnixNano() int64 {
-	if x != nil {
-		return x.StartTimeUnixNano
-	}
-	return 0
-}
-
-func (x *SpanData) GetEndTimeUnixNano() int64 {
-	if x != nil {
-		return x.EndTimeUnixNano
-	}
-	return 0
-}
-
-func (x *SpanData) GetDurationNs() int64 {
-	if x != nil {
-		return x.DurationNs
-	}
-	return 0
-}
-
-func (x *SpanData) GetStatusCode() int32 {
-	if x != nil {
-		return x.StatusCode
-	}
-	return 0
-}
-
-func (x *SpanData) GetStatusMessage() string {
-	if x != nil {
-		return x.StatusMessage
-	}
-	return ""
-}
-
-func (x *SpanData) GetAttributesJson() string {
-	if x != nil {
-		return x.AttributesJson
-	}
-	return ""
-}
-
-func (x *SpanData) GetEventsJson() string {
-	if x != nil {
-		return x.EventsJson
-	}
-	return ""
-}
-
-func (x *SpanData) GetResourceAttributesJson() string {
-	if x != nil {
-		return x.ResourceAttributesJson
-	}
-	return ""
-}
-
-// GetWALSpansByTraceIdRequest requests all spans matching a trace ID.
-type GetWALSpansByTraceIdRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TraceId       string                 `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+// GetWALSpansArrowRequest filters spans returned as Arrow IPC.
+// All filters are optional - omit or leave empty to not filter.
+type GetWALSpansArrowRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Filter by trace ID (exact match)
+	TraceId *string `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3,oneof" json:"trace_id,omitempty"`
+	// Filter by service name (exact match)
+	ServiceName *string `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3,oneof" json:"service_name,omitempty"`
+	// Only return root spans (parent_span_id is empty)
+	RootOnly bool `protobuf:"varint,3,opt,name=root_only,json=rootOnly,proto3" json:"root_only,omitempty"`
+	// Only return workflow spans (junjo.span_type = 'workflow')
+	WorkflowOnly bool `protobuf:"varint,4,opt,name=workflow_only,json=workflowOnly,proto3" json:"workflow_only,omitempty"`
+	// Maximum number of spans to return (0 = no limit)
+	Limit         int32 `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetWALSpansByTraceIdRequest) Reset() {
-	*x = GetWALSpansByTraceIdRequest{}
+func (x *GetWALSpansArrowRequest) Reset() {
+	*x = GetWALSpansArrowRequest{}
+	mi := &file_ingestion_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWALSpansArrowRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWALSpansArrowRequest) ProtoMessage() {}
+
+func (x *GetWALSpansArrowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ingestion_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWALSpansArrowRequest.ProtoReflect.Descriptor instead.
+func (*GetWALSpansArrowRequest) Descriptor() ([]byte, []int) {
+	return file_ingestion_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetWALSpansArrowRequest) GetTraceId() string {
+	if x != nil && x.TraceId != nil {
+		return *x.TraceId
+	}
+	return ""
+}
+
+func (x *GetWALSpansArrowRequest) GetServiceName() string {
+	if x != nil && x.ServiceName != nil {
+		return *x.ServiceName
+	}
+	return ""
+}
+
+func (x *GetWALSpansArrowRequest) GetRootOnly() bool {
+	if x != nil {
+		return x.RootOnly
+	}
+	return false
+}
+
+func (x *GetWALSpansArrowRequest) GetWorkflowOnly() bool {
+	if x != nil {
+		return x.WorkflowOnly
+	}
+	return false
+}
+
+func (x *GetWALSpansArrowRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// ArrowBatch contains Arrow IPC bytes for efficient columnar data transfer.
+type ArrowBatch struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Arrow IPC record batch bytes (serialized with ipc.NewWriter)
+	IpcBytes []byte `protobuf:"bytes,1,opt,name=ipc_bytes,json=ipcBytes,proto3" json:"ipc_bytes,omitempty"`
+	// Number of rows in this batch
+	RowCount int32 `protobuf:"varint,2,opt,name=row_count,json=rowCount,proto3" json:"row_count,omitempty"`
+	// True if this is the last batch in the stream
+	IsLast        bool `protobuf:"varint,3,opt,name=is_last,json=isLast,proto3" json:"is_last,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArrowBatch) Reset() {
+	*x = ArrowBatch{}
 	mi := &file_ingestion_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetWALSpansByTraceIdRequest) String() string {
+func (x *ArrowBatch) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetWALSpansByTraceIdRequest) ProtoMessage() {}
+func (*ArrowBatch) ProtoMessage() {}
 
-func (x *GetWALSpansByTraceIdRequest) ProtoReflect() protoreflect.Message {
+func (x *ArrowBatch) ProtoReflect() protoreflect.Message {
 	mi := &file_ingestion_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -335,16 +273,30 @@ func (x *GetWALSpansByTraceIdRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetWALSpansByTraceIdRequest.ProtoReflect.Descriptor instead.
-func (*GetWALSpansByTraceIdRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ArrowBatch.ProtoReflect.Descriptor instead.
+func (*ArrowBatch) Descriptor() ([]byte, []int) {
 	return file_ingestion_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetWALSpansByTraceIdRequest) GetTraceId() string {
+func (x *ArrowBatch) GetIpcBytes() []byte {
 	if x != nil {
-		return x.TraceId
+		return x.IpcBytes
 	}
-	return ""
+	return nil
+}
+
+func (x *ArrowBatch) GetRowCount() int32 {
+	if x != nil {
+		return x.RowCount
+	}
+	return 0
+}
+
+func (x *ArrowBatch) GetIsLast() bool {
+	if x != nil {
+		return x.IsLast
+	}
+	return false
 }
 
 // GetWALDistinctServiceNamesRequest requests all distinct service names in WAL.
@@ -429,165 +381,6 @@ func (x *GetWALDistinctServiceNamesResponse) GetServiceNames() []string {
 	return nil
 }
 
-// GetWALRootSpansRequest requests root spans for a service.
-type GetWALRootSpansRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"` // Maximum number of root spans to return
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetWALRootSpansRequest) Reset() {
-	*x = GetWALRootSpansRequest{}
-	mi := &file_ingestion_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWALRootSpansRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWALRootSpansRequest) ProtoMessage() {}
-
-func (x *GetWALRootSpansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ingestion_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWALRootSpansRequest.ProtoReflect.Descriptor instead.
-func (*GetWALRootSpansRequest) Descriptor() ([]byte, []int) {
-	return file_ingestion_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *GetWALRootSpansRequest) GetServiceName() string {
-	if x != nil {
-		return x.ServiceName
-	}
-	return ""
-}
-
-func (x *GetWALRootSpansRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-// GetWALSpansByServiceRequest requests all spans for a service.
-type GetWALSpansByServiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"` // Maximum number of spans to return
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetWALSpansByServiceRequest) Reset() {
-	*x = GetWALSpansByServiceRequest{}
-	mi := &file_ingestion_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWALSpansByServiceRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWALSpansByServiceRequest) ProtoMessage() {}
-
-func (x *GetWALSpansByServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ingestion_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWALSpansByServiceRequest.ProtoReflect.Descriptor instead.
-func (*GetWALSpansByServiceRequest) Descriptor() ([]byte, []int) {
-	return file_ingestion_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *GetWALSpansByServiceRequest) GetServiceName() string {
-	if x != nil {
-		return x.ServiceName
-	}
-	return ""
-}
-
-func (x *GetWALSpansByServiceRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-// GetWALWorkflowSpansRequest requests workflow-type spans for a service.
-type GetWALWorkflowSpansRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"` // Maximum number of workflow spans to return
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetWALWorkflowSpansRequest) Reset() {
-	*x = GetWALWorkflowSpansRequest{}
-	mi := &file_ingestion_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetWALWorkflowSpansRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetWALWorkflowSpansRequest) ProtoMessage() {}
-
-func (x *GetWALWorkflowSpansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ingestion_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetWALWorkflowSpansRequest.ProtoReflect.Descriptor instead.
-func (*GetWALWorkflowSpansRequest) Descriptor() ([]byte, []int) {
-	return file_ingestion_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetWALWorkflowSpansRequest) GetServiceName() string {
-	if x != nil {
-		return x.ServiceName
-	}
-	return ""
-}
-
-func (x *GetWALWorkflowSpansRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
 // FlushWALRequest triggers a manual WAL flush.
 type FlushWALRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -597,7 +390,7 @@ type FlushWALRequest struct {
 
 func (x *FlushWALRequest) Reset() {
 	*x = FlushWALRequest{}
-	mi := &file_ingestion_proto_msgTypes[9]
+	mi := &file_ingestion_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -609,7 +402,7 @@ func (x *FlushWALRequest) String() string {
 func (*FlushWALRequest) ProtoMessage() {}
 
 func (x *FlushWALRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ingestion_proto_msgTypes[9]
+	mi := &file_ingestion_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -622,7 +415,7 @@ func (x *FlushWALRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlushWALRequest.ProtoReflect.Descriptor instead.
 func (*FlushWALRequest) Descriptor() ([]byte, []int) {
-	return file_ingestion_proto_rawDescGZIP(), []int{9}
+	return file_ingestion_proto_rawDescGZIP(), []int{6}
 }
 
 // FlushWALResponse contains the result of a flush operation.
@@ -636,7 +429,7 @@ type FlushWALResponse struct {
 
 func (x *FlushWALResponse) Reset() {
 	*x = FlushWALResponse{}
-	mi := &file_ingestion_proto_msgTypes[10]
+	mi := &file_ingestion_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -648,7 +441,7 @@ func (x *FlushWALResponse) String() string {
 func (*FlushWALResponse) ProtoMessage() {}
 
 func (x *FlushWALResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ingestion_proto_msgTypes[10]
+	mi := &file_ingestion_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -661,7 +454,7 @@ func (x *FlushWALResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlushWALResponse.ProtoReflect.Descriptor instead.
 func (*FlushWALResponse) Descriptor() ([]byte, []int) {
-	return file_ingestion_proto_rawDescGZIP(), []int{10}
+	return file_ingestion_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *FlushWALResponse) GetSuccess() bool {
@@ -692,51 +485,31 @@ const file_ingestion_proto_rawDesc = "" +
 	"\n" +
 	"span_bytes\x18\x02 \x01(\fR\tspanBytes\x12%\n" +
 	"\x0eresource_bytes\x18\x03 \x01(\fR\rresourceBytes\x12'\n" +
-	"\x0fremaining_count\x18\x04 \x01(\x04R\x0eremainingCount\"\x83\x04\n" +
-	"\bSpanData\x12\x17\n" +
-	"\aspan_id\x18\x01 \x01(\tR\x06spanId\x12\x19\n" +
-	"\btrace_id\x18\x02 \x01(\tR\atraceId\x12$\n" +
-	"\x0eparent_span_id\x18\x03 \x01(\tR\fparentSpanId\x12!\n" +
-	"\fservice_name\x18\x04 \x01(\tR\vserviceName\x12\x12\n" +
-	"\x04name\x18\x05 \x01(\tR\x04name\x12\x1b\n" +
-	"\tspan_kind\x18\x06 \x01(\x05R\bspanKind\x12/\n" +
-	"\x14start_time_unix_nano\x18\a \x01(\x03R\x11startTimeUnixNano\x12+\n" +
-	"\x12end_time_unix_nano\x18\b \x01(\x03R\x0fendTimeUnixNano\x12\x1f\n" +
-	"\vduration_ns\x18\t \x01(\x03R\n" +
-	"durationNs\x12\x1f\n" +
-	"\vstatus_code\x18\n" +
-	" \x01(\x05R\n" +
-	"statusCode\x12%\n" +
-	"\x0estatus_message\x18\v \x01(\tR\rstatusMessage\x12'\n" +
-	"\x0fattributes_json\x18\f \x01(\tR\x0eattributesJson\x12\x1f\n" +
-	"\vevents_json\x18\r \x01(\tR\n" +
-	"eventsJson\x128\n" +
-	"\x18resource_attributes_json\x18\x0e \x01(\tR\x16resourceAttributesJson\"8\n" +
-	"\x1bGetWALSpansByTraceIdRequest\x12\x19\n" +
-	"\btrace_id\x18\x01 \x01(\tR\atraceId\"#\n" +
+	"\x0fremaining_count\x18\x04 \x01(\x04R\x0eremainingCount\"\xd7\x01\n" +
+	"\x17GetWALSpansArrowRequest\x12\x1e\n" +
+	"\btrace_id\x18\x01 \x01(\tH\x00R\atraceId\x88\x01\x01\x12&\n" +
+	"\fservice_name\x18\x02 \x01(\tH\x01R\vserviceName\x88\x01\x01\x12\x1b\n" +
+	"\troot_only\x18\x03 \x01(\bR\brootOnly\x12#\n" +
+	"\rworkflow_only\x18\x04 \x01(\bR\fworkflowOnly\x12\x14\n" +
+	"\x05limit\x18\x05 \x01(\x05R\x05limitB\v\n" +
+	"\t_trace_idB\x0f\n" +
+	"\r_service_name\"_\n" +
+	"\n" +
+	"ArrowBatch\x12\x1b\n" +
+	"\tipc_bytes\x18\x01 \x01(\fR\bipcBytes\x12\x1b\n" +
+	"\trow_count\x18\x02 \x01(\x05R\browCount\x12\x17\n" +
+	"\ais_last\x18\x03 \x01(\bR\x06isLast\"#\n" +
 	"!GetWALDistinctServiceNamesRequest\"I\n" +
 	"\"GetWALDistinctServiceNamesResponse\x12#\n" +
-	"\rservice_names\x18\x01 \x03(\tR\fserviceNames\"Q\n" +
-	"\x16GetWALRootSpansRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\"V\n" +
-	"\x1bGetWALSpansByServiceRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\"U\n" +
-	"\x1aGetWALWorkflowSpansRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\x11\n" +
+	"\rservice_names\x18\x01 \x03(\tR\fserviceNames\"\x11\n" +
 	"\x0fFlushWALRequest\"Q\n" +
 	"\x10FlushWALResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12#\n" +
-	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage2\x82\x05\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage2\xfd\x02\n" +
 	"\x18InternalIngestionService\x12J\n" +
-	"\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x000\x01\x12W\n" +
-	"\x14GetWALSpansByTraceId\x12&.ingestion.GetWALSpansByTraceIdRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12{\n" +
-	"\x1aGetWALDistinctServiceNames\x12,.ingestion.GetWALDistinctServiceNamesRequest\x1a-.ingestion.GetWALDistinctServiceNamesResponse\"\x00\x12M\n" +
-	"\x0fGetWALRootSpans\x12!.ingestion.GetWALRootSpansRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12W\n" +
-	"\x14GetWALSpansByService\x12&.ingestion.GetWALSpansByServiceRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12U\n" +
-	"\x13GetWALWorkflowSpans\x12%.ingestion.GetWALWorkflowSpansRequest\x1a\x13.ingestion.SpanData\"\x000\x01\x12E\n" +
+	"\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x000\x01\x12Q\n" +
+	"\x10GetWALSpansArrow\x12\".ingestion.GetWALSpansArrowRequest\x1a\x15.ingestion.ArrowBatch\"\x000\x01\x12{\n" +
+	"\x1aGetWALDistinctServiceNames\x12,.ingestion.GetWALDistinctServiceNamesRequest\x1a-.ingestion.GetWALDistinctServiceNamesResponse\"\x00\x12E\n" +
 	"\bFlushWAL\x12\x1a.ingestion.FlushWALRequest\x1a\x1b.ingestion.FlushWALResponse\"\x00B\rZ\v.;proto_genb\x06proto3"
 
 var (
@@ -751,40 +524,31 @@ func file_ingestion_proto_rawDescGZIP() []byte {
 	return file_ingestion_proto_rawDescData
 }
 
-var file_ingestion_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ingestion_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ingestion_proto_goTypes = []any{
 	(*ReadSpansRequest)(nil),                   // 0: ingestion.ReadSpansRequest
 	(*ReadSpansResponse)(nil),                  // 1: ingestion.ReadSpansResponse
-	(*SpanData)(nil),                           // 2: ingestion.SpanData
-	(*GetWALSpansByTraceIdRequest)(nil),        // 3: ingestion.GetWALSpansByTraceIdRequest
+	(*GetWALSpansArrowRequest)(nil),            // 2: ingestion.GetWALSpansArrowRequest
+	(*ArrowBatch)(nil),                         // 3: ingestion.ArrowBatch
 	(*GetWALDistinctServiceNamesRequest)(nil),  // 4: ingestion.GetWALDistinctServiceNamesRequest
 	(*GetWALDistinctServiceNamesResponse)(nil), // 5: ingestion.GetWALDistinctServiceNamesResponse
-	(*GetWALRootSpansRequest)(nil),             // 6: ingestion.GetWALRootSpansRequest
-	(*GetWALSpansByServiceRequest)(nil),        // 7: ingestion.GetWALSpansByServiceRequest
-	(*GetWALWorkflowSpansRequest)(nil),         // 8: ingestion.GetWALWorkflowSpansRequest
-	(*FlushWALRequest)(nil),                    // 9: ingestion.FlushWALRequest
-	(*FlushWALResponse)(nil),                   // 10: ingestion.FlushWALResponse
+	(*FlushWALRequest)(nil),                    // 6: ingestion.FlushWALRequest
+	(*FlushWALResponse)(nil),                   // 7: ingestion.FlushWALResponse
 }
 var file_ingestion_proto_depIdxs = []int32{
-	0,  // 0: ingestion.InternalIngestionService.ReadSpans:input_type -> ingestion.ReadSpansRequest
-	3,  // 1: ingestion.InternalIngestionService.GetWALSpansByTraceId:input_type -> ingestion.GetWALSpansByTraceIdRequest
-	4,  // 2: ingestion.InternalIngestionService.GetWALDistinctServiceNames:input_type -> ingestion.GetWALDistinctServiceNamesRequest
-	6,  // 3: ingestion.InternalIngestionService.GetWALRootSpans:input_type -> ingestion.GetWALRootSpansRequest
-	7,  // 4: ingestion.InternalIngestionService.GetWALSpansByService:input_type -> ingestion.GetWALSpansByServiceRequest
-	8,  // 5: ingestion.InternalIngestionService.GetWALWorkflowSpans:input_type -> ingestion.GetWALWorkflowSpansRequest
-	9,  // 6: ingestion.InternalIngestionService.FlushWAL:input_type -> ingestion.FlushWALRequest
-	1,  // 7: ingestion.InternalIngestionService.ReadSpans:output_type -> ingestion.ReadSpansResponse
-	2,  // 8: ingestion.InternalIngestionService.GetWALSpansByTraceId:output_type -> ingestion.SpanData
-	5,  // 9: ingestion.InternalIngestionService.GetWALDistinctServiceNames:output_type -> ingestion.GetWALDistinctServiceNamesResponse
-	2,  // 10: ingestion.InternalIngestionService.GetWALRootSpans:output_type -> ingestion.SpanData
-	2,  // 11: ingestion.InternalIngestionService.GetWALSpansByService:output_type -> ingestion.SpanData
-	2,  // 12: ingestion.InternalIngestionService.GetWALWorkflowSpans:output_type -> ingestion.SpanData
-	10, // 13: ingestion.InternalIngestionService.FlushWAL:output_type -> ingestion.FlushWALResponse
-	7,  // [7:14] is the sub-list for method output_type
-	0,  // [0:7] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+	0, // 0: ingestion.InternalIngestionService.ReadSpans:input_type -> ingestion.ReadSpansRequest
+	2, // 1: ingestion.InternalIngestionService.GetWALSpansArrow:input_type -> ingestion.GetWALSpansArrowRequest
+	4, // 2: ingestion.InternalIngestionService.GetWALDistinctServiceNames:input_type -> ingestion.GetWALDistinctServiceNamesRequest
+	6, // 3: ingestion.InternalIngestionService.FlushWAL:input_type -> ingestion.FlushWALRequest
+	1, // 4: ingestion.InternalIngestionService.ReadSpans:output_type -> ingestion.ReadSpansResponse
+	3, // 5: ingestion.InternalIngestionService.GetWALSpansArrow:output_type -> ingestion.ArrowBatch
+	5, // 6: ingestion.InternalIngestionService.GetWALDistinctServiceNames:output_type -> ingestion.GetWALDistinctServiceNamesResponse
+	7, // 7: ingestion.InternalIngestionService.FlushWAL:output_type -> ingestion.FlushWALResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ingestion_proto_init() }
@@ -792,13 +556,14 @@ func file_ingestion_proto_init() {
 	if File_ingestion_proto != nil {
 		return
 	}
+	file_ingestion_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ingestion_proto_rawDesc), len(file_ingestion_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
