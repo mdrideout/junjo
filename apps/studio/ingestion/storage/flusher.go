@@ -185,7 +185,7 @@ func (f *Flusher) doFlush() error {
 
 	// Determine output path with date partitioning
 	now := time.Now().UTC()
-	outputPath := f.generateOutputPath(now, records[0].ServiceName)
+	outputPath := f.generateOutputPath(now)
 
 	// Write Parquet file
 	if err := WriteSpansToParquet(records, outputPath, f.config.parquetConfig); err != nil {
@@ -215,15 +215,12 @@ func (f *Flusher) doFlush() error {
 }
 
 // generateOutputPath creates the output path for a Parquet file.
-// Format: {output_dir}/year=YYYY/month=MM/day=DD/{service}_{timestamp}_{uuid8}.parquet
-func (f *Flusher) generateOutputPath(t time.Time, serviceName string) string {
-	// Sanitize service name for filesystem
-	safeServiceName := sanitizeServiceName(serviceName)
-
-	// Generate random UUID suffix (8 chars)
-	uuidBytes := make([]byte, 4)
-	rand.Read(uuidBytes)
-	uuidSuffix := hex.EncodeToString(uuidBytes)
+// Format: {output_dir}/year=YYYY/month=MM/day=DD/YYYYMMDD_HHMMSS_{hash}.parquet
+func (f *Flusher) generateOutputPath(t time.Time) string {
+	// Generate random hash suffix (8 chars)
+	hashBytes := make([]byte, 4)
+	rand.Read(hashBytes)
+	hashSuffix := hex.EncodeToString(hashBytes)
 
 	// Build path with date partitioning
 	dateDir := filepath.Join(
@@ -233,37 +230,12 @@ func (f *Flusher) generateOutputPath(t time.Time, serviceName string) string {
 		fmt.Sprintf("day=%02d", t.Day()),
 	)
 
-	filename := fmt.Sprintf("%s_%d_%s.parquet",
-		safeServiceName,
-		t.Unix(),
-		uuidSuffix,
+	// Filename: YYYYMMDD_HHMMSS_{hash}.parquet
+	filename := fmt.Sprintf("%04d%02d%02d_%02d%02d%02d_%s.parquet",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second(),
+		hashSuffix,
 	)
 
 	return filepath.Join(dateDir, filename)
-}
-
-// sanitizeServiceName makes a service name safe for use in filesystem paths.
-func sanitizeServiceName(name string) string {
-	if name == "" {
-		return "unknown"
-	}
-
-	// Replace problematic characters with underscores
-	result := make([]byte, 0, len(name))
-	for i := 0; i < len(name); i++ {
-		c := name[i]
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') || c == '-' || c == '_' {
-			result = append(result, c)
-		} else {
-			result = append(result, '_')
-		}
-	}
-
-	// Limit length
-	if len(result) > 64 {
-		result = result[:64]
-	}
-
-	return string(result)
 }

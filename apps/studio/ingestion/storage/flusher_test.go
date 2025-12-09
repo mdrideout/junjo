@@ -277,15 +277,16 @@ func TestGenerateOutputPath(t *testing.T) {
 	flusher := NewFlusher(nil) // repo not needed for this test
 
 	// Test with a specific time
-	testTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
-	path := flusher.generateOutputPath(testTime, "my-service")
+	testTime := time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC)
+	path := flusher.generateOutputPath(testTime)
 
-	// Verify date partitioning
+	// Verify date partitioning in directory
 	if !filepath.IsAbs(path) {
 		t.Errorf("Expected absolute path, got %s", path)
 	}
 
-	expectedPrefix := "/app/.dbdata/parquet/year=2024/month=01/day=15/my-service_"
+	// Expected format: /app/.dbdata/parquet/year=2024/month=01/day=15/20240115_103045_{hash}.parquet
+	expectedPrefix := "/app/.dbdata/parquet/year=2024/month=01/day=15/20240115_103045_"
 	if len(path) < len(expectedPrefix) || path[:len(expectedPrefix)] != expectedPrefix {
 		t.Errorf("Path should start with %s, got %s", expectedPrefix, path)
 	}
@@ -293,31 +294,12 @@ func TestGenerateOutputPath(t *testing.T) {
 	if len(path) < 8 || path[len(path)-8:] != ".parquet" {
 		t.Errorf("Path should end with .parquet, got %s", path)
 	}
-}
 
-func TestSanitizeServiceName(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"my-service", "my-service"},
-		{"my_service", "my_service"},
-		{"MyService123", "MyService123"},
-		{"my.service", "my_service"},
-		{"my/service", "my_service"},
-		{"my:service", "my_service"},
-		{"my service", "my_service"},
-		{"", "unknown"},
-		{"a@b#c$d%e^f&g*h", "a_b_c_d_e_f_g_h"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := sanitizeServiceName(tt.input)
-			if result != tt.expected {
-				t.Errorf("sanitizeServiceName(%q) = %q, want %q", tt.input, result, tt.expected)
-			}
-		})
+	// Verify filename format: YYYYMMDD_HHMMSS_{8-char-hash}.parquet
+	filename := filepath.Base(path)
+	// Should be 20240115_103045_xxxxxxxx.parquet = 8+1+6+1+8+8 = 32 chars
+	if len(filename) != 32 {
+		t.Errorf("Filename should be 32 chars (YYYYMMDD_HHMMSS_xxxxxxxx.parquet), got %d: %s", len(filename), filename)
 	}
 }
 
