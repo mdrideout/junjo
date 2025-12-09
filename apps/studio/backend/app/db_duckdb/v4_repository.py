@@ -3,7 +3,7 @@
 This repository handles all DuckDB operations for the V4 architecture:
 - parquet_files: Registry of indexed Parquet files
 - span_metadata: Lightweight span data for listings
-- services: Service catalog with aggregated stats
+- file_services: Junction table mapping services to files (for efficient filtering)
 - failed_parquet_files: Tracking for files that failed to index
 """
 
@@ -139,45 +139,31 @@ def batch_insert_span_metadata(file_id: int, spans: list[SpanMetadata]) -> int:
         return len(rows)
 
 
-def upsert_service(
-    service_name: str, min_time: datetime, max_time: datetime, span_count: int
+def insert_file_service(
+    conn,
+    file_id: int,
+    service_name: str,
+    span_count: int,
+    min_time: datetime,
+    max_time: datetime,
 ) -> None:
-    """Update or insert service catalog entry.
-
-    Updates first_seen/last_seen bounds and accumulates span count.
+    """Insert a file-service mapping (within an existing transaction).
 
     Args:
+        conn: Active DuckDB connection (caller manages transaction)
+        file_id: FK to parquet_files table
         service_name: The service name
-        min_time: Minimum time from the indexed file
-        max_time: Maximum time from the indexed file
-        span_count: Number of spans in the indexed file
+        span_count: Number of spans for this service in this file
+        min_time: Earliest span time for this service in this file
+        max_time: Latest span time for this service in this file
     """
-    with get_connection() as conn:
-        # Try to update existing row
-        result = conn.execute(
-            """
-            UPDATE services
-            SET first_seen = LEAST(first_seen, ?),
-                last_seen = GREATEST(last_seen, ?),
-                total_spans = total_spans + ?
-            WHERE service_name = ?
-            RETURNING service_name
-            """,
-            [min_time, max_time, span_count, service_name],
-        ).fetchone()
-
-        if result is None:
-            # Insert new service
-            conn.execute(
-                """
-                INSERT INTO services (service_name, first_seen, last_seen, total_spans)
-                VALUES (?, ?, ?, ?)
-                """,
-                [service_name, min_time, max_time, span_count],
-            )
-            logger.debug(f"Added new service: {service_name}")
-        else:
-            logger.debug(f"Updated service: {service_name} (+{span_count} spans)")
+    conn.execute(
+        """
+        INSERT INTO file_services (file_id, service_name, span_count, min_time, max_time)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [file_id, service_name, span_count, min_time, max_time],
+    )
 
 
 def index_parquet_file(file_data: ParquetFileData) -> int:
@@ -256,7 +242,7 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                 rows,
             )
 
-            # 3. Update service catalog for ALL services in the file
+            # 3. Insert file_services mappings for ALL services in the file
             # Group spans by service to get per-service stats
             service_stats: dict[str, dict] = {}
             for span in file_data.spans:
@@ -272,32 +258,15 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                 stats["max_time"] = max(stats["max_time"], span.end_time)
                 stats["count"] += 1
 
-            # Upsert each service
+            # Insert file_services row for each service in this file
             for svc_name, stats in service_stats.items():
-                existing = conn.execute(
-                    "SELECT 1 FROM services WHERE service_name = ?",
-                    [svc_name],
-                ).fetchone()
-
-                if existing:
-                    conn.execute(
-                        """
-                        UPDATE services
-                        SET first_seen = LEAST(first_seen, ?),
-                            last_seen = GREATEST(last_seen, ?),
-                            total_spans = total_spans + ?
-                        WHERE service_name = ?
-                        """,
-                        [stats["min_time"], stats["max_time"], stats["count"], svc_name],
-                    )
-                else:
-                    conn.execute(
-                        """
-                        INSERT INTO services (service_name, first_seen, last_seen, total_spans)
-                        VALUES (?, ?, ?, ?)
-                        """,
-                        [svc_name, stats["min_time"], stats["max_time"], stats["count"]],
-                    )
+                conn.execute(
+                    """
+                    INSERT INTO file_services (file_id, service_name, span_count, min_time, max_time)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    [file_id, svc_name, stats["count"], stats["min_time"], stats["max_time"]],
+                )
 
             conn.execute("COMMIT")
 
@@ -558,14 +527,40 @@ def get_file_paths_for_time_range(
         return [row[0] for row in result]
 
 
-def get_all_services() -> list[str]:
-    """Get all service names from the services table.
+def get_parquet_services(
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+) -> list[str]:
+    """Get distinct service names from Parquet files (via file_services).
+
+    This returns services from indexed Parquet files only. For a complete
+    list including WAL data, use the fusion query in datafusion_query.py.
+
+    Args:
+        start_time: Optional start of time range filter
+        end_time: Optional end of time range filter
 
     Returns:
         List of service names in alphabetical order
     """
     with get_connection() as conn:
-        result = conn.execute("SELECT service_name FROM services ORDER BY service_name").fetchall()
+        if start_time and end_time:
+            # Filter by time range using parquet_files time bounds
+            result = conn.execute(
+                """
+                SELECT DISTINCT fs.service_name
+                FROM file_services fs
+                JOIN parquet_files pf ON fs.file_id = pf.file_id
+                WHERE pf.min_time <= ? AND pf.max_time >= ?
+                ORDER BY fs.service_name
+                """,
+                [end_time, start_time],
+            ).fetchall()
+        else:
+            # No time filter - all services
+            result = conn.execute(
+                "SELECT DISTINCT service_name FROM file_services ORDER BY service_name"
+            ).fetchall()
         return [row[0] for row in result]
 
 

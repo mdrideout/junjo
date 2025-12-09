@@ -172,7 +172,7 @@ def temp_duckdb():
         schema_dir = Path(__file__).parent.parent / "app" / "db_duckdb" / "schemas"
         conn.execute((schema_dir / "v4_parquet_files.sql").read_text())
         conn.execute((schema_dir / "v4_span_metadata.sql").read_text())
-        conn.execute((schema_dir / "v4_services.sql").read_text())
+        conn.execute((schema_dir / "v4_file_services.sql").read_text())
         conn.execute((schema_dir / "v4_failed_files.sql").read_text())
         conn.close()
 

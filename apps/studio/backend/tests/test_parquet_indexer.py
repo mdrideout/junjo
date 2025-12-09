@@ -138,7 +138,7 @@ def temp_duckdb():
         schema_dir = Path(__file__).parent.parent / "app" / "db_duckdb" / "schemas"
         conn.execute((schema_dir / "v4_parquet_files.sql").read_text())
         conn.execute((schema_dir / "v4_span_metadata.sql").read_text())
-        conn.execute((schema_dir / "v4_services.sql").read_text())
+        conn.execute((schema_dir / "v4_file_services.sql").read_text())
         conn.execute((schema_dir / "v4_failed_files.sql").read_text())
         conn.close()
 
@@ -285,11 +285,11 @@ def test_index_parquet_file(temp_parquet_dir, temp_duckdb):
     spans = conn.execute("SELECT * FROM span_metadata").fetchall()
     assert len(spans) == 3
 
-    # Verify services table
-    services = conn.execute("SELECT * FROM services").fetchall()
-    assert len(services) == 1
-    assert services[0][0] == "index-test"  # service_name
-    assert services[0][3] == 3  # total_spans
+    # Verify file_services table
+    file_services = conn.execute("SELECT * FROM file_services").fetchall()
+    assert len(file_services) == 1
+    assert file_services[0][1] == "index-test"  # service_name
+    assert file_services[0][2] == 3  # span_count
 
     conn.close()
 
@@ -460,13 +460,13 @@ def test_full_indexing_flow(temp_parquet_dir, temp_duckdb):
     spans_count = conn.execute("SELECT COUNT(*) FROM span_metadata").fetchone()[0]
     assert spans_count == 8
 
-    # 2 services
-    services = conn.execute(
-        "SELECT service_name, total_spans FROM services ORDER BY service_name"
+    # 2 services in file_services (one per file)
+    file_services = conn.execute(
+        "SELECT service_name, span_count FROM file_services ORDER BY service_name"
     ).fetchall()
-    assert len(services) == 2
-    assert services[0] == ("service-alpha", 5)
-    assert services[1] == ("service-beta", 3)
+    assert len(file_services) == 2
+    assert file_services[0] == ("service-alpha", 5)
+    assert file_services[1] == ("service-beta", 3)
 
     conn.close()
 

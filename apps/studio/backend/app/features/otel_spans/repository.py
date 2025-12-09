@@ -223,7 +223,7 @@ async def get_fused_distinct_service_names() -> list[str]:
     Returns:
         List of service names in alphabetical order.
     """
-    parquet_services = v4_repository.get_all_services()
+    parquet_services = v4_repository.get_parquet_services()
     wal_services = await _get_wal_distinct_service_names()
 
     merged = _merge_service_names(parquet_services, wal_services)

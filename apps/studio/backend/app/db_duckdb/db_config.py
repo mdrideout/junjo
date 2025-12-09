@@ -70,12 +70,12 @@ def initialize_tables():
             # These tables index metadata from Parquet files for fast listing queries
             v4_parquet_files = (schema_dir / "v4_parquet_files.sql").read_text()
             v4_span_metadata = (schema_dir / "v4_span_metadata.sql").read_text()
-            v4_services = (schema_dir / "v4_services.sql").read_text()
+            v4_file_services = (schema_dir / "v4_file_services.sql").read_text()
             v4_failed_files = (schema_dir / "v4_failed_files.sql").read_text()
 
             conn.execute(v4_parquet_files)
             conn.execute(v4_span_metadata)
-            conn.execute(v4_services)
+            conn.execute(v4_file_services)
             conn.execute(v4_failed_files)
 
             logger.info(f"DuckDB V4 tables initialized: {settings.database.duckdb_path}")
