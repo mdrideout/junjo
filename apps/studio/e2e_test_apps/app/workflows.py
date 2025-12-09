@@ -1,5 +1,7 @@
 """Workflow definitions based on getting_started example."""
 
+import random
+
 from junjo import BaseState, BaseStore, Condition, Edge, Graph, Node, Workflow
 
 
@@ -34,6 +36,17 @@ class CountItemsNode(Node[SampleWorkflowStore]):
         print(f"Counted {count} items")
 
 
+class AddRandomNode(Node[SampleWorkflowStore]):
+    async def service(self, store: SampleWorkflowStore) -> None:
+        # Add a random number to the count
+        state = await store.get_state()
+        random_num = random.randint(1, 100)
+        new_count = (state.count or 0) + random_num
+
+        await store.set_count(new_count)
+        print(f"Added {random_num} to count, new count: {new_count}")
+
+
 class EvenItemsNode(Node[SampleWorkflowStore]):
     async def service(self, store: SampleWorkflowStore) -> None:
         print("Path taken for even items count.")
@@ -66,6 +79,7 @@ def create_graph() -> Graph:
     # Instantiate the nodes
     first_node = FirstNode()
     count_items_node = CountItemsNode()
+    add_random_node = AddRandomNode()
     even_items_node = EvenItemsNode()
     odd_items_node = OddItemsNode()
     final_node = FinalNode()
@@ -76,14 +90,15 @@ def create_graph() -> Graph:
         sink=final_node,
         edges=[
             Edge(tail=first_node, head=count_items_node),
-            # Branching based on the count of items
+            Edge(tail=count_items_node, head=add_random_node),
+            # Branching based on the count (after random added)
             Edge(
-                tail=count_items_node,
+                tail=add_random_node,
                 head=even_items_node,
                 condition=CountIsEven(),
             ),  # Only transitions if count is even
             Edge(
-                tail=count_items_node, head=odd_items_node
+                tail=add_random_node, head=odd_items_node
             ),  # Fallback if first condition is not met
             # Branched paths converge to the final node
             Edge(tail=even_items_node, head=final_node),
