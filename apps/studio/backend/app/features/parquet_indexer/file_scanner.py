@@ -26,7 +26,7 @@ def scan_parquet_files(base_path: str) -> list[ParquetFileInfo]:
     """Scan directory tree for Parquet files.
 
     Args:
-        base_path: Root directory to scan (e.g., /app/.dbdata/spans)
+        base_path: Root directory to scan (e.g., /app/.dbdata/parquet)
 
     Returns:
         List of ParquetFileInfo for all .parquet files found.

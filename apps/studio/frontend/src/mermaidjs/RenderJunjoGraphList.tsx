@@ -10,6 +10,21 @@ interface RenderJunjoGraphListProps {
   showEdgeLabels: boolean
 }
 
+/**
+ * Check if a graph structure object has the required fields for rendering.
+ * Returns true if the structure has v (version), nodes array, and edges array.
+ */
+function hasValidGraphStructure(graphStructure: Record<string, unknown> | undefined): boolean {
+  if (!graphStructure || typeof graphStructure !== 'object') {
+    return false
+  }
+  return (
+    typeof graphStructure.v === 'number' &&
+    Array.isArray(graphStructure.nodes) &&
+    Array.isArray(graphStructure.edges)
+  )
+}
+
 export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
   const { traceId, workflowSpanId, showEdgeLabels } = props
 
@@ -21,13 +36,24 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
   )
 
   return workflowChain.map((workflowSpan) => {
+    const uniqueMermaidId = `mer-unique-${workflowSpan.span_id}`
+
+    // Check if the workflow has valid graph structure data
+    if (!hasValidGraphStructure(workflowSpan.junjo_wf_graph_structure)) {
+      return (
+        <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>
+          <div className={'font-bold text-sm'}>{workflowSpan.name}</div>
+          <div className={'text-sm text-gray-500 italic p-4'}>
+            Graph structure not available for this workflow.
+          </div>
+        </div>
+      )
+    }
+
     // Parse mermaid flow string
     const mermaidFlowString = JunjoGraph.fromJson(workflowSpan.junjo_wf_graph_structure).toMermaid(
       showEdgeLabels,
     )
-    const uniqueMermaidId = `mer-unique-${workflowSpan.span_id}`
-
-    // console.log(`Mermaid string ${uniqueMermaidId}:\n`, mermaidFlowString)
 
     return (
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>

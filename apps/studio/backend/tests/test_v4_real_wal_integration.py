@@ -340,7 +340,7 @@ def ingestion_service(backend_grpc_server):
     env = os.environ.copy()
     env.update({
         "JUNJO_WAL_SQLITE_PATH": wal_path,
-        "SPAN_STORAGE_PATH": parquet_dir,
+        "PARQUET_STORAGE_PATH": parquet_dir,
         "GRPC_PORT": str(INGESTION_PUBLIC_PORT),
         "INTERNAL_GRPC_PORT": str(INGESTION_INTERNAL_PORT),
         "BACKEND_GRPC_HOST": "localhost",

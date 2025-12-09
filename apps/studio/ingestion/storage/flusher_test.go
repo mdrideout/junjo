@@ -271,7 +271,7 @@ func TestFlusherStartStop(t *testing.T) {
 
 func TestGenerateOutputPath(t *testing.T) {
 	cfg := config.Default()
-	cfg.Flusher.OutputDir = "/app/.dbdata/spans"
+	cfg.Flusher.OutputDir = "/app/.dbdata/parquet"
 	config.SetForTesting(cfg)
 
 	flusher := NewFlusher(nil) // repo not needed for this test
@@ -285,7 +285,7 @@ func TestGenerateOutputPath(t *testing.T) {
 		t.Errorf("Expected absolute path, got %s", path)
 	}
 
-	expectedPrefix := "/app/.dbdata/spans/year=2024/month=01/day=15/my-service_"
+	expectedPrefix := "/app/.dbdata/parquet/year=2024/month=01/day=15/my-service_"
 	if len(path) < len(expectedPrefix) || path[:len(expectedPrefix)] != expectedPrefix {
 		t.Errorf("Path should start with %s, got %s", expectedPrefix, path)
 	}

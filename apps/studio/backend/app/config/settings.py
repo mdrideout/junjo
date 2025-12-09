@@ -212,12 +212,12 @@ class ParquetIndexerSettings(BaseSettings):
     Go ingestion service, reads span metadata, and indexes it into DuckDB.
     """
 
-    span_storage_path: Annotated[
+    parquet_storage_path: Annotated[
         str,
         Field(
-            default="../.dbdata/spans",
+            default="../.dbdata/parquet",
             description="Path to Parquet files (shared with Go ingestion)",
-            validation_alias="JUNJO_SPAN_STORAGE_PATH",
+            validation_alias="JUNJO_PARQUET_STORAGE_PATH",
         ),
     ]
     poll_interval: Annotated[
@@ -243,13 +243,13 @@ class ParquetIndexerSettings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def span_storage_path_resolved(self) -> str:
-        """Resolved absolute path for span storage.
+    def parquet_storage_path_resolved(self) -> str:
+        """Resolved absolute path for Parquet storage.
 
         Returns:
-            Absolute path to span storage directory.
+            Absolute path to Parquet storage directory.
         """
-        abs_path = Path(self.span_storage_path).resolve()
+        abs_path = Path(self.parquet_storage_path).resolve()
         return str(abs_path)
 
     model_config = SettingsConfigDict(

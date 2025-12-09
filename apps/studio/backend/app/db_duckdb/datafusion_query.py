@@ -181,10 +181,10 @@ def _convert_parquet_row_to_api_format(table: dict[str, list], idx: int) -> dict
     junjo_id = attributes.pop("junjo.id", "")
     junjo_parent_id = attributes.pop("junjo.parent_id", "")
     junjo_span_type = attributes.pop("junjo.span_type", "")
-    junjo_wf_state_start = attributes.pop("junjo.wf_state_start", {})
-    junjo_wf_state_end = attributes.pop("junjo.wf_state_end", {})
-    junjo_wf_graph_structure = attributes.pop("junjo.wf_graph_structure", {})
-    junjo_wf_store_id = attributes.pop("junjo.wf_store_id", "")
+    junjo_wf_state_start = attributes.pop("junjo.workflow.state.start", {})
+    junjo_wf_state_end = attributes.pop("junjo.workflow.state.end", {})
+    junjo_wf_graph_structure = attributes.pop("junjo.workflow.graph_structure", {})
+    junjo_wf_store_id = attributes.pop("junjo.workflow.store_id", "")
 
     # Parse nested JSON in junjo fields if they're strings
     if isinstance(junjo_wf_state_start, str):

@@ -138,7 +138,7 @@ func eventsToJSON(events []*tracepb.Span_Event) string {
 
 	type eventJSON struct {
 		Name       string         `json:"name"`
-		TimeNanos  int64          `json:"time_nanos"`
+		TimeNanos  int64          `json:"timeUnixNano"`
 		Attributes map[string]any `json:"attributes,omitempty"`
 	}
 

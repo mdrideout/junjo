@@ -128,7 +128,7 @@ func Load() (*Config, error) {
 	}
 
 	// Flusher configuration
-	if path := os.Getenv("SPAN_STORAGE_PATH"); path != "" {
+	if path := os.Getenv("PARQUET_STORAGE_PATH"); path != "" {
 		cfg.Flusher.OutputDir = path
 	}
 

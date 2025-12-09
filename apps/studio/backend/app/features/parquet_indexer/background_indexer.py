@@ -39,7 +39,7 @@ async def parquet_indexer() -> None:
     logger.info(
         "Starting parquet indexer",
         extra={
-            "span_storage_path": settings.parquet_indexer.span_storage_path_resolved,
+            "parquet_storage_path": settings.parquet_indexer.parquet_storage_path_resolved,
             "poll_interval": settings.parquet_indexer.poll_interval,
             "batch_size": settings.parquet_indexer.batch_size,
         },
@@ -81,7 +81,7 @@ async def index_new_files() -> int:
     # Run filesystem scan in thread pool (blocking I/O)
     loop = asyncio.get_event_loop()
     all_files = await loop.run_in_executor(
-        None, scan_parquet_files, settings.parquet_indexer.span_storage_path_resolved
+        None, scan_parquet_files, settings.parquet_indexer.parquet_storage_path_resolved
     )
 
     if not all_files:

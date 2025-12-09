@@ -256,41 +256,48 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
                 rows,
             )
 
-            # 3. Update service catalog
-            existing = conn.execute(
-                "SELECT 1 FROM services WHERE service_name = ?",
-                [file_data.service_name],
-            ).fetchone()
+            # 3. Update service catalog for ALL services in the file
+            # Group spans by service to get per-service stats
+            service_stats: dict[str, dict] = {}
+            for span in file_data.spans:
+                svc = span.service_name
+                if svc not in service_stats:
+                    service_stats[svc] = {
+                        "min_time": span.start_time,
+                        "max_time": span.end_time,
+                        "count": 0,
+                    }
+                stats = service_stats[svc]
+                stats["min_time"] = min(stats["min_time"], span.start_time)
+                stats["max_time"] = max(stats["max_time"], span.end_time)
+                stats["count"] += 1
 
-            if existing:
-                conn.execute(
-                    """
-                    UPDATE services
-                    SET first_seen = LEAST(first_seen, ?),
-                        last_seen = GREATEST(last_seen, ?),
-                        total_spans = total_spans + ?
-                    WHERE service_name = ?
-                    """,
-                    [
-                        file_data.min_time,
-                        file_data.max_time,
-                        file_data.row_count,
-                        file_data.service_name,
-                    ],
-                )
-            else:
-                conn.execute(
-                    """
-                    INSERT INTO services (service_name, first_seen, last_seen, total_spans)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    [
-                        file_data.service_name,
-                        file_data.min_time,
-                        file_data.max_time,
-                        file_data.row_count,
-                    ],
-                )
+            # Upsert each service
+            for svc_name, stats in service_stats.items():
+                existing = conn.execute(
+                    "SELECT 1 FROM services WHERE service_name = ?",
+                    [svc_name],
+                ).fetchone()
+
+                if existing:
+                    conn.execute(
+                        """
+                        UPDATE services
+                        SET first_seen = LEAST(first_seen, ?),
+                            last_seen = GREATEST(last_seen, ?),
+                            total_spans = total_spans + ?
+                        WHERE service_name = ?
+                        """,
+                        [stats["min_time"], stats["max_time"], stats["count"], svc_name],
+                    )
+                else:
+                    conn.execute(
+                        """
+                        INSERT INTO services (service_name, first_seen, last_seen, total_spans)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        [svc_name, stats["min_time"], stats["max_time"], stats["count"]],
+                    )
 
             conn.execute("COMMIT")
 
