@@ -465,28 +465,10 @@ def _convert_span_data_to_api_format(span_data: ingestion_pb2.SpanData) -> dict[
 
     This matches the format returned by datafusion_query.py for Parquet spans.
     """
-    # Parse JSON fields
+    # Parse JSON fields - pass through unchanged (no junjo extraction)
+    # Frontend SpanAccessor handles junjo field extraction
     attributes = _parse_json_safe(span_data.attributes_json, {})
     events = _parse_json_safe(span_data.events_json, [])
-    # resource_attributes is available but not used in current API response
-    _ = _parse_json_safe(span_data.resource_attributes_json, {})
-
-    # Extract junjo fields from attributes
-    junjo_id = attributes.pop("junjo.id", "")
-    junjo_parent_id = attributes.pop("junjo.parent_id", "")
-    junjo_span_type = attributes.pop("junjo.span_type", "")
-    junjo_wf_state_start = attributes.pop("junjo.workflow.state.start", {})
-    junjo_wf_state_end = attributes.pop("junjo.workflow.state.end", {})
-    junjo_wf_graph_structure = attributes.pop("junjo.workflow.graph_structure", {})
-    junjo_wf_store_id = attributes.pop("junjo.workflow.store_id", "")
-
-    # Parse nested JSON in junjo fields if they're strings
-    if isinstance(junjo_wf_state_start, str):
-        junjo_wf_state_start = _parse_json_safe(junjo_wf_state_start, {})
-    if isinstance(junjo_wf_state_end, str):
-        junjo_wf_state_end = _parse_json_safe(junjo_wf_state_end, {})
-    if isinstance(junjo_wf_graph_structure, str):
-        junjo_wf_graph_structure = _parse_json_safe(junjo_wf_graph_structure, {})
 
     # Map span_kind int to string (matching V3 behavior)
     kind_map = {0: "INTERNAL", 1: "SERVER", 2: "CLIENT", 3: "PRODUCER", 4: "CONSUMER"}
@@ -507,18 +489,11 @@ def _convert_span_data_to_api_format(span_data: ingestion_pb2.SpanData) -> dict[
         "end_time": end_time_str,
         "status_code": str(span_data.status_code),
         "status_message": span_data.status_message or "",
-        "attributes_json": attributes,
+        "attributes_json": attributes,  # Contains junjo.* fields - frontend extracts them
         "events_json": events,
         "links_json": [],  # Not in WAL schema
         "trace_flags": 0,  # Not in WAL schema
         "trace_state": None,  # Not in WAL schema
-        "junjo_id": junjo_id,
-        "junjo_parent_id": junjo_parent_id,
-        "junjo_span_type": junjo_span_type,
-        "junjo_wf_state_start": junjo_wf_state_start,
-        "junjo_wf_state_end": junjo_wf_state_end,
-        "junjo_wf_graph_structure": junjo_wf_graph_structure,
-        "junjo_wf_store_id": junjo_wf_store_id,
     }
 
 

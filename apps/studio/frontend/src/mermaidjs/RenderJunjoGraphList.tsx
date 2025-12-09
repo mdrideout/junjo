@@ -1,4 +1,5 @@
 import { identifySpanWorkflowChain } from '../features/traces/store/selectors'
+import { wrapSpan } from '../features/traces/utils/span-accessor'
 import { JunjoGraph } from '../junjo-graph/junjo-graph'
 import { useAppSelector } from '../root-store/hooks'
 import { RootState } from '../root-store/store'
@@ -8,21 +9,6 @@ interface RenderJunjoGraphListProps {
   traceId: string
   workflowSpanId: string
   showEdgeLabels: boolean
-}
-
-/**
- * Check if a graph structure object has the required fields for rendering.
- * Returns true if the structure has v (version), nodes array, and edges array.
- */
-function hasValidGraphStructure(graphStructure: Record<string, unknown> | undefined): boolean {
-  if (!graphStructure || typeof graphStructure !== 'object') {
-    return false
-  }
-  return (
-    typeof graphStructure.v === 'number' &&
-    Array.isArray(graphStructure.nodes) &&
-    Array.isArray(graphStructure.edges)
-  )
 }
 
 export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
@@ -37,9 +23,11 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
 
   return workflowChain.map((workflowSpan) => {
     const uniqueMermaidId = `mer-unique-${workflowSpan.span_id}`
+    const accessor = wrapSpan(workflowSpan)
+    const graphStructure = accessor.workflowGraphStructure
 
     // Check if the workflow has valid graph structure data
-    if (!hasValidGraphStructure(workflowSpan.junjo_wf_graph_structure)) {
+    if (!graphStructure) {
       return (
         <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>
           <div className={'font-bold text-sm'}>{workflowSpan.name}</div>
@@ -51,9 +39,7 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
     }
 
     // Parse mermaid flow string
-    const mermaidFlowString = JunjoGraph.fromJson(workflowSpan.junjo_wf_graph_structure).toMermaid(
-      showEdgeLabels,
-    )
+    const mermaidFlowString = JunjoGraph.fromJson(graphStructure).toMermaid(showEdgeLabels)
 
     return (
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>

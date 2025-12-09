@@ -18,6 +18,7 @@ import {
 } from '../../traces/store/selectors'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 import SpanAttributesContent from '../../traces/SpanAttributesContent'
+import { wrapSpan } from '../../traces/utils/span-accessor'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -112,7 +113,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   // The starting state of the active workflow
   // Used for accumulating patches
-  const workflowStateStart = activeStoreWorkflowSpan?.junjo_wf_state_start ?? {}
+  const workflowStateStart = activeStoreWorkflowSpan ? wrapSpan(activeStoreWorkflowSpan).workflowStateStart : {}
 
   // Workflow JSON States
   // Different representations of the Workflow's states for rendering

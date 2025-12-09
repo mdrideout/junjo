@@ -244,8 +244,8 @@ class TestSpanConversion:
         result = datafusion_query.query_spans_from_parquet([file_path])
         assert result[0]["attributes_json"] == {"key": "value", "count": 42}
 
-    def test_extracts_junjo_fields(self, temp_parquet_dir):
-        """Should extract junjo_* fields from attributes."""
+    def test_passes_through_junjo_fields_in_attributes(self, temp_parquet_dir):
+        """Should keep junjo fields in attributes_json (frontend extracts them)."""
         trace_id = uuid.uuid4().hex
         spans = [
             create_test_span(
@@ -264,12 +264,14 @@ class TestSpanConversion:
         result = datafusion_query.query_spans_from_parquet([file_path])
         span = result[0]
 
-        assert span["junjo_span_type"] == "workflow"
-        assert span["junjo_id"] == "wf-123"
-        assert span["junjo_parent_id"] == "wf-parent"
-        # Junjo fields should be removed from attributes_json
-        assert "junjo.span_type" not in span["attributes_json"]
-        assert "other_attr" in span["attributes_json"]
+        # Junjo fields should remain in attributes_json (no top-level junjo_* fields)
+        assert span["attributes_json"]["junjo.span_type"] == "workflow"
+        assert span["attributes_json"]["junjo.id"] == "wf-123"
+        assert span["attributes_json"]["junjo.parent_id"] == "wf-parent"
+        assert span["attributes_json"]["other_attr"] == "value"
+        # No top-level junjo_* fields
+        assert "junjo_span_type" not in span
+        assert "junjo_id" not in span
 
 
 class TestGetSpansByTraceId:
@@ -384,4 +386,5 @@ class TestGetWorkflowSpans:
 
         assert len(result) == 1
         assert result[0]["name"] == "workflow-span"
-        assert result[0]["junjo_span_type"] == "workflow"
+        # junjo.span_type is in attributes_json, not top-level
+        assert result[0]["attributes_json"]["junjo.span_type"] == "workflow"

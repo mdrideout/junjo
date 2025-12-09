@@ -1,5 +1,5 @@
 import { JSX } from 'react'
-import { JunjoSpanType, OtelSpan } from '../../traces/schemas/schemas'
+import { OtelSpan } from '../../traces/schemas/schemas'
 import {
   CubeIcon,
   Square3Stack3DIcon,
@@ -11,6 +11,7 @@ import {
   ArrowsRightLeftIcon,
 } from '@heroicons/react/24/solid'
 import { OpenInferenceSpanKind } from '../../traces/schemas/attribute-schemas-openinference'
+import { wrapSpan } from '../../traces/utils/span-accessor'
 
 /**
  * Span Icon Constructor
@@ -31,20 +32,21 @@ export function SpanIconConstructor(props: {
   }
 
   const attributes = span.attributes_json
+  const accessor = wrapSpan(span)
 
   // ============ JUNJO SPAN ICONS ============>
-  // Junjo Workflow Span
-  if (span.junjo_span_type === JunjoSpanType.SUBFLOW) {
+  // Junjo Subflow Span
+  if (accessor.isSubflow) {
     return <Square3Stack3DIcon className={`${size} ${iconColor}`} />
   }
 
   // Junjo Node Span
-  if (span.junjo_span_type === JunjoSpanType.NODE) {
+  if (accessor.isNode) {
     return <CubeIcon className={`${size} ${iconColor}`} />
   }
 
   // Junjo RunConcurrent Span
-  if (span.junjo_span_type === JunjoSpanType.RUN_CONCURRENT) {
+  if (accessor.isRunConcurrent) {
     return <Squares2X2Icon className={`${size} ${iconColor}`} />
   }
 

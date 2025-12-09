@@ -12,6 +12,7 @@ import {
   selectActiveSetStateEvent,
   selectWorkflowDetailActiveSpan,
 } from '../../junjo-data/workflow-detail/store/selectors'
+import { wrapSpan } from '../utils/span-accessor'
 
 export const selectTracesState = (state: RootState) => state.tracesState
 export const selectTraceSpans = (state: RootState) => state.tracesState.traceSpans
@@ -144,10 +145,8 @@ export const identifySpanWorkflowChain = createWorkflowChainSelector(
       // Recursively check the parent spans to find the first workflow / subflow span
       function recursivelyBuildWorkflowSpanChain(span: OtelSpan): OtelSpan | undefined {
         // Check if the span is a workflow or subflow, if so, return it
-        if (
-          span.junjo_span_type === JunjoSpanType.WORKFLOW ||
-          span.junjo_span_type === JunjoSpanType.SUBFLOW
-        ) {
+        const spanType = wrapSpan(span).junjoSpanType
+        if (spanType === JunjoSpanType.WORKFLOW || spanType === JunjoSpanType.SUBFLOW) {
           // Add to the beginning of the chain and continue traversing
           workflowSpanChain.unshift(span)
         }
@@ -189,7 +188,7 @@ export const selectWorkflowSpanByStoreId = createSelector(
   (traceSpans, storeId): OtelSpan | undefined => {
     if (!traceSpans || !storeId) return undefined
 
-    return traceSpans.find((span) => span.junjo_wf_store_id === storeId)
+    return traceSpans.find((span) => wrapSpan(span).workflowStoreId === storeId)
   },
 )
 
@@ -212,7 +211,7 @@ export const selectActiveSpanFirstJunjoParent = createSelector(
     // Recursively check the parent spans to find the first junjo span
     function recursivelyCheckParentSpansForJunjoSpan(span: OtelSpan): OtelSpan | undefined {
       // Check if the span is a junjo span (and not 'other' which is an empty string enum (falsy)), return it
-      if (span.junjo_span_type) {
+      if (wrapSpan(span).isJunjoSpan) {
         return span
       }
 
@@ -251,7 +250,8 @@ export const selectActiveSpanJunjoWorkflow = createSelector(
     // Recursively check the parent spans to find the first workflow / subflow span
     function recursivelyCheckParentSpansForWorkflowSpan(span: OtelSpan): OtelSpan | undefined {
       // Check if the span is a workflow or subflow, return it
-      if (span.junjo_span_type === JunjoSpanType.WORKFLOW || span.junjo_span_type === JunjoSpanType.SUBFLOW) {
+      const spanType = wrapSpan(span).junjoSpanType
+      if (spanType === JunjoSpanType.WORKFLOW || spanType === JunjoSpanType.SUBFLOW) {
         // Add to the beginning of the chain and continue traversing
         return span
       }
@@ -420,12 +420,12 @@ export const selectActiveStoreID = createSelector(
     }
 
     // Else, if there is no active set_state event, return the store ID that the current span acts on
-    if (activeSpan.junjo_span_type === 'subflow') {
-      return activeSpan.attributes_json['junjo.workflow.parent_store.id']
+    if (wrapSpan(activeSpan).isSubflow) {
+      return activeSpan.attributes_json['junjo.workflow.parent_store.id'] as string | undefined
     }
 
     // Otherwise, return the store ID of the current workflow
-    return activeWorkflowSpan?.junjo_wf_store_id
+    return activeWorkflowSpan ? wrapSpan(activeWorkflowSpan).workflowStoreId : undefined
   },
 )
 

@@ -516,7 +516,7 @@ class TestWorkflowSpans:
     """Tests for workflow span filtering."""
 
     async def test_get_workflow_spans_returns_only_workflows(self, populated_v4_env):
-        """Should return only spans with junjo_span_type = 'workflow'."""
+        """Should return only spans with junjo.span_type = 'workflow' in attributes."""
         workflow_spans = await otel_repository.get_fused_workflow_spans("payment-service")
 
         # Only 1 workflow span in payment-service
@@ -525,8 +525,9 @@ class TestWorkflowSpans:
         wf_span = workflow_spans[0]
         assert wf_span["span_id"] == populated_v4_env["payment_t2_wf_span_id"]
         assert wf_span["name"] == "RefundWorkflow"
-        assert wf_span["junjo_span_type"] == "workflow"
-        assert wf_span["junjo_id"] == "wf-refund-001"
+        # junjo fields are in attributes_json, not top-level
+        assert wf_span["attributes_json"]["junjo.span_type"] == "workflow"
+        assert wf_span["attributes_json"]["junjo.id"] == "wf-refund-001"
 
     async def test_get_workflow_spans_empty_for_service_without_workflows(self, populated_v4_env):
         """Should return empty list for service with no workflow spans."""

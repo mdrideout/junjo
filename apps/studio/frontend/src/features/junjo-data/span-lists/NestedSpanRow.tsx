@@ -1,10 +1,11 @@
 import { useAppDispatch } from '../../../root-store/hooks'
 import { getSpanDurationString } from '../../../util/duration-utils'
-import { JunjoSpanType, OtelSpan } from '../../traces/schemas/schemas'
+import { OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from './determine-span-icon'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import { spanNameConstructor } from './span-name-constructor'
 import { useNavigate, useParams } from 'react-router'
+import { wrapSpan } from '../../traces/utils/span-accessor'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -18,8 +19,8 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   const { serviceName, traceId, workflowSpanId } = useParams()
 
   // Determine the type of span
-  const nonJunjoSpan = span.junjo_span_type === JunjoSpanType.OTHER
-  const junjoSpan = !nonJunjoSpan
+  const junjoSpan = wrapSpan(span).isJunjoSpan
+  const nonJunjoSpan = !junjoSpan
 
   const start_time = span.start_time
   const end_time = span.end_time

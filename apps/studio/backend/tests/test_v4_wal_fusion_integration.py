@@ -97,7 +97,10 @@ def create_api_span_dict(
     end_time: str,
     attributes: dict | None = None,
 ) -> dict:
-    """Create a span dict matching API response format (for WAL mock)."""
+    """Create a span dict matching API response format (for WAL mock).
+
+    Note: junjo.* fields remain in attributes_json - frontend extracts them.
+    """
     attrs = attributes or {}
 
     return {
@@ -111,18 +114,11 @@ def create_api_span_dict(
         "end_time": end_time,
         "status_code": "0",
         "status_message": "",
-        "attributes_json": attrs,
+        "attributes_json": attrs,  # Contains junjo.* fields - frontend extracts them
         "events_json": [],
         "links_json": [],
         "trace_flags": 0,
         "trace_state": None,
-        "junjo_id": "",
-        "junjo_parent_id": "",
-        "junjo_span_type": attrs.get("junjo.span_type", ""),
-        "junjo_wf_state_start": {},
-        "junjo_wf_state_end": {},
-        "junjo_wf_graph_structure": {},
-        "junjo_wf_store_id": "",
     }
 
 

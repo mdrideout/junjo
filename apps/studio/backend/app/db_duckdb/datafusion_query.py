@@ -165,34 +165,16 @@ def _convert_parquet_row_to_api_format(table: dict[str, list], idx: int) -> dict
     status_message = table["status_message"][idx]
     attributes_str = table["attributes"][idx]
     events_str = table["events"][idx]
-    resource_attributes_str = table["resource_attributes"][idx]
+    _ = table["resource_attributes"][idx]  # Available but not used in API response
 
-    # Parse JSON fields
+    # Parse JSON fields - pass through unchanged (no junjo extraction)
+    # Frontend SpanAccessor handles junjo field extraction
     attributes = _parse_json_safe(attributes_str, {})
     events = _parse_json_safe(events_str, [])
-    # resource_attributes is available but not used in current API response
-    _ = _parse_json_safe(resource_attributes_str, {})
 
     # Format timestamps as ISO8601 with timezone
     start_time_str = _format_timestamp(start_time_ns)
     end_time_str = _format_timestamp(end_time_ns)
-
-    # Extract junjo fields from attributes
-    junjo_id = attributes.pop("junjo.id", "")
-    junjo_parent_id = attributes.pop("junjo.parent_id", "")
-    junjo_span_type = attributes.pop("junjo.span_type", "")
-    junjo_wf_state_start = attributes.pop("junjo.workflow.state.start", {})
-    junjo_wf_state_end = attributes.pop("junjo.workflow.state.end", {})
-    junjo_wf_graph_structure = attributes.pop("junjo.workflow.graph_structure", {})
-    junjo_wf_store_id = attributes.pop("junjo.workflow.store_id", "")
-
-    # Parse nested JSON in junjo fields if they're strings
-    if isinstance(junjo_wf_state_start, str):
-        junjo_wf_state_start = _parse_json_safe(junjo_wf_state_start, {})
-    if isinstance(junjo_wf_state_end, str):
-        junjo_wf_state_end = _parse_json_safe(junjo_wf_state_end, {})
-    if isinstance(junjo_wf_graph_structure, str):
-        junjo_wf_graph_structure = _parse_json_safe(junjo_wf_graph_structure, {})
 
     # Map span_kind int to string (matching V3 behavior)
     kind_map = {0: "INTERNAL", 1: "SERVER", 2: "CLIENT", 3: "PRODUCER", 4: "CONSUMER"}
@@ -209,18 +191,11 @@ def _convert_parquet_row_to_api_format(table: dict[str, list], idx: int) -> dict
         "end_time": end_time_str,
         "status_code": str(status_code),
         "status_message": status_message or "",
-        "attributes_json": attributes,
+        "attributes_json": attributes,  # Contains junjo.* fields - frontend extracts them
         "events_json": events,
         "links_json": [],  # Not in Parquet schema
         "trace_flags": 0,  # Not in Parquet schema
         "trace_state": None,  # Not in Parquet schema
-        "junjo_id": junjo_id,
-        "junjo_parent_id": junjo_parent_id,
-        "junjo_span_type": junjo_span_type,
-        "junjo_wf_state_start": junjo_wf_state_start,
-        "junjo_wf_state_end": junjo_wf_state_end,
-        "junjo_wf_graph_structure": junjo_wf_graph_structure,
-        "junjo_wf_store_id": junjo_wf_store_id,
     }
 
 
@@ -371,7 +346,11 @@ def get_workflow_spans(
         limit=limit * 2,  # Fetch more since we filter
     )
 
-    # Filter for workflow spans
-    workflow_spans = [span for span in all_spans if span.get("junjo_span_type") == "workflow"]
+    # Filter for workflow spans - junjo.span_type is in attributes_json
+    workflow_spans = [
+        span
+        for span in all_spans
+        if span.get("attributes_json", {}).get("junjo.span_type") == "workflow"
+    ]
 
     return workflow_spans[:limit]

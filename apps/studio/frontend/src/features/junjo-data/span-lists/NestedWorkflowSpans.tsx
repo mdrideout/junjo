@@ -5,7 +5,6 @@ import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../
 import { JSX, useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router'
 import {
-  JunjoSpanType,
   NodeEventType,
   JunjoSetStateEvent,
   JunjoSetStateEventSchema,
@@ -15,6 +14,7 @@ import { PlayIcon } from '@heroicons/react/24/solid'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import NestedSpanRow from './NestedSpanRow'
 import { selectSpanAndChildren } from '../../traces/store/selectors'
+import { wrapSpan } from '../../traces/utils/span-accessor'
 
 interface NestedWorkflowSpansProps {
   traceId: string
@@ -65,7 +65,8 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   useEffect(() => {
     if (activeSpanId && scrollableContainerRef.current) {
       const targetSpanId = `#nested-span-${activeSpanId}`
-      console.log(`Scrolling to span: ${targetSpanId}`)
+
+      // console.log(`Scrolling to span: ${targetSpanId}`)
       const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
       if (targetElement) {
         targetElement.scrollIntoView({
@@ -186,7 +187,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
     /** Render Span Row **/
     if (row.type === RowType.SPAN) {
       const isActiveSpan = row.data.span_id === activeSpan?.span_id
-      const spanTypeOther = row.data.junjo_span_type === JunjoSpanType.OTHER
+      const spanTypeOther = !wrapSpan(row.data).isJunjoSpan
 
       return (
         <Fragment key={`nested-span-${row.data.span_id}-${layer}`}>
