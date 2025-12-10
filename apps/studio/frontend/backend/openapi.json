@@ -12,7 +12,7 @@
           "admin"
         ],
         "summary": "Flush Wal",
-        "description": "Trigger WAL flush to Parquet files. Requires authentication.",
+        "description": "Trigger WAL flush to Parquet files and index new files. Requires authentication.",
         "operationId": "flush_wal_api_admin_flush_wal_post",
         "responses": {
           "200": {
@@ -1122,6 +1122,14 @@
             "title": "Message",
             "examples": [
               "WAL flush completed"
+            ]
+          },
+          "files_indexed": {
+            "type": "integer",
+            "title": "Files Indexed",
+            "default": 0,
+            "examples": [
+              1
             ]
           }
         },

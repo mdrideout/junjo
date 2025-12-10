@@ -26,8 +26,9 @@ type flusherConfig struct {
 
 // Flusher manages the background process of flushing spans from SQLite to Parquet.
 type Flusher struct {
-	repo   SpanRepository
-	config flusherConfig
+	repo        SpanRepository
+	config      flusherConfig
+	warmFlusher *WarmFlusher
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -51,9 +52,10 @@ func NewFlusher(repo SpanRepository) *Flusher {
 			outputDir:     cfg.OutputDir,
 			parquetConfig: DefaultParquetWriterConfig(),
 		},
-		ctx:     ctx,
-		cancel:  cancel,
-		flushCh: make(chan chan error),
+		warmFlusher: NewWarmFlusher(repo),
+		ctx:         ctx,
+		cancel:      cancel,
+		flushCh:     make(chan chan error),
 	}
 }
 
@@ -106,6 +108,12 @@ func (f *Flusher) run() {
 			return
 
 		case <-ticker.C:
+			// First check if we need a warm snapshot (incremental)
+			if _, err := f.warmFlusher.CheckAndSnapshot(); err != nil {
+				slog.Error("warm snapshot check failed", slog.Any("error", err))
+			}
+
+			// Then check if we need a cold flush (full)
 			if err := f.checkAndFlush(); err != nil {
 				slog.Error("periodic flush check failed", slog.Any("error", err))
 			}
@@ -202,6 +210,12 @@ func (f *Flusher) doFlush() error {
 	// Update flush state
 	if err := f.repo.UpdateFlushState(firstKey, lastKey, int64(len(records))); err != nil {
 		slog.Warn("failed to update flush state", slog.Any("error", err))
+		// Don't fail the flush for this
+	}
+
+	// Clean up warm tier after successful cold flush
+	if err := f.warmFlusher.CleanupWarmFiles(); err != nil {
+		slog.Warn("failed to cleanup warm files after cold flush", slog.Any("error", err))
 		// Don't fail the flush for this
 	}
 

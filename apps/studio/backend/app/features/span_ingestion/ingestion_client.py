@@ -29,6 +29,18 @@ class SpanWithResource:
     resource_bytes: bytes  # Serialized OTLP Resource protobuf
 
 
+@dataclass
+class WarmCursor:
+    """Warm snapshot cursor state from ingestion service.
+
+    Used to track what data is in warm tier vs hot tier.
+    """
+
+    last_warm_ulid: bytes | None  # Last span ULID written to warm snapshot
+    last_warm_time_ns: int  # Timestamp of last warm snapshot in nanoseconds
+    warm_file_count: int  # Number of warm parquet files in tmp/
+
+
 class IngestionClient:
     """Async gRPC client for reading spans from ingestion service.
 
@@ -72,12 +84,23 @@ class IngestionClient:
             Exception: If connection fails
         """
         try:
+            # Max message size: 100MB
+            # Warm snapshots trigger at 10MB threshold every 15s, but under high load
+            # or if warm flushing is delayed, HOT tier can grow larger.
+            # 100MB provides ample headroom for burst scenarios.
+            max_message_size = 100 * 1024 * 1024  # 100MB
+
             self.channel = grpc.aio.insecure_channel(
                 self.address,
                 options=[
-                    ("grpc.keepalive_time_ms", 10000),
-                    ("grpc.keepalive_timeout_ms", 5000),
-                    ("grpc.keepalive_permit_without_calls", 1),
+                    # Message size limits for Arrow IPC payloads
+                    ("grpc.max_receive_message_length", max_message_size),
+                    ("grpc.max_send_message_length", max_message_size),
+                    # Keepalive settings - must be >= server's MinTime (default 5 min)
+                    # Using 5 minutes to avoid "too_many_pings" GOAWAY from server
+                    ("grpc.keepalive_time_ms", 300000),  # 5 minutes
+                    ("grpc.keepalive_timeout_ms", 20000),  # 20 seconds
+                    ("grpc.keepalive_permit_without_calls", 0),  # Don't ping without active calls
                 ],
             )
             self.stub = ingestion_pb2_grpc.InternalIngestionServiceStub(self.channel)
@@ -293,7 +316,10 @@ class IngestionClient:
     async def get_wal_distinct_service_names(self) -> list[str]:
         """Get all distinct service names currently in the WAL.
 
-        Used to merge with Parquet-indexed services for complete listing.
+        DEPRECATED: Use get_hot_spans_arrow + DataFusion instead.
+        This method calls the deprecated GetWALDistinctServiceNames RPC.
+        With three-tier architecture, use query_distinct_service_names() in
+        UnifiedSpanQuery which queries all tiers via DataFusion.
 
         Returns:
             List of service name strings
@@ -302,6 +328,9 @@ class IngestionClient:
             grpc.aio.AioRpcError: If gRPC call fails
             Exception: If stub not initialized
         """
+        logger.warning(
+            "get_wal_distinct_service_names is DEPRECATED - use get_hot_spans_arrow + DataFusion"
+        )
         if not self.stub:
             raise Exception("Client not connected. Call connect() first.")
 
@@ -360,5 +389,149 @@ class IngestionClient:
             logger.error(
                 "gRPC error flushing WAL",
                 extra={"code": str(e.code()), "details": e.details()},
+            )
+            raise
+
+    # =========================================================================
+    # Three-Tier Architecture Methods (Hot/Warm/Cold)
+    # =========================================================================
+
+    async def get_warm_cursor(self) -> WarmCursor:
+        """Get the warm snapshot cursor from ingestion service.
+
+        The cursor tells us what data is in warm tier vs hot tier:
+        - Spans with ULID <= last_warm_ulid are in warm parquet files
+        - Spans with ULID > last_warm_ulid are in hot tier (SQLite)
+
+        Returns:
+            WarmCursor with current state
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetWarmCursorRequest()
+
+        try:
+            response = await self.stub.GetWarmCursor(request)
+
+            # Handle empty ULID (no warm snapshots yet)
+            last_warm_ulid = response.last_warm_ulid if response.last_warm_ulid else None
+
+            cursor = WarmCursor(
+                last_warm_ulid=last_warm_ulid,
+                last_warm_time_ns=response.last_warm_time_ns,
+                warm_file_count=response.warm_file_count,
+            )
+
+            logger.debug(
+                "Retrieved warm cursor",
+                extra={
+                    "has_ulid": cursor.last_warm_ulid is not None,
+                    "warm_file_count": cursor.warm_file_count,
+                },
+            )
+
+            return cursor
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting warm cursor",
+                extra={"code": str(e.code()), "details": e.details()},
+            )
+            raise
+
+    async def get_hot_spans_arrow(
+        self,
+        *,
+        since_warm_ulid: bytes | None = None,
+        trace_id: str | None = None,
+        service_name: str | None = None,
+        root_only: bool = False,
+        workflow_only: bool = False,
+        limit: int = 0,
+    ) -> pa.Table:
+        """Get HOT tier spans (since last warm snapshot) as Arrow Table.
+
+        This is the three-tier architecture query that returns only the newest data
+        that hasn't been snapshotted to warm parquet files yet.
+
+        Args:
+            since_warm_ulid: Only return spans newer than this ULID.
+                            If None, returns ALL spans in SQLite (fallback).
+            trace_id: Filter by trace ID (exact match)
+            service_name: Filter by service name (exact match)
+            root_only: Only return root spans (no parent)
+            workflow_only: Only return workflow spans (junjo.span_type = 'workflow')
+            limit: Maximum number of spans to return (0 = no limit)
+
+        Returns:
+            PyArrow Table containing HOT tier spans
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.GetHotSpansArrowRequest(
+            root_only=root_only,
+            workflow_only=workflow_only,
+            limit=limit,
+        )
+
+        # Set optional fields
+        if since_warm_ulid is not None:
+            request.since_warm_ulid = since_warm_ulid
+        if trace_id is not None:
+            request.trace_id = trace_id
+        if service_name is not None:
+            request.service_name = service_name
+
+        batches: list[pa.RecordBatch] = []
+        total_rows = 0
+
+        try:
+            async for arrow_batch in self.stub.GetHotSpansArrow(request):
+                if arrow_batch.ipc_bytes:
+                    # Deserialize Arrow IPC bytes to RecordBatch
+                    reader = pa.ipc.open_stream(arrow_batch.ipc_bytes)
+                    # Read all batches from the IPC stream
+                    for batch in reader:
+                        batches.append(batch)
+                        total_rows += batch.num_rows
+
+            logger.debug(
+                "Retrieved HOT spans as Arrow",
+                extra={
+                    "has_since_ulid": since_warm_ulid is not None,
+                    "trace_id": trace_id,
+                    "service_name": service_name,
+                    "root_only": root_only,
+                    "workflow_only": workflow_only,
+                    "row_count": total_rows,
+                },
+            )
+
+            # Combine all batches into a single Table
+            if batches:
+                return pa.Table.from_batches(batches)
+            else:
+                # Return empty table with expected schema
+                return pa.table({})
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                "gRPC error getting HOT spans as Arrow",
+                extra={
+                    "trace_id": trace_id,
+                    "service_name": service_name,
+                    "code": str(e.code()),
+                    "details": e.details(),
+                },
             )
             raise

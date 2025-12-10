@@ -706,3 +706,19 @@ def get_file_paths_for_junjo_type(
             [service_name, junjo_span_type, limit],
         ).fetchall()
         return [row[0] for row in result]
+
+
+def get_all_parquet_file_paths() -> list[str]:
+    """Get all indexed Parquet file paths (COLD tier).
+
+    Used for three-tier queries where we need all cold files for
+    operations like getting distinct service names.
+
+    Returns:
+        List of all indexed Parquet file paths
+    """
+    with get_connection() as conn:
+        result = conn.execute(
+            "SELECT file_path FROM parquet_files ORDER BY max_time DESC"
+        ).fetchall()
+        return [row[0] for row in result]

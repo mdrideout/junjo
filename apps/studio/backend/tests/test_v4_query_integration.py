@@ -29,26 +29,35 @@ import pyarrow.parquet as pq
 import pytest
 
 from app.db_duckdb import v4_repository
+from app.db_duckdb.unified_query import UnifiedSpanQuery
 from app.features.otel_spans import repository as otel_repository
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
 
 
-# Mock WAL queries to return empty results (isolates Parquet-only testing)
+# Mock three-tier queries to return empty results (isolates Parquet-only testing)
 @pytest.fixture(autouse=True)
 def mock_wal_queries():
-    """Mock WAL query functions to return empty Arrow tables.
+    """Mock three-tier query functions to return empty results.
 
-    This isolates the V4 Parquet-only flow from WAL fusion.
-    With the new unified DataFusion architecture, WAL returns Arrow IPC data.
+    This isolates the V4 Parquet-only flow from WAL/Hot tier fusion.
+    With the three-tier architecture (Cold/Warm/Hot):
+    - Cold: Parquet files (tested here)
+    - Warm: tmp/*.parquet snapshots (mocked to empty)
+    - Hot: gRPC Arrow IPC (mocked to empty)
     """
-    with patch.object(otel_repository, "_get_wal_distinct_service_names", new_callable=AsyncMock) as mock_services, \
-         patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock_arrow:
-        mock_services.return_value = []
-        # Return empty Arrow table (mimics no WAL data)
-        mock_arrow.return_value = pa.table({})
+    with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+         patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+         patch.object(UnifiedSpanQuery, "register_warm") as mock_register_warm:
+        # No warm cursor means no warm snapshots
+        mock_cursor.return_value = None
+        # Return empty Arrow table (mimics no hot data)
+        mock_hot.return_value = pa.table({})
+        # register_warm returns empty list (no warm files)
+        mock_register_warm.return_value = []
         yield {
-            "service_names": mock_services,
-            "arrow": mock_arrow,
+            "warm_cursor": mock_cursor,
+            "hot_arrow": mock_hot,
+            "register_warm": mock_register_warm,
         }
 
 

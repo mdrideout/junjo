@@ -1,14 +1,19 @@
-"""V4 WAL Fusion Integration Tests.
+"""V4 Three-Tier Fusion Integration Tests.
 
-Tests the fusion of WAL (hot) and Parquet (cold) data in V4 queries.
-Uses mocked WAL responses to verify merge logic without requiring
-the full Go ingestion service infrastructure.
+Tests the fusion of Cold (Parquet), Warm (tmp snapshots), and Hot (gRPC)
+data in V4 queries. Uses mocked responses to verify merge logic without
+requiring the full Go ingestion service infrastructure.
+
+Three-Tier Architecture:
+- Cold: Parquet files from full WAL flushes (indexed in DuckDB)
+- Warm: Incremental parquet snapshots in tmp/ (globbed, not indexed)
+- Hot: Live SQLite data since last warm snapshot (gRPC Arrow IPC)
 
 Test scenarios:
-1. Service Names: Merge from both Parquet and WAL
-2. Trace Spans: Merge spans from both sources, deduplicate by span_id
-3. Root Spans: Merge root spans from both sources
-4. Single Span: Check Parquet first, then WAL
+1. Service Names: Merge from all three tiers via DataFusion
+2. Trace Spans: Merge spans from all sources, deduplicate by span_id
+3. Root Spans: Merge root spans from all sources
+4. Single Span: Query unified three-tier data
 """
 
 import json
@@ -25,6 +30,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from app.db_duckdb import v4_repository
+from app.db_duckdb.unified_query import UnifiedSpanQuery
 from app.features.otel_spans import repository as otel_repository
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
 
@@ -346,24 +352,54 @@ def fusion_test_env(temp_parquet_dir, temp_duckdb):
 
 
 # ============================================================================
-# Fusion Tests - Service Names
+# Fusion Tests - Service Names (Three-Tier Architecture)
 # ============================================================================
+
+
+def _create_hot_table_with_service(service_name: str) -> pa.Table:
+    """Create a hot tier Arrow table with a single span for a service."""
+    now_ns = int(datetime.now(tz=UTC).timestamp() * 1_000_000_000)
+    return pa.table(
+        {
+            "span_id": ["hot_span_1"],
+            "trace_id": ["hot_trace_1"],
+            "parent_span_id": [None],
+            "service_name": [service_name],
+            "name": ["hot_span"],
+            "span_kind": [1],
+            "start_time": pa.array([now_ns], type=pa.timestamp("ns", tz="UTC")),
+            "end_time": pa.array([now_ns + 100_000], type=pa.timestamp("ns", tz="UTC")),
+            "duration_ns": [100_000],
+            "status_code": [0],
+            "status_message": [""],
+            "attributes": ["{}"],
+            "events": ["[]"],
+            "resource_attributes": ["{}"],
+        },
+        schema=SPAN_SCHEMA,
+    )
 
 
 @pytest.mark.integration
 class TestServiceNameFusion:
-    """Tests for service name fusion from Parquet and WAL."""
+    """Tests for service name fusion from all three tiers."""
 
     @pytest.mark.asyncio
-    async def test_service_names_include_wal_only_service(self, fusion_test_env):
-        """Service names should include services only in WAL."""
-        with patch.object(otel_repository, "_get_wal_distinct_service_names", new_callable=AsyncMock) as mock:
-            # WAL returns service-b (not in Parquet)
-            mock.return_value = ["service-b"]
+    async def test_service_names_include_hot_only_service(self, fusion_test_env):
+        """Service names should include services only in HOT tier."""
+        # Create hot table with service-b (not in cold/Parquet)
+        hot_table = _create_hot_table_with_service("service-b")
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             services = await otel_repository.get_fused_distinct_service_names()
 
-            # Should have all 3 services
+            # Should have all 3 services (service-a and service-c from Parquet, service-b from hot)
             assert len(services) == 3
             assert "service-a" in services
             assert "service-b" in services
@@ -372,56 +408,70 @@ class TestServiceNameFusion:
     @pytest.mark.asyncio
     async def test_service_names_deduplicate(self, fusion_test_env):
         """Duplicate service names should be deduplicated."""
-        with patch.object(otel_repository, "_get_wal_distinct_service_names", new_callable=AsyncMock) as mock:
-            # WAL returns service-c which is also in Parquet
-            mock.return_value = ["service-c", "service-b"]
+        # Create hot table with service-c which is also in Parquet
+        hot_table = _create_hot_table_with_service("service-c")
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             services = await otel_repository.get_fused_distinct_service_names()
 
-            # Should be unique and sorted
-            assert services == ["service-a", "service-b", "service-c"]
+            # Should be unique and sorted (service-a and service-c from Parquet, service-c deduplicated)
+            assert services == ["service-a", "service-c"]
 
     @pytest.mark.asyncio
     async def test_service_names_graceful_degradation(self, fusion_test_env):
-        """Should return Parquet services if WAL query fails."""
-        # The _get_wal_distinct_service_names function already catches exceptions and returns []
-        # So we mock it to return an empty list (simulating graceful degradation)
-        with patch.object(otel_repository, "_get_wal_distinct_service_names", new_callable=AsyncMock) as mock:
-            # WAL query returns empty (simulating failure that was caught)
-            mock.return_value = []
+        """Should return Parquet services if HOT tier query fails."""
+        # HOT tier returns empty (simulating graceful degradation)
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = pa.table({})  # Empty table
+            mock_warm.return_value = []
 
             services = await otel_repository.get_fused_distinct_service_names()
 
-            # Should still have Parquet services
+            # Should still have Parquet services (Cold tier)
             assert "service-a" in services
             assert "service-c" in services
-            # service-b is WAL-only, so it won't be present
+            # service-b was only in hot tier, so it won't be present
             assert "service-b" not in services
 
 
 # ============================================================================
-# Fusion Tests - Trace Spans
+# Fusion Tests - Trace Spans (Three-Tier Architecture)
 # ============================================================================
 
 
 @pytest.mark.integration
 class TestTraceSpanFusion:
-    """Tests for trace span fusion from Parquet and WAL."""
+    """Tests for trace span fusion from all three tiers."""
 
     @pytest.mark.asyncio
     async def test_trace_spans_merge_parquet_and_wal(self, fusion_test_env):
-        """Should merge spans from Parquet (root) and WAL (children)."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns child spans not in Parquet as Arrow table
-            mock.return_value = create_wal_arrow_table([
-                fusion_test_env["wal_child1"],
-                fusion_test_env["wal_child2"],
-            ])
+        """Should merge spans from Cold (Parquet) and Hot (gRPC) tiers."""
+        # HOT tier returns child spans not in Parquet
+        hot_table = create_wal_arrow_table([
+            fusion_test_env["wal_child1"],
+            fusion_test_env["wal_child2"],
+        ])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             trace_id = fusion_test_env["split_trace_id"]
             spans = await otel_repository.get_fused_trace_spans(trace_id)
 
-            # Should have root (Parquet) + 2 children (WAL)
+            # Should have root (Cold/Parquet) + 2 children (Hot)
             assert len(spans) == 3
 
             span_ids = {s["span_id"] for s in spans}
@@ -431,19 +481,25 @@ class TestTraceSpanFusion:
 
     @pytest.mark.asyncio
     async def test_trace_spans_parquet_wins_deduplication(self, fusion_test_env):
-        """Parquet should win if same span exists in both sources."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL also returns the root span (duplicate)
-            wal_duplicate_root = create_api_span_dict(
-                trace_id=fusion_test_env["split_trace_id"],
-                span_id=fusion_test_env["split_root_span_id"],
-                parent_span_id=None,
-                service_name="service-c",
-                name="WAL_VERSION_ROOT",  # Different name to prove Parquet wins
-                start_time="2024-01-01T00:00:00.000000+00:00",
-                end_time="2024-01-01T00:00:00.000000+00:00",
-            )
-            mock.return_value = create_wal_arrow_table([wal_duplicate_root])
+        """Cold (Parquet) should win if same span exists in Hot tier."""
+        # HOT tier also returns the root span (duplicate with different name)
+        wal_duplicate_root = create_api_span_dict(
+            trace_id=fusion_test_env["split_trace_id"],
+            span_id=fusion_test_env["split_root_span_id"],
+            parent_span_id=None,
+            service_name="service-c",
+            name="HOT_VERSION_ROOT",  # Different name to prove Cold wins
+            start_time="2024-01-01T00:00:00.000000+00:00",
+            end_time="2024-01-01T00:00:00.000000+00:00",
+        )
+        hot_table = create_wal_arrow_table([wal_duplicate_root])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             trace_id = fusion_test_env["split_trace_id"]
             spans = await otel_repository.get_fused_trace_spans(trace_id)
@@ -451,15 +507,21 @@ class TestTraceSpanFusion:
             # Should have only 1 span (deduplicated)
             assert len(spans) == 1
 
-            # Should be the Parquet version (original name)
+            # Should be the Cold/Parquet version (original name)
             assert spans[0]["name"] == "SplitTraceRoot"
 
     @pytest.mark.asyncio
     async def test_trace_spans_wal_only_trace(self, fusion_test_env):
-        """Should return WAL spans for trace not in Parquet."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns spans for service-b trace as Arrow table
-            mock.return_value = create_wal_arrow_table([fusion_test_env["wal_service_b_span"]])
+        """Should return Hot tier spans for trace not in Cold tier."""
+        # HOT tier returns spans for service-b trace
+        hot_table = create_wal_arrow_table([fusion_test_env["wal_service_b_span"]])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             trace_id = fusion_test_env["service_b_trace_id"]
             spans = await otel_repository.get_fused_trace_spans(trace_id)
@@ -469,33 +531,39 @@ class TestTraceSpanFusion:
 
 
 # ============================================================================
-# Fusion Tests - Root Spans
+# Fusion Tests - Root Spans (Three-Tier Architecture)
 # ============================================================================
 
 
 @pytest.mark.integration
 class TestRootSpanFusion:
-    """Tests for root span fusion from Parquet and WAL."""
+    """Tests for root span fusion from all three tiers."""
 
     @pytest.mark.asyncio
     async def test_root_spans_include_wal(self, fusion_test_env):
-        """Should include root spans from WAL."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns root span for service-c as Arrow table
-            wal_root = create_api_span_dict(
-                trace_id=uuid.uuid4().hex,
-                span_id="wal_new_root_01",
-                parent_span_id=None,
-                service_name="service-c",
-                name="WALRootSpan",
-                start_time="2024-12-01T00:00:00.000000+00:00",
-                end_time="2024-12-01T00:00:00.000000+00:00",
-            )
-            mock.return_value = create_wal_arrow_table([wal_root])
+        """Should include root spans from Hot tier."""
+        # HOT tier returns root span for service-c
+        wal_root = create_api_span_dict(
+            trace_id=uuid.uuid4().hex,
+            span_id="wal_new_root_01",
+            parent_span_id=None,
+            service_name="service-c",
+            name="HotRootSpan",
+            start_time="2024-12-01T00:00:00.000000+00:00",
+            end_time="2024-12-01T00:00:00.000000+00:00",
+        )
+        hot_table = create_wal_arrow_table([wal_root])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             root_spans = await otel_repository.get_fused_root_spans("service-c")
 
-            # Should have Parquet root + WAL root
+            # Should have Cold/Parquet root + Hot root
             assert len(root_spans) == 2
 
             span_ids = {s["span_id"] for s in root_spans}
@@ -504,19 +572,23 @@ class TestRootSpanFusion:
 
 
 # ============================================================================
-# Fusion Tests - Single Span
+# Fusion Tests - Single Span (Three-Tier Architecture)
 # ============================================================================
 
 
 @pytest.mark.integration
 class TestSingleSpanFusion:
-    """Tests for single span lookup from Parquet or WAL."""
+    """Tests for single span lookup from all three tiers."""
 
     @pytest.mark.asyncio
     async def test_get_span_from_parquet(self, fusion_test_env):
-        """Should find span in Parquet."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            mock.return_value = pa.table({})  # Empty WAL
+        """Should find span in Cold/Parquet tier."""
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = pa.table({})  # Empty Hot tier
+            mock_warm.return_value = []
 
             trace_id = fusion_test_env["split_trace_id"]
             span_id = fusion_test_env["split_root_span_id"]
@@ -529,10 +601,15 @@ class TestSingleSpanFusion:
 
     @pytest.mark.asyncio
     async def test_get_span_from_wal_fallback(self, fusion_test_env):
-        """Should find span in WAL if not in Parquet."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns the span as Arrow table
-            mock.return_value = create_wal_arrow_table([fusion_test_env["wal_service_b_span"]])
+        """Should find span in Hot tier if not in Cold tier."""
+        hot_table = create_wal_arrow_table([fusion_test_env["wal_service_b_span"]])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             trace_id = fusion_test_env["service_b_trace_id"]
             span_id = fusion_test_env["service_b_span_id"]
@@ -544,9 +621,13 @@ class TestSingleSpanFusion:
 
     @pytest.mark.asyncio
     async def test_get_span_not_found(self, fusion_test_env):
-        """Should return None if span not in Parquet or WAL."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            mock.return_value = pa.table({})  # Empty WAL
+        """Should return None if span not in any tier."""
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = pa.table({})
+            mock_warm.return_value = []
 
             span = await otel_repository.get_fused_span("nonexistent_trace", "nonexistent_span")
 
@@ -554,103 +635,125 @@ class TestSingleSpanFusion:
 
 
 # ============================================================================
-# Service Span Fusion Tests
+# Service Span Fusion Tests (Three-Tier Architecture)
 # ============================================================================
 
 
 @pytest.mark.integration
 class TestServiceSpanFusion:
-    """Tests for service span fusion from Parquet and WAL."""
+    """Tests for service span fusion from all three tiers."""
 
     @pytest.mark.asyncio
     async def test_service_spans_merge_parquet_and_wal(self, fusion_test_env):
-        """Should merge spans from both Parquet and WAL for a service."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns a span for service-c (same service as Parquet split trace)
-            wal_span = create_api_span_dict(
-                trace_id="wal_trace_001",
-                span_id="wal_span_001",
-                parent_span_id=None,
-                service_name="service-c",
-                name="WALOnlySpan",
-                start_time="2025-11-30T06:00:00.000000+00:00",
-                end_time="2025-11-30T06:00:00.001000+00:00",
-            )
-            mock.return_value = create_wal_arrow_table([wal_span])
+        """Should merge spans from Cold and Hot tiers for a service."""
+        # HOT tier returns a span for service-c
+        wal_span = create_api_span_dict(
+            trace_id="wal_trace_001",
+            span_id="wal_span_001",
+            parent_span_id=None,
+            service_name="service-c",
+            name="HotOnlySpan",
+            start_time="2025-11-30T06:00:00.000000+00:00",
+            end_time="2025-11-30T06:00:00.001000+00:00",
+        )
+        hot_table = create_wal_arrow_table([wal_span])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             spans = await otel_repository.get_fused_service_spans("service-c")
 
-            # Should have Parquet spans + WAL span
+            # Should have Cold/Parquet spans + Hot span
             span_ids = {span["span_id"] for span in spans}
-            assert fusion_test_env["split_root_span_id"] in span_ids  # Parquet
-            assert "wal_span_001" in span_ids  # WAL
+            assert fusion_test_env["split_root_span_id"] in span_ids  # Cold
+            assert "wal_span_001" in span_ids  # Hot
 
     @pytest.mark.asyncio
     async def test_service_spans_parquet_wins_deduplication(self, fusion_test_env):
-        """Should prefer Parquet span when same span_id exists in both."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns same span that's in Parquet but with different name
-            wal_duplicate = create_api_span_dict(
-                trace_id=fusion_test_env["split_trace_id"],
-                span_id=fusion_test_env["split_root_span_id"],  # Same ID as Parquet
-                parent_span_id=None,
-                service_name="service-c",
-                name="WALVersionOfSplitRoot",  # Different name
-                start_time="2025-11-30T05:00:00.000000+00:00",
-                end_time="2025-11-30T05:00:00.001000+00:00",
-            )
-            mock.return_value = create_wal_arrow_table([wal_duplicate])
+        """Should prefer Cold span when same span_id exists in Hot."""
+        # HOT tier returns same span that's in Cold/Parquet but with different name
+        wal_duplicate = create_api_span_dict(
+            trace_id=fusion_test_env["split_trace_id"],
+            span_id=fusion_test_env["split_root_span_id"],  # Same ID as Cold
+            parent_span_id=None,
+            service_name="service-c",
+            name="HotVersionOfSplitRoot",  # Different name
+            start_time="2025-11-30T05:00:00.000000+00:00",
+            end_time="2025-11-30T05:00:00.001000+00:00",
+        )
+        hot_table = create_wal_arrow_table([wal_duplicate])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             spans = await otel_repository.get_fused_service_spans("service-c")
 
             # Find the span with matching ID
             matching = [s for s in spans if s["span_id"] == fusion_test_env["split_root_span_id"]]
             assert len(matching) == 1
-            # Parquet version should win (has name "SplitTraceRoot")
+            # Cold/Parquet version should win (has name "SplitTraceRoot")
             assert matching[0]["name"] == "SplitTraceRoot"
 
 
 # ============================================================================
-# Workflow Span Fusion Tests
+# Workflow Span Fusion Tests (Three-Tier Architecture)
 # ============================================================================
 
 
 @pytest.mark.integration
 class TestWorkflowSpanFusion:
-    """Tests for workflow span fusion from Parquet and WAL."""
+    """Tests for workflow span fusion from all three tiers."""
 
     @pytest.mark.asyncio
     async def test_workflow_spans_merge_parquet_and_wal(self, fusion_test_env):
-        """Should merge workflow spans from both Parquet and WAL."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            # WAL returns a workflow span for service-c as Arrow table
-            wal_workflow = create_api_span_dict(
-                trace_id="wal_wf_trace",
-                span_id="wal_wf_span",
-                parent_span_id=None,
-                service_name="service-c",
-                name="WALWorkflow",
-                start_time="2025-11-30T06:00:00.000000+00:00",
-                end_time="2025-11-30T06:00:00.001000+00:00",
-                attributes={"junjo.span_type": "workflow"},
-            )
-            mock.return_value = create_wal_arrow_table([wal_workflow])
+        """Should merge workflow spans from Cold and Hot tiers."""
+        # HOT tier returns a workflow span for service-c
+        wal_workflow = create_api_span_dict(
+            trace_id="wal_wf_trace",
+            span_id="wal_wf_span",
+            parent_span_id=None,
+            service_name="service-c",
+            name="HotWorkflow",
+            start_time="2025-11-30T06:00:00.000000+00:00",
+            end_time="2025-11-30T06:00:00.001000+00:00",
+            attributes={"junjo.span_type": "workflow"},
+        )
+        hot_table = create_wal_arrow_table([wal_workflow])
+
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = hot_table
+            mock_warm.return_value = []
 
             spans = await otel_repository.get_fused_workflow_spans("service-c")
 
-            # Should include WAL workflow span
+            # Should include Hot workflow span
             span_ids = {span["span_id"] for span in spans}
             assert "wal_wf_span" in span_ids
 
     @pytest.mark.asyncio
     async def test_workflow_spans_graceful_degradation(self, fusion_test_env):
-        """Should return Parquet results if WAL query fails."""
-        with patch.object(otel_repository, "_get_wal_spans_arrow", new_callable=AsyncMock) as mock:
-            mock.return_value = pa.table({})  # Empty WAL
+        """Should return Cold results if Hot tier query fails."""
+        with patch.object(otel_repository, "_get_warm_cursor", new_callable=AsyncMock) as mock_cursor, \
+             patch.object(otel_repository, "_get_hot_spans_arrow", new_callable=AsyncMock) as mock_hot, \
+             patch.object(UnifiedSpanQuery, "register_warm") as mock_warm:
+            mock_cursor.return_value = None
+            mock_hot.return_value = pa.table({})  # Empty Hot tier
+            mock_warm.return_value = []
 
             spans = await otel_repository.get_fused_workflow_spans("service-c")
 
-            # Should still work with just Parquet data
+            # Should still work with just Cold/Parquet data
             assert isinstance(spans, list)
 
 

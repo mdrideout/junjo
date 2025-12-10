@@ -21,6 +21,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	InternalIngestionService_ReadSpans_FullMethodName                  = "/ingestion.InternalIngestionService/ReadSpans"
 	InternalIngestionService_GetWALSpansArrow_FullMethodName           = "/ingestion.InternalIngestionService/GetWALSpansArrow"
+	InternalIngestionService_GetHotSpansArrow_FullMethodName           = "/ingestion.InternalIngestionService/GetHotSpansArrow"
+	InternalIngestionService_GetWarmCursor_FullMethodName              = "/ingestion.InternalIngestionService/GetWarmCursor"
 	InternalIngestionService_GetWALDistinctServiceNames_FullMethodName = "/ingestion.InternalIngestionService/GetWALDistinctServiceNames"
 	InternalIngestionService_FlushWAL_FullMethodName                   = "/ingestion.InternalIngestionService/FlushWAL"
 )
@@ -39,8 +41,15 @@ type InternalIngestionServiceClient interface {
 	// Supports filtering by trace_id, service_name, root_only, and workflow_only.
 	// Used for unified DataFusion queries combining WAL and Parquet data.
 	GetWALSpansArrow(ctx context.Context, in *GetWALSpansArrowRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArrowBatch], error)
+	// GetHotSpansArrow returns only HOT tier spans (since last warm snapshot).
+	// This is the three-tier architecture query that returns only the newest data.
+	GetHotSpansArrow(ctx context.Context, in *GetHotSpansArrowRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArrowBatch], error)
+	// GetWarmCursor returns the current warm snapshot cursor state.
+	// Used by Python to know what's in warm tier vs hot tier.
+	GetWarmCursor(ctx context.Context, in *GetWarmCursorRequest, opts ...grpc.CallOption) (*GetWarmCursorResponse, error)
 	// GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
 	// Used to merge with Parquet-indexed services for complete listing.
+	// DEPRECATED: Use GetHotSpansArrow + DataFusion instead.
 	GetWALDistinctServiceNames(ctx context.Context, in *GetWALDistinctServiceNamesRequest, opts ...grpc.CallOption) (*GetWALDistinctServiceNamesResponse, error)
 	// FlushWAL triggers an immediate flush of WAL data to Parquet files.
 	FlushWAL(ctx context.Context, in *FlushWALRequest, opts ...grpc.CallOption) (*FlushWALResponse, error)
@@ -92,6 +101,35 @@ func (c *internalIngestionServiceClient) GetWALSpansArrow(ctx context.Context, i
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type InternalIngestionService_GetWALSpansArrowClient = grpc.ServerStreamingClient[ArrowBatch]
 
+func (c *internalIngestionServiceClient) GetHotSpansArrow(ctx context.Context, in *GetHotSpansArrowRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArrowBatch], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &InternalIngestionService_ServiceDesc.Streams[2], InternalIngestionService_GetHotSpansArrow_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetHotSpansArrowRequest, ArrowBatch]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalIngestionService_GetHotSpansArrowClient = grpc.ServerStreamingClient[ArrowBatch]
+
+func (c *internalIngestionServiceClient) GetWarmCursor(ctx context.Context, in *GetWarmCursorRequest, opts ...grpc.CallOption) (*GetWarmCursorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWarmCursorResponse)
+	err := c.cc.Invoke(ctx, InternalIngestionService_GetWarmCursor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *internalIngestionServiceClient) GetWALDistinctServiceNames(ctx context.Context, in *GetWALDistinctServiceNamesRequest, opts ...grpc.CallOption) (*GetWALDistinctServiceNamesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetWALDistinctServiceNamesResponse)
@@ -126,8 +164,15 @@ type InternalIngestionServiceServer interface {
 	// Supports filtering by trace_id, service_name, root_only, and workflow_only.
 	// Used for unified DataFusion queries combining WAL and Parquet data.
 	GetWALSpansArrow(*GetWALSpansArrowRequest, grpc.ServerStreamingServer[ArrowBatch]) error
+	// GetHotSpansArrow returns only HOT tier spans (since last warm snapshot).
+	// This is the three-tier architecture query that returns only the newest data.
+	GetHotSpansArrow(*GetHotSpansArrowRequest, grpc.ServerStreamingServer[ArrowBatch]) error
+	// GetWarmCursor returns the current warm snapshot cursor state.
+	// Used by Python to know what's in warm tier vs hot tier.
+	GetWarmCursor(context.Context, *GetWarmCursorRequest) (*GetWarmCursorResponse, error)
 	// GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
 	// Used to merge with Parquet-indexed services for complete listing.
+	// DEPRECATED: Use GetHotSpansArrow + DataFusion instead.
 	GetWALDistinctServiceNames(context.Context, *GetWALDistinctServiceNamesRequest) (*GetWALDistinctServiceNamesResponse, error)
 	// FlushWAL triggers an immediate flush of WAL data to Parquet files.
 	FlushWAL(context.Context, *FlushWALRequest) (*FlushWALResponse, error)
@@ -146,6 +191,12 @@ func (UnimplementedInternalIngestionServiceServer) ReadSpans(*ReadSpansRequest, 
 }
 func (UnimplementedInternalIngestionServiceServer) GetWALSpansArrow(*GetWALSpansArrowRequest, grpc.ServerStreamingServer[ArrowBatch]) error {
 	return status.Errorf(codes.Unimplemented, "method GetWALSpansArrow not implemented")
+}
+func (UnimplementedInternalIngestionServiceServer) GetHotSpansArrow(*GetHotSpansArrowRequest, grpc.ServerStreamingServer[ArrowBatch]) error {
+	return status.Errorf(codes.Unimplemented, "method GetHotSpansArrow not implemented")
+}
+func (UnimplementedInternalIngestionServiceServer) GetWarmCursor(context.Context, *GetWarmCursorRequest) (*GetWarmCursorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWarmCursor not implemented")
 }
 func (UnimplementedInternalIngestionServiceServer) GetWALDistinctServiceNames(context.Context, *GetWALDistinctServiceNamesRequest) (*GetWALDistinctServiceNamesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWALDistinctServiceNames not implemented")
@@ -197,6 +248,35 @@ func _InternalIngestionService_GetWALSpansArrow_Handler(srv interface{}, stream 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type InternalIngestionService_GetWALSpansArrowServer = grpc.ServerStreamingServer[ArrowBatch]
 
+func _InternalIngestionService_GetHotSpansArrow_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetHotSpansArrowRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(InternalIngestionServiceServer).GetHotSpansArrow(m, &grpc.GenericServerStream[GetHotSpansArrowRequest, ArrowBatch]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type InternalIngestionService_GetHotSpansArrowServer = grpc.ServerStreamingServer[ArrowBatch]
+
+func _InternalIngestionService_GetWarmCursor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWarmCursorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalIngestionServiceServer).GetWarmCursor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalIngestionService_GetWarmCursor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalIngestionServiceServer).GetWarmCursor(ctx, req.(*GetWarmCursorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _InternalIngestionService_GetWALDistinctServiceNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWALDistinctServiceNamesRequest)
 	if err := dec(in); err != nil {
@@ -241,6 +321,10 @@ var InternalIngestionService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InternalIngestionServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetWarmCursor",
+			Handler:    _InternalIngestionService_GetWarmCursor_Handler,
+		},
+		{
 			MethodName: "GetWALDistinctServiceNames",
 			Handler:    _InternalIngestionService_GetWALDistinctServiceNames_Handler,
 		},
@@ -258,6 +342,11 @@ var InternalIngestionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetWALSpansArrow",
 			Handler:       _InternalIngestionService_GetWALSpansArrow_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetHotSpansArrow",
+			Handler:       _InternalIngestionService_GetHotSpansArrow_Handler,
 			ServerStreams: true,
 		},
 	},

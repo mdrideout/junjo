@@ -1,17 +1,25 @@
-"""Unified DataFusion query engine for WAL + Parquet span data.
+"""Unified DataFusion query engine for three-tier span data (Cold/Warm/Hot).
 
-Combines Arrow IPC data from WAL with Parquet files in a single DataFusion query.
-Deduplication is handled by SQL (Parquet wins over WAL for matching span_ids).
+Three-Tier Architecture:
+- COLD: Parquet files from full WAL flushes (indexed in DuckDB)
+- WARM: Incremental parquet snapshots in tmp/ (not indexed, globbed)
+- HOT: Live SQLite data since last warm snapshot (gRPC Arrow IPC)
+
+Combines all three tiers in a single DataFusion query with deduplication.
+Priority: Cold > Warm > Hot (same span_id).
 
 Usage:
-    query = UnifiedSpanQuery(parquet_dir)
-    query.register_parquet(file_paths)
-    query.register_wal(wal_arrow_table)
+    query = UnifiedSpanQuery()
+    query.register_cold(file_paths)         # From DuckDB metadata
+    query.register_warm()                    # Glob tmp/*.parquet
+    query.register_hot(hot_arrow_table)     # From gRPC
     results = query.query_spans(trace_id="abc123")
 """
 
+import glob
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import datafusion
@@ -19,19 +27,27 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from loguru import logger
 
+from app.config.settings import settings
+
 
 class UnifiedSpanQuery:
-    """Unified query engine for WAL and Parquet span data.
+    """Unified query engine for three-tier span data (Cold/Warm/Hot).
 
-    Registers both data sources as DataFusion tables and executes SQL queries
-    that merge and deduplicate data (Parquet takes precedence).
+    Registers all three data sources as DataFusion tables and executes SQL queries
+    that merge and deduplicate data (Cold > Warm > Hot precedence).
     """
 
     def __init__(self) -> None:
         """Create a new UnifiedSpanQuery instance."""
         self.ctx = datafusion.SessionContext()
+        self._cold_registered = False
+        self._warm_registered = False
+        self._hot_registered = False
+        # Legacy compatibility
         self._parquet_registered = False
         self._wal_registered = False
+        # Warm directory path
+        self._warm_dir = Path(settings.parquet_indexer.parquet_storage_path) / "tmp"
 
     def register_parquet(self, file_paths: list[str]) -> None:
         """Register Parquet files as 'parquet_spans' table.
@@ -99,6 +115,304 @@ class UnifiedSpanQuery:
         except Exception as e:
             logger.error(f"Failed to register WAL table: {e}")
             raise
+
+    # =========================================================================
+    # Three-Tier Architecture Methods (Cold/Warm/Hot)
+    # =========================================================================
+
+    def register_cold(self, file_paths: list[str]) -> None:
+        """Register COLD tier Parquet files as 'cold_spans' table.
+
+        Cold tier contains data from full WAL flushes, indexed in DuckDB.
+
+        Args:
+            file_paths: List of Parquet file paths from DuckDB metadata
+        """
+        if not file_paths:
+            self._cold_registered = False
+            logger.debug("No cold Parquet files to register")
+            return
+
+        try:
+            try:
+                self.ctx.deregister_table("cold_spans")
+            except Exception:
+                pass
+
+            arrow_table = pq.read_table(file_paths)
+            df = self.ctx.from_arrow(arrow_table)
+            self.ctx.register_table("cold_spans", df)
+            self._cold_registered = True
+
+            logger.debug(
+                "Registered COLD tier files",
+                extra={"file_count": len(file_paths), "row_count": arrow_table.num_rows},
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to register cold files: {e}")
+            self._cold_registered = False
+
+    def register_warm(self) -> list[str]:
+        """Register WARM tier Parquet files as 'warm_spans' table.
+
+        Warm tier contains incremental snapshots from tmp/, not indexed in DuckDB.
+        Uses glob pattern to find all warm_*.parquet files.
+
+        Returns:
+            List of warm file paths found (for logging)
+        """
+        try:
+            try:
+                self.ctx.deregister_table("warm_spans")
+            except Exception:
+                pass
+
+            # Glob for warm parquet files
+            warm_pattern = str(self._warm_dir / "warm_*.parquet")
+            warm_files = glob.glob(warm_pattern)
+
+            if not warm_files:
+                self._warm_registered = False
+                logger.debug("No warm Parquet files found")
+                return []
+
+            arrow_table = pq.read_table(warm_files)
+            df = self.ctx.from_arrow(arrow_table)
+            self.ctx.register_table("warm_spans", df)
+            self._warm_registered = True
+
+            logger.debug(
+                "Registered WARM tier files",
+                extra={"file_count": len(warm_files), "row_count": arrow_table.num_rows},
+            )
+
+            return warm_files
+
+        except Exception as e:
+            logger.error(f"Failed to register warm files: {e}")
+            self._warm_registered = False
+            return []
+
+    def register_hot(self, hot_table: pa.Table) -> None:
+        """Register HOT tier Arrow table as 'hot_spans' table.
+
+        Hot tier contains live data since last warm snapshot, from gRPC.
+
+        Args:
+            hot_table: PyArrow Table from ingestion client's get_hot_spans_arrow()
+        """
+        try:
+            try:
+                self.ctx.deregister_table("hot_spans")
+            except Exception:
+                pass
+
+            has_data = hot_table.num_columns > 0 and hot_table.num_rows > 0
+
+            if has_data:
+                df = self.ctx.from_arrow(hot_table)
+                self.ctx.register_table("hot_spans", df)
+                self._hot_registered = True
+                logger.debug("Registered HOT tier table", extra={"row_count": hot_table.num_rows})
+            else:
+                self._hot_registered = False
+                logger.debug("HOT tier table empty, skipping registration")
+
+        except Exception as e:
+            logger.error(f"Failed to register hot table: {e}")
+            raise
+
+    def query_distinct_service_names(self) -> list[str]:
+        """Get distinct service names across all three tiers.
+
+        Uses UNION to deduplicate service names automatically.
+
+        Returns:
+            Sorted list of unique service names
+        """
+        sources = []
+        if self._cold_registered:
+            sources.append("SELECT DISTINCT service_name FROM cold_spans")
+        if self._warm_registered:
+            sources.append("SELECT DISTINCT service_name FROM warm_spans")
+        if self._hot_registered:
+            sources.append("SELECT DISTINCT service_name FROM hot_spans")
+
+        if not sources:
+            return []
+
+        # UNION automatically deduplicates
+        union_sql = " UNION ".join(sources)
+        sql = f"SELECT service_name FROM ({union_sql}) ORDER BY service_name"
+
+        try:
+            df = self.ctx.sql(sql)
+            batches = df.collect()
+
+            services = []
+            for batch in batches:
+                table = batch.to_pydict()
+                services.extend(table.get("service_name", []))
+
+            return services
+
+        except Exception as e:
+            logger.error(f"Failed to query distinct service names: {e}")
+            return []
+
+    def query_spans_three_tier(
+        self,
+        *,
+        trace_id: str | None = None,
+        service_name: str | None = None,
+        root_only: bool = False,
+        workflow_only: bool = False,
+        order_by: str = "start_time DESC",
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Query unified spans across all three tiers with deduplication.
+
+        Priority: Cold > Warm > Hot (same span_id, Cold wins).
+
+        Args:
+            trace_id: Filter by trace ID
+            service_name: Filter by service name
+            root_only: Only return root spans (no parent)
+            workflow_only: Only return workflow spans (post-filter)
+            order_by: SQL ORDER BY clause
+            limit: Maximum rows to return
+
+        Returns:
+            List of span dictionaries in API format
+        """
+        if not self._cold_registered and not self._warm_registered and not self._hot_registered:
+            logger.warning("No data sources registered for three-tier query")
+            return []
+
+        # Build WHERE clauses
+        where_clauses: list[str] = []
+        if trace_id:
+            where_clauses.append(f"trace_id = '{trace_id}'")
+        if service_name:
+            where_clauses.append(f"service_name = '{service_name}'")
+        if root_only:
+            where_clauses.append("(parent_span_id IS NULL OR parent_span_id = '')")
+
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        sql = self._build_three_tier_query(where_sql, order_by, limit)
+
+        logger.debug(f"Three-tier SQL: {sql[:500]}...")
+
+        try:
+            df = self.ctx.sql(sql)
+            batches = df.collect()
+
+            rows = self._convert_batches_to_api_format(batches)
+
+            # Post-filter for workflow spans if needed
+            if workflow_only:
+                rows = [
+                    r
+                    for r in rows
+                    if r.get("attributes_json", {}).get("junjo.span_type") == "workflow"
+                ]
+                if limit:
+                    rows = rows[:limit]
+
+            return rows
+
+        except Exception as e:
+            logger.error(f"Three-tier query failed: {e}")
+            raise
+
+    def _build_three_tier_query(self, where_sql: str, order_by: str, limit: int | None) -> str:
+        """Build SQL that merges all three tiers with deduplication."""
+        # Build UNION of available tiers
+        tier_queries = []
+
+        select_cols = """
+            span_id,
+            trace_id,
+            parent_span_id,
+            service_name,
+            name,
+            span_kind,
+            CAST(start_time AS BIGINT) as start_time_ns,
+            CAST(end_time AS BIGINT) as end_time_ns,
+            duration_ns,
+            status_code,
+            status_message,
+            attributes,
+            events,
+            resource_attributes"""
+
+        if self._cold_registered:
+            tier_queries.append(f"""
+                SELECT {select_cols}, 'cold' as _tier
+                FROM cold_spans
+                WHERE {where_sql}
+            """)
+
+        if self._warm_registered:
+            tier_queries.append(f"""
+                SELECT {select_cols}, 'warm' as _tier
+                FROM warm_spans
+                WHERE {where_sql}
+            """)
+
+        if self._hot_registered:
+            tier_queries.append(f"""
+                SELECT {select_cols}, 'hot' as _tier
+                FROM hot_spans
+                WHERE {where_sql}
+            """)
+
+        if not tier_queries:
+            return "SELECT 1 WHERE 1=0"  # Empty result
+
+        union_sql = " UNION ALL ".join(tier_queries)
+
+        # Deduplicate: cold > warm > hot priority
+        sql = f"""
+        WITH combined AS ({union_sql}),
+        ranked AS (
+            SELECT *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY span_id
+                    ORDER BY CASE _tier
+                        WHEN 'cold' THEN 0
+                        WHEN 'warm' THEN 1
+                        ELSE 2
+                    END
+                ) as _rn
+            FROM combined
+        )
+        SELECT
+            span_id,
+            trace_id,
+            parent_span_id,
+            service_name,
+            name,
+            span_kind,
+            start_time_ns,
+            end_time_ns,
+            duration_ns,
+            status_code,
+            status_message,
+            attributes,
+            events,
+            resource_attributes
+        FROM ranked
+        WHERE _rn = 1
+        ORDER BY {order_by.replace("start_time", "start_time_ns")}
+        """
+
+        if limit:
+            sql += f" LIMIT {limit}"
+
+        return sql
 
     def query_spans(
         self,

@@ -62,11 +62,12 @@ type SQLiteConfig struct {
 
 // FlusherConfig holds configuration for the Parquet flusher.
 type FlusherConfig struct {
-	OutputDir     string
-	Interval      time.Duration
-	MaxAge        time.Duration
-	MaxRows       int64
-	MinRows       int64
+	OutputDir          string
+	Interval           time.Duration
+	MaxAge             time.Duration
+	MaxRows            int64
+	MinRows            int64
+	WarmSnapshotBytes  int64 // Minimum bytes before triggering warm snapshot (default 10MB)
 }
 
 // ServerConfig holds gRPC server configuration.
@@ -96,11 +97,12 @@ func Default() *Config {
 			Path: filepath.Join(homeDir, ".junjo", "ingestion-wal", "spans.db"),
 		},
 		Flusher: FlusherConfig{
-			OutputDir: filepath.Join(homeDir, ".junjo", "spans"),
-			Interval:  30 * time.Second,
-			MaxAge:    1 * time.Hour,
-			MaxRows:   100000,
-			MinRows:   1000,
+			OutputDir:         filepath.Join(homeDir, ".junjo", "spans"),
+			Interval:          15 * time.Second, // Check every 15s for flush conditions
+			MaxAge:            1 * time.Hour,
+			MaxRows:           100000,
+			MinRows:           1000,
+			WarmSnapshotBytes: 10 * 1024 * 1024, // 10MB
 		},
 		Server: ServerConfig{
 			PublicPort:   "50051",
@@ -162,6 +164,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("invalid FLUSH_MIN_ROWS %q: %w", minRows, err)
 		}
 		cfg.Flusher.MinRows = n
+	}
+
+	if warmBytes := os.Getenv("WARM_SNAPSHOT_BYTES"); warmBytes != "" {
+		n, err := strconv.ParseInt(warmBytes, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid WARM_SNAPSHOT_BYTES %q: %w", warmBytes, err)
+		}
+		cfg.Flusher.WarmSnapshotBytes = n
 	}
 
 	// Server configuration

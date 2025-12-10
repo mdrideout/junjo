@@ -46,6 +46,16 @@ class InternalIngestionServiceStub(object):
                 request_serializer=ingestion__pb2.GetWALSpansArrowRequest.SerializeToString,
                 response_deserializer=ingestion__pb2.ArrowBatch.FromString,
                 _registered_method=True)
+        self.GetHotSpansArrow = channel.unary_stream(
+                '/ingestion.InternalIngestionService/GetHotSpansArrow',
+                request_serializer=ingestion__pb2.GetHotSpansArrowRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.ArrowBatch.FromString,
+                _registered_method=True)
+        self.GetWarmCursor = channel.unary_unary(
+                '/ingestion.InternalIngestionService/GetWarmCursor',
+                request_serializer=ingestion__pb2.GetWarmCursorRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.GetWarmCursorResponse.FromString,
+                _registered_method=True)
         self.GetWALDistinctServiceNames = channel.unary_unary(
                 '/ingestion.InternalIngestionService/GetWALDistinctServiceNames',
                 request_serializer=ingestion__pb2.GetWALDistinctServiceNamesRequest.SerializeToString,
@@ -80,9 +90,26 @@ class InternalIngestionServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetHotSpansArrow(self, request, context):
+        """GetHotSpansArrow returns only HOT tier spans (since last warm snapshot).
+        This is the three-tier architecture query that returns only the newest data.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetWarmCursor(self, request, context):
+        """GetWarmCursor returns the current warm snapshot cursor state.
+        Used by Python to know what's in warm tier vs hot tier.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetWALDistinctServiceNames(self, request, context):
         """GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
         Used to merge with Parquet-indexed services for complete listing.
+        DEPRECATED: Use GetHotSpansArrow + DataFusion instead.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -107,6 +134,16 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
                     servicer.GetWALSpansArrow,
                     request_deserializer=ingestion__pb2.GetWALSpansArrowRequest.FromString,
                     response_serializer=ingestion__pb2.ArrowBatch.SerializeToString,
+            ),
+            'GetHotSpansArrow': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetHotSpansArrow,
+                    request_deserializer=ingestion__pb2.GetHotSpansArrowRequest.FromString,
+                    response_serializer=ingestion__pb2.ArrowBatch.SerializeToString,
+            ),
+            'GetWarmCursor': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWarmCursor,
+                    request_deserializer=ingestion__pb2.GetWarmCursorRequest.FromString,
+                    response_serializer=ingestion__pb2.GetWarmCursorResponse.SerializeToString,
             ),
             'GetWALDistinctServiceNames': grpc.unary_unary_rpc_method_handler(
                     servicer.GetWALDistinctServiceNames,
@@ -175,6 +212,60 @@ class InternalIngestionService(object):
             '/ingestion.InternalIngestionService/GetWALSpansArrow',
             ingestion__pb2.GetWALSpansArrowRequest.SerializeToString,
             ingestion__pb2.ArrowBatch.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetHotSpansArrow(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetHotSpansArrow',
+            ingestion__pb2.GetHotSpansArrowRequest.SerializeToString,
+            ingestion__pb2.ArrowBatch.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetWarmCursor(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/GetWarmCursor',
+            ingestion__pb2.GetWarmCursorRequest.SerializeToString,
+            ingestion__pb2.GetWarmCursorResponse.FromString,
             options,
             channel_credentials,
             insecure,

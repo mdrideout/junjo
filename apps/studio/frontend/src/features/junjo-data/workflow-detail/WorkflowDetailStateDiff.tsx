@@ -200,6 +200,32 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   }, [activeSetStateEvent])
 
   /**
+   * Ensure parent paths exist for array index operations.
+   * When a patch like {"op":"add","path":"/foo/0"} is applied,
+   * the parent path "/foo" must exist as an array.
+   */
+  const ensureParentPathsExist = (doc: Record<string, any>, patch: jsonpatch.Operation[]): void => {
+    for (const op of patch) {
+      if (op.op === 'add' && op.path) {
+        const pathParts = op.path.split('/').filter(Boolean)
+        let current: any = doc
+
+        // Walk through path parts except the last one (which is the target)
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          const part = pathParts[i]
+          const nextPart = pathParts[i + 1]
+
+          if (current[part] === undefined) {
+            // If next part is a number, create an array; otherwise create an object
+            current[part] = /^\d+$/.test(nextPart) ? [] : {}
+          }
+          current = current[part]
+        }
+      }
+    }
+  }
+
+  /**
    * Accumulate State Patches To Index (inclusive)
    *
    * Given a patch index, this function will accumulate the patches up to and including the patch at the given index.
@@ -226,17 +252,32 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       const thisEvent = activeStoreStateEvents[i]
 
       const patchString = thisEvent.attributes['junjo.state_json_patch']
-      const patch = JSON.parse(patchString)
-      // console.log(`Patch ${i} of ${patchIndex}`)
-      // console.log('Patch string: ', patchString)
-      // console.log('Patch: ', patch)
+      let patch: jsonpatch.Operation[]
+      try {
+        patch = JSON.parse(patchString)
+      } catch (e) {
+        console.error('Failed to parse patch string', e)
+        continue
+      }
+
+      // Ensure parent paths exist before applying patch (handles array index adds)
+      ensureParentPathsExist(afterCumulativeState, patch)
 
       // Apply to after state
-      afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
+      try {
+        afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
+      } catch (e) {
+        console.error('Failed to apply patch to after state', e, patch)
+      }
 
       // Apply to before state if i is less than patchIndex
       if (i < patchIndex) {
-        beforeCumulativeState = jsonpatch.applyPatch(beforeCumulativeState, patch).newDocument
+        ensureParentPathsExist(beforeCumulativeState, patch)
+        try {
+          beforeCumulativeState = jsonpatch.applyPatch(beforeCumulativeState, patch).newDocument
+        } catch (e) {
+          console.error('Failed to apply patch to before state', e, patch)
+        }
       }
     }
 

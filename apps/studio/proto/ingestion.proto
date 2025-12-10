@@ -16,8 +16,17 @@ service InternalIngestionService {
   // Used for unified DataFusion queries combining WAL and Parquet data.
   rpc GetWALSpansArrow(GetWALSpansArrowRequest) returns (stream ArrowBatch) {}
 
+  // GetHotSpansArrow returns only HOT tier spans (since last warm snapshot).
+  // This is the three-tier architecture query that returns only the newest data.
+  rpc GetHotSpansArrow(GetHotSpansArrowRequest) returns (stream ArrowBatch) {}
+
+  // GetWarmCursor returns the current warm snapshot cursor state.
+  // Used by Python to know what's in warm tier vs hot tier.
+  rpc GetWarmCursor(GetWarmCursorRequest) returns (GetWarmCursorResponse) {}
+
   // GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
   // Used to merge with Parquet-indexed services for complete listing.
+  // DEPRECATED: Use GetHotSpansArrow + DataFusion instead.
   rpc GetWALDistinctServiceNames(GetWALDistinctServiceNamesRequest) returns (GetWALDistinctServiceNamesResponse) {}
 
   // FlushWAL triggers an immediate flush of WAL data to Parquet files.
@@ -86,7 +95,52 @@ message ArrowBatch {
   bool is_last = 3;
 }
 
+// ============================================================================
+// Three-Tier Architecture Messages (Hot/Warm/Cold)
+// ============================================================================
+
+// GetHotSpansArrowRequest requests only HOT tier spans (since last warm snapshot).
+// This is more efficient than GetWALSpansArrow as it excludes data already in warm snapshots.
+message GetHotSpansArrowRequest {
+  // Only return spans newer than this ULID.
+  // If empty/null, returns ALL spans in SQLite (fallback when no warm snapshots exist).
+  optional bytes since_warm_ulid = 1;
+
+  // Filter by trace ID (exact match)
+  optional string trace_id = 2;
+
+  // Filter by service name (exact match)
+  optional string service_name = 3;
+
+  // Only return root spans (parent_span_id is empty)
+  bool root_only = 4;
+
+  // Only return workflow spans (junjo.span_type = 'workflow')
+  bool workflow_only = 5;
+
+  // Maximum number of spans to return (0 = no limit)
+  int32 limit = 6;
+}
+
+// GetWarmCursorRequest requests the current warm snapshot cursor state.
+message GetWarmCursorRequest {
+  // Empty - no parameters needed
+}
+
+// GetWarmCursorResponse contains the warm snapshot cursor state.
+message GetWarmCursorResponse {
+  // Last span ULID written to warm snapshot (empty if no snapshots)
+  bytes last_warm_ulid = 1;
+
+  // Timestamp of last warm snapshot in nanoseconds
+  int64 last_warm_time_ns = 2;
+
+  // Number of warm parquet files currently in tmp/
+  int32 warm_file_count = 3;
+}
+
 // GetWALDistinctServiceNamesRequest requests all distinct service names in WAL.
+// DEPRECATED: Use GetHotSpansArrow + DataFusion instead.
 message GetWALDistinctServiceNamesRequest {
   // Empty - no parameters needed
 }
