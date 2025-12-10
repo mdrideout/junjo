@@ -12,12 +12,13 @@ import (
 
 type OtelTraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
-	repo storage.SpanRepository
+	repo       storage.SpanRepository
+	spanLogger *BatchedSpanLogger
 }
 
 // NewOtelTraceService creates a new trace service.
-func NewOtelTraceService(repo storage.SpanRepository) *OtelTraceService {
-	return &OtelTraceService{repo: repo}
+func NewOtelTraceService(repo storage.SpanRepository, spanLogger *BatchedSpanLogger) *OtelTraceService {
+	return &OtelTraceService{repo: repo, spanLogger: spanLogger}
 }
 
 func (s *OtelTraceService) Export(ctx context.Context, req *coltracepb.ExportTraceServiceRequest) (*coltracepb.ExportTraceServiceResponse, error) {
@@ -27,7 +28,9 @@ func (s *OtelTraceService) Export(ctx context.Context, req *coltracepb.ExportTra
 			for _, span := range scopeSpans.Spans {
 				traceID := hex.EncodeToString(span.TraceId)
 				spanID := hex.EncodeToString(span.SpanId)
-				slog.InfoContext(ctx, "received span", slog.String("span_id", spanID), slog.String("trace_id", traceID), slog.String("name", span.Name))
+
+				// Log to batched logger (flushed periodically)
+				s.spanLogger.LogSpan(traceID, spanID)
 
 				// Write the span to the WAL
 				if err := s.repo.WriteSpan(span, resource); err != nil {

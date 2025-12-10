@@ -49,8 +49,7 @@ func (wf *WarmFlusher) CheckAndSnapshot() (bool, error) {
 		spanCount = -1
 	}
 
-	// Always log warm check at info level for visibility
-	slog.Info("warm snapshot check",
+	slog.Debug("warm snapshot check",
 		slog.Int64("unflushed_bytes", bytes),
 		slog.Int64("threshold", wf.sizeThreshold),
 		slog.Int64("span_count", spanCount),

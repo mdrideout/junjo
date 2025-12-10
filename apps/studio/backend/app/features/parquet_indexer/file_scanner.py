@@ -50,7 +50,13 @@ def scan_parquet_files(base_path: str) -> list[ParquetFileInfo]:
 
     # Walk directory tree looking for .parquet files
     # Pattern: year=*/month=*/day=*/*.parquet
+    # IMPORTANT: Skip tmp/ directory which contains warm snapshot files
+    # (warm files are ephemeral and should not be indexed)
     for parquet_path in base.rglob("*.parquet"):
+        # Skip warm files in tmp/ directory
+        if "/tmp/" in str(parquet_path) or parquet_path.parent.name == "tmp":
+            continue
+
         try:
             stat = parquet_path.stat()
             files.append(

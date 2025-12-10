@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nauth.proto\x12\tingestion\"(\n\x15ValidateApiKeyRequest\x12\x0f\n\x07\x61pi_key\x18\x01 \x01(\t\"*\n\x16ValidateApiKeyResponse\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x32n\n\x13InternalAuthService\x12W\n\x0eValidateApiKey\x12 .ingestion.ValidateApiKeyRequest\x1a!.ingestion.ValidateApiKeyResponse\"\x00\x42\rZ\x0b.;proto_genb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nauth.proto\x12\tingestion\"(\n\x15ValidateApiKeyRequest\x12\x0f\n\x07\x61pi_key\x18\x01 \x01(\t\"*\n\x16ValidateApiKeyResponse\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\"0\n\x1bNotifyNewParquetFileRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"C\n\x1cNotifyNewParquetFileResponse\x12\x0f\n\x07indexed\x18\x01 \x01(\x08\x12\x12\n\nspan_count\x18\x02 \x01(\x03\x32\xd9\x01\n\x13InternalAuthService\x12W\n\x0eValidateApiKey\x12 .ingestion.ValidateApiKeyRequest\x1a!.ingestion.ValidateApiKeyResponse\"\x00\x12i\n\x14NotifyNewParquetFile\x12&.ingestion.NotifyNewParquetFileRequest\x1a\'.ingestion.NotifyNewParquetFileResponse\"\x00\x42\rZ\x0b.;proto_genb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,6 +36,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_VALIDATEAPIKEYREQUEST']._serialized_end=65
   _globals['_VALIDATEAPIKEYRESPONSE']._serialized_start=67
   _globals['_VALIDATEAPIKEYRESPONSE']._serialized_end=109
-  _globals['_INTERNALAUTHSERVICE']._serialized_start=111
-  _globals['_INTERNALAUTHSERVICE']._serialized_end=221
+  _globals['_NOTIFYNEWPARQUETFILEREQUEST']._serialized_start=111
+  _globals['_NOTIFYNEWPARQUETFILEREQUEST']._serialized_end=159
+  _globals['_NOTIFYNEWPARQUETFILERESPONSE']._serialized_start=161
+  _globals['_NOTIFYNEWPARQUETFILERESPONSE']._serialized_end=228
+  _globals['_INTERNALAUTHSERVICE']._serialized_start=231
+  _globals['_INTERNALAUTHSERVICE']._serialized_end=448
 # @@protoc_insertion_point(module_scope)

@@ -52,6 +52,8 @@ class UnifiedSpanQuery:
     def register_parquet(self, file_paths: list[str]) -> None:
         """Register Parquet files as 'parquet_spans' table.
 
+        Corrupt files are skipped gracefully.
+
         Args:
             file_paths: List of Parquet file paths to query
         """
@@ -68,8 +70,28 @@ class UnifiedSpanQuery:
             except Exception:
                 pass
 
-            # Read all files into a single Arrow table
-            arrow_table = pq.read_table(file_paths)
+            # Try batch read first (faster), fall back to individual reads if corrupt file
+            file_count = len(file_paths)
+            try:
+                arrow_table = pq.read_table(file_paths)
+            except Exception:
+                # Batch read failed - read individually to skip corrupt files
+                valid_tables = []
+                for file_path in file_paths:
+                    try:
+                        table = pq.read_table(file_path)
+                        valid_tables.append(table)
+                    except Exception as e:
+                        logger.warning(f"Skipping corrupt Parquet file: {file_path} - {e}")
+                        continue
+
+                if not valid_tables:
+                    self._parquet_registered = False
+                    logger.debug("No valid Parquet files found")
+                    return
+
+                file_count = len(valid_tables)
+                arrow_table = pa.concat_tables(valid_tables)
 
             # Create DataFusion DataFrame and register
             df = self.ctx.from_arrow(arrow_table)
@@ -78,7 +100,7 @@ class UnifiedSpanQuery:
 
             logger.debug(
                 "Registered Parquet files",
-                extra={"file_count": len(file_paths), "row_count": arrow_table.num_rows},
+                extra={"file_count": file_count, "row_count": arrow_table.num_rows},
             )
 
         except Exception as e:
@@ -124,6 +146,7 @@ class UnifiedSpanQuery:
         """Register COLD tier Parquet files as 'cold_spans' table.
 
         Cold tier contains data from full WAL flushes, indexed in DuckDB.
+        Corrupt files are skipped gracefully.
 
         Args:
             file_paths: List of Parquet file paths from DuckDB metadata
@@ -139,14 +162,36 @@ class UnifiedSpanQuery:
             except Exception:
                 pass
 
-            arrow_table = pq.read_table(file_paths)
+            # Try batch read first (faster), fall back to individual reads if corrupt file
+            file_count = len(file_paths)
+            try:
+                arrow_table = pq.read_table(file_paths)
+            except Exception:
+                # Batch read failed - read individually to skip corrupt files
+                valid_tables = []
+                for file_path in file_paths:
+                    try:
+                        table = pq.read_table(file_path)
+                        valid_tables.append(table)
+                    except Exception as e:
+                        logger.warning(f"Skipping corrupt cold file: {file_path} - {e}")
+                        continue
+
+                if not valid_tables:
+                    self._cold_registered = False
+                    logger.debug("No valid cold Parquet files found")
+                    return
+
+                file_count = len(valid_tables)
+                arrow_table = pa.concat_tables(valid_tables)
+
             df = self.ctx.from_arrow(arrow_table)
             self.ctx.register_table("cold_spans", df)
             self._cold_registered = True
 
             logger.debug(
                 "Registered COLD tier files",
-                extra={"file_count": len(file_paths), "row_count": arrow_table.num_rows},
+                extra={"file_count": file_count, "row_count": arrow_table.num_rows},
             )
 
         except Exception as e:
@@ -159,8 +204,10 @@ class UnifiedSpanQuery:
         Warm tier contains incremental snapshots from tmp/, not indexed in DuckDB.
         Uses glob pattern to find all warm_*.parquet files.
 
+        Corrupt files (e.g., from crash) are skipped gracefully.
+
         Returns:
-            List of warm file paths found (for logging)
+            List of warm file paths successfully registered (for logging)
         """
         try:
             try:
@@ -177,17 +224,39 @@ class UnifiedSpanQuery:
                 logger.debug("No warm Parquet files found")
                 return []
 
-            arrow_table = pq.read_table(warm_files)
+            # Try batch read first (faster), fall back to individual reads if corrupt file
+            valid_files = warm_files
+            try:
+                arrow_table = pq.read_table(warm_files)
+            except Exception:
+                # Batch read failed - read individually to skip corrupt files
+                valid_tables = []
+                valid_files = []
+                for file_path in warm_files:
+                    try:
+                        table = pq.read_table(file_path)
+                        valid_tables.append(table)
+                        valid_files.append(file_path)
+                    except Exception as e:
+                        logger.warning(f"Skipping corrupt warm file: {file_path} - {e}")
+                        continue
+
+                if not valid_tables:
+                    self._warm_registered = False
+                    logger.debug("No valid warm Parquet files found")
+                    return []
+
+                arrow_table = pa.concat_tables(valid_tables)
             df = self.ctx.from_arrow(arrow_table)
             self.ctx.register_table("warm_spans", df)
             self._warm_registered = True
 
             logger.debug(
                 "Registered WARM tier files",
-                extra={"file_count": len(warm_files), "row_count": arrow_table.num_rows},
+                extra={"file_count": len(valid_files), "row_count": arrow_table.num_rows},
             )
 
-            return warm_files
+            return valid_files
 
         except Exception as e:
             logger.error(f"Failed to register warm files: {e}")

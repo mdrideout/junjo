@@ -37,7 +37,7 @@ func ApiKeyAuthInterceptor(authClient *backend_client.AuthClient) grpc.UnaryServ
 
 		// Check the cache first.
 		if _, ok := cache.GetIfPresent(apiKey); ok {
-			slog.Info("API key validation successful (from cache)", "method", info.FullMethod)
+			slog.Debug("API key validation successful (from cache)", "method", info.FullMethod)
 			return handler(ctx, req)
 		}
 

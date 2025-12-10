@@ -26,7 +26,8 @@ import (
 )
 
 // NewGRPCServer creates and configures the gRPC server for the ingestion service.
-func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthClient) (*grpc.Server, net.Listener, error) {
+// Returns the server, listener, and span logger (caller must call spanLogger.Start() and Stop()).
+func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthClient, spanLogger *BatchedSpanLogger) (*grpc.Server, net.Listener, error) {
 	cfg := config.Get().Server
 	listenAddr := ":" + cfg.PublicPort
 	lis, err := net.Listen("tcp", listenAddr)
@@ -35,16 +36,16 @@ func NewGRPCServer(repo storage.SpanRepository, authClient *backend_client.AuthC
 	}
 
 	// --- Initialize Services ---
-	otelTraceSvc := NewOtelTraceService(repo)
+	otelTraceSvc := NewOtelTraceService(repo, spanLogger)
 	otelLogsSvc := NewOtelLogsService()
 	otelMetricSvc := NewOtelMetricService()
 
+	// Log gRPC events at DEBUG level (FinishCall only, StartCall is too noisy)
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpc_logging.UnaryServerInterceptor(
-				interceptorLogger(),
+				debugInterceptorLogger(),
 				grpc_logging.WithLogOnEvents(
-					grpc_logging.StartCall,
 					grpc_logging.FinishCall,
 				),
 			),
@@ -118,9 +119,10 @@ func NewInternalGRPCServer(repo storage.SpanRepository, flusher *storage.Flusher
 	return grpcServer, lis, nil
 }
 
-// interceptorLogger returns a grpc_logging.Logger that uses the global slog.
-func interceptorLogger() grpc_logging.Logger {
+// debugInterceptorLogger returns a grpc_logging.Logger that logs all events at DEBUG level.
+// Used for the public gRPC server to reduce log noise.
+func debugInterceptorLogger() grpc_logging.Logger {
 	return grpc_logging.LoggerFunc(func(ctx context.Context, lvl grpc_logging.Level, msg string, fields ...any) {
-		slog.Log(ctx, slog.Level(lvl), msg, fields...)
+		slog.Log(ctx, slog.LevelDebug, msg, fields...)
 	})
 }

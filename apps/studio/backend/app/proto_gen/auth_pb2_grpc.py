@@ -31,7 +31,7 @@ class InternalAuthServiceStub(object):
     -----------------------------------------------------------------------------
 
     InternalAuthService provides a private API for the ingestion service to
-    validate API keys.
+    validate API keys and notify about new data.
     """
 
     def __init__(self, channel):
@@ -45,6 +45,11 @@ class InternalAuthServiceStub(object):
                 request_serializer=auth__pb2.ValidateApiKeyRequest.SerializeToString,
                 response_deserializer=auth__pb2.ValidateApiKeyResponse.FromString,
                 _registered_method=True)
+        self.NotifyNewParquetFile = channel.unary_unary(
+                '/ingestion.InternalAuthService/NotifyNewParquetFile',
+                request_serializer=auth__pb2.NotifyNewParquetFileRequest.SerializeToString,
+                response_deserializer=auth__pb2.NotifyNewParquetFileResponse.FromString,
+                _registered_method=True)
 
 
 class InternalAuthServiceServicer(object):
@@ -53,11 +58,19 @@ class InternalAuthServiceServicer(object):
     -----------------------------------------------------------------------------
 
     InternalAuthService provides a private API for the ingestion service to
-    validate API keys.
+    validate API keys and notify about new data.
     """
 
     def ValidateApiKey(self, request, context):
         """ValidateApiKey checks if an API key is valid.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def NotifyNewParquetFile(self, request, context):
+        """NotifyNewParquetFile tells the backend to index a newly flushed parquet file.
+        Called by ingestion after a cold flush completes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -70,6 +83,11 @@ def add_InternalAuthServiceServicer_to_server(servicer, server):
                     servicer.ValidateApiKey,
                     request_deserializer=auth__pb2.ValidateApiKeyRequest.FromString,
                     response_serializer=auth__pb2.ValidateApiKeyResponse.SerializeToString,
+            ),
+            'NotifyNewParquetFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.NotifyNewParquetFile,
+                    request_deserializer=auth__pb2.NotifyNewParquetFileRequest.FromString,
+                    response_serializer=auth__pb2.NotifyNewParquetFileResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -85,7 +103,7 @@ class InternalAuthService(object):
     -----------------------------------------------------------------------------
 
     InternalAuthService provides a private API for the ingestion service to
-    validate API keys.
+    validate API keys and notify about new data.
     """
 
     @staticmethod
@@ -105,6 +123,33 @@ class InternalAuthService(object):
             '/ingestion.InternalAuthService/ValidateApiKey',
             auth__pb2.ValidateApiKeyRequest.SerializeToString,
             auth__pb2.ValidateApiKeyResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def NotifyNewParquetFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ingestion.InternalAuthService/NotifyNewParquetFile',
+            auth__pb2.NotifyNewParquetFileRequest.SerializeToString,
+            auth__pb2.NotifyNewParquetFileResponse.FromString,
             options,
             channel_credentials,
             insecure,

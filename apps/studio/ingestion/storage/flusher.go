@@ -24,6 +24,10 @@ type flusherConfig struct {
 	parquetConfig ParquetWriterConfig
 }
 
+// FlushNotifyFunc is called after a cold flush with the path to the new parquet file.
+// Used to notify the backend for immediate indexing.
+type FlushNotifyFunc func(ctx context.Context, filePath string) error
+
 // Flusher manages the background process of flushing spans from SQLite to Parquet.
 type Flusher struct {
 	repo        SpanRepository
@@ -36,6 +40,9 @@ type Flusher struct {
 
 	// For manual flush requests
 	flushCh chan chan error
+
+	// Optional callback to notify backend after flush
+	notifyFunc FlushNotifyFunc
 }
 
 // NewFlusher creates a new Flusher instance.
@@ -68,6 +75,12 @@ func (f *Flusher) Start() {
 		slog.Duration("max_age", f.config.maxFlushAge),
 		slog.Int64("max_rows", f.config.maxRowCount),
 		slog.String("output_dir", f.config.outputDir))
+}
+
+// SetNotifyFunc sets the callback to notify the backend after a cold flush.
+// Must be called before Start().
+func (f *Flusher) SetNotifyFunc(fn FlushNotifyFunc) {
+	f.notifyFunc = fn
 }
 
 // Stop gracefully stops the flusher and waits for completion.
@@ -217,6 +230,16 @@ func (f *Flusher) doFlush() error {
 	if err := f.warmFlusher.CleanupWarmFiles(); err != nil {
 		slog.Warn("failed to cleanup warm files after cold flush", slog.Any("error", err))
 		// Don't fail the flush for this
+	}
+
+	// Notify backend to index the new file immediately (if callback set)
+	if f.notifyFunc != nil {
+		if err := f.notifyFunc(f.ctx, outputPath); err != nil {
+			slog.Warn("failed to notify backend of new parquet file",
+				slog.String("file_path", outputPath),
+				slog.Any("error", err))
+			// Don't fail the flush - backend will pick it up via polling
+		}
 	}
 
 	duration := time.Since(startTime)

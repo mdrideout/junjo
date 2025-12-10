@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"junjo-ai-studio/ingestion/backend_client"
 	"junjo-ai-studio/ingestion/config"
@@ -41,10 +42,6 @@ func main() {
 
 	slog.Info("storage initialized successfully")
 
-	// Create and start flusher
-	flusher := storage.NewFlusher(repo)
-	flusher.Start()
-
 	// Create backend auth client
 	authClient, err := backend_client.NewAuthClient()
 	if err != nil {
@@ -60,8 +57,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create flusher with backend notification callback
+	flusher := storage.NewFlusher(repo)
+	flusher.SetNotifyFunc(func(ctx context.Context, filePath string) error {
+		_, err := authClient.NotifyNewParquetFile(ctx, filePath)
+		return err
+	})
+	flusher.Start()
+
+	// Create batched span logger (logs every 10 seconds instead of per-span)
+	spanLogger := server.NewBatchedSpanLogger(10 * time.Second)
+	spanLogger.Start()
+
 	// Create the public gRPC server
-	publicGRPCServer, publicLis, err := server.NewGRPCServer(repo, authClient)
+	publicGRPCServer, publicLis, err := server.NewGRPCServer(repo, authClient, spanLogger)
 	if err != nil {
 		slog.Error("failed to create public grpc server", slog.Any("error", err))
 		os.Exit(1)
@@ -99,6 +108,9 @@ func main() {
 	publicGRPCServer.GracefulStop()
 	internalGRPCServer.GracefulStop()
 	slog.Info("grpc servers stopped")
+
+	// Stop span logger (flushes any remaining log entries)
+	spanLogger.Stop()
 
 	// Stop flusher (performs final flush before stopping)
 	flusher.Stop()

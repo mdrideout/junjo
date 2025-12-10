@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InternalAuthService_ValidateApiKey_FullMethodName = "/ingestion.InternalAuthService/ValidateApiKey"
+	InternalAuthService_ValidateApiKey_FullMethodName       = "/ingestion.InternalAuthService/ValidateApiKey"
+	InternalAuthService_NotifyNewParquetFile_FullMethodName = "/ingestion.InternalAuthService/NotifyNewParquetFile"
 )
 
 // InternalAuthServiceClient is the client API for InternalAuthService service.
@@ -27,10 +28,13 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // InternalAuthService provides a private API for the ingestion service to
-// validate API keys.
+// validate API keys and notify about new data.
 type InternalAuthServiceClient interface {
 	// ValidateApiKey checks if an API key is valid.
 	ValidateApiKey(ctx context.Context, in *ValidateApiKeyRequest, opts ...grpc.CallOption) (*ValidateApiKeyResponse, error)
+	// NotifyNewParquetFile tells the backend to index a newly flushed parquet file.
+	// Called by ingestion after a cold flush completes.
+	NotifyNewParquetFile(ctx context.Context, in *NotifyNewParquetFileRequest, opts ...grpc.CallOption) (*NotifyNewParquetFileResponse, error)
 }
 
 type internalAuthServiceClient struct {
@@ -51,15 +55,28 @@ func (c *internalAuthServiceClient) ValidateApiKey(ctx context.Context, in *Vali
 	return out, nil
 }
 
+func (c *internalAuthServiceClient) NotifyNewParquetFile(ctx context.Context, in *NotifyNewParquetFileRequest, opts ...grpc.CallOption) (*NotifyNewParquetFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotifyNewParquetFileResponse)
+	err := c.cc.Invoke(ctx, InternalAuthService_NotifyNewParquetFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InternalAuthServiceServer is the server API for InternalAuthService service.
 // All implementations must embed UnimplementedInternalAuthServiceServer
 // for forward compatibility.
 //
 // InternalAuthService provides a private API for the ingestion service to
-// validate API keys.
+// validate API keys and notify about new data.
 type InternalAuthServiceServer interface {
 	// ValidateApiKey checks if an API key is valid.
 	ValidateApiKey(context.Context, *ValidateApiKeyRequest) (*ValidateApiKeyResponse, error)
+	// NotifyNewParquetFile tells the backend to index a newly flushed parquet file.
+	// Called by ingestion after a cold flush completes.
+	NotifyNewParquetFile(context.Context, *NotifyNewParquetFileRequest) (*NotifyNewParquetFileResponse, error)
 	mustEmbedUnimplementedInternalAuthServiceServer()
 }
 
@@ -72,6 +89,9 @@ type UnimplementedInternalAuthServiceServer struct{}
 
 func (UnimplementedInternalAuthServiceServer) ValidateApiKey(context.Context, *ValidateApiKeyRequest) (*ValidateApiKeyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateApiKey not implemented")
+}
+func (UnimplementedInternalAuthServiceServer) NotifyNewParquetFile(context.Context, *NotifyNewParquetFileRequest) (*NotifyNewParquetFileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyNewParquetFile not implemented")
 }
 func (UnimplementedInternalAuthServiceServer) mustEmbedUnimplementedInternalAuthServiceServer() {}
 func (UnimplementedInternalAuthServiceServer) testEmbeddedByValue()                             {}
@@ -112,6 +132,24 @@ func _InternalAuthService_ValidateApiKey_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InternalAuthService_NotifyNewParquetFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifyNewParquetFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalAuthServiceServer).NotifyNewParquetFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalAuthService_NotifyNewParquetFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalAuthServiceServer).NotifyNewParquetFile(ctx, req.(*NotifyNewParquetFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InternalAuthService_ServiceDesc is the grpc.ServiceDesc for InternalAuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -122,6 +160,10 @@ var InternalAuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateApiKey",
 			Handler:    _InternalAuthService_ValidateApiKey_Handler,
+		},
+		{
+			MethodName: "NotifyNewParquetFile",
+			Handler:    _InternalAuthService_NotifyNewParquetFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

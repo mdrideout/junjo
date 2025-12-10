@@ -111,6 +111,105 @@ func (x *ValidateApiKeyResponse) GetIsValid() bool {
 	return false
 }
 
+type NotifyNewParquetFileRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absolute path to the newly created parquet file.
+	FilePath      string `protobuf:"bytes,1,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotifyNewParquetFileRequest) Reset() {
+	*x = NotifyNewParquetFileRequest{}
+	mi := &file_auth_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyNewParquetFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyNewParquetFileRequest) ProtoMessage() {}
+
+func (x *NotifyNewParquetFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyNewParquetFileRequest.ProtoReflect.Descriptor instead.
+func (*NotifyNewParquetFileRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *NotifyNewParquetFileRequest) GetFilePath() string {
+	if x != nil {
+		return x.FilePath
+	}
+	return ""
+}
+
+type NotifyNewParquetFileResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the file was successfully indexed.
+	Indexed bool `protobuf:"varint,1,opt,name=indexed,proto3" json:"indexed,omitempty"`
+	// Number of spans indexed from the file.
+	SpanCount     int64 `protobuf:"varint,2,opt,name=span_count,json=spanCount,proto3" json:"span_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotifyNewParquetFileResponse) Reset() {
+	*x = NotifyNewParquetFileResponse{}
+	mi := &file_auth_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyNewParquetFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyNewParquetFileResponse) ProtoMessage() {}
+
+func (x *NotifyNewParquetFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyNewParquetFileResponse.ProtoReflect.Descriptor instead.
+func (*NotifyNewParquetFileResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *NotifyNewParquetFileResponse) GetIndexed() bool {
+	if x != nil {
+		return x.Indexed
+	}
+	return false
+}
+
+func (x *NotifyNewParquetFileResponse) GetSpanCount() int64 {
+	if x != nil {
+		return x.SpanCount
+	}
+	return 0
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -120,9 +219,16 @@ const file_auth_proto_rawDesc = "" +
 	"\x15ValidateApiKeyRequest\x12\x17\n" +
 	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\"3\n" +
 	"\x16ValidateApiKeyResponse\x12\x19\n" +
-	"\bis_valid\x18\x01 \x01(\bR\aisValid2n\n" +
+	"\bis_valid\x18\x01 \x01(\bR\aisValid\":\n" +
+	"\x1bNotifyNewParquetFileRequest\x12\x1b\n" +
+	"\tfile_path\x18\x01 \x01(\tR\bfilePath\"W\n" +
+	"\x1cNotifyNewParquetFileResponse\x12\x18\n" +
+	"\aindexed\x18\x01 \x01(\bR\aindexed\x12\x1d\n" +
+	"\n" +
+	"span_count\x18\x02 \x01(\x03R\tspanCount2\xd9\x01\n" +
 	"\x13InternalAuthService\x12W\n" +
-	"\x0eValidateApiKey\x12 .ingestion.ValidateApiKeyRequest\x1a!.ingestion.ValidateApiKeyResponse\"\x00B\rZ\v.;proto_genb\x06proto3"
+	"\x0eValidateApiKey\x12 .ingestion.ValidateApiKeyRequest\x1a!.ingestion.ValidateApiKeyResponse\"\x00\x12i\n" +
+	"\x14NotifyNewParquetFile\x12&.ingestion.NotifyNewParquetFileRequest\x1a'.ingestion.NotifyNewParquetFileResponse\"\x00B\rZ\v.;proto_genb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -136,16 +242,20 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_auth_proto_goTypes = []any{
-	(*ValidateApiKeyRequest)(nil),  // 0: ingestion.ValidateApiKeyRequest
-	(*ValidateApiKeyResponse)(nil), // 1: ingestion.ValidateApiKeyResponse
+	(*ValidateApiKeyRequest)(nil),        // 0: ingestion.ValidateApiKeyRequest
+	(*ValidateApiKeyResponse)(nil),       // 1: ingestion.ValidateApiKeyResponse
+	(*NotifyNewParquetFileRequest)(nil),  // 2: ingestion.NotifyNewParquetFileRequest
+	(*NotifyNewParquetFileResponse)(nil), // 3: ingestion.NotifyNewParquetFileResponse
 }
 var file_auth_proto_depIdxs = []int32{
 	0, // 0: ingestion.InternalAuthService.ValidateApiKey:input_type -> ingestion.ValidateApiKeyRequest
-	1, // 1: ingestion.InternalAuthService.ValidateApiKey:output_type -> ingestion.ValidateApiKeyResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: ingestion.InternalAuthService.NotifyNewParquetFile:input_type -> ingestion.NotifyNewParquetFileRequest
+	1, // 2: ingestion.InternalAuthService.ValidateApiKey:output_type -> ingestion.ValidateApiKeyResponse
+	3, // 3: ingestion.InternalAuthService.NotifyNewParquetFile:output_type -> ingestion.NotifyNewParquetFileResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -162,7 +272,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

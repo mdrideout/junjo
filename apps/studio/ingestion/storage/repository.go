@@ -597,8 +597,16 @@ func (r *SQLiteRepository) GetFlushState() (*FlushState, error) {
 		return &FlushState{}, nil
 	}
 
+	// Get unix timestamp - 0 means never flushed
+	lastFlushUnix := stmt.ColumnInt64(0)
+	var lastFlushTime time.Time
+	if lastFlushUnix > 0 {
+		lastFlushTime = time.Unix(lastFlushUnix, 0).UTC()
+	}
+	// else: lastFlushTime remains zero value, so IsZero() returns true
+
 	state := &FlushState{
-		LastFlushTime:    time.Unix(stmt.ColumnInt64(0), 0).UTC(),
+		LastFlushTime:    lastFlushTime,
 		TotalFlushedRows: stmt.ColumnInt64(3),
 	}
 

@@ -103,3 +103,34 @@ func (c *AuthClient) WaitUntilReady(ctx context.Context) error {
 	slog.Info("backend grpc server is ready")
 	return nil
 }
+
+// NotifyNewParquetFile tells the backend to index a newly flushed parquet file.
+// This is called after a cold flush to avoid the polling delay.
+// Returns the number of spans indexed, or an error.
+func (c *AuthClient) NotifyNewParquetFile(ctx context.Context, filePath string) (int64, error) {
+	req := &pb.NotifyNewParquetFileRequest{
+		FilePath: filePath,
+	}
+
+	// Set a 30-second timeout - indexing large files may take time
+	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	res, err := c.client.NotifyNewParquetFile(callCtx, req)
+	if err != nil {
+		slog.Error("failed to notify backend of new parquet file",
+			slog.String("file_path", filePath),
+			slog.Any("error", err))
+		return 0, fmt.Errorf("backend notification failed: %w", err)
+	}
+
+	if !res.Indexed {
+		slog.Warn("backend failed to index parquet file", slog.String("file_path", filePath))
+		return 0, fmt.Errorf("backend failed to index file")
+	}
+
+	slog.Info("backend indexed parquet file",
+		slog.String("file_path", filePath),
+		slog.Int64("span_count", res.SpanCount))
+	return res.SpanCount, nil
+}
