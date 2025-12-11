@@ -67,6 +67,7 @@ type FlusherConfig struct {
 	MaxAge             time.Duration
 	MaxRows            int64
 	MinRows            int64
+	MaxBytes           int64 // Maximum WAL size before triggering cold flush (default 50MB)
 	WarmSnapshotBytes  int64 // Minimum bytes before triggering warm snapshot (default 10MB)
 }
 
@@ -102,6 +103,7 @@ func Default() *Config {
 			MaxAge:            1 * time.Hour,
 			MaxRows:           100000,
 			MinRows:           1000,
+			MaxBytes:          50 * 1024 * 1024, // 50MB
 			WarmSnapshotBytes: 10 * 1024 * 1024, // 10MB
 		},
 		Server: ServerConfig{
@@ -164,6 +166,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("invalid FLUSH_MIN_ROWS %q: %w", minRows, err)
 		}
 		cfg.Flusher.MinRows = n
+	}
+
+	if maxBytes := os.Getenv("FLUSH_MAX_BYTES"); maxBytes != "" {
+		n, err := strconv.ParseInt(maxBytes, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid FLUSH_MAX_BYTES %q: %w", maxBytes, err)
+		}
+		cfg.Flusher.MaxBytes = n
 	}
 
 	if warmBytes := os.Getenv("WARM_SNAPSHOT_BYTES"); warmBytes != "" {

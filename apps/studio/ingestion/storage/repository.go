@@ -45,6 +45,7 @@ type SpanRepository interface {
 	// Cold flush state
 	GetFlushState() (*FlushState, error)
 	UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) error
+	GetDBSize() (int64, error)
 
 	// Warm snapshot state (three-tier architecture)
 	GetWarmSnapshotState() (*WarmSnapshotState, error)
@@ -654,6 +655,27 @@ func (r *SQLiteRepository) UpdateFlushState(firstKey, lastKey []byte, rowsFlushe
 	}
 
 	return nil
+}
+
+// GetDBSize returns the current SQLite database size in bytes.
+// Uses PRAGMA page_count * page_size which is more accurate than file size.
+func (r *SQLiteRepository) GetDBSize() (int64, error) {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return 0, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	stmt := conn.Prep(`SELECT page_count * page_size FROM pragma_page_count(), pragma_page_size()`)
+	defer stmt.Reset()
+
+	if hasRow, err := stmt.Step(); err != nil {
+		return 0, fmt.Errorf("failed to query DB size: %w", err)
+	} else if !hasRow {
+		return 0, fmt.Errorf("no result from DB size query")
+	}
+
+	return stmt.ColumnInt64(0), nil
 }
 
 // --- WAL Query Operations ---

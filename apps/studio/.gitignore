@@ -8,6 +8,9 @@ tmp
 # E2E test app config (users should copy from config.yaml.example)
 e2e_test_apps/app/config.yaml
 
+# E2E test run metadata (generated during test runs)
+e2e_test_apps/orchestration/test_run_metadata.json
+
 # Database files
 # All local/dev database data stored in .dbdata/ directory:
 #   .dbdata/sqlite/     - SQLite databases (Python/Go backends)

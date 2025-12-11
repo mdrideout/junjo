@@ -9,9 +9,8 @@ This service provides:
 import grpc
 from loguru import logger
 
-from app.db_duckdb import v4_repository
 from app.db_sqlite.api_keys.repository import APIKeyRepository
-from app.features.parquet_indexer import parquet_reader
+from app.features.parquet_indexer.background_indexer import index_new_files
 from app.proto_gen import auth_pb2, auth_pb2_grpc
 
 
@@ -74,12 +73,13 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
         context: grpc.aio.ServicerContext,
     ) -> auth_pb2.NotifyNewParquetFileResponse:
         """
-        Index a newly flushed parquet file immediately.
+        Trigger indexing after a new parquet file is flushed.
 
         Called by ingestion after a cold flush completes, avoiding the polling delay.
+        This triggers the normal indexing logic which will find and index the new file.
 
         Args:
-            request: NotifyNewParquetFileRequest containing the file path
+            request: NotifyNewParquetFileRequest containing the file path (for logging)
             context: gRPC servicer context
 
         Returns:
@@ -89,21 +89,19 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
         logger.info(f"Received notification for new parquet file: {file_path}")
 
         try:
-            # Check if already indexed (idempotent)
-            if v4_repository.is_file_indexed(file_path):
-                logger.debug(f"File already indexed: {file_path}")
-                return auth_pb2.NotifyNewParquetFileResponse(indexed=True, span_count=0)
+            # Trigger the normal indexing function - it handles:
+            # - File scanning and deduplication
+            # - Reading parquet metadata
+            # - Indexing to DuckDB
+            # - Error recording for bad files
+            indexed_count = await index_new_files()
 
-            # Read and index the file
-            file_data = parquet_reader.read_parquet_metadata(file_path)
-            span_count = v4_repository.index_parquet_file(file_data)
-
-            logger.info(f"Indexed {span_count} spans from {file_path}")
-            return auth_pb2.NotifyNewParquetFileResponse(indexed=True, span_count=span_count)
+            logger.info(f"Indexing triggered, indexed {indexed_count} files")
+            return auth_pb2.NotifyNewParquetFileResponse(indexed=True, span_count=indexed_count)
 
         except Exception as e:
             logger.error(
-                f"Failed to index parquet file: {file_path}",
+                f"Failed to trigger indexing after notification: {file_path}",
                 extra={"error": str(e), "error_type": type(e).__name__},
             )
             return auth_pb2.NotifyNewParquetFileResponse(indexed=False, span_count=0)

@@ -20,6 +20,7 @@ type flusherConfig struct {
 	maxFlushAge   time.Duration
 	maxRowCount   int64
 	minRowCount   int64
+	maxBytes      int64
 	outputDir     string
 	parquetConfig ParquetWriterConfig
 }
@@ -56,6 +57,7 @@ func NewFlusher(repo SpanRepository) *Flusher {
 			maxFlushAge:   cfg.MaxAge,
 			maxRowCount:   cfg.MaxRows,
 			minRowCount:   cfg.MinRows,
+			maxBytes:      cfg.MaxBytes,
 			outputDir:     cfg.OutputDir,
 			parquetConfig: DefaultParquetWriterConfig(),
 		},
@@ -74,6 +76,7 @@ func (f *Flusher) Start() {
 		slog.Duration("interval", f.config.flushInterval),
 		slog.Duration("max_age", f.config.maxFlushAge),
 		slog.Int64("max_rows", f.config.maxRowCount),
+		slog.Int64("max_bytes", f.config.maxBytes),
 		slog.String("output_dir", f.config.outputDir))
 }
 
@@ -158,6 +161,19 @@ func (f *Flusher) checkAndFlush() error {
 			slog.Int64("count", count),
 			slog.Int64("threshold", f.config.maxRowCount))
 		return f.doFlush()
+	}
+
+	// Check size threshold
+	if f.config.maxBytes > 0 {
+		dbSize, err := f.repo.GetDBSize()
+		if err != nil {
+			slog.Warn("failed to get DB size for flush check", slog.Any("error", err))
+		} else if dbSize >= f.config.maxBytes {
+			slog.Info("flush triggered by size",
+				slog.Int64("size_bytes", dbSize),
+				slog.Int64("threshold_bytes", f.config.maxBytes))
+			return f.doFlush()
+		}
 	}
 
 	// Check age threshold
