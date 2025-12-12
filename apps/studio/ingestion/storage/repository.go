@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"crawshaw.io/sqlite"
@@ -13,6 +14,8 @@ import (
 	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
+
+	"junjo-ai-studio/ingestion/config"
 )
 
 // SpanFilter defines filtering options for WAL span queries.
@@ -24,14 +27,24 @@ type SpanFilter struct {
 	Limit        int    // Maximum number of spans to return (0 = no limit)
 }
 
+// SpanWriteRequest contains all data needed to write a span in a batch.
+type SpanWriteRequest struct {
+	Span     *tracepb.Span
+	Resource *resourcepb.Resource
+}
+
 // SpanRepository defines the data access interface for span storage.
 type SpanRepository interface {
 	// Span operations
 	WriteSpan(span *tracepb.Span, resource *resourcepb.Resource) error
+	WriteSpans(requests []*SpanWriteRequest) error // Batch write - much more efficient
 	ReadSpans(startKey []byte, batchSize uint32, sendFunc func(key, spanBytes, resourceBytes []byte) error) (lastKeyProcessed []byte, corruptedCount uint32, err error)
 	DeleteSpansInRange(firstKey, lastKey []byte) error
 	GetSpanCount() (int64, error)
 	ReadAllSpansForFlush() (records []SpanRecord, firstKey, lastKey []byte, err error)
+
+	// Streaming flush operations (memory-bounded)
+	ReadSpansChunked(startKey []byte, chunkSize int) (records []SpanRecord, firstKey, lastKey []byte, hasMore bool, err error)
 
 	// WAL Query operations (unified Arrow-based query)
 	GetSpansFiltered(filter SpanFilter) ([]SpanRecord, error)
@@ -46,6 +59,7 @@ type SpanRepository interface {
 	GetFlushState() (*FlushState, error)
 	UpdateFlushState(firstKey, lastKey []byte, rowsFlushed int64) error
 	GetDBSize() (int64, error)
+	GetSpanDataSize() (int64, error) // Returns actual span data bytes (not DB file size)
 
 	// Warm snapshot state (three-tier architecture)
 	GetWarmSnapshotState() (*WarmSnapshotState, error)
@@ -53,6 +67,11 @@ type SpanRepository interface {
 	ResetWarmSnapshotState() error
 	GetUnflushedBytesSinceWarm() (int64, error)
 	GetSpansSinceWarmULID(sinceULID []byte, filter SpanFilter) ([]SpanRecord, []byte, error)
+
+	// Reactive byte tracking (for non-polling warm flush)
+	GetBytesSinceWarm() int64           // Returns current atomic counter (fast, no query)
+	ResetBytesSinceWarm()               // Reset counter after warm snapshot
+	SetWarmSignalChannel(ch chan<- struct{}) // Set channel to signal when threshold exceeded
 
 	// Lifecycle
 	Sync() error
@@ -76,11 +95,39 @@ func newULID() (ulid.ULID, error) {
 	return ulid.New(ulid.Timestamp(time.Now()), &ulidGenerator)
 }
 
+// newULIDs generates multiple ULIDs under a single lock acquisition.
+// This is much more efficient than calling newULID() in a loop.
+func newULIDs(count int) ([]ulid.ULID, error) {
+	if count == 0 {
+		return nil, nil
+	}
+
+	ulidGenerator.Lock()
+	defer ulidGenerator.Unlock()
+
+	ids := make([]ulid.ULID, count)
+	now := ulid.Timestamp(time.Now())
+	for i := 0; i < count; i++ {
+		id, err := ulid.New(now, &ulidGenerator)
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = id
+	}
+	return ids, nil
+}
+
 // --- SQLiteRepository Implementation ---
 
 // SQLiteRepository implements SpanRepository using SQLite.
 type SQLiteRepository struct {
 	pool *sqlitex.Pool
+
+	// Reactive byte tracking for warm flush
+	bytesSinceWarm    atomic.Int64      // Tracks bytes written since last warm snapshot
+	warmSignalCh      chan<- struct{}   // Channel to signal when warm threshold exceeded
+	warmSignalMu      sync.RWMutex      // Protects warmSignalCh
+	warmBytesThreshold int64            // Threshold in bytes to trigger warm signal
 }
 
 // NewSQLiteRepository creates a new SQLiteRepository at the specified path.
@@ -95,7 +142,12 @@ func NewSQLiteRepository(path string) (*SQLiteRepository, error) {
 
 	slog.Info("sqlite opened", slog.String("path", path))
 
-	repo := &SQLiteRepository{pool: pool}
+	// Get warm bytes threshold from config
+	cfg := config.Get().Flusher
+	repo := &SQLiteRepository{
+		pool:               pool,
+		warmBytesThreshold: cfg.WarmSnapshotBytes,
+	}
 
 	// Initialize schema
 	if err := repo.initSchema(); err != nil {
@@ -261,6 +313,103 @@ func (r *SQLiteRepository) WriteSpan(span *tracepb.Span, resource *resourcepb.Re
 	stmt.BindText(1, MetadataKeyUnretrievedCount)
 	_, err = stmt.Step()
 	stmt.Reset()
+	if err != nil {
+		return fmt.Errorf("failed to increment counter: %w", err)
+	}
+
+	return nil
+}
+
+// WriteSpans writes multiple spans in a single transaction.
+// This is much more efficient than calling WriteSpan() in a loop.
+// Also tracks bytes written and signals warm flusher when threshold exceeded.
+func (r *SQLiteRepository) WriteSpans(requests []*SpanWriteRequest) error {
+	if len(requests) == 0 {
+		return nil
+	}
+
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	// Pre-generate all ULIDs at once (single mutex acquisition)
+	keys, err := newULIDs(len(requests))
+	if err != nil {
+		return fmt.Errorf("failed to generate ULIDs: %w", err)
+	}
+
+	// Begin transaction
+	defer sqlitex.Save(conn)(&err)
+
+	// Prepare statement once, reuse for all inserts
+	stmt := conn.Prep(`INSERT INTO spans (key_ulid, span_bytes, trace_id, service_name, parent_span_id, start_time_unix_nano) VALUES (?, ?, ?, ?, ?, ?)`)
+	defer stmt.Reset()
+
+	// Track total bytes in this batch for reactive warm triggering
+	var batchBytes int64
+
+	for i, req := range requests {
+		// Create SpanData and serialize
+		spanData := &SpanData{
+			Span:     req.Span,
+			Resource: req.Resource,
+		}
+		dataBytes, err := MarshalSpanData(spanData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal span %d: %w", i, err)
+		}
+
+		// Track bytes for reactive warm triggering
+		batchBytes += int64(len(dataBytes))
+
+		// Extract indexed fields from span and resource
+		traceID := fmt.Sprintf("%x", req.Span.GetTraceId())
+		parentSpanID := ""
+		if len(req.Span.GetParentSpanId()) > 0 {
+			parentSpanID = fmt.Sprintf("%x", req.Span.GetParentSpanId())
+		}
+		startTimeUnixNano := int64(req.Span.GetStartTimeUnixNano())
+
+		// Extract service name from resource attributes
+		serviceName := ""
+		if req.Resource != nil {
+			for _, attr := range req.Resource.GetAttributes() {
+				if attr.GetKey() == "service.name" {
+					serviceName = attr.GetValue().GetStringValue()
+					break
+				}
+			}
+		}
+
+		// Bind parameters
+		stmt.BindBytes(1, keys[i][:])
+		stmt.BindBytes(2, dataBytes)
+		stmt.BindText(3, traceID)
+		stmt.BindText(4, serviceName)
+		stmt.BindText(5, parentSpanID)
+		stmt.BindInt64(6, startTimeUnixNano)
+
+		// Execute insert
+		if _, err = stmt.Step(); err != nil {
+			return fmt.Errorf("failed to insert span %d: %w", i, err)
+		}
+		stmt.Reset()
+	}
+
+	// Update atomic byte counter and check if we should signal warm flush
+	newTotal := r.bytesSinceWarm.Add(batchBytes)
+	if newTotal >= r.warmBytesThreshold {
+		r.signalWarmFlush()
+	}
+
+	// Single counter update for entire batch
+	countStmt := conn.Prep(`UPDATE metadata SET value = value + ? WHERE key = ?`)
+	countStmt.BindInt64(1, int64(len(requests)))
+	countStmt.BindText(2, MetadataKeyUnretrievedCount)
+	_, err = countStmt.Step()
+	countStmt.Reset()
 	if err != nil {
 		return fmt.Errorf("failed to increment counter: %w", err)
 	}
@@ -678,6 +827,28 @@ func (r *SQLiteRepository) GetDBSize() (int64, error) {
 	return stmt.ColumnInt64(0), nil
 }
 
+// GetSpanDataSize returns the total size of span data in bytes.
+// This is the actual data size (sum of span_bytes), not the DB file size.
+// More accurate for backpressure since DB file doesn't shrink on delete.
+func (r *SQLiteRepository) GetSpanDataSize() (int64, error) {
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return 0, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	stmt := conn.Prep(`SELECT COALESCE(SUM(LENGTH(span_bytes)), 0) FROM spans`)
+	defer stmt.Reset()
+
+	if hasRow, err := stmt.Step(); err != nil {
+		return 0, fmt.Errorf("failed to query span data size: %w", err)
+	} else if !hasRow {
+		return 0, nil
+	}
+
+	return stmt.ColumnInt64(0), nil
+}
+
 // --- WAL Query Operations ---
 
 // GetSpansFiltered returns spans matching the filter criteria as SpanRecords.
@@ -1048,5 +1219,126 @@ func (r *SQLiteRepository) GetSpansSinceWarmULID(sinceULID []byte, filter SpanFi
 	}
 
 	return records, lastULID, nil
+}
+
+// --- Reactive Byte Tracking ---
+
+// signalWarmFlush sends a non-blocking signal to the warm flush channel.
+// Called when byte threshold is exceeded.
+func (r *SQLiteRepository) signalWarmFlush() {
+	r.warmSignalMu.RLock()
+	ch := r.warmSignalCh
+	r.warmSignalMu.RUnlock()
+
+	if ch != nil {
+		// Non-blocking send - if channel is full, skip (warm flush already pending)
+		select {
+		case ch <- struct{}{}:
+			slog.Debug("warm flush signal sent",
+				slog.Int64("bytes_since_warm", r.bytesSinceWarm.Load()),
+				slog.Int64("threshold", r.warmBytesThreshold))
+		default:
+			// Channel full, warm flush already signaled
+		}
+	}
+}
+
+// GetBytesSinceWarm returns the current byte counter (fast, no query).
+func (r *SQLiteRepository) GetBytesSinceWarm() int64 {
+	return r.bytesSinceWarm.Load()
+}
+
+// ResetBytesSinceWarm resets the byte counter after a warm snapshot.
+func (r *SQLiteRepository) ResetBytesSinceWarm() {
+	r.bytesSinceWarm.Store(0)
+}
+
+// SetWarmSignalChannel sets the channel to signal when warm threshold is exceeded.
+func (r *SQLiteRepository) SetWarmSignalChannel(ch chan<- struct{}) {
+	r.warmSignalMu.Lock()
+	r.warmSignalCh = ch
+	r.warmSignalMu.Unlock()
+}
+
+// --- Streaming Flush Operations ---
+
+// ReadSpansChunked reads a chunk of spans for streaming flush.
+// Returns records, first/last keys in chunk, whether more data exists, and any error.
+// Uses LIMIT for bounded memory - each chunk is independent.
+func (r *SQLiteRepository) ReadSpansChunked(startKey []byte, chunkSize int) ([]SpanRecord, []byte, []byte, bool, error) {
+	if chunkSize <= 0 {
+		chunkSize = 10000 // Default chunk size
+	}
+
+	conn := r.pool.Get(nil)
+	if conn == nil {
+		return nil, nil, nil, false, fmt.Errorf("failed to get connection from pool")
+	}
+	defer r.pool.Put(conn)
+
+	var stmt *sqlite.Stmt
+	if len(startKey) == 0 {
+		// First chunk - start from beginning
+		stmt = conn.Prep(`SELECT key_ulid, span_bytes FROM spans ORDER BY key_ulid LIMIT ?`)
+		stmt.BindInt64(1, int64(chunkSize+1)) // +1 to detect if more exists
+	} else {
+		// Subsequent chunks - start after last key
+		stmt = conn.Prep(`SELECT key_ulid, span_bytes FROM spans WHERE key_ulid > ? ORDER BY key_ulid LIMIT ?`)
+		stmt.BindBytes(1, startKey)
+		stmt.BindInt64(2, int64(chunkSize+1)) // +1 to detect if more exists
+	}
+	defer stmt.Reset()
+
+	// Pre-allocate slice to avoid repeated reallocations
+	records := make([]SpanRecord, 0, chunkSize)
+	var firstKey, lastKey []byte
+	count := 0
+
+	for {
+		hasRow, err := stmt.Step()
+		if err != nil {
+			return nil, nil, nil, false, fmt.Errorf("failed to step: %w", err)
+		}
+		if !hasRow {
+			break
+		}
+
+		count++
+		// If we've read chunkSize+1, we know there's more data
+		if count > chunkSize {
+			return records, firstKey, lastKey, true, nil
+		}
+
+		// Read key
+		keyLen := stmt.ColumnLen(0)
+		key := make([]byte, keyLen)
+		stmt.ColumnBytes(0, key)
+
+		if firstKey == nil {
+			firstKey = key
+		}
+		lastKey = key
+
+		// Read span data
+		dataLen := stmt.ColumnLen(1)
+		dataBytes := make([]byte, dataLen)
+		stmt.ColumnBytes(1, dataBytes)
+
+		// Unmarshal span data
+		spanData, err := UnmarshalSpanData(dataBytes)
+		if err != nil {
+			slog.Warn("error unmarshaling span data during chunked read, skipping",
+				slog.String("key", fmt.Sprintf("%x", key)),
+				slog.Any("error", err))
+			continue
+		}
+
+		// Convert to record
+		record := ConvertSpanDataToRecord(spanData)
+		records = append(records, record)
+	}
+
+	// No more data if we read less than chunkSize+1
+	return records, firstKey, lastKey, false, nil
 }
 

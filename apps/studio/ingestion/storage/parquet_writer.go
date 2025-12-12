@@ -69,7 +69,7 @@ func DefaultParquetWriterConfig() ParquetWriterConfig {
 	return ParquetWriterConfig{
 		RowGroupSize:     122880, // Optimal for DataFusion
 		CompressionCodec: compress.Codecs.Zstd,
-		CompressionLevel: 3,
+		CompressionLevel: 1, // Level 1 = fastest, still good compression (~10% larger than level 3)
 	}
 }
 
@@ -126,6 +126,118 @@ func WriteSpansToParquet(records []SpanRecord, outputPath string, config Parquet
 	}
 
 	return nil
+}
+
+// --- Streaming Parquet Writer ---
+
+// StreamingParquetWriter writes spans to parquet in chunks (row groups).
+// This allows bounded memory usage regardless of total data size.
+type StreamingParquetWriter struct {
+	file       *os.File
+	writer     *pqarrow.FileWriter
+	outputPath string
+	config     ParquetWriterConfig
+	alloc      memory.Allocator
+
+	totalRecords int
+	rowGroups    int
+}
+
+// NewStreamingParquetWriter creates a new streaming parquet writer.
+// The writer must be closed after use (call Close or Abort).
+func NewStreamingParquetWriter(outputPath string, config ParquetWriterConfig) (*StreamingParquetWriter, error) {
+	// Ensure directory exists
+	dir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
+	// Create temp file first (atomic write pattern)
+	tmpPath := outputPath + ".tmp"
+	file, err := os.Create(tmpPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp file %s: %w", tmpPath, err)
+	}
+
+	// Configure Parquet writer
+	writerProps := parquet.NewWriterProperties(
+		parquet.WithCompression(config.CompressionCodec),
+		parquet.WithCompressionLevel(config.CompressionLevel),
+	)
+	arrowProps := pqarrow.NewArrowWriterProperties(
+		pqarrow.WithStoreSchema(),
+	)
+
+	// Create writer
+	writer, err := pqarrow.NewFileWriter(SpanSchema, file, writerProps, arrowProps)
+	if err != nil {
+		file.Close()
+		os.Remove(tmpPath)
+		return nil, fmt.Errorf("failed to create parquet writer: %w", err)
+	}
+
+	return &StreamingParquetWriter{
+		file:       file,
+		writer:     writer,
+		outputPath: outputPath,
+		config:     config,
+		alloc:      memory.NewGoAllocator(),
+	}, nil
+}
+
+// WriteChunk writes a chunk of records as a new row group.
+// Can be called multiple times for streaming writes.
+func (sw *StreamingParquetWriter) WriteChunk(records []SpanRecord) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	// Build record batch for this chunk
+	batch, err := buildRecordBatch(sw.alloc, records)
+	if err != nil {
+		return fmt.Errorf("failed to build record batch: %w", err)
+	}
+	defer batch.Release()
+
+	// Write as new row group
+	if err := sw.writer.WriteBuffered(batch); err != nil {
+		return fmt.Errorf("failed to write record batch: %w", err)
+	}
+
+	sw.totalRecords += len(records)
+	sw.rowGroups++
+	return nil
+}
+
+// Close finalizes the parquet file and renames to final path.
+// Returns the final output path.
+func (sw *StreamingParquetWriter) Close() (string, error) {
+	// Close the parquet writer (this also closes the underlying file)
+	if err := sw.writer.Close(); err != nil {
+		os.Remove(sw.outputPath + ".tmp")
+		return "", fmt.Errorf("failed to close parquet writer: %w", err)
+	}
+
+	// Rename temp file to final path (atomic on most filesystems)
+	tmpPath := sw.outputPath + ".tmp"
+	if err := os.Rename(tmpPath, sw.outputPath); err != nil {
+		os.Remove(tmpPath)
+		return "", fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
+	return sw.outputPath, nil
+}
+
+// Abort cleans up the temp file without creating the final file.
+// Call this if an error occurred during streaming.
+func (sw *StreamingParquetWriter) Abort() {
+	sw.writer.Close() // This also closes the underlying file
+	os.Remove(sw.outputPath + ".tmp")
+}
+
+// Stats returns the current write statistics.
+func (sw *StreamingParquetWriter) Stats() (totalRecords int, rowGroups int) {
+	return sw.totalRecords, sw.rowGroups
 }
 
 // buildRecordBatch creates an Arrow record batch from span records.

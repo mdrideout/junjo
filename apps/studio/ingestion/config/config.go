@@ -69,12 +69,15 @@ type FlusherConfig struct {
 	MinRows            int64
 	MaxBytes           int64 // Maximum WAL size before triggering cold flush (default 50MB)
 	WarmSnapshotBytes  int64 // Minimum bytes before triggering warm snapshot (default 10MB)
+	FlushChunkSize     int   // Number of spans per chunk during streaming flush (default 50000)
 }
 
 // ServerConfig holds gRPC server configuration.
 type ServerConfig struct {
-	PublicPort   string
-	InternalPort string
+	PublicPort              string
+	InternalPort            string
+	BackpressureMaxBytes    int64 // Max span data bytes before applying backpressure (default 200MB)
+	BackpressureCheckInterval int  // Seconds between backpressure checks (default 2)
 }
 
 // BackendConfig holds backend service connection configuration.
@@ -103,12 +106,15 @@ func Default() *Config {
 			MaxAge:            1 * time.Hour,
 			MaxRows:           100000,
 			MinRows:           1000,
-			MaxBytes:          50 * 1024 * 1024, // 50MB
-			WarmSnapshotBytes: 10 * 1024 * 1024, // 10MB
+			MaxBytes:          50 * 1024 * 1024,  // 50MB
+			WarmSnapshotBytes: 10 * 1024 * 1024,  // 10MB
+			FlushChunkSize:    5000,              // 5K spans per chunk (~10MB memory)
 		},
 		Server: ServerConfig{
-			PublicPort:   "50051",
-			InternalPort: "50052",
+			PublicPort:                "50051",
+			InternalPort:              "50052",
+			BackpressureMaxBytes:      100 * 1024 * 1024, // 100MB
+			BackpressureCheckInterval: 2,                  // 2 seconds
 		},
 		Backend: BackendConfig{
 			Host: "junjo-ai-studio-backend",
@@ -184,6 +190,14 @@ func Load() (*Config, error) {
 		cfg.Flusher.WarmSnapshotBytes = n
 	}
 
+	if chunkSize := os.Getenv("FLUSH_CHUNK_SIZE"); chunkSize != "" {
+		n, err := strconv.Atoi(chunkSize)
+		if err != nil {
+			return nil, fmt.Errorf("invalid FLUSH_CHUNK_SIZE %q: %w", chunkSize, err)
+		}
+		cfg.Flusher.FlushChunkSize = n
+	}
+
 	// Server configuration
 	if port := os.Getenv("GRPC_PORT"); port != "" {
 		cfg.Server.PublicPort = port
@@ -191,6 +205,22 @@ func Load() (*Config, error) {
 
 	if port := os.Getenv("INTERNAL_GRPC_PORT"); port != "" {
 		cfg.Server.InternalPort = port
+	}
+
+	if maxBytes := os.Getenv("BACKPRESSURE_MAX_BYTES"); maxBytes != "" {
+		n, err := strconv.ParseInt(maxBytes, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid BACKPRESSURE_MAX_BYTES %q: %w", maxBytes, err)
+		}
+		cfg.Server.BackpressureMaxBytes = n
+	}
+
+	if interval := os.Getenv("BACKPRESSURE_CHECK_INTERVAL"); interval != "" {
+		n, err := strconv.Atoi(interval)
+		if err != nil {
+			return nil, fmt.Errorf("invalid BACKPRESSURE_CHECK_INTERVAL %q: %w", interval, err)
+		}
+		cfg.Server.BackpressureCheckInterval = n
 	}
 
 	// Backend configuration

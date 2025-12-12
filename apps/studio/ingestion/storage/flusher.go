@@ -6,13 +6,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"junjo-ai-studio/ingestion/config"
 )
+
+// DefaultFlushChunkSize is the fallback chunk size if not configured (5K spans ~ 10MB)
+// Smaller chunks = less memory pressure, faster individual operations
+const DefaultFlushChunkSize = 5000
 
 // flusherConfig holds internal configuration for the Flusher.
 type flusherConfig struct {
@@ -23,6 +27,7 @@ type flusherConfig struct {
 	maxBytes      int64
 	outputDir     string
 	parquetConfig ParquetWriterConfig
+	chunkSize     int // Chunk size for streaming flush
 }
 
 // FlushNotifyFunc is called after a cold flush with the path to the new parquet file.
@@ -30,6 +35,7 @@ type flusherConfig struct {
 type FlushNotifyFunc func(ctx context.Context, filePath string) error
 
 // Flusher manages the background process of flushing spans from SQLite to Parquet.
+// Uses reactive warm flush (signal-based) and non-blocking streaming cold flush.
 type Flusher struct {
 	repo        SpanRepository
 	config      flusherConfig
@@ -39,8 +45,15 @@ type Flusher struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
+	// Reactive warm flush
+	warmSignalCh chan struct{}
+
 	// For manual flush requests
 	flushCh chan chan error
+
+	// Cold flush state (for non-blocking)
+	coldFlushRunning atomic.Bool
+	coldFlushMu      sync.Mutex
 
 	// Optional callback to notify backend after flush
 	notifyFunc FlushNotifyFunc
@@ -50,7 +63,23 @@ type Flusher struct {
 func NewFlusher(repo SpanRepository) *Flusher {
 	cfg := config.Get().Flusher
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Flusher{
+
+	// Create warm signal channel (buffered to avoid blocking writers)
+	warmSignalCh := make(chan struct{}, 1)
+
+	// Register signal channel with repository for reactive triggering
+	// (skip if repo is nil - for testing)
+	if repo != nil {
+		repo.SetWarmSignalChannel(warmSignalCh)
+	}
+
+	// Use configured chunk size or default
+	chunkSize := cfg.FlushChunkSize
+	if chunkSize <= 0 {
+		chunkSize = DefaultFlushChunkSize
+	}
+
+	f := &Flusher{
 		repo: repo,
 		config: flusherConfig{
 			flushInterval: cfg.Interval,
@@ -60,23 +89,32 @@ func NewFlusher(repo SpanRepository) *Flusher {
 			maxBytes:      cfg.MaxBytes,
 			outputDir:     cfg.OutputDir,
 			parquetConfig: DefaultParquetWriterConfig(),
+			chunkSize:     chunkSize,
 		},
-		warmFlusher: NewWarmFlusher(repo),
-		ctx:         ctx,
-		cancel:      cancel,
-		flushCh:     make(chan chan error),
+		ctx:          ctx,
+		cancel:       cancel,
+		warmSignalCh: warmSignalCh,
+		flushCh:      make(chan chan error),
 	}
+
+	// Create warm flusher if repo is provided (skip for nil repo in tests)
+	if repo != nil {
+		f.warmFlusher = NewWarmFlusher(repo)
+	}
+
+	return f
 }
 
 // Start begins the background flusher process.
 func (f *Flusher) Start() {
 	f.wg.Add(1)
 	go f.run()
-	slog.Info("flusher started",
+	slog.Info("flusher started (reactive warm, non-blocking cold)",
 		slog.Duration("interval", f.config.flushInterval),
 		slog.Duration("max_age", f.config.maxFlushAge),
 		slog.Int64("max_rows", f.config.maxRowCount),
 		slog.Int64("max_bytes", f.config.maxBytes),
+		slog.Int("chunk_size", f.config.chunkSize),
 		slog.String("output_dir", f.config.outputDir))
 }
 
@@ -107,137 +145,230 @@ func (f *Flusher) Flush() error {
 }
 
 // run is the main loop for the flusher.
+// Now uses reactive warm signals and non-blocking cold flush.
 func (f *Flusher) run() {
 	defer f.wg.Done()
 
-	ticker := time.NewTicker(f.config.flushInterval)
-	defer ticker.Stop()
+	// Cold flush check interval (less frequent than warm)
+	coldTicker := time.NewTicker(30 * time.Second)
+	defer coldTicker.Stop()
 
 	for {
 		select {
 		case <-f.ctx.Done():
-			// Perform final flush before stopping
+			// Perform final flush before stopping (blocking, must complete)
 			slog.Info("performing final flush before shutdown")
-			if err := f.doFlush(); err != nil {
+			if err := f.doStreamingFlush(); err != nil {
 				slog.Error("final flush failed", slog.Any("error", err))
 			}
 			return
 
-		case <-ticker.C:
-			// First check if we need a warm snapshot (incremental)
+		case <-f.warmSignalCh:
+			// Reactive warm snapshot triggered by byte threshold
+			slog.Debug("warm signal received, triggering warm snapshot")
 			if _, err := f.warmFlusher.CheckAndSnapshot(); err != nil {
-				slog.Error("warm snapshot check failed", slog.Any("error", err))
+				slog.Error("reactive warm snapshot failed", slog.Any("error", err))
+			} else {
+				// Reset byte counter after successful warm snapshot
+				f.repo.ResetBytesSinceWarm()
 			}
 
-			// Then check if we need a cold flush (full)
-			if err := f.checkAndFlush(); err != nil {
-				slog.Error("periodic flush check failed", slog.Any("error", err))
-			}
+		case <-coldTicker.C:
+			// Periodic cold flush check (non-blocking)
+			f.checkAndFlushAsync()
 
 		case resultCh := <-f.flushCh:
-			// Manual flush request
-			err := f.doFlush()
+			// Manual flush request (blocking - caller waits)
+			err := f.doStreamingFlush()
 			resultCh <- err
 		}
 	}
 }
 
-// checkAndFlush checks if flush conditions are met and flushes if so.
-func (f *Flusher) checkAndFlush() error {
+// checkAndFlushAsync checks if cold flush conditions are met and triggers non-blocking flush.
+func (f *Flusher) checkAndFlushAsync() {
+	// Skip if cold flush already running
+	if f.coldFlushRunning.Load() {
+		slog.Debug("cold flush already running, skipping check")
+		return
+	}
+
 	// Get current span count
 	count, err := f.repo.GetSpanCount()
 	if err != nil {
-		return fmt.Errorf("failed to get span count: %w", err)
+		slog.Error("failed to get span count for cold check", slog.Any("error", err))
+		return
 	}
 
 	if count == 0 {
-		slog.Debug("no spans to flush")
-		return nil
+		slog.Debug("no spans for cold flush")
+		return
 	}
 
 	// Check row count threshold
 	if count >= f.config.maxRowCount {
-		slog.Info("flush triggered by row count",
+		slog.Info("cold flush triggered by row count",
 			slog.Int64("count", count),
 			slog.Int64("threshold", f.config.maxRowCount))
-		return f.doFlush()
+		f.triggerColdFlushAsync()
+		return
 	}
 
 	// Check size threshold
 	if f.config.maxBytes > 0 {
 		dbSize, err := f.repo.GetDBSize()
 		if err != nil {
-			slog.Warn("failed to get DB size for flush check", slog.Any("error", err))
+			slog.Warn("failed to get DB size for cold check", slog.Any("error", err))
 		} else if dbSize >= f.config.maxBytes {
-			slog.Info("flush triggered by size",
+			slog.Info("cold flush triggered by size",
 				slog.Int64("size_bytes", dbSize),
 				slog.Int64("threshold_bytes", f.config.maxBytes))
-			return f.doFlush()
+			f.triggerColdFlushAsync()
+			return
 		}
 	}
 
-	// Check age threshold
+	// Check warm file count (too many warm files = trigger cold flush for cleanup)
+	warmFiles, err := f.warmFlusher.GetWarmFilePaths()
+	if err != nil {
+		slog.Warn("failed to get warm file count", slog.Any("error", err))
+	} else if len(warmFiles) >= 10 {
+		slog.Info("cold flush triggered by warm file count",
+			slog.Int("warm_files", len(warmFiles)))
+		f.triggerColdFlushAsync()
+		return
+	}
+
+	// Check age threshold (fallback)
 	flushState, err := f.repo.GetFlushState()
 	if err != nil {
-		return fmt.Errorf("failed to get flush state: %w", err)
+		slog.Error("failed to get flush state for cold check", slog.Any("error", err))
+		return
 	}
 
 	// If we've never flushed, check if we have enough rows
 	if flushState.LastFlushTime.IsZero() {
 		if count >= f.config.minRowCount {
-			slog.Info("flush triggered: first flush with sufficient rows",
+			slog.Info("cold flush triggered: first flush with sufficient rows",
 				slog.Int64("count", count))
-			return f.doFlush()
+			f.triggerColdFlushAsync()
 		}
-		return nil
+		return
 	}
 
 	// Check if max age exceeded
 	age := time.Since(flushState.LastFlushTime)
 	if age >= f.config.maxFlushAge && count >= f.config.minRowCount {
-		slog.Info("flush triggered by age",
+		slog.Info("cold flush triggered by age",
 			slog.Duration("age", age),
 			slog.Duration("threshold", f.config.maxFlushAge),
 			slog.Int64("count", count))
-		return f.doFlush()
+		f.triggerColdFlushAsync()
 	}
-
-	return nil
 }
 
-// doFlush performs the actual flush operation.
-func (f *Flusher) doFlush() error {
+// triggerColdFlushAsync starts a cold flush in the background.
+func (f *Flusher) triggerColdFlushAsync() {
+	// Use CAS to ensure only one flush runs at a time
+	if !f.coldFlushRunning.CompareAndSwap(false, true) {
+		slog.Debug("cold flush already running, skipping trigger")
+		return
+	}
+
+	// Run flush in background goroutine
+	go func() {
+		defer f.coldFlushRunning.Store(false)
+
+		slog.Info("starting background cold flush (streaming)")
+		if err := f.doStreamingFlush(); err != nil {
+			slog.Error("background cold flush failed", slog.Any("error", err))
+		}
+	}()
+}
+
+// doStreamingFlush performs streaming cold flush with bounded memory.
+// Reads/writes/deletes in chunks to avoid memory spikes.
+func (f *Flusher) doStreamingFlush() error {
+	f.coldFlushMu.Lock()
+	defer f.coldFlushMu.Unlock()
+
 	startTime := time.Now()
-
-	// Read all spans
-	records, firstKey, lastKey, err := f.repo.ReadAllSpansForFlush()
-	if err != nil {
-		return fmt.Errorf("failed to read spans: %w", err)
-	}
-
-	if len(records) == 0 {
-		slog.Debug("no spans to flush after read")
-		return nil
-	}
 
 	// Determine output path with date partitioning
 	now := time.Now().UTC()
 	outputPath := f.generateOutputPath(now)
 
-	// Write Parquet file
-	if err := WriteSpansToParquet(records, outputPath, f.config.parquetConfig); err != nil {
-		return fmt.Errorf("failed to write parquet file: %w", err)
+	// Create streaming parquet writer
+	writer, err := NewStreamingParquetWriter(outputPath, f.config.parquetConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create streaming writer: %w", err)
 	}
 
-	// Delete flushed spans from SQLite
-	if err := f.repo.DeleteSpansInRange(firstKey, lastKey); err != nil {
-		// Try to remove the Parquet file since we couldn't complete the transaction
-		os.Remove(outputPath)
-		return fmt.Errorf("failed to delete flushed spans: %w", err)
+	var firstKey, lastKey []byte
+	var totalRecords int
+	var cursor []byte // Start from beginning
+
+	// Process chunks until no more data
+	for {
+		// Read a chunk of spans
+		records, chunkFirstKey, chunkLastKey, hasMore, err := f.repo.ReadSpansChunked(cursor, f.config.chunkSize)
+		if err != nil {
+			writer.Abort()
+			return fmt.Errorf("failed to read chunk: %w", err)
+		}
+
+		if len(records) == 0 {
+			break // No more data
+		}
+
+		// Track overall first/last keys
+		if firstKey == nil {
+			firstKey = chunkFirstKey
+		}
+		lastKey = chunkLastKey
+
+		// Write chunk to parquet (creates new row group)
+		if err := writer.WriteChunk(records); err != nil {
+			writer.Abort()
+			return fmt.Errorf("failed to write chunk: %w", err)
+		}
+
+		totalRecords += len(records)
+
+		// Delete this chunk from SQLite immediately (bounded WAL growth)
+		if err := f.repo.DeleteSpansInRange(chunkFirstKey, chunkLastKey); err != nil {
+			writer.Abort()
+			return fmt.Errorf("failed to delete chunk: %w", err)
+		}
+
+		slog.Debug("flushed chunk",
+			slog.Int("chunk_records", len(records)),
+			slog.Int("total_records", totalRecords),
+			slog.Bool("has_more", hasMore))
+
+		if !hasMore {
+			break
+		}
+
+		// Move cursor past this chunk for next iteration
+		cursor = chunkLastKey
+	}
+
+	// No data to flush
+	if totalRecords == 0 {
+		writer.Abort()
+		slog.Debug("no spans to flush after streaming read")
+		return nil
+	}
+
+	// Finalize parquet file
+	finalPath, err := writer.Close()
+	if err != nil {
+		return fmt.Errorf("failed to finalize parquet file: %w", err)
 	}
 
 	// Update flush state
-	if err := f.repo.UpdateFlushState(firstKey, lastKey, int64(len(records))); err != nil {
+	if err := f.repo.UpdateFlushState(firstKey, lastKey, int64(totalRecords)); err != nil {
 		slog.Warn("failed to update flush state", slog.Any("error", err))
 		// Don't fail the flush for this
 	}
@@ -248,20 +379,26 @@ func (f *Flusher) doFlush() error {
 		// Don't fail the flush for this
 	}
 
+	// Reset byte counter since all data is now cold
+	f.repo.ResetBytesSinceWarm()
+
 	// Notify backend to index the new file immediately (if callback set)
 	if f.notifyFunc != nil {
-		if err := f.notifyFunc(f.ctx, outputPath); err != nil {
+		if err := f.notifyFunc(f.ctx, finalPath); err != nil {
 			slog.Warn("failed to notify backend of new parquet file",
-				slog.String("file_path", outputPath),
+				slog.String("file_path", finalPath),
 				slog.Any("error", err))
 			// Don't fail the flush - backend will pick it up via polling
 		}
 	}
 
+	totalRecordsWritten, rowGroups := writer.Stats()
 	duration := time.Since(startTime)
-	slog.Info("flush completed",
-		slog.Int("span_count", len(records)),
-		slog.String("output_path", outputPath),
+	slog.Info("streaming cold flush completed",
+		slog.Int("span_count", totalRecordsWritten),
+		slog.Int("row_groups", rowGroups),
+		slog.Int("chunk_size", f.config.chunkSize),
+		slog.String("output_path", finalPath),
 		slog.Duration("duration", duration))
 
 	return nil

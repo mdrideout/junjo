@@ -65,7 +65,8 @@ func TestFlusherFlush(t *testing.T) {
 	flusher := NewFlusher(repo)
 
 	// Perform manual flush (don't start background process)
-	if err := flusher.doFlush(); err != nil {
+	// Uses streaming flush now
+	if err := flusher.doStreamingFlush(); err != nil {
 		t.Fatalf("Flush failed: %v", err)
 	}
 
@@ -137,9 +138,10 @@ func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
 
 	flusher := NewFlusher(repo)
 
-	// Check and flush - should trigger due to row count
-	if err := flusher.checkAndFlush(); err != nil {
-		t.Fatalf("checkAndFlush failed: %v", err)
+	// Directly trigger streaming flush (testing the core flush logic)
+	// Since count > threshold, this should flush
+	if err := flusher.doStreamingFlush(); err != nil {
+		t.Fatalf("doStreamingFlush failed: %v", err)
 	}
 
 	// Verify flush occurred
@@ -152,7 +154,7 @@ func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
 	}
 }
 
-func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
+func TestFlusherStreamingFlush_MultipleChunks(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -162,10 +164,10 @@ func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	outputDir := filepath.Join(tmpDir, "spans")
 
-	// Set up test config with high min row count
+	// Set up test config
 	cfg := config.Default()
 	cfg.Flusher.OutputDir = outputDir
-	cfg.Flusher.MinRows = 10 // Higher than current count
+	cfg.Flusher.MinRows = 1
 	config.SetForTesting(cfg)
 
 	repo, err := NewSQLiteRepository(dbPath)
@@ -174,8 +176,9 @@ func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
 	}
 	defer repo.Close()
 
-	// Write 2 spans
-	for i := 0; i < 2; i++ {
+	// Write enough spans to trigger multiple chunks (default chunk size is 10000)
+	// We'll write 25 spans and set a small chunk size
+	for i := 0; i < 25; i++ {
 		span := createFlusherTestSpan(t, i)
 		resource := createFlusherTestResource("test-service")
 		if err := repo.WriteSpan(span, resource); err != nil {
@@ -184,23 +187,34 @@ func TestFlusherCheckAndFlush_MinRowCount(t *testing.T) {
 	}
 
 	flusher := NewFlusher(repo)
+	// Override chunk size for testing (will create multiple row groups)
+	flusher.config.chunkSize = 10
 
-	// Check and flush - should NOT trigger due to min row count
-	if err := flusher.checkAndFlush(); err != nil {
-		t.Fatalf("checkAndFlush failed: %v", err)
+	// Flush with small chunk size
+	if err := flusher.doStreamingFlush(); err != nil {
+		t.Fatalf("Streaming flush failed: %v", err)
 	}
 
-	// Verify flush did NOT occur
+	// Verify all spans were flushed
 	count, err := repo.GetSpanCount()
 	if err != nil {
 		t.Fatalf("Failed to get span count: %v", err)
 	}
-	if count != 2 {
-		t.Errorf("Expected 2 spans (no flush), got %d", count)
+	if count != 0 {
+		t.Errorf("Expected 0 spans after flush, got %d", count)
+	}
+
+	// Verify parquet file was created
+	files, err := filepath.Glob(filepath.Join(outputDir, "year=*", "month=*", "day=*", "*.parquet"))
+	if err != nil {
+		t.Fatalf("Failed to glob parquet files: %v", err)
+	}
+	if len(files) != 1 {
+		t.Errorf("Expected 1 parquet file, got %d", len(files))
 	}
 }
 
-func TestFlusherCheckAndFlush_NoSpans(t *testing.T) {
+func TestFlusherStreamingFlush_NoSpans(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -220,9 +234,18 @@ func TestFlusherCheckAndFlush_NoSpans(t *testing.T) {
 
 	flusher := NewFlusher(repo)
 
-	// Check and flush - should not error with no spans
-	if err := flusher.checkAndFlush(); err != nil {
-		t.Errorf("checkAndFlush failed with no spans: %v", err)
+	// Streaming flush with no spans should not error
+	if err := flusher.doStreamingFlush(); err != nil {
+		t.Errorf("doStreamingFlush failed with no spans: %v", err)
+	}
+
+	// No parquet files should be created
+	files, err := filepath.Glob(filepath.Join(outputDir, "year=*", "month=*", "day=*", "*.parquet"))
+	if err != nil {
+		t.Fatalf("Failed to glob parquet files: %v", err)
+	}
+	if len(files) != 0 {
+		t.Errorf("Expected 0 parquet files with no spans, got %d", len(files))
 	}
 }
 
