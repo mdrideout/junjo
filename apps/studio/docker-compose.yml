@@ -88,6 +88,44 @@ services:
       retries: 5
       start_period: 5s
 
+  # Rust ingestion service (experimental, runs alongside Go service)
+  # Use ports 50061/50062 to avoid conflict with Go service
+  junjo-ai-studio-ingestion-rust:
+    container_name: junjo-ai-studio-ingestion-rust
+    restart: unless-stopped
+    profiles:
+      - rust-ingestion  # Only start when explicitly requested: docker compose --profile rust-ingestion up
+    build:
+      context: .
+      dockerfile: ingestion-rust/Dockerfile
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+    ports:
+      - "50061:50051"  # Public OTLP endpoint (different host port to avoid conflict)
+      - "50062:50052"  # Internal gRPC (different host port to avoid conflict)
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_PORT=50053
+      # fjall database path
+      - JUNJO_WAL_PATH=/app/.dbdata/fjall/wal
+      # Parquet file output path (same as Go service - shared with Python backend)
+      - PARQUET_STORAGE_PATH=/app/.dbdata/parquet
+    depends_on:
+      junjo-ai-studio-backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
   junjo-ai-studio-frontend:
     container_name: junjo-ai-studio-frontend
     restart: unless-stopped

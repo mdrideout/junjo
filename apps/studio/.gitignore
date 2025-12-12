@@ -90,6 +90,12 @@ dmypy.json
 # Logs
 *.log
 
+# Rust
+ingestion-rust/target/
+**/*.rs.bk
+Cargo.lock
+!ingestion-rust/Cargo.lock
+
 # Generated Protocol Buffers
 # Note: Proto files ARE committed to ensure:
 #   1. Local testing works without protoc installed
