@@ -102,6 +102,15 @@ services:
     volumes:
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      # Source code mount for development hot-reload (cargo-watch)
+      - ./ingestion-rust/src:/app/src:ro
+      - ./ingestion-rust/proto:/app/proto:ro
+      - ./ingestion-rust/Cargo.toml:/app/Cargo.toml:ro
+      - ./ingestion-rust/Cargo.lock:/app/Cargo.lock:ro
+      - ./ingestion-rust/build.rs:/app/build.rs:ro
+      # Cargo cache for faster rebuilds
+      - ingestion-rust-cargo-cache:/usr/local/cargo/registry
+      - ingestion-rust-target-cache:/app/target
     ports:
       - "50061:50051"  # Public OTLP endpoint (different host port to avoid conflict)
       - "50062:50052"  # Internal gRPC (different host port to avoid conflict)
@@ -124,7 +133,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 30s  # Longer start period for development (cargo build takes time)
 
   junjo-ai-studio-frontend:
     container_name: junjo-ai-studio-frontend
@@ -152,6 +161,8 @@ services:
 
 volumes:
   frontend-modules:
+  ingestion-rust-cargo-cache:
+  ingestion-rust-target-cache:
 
 networks:
   junjo-network:
