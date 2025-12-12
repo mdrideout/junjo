@@ -76,8 +76,6 @@ services:
       - JUNJO_WAL_SQLITE_PATH=/app/.dbdata/sqlite/wal.db
       # V4: Parquet file output path (Python backend reads from same location)
       - PARQUET_STORAGE_PATH=/app/.dbdata/parquet
-      # TESTING: Lower flush threshold for faster cold flush testing (default 50MB)
-      - FLUSH_MAX_BYTES=15728640
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started

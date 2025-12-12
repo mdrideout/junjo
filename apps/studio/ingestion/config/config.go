@@ -62,22 +62,22 @@ type SQLiteConfig struct {
 
 // FlusherConfig holds configuration for the Parquet flusher.
 type FlusherConfig struct {
-	OutputDir          string
-	Interval           time.Duration
-	MaxAge             time.Duration
-	MaxRows            int64
-	MinRows            int64
-	MaxBytes           int64 // Maximum WAL size before triggering cold flush (default 50MB)
-	WarmSnapshotBytes  int64 // Minimum bytes before triggering warm snapshot (default 10MB)
-	FlushChunkSize     int   // Number of spans per chunk during streaming flush (default 50000)
+	OutputDir         string
+	Interval          time.Duration
+	MaxAge            time.Duration
+	MaxRows           int64
+	MinRows           int64
+	MaxBytes          int64 // Maximum WAL size before triggering cold flush (default 50MB)
+	WarmSnapshotBytes int64 // Minimum bytes before triggering warm snapshot (default 10MB)
+	FlushChunkSize    int   // Number of spans per chunk during streaming flush (default 50000)
 }
 
 // ServerConfig holds gRPC server configuration.
 type ServerConfig struct {
-	PublicPort              string
-	InternalPort            string
-	BackpressureMaxBytes    int64 // Max span data bytes before applying backpressure (default 200MB)
-	BackpressureCheckInterval int  // Seconds between backpressure checks (default 2)
+	PublicPort                string
+	InternalPort              string
+	BackpressureMaxBytes      int64 // Max Go heap bytes before applying backpressure (default 150MB)
+	BackpressureCheckInterval int   // Seconds between backpressure checks (default 2)
 }
 
 // BackendConfig holds backend service connection configuration.
@@ -106,15 +106,15 @@ func Default() *Config {
 			MaxAge:            1 * time.Hour,
 			MaxRows:           100000,
 			MinRows:           1000,
-			MaxBytes:          50 * 1024 * 1024,  // 50MB
+			MaxBytes:          500 * 1024 * 1024, // 150MB
 			WarmSnapshotBytes: 10 * 1024 * 1024,  // 10MB
 			FlushChunkSize:    5000,              // 5K spans per chunk (~10MB memory)
 		},
 		Server: ServerConfig{
 			PublicPort:                "50051",
 			InternalPort:              "50052",
-			BackpressureMaxBytes:      100 * 1024 * 1024, // 100MB
-			BackpressureCheckInterval: 2,                  // 2 seconds
+			BackpressureMaxBytes:      150 * 1024 * 1024, // 150MB heap limit
+			BackpressureCheckInterval: 2,                 // 2 seconds
 		},
 		Backend: BackendConfig{
 			Host: "junjo-ai-studio-backend",

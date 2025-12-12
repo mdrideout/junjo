@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -16,14 +17,66 @@ import (
 	"junjo-ai-studio/ingestion/storage"
 )
 
+// formatBytes formats bytes as human-readable string
+func formatBytes(b int64) string {
+	const mb = 1024 * 1024
+	return fmt.Sprintf("%.0fMB", float64(b)/float64(mb))
+}
+
+// formatStartupConfig creates a formatted multi-line config summary
+func formatStartupConfig(cfg *config.Config) string {
+	return fmt.Sprintf(`
+┌─────────────────────────────────────────────────────────────
+│ INGESTION SERVICE CONFIGURATION
+├─────────────────────────────────────────────────────────────
+│ Storage
+│   SQLite Path:      %s
+│   Parquet Output:   %s
+├─────────────────────────────────────────────────────────────
+│ Cold Flush (SQLite → Parquet)
+│   Check Interval:   %s
+│   Max Age:          %s
+│   Max Rows:         %d
+│   Min Rows:         %d
+│   Max Size:         %s
+│   Chunk Size:       %d spans
+├─────────────────────────────────────────────────────────────
+│ Warm Flush (Incremental Snapshots)
+│   Threshold:        %s
+├─────────────────────────────────────────────────────────────
+│ Backpressure (Memory Protection)
+│   Heap Limit:       %s
+│   Check Interval:   %ds
+├─────────────────────────────────────────────────────────────
+│ Server
+│   Public gRPC:      :%s
+│   Internal gRPC:    :%s
+└─────────────────────────────────────────────────────────────`,
+		cfg.SQLite.Path,
+		cfg.Flusher.OutputDir,
+		cfg.Flusher.Interval,
+		cfg.Flusher.MaxAge,
+		cfg.Flusher.MaxRows,
+		cfg.Flusher.MinRows,
+		formatBytes(cfg.Flusher.MaxBytes),
+		cfg.Flusher.FlushChunkSize,
+		formatBytes(cfg.Flusher.WarmSnapshotBytes),
+		formatBytes(cfg.Server.BackpressureMaxBytes),
+		cfg.Server.BackpressureCheckInterval,
+		cfg.Server.PublicPort,
+		cfg.Server.InternalPort,
+	)
+}
+
 func main() {
 	// Load configuration and initialize logger
 	config.MustLoad()
 	logger.Init()
 
-	slog.Info("starting ingestion service")
-
 	cfg := config.Get()
+
+	// Print startup configuration (directly to stdout for formatting)
+	fmt.Println(formatStartupConfig(cfg))
 
 	// Ensure the database directory exists (0700 = owner-only access)
 	dbDir := filepath.Dir(cfg.SQLite.Path)

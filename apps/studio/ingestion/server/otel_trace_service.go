@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -46,11 +47,12 @@ func NewOtelTraceService(repo storage.SpanRepository, spanLogger *BatchedSpanLog
 }
 
 // checkBackpressure checks if we should apply backpressure (cached check).
+// Uses Go heap allocation (Alloc) to measure actual memory pressure.
 func (s *OtelTraceService) checkBackpressure() bool {
 	now := time.Now().UnixNano()
 	lastCheck := s.lastPressureCheck.Load()
 
-	// Only check periodically to avoid expensive SUM() query on every request
+	// Only check periodically to avoid overhead on every request
 	if now-lastCheck < int64(s.backpressureCheckInterval) {
 		return s.underPressure.Load()
 	}
@@ -61,24 +63,22 @@ func (s *OtelTraceService) checkBackpressure() bool {
 		return s.underPressure.Load()
 	}
 
-	// Check actual span data size (not DB file size, which doesn't shrink on delete)
-	dataSize, err := s.repo.GetSpanDataSize()
-	if err != nil {
-		slog.Warn("failed to check span data size for backpressure", slog.Any("error", err))
-		return s.underPressure.Load() // Use cached value on error
-	}
+	// Check Go heap allocation - this is actual memory in use
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	heapAlloc := int64(memStats.Alloc)
 
-	isUnderPressure := dataSize >= s.backpressureMaxBytes
+	isUnderPressure := heapAlloc >= s.backpressureMaxBytes
 	wasUnderPressure := s.underPressure.Swap(isUnderPressure)
 
 	// Log state changes
 	if isUnderPressure && !wasUnderPressure {
 		slog.Warn("backpressure activated",
-			slog.String("data_size", formatMB(dataSize)),
+			slog.String("heap_alloc", formatMB(heapAlloc)),
 			slog.String("threshold", formatMB(s.backpressureMaxBytes)))
 	} else if !isUnderPressure && wasUnderPressure {
 		slog.Info("backpressure released",
-			slog.String("data_size", formatMB(dataSize)),
+			slog.String("heap_alloc", formatMB(heapAlloc)),
 			slog.String("threshold", formatMB(s.backpressureMaxBytes)))
 	}
 
