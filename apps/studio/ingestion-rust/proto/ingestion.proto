@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ingestion;
+
+// InternalIngestionService provides an API for the backend to trigger
+// snapshot creation and flushes. The backend reads snapshot files directly
+// via DataFusion rather than streaming data over gRPC.
+service InternalIngestionService {
+  // PrepareHotSnapshot flushes pending spans to IPC and creates a stable
+  // Parquet snapshot file that the backend can read directly without coordination.
+  // This enables zero-staleness reads without gRPC streaming overhead.
+  rpc PrepareHotSnapshot(PrepareHotSnapshotRequest) returns (PrepareHotSnapshotResponse) {}
+
+  // FlushWAL triggers an immediate flush of WAL data to cold Parquet storage.
+  rpc FlushWAL(FlushWALRequest) returns (FlushWALResponse) {}
+}
+
+// FlushWALRequest triggers a manual WAL flush.
+message FlushWALRequest {}
+
+// FlushWALResponse contains the result of a flush operation.
+message FlushWALResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// PrepareHotSnapshotRequest triggers creation of a stable snapshot file.
+message PrepareHotSnapshotRequest {}
+
+// PrepareHotSnapshotResponse contains the path to the snapshot file.
+message PrepareHotSnapshotResponse {
+  // Path to the stable snapshot file that can be read directly
+  string snapshot_path = 1;
+  // Number of rows in the snapshot
+  int64 row_count = 2;
+  // Size of the snapshot file in bytes
+  int64 file_size_bytes = 3;
+  // True if successful
+  bool success = 4;
+  // Error message if success=false
+  string error_message = 5;
+}
+
+// InternalAuthService provides a private API for the ingestion service to
+// validate API keys and notify about new data.
+// NOTE: Must match proto/auth.proto in the main backend
+service InternalAuthService {
+  rpc ValidateApiKey(ValidateApiKeyRequest) returns (ValidateApiKeyResponse) {}
+  rpc NotifyNewParquetFile(NotifyNewParquetFileRequest) returns (NotifyNewParquetFileResponse) {}
+}
+
+message NotifyNewParquetFileRequest {
+  string file_path = 1;
+}
+
+message NotifyNewParquetFileResponse {
+  bool indexed = 1;
+  int64 span_count = 2;
+}
+
+message ValidateApiKeyRequest {
+  string api_key = 1;
+}
+
+message ValidateApiKeyResponse {
+  bool is_valid = 1;
+}

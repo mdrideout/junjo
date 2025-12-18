@@ -1,6 +1,6 @@
-# ADR-001: Three-Tier Span Storage Architecture
+# ADR-001: Span Storage Architecture
 
-**Status:** Accepted
+**Status:** Accepted (Updated December 2025)
 **Date:** 2025-12-10
 **Author:** Matt
 
@@ -14,6 +14,8 @@ The Junjo AI Studio ingestion service receives OpenTelemetry spans at high throu
 4. Handles graceful restarts without data loss
 
 Previously, all span data lived in SQLite until a cold flush to Parquet. This meant queries had to merge potentially large SQLite result sets with Parquet files, causing memory pressure.
+
+**Update (December 2025):** The Rust ingestion service uses a simplified two-tier architecture with a segmented Arrow IPC WAL. See the "Rust Implementation" section below.
 
 ## Decision
 
@@ -146,16 +148,112 @@ The `since_warm_ulid` parameter ensures HOT tier only returns spans newer than t
 | gRPC unavailable | Query returns COLD + WARM only (graceful degradation) |
 | Warm cursor stale | Full WAL query (no `since_warm_ulid` filter) |
 
+## Rust Implementation (Two-Tier)
+
+The Rust ingestion service (`ingestion-rust/`) uses a simplified **two-tier architecture** without a separate WARM tier:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    RUST INGESTION ARCHITECTURE                       │
+│                                                                      │
+│   Python Backend (DataFusion)                                        │
+│   ┌──────────────────────────────────────────────────────────────┐  │
+│   │  SELECT * FROM (                                              │  │
+│   │    SELECT * FROM cold_spans    -- date-partitioned Parquet   │  │
+│   │    UNION ALL                                                  │  │
+│   │    SELECT * FROM hot_snapshot  -- on-demand Parquet snapshot │  │
+│   │  ) deduplicated by span_id                                    │  │
+│   └──────────────────────────────────────────────────────────────┘  │
+│              │                                      │                │
+│              ▼                                      ▼                │
+│   ┌──────────────────────┐            ┌─────────────────────────┐   │
+│   │     COLD TIER        │            │       HOT TIER          │   │
+│   │   (Parquet files)    │            │  (Segmented IPC WAL)    │   │
+│   │                      │            │                         │   │
+│   │  parquet/            │            │  wal/                   │   │
+│   │   year=2025/         │            │   batch_*.ipc           │   │
+│   │    month=12/         │            │                         │   │
+│   │     day=18/*.parquet │            │  hot_snapshot.parquet   │   │
+│   └──────────────────────┘            └─────────────────────────┘   │
+│              ▲                                      ▲                │
+└──────────────│──────────────────────────────────────│────────────────┘
+               │                                      │
+┌──────────────│──────────────────────────────────────│────────────────┐
+│              │        INGESTION SERVICE (Rust)      │                │
+│              │                                      │                │
+│   ┌──────────┴───────┐                 ┌────────────┴────────┐      │
+│   │  Cold Flush      │                 │ PrepareHotSnapshot  │      │
+│   │                  │                 │                     │      │
+│   │  Triggers:       │                 │ On-demand:          │      │
+│   │  - 25MB WAL size │◄── reactive ───│ Backend calls RPC,  │      │
+│   │  - 1hr age       │    channel     │ reads file directly │      │
+│   │  - shutdown      │                 │                     │      │
+│   └──────────────────┘                 └─────────────────────┘      │
+│              ▲                                      ▲                │
+│              │ streaming flush                      │ OTLP gRPC     │
+│              │ (constant memory)                    │ ingest        │
+│   ┌──────────┴──────────────────────────────────────┴────────┐      │
+│   │              Segmented Arrow IPC WAL                      │      │
+│   │                                                           │      │
+│   │  wal/                                                     │      │
+│   │   batch_1734482100000000001.ipc  (~1-2MB each)           │      │
+│   │   batch_1734482103000000002.ipc                          │      │
+│   │   ...                                                     │      │
+│   └───────────────────────────────────────────────────────────┘      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Differences from Go Implementation
+
+| Aspect | Go (Three-Tier) | Rust (Two-Tier) |
+|--------|-----------------|-----------------|
+| HOT storage | SQLite WAL | Segmented Arrow IPC |
+| WARM tier | Periodic snapshots | None (on-demand only) |
+| Hot data access | gRPC streaming | Backend reads file directly |
+| Flush trigger | Polling (10s) | Reactive (channel notification) |
+| Memory usage | Loads all SQLite data | Constant (streams one segment at a time) |
+
+### Rust Data Flow
+
+1. **Ingestion**: Spans arrive via OTLP gRPC, written to in-memory buffer
+2. **Segment Write**: When buffer reaches batch size (1000 spans), write IPC segment
+3. **Reactive Flush**: Channel notifies flusher immediately when segment written
+4. **Cold Flush**: Stream segments one-by-one to Parquet (constant memory)
+5. **Hot Query**: Backend calls `PrepareHotSnapshot`, reads Parquet file directly
+
+### Why Two Tiers?
+
+The WARM tier was designed to reduce HOT tier size for gRPC streaming. With the Rust implementation:
+- Backend reads a Parquet file directly (no streaming overhead)
+- Segmented WAL allows constant-memory snapshot creation
+- Reactive flush prevents WAL from growing too large
+
+The WARM tier's complexity is no longer needed.
+
 ## Implementation Files
 
+### Rust Ingestion (Primary)
+
+- `ingestion-rust/src/wal/arrow_wal.rs` - Segmented Arrow IPC WAL
+- `ingestion-rust/src/flusher/mod.rs` - Reactive flush logic
+- `ingestion-rust/src/server/trace_service.rs` - OTLP ingestion
+- `ingestion-rust/src/server/internal_service.rs` - PrepareHotSnapshot, FlushWAL
+- `ingestion-rust/src/config.rs` - Configuration
+
+### Go Ingestion (Legacy)
+
 - `ingestion/storage/flusher.go` - Cold flush logic
-- `ingestion/storage/warm_flusher.go` - Warm snapshot logic
+- `ingestion/storage/repository.go` - SQLite WAL operations
 - `ingestion/config/config.go` - Configuration defaults
-- `backend/app/db_duckdb/unified_query.py` - Three-tier DataFusion queries
+
+### Python Backend
+
+- `backend/app/db_duckdb/unified_query.py` - DataFusion queries
 - `backend/app/features/otel_spans/repository.py` - Query orchestration
-- `backend/app/features/span_ingestion/ingestion_client.py` - gRPC client for HOT tier
+- `backend/app/features/span_ingestion/ingestion_client.py` - gRPC client
 
 ## References
 
 - [DataFusion](https://datafusion.apache.org/) - SQL query engine
 - [Arrow IPC](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format) - Efficient columnar data transfer
+- [INGESTION_RUST.md](/INGESTION_RUST.md) - Rust ingestion service details
