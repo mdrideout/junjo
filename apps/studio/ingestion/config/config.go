@@ -62,14 +62,13 @@ type SQLiteConfig struct {
 
 // FlusherConfig holds configuration for the Parquet flusher.
 type FlusherConfig struct {
-	OutputDir         string
-	Interval          time.Duration
-	MaxAge            time.Duration
-	MaxRows           int64
-	MinRows           int64
-	MaxBytes          int64 // Maximum WAL size before triggering cold flush (default 50MB)
-	WarmSnapshotBytes int64 // Minimum bytes before triggering warm snapshot (default 10MB)
-	FlushChunkSize    int   // Number of spans per chunk during streaming flush (default 50000)
+	OutputDir   string
+	Interval    time.Duration
+	MaxAge      time.Duration
+	MaxRows     int64
+	MinRows     int64
+	MaxBytes    int64 // Maximum data size before triggering cold flush (default 25MB)
+	FlushChunks int   // Number of chunks to split flush into (default 10)
 }
 
 // ServerConfig holds gRPC server configuration.
@@ -78,6 +77,7 @@ type ServerConfig struct {
 	InternalPort              string
 	BackpressureMaxBytes      int64 // Max Go heap bytes before applying backpressure (default 150MB)
 	BackpressureCheckInterval int   // Seconds between backpressure checks (default 2)
+	GoMemLimit                int64 // Soft memory limit for GC (default 0 = disabled)
 }
 
 // BackendConfig holds backend service connection configuration.
@@ -101,14 +101,13 @@ func Default() *Config {
 			Path: filepath.Join(homeDir, ".junjo", "ingestion-wal", "spans.db"),
 		},
 		Flusher: FlusherConfig{
-			OutputDir:         filepath.Join(homeDir, ".junjo", "spans"),
-			Interval:          15 * time.Second, // Check every 15s for flush conditions
-			MaxAge:            1 * time.Hour,
-			MaxRows:           100000,
-			MinRows:           1000,
-			MaxBytes:          500 * 1024 * 1024, // 150MB
-			WarmSnapshotBytes: 10 * 1024 * 1024,  // 10MB
-			FlushChunkSize:    5000,              // 5K spans per chunk (~10MB memory)
+			OutputDir:   filepath.Join(homeDir, ".junjo", "spans"),
+			Interval:    15 * time.Second, // Check every 15s for flush conditions
+			MaxAge:      1 * time.Hour,
+			MaxRows:     100000,
+			MinRows:     1000,
+			MaxBytes:    25 * 1024 * 1024, // 25MB - triggers reactive cold flush (lower = less peak memory)
+			FlushChunks: 10,               // 10 chunks = ~2.5MB per chunk at 25MB threshold
 		},
 		Server: ServerConfig{
 			PublicPort:                "50051",
@@ -174,28 +173,23 @@ func Load() (*Config, error) {
 		cfg.Flusher.MinRows = n
 	}
 
-	if maxBytes := os.Getenv("FLUSH_MAX_BYTES"); maxBytes != "" {
-		n, err := strconv.ParseInt(maxBytes, 10, 64)
+	if maxMB := os.Getenv("FLUSH_MAX_MB"); maxMB != "" {
+		n, err := strconv.ParseInt(maxMB, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid FLUSH_MAX_BYTES %q: %w", maxBytes, err)
+			return nil, fmt.Errorf("invalid FLUSH_MAX_MB %q: %w", maxMB, err)
 		}
-		cfg.Flusher.MaxBytes = n
+		cfg.Flusher.MaxBytes = n * 1024 * 1024 // Convert MB to bytes
 	}
 
-	if warmBytes := os.Getenv("WARM_SNAPSHOT_BYTES"); warmBytes != "" {
-		n, err := strconv.ParseInt(warmBytes, 10, 64)
+	if chunks := os.Getenv("FLUSH_CHUNKS"); chunks != "" {
+		n, err := strconv.Atoi(chunks)
 		if err != nil {
-			return nil, fmt.Errorf("invalid WARM_SNAPSHOT_BYTES %q: %w", warmBytes, err)
+			return nil, fmt.Errorf("invalid FLUSH_CHUNKS %q: %w", chunks, err)
 		}
-		cfg.Flusher.WarmSnapshotBytes = n
-	}
-
-	if chunkSize := os.Getenv("FLUSH_CHUNK_SIZE"); chunkSize != "" {
-		n, err := strconv.Atoi(chunkSize)
-		if err != nil {
-			return nil, fmt.Errorf("invalid FLUSH_CHUNK_SIZE %q: %w", chunkSize, err)
+		if n < 1 {
+			n = 1
 		}
-		cfg.Flusher.FlushChunkSize = n
+		cfg.Flusher.FlushChunks = n
 	}
 
 	// Server configuration
@@ -207,12 +201,12 @@ func Load() (*Config, error) {
 		cfg.Server.InternalPort = port
 	}
 
-	if maxBytes := os.Getenv("BACKPRESSURE_MAX_BYTES"); maxBytes != "" {
-		n, err := strconv.ParseInt(maxBytes, 10, 64)
+	if maxMB := os.Getenv("BACKPRESSURE_MAX_MB"); maxMB != "" {
+		n, err := strconv.ParseInt(maxMB, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid BACKPRESSURE_MAX_BYTES %q: %w", maxBytes, err)
+			return nil, fmt.Errorf("invalid BACKPRESSURE_MAX_MB %q: %w", maxMB, err)
 		}
-		cfg.Server.BackpressureMaxBytes = n
+		cfg.Server.BackpressureMaxBytes = n * 1024 * 1024 // Convert MB to bytes
 	}
 
 	if interval := os.Getenv("BACKPRESSURE_CHECK_INTERVAL"); interval != "" {
@@ -221,6 +215,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("invalid BACKPRESSURE_CHECK_INTERVAL %q: %w", interval, err)
 		}
 		cfg.Server.BackpressureCheckInterval = n
+	}
+
+	if memLimitMB := os.Getenv("GOMEMLIMIT_MB"); memLimitMB != "" {
+		n, err := strconv.ParseInt(memLimitMB, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GOMEMLIMIT_MB %q: %w", memLimitMB, err)
+		}
+		cfg.Server.GoMemLimit = n * 1024 * 1024 // Convert MB to bytes
 	}
 
 	// Backend configuration

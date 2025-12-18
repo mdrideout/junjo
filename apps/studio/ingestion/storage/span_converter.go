@@ -1,15 +1,70 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"sync"
 
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
+// --- sync.Pool for JSON encoding buffers ---
+// Reduces allocations during span conversion by reusing byte buffers
+
+var jsonBufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
+func getJSONBuffer() *bytes.Buffer {
+	buf := jsonBufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	return buf
+}
+
+func putJSONBuffer(buf *bytes.Buffer) {
+	// Only return reasonably sized buffers to pool (avoid memory bloat)
+	if buf.Cap() <= 64*1024 { // 64KB max
+		jsonBufferPool.Put(buf)
+	}
+}
+
+// --- String interning for repeated values ---
+// Reduces memory for high-frequency strings like service names and span names
+// by deduplicating identical strings to share the same backing memory.
+
+var internPool sync.Map
+
+// intern returns a canonical string for the input.
+// Repeated calls with the same string value return the same pointer,
+// allowing memory to be shared and reducing allocations.
+func intern(s string) string {
+	if s == "" {
+		return ""
+	}
+	if v, ok := internPool.Load(s); ok {
+		return v.(string)
+	}
+	// Store and return - LoadOrStore ensures only one copy is retained
+	actual, _ := internPool.LoadOrStore(s, s)
+	return actual.(string)
+}
+
+// ClearInternPool clears the string interning pool to release memory.
+// Should be called after cold flush completes to prevent unbounded growth.
+func ClearInternPool() {
+	internPool.Range(func(key, value any) bool {
+		internPool.Delete(key)
+		return true
+	})
+}
+
 // ConvertSpanDataToRecord converts a SpanData to a SpanRecord for Parquet writing.
+// Uses string interning for high-frequency fields to reduce memory allocations.
 func ConvertSpanDataToRecord(data *SpanData) SpanRecord {
 	span := data.Span
 	resource := data.Resource
@@ -17,8 +72,8 @@ func ConvertSpanDataToRecord(data *SpanData) SpanRecord {
 	record := SpanRecord{
 		SpanID:             hexEncode(span.GetSpanId()),
 		TraceID:            hexEncode(span.GetTraceId()),
-		ServiceName:        extractServiceName(resource),
-		Name:               span.GetName(),
+		ServiceName:        intern(extractServiceName(resource)), // Interned - high repetition
+		Name:               intern(span.GetName()),               // Interned - high repetition
 		SpanKind:           int8(span.GetKind()),
 		StartTimeNanos:     int64(span.GetStartTimeUnixNano()),
 		EndTimeNanos:       int64(span.GetEndTimeUnixNano()),
@@ -73,6 +128,7 @@ func extractStatusCode(status *tracepb.Status) int8 {
 }
 
 // keyValuesToJSON converts OTLP KeyValue slice to JSON string.
+// Uses pooled buffer to reduce allocations.
 func keyValuesToJSON(attrs []*commonpb.KeyValue) string {
 	if len(attrs) == 0 {
 		return "{}"
@@ -83,11 +139,21 @@ func keyValuesToJSON(attrs []*commonpb.KeyValue) string {
 		m[kv.GetKey()] = anyValueToGo(kv.GetValue())
 	}
 
-	b, err := json.Marshal(m)
-	if err != nil {
+	buf := getJSONBuffer()
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false) // Faster encoding
+	if err := enc.Encode(m); err != nil {
+		putJSONBuffer(buf)
 		return "{}"
 	}
-	return string(b)
+
+	// Encode adds a newline, trim it
+	result := buf.String()
+	if len(result) > 0 && result[len(result)-1] == '\n' {
+		result = result[:len(result)-1]
+	}
+	putJSONBuffer(buf)
+	return result
 }
 
 // anyValueToGo converts OTLP AnyValue to a Go value for JSON marshaling.
@@ -131,6 +197,7 @@ func anyValueToGo(v *commonpb.AnyValue) any {
 }
 
 // eventsToJSON converts span events to JSON string.
+// Uses pooled buffer to reduce allocations.
 func eventsToJSON(events []*tracepb.Span_Event) string {
 	if len(events) == 0 {
 		return "[]"
@@ -155,9 +222,19 @@ func eventsToJSON(events []*tracepb.Span_Event) string {
 		}
 	}
 
-	b, err := json.Marshal(result)
-	if err != nil {
+	buf := getJSONBuffer()
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false) // Faster encoding
+	if err := enc.Encode(result); err != nil {
+		putJSONBuffer(buf)
 		return "[]"
 	}
-	return string(b)
+
+	// Encode adds a newline, trim it
+	output := buf.String()
+	if len(output) > 0 && output[len(output)-1] == '\n' {
+		output = output[:len(output)-1]
+	}
+	putJSONBuffer(buf)
+	return output
 }

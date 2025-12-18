@@ -65,7 +65,6 @@ func TestFlusherFlush(t *testing.T) {
 	flusher := NewFlusher(repo)
 
 	// Perform manual flush (don't start background process)
-	// Uses streaming flush now
 	if err := flusher.doStreamingFlush(); err != nil {
 		t.Fatalf("Flush failed: %v", err)
 	}
@@ -138,7 +137,7 @@ func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
 
 	flusher := NewFlusher(repo)
 
-	// Directly trigger streaming flush (testing the core flush logic)
+	// Directly trigger flush (testing the core flush logic)
 	// Since count > threshold, this should flush
 	if err := flusher.doStreamingFlush(); err != nil {
 		t.Fatalf("doStreamingFlush failed: %v", err)
@@ -154,7 +153,7 @@ func TestFlusherCheckAndFlush_RowCountThreshold(t *testing.T) {
 	}
 }
 
-func TestFlusherStreamingFlush_MultipleChunks(t *testing.T) {
+func TestFlusherFlush_ManySpans(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -176,9 +175,8 @@ func TestFlusherStreamingFlush_MultipleChunks(t *testing.T) {
 	}
 	defer repo.Close()
 
-	// Write enough spans to trigger multiple chunks (default chunk size is 10000)
-	// We'll write 25 spans and set a small chunk size
-	for i := 0; i < 25; i++ {
+	// Write 100 spans
+	for i := 0; i < 100; i++ {
 		span := createFlusherTestSpan(t, i)
 		resource := createFlusherTestResource("test-service")
 		if err := repo.WriteSpan(span, resource); err != nil {
@@ -187,12 +185,10 @@ func TestFlusherStreamingFlush_MultipleChunks(t *testing.T) {
 	}
 
 	flusher := NewFlusher(repo)
-	// Override chunk size for testing (will create multiple row groups)
-	flusher.config.chunkSize = 10
 
-	// Flush with small chunk size
+	// Flush all spans
 	if err := flusher.doStreamingFlush(); err != nil {
-		t.Fatalf("Streaming flush failed: %v", err)
+		t.Fatalf("Flush failed: %v", err)
 	}
 
 	// Verify all spans were flushed
@@ -214,7 +210,7 @@ func TestFlusherStreamingFlush_MultipleChunks(t *testing.T) {
 	}
 }
 
-func TestFlusherStreamingFlush_NoSpans(t *testing.T) {
+func TestFlusherFlush_NoSpans(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "flusher-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -234,7 +230,7 @@ func TestFlusherStreamingFlush_NoSpans(t *testing.T) {
 
 	flusher := NewFlusher(repo)
 
-	// Streaming flush with no spans should not error
+	// Flush with no spans should not error
 	if err := flusher.doStreamingFlush(); err != nil {
 		t.Errorf("doStreamingFlush failed with no spans: %v", err)
 	}

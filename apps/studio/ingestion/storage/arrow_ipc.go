@@ -29,7 +29,7 @@ func SerializeRecordBatchToIPC(batch arrow.Record) ([]byte, error) {
 		return nil, fmt.Errorf("failed to write record batch to IPC: %w", err)
 	}
 
-	// Close the writer to flush any remaining data
+	// Close to flush
 	if err := writer.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close IPC writer: %w", err)
 	}
@@ -37,12 +37,12 @@ func SerializeRecordBatchToIPC(batch arrow.Record) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// SpanRecordsToIPCBytes converts span records directly to Arrow IPC bytes.
+// SpanRecordsToIPCBytes converts span records to Arrow IPC stream bytes.
 // This is a convenience function combining BuildRecordBatch and SerializeRecordBatchToIPC.
 func SpanRecordsToIPCBytes(records []SpanRecord) ([]byte, error) {
 	if len(records) == 0 {
-		// Return empty IPC stream with schema only
-		return serializeEmptyBatch()
+		// Return empty IPC stream for empty records
+		return []byte{}, nil
 	}
 
 	alloc := memory.NewGoAllocator()
@@ -53,20 +53,4 @@ func SpanRecordsToIPCBytes(records []SpanRecord) ([]byte, error) {
 	defer batch.Release()
 
 	return SerializeRecordBatchToIPC(batch)
-}
-
-// serializeEmptyBatch creates an IPC stream with schema but no data rows.
-// This allows the client to know the schema even when there's no data.
-func serializeEmptyBatch() ([]byte, error) {
-	var buf bytes.Buffer
-
-	// Create IPC writer with the span schema
-	writer := ipc.NewWriter(&buf, ipc.WithSchema(SpanSchema))
-
-	// Close without writing any batches - this writes just the schema
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close empty IPC writer: %w", err)
-	}
-
-	return buf.Bytes(), nil
 }

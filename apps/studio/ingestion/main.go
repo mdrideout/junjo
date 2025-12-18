@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -23,30 +24,35 @@ func formatBytes(b int64) string {
 	return fmt.Sprintf("%.0fMB", float64(b)/float64(mb))
 }
 
+// formatGoMemLimit formats GOMEMLIMIT for display
+func formatGoMemLimit(b int64) string {
+	if b <= 0 {
+		return "disabled"
+	}
+	return formatBytes(b)
+}
+
 // formatStartupConfig creates a formatted multi-line config summary
 func formatStartupConfig(cfg *config.Config) string {
 	return fmt.Sprintf(`
 ┌─────────────────────────────────────────────────────────────
-│ INGESTION SERVICE CONFIGURATION
+│ INGESTION SERVICE CONFIGURATION (Two-Tier: Hot → Cold)
 ├─────────────────────────────────────────────────────────────
 │ Storage
 │   SQLite Path:      %s
 │   Parquet Output:   %s
 ├─────────────────────────────────────────────────────────────
-│ Cold Flush (SQLite → Parquet)
-│   Check Interval:   %s
+│ Cold Flush (SQLite → Parquet, Reactive)
+│   Fallback Check:   %s
 │   Max Age:          %s
 │   Max Rows:         %d
 │   Min Rows:         %d
-│   Max Size:         %s
-│   Chunk Size:       %d spans
-├─────────────────────────────────────────────────────────────
-│ Warm Flush (Incremental Snapshots)
-│   Threshold:        %s
+│   Max Size:         %s (triggers reactive flush)
 ├─────────────────────────────────────────────────────────────
 │ Backpressure (Memory Protection)
 │   Heap Limit:       %s
 │   Check Interval:   %ds
+│   GOMEMLIMIT:       %s
 ├─────────────────────────────────────────────────────────────
 │ Server
 │   Public gRPC:      :%s
@@ -59,10 +65,9 @@ func formatStartupConfig(cfg *config.Config) string {
 		cfg.Flusher.MaxRows,
 		cfg.Flusher.MinRows,
 		formatBytes(cfg.Flusher.MaxBytes),
-		cfg.Flusher.FlushChunkSize,
-		formatBytes(cfg.Flusher.WarmSnapshotBytes),
 		formatBytes(cfg.Server.BackpressureMaxBytes),
 		cfg.Server.BackpressureCheckInterval,
+		formatGoMemLimit(cfg.Server.GoMemLimit),
 		cfg.Server.PublicPort,
 		cfg.Server.InternalPort,
 	)
@@ -74,6 +79,11 @@ func main() {
 	logger.Init()
 
 	cfg := config.Get()
+
+	// Set GOMEMLIMIT if configured (makes GC more aggressive near memory limit)
+	if cfg.Server.GoMemLimit > 0 {
+		debug.SetMemoryLimit(cfg.Server.GoMemLimit)
+	}
 
 	// Print startup configuration (directly to stdout for formatting)
 	fmt.Println(formatStartupConfig(cfg))
