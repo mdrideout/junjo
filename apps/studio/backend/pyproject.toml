@@ -80,7 +80,7 @@ markers = [
     "requires_openai_api: Tests requiring OPENAI_API_KEY environment variable",
     "requires_anthropic_api: Tests requiring ANTHROPIC_API_KEY environment variable",
     "requires_grpc_server: Tests requiring gRPC server running on port 50053",
-    "real_wal: Tests that start the Go ingestion service and test real WAL queries",
+    "requires_ingestion_service: Tests requiring Rust ingestion service running on ports 50051/50052",
 ]
 
 [dependency-groups]

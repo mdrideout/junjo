@@ -23,7 +23,8 @@ WORKDIR /app
 # Copy manifests first for dependency caching
 COPY ingestion/Cargo.toml ingestion/Cargo.lock ./
 COPY ingestion/build.rs ./
-COPY ingestion/proto/ proto/
+# Copy shared proto directory (build.rs uses ../proto/ path)
+COPY proto/ /proto/
 
 # Create dummy src to build dependencies
 RUN mkdir src && \
@@ -66,7 +67,8 @@ WORKDIR /app
 # Copy manifests for dependency caching (these will be overwritten by volume mount)
 COPY ingestion/Cargo.toml ingestion/Cargo.lock ./
 COPY ingestion/build.rs ./
-COPY ingestion/proto/ proto/
+# Copy shared proto directory (build.rs uses ../proto/ path)
+COPY proto/ /proto/
 
 # Fetch dependencies only (no compilation, no proto generation)
 # This avoids caching generated proto code in the image layer, which would

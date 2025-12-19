@@ -2,7 +2,7 @@
 Pure throughput benchmark for the ingestion service.
 
 This bypasses workflow execution overhead and measures raw span ingestion throughput.
-Use this to benchmark the Go ingestion service independently of Python/workflow overhead.
+Use this to benchmark the Rust ingestion service independently of Python/workflow overhead.
 
 Usage:
     uv run python benchmark.py --spans 100000 --batch-size 1000 --concurrency 10

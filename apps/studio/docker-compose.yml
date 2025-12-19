@@ -62,7 +62,8 @@ services:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
       # Source code mount for development hot-reload (cargo-watch)
       - ./ingestion/src:/app/src:ro
-      - ./ingestion/proto:/app/proto:ro
+      # Shared proto directory (build.rs uses ../proto/ path)
+      - ./proto:/proto:ro
       - ./ingestion/Cargo.toml:/app/Cargo.toml:ro
       - ./ingestion/Cargo.lock:/app/Cargo.lock
       - ./ingestion/build.rs:/app/build.rs:ro

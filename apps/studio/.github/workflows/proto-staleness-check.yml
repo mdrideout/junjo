@@ -1,7 +1,10 @@
 # This workflow validates that generated proto files match their source .proto files.
 # It regenerates proto files and fails if any changes are detected (staleness check).
-# It also checks for orphaned schemas (generated code without source proto files).
 # This ensures developers cannot push stale or corrupted proto code.
+#
+# Proto generation by component:
+# - Python backend: Pre-generated via backend/scripts/generate_proto.sh, checked into repo
+# - Rust ingestion: Compile-time generation via build.rs (no checked-in files)
 
 name: Proto Staleness Check
 
@@ -21,12 +24,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache-dependency-path: ingestion/go.sum
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -37,7 +34,12 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dependencies
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install protoc
         run: |
           # Install protoc v30.2 (locked version for consistency)
           PROTOC_VERSION=30.2
@@ -46,23 +48,11 @@ jobs:
           sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*'
           rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
 
-          # Install Go plugins with locked versions to prevent drift
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
-
-          # Install Python tools (--system flag for CI environment)
+          # Install Python grpcio-tools (--system flag for CI environment)
           uv pip install --system grpcio-tools==1.76.0
 
           # Verify installation
           protoc --version
-          protoc-gen-go --version
-          protoc-gen-go-grpc --version
-
-      - name: Regenerate Go proto files
-        run: |
-          cd ingestion
-          make proto
-          cd ..
 
       - name: Regenerate Python proto files
         run: |
@@ -70,10 +60,12 @@ jobs:
           ./scripts/generate_proto.sh
           cd ..
 
-      - name: Check for orphaned proto schemas
+      - name: Validate Rust proto compilation
         run: |
+          # Rust uses build.rs for compile-time proto generation
+          # This step validates that protos compile correctly without errors
           cd ingestion
-          make proto-check-orphans
+          cargo check --message-format=short
           cd ..
 
       - name: Check for uncommitted changes
@@ -90,8 +82,7 @@ jobs:
             echo "🔧 To fix this issue:"
             echo "  1. Run: ./scripts/install-git-hooks.sh (to install pre-commit hooks)"
             echo "  2. Or regenerate manually:"
-            echo "     cd ingestion && make proto"
-            echo "     cd ../backend && ./scripts/generate_proto.sh"
+            echo "     cd backend && ./scripts/generate_proto.sh"
             echo "  3. Commit the updated proto files"
             echo ""
             exit 1
