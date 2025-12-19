@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
         flush_max_mb = config.flush_max_bytes / 1024 / 1024,
         batch_size = config.batch_size,
         backpressure_max_mb = config.backpressure_max_bytes / 1024 / 1024,
-        "Starting ingestion-rust service"
+        "Starting ingestion service"
     );
 
     // Ensure directories exist

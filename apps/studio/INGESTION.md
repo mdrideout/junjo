@@ -1,8 +1,8 @@
-# Rust Ingestion Service Architecture
+# Ingestion Service Architecture
 
 ## Overview
 
-Greenfield Rust ingestion service using **Segmented Arrow IPC as WAL** instead of SQLite. Optimized for minimal memory footprint and streaming flush to Parquet with constant memory usage.
+Rust ingestion service using **Segmented Arrow IPC as WAL**. Optimized for minimal memory footprint and streaming flush to Parquet with constant memory usage.
 
 **Architecture:**
 ```
@@ -26,7 +26,7 @@ OTLP Spans → Arrow batch → IPC segment (WAL) → Reactive flush to Parquet
 ## Service Structure
 
 ```
-ingestion-rust/
+ingestion/
 ├── Cargo.toml
 ├── build.rs                    # Proto compilation
 ├── proto/

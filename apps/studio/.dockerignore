@@ -3,10 +3,7 @@
 .gitignore
 
 # Rust build artifacts
-ingestion-rust/target/
-
-# Go build artifacts
-ingestion/tmp/
+ingestion/target/
 
 # Python virtual environments
 backend/.venv/

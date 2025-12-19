@@ -1,29 +1,27 @@
-"""Repository for querying OTEL spans from V4 three-tier architecture.
+"""Repository for querying OTEL spans from V4 two-tier architecture.
 
-Three-Tier Architecture:
-- COLD: Parquet files from full WAL flushes (indexed in DuckDB)
-- WARM: Incremental parquet snapshots in tmp/ (globbed, not indexed)
-- HOT: Live SQLite data since last warm snapshot (gRPC Arrow IPC)
+Two-Tier Architecture (Rust Ingestion):
+- COLD: Parquet files from WAL flushes (indexed in DuckDB)
+- HOT: On-demand Parquet snapshot (backend reads file directly)
 
 Query Flow:
-1. Query DuckDB metadata (span_metadata, services, parquet_files) for COLD tier paths
-2. Get warm cursor from ingestion service (last warm ULID)
-3. Get HOT tier data as Arrow IPC via gRPC (only spans since last warm snapshot)
-4. Register all three tiers in DataFusion and query with deduplication
+1. Query DuckDB metadata for COLD tier file paths
+2. Call PrepareHotSnapshot RPC to get hot snapshot path
+3. Register COLD and HOT in DataFusion
+4. Query with deduplication COLD > HOT
 
-Deduplication priority: COLD > WARM > HOT (same span_id).
+Deduplication priority: COLD > HOT (same span_id).
 
 This module provides data access methods for span query endpoints.
-Functions with "_fused" suffix query all three tiers via unified queries.
+Functions with "_fused" suffix query both tiers via unified queries.
 """
 
 import grpc
-import pyarrow as pa
 from loguru import logger
 
 from app.db_duckdb import v4_repository
 from app.db_duckdb.unified_query import UnifiedSpanQuery
-from app.features.span_ingestion.ingestion_client import IngestionClient, WarmCursor
+from app.features.span_ingestion.ingestion_client import IngestionClient
 
 # Module-level ingestion client for reuse
 _ingestion_client: IngestionClient | None = None
@@ -58,183 +56,83 @@ async def _reset_ingestion_client() -> None:
 
 
 # ===========================================================================
-# Three-Tier Data Access Helpers
+# Two-Tier Data Access Helpers
 # ===========================================================================
 
 
-async def _get_warm_cursor() -> WarmCursor | None:
-    """Get the warm snapshot cursor from ingestion service.
+async def _get_hot_snapshot_path() -> str | None:
+    """Get the hot snapshot file path from ingestion service.
 
-    Returns the cursor state indicating what's in warm tier vs hot tier.
-    Returns None if the query fails (graceful degradation to full WAL query).
+    Calls PrepareHotSnapshot RPC to create a stable Parquet snapshot.
+    Returns None if the operation fails (graceful degradation to COLD-only).
     """
     try:
         client = await _get_ingestion_client()
-        return await client.get_warm_cursor()
+        result = await client.prepare_hot_snapshot()
+
+        if result.success and result.snapshot_path:
+            logger.debug(
+                "Hot snapshot ready",
+                extra={
+                    "path": result.snapshot_path,
+                    "row_count": result.row_count,
+                    "size_bytes": result.file_size_bytes,
+                },
+            )
+            return result.snapshot_path
+        else:
+            logger.warning(
+                "Hot snapshot preparation failed",
+                extra={"error": result.error_message},
+            )
+            return None
+
     except grpc.aio.AioRpcError as e:
         logger.warning(
-            "Warm cursor query failed, will use full WAL",
+            "Hot snapshot RPC failed, will use COLD only",
             extra={"code": str(e.code()), "details": e.details()},
         )
         await _reset_ingestion_client()
         return None
     except Exception as e:
         logger.warning(
-            "Warm cursor error, will use full WAL",
+            "Hot snapshot error, will use COLD only",
             extra={"error": str(e), "error_type": type(e).__name__},
         )
         await _reset_ingestion_client()
         return None
 
 
-async def _get_hot_spans_arrow(
-    *,
-    since_warm_ulid: bytes | None = None,
-    trace_id: str | None = None,
-    service_name: str | None = None,
-    root_only: bool = False,
-    workflow_only: bool = False,
-    limit: int = 0,
-) -> pa.Table:
-    """Get HOT tier spans (since last warm snapshot) as Arrow Table.
-
-    This returns only the newest data that hasn't been snapshotted to warm.
-    Returns empty table if query fails (graceful degradation).
-
-    Args:
-        since_warm_ulid: Only return spans newer than this ULID
-        trace_id: Filter by trace ID
-        service_name: Filter by service name
-        root_only: Only return root spans
-        workflow_only: Only return workflow spans
-        limit: Maximum rows (0 = no limit)
-
-    Returns:
-        PyArrow Table with hot tier spans
-    """
-    try:
-        client = await _get_ingestion_client()
-        return await client.get_hot_spans_arrow(
-            since_warm_ulid=since_warm_ulid,
-            trace_id=trace_id,
-            service_name=service_name,
-            root_only=root_only,
-            workflow_only=workflow_only,
-            limit=limit,
-        )
-    except grpc.aio.AioRpcError as e:
-        logger.warning(
-            "HOT tier query failed, returning empty table",
-            extra={
-                "trace_id": trace_id,
-                "service_name": service_name,
-                "code": str(e.code()),
-                "details": e.details(),
-            },
-        )
-        await _reset_ingestion_client()
-        return pa.table({})
-    except Exception as e:
-        logger.warning(
-            "HOT tier client error, returning empty table",
-            extra={
-                "trace_id": trace_id,
-                "service_name": service_name,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
-        )
-        await _reset_ingestion_client()
-        return pa.table({})
-
-
-async def _get_wal_spans_arrow(
-    *,
-    trace_id: str | None = None,
-    service_name: str | None = None,
-    root_only: bool = False,
-    workflow_only: bool = False,
-    limit: int = 0,
-) -> pa.Table:
-    """Get ALL WAL spans as Arrow Table (legacy, full WAL query).
-
-    DEPRECATED: Use _get_hot_spans_arrow for three-tier queries.
-    This remains for fallback when warm cursor is unavailable.
-
-    Returns empty table if WAL query fails (graceful degradation).
-    """
-    try:
-        client = await _get_ingestion_client()
-        return await client.get_wal_spans_arrow(
-            trace_id=trace_id,
-            service_name=service_name,
-            root_only=root_only,
-            workflow_only=workflow_only,
-            limit=limit,
-        )
-    except grpc.aio.AioRpcError as e:
-        logger.warning(
-            "WAL Arrow query failed, returning empty table",
-            extra={
-                "trace_id": trace_id,
-                "service_name": service_name,
-                "code": str(e.code()),
-                "details": e.details(),
-            },
-        )
-        await _reset_ingestion_client()
-        return pa.table({})
-    except Exception as e:
-        logger.warning(
-            "WAL client error, returning empty table",
-            extra={
-                "trace_id": trace_id,
-                "service_name": service_name,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
-        )
-        await _reset_ingestion_client()
-        return pa.table({})
-
-
 async def get_fused_distinct_service_names() -> list[str]:
-    """Get list of all distinct service names from all three tiers.
+    """Get list of all distinct service names from both tiers.
 
-    Three-tier query:
+    Two-tier query:
     1. Register COLD tier (Parquet from DuckDB metadata)
-    2. Register WARM tier (glob tmp/*.parquet)
-    3. Get HOT tier from gRPC
-    4. Query distinct service names via DataFusion UNION
+    2. Get HOT tier snapshot path from gRPC
+    3. Query distinct service names via DataFusion UNION
 
     Returns:
         List of service names in alphabetical order.
     """
-    # Get cold tier file paths (all parquet files, no filter)
+    # Get cold tier file paths
     cold_file_paths = v4_repository.get_all_parquet_file_paths()
 
-    # Get warm cursor and hot data
-    warm_cursor = await _get_warm_cursor()
-    since_warm_ulid = warm_cursor.last_warm_ulid if warm_cursor else None
+    # Get hot snapshot path
+    hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Get hot tier data
-    hot_table = await _get_hot_spans_arrow(since_warm_ulid=since_warm_ulid)
-
-    # Create unified query with three tiers
+    # Create unified query with two tiers
     query = UnifiedSpanQuery()
     query.register_cold(cold_file_paths)
-    warm_files = query.register_warm()
-    query.register_hot(hot_table)
+    query.register_hot(hot_snapshot_path)
 
     # Query distinct service names across all tiers
     services = query.query_distinct_service_names()
 
     logger.debug(
-        "Three-tier service names query",
+        "Two-tier service names query",
         extra={
             "cold_files": len(cold_file_paths),
-            "warm_files": len(warm_files),
-            "hot_rows": hot_table.num_rows if hot_table.num_columns > 0 else 0,
+            "hot_snapshot": hot_snapshot_path is not None,
             "service_count": len(services),
         },
     )
@@ -243,9 +141,9 @@ async def get_fused_distinct_service_names() -> list[str]:
 
 
 async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[dict]:
-    """Get all spans for a service from all three tiers.
+    """Get all spans for a service from both tiers.
 
-    Uses three-tier DataFusion query: Cold + Warm + Hot.
+    Uses two-tier DataFusion query: Cold + Hot.
 
     Args:
         service_name: Name of the service to query.
@@ -257,30 +155,22 @@ async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[d
     # Get cold tier file paths from metadata
     cold_file_paths = v4_repository.get_file_paths_for_service(service_name, limit=limit)
 
-    # Get warm cursor and hot data
-    warm_cursor = await _get_warm_cursor()
-    since_warm_ulid = warm_cursor.last_warm_ulid if warm_cursor else None
+    # Get hot snapshot path
+    hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Get hot tier spans
-    hot_table = await _get_hot_spans_arrow(
-        since_warm_ulid=since_warm_ulid, service_name=service_name, limit=limit
-    )
-
-    # Use three-tier unified query
+    # Use two-tier unified query
     query = UnifiedSpanQuery()
     query.register_cold(cold_file_paths)
-    warm_files = query.register_warm()
-    query.register_hot(hot_table)
+    query.register_hot(hot_snapshot_path)
 
-    results = query.query_spans_three_tier(service_name=service_name, limit=limit)
+    results = query.query_spans_two_tier(service_name=service_name, limit=limit)
 
     logger.debug(
-        "Three-tier service spans query",
+        "Two-tier service spans query",
         extra={
             "service_name": service_name,
             "cold_files": len(cold_file_paths),
-            "warm_files": len(warm_files),
-            "hot_rows": hot_table.num_rows if hot_table.num_columns > 0 else 0,
+            "hot_snapshot": hot_snapshot_path is not None,
             "result_count": len(results),
         },
     )
@@ -289,9 +179,9 @@ async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[d
 
 
 async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict]:
-    """Get root spans (no parent) for a service from all three tiers.
+    """Get root spans (no parent) for a service from both tiers.
 
-    Uses three-tier DataFusion query with root_only filter.
+    Uses two-tier DataFusion query with root_only filter.
 
     Args:
         service_name: Name of the service to query.
@@ -305,30 +195,22 @@ async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict
         service_name, limit=limit, is_root=True
     )
 
-    # Get warm cursor and hot data
-    warm_cursor = await _get_warm_cursor()
-    since_warm_ulid = warm_cursor.last_warm_ulid if warm_cursor else None
+    # Get hot snapshot path
+    hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Get hot tier root spans
-    hot_table = await _get_hot_spans_arrow(
-        since_warm_ulid=since_warm_ulid, service_name=service_name, root_only=True, limit=limit
-    )
-
-    # Use three-tier unified query
+    # Use two-tier unified query
     query = UnifiedSpanQuery()
     query.register_cold(cold_file_paths)
-    warm_files = query.register_warm()
-    query.register_hot(hot_table)
+    query.register_hot(hot_snapshot_path)
 
-    results = query.query_spans_three_tier(service_name=service_name, root_only=True, limit=limit)
+    results = query.query_spans_two_tier(service_name=service_name, root_only=True, limit=limit)
 
     logger.debug(
-        "Three-tier root spans query",
+        "Two-tier root spans query",
         extra={
             "service_name": service_name,
             "cold_files": len(cold_file_paths),
-            "warm_files": len(warm_files),
-            "hot_rows": hot_table.num_rows if hot_table.num_columns > 0 else 0,
+            "hot_snapshot": hot_snapshot_path is not None,
             "result_count": len(results),
         },
     )
@@ -353,12 +235,12 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
     # Step 1: Get Parquet LLM trace IDs (indexed lookup - fast)
     parquet_llm_trace_ids = set(v4_repository.get_llm_trace_ids(service_name, limit * 2))
 
-    # Step 2: Get all root spans (both Parquet and WAL)
+    # Step 2: Get all root spans (both Parquet and HOT)
     all_root_spans = await get_fused_root_spans(service_name, limit * 2)
 
     # Step 3: Filter to LLM traces
     # For Parquet spans, use the indexed lookup
-    # For WAL spans, we need to check the trace
+    # For HOT spans, we need to check the trace
     llm_root_spans = []
 
     for span in all_root_spans:
@@ -366,7 +248,7 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
         if trace_id in parquet_llm_trace_ids:
             llm_root_spans.append(span)
         else:
-            # Check if this trace has LLM spans in WAL
+            # Check if this trace has LLM spans in HOT tier
             # This is expensive but necessary for unflushed traces
             trace_spans = await get_fused_trace_spans(trace_id)
             for ts in trace_spans:
@@ -379,7 +261,7 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
             break
 
     logger.debug(
-        "Unified LLM root spans query",
+        "Two-tier LLM root spans query",
         extra={
             "service_name": service_name,
             "parquet_llm_trace_count": len(parquet_llm_trace_ids),
@@ -391,9 +273,9 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
 
 
 async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[dict]:
-    """Get workflow-type spans for a service from all three tiers.
+    """Get workflow-type spans for a service from both tiers.
 
-    Uses three-tier DataFusion query with workflow_only filter.
+    Uses two-tier DataFusion query with workflow_only filter.
 
     Args:
         service_name: Name of the service to query.
@@ -407,32 +289,22 @@ async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[
         service_name, "workflow", limit=limit
     )
 
-    # Get warm cursor and hot data
-    warm_cursor = await _get_warm_cursor()
-    since_warm_ulid = warm_cursor.last_warm_ulid if warm_cursor else None
+    # Get hot snapshot path
+    hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Get hot tier workflow spans
-    hot_table = await _get_hot_spans_arrow(
-        since_warm_ulid=since_warm_ulid, service_name=service_name, workflow_only=True, limit=limit
-    )
-
-    # Use three-tier unified query
+    # Use two-tier unified query
     query = UnifiedSpanQuery()
     query.register_cold(cold_file_paths)
-    warm_files = query.register_warm()
-    query.register_hot(hot_table)
+    query.register_hot(hot_snapshot_path)
 
-    results = query.query_spans_three_tier(
-        service_name=service_name, workflow_only=True, limit=limit
-    )
+    results = query.query_spans_two_tier(service_name=service_name, workflow_only=True, limit=limit)
 
     logger.debug(
-        "Three-tier workflow spans query",
+        "Two-tier workflow spans query",
         extra={
             "service_name": service_name,
             "cold_files": len(cold_file_paths),
-            "warm_files": len(warm_files),
-            "hot_rows": hot_table.num_rows if hot_table.num_columns > 0 else 0,
+            "hot_snapshot": hot_snapshot_path is not None,
             "result_count": len(results),
         },
     )
@@ -441,9 +313,9 @@ async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[
 
 
 async def get_fused_trace_spans(trace_id: str) -> list[dict]:
-    """Get all spans for a specific trace from all three tiers.
+    """Get all spans for a specific trace from both tiers.
 
-    Uses three-tier DataFusion query filtering by trace_id.
+    Uses two-tier DataFusion query filtering by trace_id.
 
     Args:
         trace_id: Trace ID (32-char hex string).
@@ -454,28 +326,22 @@ async def get_fused_trace_spans(trace_id: str) -> list[dict]:
     # Get cold tier file paths for this trace
     cold_file_paths = v4_repository.get_file_paths_for_trace(trace_id)
 
-    # Get warm cursor and hot data
-    warm_cursor = await _get_warm_cursor()
-    since_warm_ulid = warm_cursor.last_warm_ulid if warm_cursor else None
+    # Get hot snapshot path
+    hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Get hot tier spans for this trace
-    hot_table = await _get_hot_spans_arrow(since_warm_ulid=since_warm_ulid, trace_id=trace_id)
-
-    # Use three-tier unified query
+    # Use two-tier unified query
     query = UnifiedSpanQuery()
     query.register_cold(cold_file_paths)
-    warm_files = query.register_warm()
-    query.register_hot(hot_table)
+    query.register_hot(hot_snapshot_path)
 
-    results = query.query_spans_three_tier(trace_id=trace_id)
+    results = query.query_spans_two_tier(trace_id=trace_id)
 
     logger.debug(
-        "Three-tier trace spans query",
+        "Two-tier trace spans query",
         extra={
             "trace_id": trace_id,
             "cold_files": len(cold_file_paths),
-            "warm_files": len(warm_files),
-            "hot_rows": hot_table.num_rows if hot_table.num_columns > 0 else 0,
+            "hot_snapshot": hot_snapshot_path is not None,
             "result_count": len(results),
         },
     )
@@ -484,9 +350,9 @@ async def get_fused_trace_spans(trace_id: str) -> list[dict]:
 
 
 async def get_fused_span(trace_id: str, span_id: str) -> dict | None:
-    """Get a specific span by trace ID and span ID from all three tiers.
+    """Get a specific span by trace ID and span ID from both tiers.
 
-    Uses three-tier query and filters to specific span.
+    Uses two-tier query and filters to specific span.
 
     Args:
         trace_id: Trace ID (32-char hex string).

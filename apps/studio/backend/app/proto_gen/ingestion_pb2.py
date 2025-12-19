@@ -24,36 +24,21 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fingestion.proto\x12\tingestion\">\n\x10ReadSpansRequest\x12\x16\n\x0estart_key_ulid\x18\x01 \x01(\x0c\x12\x12\n\nbatch_size\x18\x02 \x01(\r\"j\n\x11ReadSpansResponse\x12\x10\n\x08key_ulid\x18\x01 \x01(\x0c\x12\x12\n\nspan_bytes\x18\x02 \x01(\x0c\x12\x16\n\x0eresource_bytes\x18\x03 \x01(\x0c\x12\x17\n\x0fremaining_count\x18\x04 \x01(\x04\"\xa2\x01\n\x17GetWALSpansArrowRequest\x12\x15\n\x08trace_id\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cservice_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x11\n\troot_only\x18\x03 \x01(\x08\x12\x15\n\rworkflow_only\x18\x04 \x01(\x08\x12\r\n\x05limit\x18\x05 \x01(\x05\x42\x0b\n\t_trace_idB\x0f\n\r_service_name\"C\n\nArrowBatch\x12\x11\n\tipc_bytes\x18\x01 \x01(\x0c\x12\x11\n\trow_count\x18\x02 \x01(\x05\x12\x0f\n\x07is_last\x18\x03 \x01(\x08\"\xd4\x01\n\x17GetHotSpansArrowRequest\x12\x1c\n\x0fsince_warm_ulid\x18\x01 \x01(\x0cH\x00\x88\x01\x01\x12\x15\n\x08trace_id\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x19\n\x0cservice_name\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x11\n\troot_only\x18\x04 \x01(\x08\x12\x15\n\rworkflow_only\x18\x05 \x01(\x08\x12\r\n\x05limit\x18\x06 \x01(\x05\x42\x12\n\x10_since_warm_ulidB\x0b\n\t_trace_idB\x0f\n\r_service_name\"\x16\n\x14GetWarmCursorRequest\"c\n\x15GetWarmCursorResponse\x12\x16\n\x0elast_warm_ulid\x18\x01 \x01(\x0c\x12\x19\n\x11last_warm_time_ns\x18\x02 \x01(\x03\x12\x17\n\x0fwarm_file_count\x18\x03 \x01(\x05\"#\n!GetWALDistinctServiceNamesRequest\";\n\"GetWALDistinctServiceNamesResponse\x12\x15\n\rservice_names\x18\x01 \x03(\t\"\x11\n\x0f\x46lushWALRequest\":\n\x10\x46lushWALResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t2\xa6\x04\n\x18InternalIngestionService\x12J\n\tReadSpans\x12\x1b.ingestion.ReadSpansRequest\x1a\x1c.ingestion.ReadSpansResponse\"\x00\x30\x01\x12Q\n\x10GetWALSpansArrow\x12\".ingestion.GetWALSpansArrowRequest\x1a\x15.ingestion.ArrowBatch\"\x00\x30\x01\x12Q\n\x10GetHotSpansArrow\x12\".ingestion.GetHotSpansArrowRequest\x1a\x15.ingestion.ArrowBatch\"\x00\x30\x01\x12T\n\rGetWarmCursor\x12\x1f.ingestion.GetWarmCursorRequest\x1a .ingestion.GetWarmCursorResponse\"\x00\x12{\n\x1aGetWALDistinctServiceNames\x12,.ingestion.GetWALDistinctServiceNamesRequest\x1a-.ingestion.GetWALDistinctServiceNamesResponse\"\x00\x12\x45\n\x08\x46lushWAL\x12\x1a.ingestion.FlushWALRequest\x1a\x1b.ingestion.FlushWALResponse\"\x00\x42\rZ\x0b.;proto_genb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fingestion.proto\x12\tingestion\"\x11\n\x0f\x46lushWALRequest\":\n\x10\x46lushWALResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\"\x1b\n\x19PrepareHotSnapshotRequest\"\x87\x01\n\x1aPrepareHotSnapshotResponse\x12\x15\n\rsnapshot_path\x18\x01 \x01(\t\x12\x11\n\trow_count\x18\x02 \x01(\x03\x12\x17\n\x0f\x66ile_size_bytes\x18\x03 \x01(\x03\x12\x0f\n\x07success\x18\x04 \x01(\x08\x12\x15\n\rerror_message\x18\x05 \x01(\t2\xc6\x01\n\x18InternalIngestionService\x12\x63\n\x12PrepareHotSnapshot\x12$.ingestion.PrepareHotSnapshotRequest\x1a%.ingestion.PrepareHotSnapshotResponse\"\x00\x12\x45\n\x08\x46lushWAL\x12\x1a.ingestion.FlushWALRequest\x1a\x1b.ingestion.FlushWALResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ingestion_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z\013.;proto_gen'
-  _globals['_READSPANSREQUEST']._serialized_start=30
-  _globals['_READSPANSREQUEST']._serialized_end=92
-  _globals['_READSPANSRESPONSE']._serialized_start=94
-  _globals['_READSPANSRESPONSE']._serialized_end=200
-  _globals['_GETWALSPANSARROWREQUEST']._serialized_start=203
-  _globals['_GETWALSPANSARROWREQUEST']._serialized_end=365
-  _globals['_ARROWBATCH']._serialized_start=367
-  _globals['_ARROWBATCH']._serialized_end=434
-  _globals['_GETHOTSPANSARROWREQUEST']._serialized_start=437
-  _globals['_GETHOTSPANSARROWREQUEST']._serialized_end=649
-  _globals['_GETWARMCURSORREQUEST']._serialized_start=651
-  _globals['_GETWARMCURSORREQUEST']._serialized_end=673
-  _globals['_GETWARMCURSORRESPONSE']._serialized_start=675
-  _globals['_GETWARMCURSORRESPONSE']._serialized_end=774
-  _globals['_GETWALDISTINCTSERVICENAMESREQUEST']._serialized_start=776
-  _globals['_GETWALDISTINCTSERVICENAMESREQUEST']._serialized_end=811
-  _globals['_GETWALDISTINCTSERVICENAMESRESPONSE']._serialized_start=813
-  _globals['_GETWALDISTINCTSERVICENAMESRESPONSE']._serialized_end=872
-  _globals['_FLUSHWALREQUEST']._serialized_start=874
-  _globals['_FLUSHWALREQUEST']._serialized_end=891
-  _globals['_FLUSHWALRESPONSE']._serialized_start=893
-  _globals['_FLUSHWALRESPONSE']._serialized_end=951
-  _globals['_INTERNALINGESTIONSERVICE']._serialized_start=954
-  _globals['_INTERNALINGESTIONSERVICE']._serialized_end=1504
+  DESCRIPTOR._loaded_options = None
+  _globals['_FLUSHWALREQUEST']._serialized_start=30
+  _globals['_FLUSHWALREQUEST']._serialized_end=47
+  _globals['_FLUSHWALRESPONSE']._serialized_start=49
+  _globals['_FLUSHWALRESPONSE']._serialized_end=107
+  _globals['_PREPAREHOTSNAPSHOTREQUEST']._serialized_start=109
+  _globals['_PREPAREHOTSNAPSHOTREQUEST']._serialized_end=136
+  _globals['_PREPAREHOTSNAPSHOTRESPONSE']._serialized_start=139
+  _globals['_PREPAREHOTSNAPSHOTRESPONSE']._serialized_end=274
+  _globals['_INTERNALINGESTIONSERVICE']._serialized_start=277
+  _globals['_INTERNALINGESTIONSERVICE']._serialized_end=475
 # @@protoc_insertion_point(module_scope)

@@ -26,8 +26,9 @@ if _version_not_supported:
 
 
 class InternalIngestionServiceStub(object):
-    """InternalIngestionService provides an API for the main backend to read
-    spans from the SQLite WAL.
+    """InternalIngestionService provides an API for the backend to trigger
+    snapshot creation and flushes. The backend reads snapshot files directly
+    via DataFusion rather than streaming data over gRPC.
     """
 
     def __init__(self, channel):
@@ -36,30 +37,10 @@ class InternalIngestionServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ReadSpans = channel.unary_stream(
-                '/ingestion.InternalIngestionService/ReadSpans',
-                request_serializer=ingestion__pb2.ReadSpansRequest.SerializeToString,
-                response_deserializer=ingestion__pb2.ReadSpansResponse.FromString,
-                _registered_method=True)
-        self.GetWALSpansArrow = channel.unary_stream(
-                '/ingestion.InternalIngestionService/GetWALSpansArrow',
-                request_serializer=ingestion__pb2.GetWALSpansArrowRequest.SerializeToString,
-                response_deserializer=ingestion__pb2.ArrowBatch.FromString,
-                _registered_method=True)
-        self.GetHotSpansArrow = channel.unary_stream(
-                '/ingestion.InternalIngestionService/GetHotSpansArrow',
-                request_serializer=ingestion__pb2.GetHotSpansArrowRequest.SerializeToString,
-                response_deserializer=ingestion__pb2.ArrowBatch.FromString,
-                _registered_method=True)
-        self.GetWarmCursor = channel.unary_unary(
-                '/ingestion.InternalIngestionService/GetWarmCursor',
-                request_serializer=ingestion__pb2.GetWarmCursorRequest.SerializeToString,
-                response_deserializer=ingestion__pb2.GetWarmCursorResponse.FromString,
-                _registered_method=True)
-        self.GetWALDistinctServiceNames = channel.unary_unary(
-                '/ingestion.InternalIngestionService/GetWALDistinctServiceNames',
-                request_serializer=ingestion__pb2.GetWALDistinctServiceNamesRequest.SerializeToString,
-                response_deserializer=ingestion__pb2.GetWALDistinctServiceNamesResponse.FromString,
+        self.PrepareHotSnapshot = channel.unary_unary(
+                '/ingestion.InternalIngestionService/PrepareHotSnapshot',
+                request_serializer=ingestion__pb2.PrepareHotSnapshotRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.PrepareHotSnapshotResponse.FromString,
                 _registered_method=True)
         self.FlushWAL = channel.unary_unary(
                 '/ingestion.InternalIngestionService/FlushWAL',
@@ -69,54 +50,22 @@ class InternalIngestionServiceStub(object):
 
 
 class InternalIngestionServiceServicer(object):
-    """InternalIngestionService provides an API for the main backend to read
-    spans from the SQLite WAL.
+    """InternalIngestionService provides an API for the backend to trigger
+    snapshot creation and flushes. The backend reads snapshot files directly
+    via DataFusion rather than streaming data over gRPC.
     """
 
-    def ReadSpans(self, request, context):
-        """ReadSpans reads a batch of spans from the WAL, starting after the
-        specified ULID. This is a server-streaming RPC.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetWALSpansArrow(self, request, context):
-        """GetWALSpansArrow returns spans from WAL as Arrow IPC bytes.
-        Supports filtering by trace_id, service_name, root_only, and workflow_only.
-        Used for unified DataFusion queries combining WAL and Parquet data.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetHotSpansArrow(self, request, context):
-        """GetHotSpansArrow returns only HOT tier spans (since last warm snapshot).
-        This is the three-tier architecture query that returns only the newest data.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetWarmCursor(self, request, context):
-        """GetWarmCursor returns the current warm snapshot cursor state.
-        Used by Python to know what's in warm tier vs hot tier.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetWALDistinctServiceNames(self, request, context):
-        """GetWALDistinctServiceNames returns all distinct service names currently in the WAL.
-        Used to merge with Parquet-indexed services for complete listing.
-        DEPRECATED: Use GetHotSpansArrow + DataFusion instead.
+    def PrepareHotSnapshot(self, request, context):
+        """PrepareHotSnapshot flushes pending spans to IPC and creates a stable
+        Parquet snapshot file that the backend can read directly without coordination.
+        This enables zero-staleness reads without gRPC streaming overhead.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def FlushWAL(self, request, context):
-        """FlushWAL triggers an immediate flush of WAL data to Parquet files.
+        """FlushWAL triggers an immediate flush of WAL data to cold Parquet storage.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -125,30 +74,10 @@ class InternalIngestionServiceServicer(object):
 
 def add_InternalIngestionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ReadSpans': grpc.unary_stream_rpc_method_handler(
-                    servicer.ReadSpans,
-                    request_deserializer=ingestion__pb2.ReadSpansRequest.FromString,
-                    response_serializer=ingestion__pb2.ReadSpansResponse.SerializeToString,
-            ),
-            'GetWALSpansArrow': grpc.unary_stream_rpc_method_handler(
-                    servicer.GetWALSpansArrow,
-                    request_deserializer=ingestion__pb2.GetWALSpansArrowRequest.FromString,
-                    response_serializer=ingestion__pb2.ArrowBatch.SerializeToString,
-            ),
-            'GetHotSpansArrow': grpc.unary_stream_rpc_method_handler(
-                    servicer.GetHotSpansArrow,
-                    request_deserializer=ingestion__pb2.GetHotSpansArrowRequest.FromString,
-                    response_serializer=ingestion__pb2.ArrowBatch.SerializeToString,
-            ),
-            'GetWarmCursor': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetWarmCursor,
-                    request_deserializer=ingestion__pb2.GetWarmCursorRequest.FromString,
-                    response_serializer=ingestion__pb2.GetWarmCursorResponse.SerializeToString,
-            ),
-            'GetWALDistinctServiceNames': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetWALDistinctServiceNames,
-                    request_deserializer=ingestion__pb2.GetWALDistinctServiceNamesRequest.FromString,
-                    response_serializer=ingestion__pb2.GetWALDistinctServiceNamesResponse.SerializeToString,
+            'PrepareHotSnapshot': grpc.unary_unary_rpc_method_handler(
+                    servicer.PrepareHotSnapshot,
+                    request_deserializer=ingestion__pb2.PrepareHotSnapshotRequest.FromString,
+                    response_serializer=ingestion__pb2.PrepareHotSnapshotResponse.SerializeToString,
             ),
             'FlushWAL': grpc.unary_unary_rpc_method_handler(
                     servicer.FlushWAL,
@@ -164,93 +93,13 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class InternalIngestionService(object):
-    """InternalIngestionService provides an API for the main backend to read
-    spans from the SQLite WAL.
+    """InternalIngestionService provides an API for the backend to trigger
+    snapshot creation and flushes. The backend reads snapshot files directly
+    via DataFusion rather than streaming data over gRPC.
     """
 
     @staticmethod
-    def ReadSpans(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/ingestion.InternalIngestionService/ReadSpans',
-            ingestion__pb2.ReadSpansRequest.SerializeToString,
-            ingestion__pb2.ReadSpansResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetWALSpansArrow(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/ingestion.InternalIngestionService/GetWALSpansArrow',
-            ingestion__pb2.GetWALSpansArrowRequest.SerializeToString,
-            ingestion__pb2.ArrowBatch.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetHotSpansArrow(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/ingestion.InternalIngestionService/GetHotSpansArrow',
-            ingestion__pb2.GetHotSpansArrowRequest.SerializeToString,
-            ingestion__pb2.ArrowBatch.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetWarmCursor(request,
+    def PrepareHotSnapshot(request,
             target,
             options=(),
             channel_credentials=None,
@@ -263,36 +112,9 @@ class InternalIngestionService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ingestion.InternalIngestionService/GetWarmCursor',
-            ingestion__pb2.GetWarmCursorRequest.SerializeToString,
-            ingestion__pb2.GetWarmCursorResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetWALDistinctServiceNames(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ingestion.InternalIngestionService/GetWALDistinctServiceNames',
-            ingestion__pb2.GetWALDistinctServiceNamesRequest.SerializeToString,
-            ingestion__pb2.GetWALDistinctServiceNamesResponse.FromString,
+            '/ingestion.InternalIngestionService/PrepareHotSnapshot',
+            ingestion__pb2.PrepareHotSnapshotRequest.SerializeToString,
+            ingestion__pb2.PrepareHotSnapshotResponse.FromString,
             options,
             channel_credentials,
             insecure,

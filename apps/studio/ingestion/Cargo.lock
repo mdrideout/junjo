@@ -952,7 +952,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ingestion-rust"
+name = "ingestion"
 version = "0.1.0"
 dependencies = [
  "anyhow",

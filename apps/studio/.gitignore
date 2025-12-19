@@ -91,10 +91,10 @@ dmypy.json
 *.log
 
 # Rust
-ingestion-rust/target/
+ingestion/target/
 **/*.rs.bk
 Cargo.lock
-!ingestion-rust/Cargo.lock
+!ingestion/Cargo.lock
 
 # Generated Protocol Buffers
 # Note: Proto files ARE committed to ensure:
