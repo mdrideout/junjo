@@ -915,7 +915,8 @@ echo "✅ Integrity test complete!"
 1. Config file has correct API key: `cat 1_app/config.yaml`
 2. Ingestion service is running: `docker compose ps junjo-ai-studio-ingestion`
 3. Check ingestion logs: `docker compose logs junjo-ai-studio-ingestion`
-4. Wait longer for processing (increase sleep in verification scripts)
+4. Trigger a flush: Data appears after `FlushWAL` (cold tier) or `PrepareHotSnapshot` (hot tier)
+5. Check Parquet files exist: `ls -la .dbdata/spans/parquet/`
 
 ### Pollution Detected
 
@@ -930,9 +931,10 @@ echo "✅ Integrity test complete!"
 
 **Bottlenecks to check:**
 1. Ingestion endpoint (check K6 metrics)
-2. Backend poller (check `SPAN_BATCH_SIZE`, `SPAN_POLL_INTERVAL`)
-3. DuckDB indexing (check for lock contention)
-4. Network (local vs Docker network)
+2. WAL flush frequency (FlushWAL creates cold Parquet files)
+3. Hot snapshot generation (PrepareHotSnapshot for real-time queries)
+4. DataFusion query performance (check Parquet file sizes)
+5. Network (local vs Docker network)
 
 ---
 
