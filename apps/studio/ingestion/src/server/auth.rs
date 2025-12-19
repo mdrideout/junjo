@@ -49,7 +49,7 @@ impl ApiKeyInterceptor {
             })?;
 
         let duration = start.elapsed();
-        if duration.as_millis() > 100 {
+        if duration.as_millis() > 5000 {
             warn!(duration_ms = duration.as_millis(), is_valid = is_valid, "Slow backend API key validation");
         }
 

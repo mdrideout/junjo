@@ -48,7 +48,7 @@ impl OtlpTraceService for TraceService {
 
         // Check backpressure (fast path - just reads AtomicBool)
         if self.backpressure.is_under_pressure() {
-            warn!("Request rejected due to backpressure");
+            debug!("Request rejected due to backpressure");
             return Err(Status::resource_exhausted(
                 "Server under memory pressure, please retry later",
             ));
@@ -67,7 +67,7 @@ impl OtlpTraceService for TraceService {
             return Err(Status::unauthenticated("Invalid API key"));
         }
 
-        if auth_duration.as_millis() > 100 {
+        if auth_duration.as_millis() > 5000 {
             warn!(auth_ms = auth_duration.as_millis(), "Slow API key validation");
         }
 

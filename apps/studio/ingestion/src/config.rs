@@ -84,7 +84,7 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse::<u64>().ok())
                 .map(|mb| mb * 1024 * 1024)
-                .unwrap_or(250 * 1024 * 1024), // 250 MB
+                .unwrap_or(300 * 1024 * 1024), // 300 MB
 
             backend_host: env::var("BACKEND_GRPC_HOST")
                 .unwrap_or_else(|_| "localhost".to_string()),

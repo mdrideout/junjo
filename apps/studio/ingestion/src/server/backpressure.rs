@@ -20,6 +20,8 @@ impl BackpressureMonitor {
         tokio::spawn(async move {
             let mut sys = System::new();
             let pid = sysinfo::get_current_pid().ok();
+            // Track consecutive pressure checks for duration warning (20 checks = 10 seconds)
+            let mut consecutive_pressure_count: u32 = 0;
 
             loop {
                 sys.refresh_memory();
@@ -35,21 +37,37 @@ impl BackpressureMonitor {
                 let was_under_pressure = pressure_flag.load(Ordering::Relaxed);
                 let is_under_pressure = used_bytes > max_bytes;
 
-                if is_under_pressure != was_under_pressure {
-                    pressure_flag.store(is_under_pressure, Ordering::Relaxed);
-                    if is_under_pressure {
+                if is_under_pressure {
+                    consecutive_pressure_count += 1;
+
+                    if !was_under_pressure {
+                        pressure_flag.store(true, Ordering::Relaxed);
                         warn!(
                             used_mb = used_bytes / 1024 / 1024,
                             max_mb = max_bytes / 1024 / 1024,
                             "Backpressure activated"
                         );
-                    } else {
+                    }
+
+                    // Warn once after 10 seconds of sustained pressure (20 checks at 500ms)
+                    if consecutive_pressure_count == 20 {
+                        warn!(
+                            used_mb = used_bytes / 1024 / 1024,
+                            max_mb = max_bytes / 1024 / 1024,
+                            duration_seconds = 10,
+                            "Backpressure sustained for 10+ seconds - check if threshold is set too low or investigate other memory issues"
+                        );
+                    }
+                } else {
+                    if was_under_pressure {
+                        pressure_flag.store(false, Ordering::Relaxed);
                         info!(
                             used_mb = used_bytes / 1024 / 1024,
                             max_mb = max_bytes / 1024 / 1024,
                             "Backpressure released"
                         );
                     }
+                    consecutive_pressure_count = 0;
                 }
 
                 tokio::time::sleep(Duration::from_millis(500)).await;
