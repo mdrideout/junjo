@@ -179,11 +179,13 @@ The Junjo AI Studio is composed of three primary services:
   - Span querying & analytics
 
 ### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
-- **Tech Stack**: Go, gRPC, SQLite
+- **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
 - **Responsibilities**:
   - OpenTelemetry OTLP/gRPC endpoint (port 50051)
-  - High-throughput span ingestion
-  - Durable Write-Ahead Log (WAL) with SQLite
+  - High-throughput span ingestion with backpressure
+  - Write-Ahead Log using Arrow IPC segments
+  - Flush WAL to date-partitioned Parquet files (cold storage)
+  - Prepare hot snapshots for real-time queries
 
 ### 3. Frontend (`junjo-ai-studio-frontend`)
 - **Tech Stack**: React, TypeScript
@@ -192,19 +194,31 @@ The Junjo AI Studio is composed of three primary services:
   - LLM playground interface
   - User management
 
-**Data Flow:**
+**Data Flow (Two-Tier Architecture):**
 ```
-Junjo Python App → Ingestion Service (gRPC) → SQLite WAL
+Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
                                                     ↓
-Backend Service ← polls for new spans ← SQLite WAL
-       ↓
-    DuckDB (analytics)
-    SQLite (metadata)
-       ↓
-    Frontend UI
+                                         ┌─────────┴─────────┐
+                                         ↓                   ↓
+                                    FlushWAL RPC    PrepareHotSnapshot RPC
+                                         ↓                   ↓
+                                  Parquet files         Hot snapshot
+                                  (COLD tier)          (HOT tier)
+                                         ↓                   ↓
+                                         └─────────┬─────────┘
+                                                   ↓
+                                    Backend Service (DataFusion)
+                                         ↓
+                                  Merged query results
+                                         ↓
+                                     Frontend UI
 ```
 
-The `backend` service polls the `ingestion`'s internal gRPC API to read batches of spans from the WAL, which it then indexes into DuckDB for analytics queries.
+**How it works:**
+- **Ingestion** receives OTLP spans and writes them to Arrow IPC WAL segments
+- **FlushWAL** (periodic/manual) converts WAL segments to date-partitioned Parquet files (COLD tier)
+- **PrepareHotSnapshot** creates an on-demand Parquet file from unflushed WAL data (HOT tier)
+- **Backend** uses DataFusion to query both COLD and HOT Parquet files, merging results with deduplication (COLD wins)
 
 ---
 
@@ -214,10 +228,10 @@ The `backend` service polls the `ingestion`'s internal gRPC API to read batches 
 - **Docker** and **Docker Compose** (for both development and production)
 
 ### Optional (Development)
-- **Go 1.21+** (for ingestion service development)
+- **Rust toolchain** (for ingestion service development)
 - **Python 3.13+** with **uv** (for backend development)
 - **Node.js 18+** (for frontend development)
-- **SQLite CLI** (for database inspection)
+- **DuckDB CLI** (for Parquet inspection)
 
 ### For Production Deployment
 - A domain or subdomain for hosting (see [Deployment Requirements](#deployment-requirements))
@@ -336,17 +350,18 @@ docker compose up -d
 - If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
 - All three services (backend, ingestion, frontend) share the same storage location
 
-#### Database Types
+#### Database & Storage Types
 
-Junjo AI Studio uses three embedded databases:
+Junjo AI Studio uses embedded databases and file-based storage:
 
-| Database | Purpose | Type |
-|----------|---------|------|
+| Storage | Purpose | Type |
+|---------|---------|------|
 | **SQLite** | User data, API keys, sessions | Single file |
-| **DuckDB** | Analytics queries on telemetry | Single file |
-| **SQLite WAL** | Ingestion WAL (Write-Ahead Log) | Single file with WAL |
+| **Parquet** | Span analytics (COLD tier) | Date-partitioned files |
+| **Arrow IPC WAL** | Ingestion buffer (HOT tier) | Directory of IPC segments |
+| **Hot Snapshot** | Real-time query cache | Single Parquet file |
 
-All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine.
+All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend uses **DataFusion** to query Parquet files directly (no DuckDB indexing required).
 
 ### Creating API Keys
 
@@ -444,7 +459,7 @@ services:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
       - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
-      # Port 50052 (internal gRPC for span reading) is NOT exposed - only accessible via Docker network
+      # Port 50052 (internal gRPC for PrepareHotSnapshot/FlushWAL) is NOT exposed - only accessible via Docker network
     networks:
       - junjo-network
     env_file:
@@ -452,16 +467,18 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
-      - JUNJO_WAL_SQLITE_PATH=/app/.dbdata/sqlite/wal.db
+      - WAL_DIR=/app/.dbdata/spans/wal
+      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started
     healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 30s
 
   junjo-ai-studio-frontend:
     image: mdrideout/junjo-ai-studio-frontend:latest
@@ -496,26 +513,42 @@ Junjo AI Studio is designed to be low resource:
 
 ## Advanced Topics
 
-### Database Access
+### Database & Storage Access
 
-#### Inspecting the Ingestion WAL
+#### Inspecting Parquet Files (Span Data)
 
-The ingestion service uses SQLite WAL mode for the Write-Ahead Log. You can inspect it using the SQLite CLI.
+The ingestion service stores spans in Parquet files. You can inspect them using DuckDB CLI or Python.
 
-**Inspect data:**
+**Using DuckDB CLI:**
 ```bash
-# Check span count and metadata (requires ingestion service to be stopped)
-sqlite3 ./.dbdata/sqlite/wal.db "SELECT COUNT(*) FROM spans; SELECT * FROM metadata;"
+# Query cold tier Parquet files
+duckdb -c "SELECT COUNT(*) FROM read_parquet('.dbdata/spans/parquet/**/*.parquet')"
+
+# Query hot snapshot
+duckdb -c "SELECT * FROM read_parquet('.dbdata/spans/hot_snapshot.parquet') LIMIT 10"
+
+# List all spans for a trace
+duckdb -c "SELECT span_id, name, service_name FROM read_parquet('.dbdata/spans/parquet/**/*.parquet') WHERE trace_id = 'your-trace-id'"
 ```
 
-#### Accessing SQLite and DuckDB
+**Using Python:**
+```python
+import pyarrow.parquet as pq
+
+# Read cold tier
+table = pq.read_table('.dbdata/spans/parquet/')
+print(f"Cold tier spans: {table.num_rows}")
+
+# Read hot snapshot
+hot = pq.read_table('.dbdata/spans/hot_snapshot.parquet')
+print(f"Hot tier spans: {hot.num_rows}")
+```
+
+#### Accessing SQLite (User Data)
 
 ```bash
-# SQLite (user data, API keys)
+# SQLite (user data, API keys, sessions)
 sqlite3 ./.dbdata/sqlite/junjo.db
-
-# DuckDB (span analytics)
-duckdb ./.dbdata/duckdb/traces.duckdb
 ```
 
 ### Performance Tuning
@@ -562,7 +595,7 @@ This script runs:
 **Individual services:**
 - Backend: See [backend/README.md](backend/README.md#testing) for detailed test categories
 - Frontend: See [frontend/README.md](frontend/README.md) for component testing
-- Ingestion: See [ingestion/README.md](ingestion/README.md) for Go tests
+- Ingestion: See [ingestion/README.md](ingestion/README.md) for Rust tests
 
 ### Development Workflow & Validation
 
@@ -746,7 +779,7 @@ docker compose up
 
 ### Docker Hub Images
 - **[junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)** - FastAPI backend
-- **[junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)** - Go gRPC ingestion service
+- **[junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)** - Rust gRPC ingestion service
 - **[junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)** - React frontend
 
 ### OpenTelemetry Resources
