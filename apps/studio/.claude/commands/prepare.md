@@ -14,6 +14,6 @@ You are about to work on the Junjo AI Studio codebase. Follow these steps to pre
    2. @frontend/Dockerfile
    3. @backend/Dockerfile
 6. Review the github workflows inside @.github/workflows
-7. Once you have thoroughly reviewed the documents, confirm your readiness outputting that you are ready to proceed with a task. You do not need to summarize or explain your understanding.
+7. Once you have thoroughly reviewed the documents, confirm your readiness outputting that you are ready to proceed with a task with a very simple explanation for how the data flow works.
 
 NOTES: Do not include simulated keys that could be detected by Gitleaks inside any planning docs or comments.
