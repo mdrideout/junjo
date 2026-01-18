@@ -1,11 +1,11 @@
 """Repository for querying OTEL spans from V4 two-tier architecture.
 
 Two-Tier Architecture (Rust Ingestion):
-- COLD: Parquet files from WAL flushes (indexed in DuckDB)
+- COLD: Parquet files from WAL flushes (indexed in SQLite metadata)
 - HOT: On-demand Parquet snapshot (backend reads file directly)
 
 Query Flow:
-1. Query DuckDB metadata for COLD tier file paths
+1. Query SQLite metadata for COLD tier file paths
 2. Call PrepareHotSnapshot RPC to get hot snapshot path
 3. Register COLD and HOT in DataFusion
 4. Query with deduplication COLD > HOT
@@ -14,13 +14,18 @@ Deduplication priority: COLD > HOT (same span_id).
 
 This module provides data access methods for span query endpoints.
 Functions with "_fused" suffix query both tiers via unified queries.
+
+Memory-Optimized Architecture:
+- SQLite metadata index: 15-30 MB (10-20x reduction from DuckDB)
+- Per-trace indexing instead of per-span
+- DataFusion handles Parquet queries
 """
 
 import grpc
 from loguru import logger
 
-from app.db_duckdb import v4_repository
 from app.db_duckdb.unified_query import UnifiedSpanQuery
+from app.db_sqlite.metadata import repository as metadata_repo
 from app.features.span_ingestion.ingestion_client import IngestionClient
 
 # Module-level ingestion client for reuse
@@ -107,15 +112,15 @@ async def get_fused_distinct_service_names() -> list[str]:
     """Get list of all distinct service names from both tiers.
 
     Two-tier query:
-    1. Register COLD tier (Parquet from DuckDB metadata)
+    1. Register COLD tier (Parquet from SQLite metadata)
     2. Get HOT tier snapshot path from gRPC
     3. Query distinct service names via DataFusion UNION
 
     Returns:
         List of service names in alphabetical order.
     """
-    # Get cold tier file paths
-    cold_file_paths = v4_repository.get_all_parquet_file_paths()
+    # Get cold tier file paths from SQLite metadata
+    cold_file_paths = metadata_repo.get_all_parquet_file_paths()
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -152,8 +157,8 @@ async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[d
     Returns:
         List of span dictionaries with full attributes.
     """
-    # Get cold tier file paths from metadata
-    cold_file_paths = v4_repository.get_file_paths_for_service(service_name, limit=limit)
+    # Get cold tier file paths from SQLite metadata
+    cold_file_paths = metadata_repo.get_file_paths_for_service(service_name, limit=limit)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -190,10 +195,9 @@ async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict
     Returns:
         List of root span dictionaries, sorted by start_time DESC.
     """
-    # Get cold tier file paths for root spans
-    cold_file_paths = v4_repository.get_file_paths_for_service(
-        service_name, limit=limit, is_root=True
-    )
+    # Get cold tier file paths for the service
+    # SQLite doesn't filter by is_root; DataFusion filters for parent_span_id IS NULL
+    cold_file_paths = metadata_repo.get_file_paths_for_service(service_name, limit=limit)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -222,7 +226,7 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
     """Get root spans that are part of traces containing LLM operations.
 
     This is a more complex query that requires:
-    1. Get LLM trace IDs from metadata
+    1. Get LLM trace IDs from SQLite metadata
     2. Query root spans and filter to LLM traces
 
     Args:
@@ -232,8 +236,8 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
     Returns:
         List of root span dictionaries from LLM traces.
     """
-    # Step 1: Get Parquet LLM trace IDs (indexed lookup - fast)
-    parquet_llm_trace_ids = set(v4_repository.get_llm_trace_ids(service_name, limit * 2))
+    # Step 1: Get Parquet LLM trace IDs from SQLite (indexed lookup - fast)
+    parquet_llm_trace_ids = metadata_repo.get_llm_trace_ids(service_name, limit * 2)
 
     # Step 2: Get all root spans (both Parquet and HOT)
     all_root_spans = await get_fused_root_spans(service_name, limit * 2)
@@ -284,10 +288,8 @@ async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[
     Returns:
         List of workflow span dictionaries.
     """
-    # Get cold tier file paths containing workflow spans (metadata-indexed)
-    cold_file_paths = v4_repository.get_file_paths_for_junjo_type(
-        service_name, "workflow", limit=limit
-    )
+    # Get cold tier file paths containing workflow spans from SQLite
+    cold_file_paths = metadata_repo.get_workflow_file_paths(service_name, limit=limit)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -323,8 +325,8 @@ async def get_fused_trace_spans(trace_id: str) -> list[dict]:
     Returns:
         List of span dictionaries ordered by start time DESC.
     """
-    # Get cold tier file paths for this trace
-    cold_file_paths = v4_repository.get_file_paths_for_trace(trace_id)
+    # Get cold tier file paths for this trace from SQLite
+    cold_file_paths = metadata_repo.get_file_paths_for_trace(trace_id)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()

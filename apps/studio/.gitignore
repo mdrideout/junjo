@@ -104,3 +104,9 @@ Cargo.lock
 #   4. Docker builds also regenerate (defense in depth)
 # proto_gen/
 # **/proto_gen/
+# Viberag index
+.viberag/
+# MCP config (local, not committed)
+.mcp.json
+# MCP config (local, not committed)
+opencode.json

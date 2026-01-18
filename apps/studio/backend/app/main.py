@@ -70,11 +70,23 @@ async def lifespan(app: FastAPI):
         os.environ["GEMINI_API_KEY"] = settings.llm.gemini_api_key
         logger.info("Gemini API key configured")
 
-    # Initialize DuckDB tables
-    from app.db_duckdb.db_config import initialize_tables
+    # Initialize SQLite metadata index
+    from app.db_sqlite.metadata import init_metadata_db
+    from app.db_sqlite.metadata.maintenance import sync_with_filesystem
 
-    initialize_tables()
-    logger.info("DuckDB tables initialized")
+    init_metadata_db(settings.database.metadata_db_path_resolved)
+    logger.info("SQLite metadata index initialized")
+
+    # Sync metadata index with filesystem (remove orphaned entries)
+    sync_result = sync_with_filesystem(settings.parquet_indexer.parquet_storage_path_resolved)
+    if sync_result["removed"] > 0 or sync_result["missing"]:
+        logger.info(
+            "Metadata index synced with filesystem",
+            extra={
+                "removed_orphans": sync_result["removed"],
+                "missing_files": len(sync_result["missing"]),
+            },
+        )
 
     # Log deployment configuration
     log_deployment_configuration()
@@ -116,9 +128,12 @@ async def lifespan(app: FastAPI):
 
     # Database cleanup
     from app.db_sqlite.db_config import checkpoint_wal, engine
+    from app.db_sqlite.metadata import checkpoint_wal as metadata_checkpoint_wal
 
-    await checkpoint_wal()  # Checkpoint SQLite WAL
+    await checkpoint_wal()  # Checkpoint SQLite WAL (user data)
     logger.info("SQLite WAL checkpointed")
+    metadata_checkpoint_wal()  # Checkpoint metadata WAL (synchronous)
+    logger.info("Metadata WAL checkpointed")
     await engine.dispose()  # Close database connections
     logger.info("Database connections closed")
 

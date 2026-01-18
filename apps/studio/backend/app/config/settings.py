@@ -48,6 +48,14 @@ class DatabaseSettings(BaseSettings):
             validation_alias="JUNJO_SQLITE_PATH",
         ),
     ]
+    metadata_db_path: Annotated[
+        str,
+        Field(
+            default="../.dbdata/sqlite/metadata.db",
+            description="Path to SQLite metadata index database",
+            validation_alias="JUNJO_METADATA_DB_PATH",
+        ),
+    ]
     duckdb_path: Annotated[
         str,
         Field(
@@ -70,6 +78,19 @@ class DatabaseSettings(BaseSettings):
         # Ensure parent directory exists
         abs_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite+aiosqlite:///{abs_path}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def metadata_db_path_resolved(self) -> str:
+        """Resolved absolute path for metadata database.
+
+        Returns:
+            Absolute path to metadata.db file.
+        """
+        abs_path = Path(self.metadata_db_path).resolve()
+        # Ensure parent directory exists
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        return str(abs_path)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
