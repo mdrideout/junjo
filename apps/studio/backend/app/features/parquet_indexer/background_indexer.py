@@ -14,6 +14,7 @@ Replaces: span_ingestion_poller (gRPC-based) for V4 architecture.
 """
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from loguru import logger
 
@@ -22,6 +23,15 @@ from app.db_sqlite.metadata import indexer as sqlite_indexer
 from app.db_sqlite.metadata import repository as sqlite_repository
 from app.features.parquet_indexer.file_scanner import scan_parquet_files
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
+
+_index_lock: asyncio.Lock | None = None
+
+
+def _get_index_lock() -> asyncio.Lock:
+    global _index_lock
+    if _index_lock is None:
+        _index_lock = asyncio.Lock()
+    return _index_lock
 
 
 async def parquet_indexer() -> None:
@@ -50,13 +60,18 @@ async def parquet_indexer() -> None:
         },
     )
 
+    executor = ThreadPoolExecutor(
+        max_workers=1,
+        thread_name_prefix="parquet-indexer",
+    )
+
     try:
         while True:
             # Sleep first (poll interval)
             await asyncio.sleep(settings.parquet_indexer.poll_interval)
 
             try:
-                await index_new_files()
+                await index_new_files(executor)
             except Exception as e:
                 logger.error(
                     "Error in indexer cycle",
@@ -72,10 +87,42 @@ async def parquet_indexer() -> None:
         raise
 
     finally:
+        executor.shutdown(wait=False, cancel_futures=True)
         logger.info("Parquet indexer stopped")
 
 
-async def index_new_files() -> int:
+async def index_new_files(executor: ThreadPoolExecutor | None = None) -> int:
+    """Scan for and index new Parquet files.
+
+    This method is called by:
+    - the periodic background indexer loop
+    - the ingestion NotifyNewParquetFile gRPC hook (immediate indexing)
+
+    The function is concurrency-safe; only one indexing pass can run at a time.
+
+    Args:
+        executor: Optional thread pool to use for blocking I/O. If not provided,
+            a bounded single-worker executor is used for this call.
+
+    Returns:
+        Number of files successfully indexed in this cycle.
+    """
+    lock = _get_index_lock()
+    async with lock:
+        if executor is None:
+            temp_executor = ThreadPoolExecutor(
+                max_workers=1,
+                thread_name_prefix="parquet-indexer-notify",
+            )
+            try:
+                return await _index_new_files(temp_executor)
+            finally:
+                temp_executor.shutdown(wait=False, cancel_futures=True)
+
+        return await _index_new_files(executor)
+
+
+async def _index_new_files(executor: ThreadPoolExecutor) -> int:
     """Scan for and index new Parquet files.
 
     This is the core indexing logic, extracted for testability.
@@ -85,9 +132,9 @@ async def index_new_files() -> int:
         Number of files successfully indexed in this cycle.
     """
     # Run filesystem scan in thread pool (blocking I/O)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     all_files = await loop.run_in_executor(
-        None, scan_parquet_files, settings.parquet_indexer.parquet_storage_path_resolved
+        executor, scan_parquet_files, settings.parquet_indexer.parquet_storage_path_resolved
     )
 
     if not all_files:
@@ -95,10 +142,10 @@ async def index_new_files() -> int:
         return 0
 
     # Get already-indexed paths from SQLite (deduplication checkpoint)
-    indexed_paths = await loop.run_in_executor(None, sqlite_repository.get_indexed_file_paths)
+    indexed_paths = await loop.run_in_executor(executor, sqlite_repository.get_indexed_file_paths)
 
     # Get failed file paths to skip (don't retry known bad files)
-    failed_paths = await loop.run_in_executor(None, sqlite_repository.get_failed_file_paths)
+    failed_paths = await loop.run_in_executor(executor, sqlite_repository.get_failed_file_paths)
 
     # Filter to unindexed files only (exclude both indexed and failed)
     skip_paths = indexed_paths | failed_paths
@@ -125,12 +172,12 @@ async def index_new_files() -> int:
         try:
             # Read metadata from Parquet (blocking I/O)
             file_data = await loop.run_in_executor(
-                None, read_parquet_metadata, file_info.path, file_info.size_bytes
+                executor, read_parquet_metadata, file_info.path, file_info.size_bytes
             )
 
             # Index into SQLite metadata (blocking I/O)
             span_count = await loop.run_in_executor(
-                None, sqlite_indexer.index_parquet_file, file_data
+                executor, sqlite_indexer.index_parquet_file, file_data
             )
 
             indexed_count += 1
@@ -161,7 +208,7 @@ async def index_new_files() -> int:
             # Record failure to SQLite so we don't retry on next poll
             try:
                 await loop.run_in_executor(
-                    None,
+                    executor,
                     sqlite_repository.record_failed_file,
                     file_info.path,
                     error_type,

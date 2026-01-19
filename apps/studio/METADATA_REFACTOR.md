@@ -170,6 +170,8 @@ SQLite connections are stored in thread-local storage for thread safety. WAL mod
 - Single writer (non-blocking to readers)
 - Consistent read snapshots
 
+**Important:** SQLite page cache is per-connection. If thread-local connections are created across an unbounded thread pool, memory usage scales with the number of threads. Background indexing should use a **bounded** executor (single worker) to keep connection count and memory stable.
+
 ### File Organization
 
 ```
@@ -198,10 +200,10 @@ Separate databases because:
 
 | Endpoint | SQLite Query | DataFusion Query |
 |----------|--------------|------------------|
-| `GET /services` | `SELECT DISTINCT service_name FROM file_services` | None |
+| `GET /services` | `SELECT DISTINCT service_name FROM file_services` | `SELECT DISTINCT service_name FROM hot_snapshot` (HOT only) |
 | `GET /services/{svc}/spans` | `SELECT file_path ... WHERE service_name = ?` | `WHERE service_name = ?` |
 | `GET /services/{svc}/spans/root` | `SELECT file_path ... WHERE service_name = ?` | `WHERE parent_span_id IS NULL` |
-| `GET /services/{svc}/spans/root?has_llm=true` | `SELECT trace_id FROM llm_traces WHERE service = ?` | Filter by trace_ids |
+| `GET /services/{svc}/spans/root?has_llm=true` | `llm_traces` membership for candidate trace_ids | Query root spans, then filter using COLD+HOT LLM trace sets |
 | `GET /services/{svc}/workflows` | `SELECT file_path FROM workflow_files WHERE service = ?` | `WHERE junjo.span_type = 'workflow'` |
 | `GET /traces/{trace_id}/spans` | `SELECT file_path ... WHERE trace_id = ?` | `WHERE trace_id = ?` |
 | `GET /traces/{tid}/spans/{sid}` | `SELECT file_path ... WHERE trace_id = ?` | Filter by span_id in Python |
@@ -223,15 +225,15 @@ SQLite is synchronous. The backend uses async Python (FastAPI + asyncio).
 
 ```
 async def get_files_for_trace(trace_id: str) -> list[str]:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,  # Default ThreadPoolExecutor
+        executor,  # Bounded ThreadPoolExecutor (recommended for background tasks)
         metadata_repository.get_file_paths_for_trace,
         trace_id
     )
 ```
 
-This matches the current DuckDB pattern and is sufficient for metadata queries (infrequent, fast).
+For request-time lookups, the metadata queries are sub-millisecond and can be run directly or offloaded depending on the latency budget. For background indexing, always use a bounded executor to avoid creating many thread-local SQLite connections.
 
 ---
 
@@ -243,12 +245,12 @@ Remove files older than N days:
 1. `DELETE FROM parquet_files WHERE max_time < cutoff`
 2. CASCADE deletes clean up trace_files, file_services, workflow_files
 3. Separate cleanup for llm_traces (no FK)
-4. `VACUUM` to reclaim space
+4. `VACUUM` to reclaim space (must run outside a transaction; commit deletes first)
 
 ### Filesystem Sync
 
 On startup, sync index with filesystem:
-1. Scan Parquet directory for existing files
+1. Recursively scan Parquet directory for existing files (match indexer scan rules, skip `tmp/`)
 2. Remove index entries for deleted files
 3. Queue missing files for re-indexing
 

@@ -31,6 +31,11 @@ from app.features.span_ingestion.ingestion_client import IngestionClient
 # Module-level ingestion client for reuse
 _ingestion_client: IngestionClient | None = None
 
+# Upper bound on how many cold Parquet files we register for service-scoped queries.
+# This mirrors the prior DuckDB heuristic and prevents DataFusion from loading an
+# unbounded number of files into memory.
+MAX_COLD_FILES_PER_SERVICE_QUERY = 100
+
 
 async def _get_ingestion_client() -> IngestionClient:
     """Get or create the ingestion gRPC client.
@@ -75,7 +80,8 @@ async def _get_hot_snapshot_path() -> str | None:
         client = await _get_ingestion_client()
         result = await client.prepare_hot_snapshot()
 
-        if result.success and result.snapshot_path:
+        # success=true can still mean "no data" (empty WAL) where snapshot_path is empty.
+        if result.success and result.snapshot_path and result.row_count > 0:
             logger.debug(
                 "Hot snapshot ready",
                 extra={
@@ -85,12 +91,19 @@ async def _get_hot_snapshot_path() -> str | None:
                 },
             )
             return result.snapshot_path
-        else:
-            logger.warning(
-                "Hot snapshot preparation failed",
-                extra={"error": result.error_message},
+
+        if result.success:
+            logger.debug(
+                "Hot snapshot is empty (no unflushed spans)",
+                extra={"row_count": result.row_count, "size_bytes": result.file_size_bytes},
             )
             return None
+
+        logger.warning(
+            "Hot snapshot preparation failed",
+            extra={"error": result.error_message},
+        )
+        return None
 
     except grpc.aio.AioRpcError as e:
         logger.warning(
@@ -112,32 +125,35 @@ async def get_fused_distinct_service_names() -> list[str]:
     """Get list of all distinct service names from both tiers.
 
     Two-tier query:
-    1. Register COLD tier (Parquet from SQLite metadata)
+    1. Query COLD service names from SQLite metadata (instant)
     2. Get HOT tier snapshot path from gRPC
-    3. Query distinct service names via DataFusion UNION
+    3. Query distinct service names from HOT snapshot only
+    4. UNION the two sets in Python
 
     Returns:
         List of service names in alphabetical order.
     """
-    # Get cold tier file paths from SQLite metadata
-    cold_file_paths = metadata_repo.get_all_parquet_file_paths()
+    # COLD: SQLite metadata already contains distinct services
+    cold_services = metadata_repo.get_services()
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Create unified query with two tiers
-    query = UnifiedSpanQuery()
-    query.register_cold(cold_file_paths)
-    query.register_hot(hot_snapshot_path)
+    # HOT: Query distinct services from the hot snapshot only (small file)
+    hot_services: list[str] = []
+    if hot_snapshot_path:
+        query = UnifiedSpanQuery()
+        query.register_hot(hot_snapshot_path)
+        hot_services = query.query_distinct_service_names()
 
-    # Query distinct service names across all tiers
-    services = query.query_distinct_service_names()
+    services = sorted(set(cold_services) | set(hot_services))
 
     logger.debug(
         "Two-tier service names query",
         extra={
-            "cold_files": len(cold_file_paths),
+            "cold_service_count": len(cold_services),
             "hot_snapshot": hot_snapshot_path is not None,
+            "hot_service_count": len(hot_services),
             "service_count": len(services),
         },
     )
@@ -158,7 +174,10 @@ async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[d
         List of span dictionaries with full attributes.
     """
     # Get cold tier file paths from SQLite metadata
-    cold_file_paths = metadata_repo.get_file_paths_for_service(service_name, limit=limit)
+    cold_file_paths = metadata_repo.get_file_paths_for_service(
+        service_name,
+        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+    )
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -197,7 +216,10 @@ async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict
     """
     # Get cold tier file paths for the service
     # SQLite doesn't filter by is_root; DataFusion filters for parent_span_id IS NULL
-    cold_file_paths = metadata_repo.get_file_paths_for_service(service_name, limit=limit)
+    cold_file_paths = metadata_repo.get_file_paths_for_service(
+        service_name,
+        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+    )
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -236,40 +258,57 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
     Returns:
         List of root span dictionaries from LLM traces.
     """
-    # Step 1: Get Parquet LLM trace IDs from SQLite (indexed lookup - fast)
-    parquet_llm_trace_ids = metadata_repo.get_llm_trace_ids(service_name, limit * 2)
+    # Prepare HOT snapshot once and reuse throughout this request.
+    hot_snapshot_path = await _get_hot_snapshot_path()
 
-    # Step 2: Get all root spans (both Parquet and HOT)
-    all_root_spans = await get_fused_root_spans(service_name, limit * 2)
+    # Query a bounded window of recent root spans across both tiers.
+    cold_file_paths = metadata_repo.get_file_paths_for_service(
+        service_name,
+        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+    )
 
-    # Step 3: Filter to LLM traces
-    # For Parquet spans, use the indexed lookup
-    # For HOT spans, we need to check the trace
-    llm_root_spans = []
+    candidate_limit = min(limit * 5, 5000)
+    query = UnifiedSpanQuery()
+    query.register_cold(cold_file_paths)
+    query.register_hot(hot_snapshot_path)
+    candidate_root_spans = query.query_spans_two_tier(
+        service_name=service_name,
+        root_only=True,
+        limit=candidate_limit,
+    )
 
-    for span in all_root_spans:
-        trace_id = span.get("trace_id")
-        if trace_id in parquet_llm_trace_ids:
-            llm_root_spans.append(span)
-        else:
-            # Check if this trace has LLM spans in HOT tier
-            # This is expensive but necessary for unflushed traces
-            trace_spans = await get_fused_trace_spans(trace_id)
-            for ts in trace_spans:
-                attrs = ts.get("attributes_json", {})
-                if attrs.get("openinference.span.kind") == "LLM":
-                    llm_root_spans.append(span)
-                    break
+    candidate_trace_ids = {
+        span.get("trace_id") for span in candidate_root_spans if span.get("trace_id")
+    }
 
-        if len(llm_root_spans) >= limit:
-            break
+    # COLD: Use SQLite llm_traces table to filter the candidate trace IDs.
+    cold_llm_trace_ids = metadata_repo.filter_llm_trace_ids(service_name, candidate_trace_ids)
+
+    # HOT: Scan only the hot snapshot to find traces with LLM spans not yet indexed.
+    hot_llm_trace_ids: set[str] = set()
+    if hot_snapshot_path and candidate_trace_ids:
+        hot_query = UnifiedSpanQuery()
+        hot_query.register_hot(hot_snapshot_path)
+        hot_spans = hot_query.query_spans_two_tier(service_name=service_name)
+        for span in hot_spans:
+            trace_id = span.get("trace_id")
+            if not trace_id or trace_id not in candidate_trace_ids:
+                continue
+            attrs = span.get("attributes_json", {})
+            if attrs.get("openinference.span.kind") == "LLM":
+                hot_llm_trace_ids.add(trace_id)
+
+    llm_trace_ids = cold_llm_trace_ids | hot_llm_trace_ids
+    llm_root_spans = [s for s in candidate_root_spans if s.get("trace_id") in llm_trace_ids]
 
     logger.debug(
         "Two-tier LLM root spans query",
         extra={
             "service_name": service_name,
-            "parquet_llm_trace_count": len(parquet_llm_trace_ids),
-            "result_count": len(llm_root_spans),
+            "candidate_root_span_count": len(candidate_root_spans),
+            "cold_llm_trace_count": len(cold_llm_trace_ids),
+            "hot_llm_trace_count": len(hot_llm_trace_ids),
+            "result_count": len(llm_root_spans[:limit]),
         },
     )
 
@@ -289,7 +328,10 @@ async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[
         List of workflow span dictionaries.
     """
     # Get cold tier file paths containing workflow spans from SQLite
-    cold_file_paths = metadata_repo.get_workflow_file_paths(service_name, limit=limit)
+    cold_file_paths = metadata_repo.get_workflow_file_paths(
+        service_name,
+        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+    )
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()

@@ -342,6 +342,45 @@ def get_llm_trace_ids(service_name: str, limit: int = 500) -> set[str]:
     return {row[0] for row in result}
 
 
+def filter_llm_trace_ids(service_name: str, trace_ids: set[str]) -> set[str]:
+    """Filter a set of trace IDs to those known to contain LLM spans.
+
+    This uses the llm_traces PRIMARY KEY (service_name, trace_id) for fast lookup.
+    Callers should pass a bounded set of candidate trace IDs to avoid loading
+    unbounded data into memory.
+
+    Args:
+        service_name: Service name to filter by
+        trace_ids: Candidate trace IDs
+
+    Returns:
+        Subset of trace_ids that appear in llm_traces for the service
+    """
+    if not trace_ids:
+        return set()
+
+    conn = get_connection()
+    trace_list = list(trace_ids)
+
+    # SQLite default max variables is commonly 999; reserve 1 for service_name.
+    chunk_size = 900
+    matched: set[str] = set()
+
+    for i in range(0, len(trace_list), chunk_size):
+        chunk = trace_list[i : i + chunk_size]
+        placeholders = ",".join(["?"] * len(chunk))
+        sql = f"""
+            SELECT trace_id
+            FROM llm_traces
+            WHERE service_name = ?
+              AND trace_id IN ({placeholders})
+        """
+        rows = conn.execute(sql, [service_name, *chunk]).fetchall()
+        matched.update(row[0] for row in rows)
+
+    return matched
+
+
 def get_workflow_file_paths(service_name: str, limit: int = 500) -> list[str]:
     """Get Parquet file paths containing workflow spans.
 

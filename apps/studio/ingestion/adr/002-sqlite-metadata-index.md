@@ -1,7 +1,7 @@
 # ADR-002: SQLite Metadata Index (Replacing DuckDB)
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 
@@ -67,6 +67,38 @@ Compare to DuckDB's 200-300 MB for the same data volume.
 2. Backend queries SQLite for relevant file paths
 3. DataFusion queries those Parquet files + HOT snapshot
 4. Results returned to frontend
+
+### Query Optimizations (Guardrails)
+
+To avoid regressions that reintroduce large Parquet scans:
+
+1. **Distinct service names**
+   - **COLD**: Read from SQLite (`SELECT DISTINCT service_name FROM file_services`)
+   - **HOT**: Scan only `hot_snapshot.parquet` and union in Python
+   - Rationale: the metadata DB already contains the cold-tier service set; scanning all cold Parquet files is unnecessary.
+
+2. **Bounded cold file registration for service-scoped queries**
+   - Service-level queries must register a bounded number of cold files (e.g. most recent N files) to prevent DataFusion from loading an unbounded working set into memory.
+
+### Operational Notes (Guardrails)
+
+1. **PrepareHotSnapshot semantics**
+   - When the WAL is empty, the ingestion service removes any prior snapshot file and returns `success=true` with an **empty** `snapshot_path`.
+   - The backend must treat an empty `snapshot_path` (or `row_count=0`) as “no HOT tier available” and skip reading the snapshot.
+
+2. **Filesystem sync must match the indexer scan**
+   - Startup reconciliation must use the same recursive scan rules as the background indexer (partitioned directories, skip `tmp/` warm files).
+   - Rationale: mismatched scans can incorrectly treat “files exist” as “no files” and delete valid index rows.
+
+3. **Bound SQLite connection count**
+   - Each SQLite connection has its own page cache; unlimited thread-local connections can multiply memory usage.
+   - Background indexing should run on a bounded executor (single worker) to keep connection count (and memory) stable.
+
+4. **VACUUM safety**
+   - `VACUUM` must run outside an active transaction (commit deletes first).
+
+5. **Timestamp consistency**
+   - Store and compare timestamps consistently in UTC ISO8601 with timezone (`+00:00`) to keep lexicographic comparisons correct.
 
 All SQLite queries are sub-millisecond with B-tree indexes. The 200K trace lookup requires ~17 B-tree comparisons.
 

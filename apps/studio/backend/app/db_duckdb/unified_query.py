@@ -16,6 +16,7 @@ Usage:
 
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import datafusion
@@ -113,6 +114,31 @@ class UnifiedSpanQuery:
                 logger.debug("No hot snapshot path provided, skipping HOT tier")
                 return
 
+            snapshot_file = Path(snapshot_path)
+            if not snapshot_file.exists():
+                self._hot_registered = False
+                logger.debug(
+                    "Hot snapshot path does not exist, skipping HOT tier",
+                    extra={"path": snapshot_path},
+                )
+                return
+
+            try:
+                if snapshot_file.stat().st_size == 0:
+                    self._hot_registered = False
+                    logger.debug(
+                        "Hot snapshot file is empty, skipping HOT tier",
+                        extra={"path": snapshot_path},
+                    )
+                    return
+            except OSError as e:
+                self._hot_registered = False
+                logger.debug(
+                    "Could not stat hot snapshot file, skipping HOT tier",
+                    extra={"path": snapshot_path, "error": str(e)},
+                )
+                return
+
             try:
                 arrow_table = pq.read_table(snapshot_path)
             except Exception as e:
@@ -200,7 +226,7 @@ class UnifiedSpanQuery:
             List of span dictionaries in API format
         """
         if not self._cold_registered and not self._hot_registered:
-            logger.warning("No data sources registered for two-tier query")
+            logger.debug("No data sources registered for two-tier query")
             return []
 
         # Build WHERE clauses

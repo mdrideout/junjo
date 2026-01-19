@@ -8,12 +8,13 @@ Operations:
 - Full rebuild (regenerate index from Parquet files)
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from loguru import logger
 
 from app.db_sqlite.metadata.db import get_connection
+from app.features.parquet_indexer.file_scanner import scan_parquet_files
 
 
 def cleanup_old_files(days: int) -> int:
@@ -32,7 +33,7 @@ def cleanup_old_files(days: int) -> int:
     Returns:
         Number of files deleted
     """
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(tz=UTC) - timedelta(days=days)
     cutoff_str = cutoff.isoformat()
 
     conn = get_connection()
@@ -94,15 +95,27 @@ def sync_with_filesystem(parquet_dir: str) -> dict:
     conn = get_connection()
     parquet_path = Path(parquet_dir)
 
+    if not parquet_path.exists():
+        logger.warning(
+            "Parquet storage path does not exist; skipping metadata filesystem sync",
+            extra={"parquet_dir": parquet_dir},
+        )
+        return {"removed": 0, "missing": []}
+
+    if not parquet_path.is_dir():
+        logger.warning(
+            "Parquet storage path is not a directory; skipping metadata filesystem sync",
+            extra={"parquet_dir": parquet_dir},
+        )
+        return {"removed": 0, "missing": []}
+
     # Get all indexed paths
     indexed_paths = conn.execute("SELECT file_path FROM parquet_files").fetchall()
     indexed_set = {row[0] for row in indexed_paths}
 
     # Get all actual files
-    if parquet_path.exists():
-        actual_files = {str(f) for f in parquet_path.glob("*.parquet")}
-    else:
-        actual_files = set()
+    file_infos = scan_parquet_files(str(parquet_path))
+    actual_files = {f.path for f in file_infos}
 
     # Find orphaned index entries (file deleted from disk)
     orphaned = indexed_set - actual_files
@@ -140,9 +153,10 @@ def rebuild_from_scratch() -> None:
     conn.execute("DELETE FROM parquet_files")
     conn.execute("DELETE FROM failed_parquet_files")
 
-    # Reclaim space
-    conn.execute("VACUUM")
+    conn.commit()
 
+    # Reclaim space (VACUUM must run outside a transaction)
+    conn.execute("VACUUM")
     conn.commit()
     logger.info("Metadata index cleared for rebuild")
 
@@ -153,7 +167,9 @@ def vacuum() -> None:
     Should be called after large deletes.
     """
     conn = get_connection()
+    conn.commit()
     conn.execute("VACUUM")
+    conn.commit()
     logger.debug("Metadata database vacuumed")
 
 

@@ -1,6 +1,7 @@
 """REST API endpoints for querying OTEL spans.
 
-Provides SRP-compliant endpoints for span retrieval from DuckDB.
+Provides SRP-compliant endpoints for span retrieval from the V4 two-tier
+Parquet architecture (SQLite metadata index + DataFusion queries).
 Each endpoint has a single, well-defined responsibility.
 
 API Structure:

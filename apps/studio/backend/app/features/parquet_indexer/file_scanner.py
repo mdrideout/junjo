@@ -34,7 +34,7 @@ def scan_parquet_files(base_path: str) -> list[ParquetFileInfo]:
 
     Note:
         Files are returned in no particular order. The indexer
-        should handle deduplication via DuckDB parquet_files table.
+        should handle deduplication via the SQLite metadata parquet_files table.
     """
     base = Path(base_path)
 

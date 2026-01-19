@@ -77,8 +77,17 @@ impl InternalIngestionService for InternalService {
                     "PrepareHotSnapshot completed"
                 );
 
+                // If there is no WAL data, ArrowWal removes the prior snapshot (if any)
+                // and returns (0, 0). In that case, return an empty snapshot_path so
+                // callers don't try to read a non-existent file.
+                let snapshot_path = if row_count == 0 && file_size_bytes == 0 {
+                    String::new()
+                } else {
+                    self.snapshot_path.to_string_lossy().to_string()
+                };
+
                 Ok(Response::new(PrepareHotSnapshotResponse {
-                    snapshot_path: self.snapshot_path.to_string_lossy().to_string(),
+                    snapshot_path,
                     row_count,
                     file_size_bytes: file_size_bytes as i64,
                     success: true,

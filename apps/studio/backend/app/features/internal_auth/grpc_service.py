@@ -92,7 +92,7 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
             # Trigger the normal indexing function - it handles:
             # - File scanning and deduplication
             # - Reading parquet metadata
-            # - Indexing to DuckDB
+            # - Indexing to SQLite metadata
             # - Error recording for bad files
             indexed_count = await index_new_files()
 

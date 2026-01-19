@@ -31,6 +31,7 @@ from app.db_sqlite.metadata.maintenance import (
     vacuum,
 )
 from app.db_sqlite.metadata.repository import (
+    filter_llm_trace_ids,
     get_all_parquet_file_paths,
     get_failed_file_paths,
     get_file_paths_for_service,
@@ -60,6 +61,7 @@ __all__ = [
     "get_file_paths_for_service",
     "get_services",
     "get_llm_trace_ids",
+    "filter_llm_trace_ids",
     "get_workflow_file_paths",
     "get_all_parquet_file_paths",
     # Maintenance
