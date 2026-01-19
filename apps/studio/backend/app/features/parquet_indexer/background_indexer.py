@@ -7,7 +7,7 @@ This module implements an async infinite loop that:
 4. Indexes metadata into SQLite
 
 Migration Complete:
-- Phase 6: DuckDB removed, SQLite is now the sole metadata index
+- The legacy per-span metadata index is removed; SQLite is the sole metadata index
 - 10-20x memory reduction achieved
 
 Replaces: span_ingestion_poller (gRPC-based) for V4 architecture.
@@ -23,6 +23,7 @@ from app.db_sqlite.metadata import indexer as sqlite_indexer
 from app.db_sqlite.metadata import repository as sqlite_repository
 from app.features.parquet_indexer.file_scanner import scan_parquet_files
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
+from app.features.parquet_indexer.recent_parquet_files import mark_parquet_file_indexed
 
 _index_lock: asyncio.Lock | None = None
 
@@ -179,6 +180,8 @@ async def _index_new_files(executor: ThreadPoolExecutor) -> int:
             span_count = await loop.run_in_executor(
                 executor, sqlite_indexer.index_parquet_file, file_data
             )
+
+            mark_parquet_file_indexed(file_info.path)
 
             indexed_count += 1
             logger.debug(

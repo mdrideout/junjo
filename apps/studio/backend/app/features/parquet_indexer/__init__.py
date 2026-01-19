@@ -1,5 +1,5 @@
-"""Parquet Indexer feature for V4 architecture.
+"""Parquet Indexer feature.
 
-This feature polls the filesystem for Parquet files written by Go ingestion,
-extracts span metadata, and indexes it into DuckDB for fast listing queries.
+This feature polls the filesystem for Parquet files written by the ingestion service,
+extracts span metadata, and indexes it into the SQLite metadata database for fast lookups.
 """

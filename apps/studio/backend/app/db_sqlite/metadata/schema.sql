@@ -1,6 +1,6 @@
 -- SQLite Metadata Index Schema
 --
--- Per-trace indexing for Parquet files, replacing DuckDB's per-span indexing.
+-- Per-trace indexing for Parquet files, replacing legacy per-span indexing.
 -- 50-100x memory reduction by indexing traces instead of spans.
 --
 -- Tables:

@@ -16,11 +16,9 @@ echo "=========================================="
 
 # Set temp database paths
 export JUNJO_SQLITE_PATH=/tmp/junjo-test-$(date +%s).db
-export JUNJO_DUCKDB_PATH=/tmp/junjo-test-$(date +%s).duckdb
 
 echo "Using temp databases:"
 echo "  SQLite: $JUNJO_SQLITE_PATH"
-echo "  DuckDB: $JUNJO_DUCKDB_PATH"
 echo
 
 # Track test results

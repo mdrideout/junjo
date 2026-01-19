@@ -216,10 +216,12 @@ Per PEP 249 and SQLAlchemy docs, all DBAPIs must support `rowcount` for UPDATE/D
 ```
 .dbdata/
 ├── sqlite/
-│   └── junjo.db              # Application database
-├── duckdb/
-│   └── traces.duckdb         # Analytics data
-└── sqlite/wal.db             # Ingestion service WAL
+│   ├── junjo.db              # Application database (users, API keys)
+│   └── metadata.db           # Span metadata index
+└── spans/
+    ├── parquet/              # Cold tier Parquet files
+    ├── wal/                  # Arrow IPC WAL segments
+    └── hot_snapshot.parquet  # Hot snapshot (overwritten on demand)
 ```
 
 ### Docker

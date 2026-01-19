@@ -1,7 +1,7 @@
 """SQLite metadata index for Parquet files.
 
 This module provides a lightweight index for Parquet file metadata,
-replacing DuckDB's per-span indexing with per-trace indexing.
+replacing legacy per-span indexing with per-trace indexing.
 
 Key benefits:
 - 10-20x memory reduction (15-30MB vs 200-300MB)

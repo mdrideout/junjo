@@ -19,7 +19,6 @@ dependencies = [
     "alembic>=1.14.0",
     "aiosqlite>=0.20.0", # Async SQLite driver
     "greenlet>=3.2.4", # Required for SQLAlchemy async
-    "duckdb>=1.4.1",
     "opentelemetry-instrumentation-sqlalchemy>=0.59b0",
     "nanoid>=2.0.0",
     "bcrypt>=5.0.0",

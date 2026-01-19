@@ -1,17 +1,17 @@
-"""Unified DataFusion query engine for two-tier span data (Cold/Hot).
+"""Unified DataFusion query engine for two-tier span data (COLD/HOT).
 
-Two-Tier Architecture (Rust Ingestion):
-- COLD: Parquet files from WAL flushes (indexed in DuckDB)
-- HOT: On-demand Parquet snapshot (backend reads file directly)
+Two-Tier Architecture (Rust ingestion):
+- COLD: Parquet files from WAL flushes (selected via SQLite metadata index)
+- HOT: On-demand Parquet snapshot (from PrepareHotSnapshot RPC)
 
 Combines both tiers in a single DataFusion query with deduplication.
-Priority: Cold > Hot (same span_id).
+Priority: COLD > HOT for the same span_id.
 
 Usage:
     query = UnifiedSpanQuery()
-    query.register_cold(file_paths)              # From DuckDB metadata
-    query.register_hot("/path/to/snapshot.parquet")  # From PrepareHotSnapshot RPC
-    results = query.query_spans_two_tier(trace_id="abc123")
+    query.register_cold(file_paths)              # from SQLite metadata
+    query.register_hot("/path/to/snapshot.parquet")  # from PrepareHotSnapshot RPC
+    spans = query.query_spans_two_tier(trace_id="abc123")
 """
 
 import json
@@ -38,14 +38,147 @@ class UnifiedSpanQuery:
         self._cold_registered = False
         self._hot_registered = False
 
+    def _filter_nonempty_parquet_files(
+        self, file_paths: list[str], *, table_name: str
+    ) -> list[str]:
+        """Filter to existing, non-empty .parquet files.
+
+        DataFusion's Python binding registers missing/empty files without raising and
+        assigns an empty schema, which later causes "column not found" errors.
+        """
+        if not file_paths:
+            return []
+
+        seen: set[str] = set()
+        valid: list[str] = []
+
+        for file_path in file_paths:
+            if not file_path:
+                continue
+            if file_path in seen:
+                continue
+            seen.add(file_path)
+
+            path = Path(file_path)
+
+            # DataFusion uses file_extension filtering internally; enforce .parquet inputs.
+            if path.suffix.lower() != ".parquet":
+                logger.warning(
+                    "Skipping non-parquet path during registration",
+                    extra={"table": table_name, "file_path": file_path},
+                )
+                continue
+
+            try:
+                stat = path.stat()
+            except OSError as e:
+                logger.warning(
+                    "Skipping missing/unreadable parquet path during registration",
+                    extra={
+                        "table": table_name,
+                        "file_path": file_path,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                continue
+
+            if not path.is_file():
+                logger.warning(
+                    "Skipping non-file parquet path during registration",
+                    extra={"table": table_name, "file_path": file_path},
+                )
+                continue
+
+            if stat.st_size <= 0:
+                logger.warning(
+                    "Skipping empty parquet file during registration",
+                    extra={"table": table_name, "file_path": file_path},
+                )
+                continue
+
+            valid.append(file_path)
+
+        return valid
+
+    def _try_register_parquet(self, table_name: str, file_paths: list[str]) -> bool:
+        """Register a Parquet dataset directly in DataFusion (preferred).
+
+        This avoids materializing Parquet files into an in-memory Arrow table.
+        Falls back to the legacy PyArrow read+concat path if unsupported.
+        """
+        register_parquet = getattr(self.ctx, "register_parquet", None)
+        if not callable(register_parquet):
+            return False
+
+        try:
+            if len(file_paths) == 1:
+                register_parquet(table_name, file_paths[0])
+                schema = self.ctx.table(table_name).schema()
+                if len(schema) == 0:
+                    try:
+                        self.ctx.deregister_table(table_name)
+                    except Exception:
+                        pass
+                    return False
+                return True
+
+            # DataFusion's Python binding does not reliably accept a list of file paths for
+            # register_parquet(). Register each file separately and UNION them into a single
+            # logical table for queries. This stays lazy/streaming and avoids materializing
+            # Parquet into an in-memory Arrow table.
+            temp_tables: list[str] = []
+            for idx, file_path in enumerate(file_paths):
+                temp_table = f"{table_name}__p{idx}"
+                try:
+                    self.ctx.deregister_table(temp_table)
+                except Exception:
+                    pass
+
+                try:
+                    register_parquet(temp_table, file_path)
+                    temp_tables.append(temp_table)
+                except Exception as e:
+                    logger.warning(
+                        "Skipping unreadable parquet file during registration",
+                        extra={
+                            "table": table_name,
+                            "file_path": file_path,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
+
+            if not temp_tables:
+                return False
+
+            union_sql = " UNION ALL ".join([f"SELECT * FROM {t}" for t in temp_tables])
+            df = self.ctx.sql(union_sql)
+            self.ctx.register_table(table_name, df)
+            schema = self.ctx.table(table_name).schema()
+            if len(schema) == 0:
+                try:
+                    self.ctx.deregister_table(table_name)
+                except Exception:
+                    pass
+                return False
+            return True
+        except Exception as e:
+            logger.debug(
+                "DataFusion register_parquet failed; will fall back to PyArrow read_table",
+                extra={"table": table_name, "error": str(e), "error_type": type(e).__name__},
+            )
+            return False
+
     def register_cold(self, file_paths: list[str]) -> None:
         """Register COLD tier Parquet files as 'cold_spans' table.
 
-        Cold tier contains data from full WAL flushes, indexed in DuckDB.
+        Cold tier contains data from WAL flushes and is selected via the SQLite
+        metadata index (trace/service → file paths).
         Corrupt files are skipped gracefully.
 
         Args:
-            file_paths: List of Parquet file paths from DuckDB metadata
+            file_paths: List of Parquet file paths from SQLite metadata
         """
         if not file_paths:
             self._cold_registered = False
@@ -58,14 +191,35 @@ class UnifiedSpanQuery:
             except Exception:
                 pass
 
-            # Try batch read first (faster), fall back to individual reads if corrupt file
-            file_count = len(file_paths)
+            valid_file_paths = self._filter_nonempty_parquet_files(
+                file_paths, table_name="cold_spans"
+            )
+            if not valid_file_paths:
+                self._cold_registered = False
+                logger.debug(
+                    "No usable cold Parquet files to register",
+                    extra={"candidate_files": len(file_paths)},
+                )
+                return
+
+            # Prefer DataFusion-native Parquet registration (lazy / streaming).
+            if self._try_register_parquet("cold_spans", valid_file_paths):
+                self._cold_registered = True
+                logger.debug(
+                    "Registered COLD tier files (parquet scan)",
+                    extra={"file_count": len(valid_file_paths)},
+                )
+                return
+
+            # Legacy fallback: Try batch read first (faster), fall back to individual reads
+            # if a corrupt file is present. This path materializes Parquet into memory.
+            file_count = len(valid_file_paths)
             try:
-                arrow_table = pq.read_table(file_paths)
+                arrow_table = pq.read_table(valid_file_paths)
             except Exception:
                 # Batch read failed - read individually to skip corrupt files
                 valid_tables = []
-                for file_path in file_paths:
+                for file_path in valid_file_paths:
                     try:
                         table = pq.read_table(file_path)
                         valid_tables.append(table)
@@ -114,31 +268,26 @@ class UnifiedSpanQuery:
                 logger.debug("No hot snapshot path provided, skipping HOT tier")
                 return
 
-            snapshot_file = Path(snapshot_path)
-            if not snapshot_file.exists():
+            valid_snapshot = self._filter_nonempty_parquet_files(
+                [snapshot_path], table_name="hot_spans"
+            )
+            if not valid_snapshot:
                 self._hot_registered = False
                 logger.debug(
-                    "Hot snapshot path does not exist, skipping HOT tier",
+                    "Hot snapshot is not usable, skipping HOT tier", extra={"path": snapshot_path}
+                )
+                return
+
+            # Prefer DataFusion-native Parquet registration (lazy / streaming).
+            if self._try_register_parquet("hot_spans", valid_snapshot):
+                self._hot_registered = True
+                logger.debug(
+                    "Registered HOT tier snapshot (parquet scan)",
                     extra={"path": snapshot_path},
                 )
                 return
 
-            try:
-                if snapshot_file.stat().st_size == 0:
-                    self._hot_registered = False
-                    logger.debug(
-                        "Hot snapshot file is empty, skipping HOT tier",
-                        extra={"path": snapshot_path},
-                    )
-                    return
-            except OSError as e:
-                self._hot_registered = False
-                logger.debug(
-                    "Could not stat hot snapshot file, skipping HOT tier",
-                    extra={"path": snapshot_path, "error": str(e)},
-                )
-                return
-
+            # Legacy fallback: materialize snapshot into memory.
             try:
                 arrow_table = pq.read_table(snapshot_path)
             except Exception as e:
@@ -229,12 +378,16 @@ class UnifiedSpanQuery:
             logger.debug("No data sources registered for two-tier query")
             return []
 
+        def _escape_sql_literal(value: str) -> str:
+            # Defensive escaping for DataFusion SQL string literals.
+            return value.replace("'", "''")
+
         # Build WHERE clauses
         where_clauses: list[str] = []
         if trace_id:
-            where_clauses.append(f"trace_id = '{trace_id}'")
+            where_clauses.append(f"trace_id = '{_escape_sql_literal(trace_id)}'")
         if service_name:
-            where_clauses.append(f"service_name = '{service_name}'")
+            where_clauses.append(f"service_name = '{_escape_sql_literal(service_name)}'")
         if root_only:
             where_clauses.append("(parent_span_id IS NULL OR parent_span_id = '')")
 

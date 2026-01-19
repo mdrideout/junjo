@@ -11,6 +11,7 @@ from loguru import logger
 
 from app.db_sqlite.api_keys.repository import APIKeyRepository
 from app.features.parquet_indexer.background_indexer import index_new_files
+from app.features.parquet_indexer.recent_parquet_files import record_new_parquet_file
 from app.proto_gen import auth_pb2, auth_pb2_grpc
 
 
@@ -89,6 +90,10 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
         logger.info(f"Received notification for new parquet file: {file_path}")
 
         try:
+            # Close the "flush → index" visibility gap by temporarily tracking this file
+            # for queries while the background indexer processes it.
+            record_new_parquet_file(file_path)
+
             # Trigger the normal indexing function - it handles:
             # - File scanning and deduplication
             # - Reading parquet metadata

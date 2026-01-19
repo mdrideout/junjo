@@ -21,10 +21,15 @@ This document covers database architecture, Alembic migrations, and testing patt
 - **Why SQLite:** Simple, file-based, perfect for structured data
 - **Location:** Configurable via `JUNJO_SQLITE_PATH` env var
 
-**DuckDB** (`app/db_duckdb/`):
-- **Purpose:** Analytics and OLAP queries on OTel span data
-- **Why DuckDB:** Optimized for analytical queries, excellent for time-series data
-- **Location:** Configurable via `JUNJO_DUCKDB_PATH` env var
+**SQLite Metadata Index** (`app/db_sqlite/metadata/`):
+- **Purpose:** Span metadata index (trace/service → Parquet file paths)
+- **Why SQLite:** Fast point lookups with minimal memory usage
+- **Location:** Configurable via `JUNJO_METADATA_DB_PATH` env var
+
+**Span storage:**
+- **COLD:** Parquet files (from ingestion WAL flushes)
+- **HOT:** `hot_snapshot.parquet` (from PrepareHotSnapshot)
+- **Queries:** DataFusion scans Parquet directly (no additional embedded analytics DB)
 
 ### High-Concurrency Async Pattern
 
@@ -542,7 +547,7 @@ async with db_config.async_session() as session:  # Works everywhere
 ## Summary
 
 **Database architecture:**
-- SQLite for app data, DuckDB for analytics
+- SQLite for app data + metadata index, Parquet for spans, DataFusion for queries
 - Async SQLAlchemy for non-blocking I/O
 - Session-per-operation for concurrency
 

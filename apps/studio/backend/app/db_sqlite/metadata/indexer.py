@@ -1,7 +1,7 @@
 """SQLite metadata indexer for Parquet files.
 
 Indexes Parquet file metadata into SQLite with per-trace granularity.
-This replaces DuckDB's per-span indexing with 50-100x less memory.
+This replaces legacy per-span indexing with 50-100x less memory.
 
 Key extraction:
 - DISTINCT trace_id -> trace_files
@@ -33,7 +33,7 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
         file_data: Extracted file data from parquet_reader
 
     Returns:
-        Number of spans in the file (for logging consistency with DuckDB)
+        Number of spans in the file (for logging consistency)
 
     Raises:
         Exception: If any part of the indexing fails (transaction rolled back)

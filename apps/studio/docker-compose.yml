@@ -47,8 +47,7 @@ services:
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
       - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
-      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
-      # V4: Parquet file storage path (shared with ingestion service, indexer watches this)
+      # Parquet file storage path (shared with ingestion service, indexer watches this)
       - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
   junjo-ai-studio-ingestion:

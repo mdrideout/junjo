@@ -265,9 +265,9 @@ This document outlines additional tests needed to improve security, reliability,
   - Action: Stop gRPC server, make HTTP requests
   - Expected: HTTP endpoints still functional
 
-- `test_duckdb_corruption_detection` - Corrupted DuckDB file
-  - Action: Corrupt DuckDB file, attempt query
-  - Expected: Clear error message, suggestion to rebuild
+- `test_metadata_db_corruption_detection` - Corrupted metadata index DB
+  - Action: Corrupt `metadata.db`, attempt query
+  - Expected: Clear error message, suggestion to rebuild index
 
 - `test_span_ingestion_with_missing_fields` - Incomplete span
   - Action: Span missing required fields (e.g., no end_time)

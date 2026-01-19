@@ -171,7 +171,7 @@ Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) applic
 The Junjo AI Studio is composed of three primary services:
 
 ### 1. Backend (`junjo-ai-studio-backend`)
-- **Tech Stack**: FastAPI (Python), SQLite, DuckDB
+- **Tech Stack**: FastAPI (Python), SQLite, DataFusion
 - **Responsibilities**:
   - HTTP REST API
   - User authentication & session management
@@ -231,7 +231,6 @@ Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
 - **Rust toolchain** (for ingestion service development)
 - **Python 3.13+** with **uv** (for backend development)
 - **Node.js 18+** (for frontend development)
-- **DuckDB CLI** (for Parquet inspection)
 
 ### For Production Deployment
 - A domain or subdomain for hosting (see [Deployment Requirements](#deployment-requirements))
@@ -361,7 +360,7 @@ Junjo AI Studio uses embedded databases and file-based storage:
 | **Arrow IPC WAL** | Ingestion buffer (HOT tier) | Directory of IPC segments |
 | **Hot Snapshot** | Real-time query cache | Single Parquet file |
 
-All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend uses **DataFusion** to query Parquet files directly (no DuckDB indexing required).
+All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend uses **DataFusion** to query Parquet files directly.
 
 ### Creating API Keys
 
@@ -449,7 +448,8 @@ services:
       - INGESTION_PORT=50052
       - RUN_MIGRATIONS=true
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
   junjo-ai-studio-ingestion:
     image: mdrideout/junjo-ai-studio-ingestion:latest
@@ -506,7 +506,7 @@ For a more complete example with reverse proxy, see the [Junjo AI Studio Deploym
 
 Junjo AI Studio is designed to be low resource:
 - **Minimum**: Shared vCPU + 1GB RAM
-- **Databases**: SQLite, DuckDB (all embedded, low overhead)
+- **Databases**: SQLite (embedded, low overhead)
 - **Recommended**: 1 vCPU + 2GB RAM for production workloads
 
 ---
@@ -517,21 +517,8 @@ Junjo AI Studio is designed to be low resource:
 
 #### Inspecting Parquet Files (Span Data)
 
-The ingestion service stores spans in Parquet files. You can inspect them using DuckDB CLI or Python.
+The ingestion service stores spans in Parquet files. You can inspect them using Python.
 
-**Using DuckDB CLI:**
-```bash
-# Query cold tier Parquet files
-duckdb -c "SELECT COUNT(*) FROM read_parquet('.dbdata/spans/parquet/**/*.parquet')"
-
-# Query hot snapshot
-duckdb -c "SELECT * FROM read_parquet('.dbdata/spans/hot_snapshot.parquet') LIMIT 10"
-
-# List all spans for a trace
-duckdb -c "SELECT span_id, name, service_name FROM read_parquet('.dbdata/spans/parquet/**/*.parquet') WHERE trace_id = 'your-trace-id'"
-```
-
-**Using Python:**
 ```python
 import pyarrow.parquet as pq
 
@@ -554,7 +541,7 @@ sqlite3 ./.dbdata/sqlite/junjo.db
 ### Performance Tuning
 
 - **Ingestion throughput**: Adjust `SPAN_BATCH_SIZE` and `SPAN_POLL_INTERVAL` in `.env`
-- **Database performance**: DuckDB and SQLite use WAL mode for better concurrency
+- **Database performance**: SQLite uses WAL mode for better concurrency
 - **Container resources**: Increase memory limits if processing high span volumes
 
 ---

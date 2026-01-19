@@ -16,25 +16,78 @@ This module provides data access methods for span query endpoints.
 Functions with "_fused" suffix query both tiers via unified queries.
 
 Memory-Optimized Architecture:
-- SQLite metadata index: 15-30 MB (10-20x reduction from DuckDB)
+- SQLite metadata index: 15-30 MB (hundreds of MB avoided vs per-span indexing)
 - Per-trace indexing instead of per-span
 - DataFusion handles Parquet queries
 """
 
+import asyncio
+import time
+
 import grpc
 from loguru import logger
 
-from app.db_duckdb.unified_query import UnifiedSpanQuery
+from app.config.settings import settings
 from app.db_sqlite.metadata import repository as metadata_repo
+from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
+from app.features.parquet_indexer.recent_parquet_files import get_recent_parquet_files
 from app.features.span_ingestion.ingestion_client import IngestionClient
 
 # Module-level ingestion client for reuse
 _ingestion_client: IngestionClient | None = None
 
 # Upper bound on how many cold Parquet files we register for service-scoped queries.
-# This mirrors the prior DuckDB heuristic and prevents DataFusion from loading an
+# This prevents DataFusion from loading an
 # unbounded number of files into memory.
-MAX_COLD_FILES_PER_SERVICE_QUERY = 100
+MAX_COLD_FILES_PER_SERVICE_QUERY = 20
+
+
+class _HotSnapshotCacheEntry:
+    def __init__(self, *, expires_at: float, snapshot_path: str | None) -> None:
+        self.expires_at = expires_at
+        self.snapshot_path = snapshot_path
+
+
+_hot_snapshot_lock: asyncio.Lock | None = None
+_hot_snapshot_cache: _HotSnapshotCacheEntry | None = None
+
+
+def _get_hot_snapshot_lock() -> asyncio.Lock:
+    global _hot_snapshot_lock
+    if _hot_snapshot_lock is None:
+        _hot_snapshot_lock = asyncio.Lock()
+    return _hot_snapshot_lock
+
+
+def _set_hot_snapshot_cache(snapshot_path: str | None) -> None:
+    global _hot_snapshot_cache
+    ttl = max(settings.span_ingestion.HOT_SNAPSHOT_CACHE_TTL_SECONDS, 0.0)
+    if ttl <= 0:
+        _hot_snapshot_cache = None
+        return
+    _hot_snapshot_cache = _HotSnapshotCacheEntry(
+        expires_at=time.monotonic() + ttl,
+        snapshot_path=snapshot_path,
+    )
+
+
+def _get_hot_snapshot_cache_entry() -> _HotSnapshotCacheEntry | None:
+    cached = _hot_snapshot_cache
+    if cached is None:
+        return None
+    if cached.expires_at < time.monotonic():
+        return None
+    return cached
+
+
+def _augment_with_recent_parquet_files(file_paths: list[str]) -> list[str]:
+    recent = get_recent_parquet_files(limit=5)
+    if not recent:
+        return file_paths
+
+    recent_set = set(recent)
+    # Preserve recency order: prefer very recent (unindexed) files first.
+    return [*recent, *[p for p in file_paths if p not in recent_set]]
 
 
 async def _get_ingestion_client() -> IngestionClient:
@@ -63,6 +116,7 @@ async def _reset_ingestion_client() -> None:
         except Exception:
             pass  # Ignore close errors
         _ingestion_client = None
+    _set_hot_snapshot_cache(None)
 
 
 # ===========================================================================
@@ -76,49 +130,58 @@ async def _get_hot_snapshot_path() -> str | None:
     Calls PrepareHotSnapshot RPC to create a stable Parquet snapshot.
     Returns None if the operation fails (graceful degradation to COLD-only).
     """
-    try:
-        client = await _get_ingestion_client()
-        result = await client.prepare_hot_snapshot()
+    lock = _get_hot_snapshot_lock()
+    async with lock:
+        cached = _get_hot_snapshot_cache_entry()
+        if cached is not None:
+            return cached.snapshot_path
 
-        # success=true can still mean "no data" (empty WAL) where snapshot_path is empty.
-        if result.success and result.snapshot_path and result.row_count > 0:
-            logger.debug(
-                "Hot snapshot ready",
-                extra={
-                    "path": result.snapshot_path,
-                    "row_count": result.row_count,
-                    "size_bytes": result.file_size_bytes,
-                },
-            )
-            return result.snapshot_path
+        try:
+            client = await _get_ingestion_client()
+            result = await client.prepare_hot_snapshot()
 
-        if result.success:
-            logger.debug(
-                "Hot snapshot is empty (no unflushed spans)",
-                extra={"row_count": result.row_count, "size_bytes": result.file_size_bytes},
+            # success=true can still mean "no data" (empty WAL) where snapshot_path is empty.
+            if result.success and result.snapshot_path and result.row_count > 0:
+                logger.debug(
+                    "Hot snapshot ready",
+                    extra={
+                        "path": result.snapshot_path,
+                        "row_count": result.row_count,
+                        "size_bytes": result.file_size_bytes,
+                    },
+                )
+                _set_hot_snapshot_cache(result.snapshot_path)
+                return result.snapshot_path
+
+            if result.success:
+                logger.debug(
+                    "Hot snapshot is empty (no unflushed spans)",
+                    extra={"row_count": result.row_count, "size_bytes": result.file_size_bytes},
+                )
+                _set_hot_snapshot_cache(None)
+                return None
+
+            logger.warning(
+                "Hot snapshot preparation failed",
+                extra={"error": result.error_message},
             )
+            _set_hot_snapshot_cache(None)
             return None
 
-        logger.warning(
-            "Hot snapshot preparation failed",
-            extra={"error": result.error_message},
-        )
-        return None
-
-    except grpc.aio.AioRpcError as e:
-        logger.warning(
-            "Hot snapshot RPC failed, will use COLD only",
-            extra={"code": str(e.code()), "details": e.details()},
-        )
-        await _reset_ingestion_client()
-        return None
-    except Exception as e:
-        logger.warning(
-            "Hot snapshot error, will use COLD only",
-            extra={"error": str(e), "error_type": type(e).__name__},
-        )
-        await _reset_ingestion_client()
-        return None
+        except grpc.aio.AioRpcError as e:
+            logger.warning(
+                "Hot snapshot RPC failed, will use COLD only",
+                extra={"code": str(e.code()), "details": e.details()},
+            )
+            await _reset_ingestion_client()
+            return None
+        except Exception as e:
+            logger.warning(
+                "Hot snapshot error, will use COLD only",
+                extra={"error": str(e), "error_type": type(e).__name__},
+            )
+            await _reset_ingestion_client()
+            return None
 
 
 async def get_fused_distinct_service_names() -> list[str]:
@@ -136,6 +199,14 @@ async def get_fused_distinct_service_names() -> list[str]:
     # COLD: SQLite metadata already contains distinct services
     cold_services = metadata_repo.get_services()
 
+    # RECENT: include newly flushed (but not yet indexed) Parquet files.
+    recent_services: list[str] = []
+    recent_files = get_recent_parquet_files(limit=5)
+    if recent_files:
+        recent_query = UnifiedSpanQuery()
+        recent_query.register_cold(recent_files)
+        recent_services = recent_query.query_distinct_service_names()
+
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
 
@@ -146,12 +217,14 @@ async def get_fused_distinct_service_names() -> list[str]:
         query.register_hot(hot_snapshot_path)
         hot_services = query.query_distinct_service_names()
 
-    services = sorted(set(cold_services) | set(hot_services))
+    services = sorted(set(cold_services) | set(recent_services) | set(hot_services))
 
     logger.debug(
         "Two-tier service names query",
         extra={
             "cold_service_count": len(cold_services),
+            "recent_file_count": len(recent_files),
+            "recent_service_count": len(recent_services),
             "hot_snapshot": hot_snapshot_path is not None,
             "hot_service_count": len(hot_services),
             "service_count": len(services),
@@ -176,8 +249,9 @@ async def get_fused_service_spans(service_name: str, limit: int = 500) -> list[d
     # Get cold tier file paths from SQLite metadata
     cold_file_paths = metadata_repo.get_file_paths_for_service(
         service_name,
-        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+        limit=MAX_COLD_FILES_PER_SERVICE_QUERY,
     )
+    cold_file_paths = _augment_with_recent_parquet_files(cold_file_paths)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -218,8 +292,9 @@ async def get_fused_root_spans(service_name: str, limit: int = 500) -> list[dict
     # SQLite doesn't filter by is_root; DataFusion filters for parent_span_id IS NULL
     cold_file_paths = metadata_repo.get_file_paths_for_service(
         service_name,
-        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+        limit=MAX_COLD_FILES_PER_SERVICE_QUERY,
     )
+    cold_file_paths = _augment_with_recent_parquet_files(cold_file_paths)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -264,8 +339,9 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
     # Query a bounded window of recent root spans across both tiers.
     cold_file_paths = metadata_repo.get_file_paths_for_service(
         service_name,
-        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+        limit=MAX_COLD_FILES_PER_SERVICE_QUERY,
     )
+    cold_file_paths = _augment_with_recent_parquet_files(cold_file_paths)
 
     candidate_limit = min(limit * 5, 5000)
     query = UnifiedSpanQuery()
@@ -330,8 +406,9 @@ async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[
     # Get cold tier file paths containing workflow spans from SQLite
     cold_file_paths = metadata_repo.get_workflow_file_paths(
         service_name,
-        limit=min(limit, MAX_COLD_FILES_PER_SERVICE_QUERY),
+        limit=MAX_COLD_FILES_PER_SERVICE_QUERY,
     )
+    cold_file_paths = _augment_with_recent_parquet_files(cold_file_paths)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()
@@ -369,6 +446,7 @@ async def get_fused_trace_spans(trace_id: str) -> list[dict]:
     """
     # Get cold tier file paths for this trace from SQLite
     cold_file_paths = metadata_repo.get_file_paths_for_trace(trace_id)
+    cold_file_paths = _augment_with_recent_parquet_files(cold_file_paths)
 
     # Get hot snapshot path
     hot_snapshot_path = await _get_hot_snapshot_path()

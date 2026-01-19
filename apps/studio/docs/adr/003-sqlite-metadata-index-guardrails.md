@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-After replacing DuckDB metadata indexing with a SQLite metadata index, several implementation details become critical for correctness and performance:
+After replacing the legacy per-span metadata index with a SQLite metadata index, several implementation details become critical for correctness and performance:
 
 - The metadata DB already contains the **cold-tier** service set (`file_services`). Scanning cold Parquet files to compute distinct services is unnecessary and can become expensive as cold storage grows.
 - The Parquet storage layout is **partitioned** (`year=*/month=*/day=*`) and includes ephemeral `tmp/` files; maintenance scans must match the indexer scan rules to avoid deleting valid index rows.
@@ -30,14 +30,38 @@ Adopt the following guardrails for the SQLite metadata index:
 4. **Immediate indexing notifications**
    - The ingestion `NotifyNewParquetFile` hook must trigger a single indexing pass safely (serialized with the background indexer) to avoid the “cold file exists but metadata not indexed yet” gap.
 
-5. **PrepareHotSnapshot semantics**
+5. **Flush → index query bridge**
+   - Even with `NotifyNewParquetFile`, there is an unavoidable window where:
+     - A new cold Parquet file exists on disk
+     - The SQLite metadata index has not yet ingested it
+     - The WAL may already be empty (so HOT snapshot is empty)
+   - The backend must temporarily treat *recently flushed* Parquet files as additional cold query sources until indexing completes (or the entries expire) to prevent user-visible “No logs found” for very new traces/workflows.
+
+6. **PrepareHotSnapshot semantics**
    - When there are no unflushed spans, the ingestion service may return `success=true` with an **empty** `snapshot_path`.
    - The backend must treat an empty `snapshot_path` (or `row_count=0`) as “no HOT tier available” and skip reading the snapshot.
 
-6. **VACUUM ordering**
+7. **PrepareHotSnapshot throttling**
+   - `PrepareHotSnapshot` can be expensive when the WAL is large and the UI issues multiple concurrent requests.
+   - Cache `PrepareHotSnapshot` results for a short TTL (e.g. ~1s) and serialize snapshot creation to avoid stampedes.
+
+8. **Bound cold file registration for service queries**
+   - Service-scoped listing queries (services → workflows → traces) must register a bounded number of cold files (most recent N) independent of the requested span limit.
+   - Rationale: the request `limit` is a row limit, not a file limit; coupling the two can accidentally register hundreds of files.
+
+9. **DataFusion Parquet registration**
+   - The Python DataFusion bindings may not reliably accept `register_parquet(table, [file1, file2, ...])`.
+   - When registering many files, register each file path as its own table and `UNION ALL` them into a single logical table for queries.
+   - **Pre-filter file paths** before registration:
+     - must exist and be a regular file
+     - must end with `.parquet`
+     - must have `st_size > 0`
+   - Rationale: the Python `register_parquet` call can succeed for missing/0-byte files and create a table with an **empty schema**, which later fails with planning errors like `column 'service_name' not found` and `valid_fields: []`.
+
+10. **VACUUM ordering**
    - Commit deletes before running `VACUUM`.
 
-7. **Timestamp consistency**
+11. **Timestamp consistency**
    - Store and compare times in UTC ISO8601 with timezone (`+00:00`).
 
 ## Consequences

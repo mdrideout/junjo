@@ -1,7 +1,7 @@
-"""Tests for DataFusion query module.
+"""Tests for the DataFusion-based Parquet query engine.
 
-Tests the DataFusion-based Parquet querying functionality.
-Uses pyarrow to create real Parquet files matching the Go ingestion schema.
+These tests validate that the backend can query Parquet span data using
+DataFusion without relying on any legacy metadata indexing layer.
 """
 
 import json
@@ -14,14 +14,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from app.db_duckdb import datafusion_query
-
-# ============================================================================
-# Test Fixtures
-# ============================================================================
+from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
 
 
-# Arrow schema matching Go ingestion (parquet_writer.go)
+# Arrow schema matching the Rust ingestion output (spans Parquet).
 SPAN_SCHEMA = pa.schema(
     [
         pa.field("span_id", pa.string(), nullable=False),
@@ -42,7 +38,12 @@ SPAN_SCHEMA = pa.schema(
 )
 
 
+def _ns_now() -> int:
+    return int(datetime.now(UTC).timestamp() * 1e9)
+
+
 def create_test_span(
+    *,
     trace_id: str,
     span_id: str | None = None,
     parent_span_id: str | None = None,
@@ -50,18 +51,17 @@ def create_test_span(
     name: str = "test-span",
     span_kind: int = 1,
     start_ns: int | None = None,
-    duration_ns: int = 100000,
+    duration_ns: int = 100_000,
     status_code: int = 0,
     attributes: dict | None = None,
+    events: list[dict] | None = None,
 ) -> dict:
-    """Create a test span dictionary."""
     if span_id is None:
         span_id = uuid.uuid4().hex[:16]
     if start_ns is None:
-        start_ns = int(datetime.now(UTC).timestamp() * 1e9)
-    end_ns = start_ns + duration_ns
+        start_ns = _ns_now()
 
-    attrs = attributes or {}
+    end_ns = start_ns + duration_ns
 
     return {
         "span_id": span_id,
@@ -75,14 +75,13 @@ def create_test_span(
         "duration_ns": duration_ns,
         "status_code": status_code,
         "status_message": None,
-        "attributes": json.dumps(attrs),
-        "events": "[]",
+        "attributes": json.dumps(attributes or {}),
+        "events": json.dumps(events or []),
         "resource_attributes": json.dumps({"service.name": service_name}),
     }
 
 
 def write_spans_to_parquet(spans: list[dict], file_path: str) -> None:
-    """Write spans to a Parquet file."""
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     table = pa.Table.from_pylist(spans, schema=SPAN_SCHEMA)
     pq.write_table(table, file_path)
@@ -90,16 +89,14 @@ def write_spans_to_parquet(spans: list[dict], file_path: str) -> None:
 
 @pytest.fixture
 def temp_parquet_dir():
-    """Create a temporary directory for Parquet files."""
     with tempfile.TemporaryDirectory() as temp_dir:
         yield temp_dir
 
 
 @pytest.fixture
 def simple_parquet_file(temp_parquet_dir):
-    """Create a simple Parquet file with 3 spans."""
     trace_id = uuid.uuid4().hex
-    now_ns = int(datetime.now(UTC).timestamp() * 1e9)
+    now_ns = _ns_now()
 
     spans = [
         create_test_span(
@@ -113,278 +110,167 @@ def simple_parquet_file(temp_parquet_dir):
             span_id="span2222222222",
             parent_span_id="span1111111111",
             name="child-span-1",
-            start_ns=now_ns + 1000,
+            start_ns=now_ns + 1_000,
         ),
         create_test_span(
             trace_id=trace_id,
             span_id="span3333333333",
             parent_span_id="span1111111111",
             name="child-span-2",
-            start_ns=now_ns + 2000,
+            start_ns=now_ns + 2_000,
         ),
     ]
 
     file_path = os.path.join(temp_parquet_dir, "test.parquet")
     write_spans_to_parquet(spans, file_path)
 
-    return {"file_path": file_path, "trace_id": trace_id, "spans": spans}
+    return {"file_path": file_path, "trace_id": trace_id}
 
 
-# ============================================================================
-# Unit Tests
-# ============================================================================
+def test_query_spans_by_trace_id(simple_parquet_file):
+    query = UnifiedSpanQuery()
+    query.register_cold([simple_parquet_file["file_path"]])
+
+    results = query.query_spans_two_tier(trace_id=simple_parquet_file["trace_id"])
+    assert len(results) == 3
+    assert {r["span_id"] for r in results} == {
+        "span1111111111",
+        "span2222222222",
+        "span3333333333",
+    }
 
 
-class TestGetContext:
-    """Tests for get_context function."""
+def test_query_root_only(simple_parquet_file):
+    query = UnifiedSpanQuery()
+    query.register_cold([simple_parquet_file["file_path"]])
 
-    def test_returns_session_context(self):
-        """Should return a DataFusion SessionContext."""
-        import datafusion
-
-        ctx = datafusion_query.get_context()
-        assert isinstance(ctx, datafusion.SessionContext)
-
-    def test_returns_singleton(self):
-        """Should return same context on multiple calls."""
-        ctx1 = datafusion_query.get_context()
-        ctx2 = datafusion_query.get_context()
-        assert ctx1 is ctx2
+    results = query.query_spans_two_tier(
+        trace_id=simple_parquet_file["trace_id"],
+        root_only=True,
+    )
+    assert len(results) == 1
+    assert results[0]["name"] == "root-span"
+    assert results[0]["parent_span_id"] is None or results[0]["parent_span_id"] == ""
 
 
-class TestQuerySpansFromParquet:
-    """Tests for query_spans_from_parquet function."""
+def test_query_distinct_service_names_from_parquet(temp_parquet_dir):
+    trace_id = uuid.uuid4().hex
+    file_path = os.path.join(temp_parquet_dir, "svc.parquet")
+    write_spans_to_parquet(
+        [
+            create_test_span(trace_id=trace_id, service_name="alpha"),
+            create_test_span(trace_id=trace_id, service_name="beta"),
+            create_test_span(trace_id=trace_id, service_name="alpha"),
+        ],
+        file_path,
+    )
 
-    def test_empty_file_paths(self):
-        """Should return empty list for empty file paths."""
-        result = datafusion_query.query_spans_from_parquet([])
-        assert result == []
-
-    def test_query_all_spans(self, simple_parquet_file):
-        """Should return all spans from file."""
-        result = datafusion_query.query_spans_from_parquet(
-            [simple_parquet_file["file_path"]]
-        )
-        assert len(result) == 3
-
-    def test_query_with_filter(self, simple_parquet_file):
-        """Should filter spans by SQL predicate."""
-        result = datafusion_query.query_spans_from_parquet(
-            [simple_parquet_file["file_path"]],
-            filter_sql="name = 'root-span'",
-        )
-        assert len(result) == 1
-        assert result[0]["name"] == "root-span"
-
-    def test_query_with_limit(self, simple_parquet_file):
-        """Should limit number of results."""
-        result = datafusion_query.query_spans_from_parquet(
-            [simple_parquet_file["file_path"]],
-            limit=2,
-        )
-        assert len(result) == 2
-
-    def test_query_with_order_by(self, simple_parquet_file):
-        """Should order results."""
-        result = datafusion_query.query_spans_from_parquet(
-            [simple_parquet_file["file_path"]],
-            order_by="name ASC",
-        )
-        assert len(result) == 3
-        assert result[0]["name"] == "child-span-1"
-        assert result[1]["name"] == "child-span-2"
-        assert result[2]["name"] == "root-span"
+    query = UnifiedSpanQuery()
+    query.register_cold([file_path])
+    assert query.query_distinct_service_names() == ["alpha", "beta"]
 
 
-class TestSpanConversion:
-    """Tests for span data conversion to API format."""
+def test_dedup_prefers_cold_over_hot(temp_parquet_dir):
+    trace_id = uuid.uuid4().hex
 
-    def test_converts_span_fields(self, simple_parquet_file):
-        """Should convert all span fields correctly."""
-        result = datafusion_query.query_spans_from_parquet(
-            [simple_parquet_file["file_path"]],
-            filter_sql="name = 'root-span'",
-        )
-        span = result[0]
+    cold_path = os.path.join(temp_parquet_dir, "cold.parquet")
+    hot_path = os.path.join(temp_parquet_dir, "hot.parquet")
 
-        # Check required fields exist
-        assert "span_id" in span
-        assert "trace_id" in span
-        assert "parent_span_id" in span
-        assert "service_name" in span
-        assert "name" in span
-        assert "kind" in span  # Mapped from span_kind
-        assert "start_time" in span
-        assert "end_time" in span
-        assert "status_code" in span
-        assert "attributes_json" in span
-        assert "events_json" in span
-
-    def test_converts_span_kind_to_string(self, simple_parquet_file):
-        """Should convert span_kind int to string name."""
-        result = datafusion_query.query_spans_from_parquet(
-            [simple_parquet_file["file_path"]],
-            limit=1,
-        )
-        # span_kind=1 should be SERVER
-        assert result[0]["kind"] == "SERVER"
-
-    def test_parses_attributes_json(self, temp_parquet_dir):
-        """Should parse attributes JSON string to dict."""
-        trace_id = uuid.uuid4().hex
-        spans = [
+    # Same span_id in both tiers; cold should win.
+    write_spans_to_parquet(
+        [
             create_test_span(
                 trace_id=trace_id,
-                attributes={"key": "value", "count": 42},
+                span_id="dup-span",
+                service_name="svc",
+                name="cold-name",
             )
-        ]
-        file_path = os.path.join(temp_parquet_dir, "attrs.parquet")
-        write_spans_to_parquet(spans, file_path)
-
-        result = datafusion_query.query_spans_from_parquet([file_path])
-        assert result[0]["attributes_json"] == {"key": "value", "count": 42}
-
-    def test_passes_through_junjo_fields_in_attributes(self, temp_parquet_dir):
-        """Should keep junjo fields in attributes_json (frontend extracts them)."""
-        trace_id = uuid.uuid4().hex
-        spans = [
+        ],
+        cold_path,
+    )
+    write_spans_to_parquet(
+        [
             create_test_span(
                 trace_id=trace_id,
-                attributes={
-                    "junjo.span_type": "workflow",
-                    "junjo.id": "wf-123",
-                    "junjo.parent_id": "wf-parent",
-                    "other_attr": "value",
-                },
+                span_id="dup-span",
+                service_name="svc",
+                name="hot-name",
             )
-        ]
-        file_path = os.path.join(temp_parquet_dir, "junjo.parquet")
-        write_spans_to_parquet(spans, file_path)
+        ],
+        hot_path,
+    )
 
-        result = datafusion_query.query_spans_from_parquet([file_path])
-        span = result[0]
+    query = UnifiedSpanQuery()
+    query.register_cold([cold_path])
+    query.register_hot(hot_path)
+    results = query.query_spans_two_tier(trace_id=trace_id)
 
-        # Junjo fields should remain in attributes_json (no top-level junjo_* fields)
-        assert span["attributes_json"]["junjo.span_type"] == "workflow"
-        assert span["attributes_json"]["junjo.id"] == "wf-123"
-        assert span["attributes_json"]["junjo.parent_id"] == "wf-parent"
-        assert span["attributes_json"]["other_attr"] == "value"
-        # No top-level junjo_* fields
-        assert "junjo_span_type" not in span
-        assert "junjo_id" not in span
+    assert len(results) == 1
+    assert results[0]["span_id"] == "dup-span"
+    assert results[0]["name"] == "cold-name"
 
 
-class TestGetSpansByTraceId:
-    """Tests for get_spans_by_trace_id function."""
+def test_register_cold_multiple_files(temp_parquet_dir):
+    trace_id = uuid.uuid4().hex
+    file_a = os.path.join(temp_parquet_dir, "a.parquet")
+    file_b = os.path.join(temp_parquet_dir, "b.parquet")
 
-    def test_returns_spans_for_trace(self, simple_parquet_file):
-        """Should return all spans for a trace."""
-        result = datafusion_query.get_spans_by_trace_id(
-            simple_parquet_file["trace_id"],
-            [simple_parquet_file["file_path"]],
-        )
-        assert len(result) == 3
-        for span in result:
-            assert span["trace_id"] == simple_parquet_file["trace_id"]
+    write_spans_to_parquet([create_test_span(trace_id=trace_id, name="a")], file_a)
+    write_spans_to_parquet([create_test_span(trace_id=trace_id, name="b")], file_b)
 
-    def test_returns_empty_for_nonexistent_trace(self, simple_parquet_file):
-        """Should return empty list for non-existent trace."""
-        result = datafusion_query.get_spans_by_trace_id(
-            "nonexistent_trace_id_here_",
-            [simple_parquet_file["file_path"]],
-        )
-        assert result == []
+    query = UnifiedSpanQuery()
+    query.register_cold([file_a, file_b])
+    results = query.query_spans_two_tier(trace_id=trace_id, order_by="start_time ASC")
+    assert {r["name"] for r in results} == {"a", "b"}
 
 
-class TestGetSpanById:
-    """Tests for get_span_by_id function."""
+def test_parses_attributes_and_events_json(temp_parquet_dir):
+    trace_id = uuid.uuid4().hex
+    file_path = os.path.join(temp_parquet_dir, "json.parquet")
 
-    def test_returns_specific_span(self, simple_parquet_file):
-        """Should return specific span by ID."""
-        result = datafusion_query.get_span_by_id(
-            "span1111111111",
-            simple_parquet_file["trace_id"],
-            [simple_parquet_file["file_path"]],
-        )
-        assert result is not None
-        assert result["span_id"] == "span1111111111"
-
-    def test_returns_none_for_nonexistent_span(self, simple_parquet_file):
-        """Should return None for non-existent span."""
-        result = datafusion_query.get_span_by_id(
-            "nonexistent____",
-            simple_parquet_file["trace_id"],
-            [simple_parquet_file["file_path"]],
-        )
-        assert result is None
-
-
-class TestGetRootSpans:
-    """Tests for get_root_spans function."""
-
-    def test_returns_root_spans_only(self, simple_parquet_file):
-        """Should return only spans without parent."""
-        result = datafusion_query.get_root_spans(
-            "test-service",
-            [simple_parquet_file["file_path"]],
-        )
-        assert len(result) == 1
-        assert result[0]["name"] == "root-span"
-        assert result[0]["parent_span_id"] is None or result[0]["parent_span_id"] == ""
-
-
-class TestGetServiceSpans:
-    """Tests for get_service_spans function."""
-
-    def test_returns_spans_for_service(self, simple_parquet_file):
-        """Should return all spans for a service."""
-        result = datafusion_query.get_service_spans(
-            "test-service",
-            [simple_parquet_file["file_path"]],
-        )
-        assert len(result) == 3
-
-    def test_respects_limit(self, simple_parquet_file):
-        """Should respect limit parameter."""
-        result = datafusion_query.get_service_spans(
-            "test-service",
-            [simple_parquet_file["file_path"]],
-            limit=2,
-        )
-        assert len(result) == 2
-
-
-class TestGetWorkflowSpans:
-    """Tests for get_workflow_spans function."""
-
-    def test_returns_workflow_spans_only(self, temp_parquet_dir):
-        """Should return only workflow type spans."""
-        trace_id = uuid.uuid4().hex
-        spans = [
+    write_spans_to_parquet(
+        [
             create_test_span(
                 trace_id=trace_id,
-                name="workflow-span",
-                attributes={"junjo.span_type": "workflow"},
-            ),
-            create_test_span(
-                trace_id=trace_id,
-                name="node-span",
-                attributes={"junjo.span_type": "node"},
-            ),
-            create_test_span(
-                trace_id=trace_id,
-                name="regular-span",
-            ),
-        ]
-        file_path = os.path.join(temp_parquet_dir, "workflow.parquet")
-        write_spans_to_parquet(spans, file_path)
+                service_name="svc",
+                attributes={"junjo.span_type": "workflow", "other": "value"},
+                events=[{"name": "set_state", "timeUnixNano": 123, "attributes": {"a": 1}}],
+            )
+        ],
+        file_path,
+    )
 
-        result = datafusion_query.get_workflow_spans(
-            "test-service",
-            [file_path],
-        )
+    query = UnifiedSpanQuery()
+    query.register_cold([file_path])
+    results = query.query_spans_two_tier(trace_id=trace_id)
+    assert results[0]["attributes_json"]["junjo.span_type"] == "workflow"
+    assert results[0]["attributes_json"]["other"] == "value"
+    assert results[0]["events_json"][0]["name"] == "set_state"
 
-        assert len(result) == 1
-        assert result[0]["name"] == "workflow-span"
-        # junjo.span_type is in attributes_json, not top-level
-        assert result[0]["attributes_json"]["junjo.span_type"] == "workflow"
+
+def test_register_cold_skips_empty_parquet_files(temp_parquet_dir):
+    trace_id = uuid.uuid4().hex
+    valid_path = os.path.join(temp_parquet_dir, "valid.parquet")
+    empty_path = os.path.join(temp_parquet_dir, "empty.parquet")
+
+    write_spans_to_parquet([create_test_span(trace_id=trace_id, name="valid")], valid_path)
+    with open(empty_path, "wb") as f:
+        f.write(b"")
+
+    query = UnifiedSpanQuery()
+    query.register_cold([empty_path, valid_path])
+    results = query.query_spans_two_tier(trace_id=trace_id)
+
+    assert len(results) == 1
+    assert results[0]["name"] == "valid"
+
+
+def test_register_cold_with_only_empty_files_returns_no_results(temp_parquet_dir):
+    trace_id = uuid.uuid4().hex
+    empty_path = os.path.join(temp_parquet_dir, "empty_only.parquet")
+    with open(empty_path, "wb") as f:
+        f.write(b"")
+
+    query = UnifiedSpanQuery()
+    query.register_cold([empty_path])
+    assert query.query_spans_two_tier(trace_id=trace_id) == []

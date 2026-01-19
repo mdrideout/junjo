@@ -1,15 +1,15 @@
-# ADR-002: SQLite Metadata Index (Replacing DuckDB)
+# ADR-002: SQLite Metadata Index (Replacing Legacy Per-Span Index)
 
 ## Status
 Accepted
 
 ## Context
 
-The backend uses DuckDB to index Parquet file metadata, enabling efficient lookups for trace and span queries. The current implementation stores **one row per span** in the `span_metadata` table.
+The backend previously used a per-span metadata index for Parquet file lookups (trace and span queries). The legacy implementation stored **one row per span** in the `span_metadata` table.
 
 ### Problem: Memory Scaling
 
-| Data Volume | Spans | DuckDB Memory |
+| Data Volume | Spans | Legacy Index Memory |
 |-------------|-------|---------------|
 | 1 GB Parquet | 1M | ~100 MB |
 | 10 GB Parquet | 10M | ~1 GB |
@@ -33,7 +33,7 @@ The 1GB VM constraint is non-negotiable. The ingestion service has already been 
 
 ## Decision
 
-Replace DuckDB with **SQLite for metadata indexing**, changing from per-span to per-trace granularity.
+Replace the legacy per-span metadata index with **SQLite for metadata indexing**, changing from per-span to per-trace granularity.
 
 ### Architecture
 
@@ -59,7 +59,7 @@ DataFusion continues to handle actual Parquet queries. SQLite only provides "whi
 | WAL buffers | ~1 MB |
 | **Total** | **~12-15 MB** |
 
-Compare to DuckDB's 200-300 MB for the same data volume.
+Compare to ~200-300 MB for the legacy per-span index at the same data volume.
 
 ### Query Flow
 
@@ -127,12 +127,12 @@ Risk: Unpredictable memory growth as customers scale. We need bounded memory reg
 - Still need authoritative trace → file mapping somewhere
 - Complexity for uncertain gain
 
-### 4. Keep DuckDB, Reduce Granularity
+### 4. Keep the Legacy Index, Reduce Granularity
 
-**Considered.** Keep DuckDB but index traces instead of spans. This reduces memory but:
+**Considered.** Keep the legacy index but index traces instead of spans. This reduces memory but:
 
-- DuckDB has higher baseline memory than SQLite
-- DuckDB is a C extension with build complexity
+- Higher baseline memory than SQLite
+- Extra native dependency and build complexity
 - SQLite is already in the stack for user data
 - SQLite's simplicity is an advantage
 
@@ -151,7 +151,7 @@ Risk: Unpredictable memory growth as customers scale. We need bounded memory reg
 1. **10-20x memory reduction**: From 200-300 MB to 15-30 MB
 2. **Predictable scaling**: Bounded memory regardless of span count
 3. **Dependency consolidation**: SQLite already in stack for user data
-4. **Simpler builds**: stdlib sqlite3 vs DuckDB C extension
+4. **Simpler builds**: stdlib sqlite3 vs extra native dependency
 5. **Rebuildable**: Index derives from Parquet files, can always regenerate
 6. **Battle-tested concurrency**: SQLite WAL mode provides consistent reads during writes
 
@@ -160,7 +160,7 @@ Risk: Unpredictable memory growth as customers scale. We need bounded memory reg
 1. **Migration effort**: Dual-write period, phased rollout
 2. **Two databases**: junjo.db (user data) + metadata.db (span index)
 3. **Sync complexity**: Must sync with filesystem on startup
-4. **No analytical queries**: DuckDB could do aggregations in-place; now requires DataFusion
+4. **No analytical queries**: aggregations now require DataFusion
 
 ### Neutral
 
@@ -170,12 +170,12 @@ Risk: Unpredictable memory growth as customers scale. We need bounded memory reg
 
 ## Migration Path
 
-1. **Phase 1**: Create metadata.db alongside DuckDB, dual-write
+1. **Phase 1**: Create metadata.db alongside the legacy index, dual-write
 2. **Phase 2**: Read from SQLite, verify consistency
-3. **Phase 3**: Remove DuckDB dependency and code
-4. **Phase 4**: Delete DuckDB database files
+3. **Phase 3**: Remove legacy index dependency and code
+4. **Phase 4**: Delete legacy index database files
 
-Rollback is possible at any phase by reverting to DuckDB reads.
+Rollback is possible at any phase by reverting to legacy index reads.
 
 ## Related
 

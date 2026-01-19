@@ -67,6 +67,7 @@ def _create_connection(db_path: str) -> sqlite3.Connection:
     # Apply PRAGMA settings for performance and safety
     conn.execute("PRAGMA journal_mode=WAL")  # Write-Ahead Logging
     conn.execute("PRAGMA synchronous=NORMAL")  # Safe with WAL
+    conn.execute("PRAGMA busy_timeout=5000")  # Wait up to 5s on SQLITE_BUSY
     conn.execute("PRAGMA cache_size=-10000")  # 10 MB page cache
     conn.execute("PRAGMA temp_store=MEMORY")  # Temp tables in RAM
     conn.execute("PRAGMA mmap_size=52428800")  # 50 MB memory-mapped I/O

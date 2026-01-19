@@ -1,6 +1,6 @@
 # ADR-001: Span Storage Architecture
 
-**Status:** Accepted (Updated December 2025)
+**Status:** Accepted (Updated January 2026)
 **Date:** 2025-12-10
 **Author:** Matt
 
@@ -73,7 +73,7 @@ We implement a **two-tier storage architecture** using a Rust ingestion service 
 | Tier | Storage | Location | Indexed | Lifecycle |
 |------|---------|----------|---------|-----------|
 | **HOT** | Segmented Arrow IPC | `wal/*.ipc` | N/A (source) | Until cold flush |
-| **COLD** | Parquet | `parquet/year=*/month=*/day=*/` | Yes (DuckDB) | Permanent |
+| **COLD** | Parquet | `parquet/year=*/month=*/day=*/` | Yes (SQLite metadata) | Permanent |
 
 ### Data Flow
 
@@ -87,7 +87,7 @@ We implement a **two-tier storage architecture** using a Rust ingestion service 
 
 Python backend queries both tiers via DataFusion:
 
-1. **Register COLD**: Parquet files from DuckDB metadata index
+1. **Register COLD**: Parquet files from SQLite metadata index (trace-level file mappings)
 2. **Register HOT**: Parquet snapshot from `PrepareHotSnapshot` RPC
 3. **Execute**: UNION ALL with deduplication (COLD > HOT priority)
 
@@ -144,9 +144,10 @@ The backend reads the hot snapshot file directly via DataFusion - no gRPC stream
 
 ### Python Backend
 
-- `backend/app/db_duckdb/unified_query.py` - DataFusion queries
+- `backend/app/features/otel_spans/datafusion_query.py` - DataFusion queries
 - `backend/app/features/otel_spans/repository.py` - Query orchestration
 - `backend/app/features/span_ingestion/ingestion_client.py` - gRPC client
+- `backend/app/db_sqlite/metadata/` - SQLite metadata index (trace→file mappings)
 
 ## References
 

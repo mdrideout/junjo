@@ -113,13 +113,36 @@ fn serialize_events(events: &[opentelemetry_proto::tonic::trace::v1::span::Event
 
             json!({
                 "name": e.name,
-                "time_unix_nano": e.time_unix_nano,
+                "timeUnixNano": e.time_unix_nano,
                 "attributes": attrs,
             })
         })
         .collect();
 
     serde_json::to_string(&event_list).unwrap_or_else(|_| "[]".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use opentelemetry_proto::tonic::trace::v1::span::Event;
+
+    #[test]
+    fn test_serialize_events_uses_time_unix_nano_camel_case() {
+        let event = Event {
+            time_unix_nano: 123,
+            name: "set_state".to_string(),
+            attributes: vec![],
+            dropped_attributes_count: 0,
+        };
+
+        let json_str = serialize_events(&[event]);
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        let event_obj = parsed.as_array().unwrap().first().unwrap().as_object().unwrap();
+        assert!(event_obj.contains_key("timeUnixNano"));
+        assert!(!event_obj.contains_key("time_unix_nano"));
+    }
 }
 
 fn any_value_to_json(value: &AnyValue) -> JsonValue {

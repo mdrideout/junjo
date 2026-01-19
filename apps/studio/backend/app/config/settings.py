@@ -56,14 +56,6 @@ class DatabaseSettings(BaseSettings):
             validation_alias="JUNJO_METADATA_DB_PATH",
         ),
     ]
-    duckdb_path: Annotated[
-        str,
-        Field(
-            default="../.dbdata/duckdb/traces.duckdb",
-            description="Path to DuckDB database file",
-            validation_alias="JUNJO_DUCKDB_PATH",
-        ),
-    ]
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -91,20 +83,6 @@ class DatabaseSettings(BaseSettings):
         # Ensure parent directory exists
         abs_path.parent.mkdir(parents=True, exist_ok=True)
         return str(abs_path)
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def duckdb_url(self) -> str:
-        """Computed DuckDB async URL with absolute path.
-
-        Returns:
-            DuckDB connection URL for async SQLAlchemy engine with absolute path.
-        """
-        # Resolve to absolute path (handles relative paths from any working directory)
-        abs_path = Path(self.duckdb_path).resolve()
-        # Ensure parent directory exists
-        abs_path.parent.mkdir(parents=True, exist_ok=True)
-        return f"duckdb+aiosqlite:///{abs_path}"
 
     model_config = SettingsConfigDict(
         env_file=find_env_file(),
@@ -197,6 +175,17 @@ class SpanIngestionSettings(BaseSettings):
             validation_alias="SPAN_STRICT_MODE",
         ),
     ]
+    HOT_SNAPSHOT_CACHE_TTL_SECONDS: Annotated[
+        float,
+        Field(
+            default=1.0,
+            ge=0.0,
+            le=60.0,
+            description="Cache TTL for PrepareHotSnapshot results (seconds). "
+            "Reduces repeated hot snapshot generation across concurrent requests.",
+            validation_alias="HOT_SNAPSHOT_CACHE_TTL_SECONDS",
+        ),
+    ]
 
     model_config = SettingsConfigDict(
         env_file=find_env_file(),
@@ -227,17 +216,18 @@ class LLMSettings(BaseSettings):
 
 
 class ParquetIndexerSettings(BaseSettings):
-    """Parquet indexer configuration for V4 architecture.
+    """Parquet indexer configuration.
 
     The indexer polls the filesystem for new Parquet files written by the
-    Go ingestion service, reads span metadata, and indexes it into DuckDB.
+    ingestion service, reads span metadata, and indexes it into the SQLite
+    metadata database.
     """
 
     parquet_storage_path: Annotated[
         str,
         Field(
             default="../.dbdata/parquet",
-            description="Path to Parquet files (shared with Go ingestion)",
+            description="Path to Parquet files (shared with ingestion service)",
             validation_alias="JUNJO_PARQUET_STORAGE_PATH",
         ),
     ]

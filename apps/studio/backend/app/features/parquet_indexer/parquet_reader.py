@@ -1,7 +1,7 @@
 """Parquet file reader for span metadata extraction.
 
-Reads Parquet files written by Go ingestion and extracts
-span metadata columns for DuckDB indexing.
+Reads Parquet files written by the ingestion service and extracts
+span metadata columns for SQLite metadata indexing.
 
 Note: This module only reads metadata columns needed for listings.
 Full span data (attributes, events, resource_attributes) stays in Parquet.
@@ -45,7 +45,7 @@ def _timestamp_to_datetime(ts: pa.TimestampScalar | int) -> datetime:
 
 @dataclass(frozen=True)
 class SpanMetadata:
-    """Lightweight span metadata for DuckDB indexing."""
+    """Lightweight span metadata for SQLite metadata indexing."""
 
     span_id: str
     trace_id: str
@@ -96,7 +96,7 @@ METADATA_COLUMNS = [
 def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
     """Read span metadata from a Parquet file.
 
-    Only reads columns needed for DuckDB indexing. Full span data
+    Only reads columns needed for metadata indexing. Full span data
     (attributes, events) stays in Parquet for query-time access.
 
     Args:

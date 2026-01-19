@@ -23,7 +23,6 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 if "JUNJO_SQLITE_PATH" not in os.environ:
     _test_base_dir = tempfile.mkdtemp(prefix="junjo_test_")
     os.environ["JUNJO_SQLITE_PATH"] = f"{_test_base_dir}/test.db"
-    os.environ["JUNJO_DUCKDB_PATH"] = f"{_test_base_dir}/test.duckdb"
 
 
 @pytest_asyncio.fixture(scope="function", autouse=True)

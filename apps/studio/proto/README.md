@@ -36,7 +36,7 @@ These are used only for internal data persistence and are not part of service AP
 - Persisted data was written using the schema
 
 **Before deleting a proto**:
-1. Check if it's used for storage (SQLite WAL, DuckDB, etc.)
+1. Check if it's used for storage (SQLite WAL, metadata DB, etc.)
 2. If yes: Migrate existing data to new schema first
 3. Remove all references in code
 4. Clean and regenerate: `cd ingestion && make proto-clean`

@@ -95,7 +95,8 @@ flowchart TD
 - `backend/app/main.py` - FastAPI app
 - `backend/app/grpc_server.py` - Internal auth gRPC server
 - `backend/app/features/internal_auth/grpc_service.py` - ValidateApiKey implementation
-- `backend/app/db_duckdb/v4_repository.py` - Two-tier query logic with DataFusion
+- `backend/app/features/otel_spans/repository.py` - Two-tier span queries (SQLite metadata + DataFusion)
+- `backend/app/features/otel_spans/datafusion_query.py` - DataFusion query engine (COLD + HOT Parquet)
 - `backend/app/features/span_ingestion/ingestion_client.py` - gRPC client for PrepareHotSnapshot
 
 **Two servers, one process:**

@@ -1,12 +1,12 @@
-# Metadata Index Refactor: DuckDB to SQLite
+# Metadata Index: Trace-Level SQLite Index
 
 ## Overview
 
-This document outlines the plan to replace DuckDB with SQLite for the span metadata index layer. The goal is to reduce memory usage from ~200-300MB to ~15-30MB while maintaining query performance, enabling production deployment on 1GB VMs.
+This document describes the SQLite-based span metadata index layer. The goal is to keep memory usage ~15-30MB while maintaining query performance, enabling production deployment on 1GB VMs.
 
 ## Table of Contents
 
-1. [Current Architecture](#current-architecture)
+1. [Legacy Architecture (Removed)](#legacy-architecture-removed)
 2. [Problem Statement](#problem-statement)
 3. [Proposed Architecture](#proposed-architecture)
 4. [Schema Design](#schema-design)
@@ -15,15 +15,15 @@ This document outlines the plan to replace DuckDB with SQLite for the span metad
 7. [Query Patterns](#query-patterns)
 8. [Async Integration](#async-integration)
 9. [Retention and Cleanup](#retention-and-cleanup)
-10. [Migration Path](#migration-path)
+10. [Migration Status](#migration-status)
 11. [File Changes](#file-changes)
 12. [Memory Analysis](#memory-analysis)
 
 ---
 
-## Current Architecture
+## Legacy Architecture (Removed)
 
-The backend uses DuckDB to index Parquet file metadata with three tables:
+A legacy implementation used a per-span metadata index with three tables:
 
 | Table | Rows | Purpose | Memory |
 |-------|------|---------|--------|
@@ -39,7 +39,7 @@ The `span_metadata` table stores **one row per span**, which is the primary memo
 
 ### Memory Scaling Issue
 
-| Data Volume | Spans | DuckDB Memory |
+| Data Volume | Spans | Legacy Index Memory |
 |-------------|-------|---------------|
 | 1 GB Parquet | 1M | ~100 MB |
 | 10 GB Parquet | 10M | ~1 GB |
@@ -83,7 +83,7 @@ Replace per-span indexing with per-trace indexing:
 
 ### Size Comparison
 
-| Scenario | DuckDB span_metadata | SQLite trace_files |
+| Scenario | Legacy per-span index | SQLite trace_files |
 |----------|---------------------|-------------------|
 | 1M spans, 20K traces | 100 MB | 2 MB |
 | 10M spans, 200K traces | 1 GB | 20 MB |
@@ -183,8 +183,6 @@ SQLite connections are stored in thread-local storage for thread safety. WAL mod
 │   ├── parquet/      # Cold tier Parquet files
 │   ├── wal/          # Arrow IPC WAL segments
 │   └── hot_snapshot.parquet
-└── duckdb/
-    └── traces.duckdb # TO BE REMOVED
 ```
 
 Separate databases because:
@@ -265,27 +263,12 @@ Useful for schema migrations or corruption recovery.
 
 ---
 
-## Migration Path
+## Migration Status
 
-### Phase 1: Add SQLite (Parallel Operation)
-- Create `metadata.db` with new schema
-- Initialize on application startup
-- Keep DuckDB running
-
-### Phase 2: Dual-Write
-- Indexer writes to both DuckDB and SQLite
-- Queries still read from DuckDB
-- Verify data consistency
-
-### Phase 3: Switch Reads
-- Update repository to read from SQLite
-- Keep DuckDB as fallback
-- Monitor performance
-
-### Phase 4: Remove DuckDB
-- Remove DuckDB code and dependency
-- Delete DuckDB database files
-- Clean up configuration
+This refactor is complete:
+- The legacy per-span metadata index has been removed from the codebase.
+- The metadata index is `metadata.db` (SQLite) and can be rebuilt from Parquet files.
+- No backward compatibility is maintained for legacy index data.
 
 ---
 
@@ -294,13 +277,13 @@ Useful for schema migrations or corruption recovery.
 ### Create
 
 ```
-backend/app/db_sqlite/
-├── metadata_db.py           # Connection management
-├── metadata_repository.py   # Query functions
-├── metadata_indexer.py      # Indexing logic
-├── metadata_maintenance.py  # Cleanup/retention
-└── schemas/
-    └── metadata_schema.sql  # Table definitions
+backend/app/db_sqlite/metadata/
+├── schema.sql        # Table definitions
+├── db.py             # Connection management
+├── repository.py     # Query functions
+├── indexer.py        # Indexing logic
+├── maintenance.py    # Cleanup/retention
+└── __init__.py       # Module exports
 ```
 
 ### Modify
@@ -312,25 +295,10 @@ backend/app/features/parquet_indexer/background_indexer.py  # Use SQLite indexer
 backend/app/config/settings.py                # Add metadata_db_path
 ```
 
-### Remove (after migration)
+### Query Engine
 
 ```
-backend/app/db_duckdb/
-├── db_config.py
-├── v4_repository.py
-└── schemas/
-    ├── v4_parquet_files.sql
-    ├── v4_span_metadata.sql
-    ├── v4_file_services.sql
-    └── v4_failed_files.sql
-```
-
-### Keep
-
-```
-backend/app/db_duckdb/
-├── unified_query.py      # DataFusion two-tier queries (COLD + HOT)
-└── datafusion_query.py   # DataFusion helpers
+backend/app/features/otel_spans/datafusion_query.py  # DataFusion two-tier queries (COLD + HOT)
 ```
 
 ---
@@ -357,8 +325,8 @@ backend/app/db_duckdb/
 
 ### Comparison
 
-| Component | DuckDB (current) | SQLite (proposed) |
-|-----------|------------------|-------------------|
+| Component | Legacy per-span index | SQLite trace-level index |
+|-----------|-----------------------|--------------------------|
 | span_metadata (2M rows) | ~200 MB | N/A |
 | trace_files (200K rows) | N/A | ~10 MB cache |
 | parquet_files (10K rows) | ~2 MB | ~1 MB |
@@ -426,13 +394,13 @@ Query flow unchanged:
 
 ## Summary
 
-| Aspect | DuckDB (Current) | SQLite (Proposed) |
-|--------|------------------|-------------------|
+| Aspect | Legacy (Per-Span Metadata Index) | Current (SQLite Trace-Level Index) |
+|--------|----------------------------------|------------------------------------|
 | Memory usage | 200-300 MB | 15-30 MB |
-| Dependencies | duckdb (C extension) | sqlite3 (stdlib) |
+| Dependencies | Extra embedded DB engine | sqlite3 (stdlib) |
 | Already in stack | No | Yes (user data) |
 | Point lookups | Good | Excellent |
-| Analytical queries | Excellent | N/A (use DataFusion) |
+| Analytical queries | N/A (use DataFusion) | N/A (use DataFusion) |
 | Concurrency | Good | Good (WAL mode) |
 | Can rebuild from Parquet | Yes | Yes |
 | Scales to 10M traces | Memory issues | No problem |
