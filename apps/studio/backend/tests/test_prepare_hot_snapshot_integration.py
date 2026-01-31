@@ -57,6 +57,8 @@ class TestPrepareHotSnapshotBasic:
         assert hasattr(result, "snapshot_path")
         assert hasattr(result, "row_count")
         assert hasattr(result, "file_size_bytes")
+        # Option 4: ingestion returns "recent cold" paths to bridge flush→index lag.
+        assert hasattr(result, "recent_cold_paths")
 
     @pytest.mark.asyncio
     async def test_prepare_hot_snapshot_empty_wal_success(self, ingestion_client):

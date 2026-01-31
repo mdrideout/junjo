@@ -57,7 +57,7 @@ Use a **segmented write-ahead log** with Arrow IPC format.
 │  3. STREAM: Read each segment → write to Parquet                            │
 │     Memory: O(batch), not O(total_size)                                     │
 │  4. DELETE: Remove only the flushed segments                                │
-│  5. NOTIFY: Tell backend about new Parquet file                             │
+│  5. RECORD: Track flushed Parquet path (in-memory, bounded)                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
@@ -71,7 +71,8 @@ Use a **segmented write-ahead log** with Arrow IPC format.
 │  2. SNAPSHOT: List all .ipc segments                                        │
 │  3. STREAM: Read segments → write to temp Parquet                           │
 │  4. RENAME: Atomic rename to hot_snapshot.parquet                           │
-│  5. RETURN: snapshot_path (backend reads directly via DataFusion)           │
+│  5. RETURN: snapshot_path + recent_cold_paths                               │
+│     (backend reads files directly via DataFusion)                           │
 │                                                                             │
 │  NOTE: Does NOT delete segments (cold flush handles deletion)               │
 │                                                                             │

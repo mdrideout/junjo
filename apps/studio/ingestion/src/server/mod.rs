@@ -1,7 +1,7 @@
-mod trace_service;
-mod internal_service;
 mod auth;
 mod backpressure;
+mod internal_service;
+mod trace_service;
 
-pub use trace_service::TraceService;
 pub use internal_service::InternalService;
+pub use trace_service::TraceService;

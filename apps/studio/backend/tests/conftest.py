@@ -3,7 +3,6 @@
 Provides shared fixtures for tests that require the Rust ingestion service.
 """
 
-import asyncio
 import os
 import shutil
 import signal
@@ -11,10 +10,14 @@ import socket
 import subprocess
 import tempfile
 import time
+from concurrent import futures
 from pathlib import Path
 
+import grpc
 import pytest
 from loguru import logger
+
+from app.proto_gen import auth_pb2, auth_pb2_grpc
 
 # Path to ingestion service
 INGESTION_DIR = Path(__file__).parent.parent.parent / "ingestion"
@@ -61,6 +64,42 @@ def wait_for_port(port: int, timeout: float = 60.0) -> bool:
     return False
 
 
+@pytest.fixture(scope="module")
+def mock_backend_auth_server():
+    """Start a tiny in-process backend auth gRPC server for ingestion tests.
+
+    The Rust ingestion service requires x-junjo-api-key validation on OTLP ingest.
+    For backend/ingestion integration tests we don't want to bring up the full
+    backend, so we run a minimal InternalAuthService that always returns is_valid=true.
+
+    The server binds to an ephemeral port to avoid conflicting with the backend's own
+    gRPC integration tests (which use port 50053).
+    """
+
+    class _AlwaysValidAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
+        def ValidateApiKey(  # noqa: N802 - protobuf naming
+            self,
+            request: auth_pb2.ValidateApiKeyRequest,
+            context: grpc.ServicerContext,
+        ) -> auth_pb2.ValidateApiKeyResponse:
+            return auth_pb2.ValidateApiKeyResponse(is_valid=True)
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    auth_pb2_grpc.add_InternalAuthServiceServicer_to_server(_AlwaysValidAuthServicer(), server)
+
+    port = server.add_insecure_port("127.0.0.1:0")
+    if port == 0:
+        pytest.fail("Failed to bind mock backend auth server to an ephemeral port")
+
+    server.start()
+    logger.info(f"Mock backend auth gRPC server started on 127.0.0.1:{port}")
+
+    try:
+        yield {"host": "127.0.0.1", "port": port}
+    finally:
+        server.stop(grace=0)
+
+
 @pytest.fixture(scope="session")
 def rust_ingestion_binary():
     """Build the Rust ingestion service once per test session.
@@ -89,7 +128,7 @@ def rust_ingestion_binary():
 
 
 @pytest.fixture(scope="module")
-def rust_ingestion_service(rust_ingestion_binary):
+def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
     """Start the Rust ingestion service for integration tests.
 
     This fixture:
@@ -132,9 +171,9 @@ def rust_ingestion_service(rust_ingestion_binary):
         "PARQUET_OUTPUT_DIR": parquet_dir,
         "GRPC_PORT": str(INGESTION_PUBLIC_PORT),
         "INTERNAL_GRPC_PORT": str(INGESTION_INTERNAL_PORT),
-        # Backend gRPC not needed for these tests (no API key validation)
-        "BACKEND_GRPC_HOST": "localhost",
-        "BACKEND_GRPC_PORT": "50053",
+        # Provide a tiny in-process backend auth gRPC so OTLP ingest can validate API keys.
+        "BACKEND_GRPC_HOST": mock_backend_auth_server["host"],
+        "BACKEND_GRPC_PORT": str(mock_backend_auth_server["port"]),
         "RUST_LOG": "info",
     })
 
@@ -156,6 +195,18 @@ def rust_ingestion_service(rust_ingestion_binary):
             process.kill()
             error_msg = "Process timed out"
         pytest.fail(f"Rust ingestion service failed to start within 10s.\n{error_msg}")
+
+    # Also ensure the public OTLP port is ready (some tests ingest spans).
+    if not wait_for_port(INGESTION_PUBLIC_PORT, timeout=10.0):
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+            error_msg = f"stdout: {stdout.decode()}\nstderr: {stderr.decode()}"
+        except subprocess.TimeoutExpired:
+            process.kill()
+            error_msg = "Process timed out"
+        pytest.fail(
+            f"Rust ingestion service OTLP port failed to start within 10s.\n{error_msg}"
+        )
 
     logger.info(f"Rust ingestion service started (internal port: {INGESTION_INTERNAL_PORT})")
 

@@ -65,8 +65,11 @@ Compare to ~200-300 MB for the legacy per-span index at the same data volume.
 
 1. Frontend requests spans for a trace/service
 2. Backend queries SQLite for relevant file paths
-3. DataFusion queries those Parquet files + HOT snapshot
-4. Results returned to frontend
+3. Backend calls `PrepareHotSnapshot` and uses:
+   - HOT snapshot Parquet path (unflushed WAL)
+   - `recent_cold_paths` (recently flushed cold Parquet files not yet indexed)
+4. DataFusion queries SQLite-selected cold Parquet files + `recent_cold_paths` + HOT snapshot
+5. Results returned to frontend
 
 ### Query Optimizations (Guardrails)
 

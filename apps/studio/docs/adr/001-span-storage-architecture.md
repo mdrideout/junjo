@@ -27,7 +27,7 @@ We implement a **two-tier storage architecture** using a Rust ingestion service 
 │   │    SELECT * FROM cold_spans    -- date-partitioned Parquet   │  │
 │   │    UNION ALL                                                  │  │
 │   │    SELECT * FROM hot_snapshot  -- on-demand Parquet snapshot │  │
-│   │  ) deduplicated by span_id                                    │  │
+│   │  ) deduplicated by (trace_id, span_id)                        │  │
 │   └──────────────────────────────────────────────────────────────┘  │
 │              │                                      │                │
 │              ▼                                      ▼                │
@@ -87,9 +87,10 @@ We implement a **two-tier storage architecture** using a Rust ingestion service 
 
 Python backend queries both tiers via DataFusion:
 
-1. **Register COLD**: Parquet files from SQLite metadata index (trace-level file mappings)
-2. **Register HOT**: Parquet snapshot from `PrepareHotSnapshot` RPC
-3. **Execute**: UNION ALL with deduplication (COLD > HOT priority)
+1. **Register COLD**: Parquet files from SQLite metadata index (trace/service→file mappings)
+2. **Bridge recent cold**: include `recent_cold_paths` returned by `PrepareHotSnapshot` (files flushed but not yet indexed)
+3. **Register HOT**: Parquet snapshot from `PrepareHotSnapshot` RPC (unflushed WAL data)
+4. **Execute**: UNION ALL with deduplication (COLD > HOT priority)
 
 The backend reads the hot snapshot file directly via DataFusion - no gRPC streaming needed.
 
@@ -108,6 +109,9 @@ The backend reads the hot snapshot file directly via DataFusion - no gRPC stream
 | Flush Age | 1 hour | `FLUSH_MAX_AGE_SECS` | Max age before flush |
 | Batch Size | 1000 | `BATCH_SIZE` | Spans per IPC segment |
 | Backpressure | 250MB | `BACKPRESSURE_MAX_MB` | WAL size for backpressure |
+| Recent Cold Max Files | 20 | `RECENT_COLD_MAX_FILES` | Max recently flushed Parquet paths to return for query bridging |
+| Recent Cold Max Age | 120s | `RECENT_COLD_MAX_AGE_SECS` | TTL for recently flushed Parquet paths returned for query bridging |
+| Snapshot Cache TTL | 1000ms | `PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS` | Ingestion-side throttling for hot snapshot creation |
 
 ## Consequences
 

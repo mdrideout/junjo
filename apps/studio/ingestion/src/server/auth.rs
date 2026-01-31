@@ -50,7 +50,11 @@ impl ApiKeyInterceptor {
 
         let duration = start.elapsed();
         if duration.as_millis() > 5000 {
-            warn!(duration_ms = duration.as_millis(), is_valid = is_valid, "Slow backend API key validation");
+            warn!(
+                duration_ms = duration.as_millis(),
+                is_valid = is_valid,
+                "Slow backend API key validation"
+            );
         }
 
         // Only cache valid keys (invalid keys always hit backend)

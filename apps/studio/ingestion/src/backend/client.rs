@@ -4,8 +4,7 @@ use tonic::transport::Channel;
 use tracing::{debug, warn};
 
 use crate::proto::{
-    internal_auth_service_client::InternalAuthServiceClient,
-    NotifyNewParquetFileRequest, ValidateApiKeyRequest,
+    internal_auth_service_client::InternalAuthServiceClient, ValidateApiKeyRequest,
 };
 
 /// Client for communicating with the backend service.
@@ -45,30 +44,6 @@ impl BackendClient {
         }
 
         Ok(InternalAuthServiceClient::new(channel))
-    }
-
-    /// Notify backend of a new Parquet file.
-    /// Uses a longer timeout since indexing large files can take 30+ seconds.
-    pub async fn notify_new_parquet(&self, file_path: &str) -> anyhow::Result<()> {
-        let mut client = self
-            .get_client_with_timeout(Duration::from_secs(120))
-            .await?;
-
-        let request = NotifyNewParquetFileRequest {
-            file_path: file_path.to_string(),
-        };
-
-        let response = client.notify_new_parquet_file(request).await?;
-        let inner = response.into_inner();
-
-        debug!(
-            indexed = inner.indexed,
-            span_count = inner.span_count,
-            path = file_path,
-            "Backend notified of new Parquet file"
-        );
-
-        Ok(())
     }
 
     /// Validate an API key with the backend.

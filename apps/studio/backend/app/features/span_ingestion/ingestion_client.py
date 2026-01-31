@@ -24,6 +24,7 @@ class HotSnapshotResult:
     snapshot_path: str  # Path to stable Parquet file
     row_count: int  # Number of spans in snapshot
     file_size_bytes: int  # File size for logging
+    recent_cold_paths: list[str]  # Recently flushed cold Parquet files (may not be indexed yet)
     success: bool
     error_message: str
 
@@ -55,8 +56,8 @@ class IngestionClient:
             host: Ingestion service hostname (default from settings)
             port: Ingestion service port (default from settings)
         """
-        self.host = host or settings.span_ingestion.INGESTION_HOST
-        self.port = port or settings.span_ingestion.INGESTION_PORT
+        self.host = host or settings.span_ingestion.host
+        self.port = port or settings.span_ingestion.port
         self.address = f"{self.host}:{self.port}"
         self.channel: grpc.aio.Channel | None = None
         self.stub: ingestion_pb2_grpc.InternalIngestionServiceStub | None = None
@@ -119,6 +120,7 @@ class IngestionClient:
                 snapshot_path=response.snapshot_path,
                 row_count=response.row_count,
                 file_size_bytes=response.file_size_bytes,
+                recent_cold_paths=list(response.recent_cold_paths),
                 success=response.success,
                 error_message=response.error_message,
             )

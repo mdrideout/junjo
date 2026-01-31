@@ -4,13 +4,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //
     // Both proto files use `package ingestion;` so they merge into a single module:
     // - ingestion.proto: InternalIngestionService (PrepareHotSnapshot, FlushWAL)
-    // - auth.proto: InternalAuthService (ValidateApiKey, NotifyNewParquetFile)
+    // - auth.proto: InternalAuthService (ValidateApiKey)
 
-    tonic_prost_build::configure()
-        .compile_protos(
-            &["../proto/ingestion.proto", "../proto/auth.proto"],
-            &["../proto"],
-        )?;
+    tonic_prost_build::configure().compile_protos(
+        &["../proto/ingestion.proto", "../proto/auth.proto"],
+        &["../proto"],
+    )?;
 
     println!("cargo:rerun-if-changed=../proto/ingestion.proto");
     println!("cargo:rerun-if-changed=../proto/auth.proto");

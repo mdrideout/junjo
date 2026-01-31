@@ -16,7 +16,6 @@ import pytest
 
 from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
 
-
 # Arrow schema matching the Rust ingestion output (spans Parquet).
 SPAN_SCHEMA = pa.schema(
     [
@@ -208,6 +207,54 @@ def test_dedup_prefers_cold_over_hot(temp_parquet_dir):
     assert len(results) == 1
     assert results[0]["span_id"] == "dup-span"
     assert results[0]["name"] == "cold-name"
+
+
+def test_dedup_does_not_collapse_across_traces(temp_parquet_dir):
+    """Dedup must not collapse spans from different traces.
+
+    span_id is only unique within a trace, so dedup must use (trace_id, span_id).
+    """
+    cold_trace_id = uuid.uuid4().hex
+    hot_trace_id = uuid.uuid4().hex
+
+    cold_path = os.path.join(temp_parquet_dir, "cold_multi_trace.parquet")
+    hot_path = os.path.join(temp_parquet_dir, "hot_multi_trace.parquet")
+
+    shared_span_id = "dup-span"
+
+    write_spans_to_parquet(
+        [
+            create_test_span(
+                trace_id=cold_trace_id,
+                span_id=shared_span_id,
+                service_name="svc",
+                name="cold-trace-span",
+            )
+        ],
+        cold_path,
+    )
+    write_spans_to_parquet(
+        [
+            create_test_span(
+                trace_id=hot_trace_id,
+                span_id=shared_span_id,
+                service_name="svc",
+                name="hot-trace-span",
+            )
+        ],
+        hot_path,
+    )
+
+    query = UnifiedSpanQuery()
+    query.register_cold([cold_path])
+    query.register_hot(hot_path)
+    results = query.query_spans_two_tier(service_name="svc", order_by="start_time ASC")
+
+    assert len(results) == 2
+    assert {(r["trace_id"], r["span_id"], r["name"]) for r in results} == {
+        (cold_trace_id, shared_span_id, "cold-trace-span"),
+        (hot_trace_id, shared_span_id, "hot-trace-span"),
+    }
 
 
 def test_register_cold_multiple_files(temp_parquet_dir):

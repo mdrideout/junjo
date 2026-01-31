@@ -7,7 +7,7 @@ This directory contains all Protocol Buffer definitions for the Junjo AI Studio 
 ### Service API Schemas (gRPC)
 These define the gRPC service interfaces between components:
 - **`ingestion.proto`**: Backend → ingestion internal RPCs (e.g. `PrepareHotSnapshot`, `FlushWAL`)
-- **`auth.proto`**: Ingestion → backend internal RPCs (e.g. `ValidateApiKey`, `NotifyNewParquetFile`)
+- **`auth.proto`**: Ingestion → backend internal RPCs (e.g. `ValidateApiKey`)
 
 ### Internal Storage Schemas
 These are not part of the gRPC service APIs:

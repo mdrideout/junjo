@@ -5,7 +5,7 @@ Two-Tier Architecture (Rust ingestion):
 - HOT: On-demand Parquet snapshot (from PrepareHotSnapshot RPC)
 
 Combines both tiers in a single DataFusion query with deduplication.
-Priority: COLD > HOT for the same span_id.
+Priority: COLD > HOT for the same (trace_id, span_id).
 
 Usage:
     query = UnifiedSpanQuery()
@@ -361,7 +361,7 @@ class UnifiedSpanQuery:
     ) -> list[dict[str, Any]]:
         """Query unified spans across both tiers with deduplication.
 
-        Priority: Cold > Hot (same span_id, Cold wins).
+        Priority: Cold > Hot (same (trace_id, span_id), Cold wins).
 
         Args:
             trace_id: Filter by trace ID
@@ -505,7 +505,7 @@ class UnifiedSpanQuery:
         ranked AS (
             SELECT *,
                 ROW_NUMBER() OVER (
-                    PARTITION BY span_id
+                    PARTITION BY trace_id, span_id
                     ORDER BY CASE _tier
                         WHEN 'cold' THEN 0
                         ELSE 1

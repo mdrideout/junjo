@@ -3,15 +3,12 @@ Internal gRPC service for ingestion ↔ backend communication.
 
 This service provides:
 - ValidateApiKey: API key validation for ingestion auth
-- NotifyNewParquetFile: Immediate indexing notification after cold flush
 """
 
 import grpc
 from loguru import logger
 
 from app.db_sqlite.api_keys.repository import APIKeyRepository
-from app.features.parquet_indexer.background_indexer import index_new_files
-from app.features.parquet_indexer.recent_parquet_files import record_new_parquet_file
 from app.proto_gen import auth_pb2, auth_pb2_grpc
 
 
@@ -67,46 +64,3 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
             # Return False instead of raising error (fail closed)
             # The ingestion service will treat this as invalid
             return auth_pb2.ValidateApiKeyResponse(is_valid=False)
-
-    async def NotifyNewParquetFile(  # noqa: N802 - gRPC method names follow protobuf convention
-        self,
-        request: auth_pb2.NotifyNewParquetFileRequest,
-        context: grpc.aio.ServicerContext,
-    ) -> auth_pb2.NotifyNewParquetFileResponse:
-        """
-        Trigger indexing after a new parquet file is flushed.
-
-        Called by ingestion after a cold flush completes, avoiding the polling delay.
-        This triggers the normal indexing logic which will find and index the new file.
-
-        Args:
-            request: NotifyNewParquetFileRequest containing the file path (for logging)
-            context: gRPC servicer context
-
-        Returns:
-            NotifyNewParquetFileResponse with indexing result
-        """
-        file_path = request.file_path
-        logger.info(f"Received notification for new parquet file: {file_path}")
-
-        try:
-            # Close the "flush → index" visibility gap by temporarily tracking this file
-            # for queries while the background indexer processes it.
-            record_new_parquet_file(file_path)
-
-            # Trigger the normal indexing function - it handles:
-            # - File scanning and deduplication
-            # - Reading parquet metadata
-            # - Indexing to SQLite metadata
-            # - Error recording for bad files
-            indexed_count = await index_new_files()
-
-            logger.info(f"Indexing triggered, indexed {indexed_count} files")
-            return auth_pb2.NotifyNewParquetFileResponse(indexed=True, span_count=indexed_count)
-
-        except Exception as e:
-            logger.error(
-                f"Failed to trigger indexing after notification: {file_path}",
-                extra={"error": str(e), "error_type": type(e).__name__},
-            )
-            return auth_pb2.NotifyNewParquetFileResponse(indexed=False, span_count=0)

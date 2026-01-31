@@ -328,13 +328,14 @@ junjo-ai-studio-ingestion:
 - **COLD tier**: Persisted Parquet files for historical data (fast reads, efficient storage)
 - **HOT tier**: On-demand snapshot for recent unflushed data (real-time queries)
 - Decouples fast writes from queryable storage
-- No polling or indexing - DataFusion queries Parquet directly
+- Backend uses a SQLite metadata index + background indexer to avoid scanning cold Parquet for lookups
+- Ingestion returns `recent_cold_paths` to bridge flush→index lag (no backend-side “recent files” tracking)
 
 **Storage tiers:**
 
 | Tier | Storage | Created By | Lifespan |
 |------|---------|------------|----------|
-| **COLD** | Date-partitioned Parquet files | `FlushWAL` RPC | Permanent |
+| **COLD** | Date-partitioned Parquet files | Automatic flusher / `FlushWAL` RPC | Permanent |
 | **HOT** | Single Parquet snapshot file | `PrepareHotSnapshot` RPC | Overwritten on each call |
 | **WAL** | Arrow IPC segments | OTLP ingestion | Deleted after flush |
 
@@ -346,12 +347,15 @@ junjo-ai-studio-ingestion:
 
 **Query flow:**
 1. **Request**: Backend receives span query (e.g., trace lookup)
-2. **Hot snapshot**: Backend calls `PrepareHotSnapshot` RPC to get unflushed data
-3. **Query**: DataFusion queries COLD Parquet files + HOT snapshot Parquet
-4. **Merge**: Results merged with deduplication (COLD wins for same span_id)
-5. **Return**: Unified results returned to frontend
+2. **Hot + recent cold**: Backend calls `PrepareHotSnapshot` to get:
+   - HOT snapshot path (unflushed WAL)
+   - `recent_cold_paths` (recently flushed Parquet files not yet indexed)
+3. **Cold selection**: Backend selects COLD Parquet files from SQLite metadata and augments with `recent_cold_paths`
+4. **Query**: DataFusion queries COLD + HOT and merges results
+5. **Dedup**: Deduplicate by `(trace_id, span_id)` with COLD priority over HOT
+6. **Return**: Unified results returned to frontend
 
-**Graceful degradation:** If ingestion service unavailable, backend queries COLD tier only.
+**Graceful degradation:** If ingestion service is unavailable, backend queries SQLite-indexed COLD tier only.
 
 ---
 
@@ -420,7 +424,7 @@ features/prompt-playground/
 
 **Shared proto definitions** in `proto/`:
 - `auth.proto` - Internal auth service (ValidateApiKey)
-- `ingestion.proto` - Ingestion service (PrepareHotSnapshot, FlushWAL, NotifyNewParquetFile)
+- `ingestion.proto` - Ingestion service (PrepareHotSnapshot, FlushWAL)
 
 **Python codegen** (via script):
 ```bash
@@ -736,6 +740,6 @@ def otlp_endpoint(self) -> str:
 - Backend (Python) = Query Parquet with DataFusion
 - COLD tier = Flushed Parquet files (permanent)
 - HOT tier = Snapshot of unflushed WAL (ephemeral)
-- Deduplication = COLD wins over HOT for same span_id
+- Deduplication = COLD wins over HOT for same (trace_id, span_id)
 - Tests = Co-located, auto-isolated
 - Config = Flat, explicit, validated

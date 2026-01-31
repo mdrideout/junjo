@@ -39,4 +39,9 @@ message PrepareHotSnapshotResponse {
   bool success = 4;
   // Error message if success=false
   string error_message = 5;
+  // Recently flushed (but potentially not yet indexed) cold parquet files.
+  //
+  // This closes the "WAL flushed -> cold file exists -> metadata not indexed yet"
+  // visibility gap without requiring backend-side tracking.
+  repeated string recent_cold_paths = 6;
 }

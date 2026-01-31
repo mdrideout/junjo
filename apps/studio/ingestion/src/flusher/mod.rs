@@ -1,12 +1,12 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tokio::sync::{mpsc, RwLock};
 use tokio::time::interval;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
-use crate::backend::BackendClient;
+use crate::recent_cold_files::RecentColdFiles;
 use crate::wal::ArrowWal;
 
 /// Manages background flushing of WAL to Parquet files.
@@ -15,7 +15,7 @@ pub struct Flusher {
     output_dir: PathBuf,
     max_bytes: u64,
     max_age_secs: u64,
-    backend: Arc<BackendClient>,
+    recent_cold: Arc<Mutex<RecentColdFiles>>,
     last_flush: RwLock<Instant>,
 }
 
@@ -25,14 +25,14 @@ impl Flusher {
         output_dir: PathBuf,
         max_bytes: u64,
         max_age_secs: u64,
-        backend: Arc<BackendClient>,
+        recent_cold: Arc<Mutex<RecentColdFiles>>,
     ) -> Self {
         Self {
             wal,
             output_dir,
             max_bytes,
             max_age_secs,
-            backend,
+            recent_cold,
             last_flush: RwLock::new(Instant::now()),
         }
     }
@@ -127,7 +127,8 @@ impl Flusher {
 
         // Generate output path with date partitioning
         let now = chrono::Utc::now();
-        let output_path = self.output_dir
+        let output_path = self
+            .output_dir
             .join(format!("year={}", now.format("%Y")))
             .join(format!("month={}", now.format("%m")))
             .join(format!("day={}", now.format("%d")))
@@ -140,22 +141,26 @@ impl Flusher {
         // Streaming flush: reads one segment at a time, writes to parquet, drops memory
         let row_count = {
             let mut wal = self.wal.write().await;
-            wal.flush_to_parquet(&output_path)?
+            let row_count = wal.flush_to_parquet(&output_path)?;
+
+            // Close the visibility gap between WAL flush and backend indexing by recording the
+            // newly-created cold file while still holding the WAL write lock. This prevents a
+            // PrepareHotSnapshot request from observing:
+            // - WAL segments already deleted (HOT empty)
+            // - but recent_cold list not yet updated
+            if row_count > 0 {
+                let output_path_str = output_path.to_string_lossy().to_string();
+                let mut recent = self.recent_cold.lock().expect("recent_cold mutex poisoned");
+                recent.record(output_path_str);
+            }
+
+            row_count
         };
 
         if row_count == 0 {
             debug!("No data to flush");
             return Ok(());
         }
-
-        // Notify backend (fire-and-forget to avoid blocking the flusher)
-        let output_path_str = output_path.to_string_lossy().to_string();
-        let backend = Arc::clone(&self.backend);
-        tokio::spawn(async move {
-            if let Err(e) = backend.notify_new_parquet(&output_path_str).await {
-                warn!(error = %e, path = %output_path_str, "Failed to notify backend of new parquet file");
-            }
-        });
 
         // Note: segment deletion now happens inside flush_to_parquet()
         // which deletes only the segments it flushed (preserving new ones)

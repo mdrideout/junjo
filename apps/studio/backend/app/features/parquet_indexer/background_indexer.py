@@ -23,7 +23,6 @@ from app.db_sqlite.metadata import indexer as sqlite_indexer
 from app.db_sqlite.metadata import repository as sqlite_repository
 from app.features.parquet_indexer.file_scanner import scan_parquet_files
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
-from app.features.parquet_indexer.recent_parquet_files import mark_parquet_file_indexed
 
 _index_lock: asyncio.Lock | None = None
 
@@ -95,10 +94,6 @@ async def parquet_indexer() -> None:
 async def index_new_files(executor: ThreadPoolExecutor | None = None) -> int:
     """Scan for and index new Parquet files.
 
-    This method is called by:
-    - the periodic background indexer loop
-    - the ingestion NotifyNewParquetFile gRPC hook (immediate indexing)
-
     The function is concurrency-safe; only one indexing pass can run at a time.
 
     Args:
@@ -113,7 +108,7 @@ async def index_new_files(executor: ThreadPoolExecutor | None = None) -> int:
         if executor is None:
             temp_executor = ThreadPoolExecutor(
                 max_workers=1,
-                thread_name_prefix="parquet-indexer-notify",
+                thread_name_prefix="parquet-indexer-on-demand",
             )
             try:
                 return await _index_new_files(temp_executor)
@@ -180,8 +175,6 @@ async def _index_new_files(executor: ThreadPoolExecutor) -> int:
             span_count = await loop.run_in_executor(
                 executor, sqlite_indexer.index_parquet_file, file_data
             )
-
-            mark_parquet_file_indexed(file_info.path)
 
             indexed_count += 1
             logger.debug(

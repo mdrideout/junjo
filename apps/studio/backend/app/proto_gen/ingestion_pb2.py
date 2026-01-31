@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fingestion.proto\x12\tingestion\"\x11\n\x0f\x46lushWALRequest\":\n\x10\x46lushWALResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\"\x1b\n\x19PrepareHotSnapshotRequest\"\x87\x01\n\x1aPrepareHotSnapshotResponse\x12\x15\n\rsnapshot_path\x18\x01 \x01(\t\x12\x11\n\trow_count\x18\x02 \x01(\x03\x12\x17\n\x0f\x66ile_size_bytes\x18\x03 \x01(\x03\x12\x0f\n\x07success\x18\x04 \x01(\x08\x12\x15\n\rerror_message\x18\x05 \x01(\t2\xc6\x01\n\x18InternalIngestionService\x12\x63\n\x12PrepareHotSnapshot\x12$.ingestion.PrepareHotSnapshotRequest\x1a%.ingestion.PrepareHotSnapshotResponse\"\x00\x12\x45\n\x08\x46lushWAL\x12\x1a.ingestion.FlushWALRequest\x1a\x1b.ingestion.FlushWALResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fingestion.proto\x12\tingestion\"\x11\n\x0f\x46lushWALRequest\":\n\x10\x46lushWALResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\"\x1b\n\x19PrepareHotSnapshotRequest\"\xa2\x01\n\x1aPrepareHotSnapshotResponse\x12\x15\n\rsnapshot_path\x18\x01 \x01(\t\x12\x11\n\trow_count\x18\x02 \x01(\x03\x12\x17\n\x0f\x66ile_size_bytes\x18\x03 \x01(\x03\x12\x0f\n\x07success\x18\x04 \x01(\x08\x12\x15\n\rerror_message\x18\x05 \x01(\t\x12\x19\n\x11recent_cold_paths\x18\x06 \x03(\t2\xc6\x01\n\x18InternalIngestionService\x12\x63\n\x12PrepareHotSnapshot\x12$.ingestion.PrepareHotSnapshotRequest\x1a%.ingestion.PrepareHotSnapshotResponse\"\x00\x12\x45\n\x08\x46lushWAL\x12\x1a.ingestion.FlushWALRequest\x1a\x1b.ingestion.FlushWALResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,7 +38,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PREPAREHOTSNAPSHOTREQUEST']._serialized_start=109
   _globals['_PREPAREHOTSNAPSHOTREQUEST']._serialized_end=136
   _globals['_PREPAREHOTSNAPSHOTRESPONSE']._serialized_start=139
-  _globals['_PREPAREHOTSNAPSHOTRESPONSE']._serialized_end=274
-  _globals['_INTERNALINGESTIONSERVICE']._serialized_start=277
-  _globals['_INTERNALINGESTIONSERVICE']._serialized_end=475
+  _globals['_PREPAREHOTSNAPSHOTRESPONSE']._serialized_end=301
+  _globals['_INTERNALINGESTIONSERVICE']._serialized_start=304
+  _globals['_INTERNALINGESTIONSERVICE']._serialized_end=502
 # @@protoc_insertion_point(module_scope)

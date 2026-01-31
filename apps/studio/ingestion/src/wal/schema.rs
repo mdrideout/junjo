@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
+use std::sync::Arc;
 
 lazy_static::lazy_static! {
     /// Arrow schema for span records, matching the Go implementation for DataFusion compatibility.

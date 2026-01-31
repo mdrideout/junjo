@@ -28,6 +28,14 @@ pub struct Config {
     pub backend_port: u16,
     /// Log level
     pub log_level: String,
+
+    /// Max number of recently flushed cold Parquet files to return from PrepareHotSnapshot.
+    pub recent_cold_max_files: usize,
+    /// Max age (seconds) for recently flushed cold Parquet files to return from PrepareHotSnapshot.
+    pub recent_cold_max_age_secs: u64,
+    /// Cache TTL (milliseconds) for PrepareHotSnapshot results (snapshot only).
+    /// This throttles snapshot creation under concurrent UI requests.
+    pub prepare_hot_snapshot_cache_ttl_ms: u64,
 }
 
 impl Config {
@@ -38,7 +46,10 @@ impl Config {
             .unwrap_or_else(|| PathBuf::from("/tmp"));
 
         let default_wal_dir = home_dir.join(".junjo").join("spans").join("wal");
-        let default_snapshot_path = home_dir.join(".junjo").join("spans").join("hot_snapshot.parquet");
+        let default_snapshot_path = home_dir
+            .join(".junjo")
+            .join("spans")
+            .join("hot_snapshot.parquet");
         let default_parquet_dir = home_dir.join(".junjo").join("spans").join("parquet");
 
         Config {
@@ -86,16 +97,29 @@ impl Config {
                 .map(|mb| mb * 1024 * 1024)
                 .unwrap_or(300 * 1024 * 1024), // 300 MB
 
-            backend_host: env::var("BACKEND_GRPC_HOST")
-                .unwrap_or_else(|_| "localhost".to_string()),
+            backend_host: env::var("BACKEND_GRPC_HOST").unwrap_or_else(|_| "localhost".to_string()),
 
             backend_port: env::var("BACKEND_GRPC_PORT")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(50053),
 
-            log_level: env::var("JUNJO_LOG_LEVEL")
-                .unwrap_or_else(|_| "info".to_string()),
+            log_level: env::var("JUNJO_LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
+
+            recent_cold_max_files: env::var("RECENT_COLD_MAX_FILES")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(20),
+
+            recent_cold_max_age_secs: env::var("RECENT_COLD_MAX_AGE_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(120),
+
+            prepare_hot_snapshot_cache_ttl_ms: env::var("PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(1000),
         }
     }
 

@@ -217,8 +217,8 @@ Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
 **How it works:**
 - **Ingestion** receives OTLP spans and writes them to Arrow IPC WAL segments
 - **FlushWAL** (periodic/manual) converts WAL segments to date-partitioned Parquet files (COLD tier)
-- **PrepareHotSnapshot** creates an on-demand Parquet file from unflushed WAL data (HOT tier)
-- **Backend** uses DataFusion to query both COLD and HOT Parquet files, merging results with deduplication (COLD wins)
+- **PrepareHotSnapshot** creates an on-demand Parquet file from unflushed WAL data (HOT tier) and returns a bounded list of recently flushed cold Parquet files (`recent_cold_paths`) to bridge indexing lag
+- **Backend** uses DataFusion to query COLD (SQLite-indexed + `recent_cold_paths`) and HOT Parquet files, merging results with deduplication by `(trace_id, span_id)` (COLD wins)
 
 ---
 

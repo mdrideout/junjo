@@ -6,8 +6,7 @@ The rust_ingestion_service fixture automatically starts an ephemeral service.
 The FlushWAL RPC:
 1. Flushes all WAL segments to Parquet files (cold storage)
 2. Creates date-partitioned Parquet files in the output directory
-3. Notifies the backend via NotifyNewParquetFile RPC
-4. Clears the WAL segments after successful flush
+3. Clears the WAL segments after successful flush
 
 Usage:
     pytest tests/test_flush_wal_integration.py -v -m requires_ingestion_service

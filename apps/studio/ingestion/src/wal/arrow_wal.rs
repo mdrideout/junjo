@@ -5,8 +5,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use arrow::array::{
-    ArrayRef, Int64Array, Int8Array, RecordBatch, StringArray,
-    TimestampNanosecondArray,
+    ArrayRef, Int64Array, Int8Array, RecordBatch, StringArray, TimestampNanosecondArray,
 };
 use arrow::ipc::reader::StreamReader;
 use arrow::ipc::writer::StreamWriter;
@@ -353,7 +352,8 @@ impl ArrowWal {
             .as_nanos();
         self.sequence += 1;
 
-        self.wal_dir.join(format!("batch_{}_{:04}.ipc", timestamp, self.sequence))
+        self.wal_dir
+            .join(format!("batch_{}_{:04}.ipc", timestamp, self.sequence))
     }
 
     /// Write a single batch to a new segment file.
@@ -389,11 +389,7 @@ impl ArrowWal {
         let mut segments: Vec<PathBuf> = std::fs::read_dir(&self.wal_dir)?
             .filter_map(|entry| entry.ok())
             .map(|entry| entry.path())
-            .filter(|path| {
-                path.extension()
-                    .map(|ext| ext == "ipc")
-                    .unwrap_or(false)
-            })
+            .filter(|path| path.extension().map(|ext| ext == "ipc").unwrap_or(false))
             .collect();
 
         // Sort by filename (timestamp-based names sort correctly)
@@ -419,7 +415,8 @@ impl ArrowWal {
         let count = std::fs::read_dir(wal_dir)?
             .filter_map(|entry| entry.ok())
             .filter(|entry| {
-                entry.path()
+                entry
+                    .path()
                     .extension()
                     .map(|ext| ext == "ipc")
                     .unwrap_or(false)

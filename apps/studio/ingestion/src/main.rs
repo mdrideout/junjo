@@ -7,28 +7,31 @@
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use tokio::sync::{mpsc, RwLock};
 use tonic::transport::Server;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-mod config;
-mod wal;
-mod server;
-mod flusher;
 mod backend;
+mod config;
+mod flusher;
+mod recent_cold_files;
+mod server;
+mod wal;
 
 pub mod proto {
     tonic::include_proto!("ingestion");
 }
 
-use config::Config;
-use wal::ArrowWal;
-use server::{TraceService, InternalService};
-use flusher::Flusher;
 use backend::BackendClient;
+use config::Config;
+use flusher::Flusher;
+use recent_cold_files::RecentColdFiles;
+use server::{InternalService, TraceService};
+use wal::ArrowWal;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -36,8 +39,8 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::from_env();
 
     // Initialize tracing
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&config.log_level));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log_level));
 
     tracing_subscriber::fmt()
         .with_env_filter(filter)
@@ -54,6 +57,9 @@ async fn main() -> anyhow::Result<()> {
         flush_max_mb = config.flush_max_bytes / 1024 / 1024,
         batch_size = config.batch_size,
         backpressure_max_mb = config.backpressure_max_bytes / 1024 / 1024,
+        recent_cold_max_files = config.recent_cold_max_files,
+        recent_cold_max_age_secs = config.recent_cold_max_age_secs,
+        prepare_hot_snapshot_cache_ttl_ms = config.prepare_hot_snapshot_cache_ttl_ms,
         "Starting ingestion service"
     );
 
@@ -70,6 +76,12 @@ async fn main() -> anyhow::Result<()> {
     // Initialize backend client
     let backend_client = Arc::new(BackendClient::new(config.backend_addr()));
 
+    // Track recently flushed cold files in memory (bounded by count + age).
+    let recent_cold = Arc::new(Mutex::new(RecentColdFiles::new(
+        config.recent_cold_max_files,
+        Duration::from_secs(config.recent_cold_max_age_secs),
+    )));
+
     // Create channel for reactive flush notifications (TraceService -> Flusher)
     // Buffer of 16 allows burst of segment writes without blocking gRPC handlers
     let (segment_tx, segment_rx) = mpsc::channel::<()>(16);
@@ -80,7 +92,7 @@ async fn main() -> anyhow::Result<()> {
         config.parquet_output_dir.clone(),
         config.flush_max_bytes,
         config.flush_max_age_secs,
-        Arc::clone(&backend_client),
+        Arc::clone(&recent_cold),
     ));
 
     // Start flusher background task with the segment notification receiver
@@ -101,6 +113,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::clone(&wal),
         Arc::clone(&flusher),
         config.snapshot_path.clone(),
+        Arc::clone(&recent_cold),
+        Duration::from_millis(config.prepare_hot_snapshot_cache_ttl_ms),
     );
 
     // Start servers concurrently
@@ -119,10 +133,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run_public_server(
-    addr: SocketAddr,
-    trace_service: TraceService,
-) -> anyhow::Result<()> {
+async fn run_public_server(addr: SocketAddr, trace_service: TraceService) -> anyhow::Result<()> {
     use opentelemetry_proto::tonic::collector::trace::v1::trace_service_server::TraceServiceServer;
 
     Server::builder()

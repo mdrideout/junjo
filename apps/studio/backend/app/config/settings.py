@@ -91,14 +91,14 @@ class DatabaseSettings(BaseSettings):
     )
 
 
-class IngestionServiceSettings(BaseSettings):
-    """Ingestion service gRPC connection settings"""
+class SpanIngestionSettings(BaseSettings):
+    """Ingestion service internal gRPC connection settings."""
 
     host: Annotated[
         str,
         Field(
-            default="localhost",
-            description="Ingestion service gRPC host",
+            default="junjo-ai-studio-ingestion",
+            description="Ingestion service internal gRPC hostname",
             validation_alias="INGESTION_HOST",
         ),
     ]
@@ -116,76 +116,7 @@ class IngestionServiceSettings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def grpc_url(self) -> str:
-        """Computed gRPC URL"""
         return f"{self.host}:{self.port}"
-
-    model_config = SettingsConfigDict(
-        env_file=find_env_file(),
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-
-class SpanIngestionSettings(BaseSettings):
-    """Span ingestion poller configuration"""
-
-    INGESTION_HOST: Annotated[
-        str,
-        Field(
-            default="junjo-ai-studio-ingestion",
-            description="Ingestion service hostname for span reading",
-            validation_alias="INGESTION_HOST",
-        ),
-    ]
-    INGESTION_PORT: Annotated[
-        int,
-        Field(
-            default=50052,
-            ge=1,
-            le=65535,
-            description="Ingestion service gRPC port",
-            validation_alias="INGESTION_PORT",
-        ),
-    ]
-    SPAN_POLL_INTERVAL: Annotated[
-        int,
-        Field(
-            default=5,
-            ge=1,
-            le=3600,
-            description="Span polling interval in seconds",
-            validation_alias="SPAN_POLL_INTERVAL",
-        ),
-    ]
-    SPAN_BATCH_SIZE: Annotated[
-        int,
-        Field(
-            default=100,
-            ge=1,
-            le=10000,
-            description="Maximum spans to read per poll",
-            validation_alias="SPAN_BATCH_SIZE",
-        ),
-    ]
-    SPAN_STRICT_MODE: Annotated[
-        bool,
-        Field(
-            default=False,
-            description="If True, fail entire batch on state patch errors",
-            validation_alias="SPAN_STRICT_MODE",
-        ),
-    ]
-    HOT_SNAPSHOT_CACHE_TTL_SECONDS: Annotated[
-        float,
-        Field(
-            default=1.0,
-            ge=0.0,
-            le=60.0,
-            description="Cache TTL for PrepareHotSnapshot results (seconds). "
-            "Reduces repeated hot snapshot generation across concurrent requests.",
-            validation_alias="HOT_SNAPSHOT_CACHE_TTL_SECONDS",
-        ),
-    ]
 
     model_config = SettingsConfigDict(
         env_file=find_env_file(),
@@ -385,13 +316,9 @@ class AppSettings(BaseSettings):
     database: Annotated[
         DatabaseSettings, Field(default_factory=DatabaseSettings, description="Database settings")
     ]
-    ingestion: Annotated[
-        IngestionServiceSettings,
-        Field(default_factory=IngestionServiceSettings, description="Ingestion service settings"),
-    ]
     span_ingestion: Annotated[
         SpanIngestionSettings,
-        Field(default_factory=SpanIngestionSettings, description="Span ingestion poller settings"),
+        Field(default_factory=SpanIngestionSettings, description="Ingestion service settings"),
     ]
     llm: Annotated[
         LLMSettings,

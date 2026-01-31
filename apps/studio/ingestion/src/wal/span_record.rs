@@ -1,6 +1,6 @@
-use opentelemetry_proto::tonic::trace::v1::Span;
+use opentelemetry_proto::tonic::common::v1::{any_value, AnyValue, KeyValue};
 use opentelemetry_proto::tonic::resource::v1::Resource;
-use opentelemetry_proto::tonic::common::v1::{AnyValue, KeyValue, any_value};
+use opentelemetry_proto::tonic::trace::v1::Span;
 use serde_json::{json, Value as JsonValue};
 
 /// A span record in a format suitable for Arrow/Parquet storage.
@@ -34,11 +34,9 @@ impl SpanRecord {
         };
 
         let service_name = resource
-            .and_then(|r| {
-                r.attributes.iter().find(|kv| kv.key == "service.name")
-            })
+            .and_then(|r| r.attributes.iter().find(|kv| kv.key == "service.name"))
             .and_then(|kv| kv.value.as_ref())
-            .and_then(|v| extract_string_value(v))
+            .and_then(extract_string_value)
             .unwrap_or_default();
 
         let span_kind = span.kind as i8;
@@ -49,7 +47,16 @@ impl SpanRecord {
         let (status_code, status_message) = span
             .status
             .as_ref()
-            .map(|s| (s.code as i8, if s.message.is_empty() { None } else { Some(s.message.clone()) }))
+            .map(|s| {
+                (
+                    s.code as i8,
+                    if s.message.is_empty() {
+                        None
+                    } else {
+                        Some(s.message.clone())
+                    },
+                )
+            })
             .unwrap_or((0, None));
 
         let attributes = serialize_attributes(&span.attributes);
@@ -88,9 +95,9 @@ fn serialize_attributes(attrs: &[KeyValue]) -> String {
     let map: serde_json::Map<String, JsonValue> = attrs
         .iter()
         .filter_map(|kv| {
-            kv.value.as_ref().map(|v| {
-                (kv.key.clone(), any_value_to_json(v))
-            })
+            kv.value
+                .as_ref()
+                .map(|v| (kv.key.clone(), any_value_to_json(v)))
         })
         .collect();
 
@@ -105,9 +112,9 @@ fn serialize_events(events: &[opentelemetry_proto::tonic::trace::v1::span::Event
                 .attributes
                 .iter()
                 .filter_map(|kv| {
-                    kv.value.as_ref().map(|v| {
-                        (kv.key.clone(), any_value_to_json(v))
-                    })
+                    kv.value
+                        .as_ref()
+                        .map(|v| (kv.key.clone(), any_value_to_json(v)))
                 })
                 .collect();
 
@@ -139,7 +146,13 @@ mod tests {
         let json_str = serialize_events(&[event]);
         let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
 
-        let event_obj = parsed.as_array().unwrap().first().unwrap().as_object().unwrap();
+        let event_obj = parsed
+            .as_array()
+            .unwrap()
+            .first()
+            .unwrap()
+            .as_object()
+            .unwrap();
         assert!(event_obj.contains_key("timeUnixNano"));
         assert!(!event_obj.contains_key("time_unix_nano"));
     }
@@ -160,7 +173,9 @@ fn any_value_to_json(value: &AnyValue) -> JsonValue {
                 .values
                 .iter()
                 .filter_map(|kv| {
-                    kv.value.as_ref().map(|v| (kv.key.clone(), any_value_to_json(v)))
+                    kv.value
+                        .as_ref()
+                        .map(|v| (kv.key.clone(), any_value_to_json(v)))
                 })
                 .collect();
             json!(map)

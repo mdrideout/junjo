@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use opentelemetry_proto::tonic::collector::trace::v1::{
-    trace_service_server::TraceService as OtlpTraceService,
-    ExportTraceServiceRequest, ExportTraceServiceResponse,
+    trace_service_server::TraceService as OtlpTraceService, ExportTraceServiceRequest,
+    ExportTraceServiceResponse,
 };
 use tokio::sync::{mpsc, RwLock};
 use tonic::{Request, Response, Status};
 use tracing::{debug, warn};
 
-use crate::backend::BackendClient;
-use crate::wal::{ArrowWal, SpanRecord};
 use super::auth::ApiKeyInterceptor;
 use super::backpressure::BackpressureMonitor;
+use crate::backend::BackendClient;
+use crate::wal::{ArrowWal, SpanRecord};
 
 /// OTLP TraceService implementation.
 pub struct TraceService {
@@ -63,12 +63,18 @@ impl OtlpTraceService for TraceService {
         let auth_duration = auth_start.elapsed();
 
         if !is_valid {
-            warn!(api_key_prefix = &api_key[..8.min(api_key.len())], "API key validation failed");
+            warn!(
+                api_key_prefix = &api_key[..8.min(api_key.len())],
+                "API key validation failed"
+            );
             return Err(Status::unauthenticated("Invalid API key"));
         }
 
         if auth_duration.as_millis() > 5000 {
-            warn!(auth_ms = auth_duration.as_millis(), "Slow API key validation");
+            warn!(
+                auth_ms = auth_duration.as_millis(),
+                "Slow API key validation"
+            );
         }
 
         let inner = request.into_inner();
@@ -124,10 +130,18 @@ impl OtlpTraceService for TraceService {
 
         let total_duration = start.elapsed();
         if total_duration.as_millis() > 5000 {
-            warn!(total_ms = total_duration.as_millis(), span_count = span_count, "Slow request");
+            warn!(
+                total_ms = total_duration.as_millis(),
+                span_count = span_count,
+                "Slow request"
+            );
         }
 
-        debug!(span_count = span_count, duration_ms = total_duration.as_millis(), "Ingested spans");
+        debug!(
+            span_count = span_count,
+            duration_ms = total_duration.as_millis(),
+            "Ingested spans"
+        );
 
         Ok(Response::new(ExportTraceServiceResponse {
             partial_success: None,

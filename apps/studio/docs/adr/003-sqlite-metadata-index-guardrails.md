@@ -27,15 +27,17 @@ Adopt the following guardrails for the SQLite metadata index:
 3. **Bounded background indexing**
    - Run the Parquet background indexer on a bounded executor (single worker) to prevent creating many thread-local SQLite connections and multiplying page caches.
 
-4. **Immediate indexing notifications**
-   - The ingestion `NotifyNewParquetFile` hook must trigger a single indexing pass safely (serialized with the background indexer) to avoid the “cold file exists but metadata not indexed yet” gap.
+4. **Indexing is eventual (no tight coupling)**
+   - The backend indexer polls the filesystem for new cold Parquet files and indexes them into SQLite metadata.
+   - Ingestion must not depend on backend availability for cold flush correctness.
 
 5. **Flush → index query bridge**
-   - Even with `NotifyNewParquetFile`, there is an unavoidable window where:
+   - There is an unavoidable window where:
      - A new cold Parquet file exists on disk
      - The SQLite metadata index has not yet ingested it
      - The WAL may already be empty (so HOT snapshot is empty)
-   - The backend must temporarily treat *recently flushed* Parquet files as additional cold query sources until indexing completes (or the entries expire) to prevent user-visible “No logs found” for very new traces/workflows.
+   - The ingestion service must return a bounded list of *recently flushed cold* Parquet file paths from `PrepareHotSnapshot`.
+   - The backend must temporarily treat those `recent_cold_paths` as additional cold query sources until SQLite metadata catches up to prevent user-visible “No logs found” for very new traces/workflows.
 
 6. **PrepareHotSnapshot semantics**
    - When there are no unflushed spans, the ingestion service may return `success=true` with an **empty** `snapshot_path`.
@@ -43,7 +45,8 @@ Adopt the following guardrails for the SQLite metadata index:
 
 7. **PrepareHotSnapshot throttling**
    - `PrepareHotSnapshot` can be expensive when the WAL is large and the UI issues multiple concurrent requests.
-   - Cache `PrepareHotSnapshot` results for a short TTL (e.g. ~1s) and serialize snapshot creation to avoid stampedes.
+   - Throttle and cache snapshot creation inside the ingestion service for a short TTL (e.g. ~1s) and serialize snapshot creation to avoid stampedes.
+   - The backend should call ingestion per request so it always receives up-to-date `recent_cold_paths` (the bridge) even when snapshot creation is cached.
 
 8. **Bound cold file registration for service queries**
    - Service-scoped listing queries (services → workflows → traces) must register a bounded number of cold files (most recent N) independent of the requested span limit.

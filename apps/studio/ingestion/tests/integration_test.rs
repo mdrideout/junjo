@@ -36,7 +36,10 @@ mod wal_tests {
         let parquet_dir = dir.path().join("parquet");
 
         // Create date-partitioned directory structure
-        let date_dir = parquet_dir.join("year=2025").join("month=12").join("day=18");
+        let date_dir = parquet_dir
+            .join("year=2025")
+            .join("month=12")
+            .join("day=18");
         std::fs::create_dir_all(&date_dir).unwrap();
 
         assert!(date_dir.exists());
@@ -138,7 +141,6 @@ mod schema_tests {
 
 /// Test module for Parquet file operations
 mod parquet_tests {
-    use tempfile::tempdir;
     use arrow::array::{Int64Array, Int8Array, StringArray, TimestampNanosecondArray};
     use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use arrow::record_batch::RecordBatch;
@@ -146,6 +148,7 @@ mod parquet_tests {
     use parquet::file::properties::WriterProperties;
     use std::fs::File;
     use std::sync::Arc;
+    use tempfile::tempdir;
 
     /// Test creating a valid Parquet file with span data
     #[test]
@@ -190,9 +193,7 @@ mod parquet_tests {
                 Arc::new(StringArray::from(vec!["test-service"])),
                 Arc::new(StringArray::from(vec!["test-operation"])),
                 Arc::new(Int8Array::from(vec![1i8])),
-                Arc::new(
-                    TimestampNanosecondArray::from(vec![now_ns]).with_timezone("UTC"),
-                ),
+                Arc::new(TimestampNanosecondArray::from(vec![now_ns]).with_timezone("UTC")),
                 Arc::new(
                     TimestampNanosecondArray::from(vec![now_ns + 100_000]).with_timezone("UTC"),
                 ),
@@ -367,7 +368,10 @@ mod partitioning_tests {
         let timestamp = 1734530000u64;
         let random_suffix = "abcd1234";
 
-        let filename = format!("{}_{:010}_{}.parquet", service_name, timestamp, random_suffix);
+        let filename = format!(
+            "{}_{:010}_{}.parquet",
+            service_name, timestamp, random_suffix
+        );
         assert!(filename.starts_with("my-service"));
         assert!(filename.ends_with(".parquet"));
         assert!(filename.contains("_"));
