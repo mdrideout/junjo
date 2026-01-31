@@ -1,7 +1,7 @@
 [project]
 name = "getting-started"
 version = "0.1.0"
-description = "Add your description here"
+description = "The Junjo Getting Started documentation example."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["junjo", "ruff>=0.9.5"]
