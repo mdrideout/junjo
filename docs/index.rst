@@ -57,7 +57,7 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
    :align: center
    :width: 800px
 
-*A screenshot of Junjo's companion open-telemetry ingestion server to make debugging graph workflow state easy.*
+*A screenshot of Junjo AI Studio, Junjo's companion OpenTelemetry observability platform for debugging graph workflow state.*
 
 Benefits
 ---------

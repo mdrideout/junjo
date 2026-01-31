@@ -279,7 +279,11 @@ $ source .venv/bin/activate
 
 # Install optional development dependencies (graphviz is optional for running the graphviz visualizer)
 # Graphviz, if utilized, must also be installed on the host system (see below)
+# Option 1:
 $ uv pip install -e ".[dev,graphviz]"
+
+# Option 2:
+$ uv sync --all-extras
 ```
 
 ### Code Linting and Formatting
@@ -296,7 +300,7 @@ This project utilizes [ruff](https://astral.sh/ruff) for linting and auto format
 
 # Execute the build command to preview the new docs.
 # They will appear in a .gitignored folder docs/_build
-$ sphinx-build -b html docs docs/_build
+$ uv run sphinx-build -b html docs docs/_build
 ```
 
 ### Tests

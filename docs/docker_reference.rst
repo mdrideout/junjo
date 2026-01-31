@@ -13,30 +13,38 @@ Backend Service
 
 **Image:** `mdrideout/junjo-ai-studio-backend <https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend>`_
 
-The backend service provides the HTTP API, authentication, and data processing capabilities. It uses SQLite for metadata storage and DuckDB for analytical queries.
+The backend service provides the HTTP API, authentication, and query capabilities.
+
+**Storage and query model (current):**
+
+- **SQLite** for users / sessions / API keys
+- **SQLite metadata index** for fast lookup of which Parquet files may contain a trace/service
+- **Parquet** files for span storage (cold tier)
+- **DataFusion** to query Parquet (cold + hot snapshot) and deduplicate results
 
 **Notes:**
 
-- Polls the ingestion service for new telemetry data
-- Processes and indexes traces for querying via the web UI
+- Indexes new Parquet files asynchronously (polls the shared Parquet directory)
+- Calls ingestion internal gRPC (``:50052``) per query to generate a hot snapshot and return a bounded list of recently-flushed cold Parquet paths (bridges flush→index lag)
 
 Ingestion Service
 ~~~~~~~~~~~~~~~~~
 
 **Image:** `mdrideout/junjo-ai-studio-ingestion <https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion>`_
 
-The ingestion service provides high-throughput OpenTelemetry data reception using BadgerDB as a write-ahead log. This decoupled architecture ensures telemetry data is never lost, even under heavy load.
+The ingestion service provides high-throughput OpenTelemetry data reception using a segmented Arrow IPC write-ahead log (WAL) that flushes to date-partitioned Parquet files (constant memory flush).
 
 **Ports:**
 
 - ``50051`` - OpenTelemetry gRPC ingestion endpoint (public, your applications connect here)
-- ``50052`` - Internal gRPC for backend polling (internal)
+- ``50052`` - Internal gRPC for backend queries (PrepareHotSnapshot / FlushWAL) (internal)
 
 **Notes:**
 
 - This is the primary endpoint where your Junjo workflows send telemetry
-- Uses BadgerDB for durable, high-performance data ingestion
-- Backend service polls this service to retrieve new data
+- Uses segmented Arrow IPC WAL for durability and throughput
+- Flushes WAL → Parquet and maintains a bounded list of recently flushed Parquet paths for query bridging
+- Validates API keys by calling the backend's internal auth gRPC (``:50053``)
 
 Frontend Service
 ~~~~~~~~~~~~~~~~
@@ -72,7 +80,7 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
 
     services:
       junjo-ai-studio-backend:
-        image: mdrideout/junjo-ai-studio-backend:0.70.3
+        image: mdrideout/junjo-ai-studio-backend:latest
         container_name: junjo-ai-studio-backend
         restart: unless-stopped
         volumes:
@@ -92,10 +100,11 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           - RUN_MIGRATIONS=true
           # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
           - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-          - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+          - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+          - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
       junjo-ai-studio-ingestion:
-        image: mdrideout/junjo-ai-studio-ingestion:0.70.3
+        image: mdrideout/junjo-ai-studio-ingestion:latest
         container_name: junjo-ai-studio-ingestion
         restart: unless-stopped
         volumes:
@@ -110,8 +119,12 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
         environment:
           - BACKEND_GRPC_HOST=junjo-ai-studio-backend
           - BACKEND_GRPC_PORT=50053
-          # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
-          - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
+          # Arrow IPC WAL directory
+          - WAL_DIR=/app/.dbdata/spans/wal
+          # Hot snapshot path (backend reads this file directly)
+          - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+          # Parquet output directory (backend indexer watches this)
+          - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
         depends_on:
           junjo-ai-studio-backend:
             condition: service_started
@@ -123,7 +136,7 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           start_period: 5s
 
       junjo-ai-studio-frontend:
-        image: mdrideout/junjo-ai-studio-frontend:0.70.3
+        image: mdrideout/junjo-ai-studio-frontend:latest
         container_name: junjo-ai-studio-frontend
         restart: unless-stopped
         ports:
@@ -246,17 +259,19 @@ Local Directory Structure
     .
     ├── docker-compose.yml
     ├── .env
-    └── dbdata/
-        ├── sqlite/       # Backend metadata
-        ├── duckdb/       # Backend analytics
-        └── badgerdb/     # Ingestion WAL
+    └── .dbdata/
+        ├── sqlite/                # Backend SQLite (junjo.db + metadata.db)
+        └── spans/
+            ├── wal/               # Arrow IPC WAL segments (hot)
+            ├── parquet/           # Date-partitioned Parquet files (cold)
+            └── hot_snapshot.parquet
 
 **Create directories:**
 
 .. code-block:: bash
 
-    mkdir -p dbdata/{sqlite,duckdb,badgerdb}
-    chmod -R 755 dbdata
+    mkdir -p .dbdata/sqlite .dbdata/spans/wal .dbdata/spans/parquet
+    chmod -R 755 .dbdata
 
 Block Storage (Production)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -271,7 +286,7 @@ For production deployments, mount block storage at a consistent location:
     sudo mount -o defaults,nofail /dev/disk/by-id/scsi-0DO_Volume_junjo-data /mnt/junjo-data
 
     # Create database directories
-    sudo mkdir -p /mnt/junjo-data/{sqlite,duckdb,badgerdb}
+    sudo mkdir -p /mnt/junjo-data/sqlite /mnt/junjo-data/spans/wal /mnt/junjo-data/spans/parquet
     sudo chown -R $USER:$USER /mnt/junjo-data
 
 Update volume paths in docker-compose.yml:
@@ -279,9 +294,7 @@ Update volume paths in docker-compose.yml:
 .. code-block:: yaml
 
     volumes:
-      - /mnt/junjo-data/sqlite:/dbdata/sqlite
-      - /mnt/junjo-data/duckdb:/dbdata/duckdb
-      - /mnt/junjo-data/badgerdb:/dbdata/badgerdb
+      - /mnt/junjo-data:/app/.dbdata
 
 Port Mappings
 -------------
@@ -294,7 +307,8 @@ Services communicate internally via the Docker network. These ports do not need 
 .. code-block:: text
 
     Backend (1323) ←→ Frontend
-    Backend (50053) ←→ Ingestion (50052)
+    Backend (50052) ←→ Ingestion (internal RPC)
+    Backend (50053) ←→ Ingestion (internal auth RPC)
 
 External Access
 ~~~~~~~~~~~~~~~

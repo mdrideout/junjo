@@ -45,8 +45,8 @@ Installation & Setup
 
 Junjo AI Studio is composed of three Docker services that work together:
 
-1. **Backend**: API server and data processing (SQLite + DuckDB)
-2. **Ingestion Service**: High-throughput OpenTelemetry data receiver (BadgerDB)
+1. **Backend**: FastAPI HTTP API + auth, DataFusion queries over Parquet, plus a SQLite metadata index (and SQLite for users / API keys)
+2. **Ingestion Service**: High-throughput OTLP receiver (Rust) with segmented Arrow IPC WAL → Parquet (cold), and on-demand hot snapshots for real-time queries
 3. **Frontend**: Web UI for visualization and debugging
 
 Quick Start Options
@@ -88,11 +88,16 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
         image: mdrideout/junjo-ai-studio-backend:latest
         ports:
           - "1323:1323"   # HTTP API
-          - "50053:50053" # Internal gRPC
         volumes:
-          - ./.dbdata/sqlite:/dbdata/sqlite
-          - ./.dbdata/duckdb:/dbdata/duckdb
+          - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         env_file: .env
+        environment:
+          - INGESTION_HOST=junjo-ai-studio-ingestion
+          - INGESTION_PORT=50052
+          - RUN_MIGRATIONS=true
+          - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+          - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+          - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
         networks:
           - junjo-network
 
@@ -100,12 +105,19 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
         image: mdrideout/junjo-ai-studio-ingestion:latest
         ports:
           - "50051:50051" # OTel data ingestion (your app connects here)
-          - "50052:50052" # Internal gRPC
         volumes:
-          - ./.dbdata/badgerdb:/dbdata/badgerdb
+          - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         env_file: .env
+        environment:
+          - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+          - BACKEND_GRPC_PORT=50053
+          - WAL_DIR=/app/.dbdata/spans/wal
+          - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+          - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
         networks:
           - junjo-network
+        depends_on:
+          - junjo-ai-studio-backend
 
       junjo-ai-studio-frontend:
         image: mdrideout/junjo-ai-studio-frontend:latest
@@ -142,7 +154,7 @@ Junjo AI Studio is designed to run on minimal resources:
 
 - **CPU**: Single shared vCPU is sufficient
 - **RAM**: 1GB minimum
-- **Storage**: Uses SQLite, DuckDB, and BadgerDB (all embedded databases)
+- **Storage**: Uses SQLite + Parquet (cold storage) + Arrow IPC WAL segments (hot storage)
 
 This makes it affordable to deploy on small cloud VMs.
 
@@ -155,11 +167,7 @@ Step 1: Generate an API Key
 1. Open Junjo AI Studio UI at http://localhost:5153
 2. Navigate to Settings → API Keys
 3. Create a new API key
-4. Copy the key to your environment
-
-.. code-block:: bash
-
-    export JUNJO_AI_STUDIO_API_KEY="your-api-key-here"
+4. Set the key in your application's environment as ``JUNJO_AI_STUDIO_API_KEY``
 
 Step 2: Configure OpenTelemetry in Your Application
 ----------------------------------------------------
@@ -388,12 +396,12 @@ Junjo AI Studio uses a three-service architecture for scalability and reliabilit
 .. code-block:: text
 
     Your Application (Junjo Python Library)
-           ↓ (sends OTel spans via gRPC)
+           ↓ (sends OTel spans via gRPC + x-junjo-api-key)
     Ingestion Service :50051
-           ↓ (writes to BadgerDB WAL)
-           ↓ (backend polls via internal gRPC :50052)
+           ↓ (writes segmented Arrow IPC WAL, flushes to Parquet)
+           ↓ (backend calls internal gRPC :50052 for hot snapshot + recent cold paths)
     Backend Service :1323
-           ↓ (stores in SQLite + DuckDB)
+           ↓ (indexes cold Parquet metadata into SQLite, queries Parquet via DataFusion)
            ↓ (serves HTTP API)
     Frontend :5153
            (web UI)
@@ -401,8 +409,8 @@ Junjo AI Studio uses a three-service architecture for scalability and reliabilit
 **Port Reference:**
 
 - **50051**: Public gRPC - Your application sends telemetry here
-- **50052**: Internal gRPC - Backend reads from ingestion service
-- **50053**: Internal gRPC - Backend server communication
+- **50052**: Internal gRPC - Backend calls ingestion (PrepareHotSnapshot / FlushWAL)
+- **50053**: Internal gRPC - Ingestion calls backend (ValidateApiKey)
 - **1323**: Public HTTP - API server
 - **5153**: Public HTTP - Web UI
 
@@ -429,8 +437,8 @@ Performance issues
 ------------------
 
 - Use sampling for high-volume workflows
-- The ingestion service uses BadgerDB as a write-ahead log for durability
-- Backend polls and indexes data asynchronously
+- The ingestion service uses a segmented Arrow IPC WAL and streams flushes to Parquet (constant memory)
+- The backend indexes new Parquet files asynchronously and queries cold + hot data with deduplication
 - See `Junjo AI Studio repository <https://github.com/mdrideout/junjo-ai-studio>`_ for tuning options
 
 Docker Compose not starting
