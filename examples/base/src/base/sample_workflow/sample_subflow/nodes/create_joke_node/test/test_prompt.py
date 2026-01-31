@@ -15,7 +15,7 @@ This is the joke to evaluate:
 Requirements:
 - There must be only one joke in the response
 - The joke must be funny.
-- On a scale of 1 (very bad) to 10 (worthy of an award), the joke must be a perfect 10.
+- On a scale of 1 (very bad) to 10 (worthy of an award), the joke must be at least a 7.
 - The joke must incorporate all of the items
 - There is no conversational response, just the joke.
 - There are no wrapping quotes or any special formatting characters, only the joke.
@@ -25,11 +25,4 @@ Items:
 
 Be harsh in your evaluation. If the joke is not funny enough, or does not incorporate all of the items, or is not a joke
 then it fails to pass the requirements.
-
-Output only JSON according to the following schema:
-
-{{
-    "passed": boolean, // whether the joke passed the requirements
-    "reason": string, // a short concise reason why the joke failed to pass the requirements
-}}
 """.strip()

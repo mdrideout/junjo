@@ -26,6 +26,8 @@ def init_otel(service_name: str) -> JunjoOtelExporter | None:
     tracer_provider = TracerProvider(resource=resource)
 
     # Construct a Junjo exporter for Junjo AI Studio
+    # This example is configured for a local instance of Junjo AI Studio
+    # See https://github.com/mdrideout/junjo-ai-studio-minimal-build
     junjo_ai_studio_exporter = JunjoOtelExporter(
         host="localhost",
         port="50051",

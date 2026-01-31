@@ -1,17 +1,17 @@
-
 from junjo import BaseState, BaseStore, Condition, Edge, Graph, Node, Workflow
 
 # Run With
 # python -m main
 # uv run -m main
 
+
 async def main():
-    """The main entry point for the application."""
+    """Entrypoint for the Junjo "Getting Started" example app."""
 
     # Define the workflow state
     class SampleWorkflowState(BaseState):
-        count: int | None = None # Does not need an initial state value
-        items: list[str] # Does need an initial state value
+        count: int | None = None  # Does not need an initial state value
+        items: list[str]  # Does need an initial state value
 
     # Define the workflow store
     class SampleWorkflowStore(BaseStore[SampleWorkflowState]):
@@ -73,15 +73,13 @@ async def main():
             sink=final_node,
             edges=[
                 Edge(tail=first_node, head=count_items_node),
-
                 # Branching based on the count of items
-                Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()), # Only transitions if count is even
-                Edge(tail=count_items_node, head=odd_items_node), # Fallback if first condition is not met
-
+                Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()),  # Only if count is even
+                Edge(tail=count_items_node, head=odd_items_node),  # Fallback if first condition is not met
                 # Branched paths converge to the final node
                 Edge(tail=even_items_node, head=final_node),
                 Edge(tail=odd_items_node, head=final_node),
-            ]
+            ],
         )
 
     def create_workflow() -> Workflow[SampleWorkflowState, SampleWorkflowStore]:
@@ -94,10 +92,8 @@ async def main():
             name="Getting Started Example Workflow",
             graph_factory=create_graph,
             store_factory=lambda: SampleWorkflowStore(
-                initial_state=SampleWorkflowState(
-                    items=["laser", "coffee", "horse"]
-                )
-            )
+                initial_state=SampleWorkflowState(items=["laser", "coffee", "horse"])
+            ),
         )
 
     # Create and execute the workflow
@@ -105,6 +101,8 @@ async def main():
     await workflow.execute()
     print("Final state: ", await workflow.get_state_json())
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

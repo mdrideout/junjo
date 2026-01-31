@@ -178,3 +178,9 @@ graphviz_out
 
 # Coding Agents
 .claude
+# Viberag index
+.viberag/
+# MCP config (local, not committed)
+.cursor/mcp.json
+# MCP config (local, not committed)
+.zed/settings.json

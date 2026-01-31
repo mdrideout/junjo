@@ -1,6 +1,6 @@
-# Junjo Example - Base
+# Junjo Example: Base
 
-This is a basic single-file implementation of Junjo's Graph Workflow Execution. It includes:
+This is a baseline Junjo example application meant to showcase:
 
 - A single workflow
 - The Graph
@@ -8,16 +8,20 @@ This is a basic single-file implementation of Junjo's Graph Workflow Execution. 
 - Concurrent execution
 - A Subflow
 - A Conditional that determines the next node based on the results of a state update
-- An opentelemetry exporter for Junjo AI Studio (optional / not required)
+- Streaming telemetry to Junjo AI Studio for visualization and debugging
 
 See the **ai_chat** example for a more advanced frontend / backend E2E experience that utilizes LLM API calls.
 
+### Recommended Setup: Junjo AI Studio
+
+Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) for a turn-key way to see how this example streams debugging telemetry. This is optional. Junjo works with any OpenTelemetry provider. 
+
 ### Run the example
 
-> Note: the following commands assume your terminal is located in this directory.
+> Note: the following commands assume your terminal is located in this example project's directory root.
 
-- The graph workflow will run, logging node executions and state changes.
-- If [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) is running, it will receive telemetry.
+- The graph workflow will run, logging node executions and state changes to your console
+- If [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio-minimal-build) is running, it will receive telemetry.
   - Requires you to generate an API key inside the Junjo AI Studio interface, and add it as a `.env` variable here.
 
 ```bash
@@ -63,12 +67,12 @@ On mission critical workflows, this setup can be used to orchestrate hundreds or
 
 This is also a great way to evaluate whether changing LLM models increases or decreases eval pass / fail rates, or changes the speed at which evals are completed.
 
-#### Running The `create_joke_node` eval:
+## Running The Sample Evals: `create_joke_node`
+
+This eval is strict and likely to fail all cases. This is to demonstrate the information provided by this eval pattern, that can inform improvements to prompts and workflow steps.
 
 ```bash
 # Run the pytest command from this directory.
 # Ensure you have setup the appropriate environment from the above "Run the example" instructions
-$ python -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py
-
-# This test is intentially tough to fail at least a few times for demonstration.
+$ python -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
 ```
