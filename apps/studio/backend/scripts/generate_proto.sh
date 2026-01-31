@@ -33,6 +33,8 @@ echo "  Python command: $PYTHON_CMD"
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
+rm -f "$OUTPUT_DIR"/*_pb2.py "$OUTPUT_DIR"/*_pb2_grpc.py
+
 # Generate Python code from proto files
 $PYTHON_CMD -m grpc_tools.protoc \
   -I"$PROTO_DIR" \

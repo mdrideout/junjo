@@ -540,7 +540,7 @@ sqlite3 ./.dbdata/sqlite/junjo.db
 
 ### Performance Tuning
 
-- **Ingestion throughput**: Adjust `SPAN_BATCH_SIZE` and `SPAN_POLL_INTERVAL` in `.env`
+- **Ingestion throughput**: Adjust ingestion tunables in `.env` (see `.env.example`, e.g. `BATCH_SIZE`, `FLUSH_MAX_MB`, `FLUSH_MAX_AGE_SECS`, `BACKPRESSURE_MAX_MB`)
 - **Database performance**: SQLite uses WAL mode for better concurrency
 - **Container resources**: Increase memory limits if processing high span volumes
 
@@ -561,9 +561,10 @@ This script runs:
 0. **Proto version checking** - Warns if protoc version doesn't match required v30.2
 1. **Python linting** - Runs ruff check on backend code (matches pre-commit validation)
 2. **Backend tests** - Unit, integration, and gRPC tests (Python/pytest)
-3. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest)
-4. **Contract tests** - Validates frontend ↔ backend API schema compatibility
-5. **Proto validation** - Regenerates protos, checks for orphaned schemas, validates staleness
+3. **Ingestion tests** - Rust unit/integration tests (Cargo)
+4. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest)
+5. **Contract tests** - Validates frontend ↔ backend API schema compatibility
+6. **Proto validation** - Regenerates protos and validates staleness
 
 ### Test Scripts Organization
 
@@ -595,10 +596,10 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 | **Proto version check** | ✅ Warns | ✅ Warns | ✅ Enforces |
 | **Python linting (ruff)** | ✅ Fails | ✅ Auto-fixes + fails | ✅ Enforces |
 | **Backend tests** | ✅ Runs all | ❌ | ✅ Enforces |
+| **Ingestion tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Frontend tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Contract tests** | ✅ Validates | ❌ | ✅ Enforces |
 | **Proto regeneration** | ✅ Regenerates | ✅ Regenerates + stages | ✅ Checks staleness |
-| **Proto orphan detection** | ✅ Fails | ✅ Fails | ✅ Enforces |
 | **Proto staleness check** | ✅ Fails on diff | ❌ (auto-fixes) | ✅ Enforces |
 
 #### Recommended Workflow
@@ -612,6 +613,7 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 # Option 2: Run individual validations
 cd backend && uv run ruff check app/          # Linting
 ./backend/scripts/run-backend-tests.sh        # Backend tests
+cd ingestion && cargo test                    # Ingestion tests
 cd frontend && npm test                       # Frontend tests
 ./backend/scripts/validate_rest_api_contracts.sh  # Contracts
 ```

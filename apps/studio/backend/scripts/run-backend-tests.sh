@@ -109,6 +109,11 @@ if [ $UNIT_RESULT -ne 0 ]; then
     exit 1
 fi
 
+if [ $INTEGRATION_RESULT -ne 0 ]; then
+    echo "❌ Critical tests failed"
+    exit 1
+fi
+
 if [ "${SKIP_GRPC:-0}" != "1" ] && [ $GRPC_RESULT -ne 0 ]; then
     echo "❌ Critical tests failed"
     exit 1

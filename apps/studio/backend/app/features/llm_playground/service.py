@@ -198,6 +198,6 @@ class LLMService:
                 reasoning_content=reasoning_content,
             )
 
-        except Exception as e:
-            logger.error("LiteLLM generation error: {}", str(e), exc_info=True)
+        except Exception:
+            logger.exception("LiteLLM generation error")
             raise

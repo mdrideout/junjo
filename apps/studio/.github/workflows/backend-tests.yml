@@ -44,6 +44,16 @@ jobs:
         run: |
           uv sync --all-extras --locked
 
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Run linting (ruff)
         working-directory: backend
         run: |
@@ -52,7 +62,7 @@ jobs:
       - name: Run backend tests
         run: |
           chmod +x backend/scripts/run-backend-tests.sh
-          ./backend/scripts/run-backend-tests.sh
+          ./backend/scripts/run-backend-tests.sh 2>&1 | tee /tmp/backend-test.log
         env:
           # Ensure clean test environment
           PYTHONUNBUFFERED: "1"
@@ -108,21 +118,25 @@ jobs:
         run: |
           uv run ruff format app/ --check
 
-  go-tests:
-    name: Run Go (Ingestion) Tests
+  ingestion-tests:
+    name: Run Ingestion (Rust) Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache-dependency-path: ingestion/go.sum
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
 
-      - name: Run Go tests
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Run ingestion tests
         working-directory: ingestion
-        run: go test -v ./...
+        run: cargo test --locked --message-format=short

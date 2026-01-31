@@ -10,9 +10,11 @@ inside fixtures to ensure correct initialization order.
 import os
 import tempfile
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from dotenv import dotenv_values
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # Set test database paths BEFORE any app code gets imported
@@ -101,3 +103,69 @@ def mock_authenticated_user():
         authenticated_at=datetime(2025, 1, 1, 12, 0, 0),
         session_id="test_session_abc123"
     )
+
+
+def _env_var_present(name: str) -> bool:
+    value = os.environ.get(name)
+    return bool(value and value.strip())
+
+
+def _find_dotenv_file() -> Path | None:
+    current = Path.cwd() / ".env"
+    parent = Path.cwd().parent / ".env"
+
+    if current.exists():
+        return current
+    if parent.exists():
+        return parent
+    return None
+
+
+def _load_dotenv_values_upper() -> dict[str, str]:
+    dotenv_path = _find_dotenv_file()
+    if not dotenv_path:
+        return {}
+
+    try:
+        values = dotenv_values(dotenv_path)
+    except Exception:
+        return {}
+
+    normalized: dict[str, str] = {}
+    for key, value in values.items():
+        if not key or value is None:
+            continue
+        normalized[key.upper()] = value
+    return normalized
+
+
+_DOTENV_VALUES = _load_dotenv_values_upper()
+
+
+def _dotenv_var_present(name: str) -> bool:
+    value = _DOTENV_VALUES.get(name)
+    return bool(value and value.strip())
+
+
+def _api_key_configured(env_var: str) -> bool:
+    # Respect explicit env var overrides (including empty string to disable).
+    if env_var in os.environ:
+        return _env_var_present(env_var)
+    return _dotenv_var_present(env_var)
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Skip tests that require external API keys when keys are not configured."""
+    requirements: list[tuple[str, str]] = [
+        ("requires_gemini_api", "GEMINI_API_KEY"),
+        ("requires_openai_api", "OPENAI_API_KEY"),
+        ("requires_anthropic_api", "ANTHROPIC_API_KEY"),
+    ]
+
+    for marker_name, env_var in requirements:
+        if _api_key_configured(env_var):
+            continue
+        skip_marker = pytest.mark.skip(reason=f"Missing {env_var} configuration (.env or environment)")
+        for item in items:
+            if marker_name in item.keywords:
+                item.add_marker(skip_marker)

@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
     log_deployment_configuration()
 
     # V4 Architecture: Start Parquet indexer as background task
-    # Polls filesystem for Parquet files written by Go ingestion
+    # Polls filesystem for Parquet files written by the ingestion service
     from app.features.parquet_indexer.background_indexer import parquet_indexer
 
     indexer_task = asyncio.create_task(parquet_indexer())

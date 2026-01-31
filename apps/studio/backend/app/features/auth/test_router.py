@@ -2,9 +2,9 @@
 
 Tests the complete auth flow: db-has-users → create-first-user → sign-in → auth-test → sign-out.
 
-Note: Database isolation is handled automatically by the autouse fixture in tests/conftest.py.
+Note: Database isolation is handled automatically by the autouse fixture in backend/conftest.py.
 Each test gets its own temporary SQLite database that is cleaned up after the test.
-See: backend_python/app/database/README.md for details on the test database pattern.
+See: backend/app/db_sqlite/README.md for details on the test database pattern.
 """
 
 import pytest

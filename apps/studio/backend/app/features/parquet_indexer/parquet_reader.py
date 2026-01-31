@@ -150,7 +150,7 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
         if max_time is None or end_time > max_time:
             max_time = end_time
 
-        # Track service name (assume single service per file from Go flusher)
+        # Track first seen service name (used for logging only)
         if service_name is None:
             service_name = svc_name
 

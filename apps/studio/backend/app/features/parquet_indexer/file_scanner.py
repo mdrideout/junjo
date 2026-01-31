@@ -1,10 +1,10 @@
 """Filesystem scanner for Parquet files.
 
 Walks the span storage directory tree to discover Parquet files
-written by Go ingestion service.
+written by the ingestion service.
 
-Expected directory structure (from Go flusher):
-    {base_path}/year=YYYY/month=MM/day=DD/{service}_{timestamp}_{uuid8}.parquet
+Expected directory structure (from ingestion flusher):
+    {base_path}/year=YYYY/month=MM/day=DD/{timestamp}_{suffix}.parquet
 """
 
 from dataclasses import dataclass

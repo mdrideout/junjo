@@ -6,12 +6,13 @@ This directory contains all Protocol Buffer definitions for the Junjo AI Studio 
 
 ### Service API Schemas (gRPC)
 These define the gRPC service interfaces between components:
-- **`ingestion.proto`**: Internal API for backend → ingestion communication (span reading)
-- **`auth.proto`**: Authentication service definitions
+- **`ingestion.proto`**: Backend → ingestion internal RPCs (e.g. `PrepareHotSnapshot`, `FlushWAL`)
+- **`auth.proto`**: Ingestion → backend internal RPCs (e.g. `ValidateApiKey`, `NotifyNewParquetFile`)
 
 ### Internal Storage Schemas
-These are used only for internal data persistence and are not part of service APIs:
-- **`span_data_container.proto`**: SQLite WAL storage format for spans + resources (ingestion service only)
+These are not part of the gRPC service APIs:
+- **`span_data_container.proto`**: Legacy internal-only schema from an older ingestion storage layer. The
+  current Rust ingestion path uses Arrow IPC WAL + Parquet and does not depend on this schema at runtime.
 
 ## Important: Schema Lifecycle Management
 
@@ -19,10 +20,10 @@ These are used only for internal data persistence and are not part of service AP
 1. Create `.proto` file in this directory
 2. Regenerate code for all consumers:
    ```bash
-   cd ingestion && make proto
    cd backend && ./scripts/generate_proto.sh
+   cd ingestion && cargo check
    ```
-3. Verify schemas are valid: `cd ingestion && make proto-check-orphans`
+3. Commit updated Python stubs in `backend/app/proto_gen/`
 
 ### Modifying Existing Protos
 1. Update the `.proto` file
@@ -36,38 +37,16 @@ These are used only for internal data persistence and are not part of service AP
 - Persisted data was written using the schema
 
 **Before deleting a proto**:
-1. Check if it's used for storage (SQLite WAL, metadata DB, etc.)
+1. Check if it's used for storage (legacy ingestion formats, etc.)
 2. If yes: Migrate existing data to new schema first
 3. Remove all references in code
-4. Clean and regenerate: `cd ingestion && make proto-clean`
-5. Verify: `cd ingestion && make proto-check-orphans`
-
-## Schema Orphaning Prevention
-
-The `ingestion/Makefile` includes a `proto-check-orphans` target that checks for "orphaned schemas" - where generated `.pb.go` files exist but their source `.proto` files are missing.
-
-This was added after [commit 3be9fec](https://github.com/anthropics/junjo-ai-studio/commit/3be9fec) accidentally deleted `span_data_container.proto` during proto consolidation, causing storage corruption.
-
-**Run verification after any proto refactoring**:
-```bash
-cd ingestion
-make proto-check-orphans
-```
-
-**Full validation pipeline** (recommended after refactoring):
-```bash
-cd ingestion
-make proto-full-validation
-```
-This runs: clean → regenerate → check for orphans
+4. Regenerate Python stubs: `cd backend && ./scripts/generate_proto.sh`
+5. Validate builds/tests: `cd ingestion && cargo test`
 
 ## Generation Tools
 
-- **Go** (ingestion): Uses `protoc` with `go` and `go-grpc` plugins
-  - Version controlled in `ingestion/Makefile`
-  - Generate: `cd ingestion && make proto`
-
-- **Python** (backend): Uses `grpc_tools.protoc`
+- **Rust** (ingestion): Generated at build time via `ingestion/build.rs` (no committed generated files)
+- **Python** (backend): Generated via `grpc_tools.protoc`
   - Script: `backend/scripts/generate_proto.sh`
   - Generate: `cd backend && ./scripts/generate_proto.sh`
 

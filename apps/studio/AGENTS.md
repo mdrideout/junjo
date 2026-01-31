@@ -135,7 +135,7 @@ grpc_task = asyncio.create_task(start_grpc_server_background())
 1. Client sends OTel data with `x-junjo-api-key` metadata
 2. Ingestion interceptor checks cache
 3. If not cached, validates with backend internal auth
-4. Caches result (5 min TTL)
+4. Caches result (short TTL)
 5. Accepts or rejects request
 
 ```mermaid
@@ -264,7 +264,7 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
 
 ### Database Access Pattern
 
-The gRPC service uses the **high-concurrency async pattern** documented in `backend/app/database/README.md`:
+The gRPC service uses the **high-concurrency async pattern** documented in `backend/app/db_sqlite/README.md`:
 
 ```python
 # Each validation creates its own database session
@@ -601,7 +601,7 @@ alembic upgrade head
 - No shared sessions between requests
 - Complete isolation for concurrent operations
 
-→ See `backend/app/database/README.md` for complete patterns and pitfalls
+→ See `backend/app/db_sqlite/README.md` for complete patterns and pitfalls
 
 ### Contract Testing (Frontend/Backend)
 

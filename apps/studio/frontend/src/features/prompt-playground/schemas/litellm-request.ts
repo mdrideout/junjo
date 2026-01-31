@@ -4,7 +4,7 @@ import { z } from 'zod'
  * Unified LiteLLM schemas for the Python backend.
  *
  * These match the backend Pydantic schemas in:
- * backend_python/app/features/llm_playground/schemas.py
+ * backend/app/features/llm_playground/schemas.py
  */
 
 // LiteLLM Message Schema
