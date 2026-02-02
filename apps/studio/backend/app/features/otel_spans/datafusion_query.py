@@ -390,6 +390,16 @@ class UnifiedSpanQuery:
             where_clauses.append(f"service_name = '{_escape_sql_literal(service_name)}'")
         if root_only:
             where_clauses.append("(parent_span_id IS NULL OR parent_span_id = '')")
+        if workflow_only:
+            # Workflow spans are identified via a JSON attribute (junjo.span_type=workflow).
+            #
+            # IMPORTANT: Apply this filter *in SQL* so that LIMIT applies to workflow spans
+            # (workflow executions) rather than to arbitrary spans and then post-filtering
+            # in Python (which can yield only 1–3 workflows even when lots exist).
+            #
+            # Ingestion serializes attributes via serde_json::to_string() (compact JSON),
+            # so a substring match is stable and avoids needing JSON functions in DataFusion.
+            where_clauses.append('attributes LIKE \'%"junjo.span_type":"workflow"%\'')
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -403,15 +413,14 @@ class UnifiedSpanQuery:
 
             rows = self._convert_batches_to_api_format(batches)
 
-            # Post-filter for workflow spans if needed
+            # Defensive post-filter to ensure correctness if any non-standard JSON
+            # serialization makes it through the SQL LIKE filter.
             if workflow_only:
                 rows = [
                     r
                     for r in rows
                     if r.get("attributes_json", {}).get("junjo.span_type") == "workflow"
                 ]
-                if limit:
-                    rows = rows[:limit]
 
             return rows
 

@@ -57,9 +57,38 @@ export function SpanIconConstructor(props: {
   }
 
   // ============= OPENINFERENCE SPAN ICONS =============>
-  // If attributes contains "openinference.span.kind" key
-  if (attributes['openinference.span.kind'] === OpenInferenceSpanKind.LLM) {
-    return <SparklesIcon className={`${size} ${iconColor}`} />
+  // LLM spans (OpenInference or GenAI semantic conventions)
+  //
+  // OpenInference: openinference.span.kind === "LLM"
+  // GenAI semconv (e.g. xAI): gen_ai.provider.name / gen_ai.operation.name present
+  const openInferenceKind = attributes['openinference.span.kind']
+  const genAiProvider = attributes['gen_ai.provider.name']
+  const genAiOperation = attributes['gen_ai.operation.name']
+
+  const isLLMSpan =
+    openInferenceKind === OpenInferenceSpanKind.LLM ||
+    (typeof genAiProvider === 'string' && genAiProvider.length > 0) ||
+    (typeof genAiOperation === 'string' && genAiOperation.length > 0)
+
+  if (isLLMSpan) {
+    const providerRaw = attributes['llm.provider'] ?? genAiProvider
+    const provider = typeof providerRaw === 'string' ? providerRaw.toLowerCase().trim() : ''
+
+    // Provider-aware color (active selection only). Keep inactive spans muted.
+    const providerColorMap: Record<string, string> = {
+      'openai': 'text-emerald-500',
+      'anthropic': 'text-orange-500',
+      'google': 'text-blue-500',
+      'gemini': 'text-blue-500',
+      'xai': 'text-fuchsia-500',
+    }
+
+    const resolvedColor =
+      active && provider && providerColorMap[provider]
+        ? providerColorMap[provider]
+        : iconColor
+
+    return <SparklesIcon className={`${size} ${resolvedColor}`} />
   }
 
   // ============= OTEL STANDARD SPAN ICONS =============>

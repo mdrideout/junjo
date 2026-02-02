@@ -60,6 +60,8 @@ class SpanMetadata:
     is_root: bool
     junjo_span_type: str | None  # workflow, subflow, node, run_concurrent, or None
     openinference_span_kind: str | None  # LLM, CHAIN, TOOL, AGENT, etc. (OpenInference)
+    gen_ai_provider_name: str | None  # gen_ai.provider.name (GenAI semantic conventions)
+    gen_ai_operation_name: str | None  # gen_ai.operation.name (GenAI semantic conventions)
 
 
 @dataclass
@@ -160,12 +162,16 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
         # Extract junjo_span_type and openinference.span.kind from attributes JSON
         junjo_span_type: str | None = None
         openinference_span_kind: str | None = None
+        gen_ai_provider_name: str | None = None
+        gen_ai_operation_name: str | None = None
         attrs_str = attributes_list[i]
         if attrs_str:
             try:
                 attrs = json.loads(attrs_str) if isinstance(attrs_str, str) else attrs_str
                 junjo_span_type = attrs.get("junjo.span_type")
                 openinference_span_kind = attrs.get("openinference.span.kind")
+                gen_ai_provider_name = attrs.get("gen_ai.provider.name")
+                gen_ai_operation_name = attrs.get("gen_ai.operation.name")
             except (json.JSONDecodeError, TypeError):
                 pass
 
@@ -184,6 +190,8 @@ def read_parquet_metadata(file_path: str, size_bytes: int) -> ParquetFileData:
                 is_root=is_root,
                 junjo_span_type=junjo_span_type,
                 openinference_span_kind=openinference_span_kind,
+                gen_ai_provider_name=gen_ai_provider_name,
+                gen_ai_operation_name=gen_ai_operation_name,
             )
         )
 

@@ -342,7 +342,17 @@ async def get_fused_root_spans_with_llm(service_name: str, limit: int = 500) -> 
             if not trace_id or trace_id not in candidate_trace_ids:
                 continue
             attrs = span.get("attributes_json", {})
+            # OpenInference: openinference.span.kind == "LLM"
             if attrs.get("openinference.span.kind") == "LLM":
+                hot_llm_trace_ids.add(trace_id)
+                continue
+
+            # GenAI semantic conventions (e.g. xAI SDK): gen_ai.provider.name / gen_ai.operation.name
+            gen_ai_provider = attrs.get("gen_ai.provider.name")
+            gen_ai_operation = attrs.get("gen_ai.operation.name")
+            if (isinstance(gen_ai_provider, str) and gen_ai_provider) or (
+                isinstance(gen_ai_operation, str) and gen_ai_operation
+            ):
                 hot_llm_trace_ids.add(trace_id)
 
     llm_trace_ids = cold_llm_trace_ids | hot_llm_trace_ids

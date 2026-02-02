@@ -6,7 +6,7 @@ This replaces legacy per-span indexing with 50-100x less memory.
 Key extraction:
 - DISTINCT trace_id -> trace_files
 - DISTINCT service_name -> file_services
-- LLM spans (openinference.span.kind = 'LLM') -> llm_traces
+- LLM spans (OpenInference or GenAI semantic conventions) -> llm_traces
 - Workflow spans (junjo.span_type = 'workflow') -> workflow_files
 """
 
@@ -20,7 +20,23 @@ from app.db_sqlite.metadata.repository import (
     add_workflow_file,
     register_parquet_file,
 )
-from app.features.parquet_indexer.parquet_reader import ParquetFileData
+from app.features.parquet_indexer.parquet_reader import ParquetFileData, SpanMetadata
+
+
+def _span_is_llm(span: SpanMetadata) -> bool:
+    """Return True if the span indicates an LLM operation.
+
+    We support both:
+    - OpenInference: openinference.span.kind == "LLM"
+    - GenAI semconv: gen_ai.provider.name / gen_ai.operation.name present
+    """
+    if span.openinference_span_kind == "LLM":
+        return True
+    if span.gen_ai_provider_name:
+        return True
+    if span.gen_ai_operation_name:
+        return True
+    return False
 
 
 def index_parquet_file(file_data: ParquetFileData) -> int:
@@ -87,7 +103,7 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
         # 4. Extract LLM trace IDs (traces containing LLM spans)
         llm_trace_ids: dict[str, set[str]] = {}  # service -> trace_ids
         for span in file_data.spans:
-            if span.openinference_span_kind == "LLM":
+            if _span_is_llm(span):
                 svc = span.service_name
                 if svc not in llm_trace_ids:
                     llm_trace_ids[svc] = set()
