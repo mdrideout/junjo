@@ -1,10 +1,11 @@
 # app/db/models/message/repository.py
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, update, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import aliased
 
 from app.db.db_config import async_session  # You'll need to define this
+from app.db.models.chat.model import ChatsTable
 from app.db.models.message import model, schemas
 
 
@@ -20,8 +21,15 @@ class MessageRepository:
             )
 
             async with async_session() as session:
-                session.add(db_obj)
-                await session.commit()
+                async with session.begin():
+                    session.add(db_obj)
+                    await session.flush()
+
+                    # Keep chat ordering correct by tracking the most recent message time.
+                    await session.execute(
+                        update(ChatsTable).where(ChatsTable.id == message.chat_id).values(last_message_time=func.now())
+                    )
+
                 await session.refresh(db_obj)
 
             return schemas.MessageRead.model_validate(db_obj)

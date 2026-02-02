@@ -14,10 +14,14 @@ class SelectSexNode(Node[CreateContactStore]):
         Service method to select the sex of a contact.
         """
 
-        # Determine sex
+        state = await store.get_state()
+
+        # Respect a pre-selected sex (e.g. passed in from the API)
+        if state.sex is not None:
+            return
+
         sex = select_sex()
 
         # Update state
         await store.set_sex(sex)
-
 

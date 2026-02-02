@@ -1,8 +1,13 @@
 import { z } from 'zod'
-import { ContactRead, ContactReadSchema, CreateSetupContactResponse, CreateSetupContactResponseSchema } from './schemas'
+import { ContactRead, ContactReadSchema, CreateSetupContactResponse, CreateSetupContactResponseSchema, Sex } from './schemas'
 
-export const createSetupContact = async (): Promise<CreateSetupContactResponse> => {
-  const response = await fetch(`http://127.0.0.1:8000/api/contact`, {
+export const createSetupContact = async (sex?: Sex): Promise<CreateSetupContactResponse> => {
+  const url = new URL('http://127.0.0.1:8000/api/contact')
+  if (sex) {
+    url.searchParams.set('sex', sex)
+  }
+
+  const response = await fetch(url.toString(), {
     method: 'POST',
     mode: 'cors',
     headers: {

@@ -12,6 +12,12 @@ This is a more complete example of Junjo, showcasing:
 - FastAPI Backend
 - SQLite for persistence
 
+## AI provider
+
+This example is currently wired up to use **xAI (Grok)** for text + image generation (via `GrokTool`).
+
+If you'd rather use **Gemini**, you can swap the workflow nodes to use `GeminiTool` instead (both live in `backend/src/app/ai_services/`).
+
 ## Run the example
 
 ```bash
@@ -25,23 +31,22 @@ $ npm run dev
 # -------------------------#
 
 # BACKEND (from ./backend) 
-#   - Using uv package manager https://docs.astral.sh/uv/)
+#   - Using uv package manager https://docs.astral.sh/uv/
 #
-# Create a virtual environment if one doesn't exist yet (recommend python 3.11)
-$ uv venv --python 3.11
-
-# Make sure the backend virtual environment is activated
-$ source .venv/bin/activate
-
-# Ensure all packages are installed
-$ uv pip install -e .
+# This repo is a `uv` workspace. The virtual environment lives at the repo root
+# (`../../../.venv` from here), not inside this backend directory.
+#
+# Ensure all packages are installed (Python 3.11)
+$ uv sync --python 3.11 --package app
 
 # Start the backend
-$ fastapi dev src/app/main.py
+$ uv run --package app fastapi dev src/app/main.py
 
 # Visualize the graph
-$ python -m src.app.visualize
+$ uv run --package app -m app.visualize
 ```
+
+Environment variables live in `backend/.env.example` (copy to `backend/.env` and fill in the keys you want to use).
 
 
 ### Telemetry
@@ -50,6 +55,6 @@ Have the [junjo-ai-studio](https://github.com/mdrideout/junjo-ai-studio) running
 
 ### Clearing the SQLite database
 
-The SQLite database (see `.backend/src/app/db/db_config.py`) should persist inside the `.backend/sqlite-data` folder in this project.
+The SQLite database (see `backend/src/app/db/db_config.py`) should persist inside the `backend/sqlite-data` folder in this project.
 
-**Delete `.backend/sqlite-data`** to clear the sqlite database and start fresh. A new database will be created automatically at the next app startup.
+**Delete `backend/sqlite-data`** to clear the sqlite database and start fresh. A new database will be created automatically at the next app startup.

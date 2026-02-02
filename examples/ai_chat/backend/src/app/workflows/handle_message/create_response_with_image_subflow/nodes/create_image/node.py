@@ -2,7 +2,7 @@ from junjo.node import Node
 from loguru import logger
 from nanoid import generate
 
-from app.ai_services.gemini.gemini_tool import GeminiTool
+from app.ai_services.grok import GrokTool
 from app.util.get_image_bytes import get_image_bytes
 from app.util.save_image_file import save_image_file
 from app.workflows.handle_message.create_response_with_image_subflow.store import (
@@ -42,28 +42,22 @@ class CreateImageNode(Node[CreateResponseWithImageSubflowStore]):
         # Get the avatar image bytes
         avatar_image_bytes = get_image_bytes("avatars", contact.avatar_id, "png")
 
-        # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash-image-preview")
-        image_bytes, text_response = await gemini_tool.gemini_image_edit_request(avatar_image_bytes)
+        grok_tool = GrokTool(prompt=prompt, model="grok-imagine-image")
+        image_bytes = await grok_tool.image_edit_request(avatar_image_bytes, image_mime_type="image/png")
+        logger.info(f"Grok result image size: {len(image_bytes) / 1024} kb")
 
-        if image_bytes:
-            logger.info(f"Gemini result image size: {len(image_bytes) / 1024} kb")
+        # Create an id for the image
+        image_id = generate()
 
-            # Create an id for the image
-            image_id = generate()
+        # Save the image to the file system
+        save_image_file(
+            image_bytes,
+            f"chat-images/{state.parent_state.received_message.chat_id}",
+            image_id,
+            "png",
+        )
 
-            # Save the image to the file system
-            save_image_file(
-                image_bytes,
-                f"chat-images/{state.parent_state.received_message.chat_id}",
-                image_id,
-                "png",
-            )
-
-            # Update the state with the image id
-            await store.set_image_id(image_id)
-
-        if text_response:
-            await store.set_text_response(text_response)
+        # Update the state with the image id
+        await store.set_image_id(image_id)
 
         return

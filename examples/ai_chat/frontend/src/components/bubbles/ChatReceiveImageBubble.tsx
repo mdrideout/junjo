@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { formatDateForChat } from '../../util/date-utils'
+import FullscreenImageModal from '../modals/FullscreenImageModal'
 import { ChatBubbleProps } from './schemas'
 
 export default function ChatReceiveImageBubble(props: ChatBubbleProps) {
   const { message } = props
+  const [isFullScreen, setIsFullScreen] = useState(false)
 
   if (!message.image_id) {
     return null
@@ -20,12 +23,16 @@ export default function ChatReceiveImageBubble(props: ChatBubbleProps) {
           <img
             src={imageUrl}
             alt="chat content"
-            className={`rounded-t-2xl ${message.message ? '' : 'rounded-b-2xl'}`}
+            className={`cursor-zoom-in rounded-t-2xl ${message.message ? '' : 'rounded-b-2xl'}`}
+            onClick={() => setIsFullScreen(true)}
           />
           {message.message && <div className="safe-word-break px-4 py-3 leading-tight">{message.message}</div>}
         </div>
         <div className={'text-[10px] text-zinc-400 text-left pl-2 mt-[1px]'}>{dateString}</div>
       </div>
+      {isFullScreen && (
+        <FullscreenImageModal src={imageUrl} alt="chat content" onClose={() => setIsFullScreen(false)} />
+      )}
     </div>
   )
 }

@@ -6,10 +6,11 @@ interface SidebarAvatarProps {
   contact_id: string
   lastMessage: string
   isActive: boolean
+  hasUnread?: boolean
 }
 
 export default function SidebarAvatar(props: SidebarAvatarProps) {
-  const { contact_id, lastMessage, isActive } = props
+  const { contact_id, lastMessage, isActive, hasUnread } = props
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Get contact from store
@@ -42,6 +43,13 @@ export default function SidebarAvatar(props: SidebarAvatarProps) {
             View Profile
           </div>
         </div>
+        {hasUnread && (
+          <div
+            className="ml-auto mr-3 w-3 h-3 rounded-full bg-red-500"
+            aria-label="Unread messages"
+            title="Unread messages"
+          />
+        )}
       </button>
       {isModalOpen && <AvatarModal contact={contact} onClose={() => setIsModalOpen(false)} />}
     </>

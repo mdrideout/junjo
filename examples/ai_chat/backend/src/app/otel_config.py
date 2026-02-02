@@ -6,16 +6,16 @@ from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
+from xai_sdk.telemetry import Telemetry
 
 
 def init_otel(service_name: str):
     """Configure OpenTelemetry for this application."""
 
-    # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
-    JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
-    if JUNJO_AI_STUDIO_API_KEY is None:
-        raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable is not set."
-                         "Generate a new API key in the Junjo AI Studio UI.")
+    # Load the Junjo API key from the environment variable.
+    junjo_api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+    if junjo_api_key is None:
+        raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable is not set.")
 
     # Configure OpenTelemetry for this application
     # Create the OpenTelemetry Resource to identify this service
@@ -27,11 +27,16 @@ def init_otel(service_name: str):
     # Instrument Google GenAI
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
+    # Instrument xAI
+    # https://github.com/xai-org/xai-sdk-python?tab=readme-ov-file#advanced-configuration
+    telemetry = Telemetry(provider=tracer_provider)
+    telemetry.setup_otlp_exporter()
+
     # Construct a Junjo exporter for Junjo AI Studio
     junjo_ai_studio_exporter = JunjoOtelExporter(
         host="localhost",
         port="50051",
-        api_key=JUNJO_AI_STUDIO_API_KEY,
+        api_key=junjo_api_key,
         insecure=True,
     )
 
@@ -45,7 +50,5 @@ def init_otel(service_name: str):
     #    - Construct with the Junjo metric reader
     #    - Add more metric readers if desired
     junjo_metric_reader = junjo_ai_studio_exporter.metric_reader
-    meter_provider = MeterProvider(
-        resource=resource, metric_readers=[junjo_metric_reader]
-    )
+    meter_provider = MeterProvider(resource=resource, metric_readers=[junjo_metric_reader])
     metrics.set_meter_provider(meter_provider)

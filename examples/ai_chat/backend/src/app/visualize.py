@@ -11,6 +11,8 @@ def main():
     # Export graphviz assets
     create_handle_message_graph().export_graphviz_assets()
 
+    print("\n\nCheck `graphviz_out` folder for visualizations.\n")
+
 
 if __name__ == "__main__":
     main()

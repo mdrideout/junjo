@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useMessagesStore } from '../store'
 import { fetchChatMessages, fetchNewerChatMessages } from '../fetch'
+import { useChatsWithMembersStore } from '../../chat/store'
 
 interface UseGetMessagesResult {
   isLoading: boolean
@@ -12,6 +13,7 @@ interface UseGetMessagesResult {
 
 const useGetMessages = (): UseGetMessagesResult => {
   const { upsertMessages } = useMessagesStore()
+  const touchChat = useChatsWithMembersStore((state) => state.touchChat)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pollingActive = useRef(false)
@@ -24,6 +26,10 @@ const useGetMessages = (): UseGetMessagesResult => {
     try {
       const newMessages = await fetchChatMessages(chat_id)
       upsertMessages(chat_id, newMessages)
+      if (newMessages.length > 0) {
+        const latest = new Date(Math.max(...newMessages.map((m) => m.created_at.getTime())))
+        touchChat(chat_id, latest)
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -37,6 +43,10 @@ const useGetMessages = (): UseGetMessagesResult => {
     try {
       const newMessages = await fetchNewerChatMessages(chat_id, message_id)
       upsertMessages(chat_id, newMessages)
+      if (newMessages.length > 0) {
+        const latest = new Date(Math.max(...newMessages.map((m) => m.created_at.getTime())))
+        touchChat(chat_id, latest)
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {

@@ -3,6 +3,7 @@ import NewContactButton from './NewContactButton'
 import useGetChatsWithMembers from '../../api/chat/hook'
 import { useChatsWithMembersStore } from '../../api/chat/store'
 import useGetContacts from '../../api/contact/hooks/get-contacts-hook'
+import { useChatReadStateStore } from '../../api/chat/read-store'
 import { Link, useParams } from 'react-router'
 import { formatDateForChat } from '../../util/date-utils'
 
@@ -14,6 +15,7 @@ export default function ChatSidebar() {
   const { error: contactsError, refetch: refetchContacts } = useGetContacts()
   const { error: chatsWithMembersError, refetch: refetchChatsWithMembers } = useGetChatsWithMembers()
   const { chats } = useChatsWithMembersStore()
+  const lastReadAtByChatId = useChatReadStateStore((state) => state.lastReadAtByChatId)
 
   async function handleRefetch() {
     await refetchContacts()
@@ -44,6 +46,8 @@ export default function ChatSidebar() {
           const lastMessageTime = new Date(chat.last_message_time)
           const dateString = formatDateForChat(lastMessageTime)
           const isActive = chat.id == chat_id
+          const lastReadAt = lastReadAtByChatId[chat.id]
+          const hasUnread = !isActive && lastReadAt != null && lastMessageTime.getTime() > lastReadAt
 
           return (
             <Link key={chat.id} to={`/${chat.id}`}>
@@ -53,6 +57,7 @@ export default function ChatSidebar() {
                   lastMessage={dateString}
                   contact_id={member.contact_id}
                   isActive={isActive}
+                  hasUnread={hasUnread}
                 />
               ))}
             </Link>

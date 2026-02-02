@@ -1,7 +1,7 @@
 from junjo.node import Node
 from loguru import logger
 
-from app.ai_services.gemini.gemini_tool import GeminiTool
+from app.ai_services.grok import GrokTool
 from app.workflows.handle_message.nodes.assess_message_directive.prompt_gemini import (
     assess_message_directive_prompt,
 )
@@ -19,20 +19,18 @@ class AssessMessageDirectiveNode(Node[MessageWorkflowStore]):
         prompt = assess_message_directive_prompt(state.conversation_history)
         logger.info(f"Prompt: {prompt}")
 
-        # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-001")
-        gemini_result = await gemini_tool.text_request()
-        logger.info(f"Gemini result: {gemini_result}")
+        grok_tool = GrokTool(prompt=prompt, model="grok-4-1-fast-non-reasoning")
+        grok_result = await grok_tool.text_request()
+        logger.info(f"Grok result: {grok_result}")
 
         # Validate the result is a MessageDirective enum
-        if not gemini_result:
-            raise ValueError("Gemini result is empty.")
+        if not grok_result:
+            raise ValueError("Grok result is empty.")
 
         try:
-            # Attempt to construct the enum value with the gemini_result
-            message_directive = MessageDirective(gemini_result)
+            message_directive = MessageDirective(grok_result)
         except ValueError as e:
-            raise ValueError(f"Gemini result '{gemini_result}' is not a valid MessageDirective.") from e
+            raise ValueError(f"Grok result '{grok_result}' is not a valid MessageDirective.") from e
 
         # Update state
         await store.set_message_directive(message_directive)
