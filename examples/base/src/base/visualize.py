@@ -11,6 +11,8 @@ def main():
     # Export graphviz assets
     create_sample_workflow_graph().export_graphviz_assets()
 
+    print("\n\nCheck graphviz_out directory for visualization.\n")
+
 
 if __name__ == "__main__":
     main()

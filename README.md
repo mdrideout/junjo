@@ -259,7 +259,8 @@ if __name__ == "__main__":
 
 ```bash
 # Run the visualizer
-python -m src.base.visualize
+$ cd examples/base
+$ uv run --package base -m base.visualize
 ```
 
 <center>
@@ -274,7 +275,7 @@ This project was made with the [uv](https://github.com/astral-sh/uv) python pack
 
 ```bash
 # Setup and activate the virtual environment
-$ uv venv .venv
+$ uv venv --python 3.11 .venv
 $ source .venv/bin/activate
 
 # Install optional development dependencies (graphviz is optional for running the graphviz visualizer)

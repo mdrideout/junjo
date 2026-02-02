@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "base"
 version = "0.1.0"
@@ -37,3 +41,6 @@ junjo = { workspace = true }
 
 [dependency-groups]
 dev = ["ruff>=0.9.5"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

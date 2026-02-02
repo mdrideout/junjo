@@ -90,7 +90,6 @@ ignore = ["B006"]
 members = [
     "examples/ai_chat/backend",
     "examples/base",
-    "examples/getting_started/getting_started",
     "examples/getting_started",
 ]
 

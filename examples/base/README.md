@@ -18,30 +18,29 @@ Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideou
 
 ### Run the example
 
-> Note: the following commands assume your terminal is located in this example project's directory root.
+> Note: you can run the following commands from this directory; `uv` will discover the workspace root automatically.
 
 - The graph workflow will run, logging node executions and state changes to your console
 - If [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio-minimal-build) is running, it will receive telemetry.
   - Requires you to generate an API key inside the Junjo AI Studio interface, and add it as a `.env` variable here.
 
 ```bash
-# Run commands from this directory
-#   - (Using uv package manager https://docs.astral.sh/uv/)
+# (use uv package manager https://docs.astral.sh/uv/)
 #
-# Create a virtual environment if one doesn't exist yet (tested down to python 3.11)
-$ uv venv --python 3.11
+# Create a .env file from the .env.example 
+#
+# This repo is a `uv` workspace. The virtual environment lives at the repo root
+# (`../../.venv` from here), not inside this example directory.
+#
+# Recommended (run from this directory):
+$ uv sync --python 3.11 --package base --all-extras
+$ uv run --package base -m base.main
+$ uv run --package base -m base.visualize
 
-# Make sure the backend virtual environment is activated
-$ source .venv/bin/activate
-
-# Ensure all packages are installed
-$ uv pip install -e ".[dev]"
-
-# Run from this directory
-$ python -m src.base.main
-
-# Generate Graphviz renderings of the graph (outputs to graphviz_out dir in root)
-$ python -m src.base.visualize
+# Standalone (if you copied this example out of the workspace):
+# $ uv sync --all-extras
+# $ uv run -m base.main
+# $ uv run -m base.visualize
 ```
 
 ## Eval Driven Development
@@ -50,7 +49,7 @@ Eval-Driven Development (EDD) is a critical development strategy for application
 
 EDD accelerates complex workflow development by allowing one to iterate on their LLM prompts with many test inputs, and immediately see how the prompt changes impact the evaluation results.
 
-**Example:** Check out `src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
+**Example:** Open `src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
 
 - The eval system is powered by **pytest**'
   - No third party tools or platforms are required - everything happens directly in your codebase
