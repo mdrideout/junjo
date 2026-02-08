@@ -39,7 +39,17 @@ check_equals() {
 }
 
 # Backend package metadata
-BACKEND_PYPROJECT_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' backend/pyproject.toml | head -n 1)"
+BACKEND_PYPROJECT_VERSION="$(
+  awk '
+    /^version = "/ {
+      v = $0
+      sub(/^version = "/, "", v)
+      sub(/"$/, "", v)
+      print v
+      exit
+    }
+  ' backend/pyproject.toml
+)"
 check_equals "backend/pyproject.toml [project].version" "$BACKEND_PYPROJECT_VERSION" "$VERSION"
 
 # Backend runtime/API metadata
@@ -62,11 +72,29 @@ else
   done <<< "$BACKEND_MAIN_FASTAPI_VERSIONS_RAW"
 fi
 
-BACKEND_MAIN_ROOT_VERSION="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' backend/app/main.py | head -n 1)"
+BACKEND_MAIN_ROOT_VERSION="$(
+  awk '
+    /"version": "/ {
+      v = $0
+      sub(/.*"version": "/, "", v)
+      sub(/".*/, "", v)
+      print v
+      exit
+    }
+  ' backend/app/main.py
+)"
 check_equals "backend/app/main.py root response version" "$BACKEND_MAIN_ROOT_VERSION" "$VERSION"
 
 BACKEND_HEALTH_SCHEMA_VERSION_DEFAULT="$(
-  sed -n 's/.*version: str = Field(default="\([^"]*\)".*/\1/p' backend/app/common/responses.py | head -n 1
+  awk '
+    /version: str = Field\(default="/ {
+      v = $0
+      sub(/.*default="/, "", v)
+      sub(/".*/, "", v)
+      print v
+      exit
+    }
+  ' backend/app/common/responses.py
 )"
 check_equals \
   "backend/app/common/responses.py HealthResponse.version default" \
@@ -88,7 +116,17 @@ BACKEND_UV_LOCK_VERSION="$(
 check_equals "backend/uv.lock package version" "$BACKEND_UV_LOCK_VERSION" "$VERSION"
 
 # Ingestion package metadata
-INGESTION_CARGO_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' ingestion/Cargo.toml | head -n 1)"
+INGESTION_CARGO_VERSION="$(
+  awk '
+    /^version = "/ {
+      v = $0
+      sub(/^version = "/, "", v)
+      sub(/"$/, "", v)
+      print v
+      exit
+    }
+  ' ingestion/Cargo.toml
+)"
 check_equals "ingestion/Cargo.toml package version" "$INGESTION_CARGO_VERSION" "$VERSION"
 
 # Ingestion lock metadata
@@ -106,10 +144,30 @@ INGESTION_CARGO_LOCK_VERSION="$(
 check_equals "ingestion/Cargo.lock package version" "$INGESTION_CARGO_LOCK_VERSION" "$VERSION"
 
 # Frontend package metadata
-FRONTEND_PACKAGE_VERSION="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' frontend/package.json | head -n 1)"
+FRONTEND_PACKAGE_VERSION="$(
+  awk '
+    /"version": "/ {
+      v = $0
+      sub(/.*"version": "/, "", v)
+      sub(/".*/, "", v)
+      print v
+      exit
+    }
+  ' frontend/package.json
+)"
 check_equals "frontend/package.json version" "$FRONTEND_PACKAGE_VERSION" "$VERSION"
 
-FRONTEND_PACKAGE_LOCK_TOP_VERSION="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' frontend/package-lock.json | head -n 1)"
+FRONTEND_PACKAGE_LOCK_TOP_VERSION="$(
+  awk '
+    /"version": "/ {
+      v = $0
+      sub(/.*"version": "/, "", v)
+      sub(/".*/, "", v)
+      print v
+      exit
+    }
+  ' frontend/package-lock.json
+)"
 check_equals "frontend/package-lock.json top-level version" "$FRONTEND_PACKAGE_LOCK_TOP_VERSION" "$VERSION"
 
 FRONTEND_PACKAGE_LOCK_ROOT_VERSION="$(
@@ -127,7 +185,17 @@ FRONTEND_PACKAGE_LOCK_ROOT_VERSION="$(
 check_equals "frontend/package-lock.json packages[\"\"] version" "$FRONTEND_PACKAGE_LOCK_ROOT_VERSION" "$VERSION"
 
 # Generated OpenAPI schema version (copied into frontend for contract tests)
-OPENAPI_INFO_VERSION="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' frontend/backend/openapi.json | head -n 1)"
+OPENAPI_INFO_VERSION="$(
+  awk '
+    /"version": "/ {
+      v = $0
+      sub(/.*"version": "/, "", v)
+      sub(/".*/, "", v)
+      print v
+      exit
+    }
+  ' frontend/backend/openapi.json
+)"
 check_equals "frontend/backend/openapi.json info.version" "$OPENAPI_INFO_VERSION" "$VERSION"
 
 OPENAPI_HEALTH_VERSION_DEFAULT="$(
