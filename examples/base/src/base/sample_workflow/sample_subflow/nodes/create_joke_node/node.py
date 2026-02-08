@@ -21,7 +21,7 @@ class CreateJokeNode(Node[SampleSubflowStore]):
         prompt = create_joke_prompt(items)
 
         # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-001")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash")
         gemini_result = await gemini_tool.text_request()
 
         # Update the store with the new joke

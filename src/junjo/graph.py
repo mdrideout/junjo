@@ -30,7 +30,8 @@ class Graph:
     :type source: Node | _NestableWorkflow
     :param sink: The terminal node or subflow of the graph. Reaching this node signifies the completion of the workflow.
     :type sink: Node | _NestableWorkflow
-    :param edges: A list of :class:`~.Edge` instances that define the connections and transition logic between nodes in the graph.
+    :param edges: A list of :class:`~.Edge` instances that define the
+        connections and transition logic between nodes in the graph.
     :type edges: list[Edge]
 
     Example:
@@ -197,7 +198,7 @@ class Graph:
 
         # Create nodes list for JSON output
         nodes_json = []
-        for node_id, node in all_nodes_dict.items():
+        for _node_id, node in all_nodes_dict.items():
             # Determine Label: Prioritize 'label', then 'name', then class name
             label = getattr(node, 'label', None) or \
                     getattr(node, 'name', None) or \
@@ -273,159 +274,234 @@ class Graph:
         """
         raise NotImplementedError("Mermaid conversion is not implemented yet.")
 
-    def to_dot_notation(self) -> str:  # noqa: C901  (complexity fine for helper)
+    def _build_dot_render_context(
+        self,
+        graph: dict,
+        edge_filter: Callable[[dict], bool],
+    ) -> tuple[dict[str, dict], list[dict], set[str], dict[str, dict], dict[str, str], dict[str, str]]:
+        nodes_by_id = {node["id"]: node for node in graph["nodes"]}
+        edges = [edge for edge in graph["edges"] if edge_filter(edge)]
+
+        node_ids: set[str] = set()
+        for edge in edges:
+            node_ids.update((edge["source"], edge["target"]))
+
+        for node_id in list(node_ids):
+            node = nodes_by_id.get(node_id)
+            if node and node.get("isSubgraph"):
+                node_ids.update(node["children"])
+
+        clusters = {
+            node["id"]: node
+            for node in graph["nodes"]
+            if node.get("isSubgraph") and node["id"] in node_ids
+        }
+        entry_anchor = {cluster_id: f"{cluster_id}__entry" for cluster_id in clusters}
+        exit_anchor = {cluster_id: f"{cluster_id}__exit" for cluster_id in clusters}
+        return nodes_by_id, edges, node_ids, clusters, entry_anchor, exit_anchor
+
+    @staticmethod
+    def _dot_anchor(
+        node_id: str,
+        *,
+        is_src: bool,
+        clusters: dict[str, dict],
+        entry_anchor: dict[str, str],
+        exit_anchor: dict[str, str],
+    ) -> str:
+        if node_id in clusters:
+            return exit_anchor[node_id] if is_src else entry_anchor[node_id]
+        return node_id
+
+    def _append_dot_header(self, output: list[str], graph_name: str) -> None:
+        append = output.append
+        append(f'digraph "{graph_name}" {{')
+        append("  rankdir=LR;")
+        append("  compound=true;")
+        append('  node [shape=box, style="rounded,filled", fillcolor="#EFEFEF", fontname="Helvetica", fontsize=10];')
+        append('  edge [fontname="Helvetica", fontsize=9];')
+
+    def _append_dot_clusters(
+        self,
+        output: list[str],
+        clusters: dict[str, dict],
+        entry_anchor: dict[str, str],
+        exit_anchor: dict[str, str],
+        nodes_by_id: dict[str, dict],
+    ) -> None:
+        append = output.append
+        for cluster_id, cluster_node in clusters.items():
+            append(f'  subgraph "cluster_{cluster_id}" {{')
+            append(f'    label="{self._safe_label(cluster_node["label"])} (Concurrent)";')
+            append('    style="filled"; fillcolor="lightblue"; color="blue";')
+            append('    node [fillcolor="lightblue", style="filled,rounded"];')
+            append(f'    "{entry_anchor[cluster_id]}" [label="", shape=point, width=0.01, style=invis];')
+            append(f'    "{exit_anchor[cluster_id]}"  [label="", shape=point, width=0.01, style=invis];')
+            for child_id in cluster_node["children"]:
+                child = nodes_by_id[child_id]
+                append(f'    {self._q(child_id)} [label="{self._safe_label(child["label"])}"];')
+            append("  }")
+
+    def _append_dot_nodes(
+        self,
+        output: list[str],
+        node_ids: set[str],
+        clusters: dict[str, dict],
+        nodes_by_id: dict[str, dict],
+    ) -> None:
+        append = output.append
+        for node_id in node_ids:
+            if node_id in clusters:
+                continue
+            node = nodes_by_id[node_id]
+            if node.get("isSubflow"):
+                append(
+                    f'  {self._q(node_id)} [label="{self._safe_label(node["label"])}", '
+                    'shape=component, style="filled,rounded", fillcolor="lightyellow"];'
+                )
+            else:
+                append(f'  {self._q(node_id)} [label="{self._safe_label(node["label"])}"];')
+
+    def _dot_edge_attrs(self, edge: dict, clusters: dict[str, dict]) -> list[str]:
+        attrs: list[str] = []
+        if edge["source"] in clusters:
+            attrs.append(f'ltail="cluster_{edge["source"]}"')
+        if edge["target"] in clusters:
+            attrs.append(f'lhead="cluster_{edge["target"]}"')
+        if edge.get("condition"):
+            attrs.extend(('style="dashed"', f'label="{self._safe_label(edge["condition"])}"'))
+        else:
+            attrs.append('style="solid"')
+        return attrs
+
+    def _append_dot_edges(
+        self,
+        output: list[str],
+        edges: list[dict],
+        clusters: dict[str, dict],
+        entry_anchor: dict[str, str],
+        exit_anchor: dict[str, str],
+    ) -> None:
+        append = output.append
+        for edge in edges:
+            src = self._dot_anchor(
+                edge["source"],
+                is_src=True,
+                clusters=clusters,
+                entry_anchor=entry_anchor,
+                exit_anchor=exit_anchor,
+            )
+            target = self._dot_anchor(
+                edge["target"],
+                is_src=False,
+                clusters=clusters,
+                entry_anchor=entry_anchor,
+                exit_anchor=exit_anchor,
+            )
+            attrs = self._dot_edge_attrs(edge, clusters)
+            append(f'  {self._q(src)} -> {self._q(target)} [{", ".join(attrs)}];')
+
+    def _render_dot_graph(
+        self,
+        graph: dict,
+        graph_name: str,
+        edge_filter: Callable[[dict], bool],
+    ) -> str:
+        nodes_by_id, edges, node_ids, clusters, entry_anchor, exit_anchor = self._build_dot_render_context(
+            graph, edge_filter
+        )
+        output: list[str] = []
+        self._append_dot_header(output, graph_name)
+        self._append_dot_clusters(output, clusters, entry_anchor, exit_anchor, nodes_by_id)
+        self._append_dot_nodes(output, node_ids, clusters, nodes_by_id)
+        self._append_dot_edges(output, edges, clusters, entry_anchor, exit_anchor)
+        output.append("}")
+        return "\n".join(output)
+
+    def to_dot_notation(self) -> str:
         """
-        Render the Junjo graph as a *main* overview digraph plus one additional
-        digraph for **each Subflow**.
-
-        Strategy
-        --------
-        • In the **overview** we treat every Subflow node as an atomic component
-          (shape=component, fillcolour light-yellow).
-        • Any `RunConcurrent` node is rendered as a cluster, exactly like before.
-        • For every Subflow we emit a *second* `digraph subflow_<id>` that expands
-          its internal graph, again treating nested Subflows as atomic macro nodes
-          (so the drill-down is recursive).
-
+        Render the Junjo graph as a main overview digraph plus one additional
+        digraph for each subflow.
         """
         graph = json.loads(self.serialize_to_json_string())
 
-        # ----------------------------------------------------------------------- #
-        #  Render helpers                                                         #
-        # ----------------------------------------------------------------------- #
-        def render_graph(
-            graph_name: str,
-            edge_filter: Callable[[dict], bool],
-        ) -> str:
-            """
-            Build a single digraph string with:
-            * RunConcurrent → clusters
-            * Subflow       → macro node (no cluster)
-            Only edges for which `edge_filter(edge)` is True are included.
-            """
-            nodes_by_id = {n["id"]: n for n in graph["nodes"]}
-            edges = [e for e in graph["edges"] if edge_filter(e)]
-
-            # ---- gather node‑ids that really participate in *this* drawing ---- #
-            node_ids: set[str] = set()
-            for e in edges:
-                node_ids.update((e["source"], e["target"]))
-
-            # if a RunConcurrent appears, also pull in its children
-            for nid in list(node_ids):
-                n = nodes_by_id.get(nid)
-                if n and n.get("isSubgraph"):
-                    node_ids.update(n["children"])
-
-            # --------------- meta for RunConcurrent clusters ------------------- #
-            clusters = {
-                n["id"]: n
-                for n in graph["nodes"]
-                if n.get("isSubgraph") and n["id"] in node_ids
-            }
-
-            entry_anchor = {cid: f"{cid}__entry" for cid in clusters}
-            exit_anchor = {cid: f"{cid}__exit" for cid in clusters}
-
-            def _anchor(nid: str, *, is_src: bool) -> str:
-                if nid in clusters:
-                    return exit_anchor[nid] if is_src else entry_anchor[nid]
-                return nid
-
-            # ------------------------------------------------------------------- #
-            out: list[str] = []
-            a = out.append
-
-            a(f'digraph "{graph_name}" {{')
-            a("  rankdir=LR;")
-            a("  compound=true;")
-            a('  node [shape=box, style="rounded,filled", fillcolor="#EFEFEF", '
-            'fontname="Helvetica", fontsize=10];')
-            a('  edge [fontname="Helvetica", fontsize=9];')
-
-            # ---------------------- RunConcurrent clusters --------------------- #
-            for cid, n in clusters.items():
-                a(f'  subgraph "cluster_{cid}" {{')
-                a(f'    label="{self._safe_label(n["label"])} (Concurrent)";')
-                a('    style="filled"; fillcolor="lightblue"; color="blue";')
-                a('    node [fillcolor="lightblue", style="filled,rounded"];')
-                # invisible entry/exit points
-                a(f'    "{entry_anchor[cid]}" [label="", shape=point, width=0.01, '
-                'style=invis];')
-                a(f'    "{exit_anchor[cid]}"  [label="", shape=point, width=0.01, '
-                'style=invis];')
-                for child_id in n["children"]:
-                    child = nodes_by_id[child_id]
-                    a(f'    {self._q(child_id)} '
-                    f'[label="{self._safe_label(child["label"])}"];')
-                a("  }")
-
-            # ------------------- ordinary & Subflow macro nodes ---------------- #
-            for nid in node_ids:
-                if nid in clusters:
-                    continue  # already rendered inside its cluster
-                n = nodes_by_id[nid]
-                if n.get("isSubflow"):
-                    # macro representation
-                    a(f'  {self._q(nid)} [label="{self._safe_label(n["label"])}", '
-                    'shape=component, style="filled,rounded", '
-                    'fillcolor="lightyellow"];')
-                else:
-                    a(f'  {self._q(nid)} [label="{self._safe_label(n["label"])}"];')
-
-            # ------------------------------ edges ------------------------------ #
-            for e in edges:
-                src = _anchor(e["source"], is_src=True)
-                tgt = _anchor(e["target"], is_src=False)
-
-                attrs: list[str] = []
-                if e["source"] in clusters:
-                    attrs.append(f'ltail="cluster_{e["source"]}"')
-                if e["target"] in clusters:
-                    attrs.append(f'lhead="cluster_{e["target"]}"')
-
-                if e.get("condition"):
-                    attrs.extend(
-                        ('style="dashed"', f'label="{self._safe_label(e["condition"])}"')
-                    )
-                else:
-                    attrs.append('style="solid"')
-
-                a(f'  {self._q(src)} -> {self._q(tgt)} [{", ".join(attrs)}];')
-
-            a("}")
-            return "\n".join(out)
-
-        # ----------------------------------------------------------------------- #
-        #  1) overview graph (explicit edges only)                                #
-        # ----------------------------------------------------------------------- #
         dot_parts: list[str] = [
-            render_graph(
+            self._render_dot_graph(
+                graph=graph,
                 graph_name="G",
-                edge_filter=lambda e: e["type"] == "explicit"
+                edge_filter=lambda edge: edge["type"] == "explicit",
             )
         ]
 
-        # ----------------------------------------------------------------------- #
-        #  2) one digraph per sub‑flow                                            #
-        # ----------------------------------------------------------------------- #
-        subflows = [
-            n for n in graph["nodes"] if n.get("isSubflow")
-        ]
-        for sf in subflows:
+        subflows = [node for node in graph["nodes"] if node.get("isSubflow")]
+        for subflow in subflows:
+            subflow_id = subflow["id"]
             dot_parts.append(
-                render_graph(
-                    graph_name=f'subflow_{sf["id"]}',
-                    edge_filter=lambda e, sid=sf["id"]: (
-                        e["type"] == "subflow" and e["subflowId"] == sid
-                    ),
+                self._render_dot_graph(
+                    graph=graph,
+                    graph_name=f"subflow_{subflow_id}",
+                    edge_filter=lambda edge, sid=subflow_id: edge["type"] == "subflow" and edge["subflowId"] == sid,
                 )
             )
 
-        # join with blank lines so graphviz treats them as separate digraphs
         return "\n\n".join(dot_parts)
 
+    @staticmethod
+    def _fname(name: str) -> str:
+        """Turn any string into a filesystem-friendly stem."""
+        return re.sub(r"[^A-Za-z0-9_.-]", "_", name)
 
+    @staticmethod
+    def _split_dot_blocks(dot_text: str) -> list[str]:
+        return re.split(r"\n(?=digraph )", dot_text.lstrip())
+
+    @staticmethod
+    def _extract_digraph_id(dot_block: str) -> str | None:
+        match = re.match(r'digraph\s+"?([A-Za-z0-9_]+)"?', dot_block)
+        if not match:
+            return None
+        return match.group(1)
+
+    @staticmethod
+    def _clean_graphviz_outputs(out_dir: Path, fmt: str, clean: bool) -> None:
+        if not clean:
+            return
+        for path in out_dir.iterdir():
+            if path.suffix in (".dot", f".{fmt}") and path.is_file():
+                path.unlink()
+
+    @staticmethod
+    def _render_digraph_asset(dot_block: str, out_dir: Path, stem: str, fmt: str, dot_cmd: str) -> Path:
+        dot_path = out_dir / f"{stem}.dot"
+        img_path = out_dir / f"{stem}.{fmt}"
+        dot_path.write_text(dot_block, encoding="utf-8")
+        subprocess.run([dot_cmd, "-T", fmt, str(dot_path), "-o", str(img_path)], check=True)
+        return img_path
+
+    def _build_graphviz_label_lookup(self) -> dict[str, str]:
+        label_lookup = {"G": "Overview"}
+        json_graph = json.loads(self.serialize_to_json_string())
+        for node in json_graph["nodes"]:
+            if node.get("isSubflow"):
+                label_lookup[f"subflow_{node['id']}"] = node["label"]
+        return label_lookup
+
+    @staticmethod
+    def _write_graphviz_index(html_path: Path, digraph_files: dict[str, Path], label_lookup: dict[str, str]) -> None:
+        html_parts = [
+            "<!doctype html><html><head>",
+            '<meta charset="utf-8"><title>Junjo Graphs</title>',
+            "<style>body{font-family:Helvetica,Arial,sans-serif}"
+            "img{max-width:100%;border:1px solid #ccc;margin-bottom:2rem}</style>",
+            "</head><body>",
+            "<h1>Junjo workflow diagrams</h1>",
+        ]
+        for name, img in digraph_files.items():
+            heading = html.escape(label_lookup.get(name, name))
+            html_parts.append(f"<h2>{heading}</h2>")
+            html_parts.append(f'<img src="{img.name}" alt="{heading} diagram">')
+        html_parts.append("</body></html>")
+        html_path.write_text("\n".join(html_parts), encoding="utf-8")
 
     def export_graphviz_assets(
         self,
@@ -446,88 +522,26 @@ class Graph:
         """
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
+        self._clean_graphviz_outputs(out_dir, fmt, clean)
 
-        # --- delete old artefacts --------------------------------------
-        if clean:
-            for p in out_dir.iterdir():
-                if p.suffix in (".dot", f".{fmt}") and p.is_file():
-                    p.unlink()
+        label_lookup = self._build_graphviz_label_lookup()
+        blocks = self._split_dot_blocks(self.to_dot_notation())
+        top_stem = self._fname(type(self).__name__ or "Overview")
 
-        # ------------------------------------------------------------------ #
-        # 1. Build "digraph name" → human‑readable label lookup              #
-        # ------------------------------------------------------------------ #
-        label_lookup = {"G": "Overview"}                # first graph
-        json_graph = json.loads(self.serialize_to_json_string())
-        for node in json_graph["nodes"]:
-            if node.get("isSubflow"):
-                label_lookup[f"subflow_{node['id']}"] = node["label"]
-
-        # ------------------------------------------------------------------ #
-        # 2. Split the combined DOT text into individual blocks              #
-        #    (order preserved)                                               #
-        # ------------------------------------------------------------------ #
-        dot_text = self.to_dot_notation().lstrip()
-        blocks: list[str] = re.split(r"\n(?=digraph )", dot_text)
-
-        # ------------------------------------------------------------------ #
-        # choose a safe filename stem                                        #
-        # ------------------------------------------------------------------ #
-        def _fname(s: str) -> str:
-            """Turn any string into a filesystem‑friendly stem."""
-            return re.sub(r"[^A-Za-z0-9_.-]", "_", s)
-
-        top_stem = _fname(type(self).__name__ or "Overview")   # e.g.  MyWorkflow
-
-        digraph_files: dict[str, Path] = {}                    # preserves order
+        digraph_files: dict[str, Path] = {}
         for block in blocks:
-            m = re.match(r'digraph\s+"?([A-Za-z0-9_]+)"?', block)
-            if not m:
+            dgraph_id = self._extract_digraph_id(block)
+            if not dgraph_id:
                 continue
-            dgraph_id = m.group(1)          # raw identifier: "G", "subflow_<id>", …
+            stem = top_stem if dgraph_id == "G" else dgraph_id
+            digraph_files[dgraph_id] = self._render_digraph_asset(block, out_dir, stem, fmt, dot_cmd)
 
-            # --------------------------------------------- #
-            # decide the output filename stem               #
-            # --------------------------------------------- #
-            if dgraph_id == "G":            # the primary overview graph
-                stem = top_stem
-            else:                           # keep sub‑flow identifier for others
-                stem = dgraph_id
-
-            dot_path = out_dir / f"{stem}.dot"
-            img_path = out_dir / f"{stem}.{fmt}"
-
-            dot_path.write_text(block, encoding="utf-8")
-
-            subprocess.run(
-                [dot_cmd, "-T", fmt, str(dot_path), "-o", str(img_path)],
-                check=True,
-            )
-
-            # keep mapping by digraph‑identifier, not by filename
-            digraph_files[dgraph_id] = img_path
-
-        # ------------------------------------------------------------------ #
-        # 3. Build index.html (respect encounter order)                      #
-        # ------------------------------------------------------------------ #
         html_path = out_dir / "index.html"
-        html_parts = [
-            "<!doctype html><html><head>",
-            '<meta charset="utf-8"><title>Junjo Graphs</title>',
-            "<style>body{font-family:Helvetica,Arial,sans-serif}"
-            "img{max-width:100%;border:1px solid #ccc;margin-bottom:2rem}</style>",
-            "</head><body>",
-            "<h1>Junjo workflow diagrams</h1>",
-        ]
-        for name, img in digraph_files.items():
-            heading = html.escape(label_lookup.get(name, name))
-            html_parts.append(f"<h2>{heading}</h2>")
-            html_parts.append(f'<img src="{img.name}" alt="{heading} diagram">')
-        html_parts.append("</body></html>")
-
-        html_path.write_text("\n".join(html_parts), encoding="utf-8")
+        self._write_graphviz_index(html_path, digraph_files, label_lookup)
 
         if open_html:
             import webbrowser
+
             webbrowser.open(html_path.as_uri())
 
         return digraph_files

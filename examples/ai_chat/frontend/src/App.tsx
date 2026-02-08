@@ -3,9 +3,17 @@ import ChatHeader from './components/ChatHeader'
 import ChatSidebar from './components/sidebar/ChatSidebar'
 import ChatWindow from './components/ChatWindow'
 import { useParams } from 'react-router'
+import { useEffect } from 'react'
+import { useChatReadStateStore } from './api/chat/read-store'
 
 function App() {
   const { chat_id } = useParams()
+  const markChatRead = useChatReadStateStore((state) => state.markChatRead)
+
+  useEffect(() => {
+    if (!chat_id) return
+    markChatRead(chat_id)
+  }, [chat_id, markChatRead])
 
   return (
     <div className={'h-dvh w-dvw p-5'}>

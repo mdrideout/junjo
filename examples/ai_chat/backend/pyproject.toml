@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "app"
 version = "0.1.0"
@@ -23,6 +27,7 @@ dependencies = [
     "junjo",
     "pillow>=11.3.0",
     "openinference-instrumentation-google-genai>=0.1.1",
+    "xai-sdk[telemetry-grpc]>=1.6.1",
 ]
 
 [tool.ruff]
@@ -43,9 +48,13 @@ ignore = ["B006"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
+"**/node.py" = ["C901"]                 # allow higher complexity in workflow node services
 
 [tool.uv.sources]
 junjo = { workspace = true }
 
 [dependency-groups]
-dev = ["ruff>=0.9.5"]
+dev = ["ruff>=0.15.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

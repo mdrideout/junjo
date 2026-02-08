@@ -54,8 +54,8 @@ Choosing an OpenTelemetry Exporter
 
 Junjo works with any OpenTelemetry-compatible platform. Choose based on your needs:
 
-1. Junjo Server (Recommended for AI Workflows)
------------------------------------------------
+1. Junjo AI Studio (Recommended for AI Workflows)
+--------------------------------------------------
 
 Built specifically for graph workflow debugging with:
 
@@ -63,14 +63,14 @@ Built specifically for graph workflow debugging with:
 - Workflow-specific visualization
 - LLM decision tracking
 
-See :doc:`junjo_server` for complete setup.
+See :doc:`junjo_ai_studio` for complete setup.
 
 .. code-block:: python
 
-    from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+    from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     
-    junjo_exporter = JunjoServerOtelExporter(
-        host="localhost",  # Junjo Server ingestion service
+    junjo_exporter = JunjoOtelExporter(
+        host="localhost",  # Junjo AI Studio ingestion service
         port="50051",      # gRPC port for receiving spans
         api_key=api_key,
         insecure=True      # Use False in production with TLS
@@ -131,7 +131,7 @@ You can send telemetry to multiple platforms simultaneously:
 
 .. code-block:: python
 
-    from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+    from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.sdk.trace import TracerProvider
@@ -144,9 +144,9 @@ You can send telemetry to multiple platforms simultaneously:
     # Set up tracer provider
     tracer_provider = TracerProvider(resource=resource)
     
-    # Add Junjo Server exporter
-    junjo_exporter = JunjoServerOtelExporter(
-        host="localhost",  # Junjo Server ingestion service
+    # Add Junjo AI Studio exporter
+    junjo_exporter = JunjoOtelExporter(
+        host="localhost",  # Junjo AI Studio ingestion service
         port="50051",      # gRPC port for receiving spans
         api_key=junjo_api_key,
         insecure=True      # Use False in production with TLS
@@ -211,19 +211,19 @@ Here's a complete OpenTelemetry setup for Junjo:
     :caption: otel_config.py
 
     import os
-    from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+    from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     from opentelemetry import trace, metrics
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.resources import Resource
     
     def init_telemetry(service_name: str):
-        """Configure OpenTelemetry with Junjo Server."""
+        """Configure OpenTelemetry with Junjo AI Studio."""
         
         # Get API key and determine environment
-        api_key = os.getenv("JUNJO_SERVER_API_KEY")
+        api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
         if not api_key:
-            raise ValueError("JUNJO_SERVER_API_KEY environment variable not set")
+            raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable not set")
         
         is_production = os.getenv("ENV", "development") == "production"
         
@@ -237,9 +237,9 @@ Here's a complete OpenTelemetry setup for Junjo:
         # Set up tracer provider
         tracer_provider = TracerProvider(resource=resource)
         
-        # Configure Junjo Server exporter
-        junjo_exporter = JunjoServerOtelExporter(
-            host="localhost",  # Junjo Server ingestion service
+        # Configure Junjo AI Studio exporter
+        junjo_exporter = JunjoOtelExporter(
+            host="localhost",  # Junjo AI Studio ingestion service
             port="50051",      # gRPC port for receiving spans
             api_key=api_key,
             insecure=not is_production  # True for local dev, False for production
@@ -252,7 +252,7 @@ Here's a complete OpenTelemetry setup for Junjo:
         trace.set_tracer_provider(tracer_provider)
         
         print(f"OpenTelemetry configured for {service_name}")
-        print(f"Sending traces to Junjo Server at localhost:50051")
+        print(f"Sending traces to Junjo AI Studio at localhost:50051")
 
 Use in your application:
 
@@ -335,7 +335,7 @@ When viewing Junjo traces in your observability platform, you'll see:
 - Workflow total duration
 - Concurrent execution overlap
 
-**Platforms without Junjo Server** will receive all this data but display it in their standard trace viewer. **Junjo Server** provides specialized visualization for these workflow-specific attributes.
+**Platforms without Junjo AI Studio** will receive all this data but display it in their standard trace viewer. **Junjo AI Studio** provides specialized visualization for these workflow-specific attributes.
 
 Troubleshooting
 ===============
@@ -368,7 +368,7 @@ Performance impact
 Next Steps
 ==========
 
-- Set up :doc:`junjo_server` for AI workflow-specific debugging
+- Set up :doc:`junjo_ai_studio` for AI workflow-specific debugging
 - Explore :doc:`visualizing_workflows` for static diagrams
 - Learn about :doc:`concurrency` to understand parallel execution traces
 - Review :doc:`eval_driven_dev` for testing workflows

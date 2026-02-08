@@ -25,7 +25,9 @@ extensions = [
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
-html_title = "Junjo Docs"
+html_favicon = "_static/favicon.webp"
+html_title = "Junjo AI Framework Python SDK Docs - API Reference | Junjo AI Studio"
+html_short_title = "Junjo Python Docs"
 html_baseurl = "https://python-api.junjo.ai/"
 
 # Hide the link to the rst source files
@@ -41,7 +43,7 @@ html_theme_options = {
     #      "color-brand-primary": "orange",
     #     "color-brand-content": "#FF8800",
     # },
-    "sidebar_hide_name": False,  # Show the project name in the sidebar
+    "sidebar_hide_name": True,  # Show the project name in the sidebar
     # "navigation_with_keys": True, # Allow navigation with arrow keys
     # "announcement": "<em>Important</em> announcement!",  # Add a banner at the top
 }

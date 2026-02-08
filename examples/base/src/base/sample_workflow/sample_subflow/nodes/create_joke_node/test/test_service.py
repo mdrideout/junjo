@@ -11,7 +11,7 @@ async def eval_create_joke_node(joke: str, items: list[str]) -> TestCreateJokeSc
     prompt = test_evaluate_joke_prompt(joke, items)
 
     # Create a request to gemini
-    gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.0-flash-001")
+    gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash")
     gemini_result = await gemini_tool.schema_request(schema=TestCreateJokeSchema)
 
     return gemini_result

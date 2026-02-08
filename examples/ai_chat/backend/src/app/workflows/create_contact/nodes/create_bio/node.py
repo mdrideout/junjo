@@ -1,7 +1,7 @@
 from junjo.node import Node
 from loguru import logger
 
-from app.ai_services.gemini.gemini_tool import GeminiTool
+from app.ai_services.grok import GrokTool
 from app.workflows.create_contact.nodes.create_bio.prompt import create_bio_prompt
 from app.workflows.create_contact.store import CreateContactStore
 
@@ -38,12 +38,11 @@ class CreateBioNode(Node[CreateContactStore]):
         )
         logger.info(f"Creating response with prompt: {prompt}")
 
-        # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash")
-        gemini_result = await gemini_tool.text_request()
-        logger.info(f"Gemini result: {gemini_result}")
+        grok_tool = GrokTool(prompt=prompt, model="grok-4-1-fast-non-reasoning")
+        grok_result = await grok_tool.text_request()
+        logger.info(f"Grok result: {grok_result}")
 
         # Update the state with the bio
-        await store.set_bio(gemini_result)
+        await store.set_bio(grok_result)
 
         return

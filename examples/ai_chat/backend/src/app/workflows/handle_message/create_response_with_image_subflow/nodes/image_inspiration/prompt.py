@@ -33,19 +33,20 @@ The chat history is as follows:
 
 # Create and include the following photo specifications with the prompt:
 - the camera / phone used to take the photo
+- If: selfie, mirror selfie, or taken by someone else
 - the location of the photo
 - the time of day
 - the weather
-- the set and setting of the photo
-- the clothes or lack of clothes the person is wearing
+- the set, setting, and pose for the photo
+- the exact clothes the person should be wearing (try to adhere to requests from the conversation history)
 - Specify the text that the image + text generation model should respond with to go with the photo
 
 # Include the following verbatim in the prompt:
 - "Photo Subject Age: {contact.age}"
-- "ultra-realistic"
+- "Make sure the photo is ultra-realistic, real life, as if taken with a real camera. Not cartoonish or perfect."
+- "Do not overly embelish the human physique. Make it realistic, normal, average and aligned with the profile."
 - "Aspect Ratio: 1:1 square"
-- "You must generate safe, non-prohibited content"
-- "The person in the provided image is the basis for this new photo, and is the person sending the message."
+- "The person in the provided image is the person sending the message."
 - "No text, no watermarks"
 
 # DO NOT:

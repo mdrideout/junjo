@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.google_genai import GoogleGenAiSdkInstrumentor
 
 from app.avatar.routes import avatar_router
 from app.chat_image.routes import chat_image_router
@@ -49,8 +48,7 @@ app = FastAPI(lifespan=lifespan)
 # OTEL: Instrument FastAPI tracing
 FastAPIInstrumentor.instrument_app(app)
 
-# OTEL: Instrument Gemini AI tracing
-# GoogleGenAiSdkInstrumentor().instrument()
+# OTEL: Gemini (Google GenAI) instrumentation is configured in `app.otel_config`.
 
 origins = [
     "http://localhost:5173",

@@ -1,9 +1,0 @@
-repos:
--   repo: local
-    hooks:
-    -   id: proto-gen
-        name: Generate protobuf files
-        entry: make proto
-        language: system
-        files: ^src/junjo/telemetry/junjo_server/proto/.*\.proto$
-        always_run: true

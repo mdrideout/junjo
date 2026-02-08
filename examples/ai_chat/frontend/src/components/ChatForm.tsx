@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useSendMessage from '../api/message/hooks/send-message-hook'
 import useGetMessages from '../api/message/hooks/get-messages-hook'
+import { useChatReadStateStore } from '../api/chat/read-store'
 
 export interface ChatFormProps {
   chat_id: string | undefined
@@ -11,6 +12,7 @@ export default function ChatForm(props: ChatFormProps) {
   const [message, setMessage] = useState('')
   const { isLoading, error, sendMessage } = useSendMessage()
   const { getChatMessages } = useGetMessages()
+  const markChatRead = useChatReadStateStore((state) => state.markChatRead)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,6 +21,7 @@ export default function ChatForm(props: ChatFormProps) {
     try {
       await sendMessage({ chat_id, message })
       setMessage('') // Clear the input field after sending
+      markChatRead(chat_id)
 
       // Await a delay
       await new Promise((resolve) => setTimeout(resolve, 150))

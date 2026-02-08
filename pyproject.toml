@@ -35,7 +35,7 @@ dependencies = [
 Docs = "https://python-api.junjo.ai/"
 Repository = "https://github.com/mdrideout/junjo"
 "Bug Tracker" = "https://github.com/mdrideout/junjo/issues"
-"Telemetry Server" = "https://github.com/mdrideout/junjo-server"
+"Telemetry + AI Studio" = "https://github.com/mdrideout/junjo-ai-studio"
 
 [project.optional-dependencies]
 dev = [
@@ -43,11 +43,10 @@ dev = [
     "furo",
     "pytest",
     "pytest-asyncio",
-    "ruff~=0.9.5",
+    "ruff~=0.15.0",
     "sphinx-rtd-theme",
     "simple-sphinx-xml-sitemap",
     "mypy",
-    "grpcio-tools",
     "build>=1.2.1",
     "twine>=6.1.0",
     "pre-commit",
@@ -86,12 +85,12 @@ ignore = ["B006"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
+"**/node.py" = ["C901"]                 # allow higher complexity in workflow node services
 
 [tool.uv.workspace]
 members = [
     "examples/ai_chat/backend",
     "examples/base",
-    "examples/getting_started/getting_started",
     "examples/getting_started",
 ]
 

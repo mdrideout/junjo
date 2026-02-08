@@ -1,7 +1,7 @@
 from junjo.node import Node
 from loguru import logger
 
-from app.ai_services.gemini.gemini_tool import GeminiTool
+from app.ai_services.grok import GrokTool
 from app.workflows.handle_message.create_response_with_image_subflow.nodes.image_inspiration.prompt import (
     image_inspiration_prompt,
 )
@@ -30,18 +30,14 @@ class ImageInspirationNode(Node[CreateResponseWithImageSubflowStore]):
             raise ValueError("Contact is required to execute this node.")
 
         # Create the request to gemini for image inspiration
-        prompt = image_inspiration_prompt(
-            parent_state.conversation_history,
-            parent_state.contact
-        )
+        prompt = image_inspiration_prompt(parent_state.conversation_history, parent_state.contact)
         logger.info(f"Creating response with prompt: {prompt}")
 
-        # Create a request to gemini
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash")
-        gemini_result = await gemini_tool.text_request()
-        logger.info(f"Gemini result: {gemini_result}")
+        grok_tool = GrokTool(prompt=prompt, model="grok-4-1-fast-non-reasoning")
+        grok_result = await grok_tool.text_request()
+        logger.info(f"Grok result: {grok_result}")
 
         # Update the state with the image id
-        await store.set_inspiration_prompt(gemini_result)
+        await store.set_inspiration_prompt(grok_result)
 
         return

@@ -1,17 +1,17 @@
-.. _junjo_server:
+.. _junjo_ai_studio:
 
 ##############################################################
-Junjo Server Intro
+Junjo AI Studio Intro
 ##############################################################
 
 .. meta::
-   :description: Debug and visualize Junjo AI workflows with Junjo Server's interactive telemetry platform. Step through LLM decisions, trace state changes, and understand agentic behavior.
-   :keywords: junjo server, workflow debugging, AI observability, LLM tracing, state machine debugging, workflow visualization, opentelemetry
+   :description: Debug and visualize Junjo AI workflows with Junjo AI Studio's interactive telemetry platform. Step through LLM decisions, trace state changes, and understand agentic behavior.
+   :keywords: junjo ai studio, workflow debugging, AI observability, LLM tracing, state machine debugging, workflow visualization, opentelemetry
 
-Junjo Server is a free, open-source telemetry visualization platform built specifically for debugging graph-based AI workflows. It ingests OpenTelemetry traces from your Junjo workflows and provides interactive tools to understand exactly what your LLMs are doing and why.
+Junjo AI Studio is a free, open-source telemetry visualization platform built specifically for debugging graph-based AI workflows. It ingests OpenTelemetry traces from your Junjo workflows and provides interactive tools to understand exactly what your LLMs are doing and why.
 
-What is Junjo Server?
-=====================
+What is Junjo AI Studio?
+=========================
 
 **Key Capabilities:**
 
@@ -21,8 +21,8 @@ What is Junjo Server?
 - **Trace Timeline:** Visualize concurrent execution and performance bottlenecks
 - **Multi-Execution Comparison:** Compare different runs to identify issues
 
-Why Use Junjo Server for AI Workflows?
-=======================================
+Why Use Junjo AI Studio for AI Workflows?
+==========================================
 
 LLM-powered applications are inherently non-deterministic. Traditional debugging doesn't work well when:
 
@@ -31,10 +31,10 @@ LLM-powered applications are inherently non-deterministic. Traditional debugging
 - You're testing complex agentic behaviors
 - You need to verify eval-driven development results
 
-Junjo Server solves this by providing **complete execution transparency**.
+Junjo AI Studio solves this by providing **complete execution transparency**.
 
 .. image:: _static/junjo-screenshot.png
-   :alt: Junjo Server interactive workflow visualization
+   :alt: Junjo AI Studio interactive workflow visualization
    :align: center
    :width: 800px
 
@@ -43,25 +43,25 @@ Junjo Server solves this by providing **complete execution transparency**.
 Installation & Setup
 ====================
 
-Junjo Server is composed of three Docker services that work together:
+Junjo AI Studio is composed of three Docker services that work together:
 
-1. **Backend**: API server and data processing (SQLite + DuckDB)
-2. **Ingestion Service**: High-throughput OpenTelemetry data receiver (BadgerDB)
+1. **Backend**: FastAPI HTTP API + auth, DataFusion queries over Parquet, plus a SQLite metadata index (and SQLite for users / API keys)
+2. **Ingestion Service**: High-throughput OTLP receiver (Rust) with segmented Arrow IPC WAL → Parquet (cold), and on-demand hot snapshots for real-time queries
 3. **Frontend**: Web UI for visualization and debugging
 
 Quick Start Options
 -------------------
 
-Option 1: Use the Bare-Bones Template (Recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Option 1: Use the Minimal Build Template (Recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The easiest way to get started is with the `Junjo Server Bare-Bones Template <https://github.com/mdrideout/junjo-server-bare-bones>`_, a GitHub template repository with a ready-to-use Docker Compose configuration:
+The easiest way to get started is with the `Junjo AI Studio Minimal Build Template <https://github.com/mdrideout/junjo-ai-studio-minimal-build>`_, a GitHub template repository with a ready-to-use Docker Compose configuration:
 
 .. code-block:: bash
 
     # Clone the template repository
-    git clone https://github.com/mdrideout/junjo-server-bare-bones.git
-    cd junjo-server-bare-bones
+    git clone https://github.com/mdrideout/junjo-ai-studio-minimal-build.git
+    cd junjo-ai-studio-minimal-build
 
     # Configure environment
     cp .env.example .env
@@ -78,45 +78,57 @@ This template provides a minimal, flexible foundation you can customize for your
 Option 2: Create Your Own Docker Compose File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you prefer to integrate Junjo Server into an existing project, here's a minimal Docker Compose example:
+If you prefer to integrate Junjo AI Studio into an existing project, here's a minimal Docker Compose example:
 
 .. code-block:: yaml
     :caption: docker-compose.yml
 
     services:
-      junjo-server-backend:
-        image: mdrideout/junjo-server-backend:latest
+      junjo-ai-studio-backend:
+        image: mdrideout/junjo-ai-studio-backend:latest
         ports:
           - "1323:1323"   # HTTP API
-          - "50053:50053" # Internal gRPC
         volumes:
-          - ./.dbdata/sqlite:/dbdata/sqlite
-          - ./.dbdata/duckdb:/dbdata/duckdb
+          - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         env_file: .env
+        environment:
+          - INGESTION_HOST=junjo-ai-studio-ingestion
+          - INGESTION_PORT=50052
+          - RUN_MIGRATIONS=true
+          - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+          - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+          - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
         networks:
           - junjo-network
 
-      junjo-server-ingestion:
-        image: mdrideout/junjo-server-ingestion-service:latest
+      junjo-ai-studio-ingestion:
+        image: mdrideout/junjo-ai-studio-ingestion:latest
         ports:
           - "50051:50051" # OTel data ingestion (your app connects here)
-          - "50052:50052" # Internal gRPC
         volumes:
-          - ./.dbdata/badgerdb:/dbdata/badgerdb
+          - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         env_file: .env
+        environment:
+          - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+          - BACKEND_GRPC_PORT=50053
+          - WAL_DIR=/app/.dbdata/spans/wal
+          - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+          - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
         networks:
           - junjo-network
+        depends_on:
+          - junjo-ai-studio-backend
 
-      junjo-server-frontend:
-        image: mdrideout/junjo-server-frontend:latest
+      junjo-ai-studio-frontend:
+        image: mdrideout/junjo-ai-studio-frontend:latest
         ports:
           - "5153:80" # Web UI
         env_file: .env
         networks:
           - junjo-network
         depends_on:
-          - junjo-server-backend
-          - junjo-server-ingestion
+          - junjo-ai-studio-backend
+          - junjo-ai-studio-ingestion
 
     networks:
       junjo-network:
@@ -138,11 +150,11 @@ If you prefer to integrate Junjo Server into an existing project, here's a minim
 Resource Requirements
 ---------------------
 
-Junjo Server is designed to run on minimal resources:
+Junjo AI Studio is designed to run on minimal resources:
 
 - **CPU**: Single shared vCPU is sufficient
 - **RAM**: 1GB minimum
-- **Storage**: Uses SQLite, DuckDB, and BadgerDB (all embedded databases)
+- **Storage**: Uses SQLite + Parquet (cold storage) + Arrow IPC WAL segments (hot storage)
 
 This makes it affordable to deploy on small cloud VMs.
 
@@ -152,14 +164,10 @@ Configuration
 Step 1: Generate an API Key
 ----------------------------
 
-1. Open Junjo Server UI at http://localhost:5153
+1. Open Junjo AI Studio UI at http://localhost:5153
 2. Navigate to Settings → API Keys
 3. Create a new API key
-4. Copy the key to your environment
-
-.. code-block:: bash
-
-    export JUNJO_SERVER_API_KEY="your-api-key-here"
+4. Set the key in your application's environment as ``JUNJO_AI_STUDIO_API_KEY``
 
 Step 2: Configure OpenTelemetry in Your Application
 ----------------------------------------------------
@@ -176,20 +184,20 @@ Create an OpenTelemetry configuration file:
     :caption: otel_config.py
 
     import os
-    from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+    from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     from opentelemetry import trace, metrics
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.resources import Resource
 
     def init_telemetry(service_name: str):
-        """Configure OpenTelemetry for Junjo Server."""
+        """Configure OpenTelemetry for Junjo AI Studio."""
         
         # Get API key from environment
-        api_key = os.getenv("JUNJO_SERVER_API_KEY")
+        api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
         if not api_key:
-            raise ValueError("JUNJO_SERVER_API_KEY environment variable not set. "
-                           "Generate a new API key in the Junjo Server UI.")
+            raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable not set. "
+                           "Generate a new API key in the Junjo AI Studio UI.")
         
         # Create OpenTelemetry resource
         resource = Resource.create({"service.name": service_name})
@@ -197,9 +205,9 @@ Create an OpenTelemetry configuration file:
         # Set up tracer provider
         tracer_provider = TracerProvider(resource=resource)
         
-        # Configure Junjo Server exporter
-        junjo_exporter = JunjoServerOtelExporter(
-            host="localhost",  # Junjo Server ingestion service host
+        # Configure Junjo AI Studio exporter
+        junjo_exporter = JunjoOtelExporter(
+            host="localhost",  # Junjo AI Studio ingestion service host
             port="50051",      # Port 50051 receives OpenTelemetry data
             api_key=api_key,
             insecure=True  # Use False in production with TLS
@@ -291,7 +299,7 @@ Compare executions side-by-side:
 Using with OpenInference for LLM Tracing
 =========================================
 
-Junjo Server automatically displays LLM-specific data when you instrument with OpenInference:
+Junjo AI Studio automatically displays LLM-specific data when you instrument with OpenInference:
 
 .. code-block:: bash
 
@@ -305,7 +313,7 @@ Junjo Server automatically displays LLM-specific data when you instrument with O
     # After setting up OpenTelemetry tracer provider
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
-You'll see in Junjo Server:
+You'll see in Junjo AI Studio:
 
 - Full prompt text
 - LLM responses
@@ -342,31 +350,31 @@ Subflow Spans
 - ``junjo.parent_id``: Parent workflow ID
 - ``junjo.workflow.parent_store.id``: Parent store ID
 
-These attributes power Junjo Server's specialized visualization and debugging features.
+These attributes power Junjo AI Studio's specialized visualization and debugging features.
 
 Complete Example
 ================
 
 See working examples in the repository:
 
-- `Base Example with Junjo Server <https://github.com/mdrideout/junjo/tree/main/examples/base>`_
+- `Base Example with Junjo AI Studio <https://github.com/mdrideout/junjo/tree/main/examples/base>`_
 - `AI Chat Example <https://github.com/mdrideout/junjo/tree/main/examples/ai_chat>`_
 
 Using Other OpenTelemetry Platforms
 ====================================
 
-**Important:** Junjo's telemetry works with **any** OpenTelemetry platform. The ``JunjoServerOtelExporter`` is specifically for Junjo Server, but all Junjo-specific span attributes are automatically included when you use standard OTLP exporters.
+**Important:** Junjo's telemetry works with **any** OpenTelemetry platform. The ``JunjoOtelExporter`` is specifically for Junjo AI Studio, but all Junjo-specific span attributes are automatically included when you use standard OTLP exporters.
 
-You can use Junjo Server alongside other platforms:
+You can use Junjo AI Studio alongside other platforms:
 
 .. code-block:: python
 
-    # Use both Junjo Server AND Jaeger
+    # Use both Junjo AI Studio AND Jaeger
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     
-    # Junjo Server
-    junjo_exporter = JunjoServerOtelExporter(
+    # Junjo AI Studio
+    junjo_exporter = JunjoOtelExporter(
         host="localhost",
         port="50051",
         api_key=api_key,
@@ -378,22 +386,22 @@ You can use Junjo Server alongside other platforms:
     jaeger_exporter = OTLPSpanExporter(endpoint="http://jaeger:4317")
     tracer_provider.add_span_processor(BatchSpanProcessor(jaeger_exporter))
 
-Platforms like Jaeger, Grafana, Honeycomb, etc. will receive all Junjo spans with their custom attributes, though they won't have Junjo Server's specialized workflow visualization.
+Platforms like Jaeger, Grafana, Honeycomb, etc. will receive all Junjo spans with their custom attributes, though they won't have Junjo AI Studio's specialized workflow visualization.
 
 Architecture Details
 ====================
 
-Junjo Server uses a three-service architecture for scalability and reliability:
+Junjo AI Studio uses a three-service architecture for scalability and reliability:
 
 .. code-block:: text
 
     Your Application (Junjo Python Library)
-           ↓ (sends OTel spans via gRPC)
+           ↓ (sends OTel spans via gRPC + x-junjo-api-key)
     Ingestion Service :50051
-           ↓ (writes to BadgerDB WAL)
-           ↓ (backend polls via internal gRPC :50052)
+           ↓ (writes segmented Arrow IPC WAL, flushes to Parquet)
+           ↓ (backend calls internal gRPC :50052 for hot snapshot + recent cold paths)
     Backend Service :1323
-           ↓ (stores in SQLite + DuckDB)
+           ↓ (indexes cold Parquet metadata into SQLite, queries Parquet via DataFusion)
            ↓ (serves HTTP API)
     Frontend :5153
            (web UI)
@@ -401,22 +409,22 @@ Junjo Server uses a three-service architecture for scalability and reliability:
 **Port Reference:**
 
 - **50051**: Public gRPC - Your application sends telemetry here
-- **50052**: Internal gRPC - Backend reads from ingestion service
-- **50053**: Internal gRPC - Backend server communication
+- **50052**: Internal gRPC - Backend calls ingestion (PrepareHotSnapshot / FlushWAL)
+- **50053**: Internal gRPC - Ingestion calls backend (ValidateApiKey)
 - **1323**: Public HTTP - API server
 - **5153**: Public HTTP - Web UI
 
 Troubleshooting
 ===============
 
-No data appearing in Junjo Server
-----------------------------------
+No data appearing in Junjo AI Studio
+-------------------------------------
 
-- Verify API key is set correctly: ``echo $JUNJO_SERVER_API_KEY``
+- Verify API key is set correctly: ``echo $JUNJO_AI_STUDIO_API_KEY``
 - Check services are running: ``docker compose ps``
 - Ensure ingestion service is accessible on port 50051
 - Look for connection errors in your application logs
-- Check ingestion service logs: ``docker compose logs junjo-server-ingestion``
+- Check ingestion service logs: ``docker compose logs junjo-ai-studio-ingestion``
 
 Missing LLM data
 ----------------
@@ -429,9 +437,9 @@ Performance issues
 ------------------
 
 - Use sampling for high-volume workflows
-- The ingestion service uses BadgerDB as a write-ahead log for durability
-- Backend polls and indexes data asynchronously
-- See `Junjo Server repository <https://github.com/mdrideout/junjo-server>`_ for tuning options
+- The ingestion service uses a segmented Arrow IPC WAL and streams flushes to Parquet (constant memory)
+- The backend indexes new Parquet files asynchronously and queries cold + hot data with deduplication
+- See `Junjo AI Studio repository <https://github.com/mdrideout/junjo-ai-studio>`_ for tuning options
 
 Docker Compose not starting
 ----------------------------

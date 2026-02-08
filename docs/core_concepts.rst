@@ -151,14 +151,18 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
         # ... (graph creation logic)
         return workflow_graph
 
-    sample_workflow = Workflow[MyWorkflowState, MyWorkflowStore](
-        name="My First Workflow",
-        graph_factory=create_graph,
-        store_factory=lambda: MyWorkflowStore(
-            initial_state=MyWorkflowState(user_input="hello")
+    def create_workflow() -> Workflow[MyWorkflowState, MyWorkflowStore]:
+        """Factory function to create a new instance of the workflow."""
+        return Workflow[MyWorkflowState, MyWorkflowStore](
+            name="My First Workflow",
+            graph_factory=create_graph,
+            store_factory=lambda: MyWorkflowStore(
+                initial_state=MyWorkflowState(user_input="hello")
+            )
         )
-    )
 
+    # Create and execute the workflow
+    sample_workflow = create_workflow()
     await sample_workflow.execute()
 
 **Passing Parameters to Factories**
@@ -179,14 +183,16 @@ concurrency safety.
         # ... setup graph using the api_key
         return Graph(...)
 
-    # Instantiate the workflow, using a lambda to create the factory
-    workflow = Workflow[MyState, MyStore](
-        name="configured_workflow",
-        graph_factory=lambda: create_graph_with_dependency(
-            api_key="your-secret-key"
-        ),
-        store_factory=lambda: MyStore(initial_state=MyState())
-    )
+    def create_workflow() -> Workflow[MyState, MyStore]:
+        # Instantiate the workflow, using a lambda to create the factory
+        return Workflow[MyState, MyStore](
+            name="configured_workflow",
+            graph_factory=lambda: create_graph_with_dependency(
+                api_key="your-secret-key"
+            ),
+            store_factory=lambda: MyStore(initial_state=MyState())
+        )
 
     # The workflow can now be executed normally
+    workflow = create_workflow()
     await workflow.execute()

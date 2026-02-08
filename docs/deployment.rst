@@ -1,12 +1,12 @@
-Junjo Server Deployment
-=======================
+Junjo AI Studio Deployment
+===========================
 
-Junjo Server can be deployed in various ways depending on your needs. Being based on docker containers, it's easy to deploy Junjo Server anywhere with docker compose.
+Junjo AI Studio can be deployed in various ways depending on your needs. Being based on docker containers, it's easy to deploy Junjo AI Studio anywhere with docker compose.
 
-Bare-Bones Template (Recommended Starting Point)
--------------------------------------------------
+Minimal Build Template (Recommended Starting Point)
+------------------------------------------------------
 
-For a minimal, flexible Docker Compose setup that you can customize for your specific infrastructure needs, use the `Junjo Server Bare-Bones Template <https://github.com/mdrideout/junjo-server-bare-bones>`_.
+For a minimal, flexible Docker Compose setup that you can customize for your specific infrastructure needs, use the `Junjo AI Studio Minimal Build Template <https://github.com/mdrideout/junjo-ai-studio-minimal-build>`_.
 
 This GitHub template repository provides:
 
@@ -20,7 +20,7 @@ This GitHub template repository provides:
 - Teams with existing infrastructure
 - Custom deployment requirements
 - Local development environments
-- Learning Junjo Server architecture
+- Learning Junjo AI Studio architecture
 - Integration into existing docker-compose.yml files
 
 **Quick start:**
@@ -28,8 +28,8 @@ This GitHub template repository provides:
 .. code-block:: bash
 
     # Use as GitHub template or clone
-    git clone https://github.com/mdrideout/junjo-server-bare-bones.git
-    cd junjo-server-bare-bones
+    git clone https://github.com/mdrideout/junjo-ai-studio-minimal-build.git
+    cd junjo-ai-studio-minimal-build
 
     # Configure environment
     cp .env.example .env
@@ -44,16 +44,16 @@ This GitHub template repository provides:
 Digital Ocean VM Deployment Example
 ------------------------------------
 
-For a complete production junjo server deployment example to a fresh virtual machine using Docker Compose, Caddy reverse proxy, and automatic HTTPS, see the `Junjo Server Deployment Example <https://github.com/mdrideout/junjo-server-deployment-example>`_.
+For a complete production Junjo AI Studio deployment example to a fresh virtual machine using Docker Compose, Caddy reverse proxy, and automatic HTTPS, see the `Junjo AI Studio Deployment Example <https://github.com/mdrideout/junjo-ai-studio-deployment-example>`_.
 
 This example demonstrates:
 
 - **Low-cost VM setup** - Runs on a 1GB RAM VM with all services
 - **Microservices architecture** - Separate containers for:
 
-  - Junjo Server Ingestion (gRPC telemetry endpoint)
-  - Junjo Server Backend (API & authentication)
-  - Junjo Server Frontend (Web UI)
+  - Junjo AI Studio Ingestion (gRPC opentelemetry endpoint)
+  - Junjo AI Studio Backend (API & authentication)
+  - Junjo AI Studio Frontend (Web UI)
 
 - **Automatic HTTPS** - Caddy reverse proxy with Let's Encrypt SSL
 - **Subdomain routing** - Clean URLs for different services:

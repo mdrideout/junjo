@@ -6,7 +6,7 @@ Visualizing AI Workflows
 
 Understanding the structure and execution flow of your AI workflows and agents is crucial for development, debugging, and optimization. 
 
-This guide focuses on Junjo's built-in Graphviz integration to generate static diagrams of your workflow architecture as you code, and touches upon the dynamic visualization capabilities of Junjo Server.
+This guide focuses on Junjo's built-in Graphviz integration to generate static diagrams of your workflow architecture as you code, and touches upon the dynamic visualization capabilities of Junjo AI Studio.
 
 .. image:: _static/junjo-screenshot-graphviz.png
    :alt: Basic example of a Junjo workflow graph rendered by Graphviz
@@ -67,20 +67,20 @@ The ``Graph`` object in Junjo provides an ``export_graphviz_assets()`` method. T
 Example Usage
 ~~~~~~~~~~~~~
 
-Let's assume you have a workflow graph defined, for instance, ``sample_workflow_graph`` from one of the Junjo examples.
+Let's assume you have a workflow graph factory defined, for instance, ``create_sample_workflow_graph`` from one of the Junjo examples.
 
 In this example, we create an execute a visualize.py script to generate the Graphviz rendered assets.
 
 .. code-block:: python
   :caption: visualize.py
 
-  # Import the graph you want to visualize
-  from base.sample_workflow.workflow import sample_workflow_graph
+  # Import the graph factory you want to visualize
+  from base.sample_workflow.graph import create_sample_workflow_graph
 
   def main():
       # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
       # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
-      sample_workflow_graph.export_graphviz_assets()
+      create_sample_workflow_graph().export_graphviz_assets()
 
   if __name__ == "__main__":
       main()
@@ -94,25 +94,25 @@ Visual Elements:
 * **Clusters (for RunConcurrent):** ``RunConcurrent`` nodes are rendered as distinct clusters, visually grouping the concurrently executing nodes.
 * **Subflows:** Subflows are initially shown as a single "component" shape in the overview graph. A separate diagram is generated for each subflow, detailing its internal structure. This allows for a clean, hierarchical drill-down approach to understanding complex workflows.
 
-Dynamic Telemetry with Junjo Server
------------------------------------
-For real-time observation and debugging of workflow executions, Junjo integrates seamlessly with OpenTelemetry. The optional, open-source `Junjo Server <https://github.com/mdrideout/junjo-server>`_ ingests these telemetry traces and provides a web interface to:
+Dynamic Telemetry with Junjo AI Studio
+--------------------------------------
+For real-time observation and debugging of workflow executions, Junjo integrates seamlessly with OpenTelemetry. The optional, open-source `Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_ ingests these telemetry traces and provides a web interface to:
 
 * **Visualize live execution graphs:** See the path taken by a specific execution.
 * **Step through state changes:** Observe how the redux-inspired state machine is updated by each node.
 * **Inspect inputs and outputs:** Understand the data flowing through your workflow at each step.
 
 .. image:: _static/junjo-screenshot.png
-   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo Server
+   :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo AI Studio
    :align: center
    :width: 600px
 
-While Graphviz provides a static "blueprint" of your workflow's potential paths, Junjo Server offers a dynamic view of actual executions, making it an invaluable tool for debugging and fine-tuning your AI applications.
+While Graphviz provides a static "blueprint" of your workflow's potential paths, Junjo AI Studio offers a dynamic view of actual executions, making it an invaluable tool for debugging and fine-tuning your AI applications.
 
 .. note::
    Junjo remains decoupled from any specific AI model or framework. The visualization tools help you organize and understand the flow of your Python functions, regardless of whether they are LLM calls, database operations, or other business logic.
 
-By combining static Graphviz diagrams for architectural understanding with dynamic Junjo Server telemetry for execution analysis, developers can build, test, and maintain complex AI workflows with greater confidence and clarity.
+By combining static Graphviz diagrams for architectural understanding with dynamic Junjo AI Studio telemetry for execution analysis, developers can build, test, and maintain complex AI workflows with greater confidence and clarity.
 
 ---
 
@@ -120,3 +120,4 @@ Next Steps:
   - Explore the :doc:`getting_started` guide for installation and basic usage.
   - Dive into the :doc:`api` reference for detailed information on Junjo's components.
   - Learn about :doc:`eval_driven_dev` for robust testing of your workflows.
+  - Set up :doc:`junjo_ai_studio` for dynamic telemetry visualization.

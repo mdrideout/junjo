@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { createSetupContact } from '../fetch'
+import { Sex } from '../schemas'
 import { useContactStore } from '../store'
 import { useChatsWithMembersStore } from '../../chat/store'
 
 interface UseCreateContactResult {
   isLoading: boolean
   error: string | null
-  createContact: () => Promise<string> // Added createContact function
+  createContact: (sex?: Sex) => Promise<string>
 }
 
 const useCreateAndUpsertContact = (): UseCreateContactResult => {
@@ -15,12 +16,12 @@ const useCreateAndUpsertContact = (): UseCreateContactResult => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const createContactAndUpsert = async (): Promise<string> => {
+  const createContactAndUpsert = async (sex?: Sex): Promise<string> => {
     setIsLoading(true)
     setError(null)
     try {
       // Create and upsert the new contact into state
-      const response = await createSetupContact()
+      const response = await createSetupContact(sex)
       upsertContacts([response.contact])
       upsertChat(response.chat_with_members)
 

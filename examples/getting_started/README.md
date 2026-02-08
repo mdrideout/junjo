@@ -4,18 +4,14 @@ This is the example Junjo workflow from the Junjo Python API docs.
 
 ```bash
 # Run commands from this directory
-#   - (Using uv package manager https://docs.astral.sh/uv/)
+#   - Using uv package manager https://docs.astral.sh/uv/
 #
-# Create a virtual environment if one doesn't exist yet (tested down to python 3.11)
-$ uv venv --python 3.11
-
-# Make sure the backend virtual environment is activated
-$ source .venv/bin/activate
-
-# Ensure all packages are installed
-$ uv pip install -e .
+# This repo is a `uv` workspace. The virtual environment lives at the repo root
+# (`../../.venv` from here), not inside this example directory.
+#
+# Ensure all packages are installed (Python 3.11)
+$ uv sync --python 3.11 --package getting-started
 
 # Run from this directory
-$ python -m main
-$ uv run -m main
+$ uv run --package getting-started -m main
 ```
