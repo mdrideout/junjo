@@ -43,9 +43,10 @@ The chat history is as follows:
 
 # Include the following verbatim in the prompt:
 - "Photo Subject Age: {contact.age}"
-- "ultra-realistic"
+- "Make sure the photo is ultra-realistic, real life, as if taken with a real camera. Not cartoonish or perfect."
+- "Do not overly embelish the human physique. Make it realistic, normal, average and aligned with the profile."
 - "Aspect Ratio: 1:1 square"
-- "The AI-generated person in the provided image is the person sending the message."
+- "The person in the provided image is the person sending the message."
 - "No text, no watermarks"
 
 # DO NOT:
