@@ -1,9 +1,11 @@
 import { Link, useParams, useNavigate } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../traces/schemas/schemas'
-import { getApiHost } from '../../config'
 import NestedOtelSpans from './NestedOtelSpans'
 import SpanAttributesPanel from './SpanAttributesPanel'
+import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
+import { TracesStateActions } from './store/slice'
+import { selectTraceSpansForTraceId, selectTracesError, selectTracesLoading } from './store/selectors'
 
 export default function TraceDetails() {
   const { traceId, serviceName, spanId } = useParams<{
@@ -12,37 +14,20 @@ export default function TraceDetails() {
     spanId?: string
   }>()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [spans, setSpans] = useState<OtelSpan[]>([])
+  const dispatch = useAppDispatch()
+  const spans: OtelSpan[] = useAppSelector((state) => selectTraceSpansForTraceId(state, { traceId }))
+  const loading = useAppSelector(selectTracesLoading)
+  const error = useAppSelector(selectTracesError)
   const [selectedSpan, setSelectedSpan] = useState<OtelSpan | null>(null)
+  const [requestedTraceId, setRequestedTraceId] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchSpans = async () => {
-      try {
-        setLoading(true)
-        setError(false)
-        // Use Python backend endpoint
-        const endpoint = `/api/v1/observability/traces/${traceId}/spans`
-        const apiHost = getApiHost(endpoint)
-        const response = await fetch(`${apiHost}${endpoint}`, {
-          credentials: 'include',
-        })
-        if (!response.ok) {
-          throw new Error('Failed to fetch spans')
-        }
-        const data = await response.json()
-        setSpans(data)
-        console.log(data)
-      } catch (error) {
-        setError(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchSpans()
-  }, [traceId])
+    if (!traceId) return
+    if (spans.length > 0) return
+    if (requestedTraceId === traceId) return
+    dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
+    setRequestedTraceId(traceId)
+  }, [dispatch, traceId, spans.length, requestedTraceId])
 
   useEffect(() => {
     if (spanId && spans.length > 0) {
@@ -61,12 +46,23 @@ export default function TraceDetails() {
     }
   }, [selectedSpan, navigate, serviceName, traceId])
 
-  if (loading) {
+  if (!traceId || !serviceName) {
+    return <div>Invalid trace URL.</div>
+  }
+
+  const isLoading = spans.length === 0 && (loading || requestedTraceId !== traceId)
+  const hasError = Boolean(error) && spans.length === 0
+
+  if (isLoading) {
     return <div>Loading...</div>
   }
 
-  if (error) {
+  if (hasError) {
     return <div>Error loading spans.</div>
+  }
+
+  if (spans.length === 0) {
+    return <div>No spans found.</div>
   }
 
   return (
@@ -87,7 +83,7 @@ export default function TraceDetails() {
           <div>&rarr;</div>
           <div>{traceId}</div>
         </div>
-        <div className={'text-zinc-400 text-xs'}>{spans[0].start_time}</div>
+        <div className={'text-zinc-400 text-xs'}>{spans[0]?.start_time}</div>
       </div>
       <div className={'grow overflow-scroll'}>
         <hr className={'my-6'} />
@@ -95,7 +91,7 @@ export default function TraceDetails() {
           <div className="w-2/3 overflow-y-auto">
             <NestedOtelSpans
               spans={spans}
-              traceId={traceId!}
+              traceId={traceId}
               selectedSpanId={selectedSpan?.span_id || null}
               onSelectSpan={setSelectedSpan}
             />

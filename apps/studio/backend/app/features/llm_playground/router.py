@@ -44,7 +44,7 @@ async def generate(request: GenerateRequest, authenticated_user: CurrentUser):
         response = await LLMService.generate(request, authenticated_user)
         return response
     except Exception as e:
-        logger.error("Generation error: {}", str(e), exc_info=True)
+        logger.exception("Generation error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Generation failed: {str(e)}"
         )
@@ -93,7 +93,7 @@ async def list_provider_models(provider: str, authenticated_user: CurrentUser):
             detail=f"Failed to fetch models from {provider} API",
         )
     except Exception as e:
-        logger.error("Unexpected error fetching models for {}: {}", provider, str(e), exc_info=True)
+        logger.exception("Unexpected error fetching models for {}", provider)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
@@ -134,7 +134,5 @@ async def refresh_provider_models(provider: str, authenticated_user: CurrentUser
             detail=f"Failed to refresh models from {provider} API",
         )
     except Exception as e:
-        logger.error(
-            "Unexpected error refreshing models for {}: {}", provider, str(e), exc_info=True
-        )
+        logger.exception("Unexpected error refreshing models for {}", provider)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

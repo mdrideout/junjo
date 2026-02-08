@@ -1,0 +1,56 @@
+[package]
+name = "ingestion"
+version = "0.80.0"
+edition = "2021"
+rust-version = "1.85"
+
+[dependencies]
+# Arrow/Parquet
+arrow = { version = "57", features = ["ipc"] }
+parquet = { version = "57", features = ["arrow"] }
+
+# gRPC
+tonic = "0.14"
+tonic-prost = "0.14"
+prost = "0.14"
+prost-types = "0.14"
+
+# OpenTelemetry protos
+opentelemetry-proto = { version = "0.31", features = ["gen-tonic", "trace"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Utilities
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+thiserror = "2"
+anyhow = "1"
+hex = "0.4"
+directories = "6"
+
+# Memory monitoring
+sysinfo = "0.33"
+
+# Time
+chrono = "0.4"
+
+# Caching (similar to Go's otter)
+moka = { version = "0.12", features = ["future"] }
+
+# Utilities
+lazy_static = "1.5"
+
+[dev-dependencies]
+tempfile = "3"
+
+[build-dependencies]
+tonic-prost-build = "0.14"
+
+# Memory allocator - mimalloc returns memory to OS while being fast
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+mimalloc = { version = "0.1", default-features = false }

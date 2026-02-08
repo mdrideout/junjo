@@ -8,11 +8,14 @@ tmp
 # E2E test app config (users should copy from config.yaml.example)
 e2e_test_apps/app/config.yaml
 
+# E2E test run metadata (generated during test runs)
+e2e_test_apps/orchestration/test_run_metadata.json
+
 # Database files
 # All local/dev database data stored in .dbdata/ directory:
 #   .dbdata/sqlite/     - SQLite databases (Python/Go backends)
 #   .dbdata/duckdb/     - DuckDB analytics data
-#   .dbdata/badgerdb/   - Ingestion service data
+#   .dbdata/sqlite/wal.db - Ingestion service WAL
 .dbdata/
 dbdata/                    # Legacy - can be removed after migration
 wal-data/                  # Legacy - can be removed after migration
@@ -87,6 +90,12 @@ dmypy.json
 # Logs
 *.log
 
+# Rust
+ingestion/target/
+**/*.rs.bk
+Cargo.lock
+!ingestion/Cargo.lock
+
 # Generated Protocol Buffers
 # Note: Proto files ARE committed to ensure:
 #   1. Local testing works without protoc installed
@@ -95,3 +104,9 @@ dmypy.json
 #   4. Docker builds also regenerate (defense in depth)
 # proto_gen/
 # **/proto_gen/
+# Viberag index
+.viberag/
+# MCP config (local, not committed)
+.mcp.json
+# MCP config (local, not committed)
+opencode.json

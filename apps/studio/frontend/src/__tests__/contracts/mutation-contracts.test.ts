@@ -3,6 +3,7 @@ import { api, generateMock } from '../../auth/test-utils/openapi-mock-generator'
 import { UserResponseSchema } from '../../auth/response-schemas'
 import { ApiKeyCreateResponseSchema } from '../../features/api-keys/response-schemas'
 import { ModelsResponseSchema } from '../../features/prompt-playground/schemas/model-discovery-schemas'
+import { FlushWALResponseSchema } from '../../features/settings/schemas'
 
 describe('API Contract: Mutation Operations Response Schemas', () => {
   describe('Authentication', () => {
@@ -91,6 +92,18 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
       expect(firstModel.display_name).toBeDefined()
       expect(typeof firstModel.supports_reasoning).toBe('boolean')
       expect(typeof firstModel.supports_vision).toBe('boolean')
+    })
+  })
+
+  describe('Admin Operations', () => {
+    it('FlushWALResponse schema matches flush-wal endpoint', () => {
+      const { mock } = generateMock('flush_wal_api_admin_flush_wal_post')
+      const result = FlushWALResponseSchema.parse(mock)
+
+      expect(result.success).toBeDefined()
+      expect(typeof result.success).toBe('boolean')
+      expect(result.message).toBeDefined()
+      expect(typeof result.message).toBe('string')
     })
   })
 

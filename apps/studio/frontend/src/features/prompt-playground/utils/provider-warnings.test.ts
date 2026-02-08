@@ -6,7 +6,6 @@ import {
   detectJsonSchema,
 } from './provider-warnings'
 import type { OtelSpan } from '../../traces/schemas/schemas'
-import { JunjoSpanType } from '../../traces/schemas/schemas'
 
 // Helper to create a minimal valid OtelSpan with defaults
 const createBaseSpan = (): OtelSpan => ({
@@ -25,13 +24,6 @@ const createBaseSpan = (): OtelSpan => ({
   status_message: '',
   trace_flags: 0,
   trace_state: null,
-  junjo_id: '',
-  junjo_parent_id: '',
-  junjo_span_type: JunjoSpanType.OTHER,
-  junjo_wf_state_start: {},
-  junjo_wf_state_end: {},
-  junjo_wf_graph_structure: {},
-  junjo_wf_store_id: '',
 })
 
 // Mock OpenInference span with OpenAI JSON schema

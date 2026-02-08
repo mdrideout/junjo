@@ -1,9 +1,11 @@
-"""gRPC client for ingestion service span reading.
+"""gRPC client for Rust ingestion service.
 
-This client connects to the ingestion service and reads spans from the
-BadgerDB WAL using server-streaming gRPC.
+This client connects to the ingestion service and provides:
+1. Hot snapshot preparation for DataFusion queries
+2. Manual WAL flush trigger
 
-Port of: backend/ingestion_client/client.go
+The backend reads snapshot files directly via DataFusion rather than
+streaming Arrow IPC data over gRPC.
 """
 
 from dataclasses import dataclass
@@ -16,29 +18,29 @@ from app.proto_gen import ingestion_pb2, ingestion_pb2_grpc
 
 
 @dataclass
-class SpanWithResource:
-    """Container for span data from ingestion service.
+class HotSnapshotResult:
+    """Result from PrepareHotSnapshot RPC."""
 
-    Matches Go struct: backend/ingestion_client/client.go:15-19
-    """
-
-    key_ulid: bytes  # ULID key for ordering/resumption
-    span_bytes: bytes  # Serialized OTLP Span protobuf
-    resource_bytes: bytes  # Serialized OTLP Resource protobuf
+    snapshot_path: str  # Path to stable Parquet file
+    row_count: int  # Number of spans in snapshot
+    file_size_bytes: int  # File size for logging
+    recent_cold_paths: list[str]  # Recently flushed cold Parquet files (may not be indexed yet)
+    success: bool
+    error_message: str
 
 
 class IngestionClient:
-    """Async gRPC client for reading spans from ingestion service.
+    """Async gRPC client for Rust ingestion service.
 
     This client connects to the ingestion service's InternalIngestionService
-    and provides methods to read spans from the BadgerDB WAL.
+    and provides methods to prepare hot snapshots and trigger flushes.
 
     Usage:
         client = IngestionClient()
         await client.connect()
         try:
-            spans = await client.read_spans(last_key, batch_size=100)
-            # Process spans...
+            result = await client.prepare_hot_snapshot()
+            # Read result.snapshot_path via DataFusion...
         finally:
             await client.close()
     """
@@ -54,8 +56,8 @@ class IngestionClient:
             host: Ingestion service hostname (default from settings)
             port: Ingestion service port (default from settings)
         """
-        self.host = host or settings.span_ingestion.INGESTION_HOST
-        self.port = port or settings.span_ingestion.INGESTION_PORT
+        self.host = host or settings.span_ingestion.host
+        self.port = port or settings.span_ingestion.port
         self.address = f"{self.host}:{self.port}"
         self.channel: grpc.aio.Channel | None = None
         self.stub: ingestion_pb2_grpc.InternalIngestionServiceStub | None = None
@@ -65,17 +67,15 @@ class IngestionClient:
 
         Creates an insecure gRPC channel and stub. This is safe because
         the ingestion service is internal (not exposed to internet).
-
-        Raises:
-            Exception: If connection fails
         """
         try:
             self.channel = grpc.aio.insecure_channel(
                 self.address,
                 options=[
-                    ("grpc.keepalive_time_ms", 10000),
-                    ("grpc.keepalive_timeout_ms", 5000),
-                    ("grpc.keepalive_permit_without_calls", 1),
+                    # Keepalive settings
+                    ("grpc.keepalive_time_ms", 300000),  # 5 minutes
+                    ("grpc.keepalive_timeout_ms", 20000),  # 20 seconds
+                    ("grpc.keepalive_permit_without_calls", 0),
                 ],
             )
             self.stub = ingestion_pb2_grpc.InternalIngestionServiceStub(self.channel)
@@ -93,108 +93,96 @@ class IngestionClient:
             await self.channel.close()
             logger.info("Closed ingestion service connection")
 
-    async def read_spans(
-        self, start_key: bytes, batch_size: int = 100
-    ) -> tuple[list[SpanWithResource], int]:
-        """Read spans from ingestion service starting after start_key.
+    async def prepare_hot_snapshot(self) -> HotSnapshotResult:
+        """Prepare a hot snapshot file for DataFusion queries.
 
-        This calls the ReadSpans RPC which returns a server-streaming response.
-        The method collects all spans from the stream and returns them as a list,
-        along with the count of remaining unretrieved spans.
-
-        Args:
-            start_key: ULID key to start after (empty bytes = start from beginning)
-            batch_size: Maximum number of spans to return
+        This calls PrepareHotSnapshot RPC which:
+        1. Flushes any pending in-memory spans to IPC segments
+        2. Creates a stable Parquet snapshot of all WAL data
+        3. Returns the file path for direct reading
 
         Returns:
-            Tuple of (spans, remaining_count):
-                - spans: List of SpanWithResource objects containing span data
-                - remaining_count: Number of unretrieved spans remaining in WAL
+            HotSnapshotResult with snapshot_path if successful
 
         Raises:
             grpc.aio.AioRpcError: If gRPC call fails
-            Exception: If stub not initialized (call connect() first)
-
-        Reference: backend/ingestion_client/client.go:48-77
+            Exception: If stub not initialized
         """
         if not self.stub:
             raise Exception("Client not connected. Call connect() first.")
 
-        request = ingestion_pb2.ReadSpansRequest(start_key_ulid=start_key, batch_size=batch_size)
+        request = ingestion_pb2.PrepareHotSnapshotRequest()
 
-        spans = []
-        remaining_count = 0
-        last_key_processed = None
         try:
-            # Server-streaming RPC: iterate over responses
-            # The server sends span messages followed by a final count message
-            async for response in self.stub.ReadSpans(request):
-                # Check if this is a span message or the final count/cursor message
-                if response.span_bytes and response.resource_bytes:
-                    # This is a span message
-                    spans.append(
-                        SpanWithResource(
-                            key_ulid=response.key_ulid,
-                            span_bytes=response.span_bytes,
-                            resource_bytes=response.resource_bytes,
-                        )
-                    )
-                else:
-                    # This is the final message with remaining_count and last key processed
-                    # The key_ulid may be set to help advance cursor past corrupted spans
-                    remaining_count = response.remaining_count
-                    if response.key_ulid:
-                        last_key_processed = response.key_ulid
+            response = await self.stub.PrepareHotSnapshot(request)
 
-            # If we received spans, log success
-            # Otherwise, use the last_key_processed from the final message (may skip corrupted spans)
-            if spans:
+            result = HotSnapshotResult(
+                snapshot_path=response.snapshot_path,
+                row_count=response.row_count,
+                file_size_bytes=response.file_size_bytes,
+                recent_cold_paths=list(response.recent_cold_paths),
+                success=response.success,
+                error_message=response.error_message,
+            )
+
+            if result.success:
                 logger.debug(
-                    f"Read {len(spans)} spans from ingestion service",
+                    "Hot snapshot prepared",
                     extra={
-                        "batch_size": batch_size,
-                        "received": len(spans),
-                        "remaining_count": remaining_count,
+                        "snapshot_path": result.snapshot_path,
+                        "row_count": result.row_count,
+                        "file_size_bytes": result.file_size_bytes,
                     },
-                )
-            elif last_key_processed:
-                # No spans succeeded, but we have a cursor to advance past corruption
-                logger.warning(
-                    "No spans received but cursor advanced (likely corrupted spans skipped)",
-                    extra={
-                        "remaining_count": remaining_count,
-                        "last_key_processed": last_key_processed.hex(),
-                    },
-                )
-                # Create a dummy span entry with just the key so backend can update cursor
-                spans.append(
-                    SpanWithResource(
-                        key_ulid=last_key_processed,
-                        span_bytes=b"",  # Empty - will be filtered out by backend
-                        resource_bytes=b"",
-                    )
                 )
             else:
-                logger.debug(
-                    "No new spans available from ingestion service",
-                    extra={"remaining_count": remaining_count},
+                logger.warning(
+                    "Hot snapshot preparation failed",
+                    extra={"error_message": result.error_message},
                 )
 
-            return spans, remaining_count
+            return result
 
         except grpc.aio.AioRpcError as e:
             logger.error(
-                "gRPC error reading spans",
-                extra={
-                    "code": str(e.code()),
-                    "details": e.details(),
-                    "error_type": type(e).__name__,
-                },
+                "gRPC error preparing hot snapshot",
+                extra={"code": str(e.code()), "details": e.details()},
             )
             raise
-        except Exception as e:
+
+    async def flush_wal(self) -> bool:
+        """Trigger manual WAL flush to Parquet files.
+
+        This calls the FlushWAL RPC to immediately flush any pending
+        WAL data to cold Parquet files.
+
+        Returns:
+            True if flush succeeded, False otherwise
+
+        Raises:
+            grpc.aio.AioRpcError: If gRPC call fails
+            Exception: If stub not initialized
+        """
+        if not self.stub:
+            raise Exception("Client not connected. Call connect() first.")
+
+        request = ingestion_pb2.FlushWALRequest()
+
+        try:
+            response = await self.stub.FlushWAL(request)
+
+            if response.success:
+                logger.info("WAL flush completed successfully")
+            else:
+                logger.error(
+                    "WAL flush failed",
+                    extra={"error_message": response.error_message},
+                )
+
+            return response.success
+
+        except grpc.aio.AioRpcError as e:
             logger.error(
-                "Unexpected error reading spans",
-                extra={"error": str(e), "error_type": type(e).__name__},
+                "gRPC error flushing WAL",
+                extra={"code": str(e.code()), "details": e.details()},
             )
             raise

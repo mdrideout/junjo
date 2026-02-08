@@ -171,7 +171,7 @@ Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) applic
 The Junjo AI Studio is composed of three primary services:
 
 ### 1. Backend (`junjo-ai-studio-backend`)
-- **Tech Stack**: FastAPI (Python), SQLite, DuckDB
+- **Tech Stack**: FastAPI (Python), SQLite, DataFusion
 - **Responsibilities**:
   - HTTP REST API
   - User authentication & session management
@@ -179,11 +179,13 @@ The Junjo AI Studio is composed of three primary services:
   - Span querying & analytics
 
 ### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
-- **Tech Stack**: Go, gRPC, BadgerDB
+- **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
 - **Responsibilities**:
   - OpenTelemetry OTLP/gRPC endpoint (port 50051)
-  - High-throughput span ingestion
-  - Durable Write-Ahead Log (WAL) with BadgerDB
+  - High-throughput span ingestion with backpressure
+  - Write-Ahead Log using Arrow IPC segments
+  - Flush WAL to date-partitioned Parquet files (cold storage)
+  - Prepare hot snapshots for real-time queries
 
 ### 3. Frontend (`junjo-ai-studio-frontend`)
 - **Tech Stack**: React, TypeScript
@@ -192,19 +194,31 @@ The Junjo AI Studio is composed of three primary services:
   - LLM playground interface
   - User management
 
-**Data Flow:**
+**Data Flow (Two-Tier Architecture):**
 ```
-Junjo Python App → Ingestion Service (gRPC) → BadgerDB WAL
+Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
                                                     ↓
-Backend Service ← polls for new spans ← BadgerDB WAL
-       ↓
-    DuckDB (analytics)
-    SQLite (metadata)
-       ↓
-    Frontend UI
+                                         ┌─────────┴─────────┐
+                                         ↓                   ↓
+                                    FlushWAL RPC    PrepareHotSnapshot RPC
+                                         ↓                   ↓
+                                  Parquet files         Hot snapshot
+                                  (COLD tier)          (HOT tier)
+                                         ↓                   ↓
+                                         └─────────┬─────────┘
+                                                   ↓
+                                    Backend Service (DataFusion)
+                                         ↓
+                                  Merged query results
+                                         ↓
+                                     Frontend UI
 ```
 
-The `backend` service polls the `ingestion`'s internal gRPC API to read batches of spans from the WAL, which it then indexes into DuckDB for analytics queries.
+**How it works:**
+- **Ingestion** receives OTLP spans and writes them to Arrow IPC WAL segments
+- **FlushWAL** (periodic/manual) converts WAL segments to date-partitioned Parquet files (COLD tier)
+- **PrepareHotSnapshot** creates an on-demand Parquet file from unflushed WAL data (HOT tier) and returns a bounded list of recently flushed cold Parquet files (`recent_cold_paths`) to bridge indexing lag
+- **Backend** uses DataFusion to query COLD (SQLite-indexed + `recent_cold_paths`) and HOT Parquet files, merging results with deduplication by `(trace_id, span_id)` (COLD wins)
 
 ---
 
@@ -214,10 +228,9 @@ The `backend` service polls the `ingestion`'s internal gRPC API to read batches 
 - **Docker** and **Docker Compose** (for both development and production)
 
 ### Optional (Development)
-- **Go 1.21+** (for ingestion service development)
+- **Rust toolchain** (for ingestion service development)
 - **Python 3.13+** with **uv** (for backend development)
 - **Node.js 18+** (for frontend development)
-- **BadgerDB CLI** (for database inspection)
 
 ### For Production Deployment
 - A domain or subdomain for hosting (see [Deployment Requirements](#deployment-requirements))
@@ -336,17 +349,18 @@ docker compose up -d
 - If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
 - All three services (backend, ingestion, frontend) share the same storage location
 
-#### Database Types
+#### Database & Storage Types
 
-Junjo AI Studio uses three embedded databases:
+Junjo AI Studio uses embedded databases and file-based storage:
 
-| Database | Purpose | Type |
-|----------|---------|------|
+| Storage | Purpose | Type |
+|---------|---------|------|
 | **SQLite** | User data, API keys, sessions | Single file |
-| **DuckDB** | Analytics queries on telemetry | Single file |
-| **BadgerDB** | Ingestion WAL (Write-Ahead Log) | Directory with multiple files |
+| **Parquet** | Span analytics (COLD tier) | Date-partitioned files |
+| **Arrow IPC WAL** | Ingestion buffer (HOT tier) | Directory of IPC segments |
+| **Hot Snapshot** | Real-time query cache | Single Parquet file |
 
-All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine.
+All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend uses **DataFusion** to query Parquet files directly.
 
 ### Creating API Keys
 
@@ -434,7 +448,8 @@ services:
       - INGESTION_PORT=50052
       - RUN_MIGRATIONS=true
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
   junjo-ai-studio-ingestion:
     image: mdrideout/junjo-ai-studio-ingestion:latest
@@ -444,7 +459,7 @@ services:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
       - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
-      # Port 50052 (internal gRPC for span reading) is NOT exposed - only accessible via Docker network
+      # Port 50052 (internal gRPC for PrepareHotSnapshot/FlushWAL) is NOT exposed - only accessible via Docker network
     networks:
       - junjo-network
     env_file:
@@ -452,16 +467,18 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
-      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
+      - WAL_DIR=/app/.dbdata/spans/wal
+      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started
     healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 30s
 
   junjo-ai-studio-frontend:
     image: mdrideout/junjo-ai-studio-frontend:latest
@@ -489,49 +506,42 @@ For a more complete example with reverse proxy, see the [Junjo AI Studio Deploym
 
 Junjo AI Studio is designed to be low resource:
 - **Minimum**: Shared vCPU + 1GB RAM
-- **Databases**: SQLite, DuckDB, BadgerDB (all embedded, low overhead)
+- **Databases**: SQLite (embedded, low overhead)
 - **Recommended**: 1 vCPU + 2GB RAM for production workloads
 
 ---
 
 ## Advanced Topics
 
-### Database Access
+### Database & Storage Access
 
-#### Inspecting BadgerDB
+#### Inspecting Parquet Files (Span Data)
 
-BadgerDB is the Write-Ahead Log for ingested spans. You can inspect it using the BadgerDB CLI.
+The ingestion service stores spans in Parquet files. You can inspect them using Python.
 
-**Install BadgerDB CLI:**
-```bash
-go install github.com/dgraph-io/badger/v4/badger@latest
+```python
+import pyarrow.parquet as pq
+
+# Read cold tier
+table = pq.read_table('.dbdata/spans/parquet/')
+print(f"Cold tier spans: {table.num_rows}")
+
+# Read hot snapshot
+hot = pq.read_table('.dbdata/spans/hot_snapshot.parquet')
+print(f"Hot tier spans: {hot.num_rows}")
 ```
 
-**Inspect data:**
-```bash
-# Read the database (requires ingestion service to be stopped)
-badger stream --dir ./.dbdata/badgerdb
-
-# Read with cleanup (use if database wasn't shut down properly)
-badger stream --dir ./.dbdata/badgerdb --read_only=false
-```
-
-**Note**: BadgerDB is a directory-based database that creates multiple files (`value log`, `manifest`, etc.), unlike SQLite/DuckDB which are single-file databases.
-
-#### Accessing SQLite and DuckDB
+#### Accessing SQLite (User Data)
 
 ```bash
-# SQLite (user data, API keys)
+# SQLite (user data, API keys, sessions)
 sqlite3 ./.dbdata/sqlite/junjo.db
-
-# DuckDB (span analytics)
-duckdb ./.dbdata/duckdb/traces.duckdb
 ```
 
 ### Performance Tuning
 
-- **Ingestion throughput**: Adjust `SPAN_BATCH_SIZE` and `SPAN_POLL_INTERVAL` in `.env`
-- **Database performance**: DuckDB and SQLite use WAL mode for better concurrency
+- **Ingestion throughput**: Adjust ingestion tunables in `.env` (see `.env.example`, e.g. `BATCH_SIZE`, `FLUSH_MAX_MB`, `FLUSH_MAX_AGE_SECS`, `BACKPRESSURE_MAX_MB`)
+- **Database performance**: SQLite uses WAL mode for better concurrency
 - **Container resources**: Increase memory limits if processing high span volumes
 
 ---
@@ -551,9 +561,10 @@ This script runs:
 0. **Proto version checking** - Warns if protoc version doesn't match required v30.2
 1. **Python linting** - Runs ruff check on backend code (matches pre-commit validation)
 2. **Backend tests** - Unit, integration, and gRPC tests (Python/pytest)
-3. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest)
-4. **Contract tests** - Validates frontend ↔ backend API schema compatibility
-5. **Proto validation** - Regenerates protos, checks for orphaned schemas, validates staleness
+3. **Ingestion tests** - Rust unit/integration tests (Cargo)
+4. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest)
+5. **Contract tests** - Validates frontend ↔ backend API schema compatibility
+6. **Proto validation** - Regenerates protos and validates staleness
 
 ### Test Scripts Organization
 
@@ -572,7 +583,26 @@ This script runs:
 **Individual services:**
 - Backend: See [backend/README.md](backend/README.md#testing) for detailed test categories
 - Frontend: See [frontend/README.md](frontend/README.md) for component testing
-- Ingestion: See [ingestion/README.md](ingestion/README.md) for Go tests
+- Ingestion: See [ingestion/README.md](ingestion/README.md) for Rust tests
+
+### Version Management
+
+Junjo AI Studio uses a centralized root `VERSION` file for release/app metadata synchronization.
+
+```bash
+# Sync all managed version fields from VERSION
+./scripts/sync-version.sh
+
+# Set a new version and sync everything
+./scripts/sync-version.sh 0.80.0
+
+# Verify all managed files are in sync with VERSION
+./scripts/check-version-sync.sh
+```
+
+Managed files include backend (`pyproject`, FastAPI metadata, OpenAPI), ingestion (`Cargo.toml`/`Cargo.lock`), and frontend (`package.json`/`package-lock.json`).
+
+Release guardrail: Docker publish workflow validates that the GitHub release tag exactly matches `VERSION`.
 
 ### Development Workflow & Validation
 
@@ -585,10 +615,10 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 | **Proto version check** | ✅ Warns | ✅ Warns | ✅ Enforces |
 | **Python linting (ruff)** | ✅ Fails | ✅ Auto-fixes + fails | ✅ Enforces |
 | **Backend tests** | ✅ Runs all | ❌ | ✅ Enforces |
+| **Ingestion tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Frontend tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Contract tests** | ✅ Validates | ❌ | ✅ Enforces |
 | **Proto regeneration** | ✅ Regenerates | ✅ Regenerates + stages | ✅ Checks staleness |
-| **Proto orphan detection** | ✅ Fails | ✅ Fails | ✅ Enforces |
 | **Proto staleness check** | ✅ Fails on diff | ❌ (auto-fixes) | ✅ Enforces |
 
 #### Recommended Workflow
@@ -602,6 +632,7 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 # Option 2: Run individual validations
 cd backend && uv run ruff check app/          # Linting
 ./backend/scripts/run-backend-tests.sh        # Backend tests
+cd ingestion && cargo test                    # Ingestion tests
 cd frontend && npm test                       # Frontend tests
 ./backend/scripts/validate_rest_api_contracts.sh  # Contracts
 ```
@@ -653,6 +684,7 @@ Tests run automatically on all PRs via GitHub Actions:
 - `.github/workflows/backend-tests.yml` - Backend test suite
 - `.github/workflows/rest-api-contract-validation.yml` - REST API contract tests
 - `.github/workflows/proto-staleness-check.yml` - Proto file validation
+- `.github/workflows/version-sync-check.yml` - Version drift validation against `VERSION`
 
 ---
 
@@ -756,7 +788,7 @@ docker compose up
 
 ### Docker Hub Images
 - **[junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)** - FastAPI backend
-- **[junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)** - Go gRPC ingestion service
+- **[junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)** - Rust gRPC ingestion service
 - **[junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)** - React frontend
 
 ### OpenTelemetry Resources

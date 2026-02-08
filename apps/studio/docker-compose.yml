@@ -6,13 +6,13 @@
 # DEVELOPMENT MODE (with hot-reloading):
 #   Set in .env: JUNJO_BUILD_TARGET=development
 #   - Backend: uvicorn --reload watches Python files
-#   - Ingestion: Air watches Go files
+#   - Ingestion: cargo-watch watches Rust files
 #   - Frontend: Vite HMR watches React/TypeScript files
 #
 # PRODUCTION MODE (optimized builds):
 #   Set in .env: JUNJO_BUILD_TARGET=production
 #   - Backend: Production uvicorn without reload
-#   - Ingestion: Compiled Go binary
+#   - Ingestion: Compiled Rust binary
 #   - Frontend: Static files served by nginx
 #
 # Source code volumes are always mounted but only used in development mode.
@@ -46,7 +46,9 @@ services:
       - RUN_MIGRATIONS=true
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+      # Parquet file storage path (shared with ingestion service, indexer watches this)
+      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
   junjo-ai-studio-ingestion:
     container_name: junjo-ai-studio-ingestion
@@ -56,10 +58,18 @@ services:
       dockerfile: ingestion/Dockerfile
       target: ${JUNJO_BUILD_TARGET:-production}
     volumes:
-      # Source code (enables hot-reload in development mode via Air)
-      - ./ingestion:/app
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      # Source code mount for development hot-reload (cargo-watch)
+      - ./ingestion/src:/app/src:ro
+      # Shared proto directory (build.rs uses ../proto/ path)
+      - ./proto:/proto:ro
+      - ./ingestion/Cargo.toml:/app/Cargo.toml:ro
+      - ./ingestion/Cargo.lock:/app/Cargo.lock
+      - ./ingestion/build.rs:/app/build.rs:ro
+      # Cargo cache for faster rebuilds
+      - ingestion-cargo-cache:/usr/local/cargo/registry
+      - ingestion-target-cache:/app/target
     ports:
       - "50051:50051" # Public OTLP endpoint (authenticated via API key)
       # Port 50052 (internal gRPC) is NOT exposed - only accessible via Docker network
@@ -70,17 +80,21 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
-      # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
-      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
+      # Arrow IPC WAL directory
+      - WAL_DIR=/app/.dbdata/spans/wal
+      # Hot snapshot path (backend reads this file directly)
+      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+      # Parquet file output path (backend indexer watches this directory)
+      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started
     healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 30s  # Longer start period for development (cargo build takes time)
 
   junjo-ai-studio-frontend:
     container_name: junjo-ai-studio-frontend
@@ -108,6 +122,8 @@ services:
 
 volumes:
   frontend-modules:
+  ingestion-cargo-cache:
+  ingestion-target-cache:
 
 networks:
   junjo-network:

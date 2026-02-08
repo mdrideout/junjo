@@ -13,6 +13,13 @@
   - [3. Authentication](#3-authentication)
     - [API Key Auth (OTel Data)](#api-key-auth-otel-data)
     - [Session Cookie Auth (Web UI)](#session-cookie-auth-web-ui)
+  - [3.1. Python Backend Internal Authentication gRPC Service](#31-python-backend-internal-authentication-grpc-service)
+    - [Architecture Overview](#architecture-overview)
+    - [Concurrent Server Implementation](#concurrent-server-implementation)
+    - [gRPC Service Implementation](#grpc-service-implementation)
+    - [Database Access Pattern](#database-access-pattern)
+    - [Integration with Ingestion Service](#integration-with-ingestion-service)
+    - [Testing](#testing)
   - [4. Data Flow: WAL and Indexing](#4-data-flow-wal-and-indexing)
   - [5. OpenInference Conventions](#5-openinference-conventions)
   - [6. Prompt Playground](#6-prompt-playground)
@@ -33,11 +40,11 @@
 Junjo AI Studio ingests, stores, and analyzes OpenTelemetry (OTel) data from LLM applications.
 
 **Three components:**
-- **`backend`** (Python/FastAPI): User auth, web UI, API, data processing
-- **`ingestion`** (Go): High-throughput OTel data receiver with WAL (BadgerDB)
+- **`backend`** (Python/FastAPI): User auth, web UI, API, span queries via DataFusion
+- **`ingestion`** (Rust): High-throughput OTel receiver with Arrow IPC WAL and Parquet output
 - **Junjo Otel Exporter** (TypeScript): Client library for sending OTel data
 
-**Simple flow:** Client → Ingestion (write to WAL) → Backend (read, index, query)
+**Simple flow:** Client → Ingestion (Arrow IPC WAL) → Parquet files → Backend (DataFusion queries)
 
 ---
 
@@ -45,31 +52,34 @@ Junjo AI Studio ingests, stores, and analyzes OpenTelemetry (OTel) data from LLM
 
 ```mermaid
 flowchart TD
- subgraph ingestion["ingestion (Go)"]
-        WAL{"BadgerDB WAL"}
-        ReadAPI("gRPC Read API")
-        WriteAPI("gRPC Write API")
-        APIKeyAuth{"API Key Auth"}
+ subgraph ingestion["ingestion (Rust)"]
+        WAL{"Arrow IPC WAL"}
+        OTLPService("OTLP gRPC Service")
+        InternalService("Internal gRPC Service")
+        APIKeyAuth{"API Key Cache"}
+        ParquetFiles[("Parquet Files<br/>(COLD tier)")]
+        HotSnapshot[("Hot Snapshot<br/>(HOT tier)")]
   end
  subgraph backend["backend (Python)"]
-        IngestionClient("Ingestion Client")
-        Processor("Span Processor")
-        DuckDB{"DuckDB"}
-        QDrant{"QDrant"}
+        DataFusion("DataFusion Query Engine")
+        IngestionClient("Ingestion gRPC Client")
         InternalAuth("Internal Auth gRPC")
+        SQLite{"SQLite<br/>(users, API keys)"}
   end
  subgraph clients["Clients"]
         Exporter("Junjo Otel Exporter")
   end
-    ReadAPI -- Reads --> WAL
-    WriteAPI -- Writes --> WAL
-    WriteAPI -- Validates --> APIKeyAuth
-    APIKeyAuth -- Checks --> InternalAuth
-    IngestionClient -- Polls --> ReadAPI
-    IngestionClient -- Processes --> Processor
-    Processor -- Indexes --> DuckDB
-    Processor -- Vectorizes --> QDrant
-    Exporter -- OTel Data --> WriteAPI
+    OTLPService -- Writes --> WAL
+    OTLPService -- Validates --> APIKeyAuth
+    APIKeyAuth -- Cache miss --> InternalAuth
+    InternalService -- FlushWAL --> ParquetFiles
+    InternalService -- PrepareHotSnapshot --> HotSnapshot
+    WAL -- Flush --> ParquetFiles
+    WAL -- Snapshot --> HotSnapshot
+    IngestionClient -- PrepareHotSnapshot --> InternalService
+    DataFusion -- Queries --> ParquetFiles
+    DataFusion -- Queries --> HotSnapshot
+    Exporter -- OTel Data --> OTLPService
 ```
 
 ### Backend Service
@@ -78,12 +88,16 @@ flowchart TD
 - Serves web UI and REST API (port 1323)
 - Manages users and API keys
 - Validates API keys via internal gRPC (port 50053)
-- Reads from ingestion WAL, indexes to DuckDB/QDrant
+- Queries spans using DataFusion on COLD + HOT Parquet tiers
+- Calls ingestion service for hot snapshots
 
 **Key files:**
 - `backend/app/main.py` - FastAPI app
 - `backend/app/grpc_server.py` - Internal auth gRPC server
 - `backend/app/features/internal_auth/grpc_service.py` - ValidateApiKey implementation
+- `backend/app/features/otel_spans/repository.py` - Two-tier span queries (SQLite metadata + DataFusion)
+- `backend/app/features/otel_spans/datafusion_query.py` - DataFusion query engine (COLD + HOT Parquet)
+- `backend/app/features/span_ingestion/ingestion_client.py` - gRPC client for PrepareHotSnapshot
 
 **Two servers, one process:**
 ```python
@@ -94,15 +108,22 @@ grpc_task = asyncio.create_task(start_grpc_server_background())
 ### Ingestion Service
 
 **What it does:**
-- Public gRPC server (port 50051) for OTel data
-- Validates API keys (with caching)
-- Writes to BadgerDB WAL (fast, append-only)
+- Public gRPC server (port 50051) for OTLP span ingestion
+- Internal gRPC server (port 50052) for PrepareHotSnapshot and FlushWAL
+- Validates API keys (with in-memory caching)
+- Writes spans to Arrow IPC WAL segments (fast, append-only)
+- Flushes WAL to date-partitioned Parquet files (cold storage)
+- Creates hot snapshots on-demand for real-time queries
+- Heap-based backpressure to prevent memory exhaustion
 
 **Key files:**
-- `ingestion/main.go` - Entry point
-- `ingestion/server/server.go` - gRPC setup
-- `ingestion/server/api_key_interceptor.go` - Auth + caching
-- `ingestion/backend_client/auth_client.go` - Backend auth client
+- `ingestion/src/main.rs` - Entry point, server setup
+- `ingestion/src/grpc/otlp_service.rs` - OTLP ingestion handler
+- `ingestion/src/grpc/internal_service.rs` - PrepareHotSnapshot, FlushWAL handlers
+- `ingestion/src/grpc/api_key_interceptor.rs` - Auth + caching
+- `ingestion/src/wal/arrow_wal.rs` - Arrow IPC WAL implementation
+- `ingestion/src/parquet/writer.rs` - Parquet file writer
+- `ingestion/build.rs` - Proto compilation at build time
 
 ---
 
@@ -114,7 +135,7 @@ grpc_task = asyncio.create_task(start_grpc_server_background())
 1. Client sends OTel data with `x-junjo-api-key` metadata
 2. Ingestion interceptor checks cache
 3. If not cached, validates with backend internal auth
-4. Caches result (5 min TTL)
+4. Caches result (short TTL)
 5. Accepts or rejects request
 
 ```mermaid
@@ -243,7 +264,7 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
 
 ### Database Access Pattern
 
-The gRPC service uses the **high-concurrency async pattern** documented in `backend/app/database/README.md`:
+The gRPC service uses the **high-concurrency async pattern** documented in `backend/app/db_sqlite/README.md`:
 
 ```python
 # Each validation creates its own database session
@@ -288,31 +309,53 @@ junjo-ai-studio-ingestion:
 - Test valid keys, invalid keys, empty keys, database errors
 
 **Integration Tests** (`app/features/internal_auth/test_grpc_integration.py`):
-- Connect to real gRPC server on port 50053
-- Test with actual API keys from database
+- Connect to real in-process gRPC server (started by `grpc_server_for_tests` fixture)
+- Uses isolated test database (via `test_database` fixture)
+- Test with actual API keys created in the test DB
 - Verify server connectivity and response format
 
 **Concurrent Access Tests** (`app/features/internal_auth/test_concurrent_access.py`):
-- 50+ concurrent gRPC requests
+- 50+ concurrent gRPC requests against in-process server
 - Mixed FastAPI + gRPC traffic
 - Database isolation under load
 - Verify no race conditions
 
-## 4. Data Flow: WAL and Indexing
+**Testing Note**: Do NOT run `uvicorn` before running these tests. The tests manage their own gRPC server lifecycle to ensure database isolation. If port 50053 is in use by an external process, tests will fail.
 
-**Why WAL pattern:**
-- Decouple fast writes from slow indexing
-- Ingestion stays fast even if backend is slow/down
-- Backend can catch up at its own pace
+## 4. Data Flow: Two-Tier Architecture
 
-**Process:**
-1. **Write**: Ingestion writes serialized OTel data to BadgerDB
-2. **Read**: Backend polls `WALReaderService` for batches
-3. **Track**: Backend stores last processed key in database
-4. **Process**: Backend deserializes, indexes to DuckDB/QDrant
-5. **Recover**: On restart, backend resumes from last key
+**Why two-tier pattern:**
+- **COLD tier**: Persisted Parquet files for historical data (fast reads, efficient storage)
+- **HOT tier**: On-demand snapshot for recent unflushed data (real-time queries)
+- Decouples fast writes from queryable storage
+- Backend uses a SQLite metadata index + background indexer to avoid scanning cold Parquet for lookups
+- Ingestion returns `recent_cold_paths` to bridge flush→index lag (no backend-side “recent files” tracking)
 
-**Pull-based = resilient:** Backend pulls data when ready, not pushed.
+**Storage tiers:**
+
+| Tier | Storage | Created By | Lifespan |
+|------|---------|------------|----------|
+| **COLD** | Date-partitioned Parquet files | Automatic flusher / `FlushWAL` RPC | Permanent |
+| **HOT** | Single Parquet snapshot file | `PrepareHotSnapshot` RPC | Overwritten on each call |
+| **WAL** | Arrow IPC segments | OTLP ingestion | Deleted after flush |
+
+**Write flow:**
+1. **Ingest**: OTLP spans arrive at ingestion service (port 50051)
+2. **Buffer**: Spans written to Arrow IPC WAL segments in batches
+3. **Flush**: Periodic or manual `FlushWAL` converts WAL → Parquet (COLD)
+4. **Cleanup**: WAL segments deleted after successful flush
+
+**Query flow:**
+1. **Request**: Backend receives span query (e.g., trace lookup)
+2. **Hot + recent cold**: Backend calls `PrepareHotSnapshot` to get:
+   - HOT snapshot path (unflushed WAL)
+   - `recent_cold_paths` (recently flushed Parquet files not yet indexed)
+3. **Cold selection**: Backend selects COLD Parquet files from SQLite metadata and augments with `recent_cold_paths`
+4. **Query**: DataFusion queries COLD + HOT and merges results
+5. **Dedup**: Deduplicate by `(trace_id, span_id)` with COLD priority over HOT
+6. **Return**: Unified results returned to frontend
+
+**Graceful degradation:** If ingestion service is unavailable, backend queries SQLite-indexed COLD tier only.
 
 ---
 
@@ -380,14 +423,15 @@ features/prompt-playground/
 ## 7. Proto Files & Code Generation
 
 **Shared proto definitions** in `proto/`:
-- `auth.proto` - Internal auth service
-- `wal.proto` - WAL reader service
-- `otel.proto` - OTel span format
+- `auth.proto` - Internal auth service (ValidateApiKey)
+- `ingestion.proto` - Ingestion service (PrepareHotSnapshot, FlushWAL)
 
-**Generation script:** `scripts/generate_proto.sh`
-
-**Python codegen:**
+**Python codegen** (via script):
 ```bash
+# Run from repository root
+./scripts/generate_proto.sh
+
+# Or manually:
 python -m grpc_tools.protoc \
   --python_out=backend/app/proto_gen \
   --pyi_out=backend/app/proto_gen \
@@ -395,18 +439,30 @@ python -m grpc_tools.protoc \
   -I proto proto/*.proto
 ```
 
-**Go codegen:**
-```bash
-protoc \
-  --go_out=ingestion/proto_gen \
-  --go-grpc_out=ingestion/proto_gen \
-  -I proto proto/*.proto
+**Rust codegen** (via build.rs - automatic at compile time):
+```rust
+// ingestion/build.rs
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tonic_prost_build::configure()
+        .compile_protos(
+            &["../proto/ingestion.proto", "../proto/auth.proto"],
+            &["../proto"],
+        )?;
+    Ok(())
+}
 ```
 
-**When to regenerate:**
+Rust protos are compiled automatically during `cargo build`. No manual regeneration needed.
+
+**When to regenerate Python protos:**
 - After modifying `.proto` files
 - After pulling changes that modify protos
 - Run: `./scripts/generate_proto.sh`
+
+**CI validation:**
+- `.github/workflows/proto-staleness-check.yml` verifies protos are up-to-date
+- Python: Checks regenerated files match committed files
+- Rust: Runs `cargo check` to validate proto compilation
 
 ---
 
@@ -549,7 +605,7 @@ alembic upgrade head
 - No shared sessions between requests
 - Complete isolation for concurrent operations
 
-→ See `backend/app/database/README.md` for complete patterns and pitfalls
+→ See `backend/app/db_sqlite/README.md` for complete patterns and pitfalls
 
 ### Contract Testing (Frontend/Backend)
 
@@ -665,21 +721,25 @@ def otlp_endpoint(self) -> str:
 
 **Grug's view of Junjo:**
 
-1. **Client send data** → Ingestion (fast write to WAL)
-2. **Backend pull data** → Index to DuckDB/QDrant
-3. **User use web UI** → Query spans, replay prompts
-4. **All use same proto** → No mismatch between services
+1. **Client send data** → Ingestion (fast write to Arrow IPC WAL)
+2. **WAL flush** → Parquet files (COLD tier, permanent storage)
+3. **Backend query** → DataFusion reads COLD + HOT Parquet
+4. **User use web UI** → Query spans, replay prompts
+5. **All use same proto** → No mismatch between services
 
 **Simple parts:**
-- One WAL (BadgerDB)
-- One query DB (DuckDB)
-- One vector DB (QDrant)
-- Two auth methods (API key, session cookie)
-- Two servers in backend (FastAPI, gRPC)
+- One WAL (Arrow IPC segments in directory)
+- Two query tiers (COLD Parquet + HOT snapshot)
+- One metadata DB (SQLite for users, API keys)
+- Two auth methods (API key for OTel, session cookie for web)
+- Two servers in backend (FastAPI on 1323, gRPC on 50053)
+- Two servers in ingestion (OTLP on 50051, internal on 50052)
 
 **When confused, remember:**
-- Ingestion = Write fast
-- Backend = Read slow, process careful
-- WAL = Buffer between fast and slow
+- Ingestion (Rust) = Write fast to WAL, flush to Parquet
+- Backend (Python) = Query Parquet with DataFusion
+- COLD tier = Flushed Parquet files (permanent)
+- HOT tier = Snapshot of unflushed WAL (ephemeral)
+- Deduplication = COLD wins over HOT for same (trace_id, span_id)
 - Tests = Co-located, auto-isolated
 - Config = Flat, explicit, validated

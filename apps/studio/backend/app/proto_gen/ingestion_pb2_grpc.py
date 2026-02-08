@@ -26,8 +26,9 @@ if _version_not_supported:
 
 
 class InternalIngestionServiceStub(object):
-    """InternalIngestionService provides an API for the main backend to read
-    spans from the BadgerDB WAL.
+    """InternalIngestionService provides an API for the backend to trigger
+    snapshot creation and flushes. The backend reads snapshot files directly
+    via DataFusion rather than streaming data over gRPC.
     """
 
     def __init__(self, channel):
@@ -36,21 +37,35 @@ class InternalIngestionServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ReadSpans = channel.unary_stream(
-                '/ingestion.InternalIngestionService/ReadSpans',
-                request_serializer=ingestion__pb2.ReadSpansRequest.SerializeToString,
-                response_deserializer=ingestion__pb2.ReadSpansResponse.FromString,
+        self.PrepareHotSnapshot = channel.unary_unary(
+                '/ingestion.InternalIngestionService/PrepareHotSnapshot',
+                request_serializer=ingestion__pb2.PrepareHotSnapshotRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.PrepareHotSnapshotResponse.FromString,
+                _registered_method=True)
+        self.FlushWAL = channel.unary_unary(
+                '/ingestion.InternalIngestionService/FlushWAL',
+                request_serializer=ingestion__pb2.FlushWALRequest.SerializeToString,
+                response_deserializer=ingestion__pb2.FlushWALResponse.FromString,
                 _registered_method=True)
 
 
 class InternalIngestionServiceServicer(object):
-    """InternalIngestionService provides an API for the main backend to read
-    spans from the BadgerDB WAL.
+    """InternalIngestionService provides an API for the backend to trigger
+    snapshot creation and flushes. The backend reads snapshot files directly
+    via DataFusion rather than streaming data over gRPC.
     """
 
-    def ReadSpans(self, request, context):
-        """ReadSpans reads a batch of spans from the WAL, starting after the
-        specified ULID. This is a server-streaming RPC.
+    def PrepareHotSnapshot(self, request, context):
+        """PrepareHotSnapshot flushes pending spans to IPC and creates a stable
+        Parquet snapshot file that the backend can read directly without coordination.
+        This enables zero-staleness reads without gRPC streaming overhead.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FlushWAL(self, request, context):
+        """FlushWAL triggers an immediate flush of WAL data to cold Parquet storage.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -59,10 +74,15 @@ class InternalIngestionServiceServicer(object):
 
 def add_InternalIngestionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ReadSpans': grpc.unary_stream_rpc_method_handler(
-                    servicer.ReadSpans,
-                    request_deserializer=ingestion__pb2.ReadSpansRequest.FromString,
-                    response_serializer=ingestion__pb2.ReadSpansResponse.SerializeToString,
+            'PrepareHotSnapshot': grpc.unary_unary_rpc_method_handler(
+                    servicer.PrepareHotSnapshot,
+                    request_deserializer=ingestion__pb2.PrepareHotSnapshotRequest.FromString,
+                    response_serializer=ingestion__pb2.PrepareHotSnapshotResponse.SerializeToString,
+            ),
+            'FlushWAL': grpc.unary_unary_rpc_method_handler(
+                    servicer.FlushWAL,
+                    request_deserializer=ingestion__pb2.FlushWALRequest.FromString,
+                    response_serializer=ingestion__pb2.FlushWALResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -73,12 +93,13 @@ def add_InternalIngestionServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class InternalIngestionService(object):
-    """InternalIngestionService provides an API for the main backend to read
-    spans from the BadgerDB WAL.
+    """InternalIngestionService provides an API for the backend to trigger
+    snapshot creation and flushes. The backend reads snapshot files directly
+    via DataFusion rather than streaming data over gRPC.
     """
 
     @staticmethod
-    def ReadSpans(request,
+    def PrepareHotSnapshot(request,
             target,
             options=(),
             channel_credentials=None,
@@ -88,12 +109,39 @@ class InternalIngestionService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
+        return grpc.experimental.unary_unary(
             request,
             target,
-            '/ingestion.InternalIngestionService/ReadSpans',
-            ingestion__pb2.ReadSpansRequest.SerializeToString,
-            ingestion__pb2.ReadSpansResponse.FromString,
+            '/ingestion.InternalIngestionService/PrepareHotSnapshot',
+            ingestion__pb2.PrepareHotSnapshotRequest.SerializeToString,
+            ingestion__pb2.PrepareHotSnapshotResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FlushWAL(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ingestion.InternalIngestionService/FlushWAL',
+            ingestion__pb2.FlushWALRequest.SerializeToString,
+            ingestion__pb2.FlushWALResponse.FromString,
             options,
             channel_credentials,
             insecure,

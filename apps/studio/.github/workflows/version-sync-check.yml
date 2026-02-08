@@ -1,0 +1,49 @@
+name: Version Sync Check
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'VERSION'
+      - 'backend/app/main.py'
+      - 'backend/app/common/responses.py'
+      - 'backend/pyproject.toml'
+      - 'backend/uv.lock'
+      - 'ingestion/Cargo.toml'
+      - 'ingestion/Cargo.lock'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'frontend/backend/openapi.json'
+      - 'scripts/check-version-sync.sh'
+      - 'scripts/sync-version.sh'
+      - '.github/workflows/version-sync-check.yml'
+  pull_request:
+    paths:
+      - 'VERSION'
+      - 'backend/app/main.py'
+      - 'backend/app/common/responses.py'
+      - 'backend/pyproject.toml'
+      - 'backend/uv.lock'
+      - 'ingestion/Cargo.toml'
+      - 'ingestion/Cargo.lock'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'frontend/backend/openapi.json'
+      - 'scripts/check-version-sync.sh'
+      - 'scripts/sync-version.sh'
+      - '.github/workflows/version-sync-check.yml'
+  workflow_dispatch:
+
+jobs:
+  check-version-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run version sync check
+        run: |
+          chmod +x scripts/check-version-sync.sh
+          ./scripts/check-version-sync.sh

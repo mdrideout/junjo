@@ -1,0 +1,19 @@
+# Container monitoring with cAdvisor
+# Usage: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Access: http://localhost:8080
+#   - Click "Docker Containers" in left nav
+#   - Select a container to see CPU, Memory, Network graphs
+
+services:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped

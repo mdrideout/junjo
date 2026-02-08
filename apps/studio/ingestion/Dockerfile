@@ -1,131 +1,130 @@
-# --- 1. Development Stage ---
-FROM golang:1.25-alpine AS development
+# Build stage
+FROM rust:1.85-slim-bookworm AS builder
+
+# Install protobuf compiler for proto compilation
+RUN apt-get update && apt-get install -y \
+    protobuf-compiler \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install grpc_health_probe
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.35 && \
+    case $(dpkg --print-architecture) in \
+        "amd64") ARCH="amd64" ;; \
+        "arm64") ARCH="arm64" ;; \
+        *) echo "Unsupported architecture" && exit 1 ;; \
+    esac && \
+    curl -fsSL -o /bin/grpc_health_probe \
+        "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${ARCH}" && \
+    chmod +x /bin/grpc_health_probe
 
 WORKDIR /app
 
-# Install tini for proper signal handling, even in development
-RUN apk add --no-cache tini
+# Copy manifests first for dependency caching
+COPY ingestion/Cargo.toml ingestion/Cargo.lock ./
+COPY ingestion/build.rs ./
+# Copy shared proto directory (build.rs uses ../proto/ path)
+COPY proto/ /proto/
 
-# Install Air for hot-reloading
-RUN go install github.com/air-verse/air@latest
+# Create dummy src to build dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
 
-# Install grpc_health_probe for health checks
-RUN apk add --no-cache curl unzip && \
-    GRPC_HEALTH_PROBE_VERSION=v0.4.24 && \
-    curl -sL https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 -o /usr/local/bin/grpc_health_probe && \
-    chmod +x /usr/local/bin/grpc_health_probe
+# Copy actual source code
+COPY ingestion/src/ src/
 
-# Copy shared proto files
-COPY proto/ ../proto/
+# Build for release (touch main.rs to force rebuild)
+RUN touch src/main.rs && cargo build --release
 
-# Copy Go module files and download dependencies
-COPY ingestion/go.mod ingestion/go.sum ./
-RUN go mod download
+# ============================================================
+# Development stage (with cargo-watch for hot reloading)
+# ============================================================
+FROM rust:1.85-slim-bookworm AS development
 
-# Copy the rest of the application source code
-COPY ingestion/ .
+RUN apt-get update && apt-get install -y \
+    protobuf-compiler \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install protoc v30.2 and Go protobuf plugins with locked versions
-ARG TARGETARCH
-RUN PROTOC_VERSION=30.2 && \
-    case ${TARGETARCH} in \
-        "amd64") PROTOC_ARCH="x86_64" ;; \
-        "arm64") PROTOC_ARCH="aarch_64" ;; \
-        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+# Install cargo-watch for hot reloading
+RUN cargo install cargo-watch --locked
+
+# Install grpc_health_probe
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.35 && \
+    case $(dpkg --print-architecture) in \
+        "amd64") ARCH="amd64" ;; \
+        "arm64") ARCH="arm64" ;; \
+        *) echo "Unsupported architecture" && exit 1 ;; \
     esac && \
-    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local bin/protoc && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
-    rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10 && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
-
-# Generate proto files from shared proto directory
-RUN protoc \
-    -I../proto \
-    --go_out=./proto_gen \
-    --go-grpc_out=./proto_gen \
-    ../proto/*.proto
-
-# Expose ports
-# Public OTLP endpoint (authenticated via API key - mapped to host)
-EXPOSE 50051
-# Internal gRPC for span reading (NOT mapped to host - internal Docker network only)
-EXPOSE 50052
-
-# Use tini as the entrypoint to ensure signals are forwarded to air
-ENTRYPOINT ["/sbin/tini", "--"]
-
-# Command to run the application with hot-reloading
-CMD ["air", "-c", ".air.toml"]
-
-# --- 2. Production Stage ---
-FROM golang:1.25-alpine AS builder
+    curl -fsSL -o /bin/grpc_health_probe \
+        "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${ARCH}" && \
+    chmod +x /bin/grpc_health_probe
 
 WORKDIR /app
 
-# Install curl and unzip for downloading protoc
-RUN apk add --no-cache curl unzip
+# Copy manifests for dependency caching (these will be overwritten by volume mount)
+COPY ingestion/Cargo.toml ingestion/Cargo.lock ./
+COPY ingestion/build.rs ./
+# Copy shared proto directory (build.rs uses ../proto/ path)
+COPY proto/ /proto/
 
-# Copy shared proto files
-COPY proto/ ../proto/
+# Fetch dependencies only (no compilation, no proto generation)
+# This avoids caching generated proto code in the image layer, which would
+# cause stale code issues when the volume is recreated from the image.
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo fetch && \
+    rm -rf src target
 
-# Copy Go module files and download dependencies
-COPY ingestion/go.mod ingestion/go.sum ./
-RUN go mod download
+# Copy actual source code (will be overwritten by volume mount in compose)
+COPY ingestion/src/ src/
 
-# Copy the rest of the application source code
-COPY ingestion/ .
+# Create data directories (needed for development mode)
+RUN mkdir -p /app/.dbdata/spans/wal /app/.dbdata/spans/parquet
 
-# Install protoc v30.2 and Go protobuf plugins with locked versions
-ARG TARGETARCH
-RUN PROTOC_VERSION=30.2 && \
-    case ${TARGETARCH} in \
-        "amd64") PROTOC_ARCH="x86_64" ;; \
-        "arm64") PROTOC_ARCH="aarch_64" ;; \
-        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
-    esac && \
-    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local bin/protoc && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
-    rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10 && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+# Default environment - paths only, tunables come from .env or config.rs defaults
+ENV GRPC_PORT=50051
+ENV INTERNAL_GRPC_PORT=50052
+ENV WAL_DIR=/app/.dbdata/spans/wal
+ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
+ENV JUNJO_LOG_LEVEL=debug
+ENV RUST_BACKTRACE=1
 
-# Generate proto files from shared proto directory (defense in depth)
-# This ensures Docker images always have fresh proto files even if pre-commit hook was skipped
-RUN protoc \
-    -I../proto \
-    --go_out=./proto_gen \
-    --go-grpc_out=./proto_gen \
-    ../proto/*.proto
+EXPOSE 50051 50052
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /ingestion
+# Use cargo-watch for hot reloading in development
+# -i .dbdata ignores the data directory to prevent restart loops when WAL/parquet files change
+CMD ["cargo", "watch", "-i", ".dbdata", "-i", "target", "-x", "run"]
 
-# --- 3. Final Production Image ---
-FROM alpine:latest AS production
+# ============================================================
+# Production stage (minimal runtime image)
+# ============================================================
+FROM debian:bookworm-slim AS production
 
-WORKDIR /
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install tini for proper signal handling and grpc_health_probe
-RUN apk add --no-cache tini curl && \
-    GRPC_HEALTH_PROBE_VERSION=v0.4.24 && \
-    curl -sL https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 -o /usr/local/bin/grpc_health_probe && \
-    chmod +x /usr/local/bin/grpc_health_probe && \
-    apk del curl
+WORKDIR /app
 
-# Copy the binary from the builder stage
-COPY --from=builder /ingestion /ingestion
+# Copy binary and health probe from builder
+COPY --from=builder /app/target/release/ingestion /app/ingestion
+COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
-# Expose ports
-# Public OTLP endpoint (authenticated via API key - mapped to host)
-EXPOSE 50051
-# Internal gRPC for span reading (NOT mapped to host - internal Docker network only)
-EXPOSE 50052
+# Create data directories
+RUN mkdir -p /app/.dbdata/wal /app/.dbdata/parquet
 
-# Use tini as the entrypoint to ensure signals are forwarded correctly
-ENTRYPOINT ["/sbin/tini", "--"]
+# Default environment - paths only, tunables come from .env or config.rs defaults
+ENV GRPC_PORT=50051
+ENV INTERNAL_GRPC_PORT=50052
+ENV WAL_DIR=/app/.dbdata/spans/wal
+ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
+ENV JUNJO_LOG_LEVEL=info
 
-# Command to run the application
-CMD ["/ingestion"]
+EXPOSE 50051 50052
+
+CMD ["/app/ingestion"]

@@ -20,8 +20,6 @@ PROTO_MODIFIED=false
 
 # Required tool versions (must match PROTO_VERSIONS.md)
 REQUIRED_PROTOC_VERSION="30.2"
-REQUIRED_PROTOC_GEN_GO_VERSION="v1.36.10"
-REQUIRED_PROTOC_GEN_GO_GRPC_VERSION="1.5.1"
 
 # Function to check tool versions
 check_tool_versions() {
@@ -38,28 +36,6 @@ check_tool_versions() {
     fi
   fi
 
-  # Check protoc-gen-go version
-  if command -v protoc-gen-go &> /dev/null; then
-    local protoc_gen_go_version=$(protoc-gen-go --version 2>&1 | awk '{print $2}')
-    if [ "$protoc_gen_go_version" != "$REQUIRED_PROTOC_GEN_GO_VERSION" ]; then
-      echo -e "${YELLOW}⚠️  Warning: protoc-gen-go version mismatch${NC}"
-      echo "     Expected: ${REQUIRED_PROTOC_GEN_GO_VERSION}"
-      echo "     Found:    ${protoc_gen_go_version}"
-      version_mismatch=true
-    fi
-  fi
-
-  # Check protoc-gen-go-grpc version
-  if command -v protoc-gen-go-grpc &> /dev/null; then
-    local protoc_gen_go_grpc_version=$(protoc-gen-go-grpc --version 2>&1 | awk '{print $2}')
-    if [ "$protoc_gen_go_grpc_version" != "$REQUIRED_PROTOC_GEN_GO_GRPC_VERSION" ]; then
-      echo -e "${YELLOW}⚠️  Warning: protoc-gen-go-grpc version mismatch${NC}"
-      echo "     Expected: ${REQUIRED_PROTOC_GEN_GO_GRPC_VERSION}"
-      echo "     Found:    ${protoc_gen_go_grpc_version}"
-      version_mismatch=true
-    fi
-  fi
-
   if [ "$version_mismatch" = true ]; then
     echo ""
     echo -e "${YELLOW}📚 To install correct versions, see: PROTO_VERSIONS.md${NC}"
@@ -69,51 +45,6 @@ check_tool_versions() {
 
 # Check versions before generating
 check_tool_versions
-
-# Function to generate Go proto files for ingestion
-generate_go_proto() {
-  echo "  → Generating Go proto files for ingestion..."
-  cd "$REPO_ROOT/ingestion"
-
-  # Check if protoc is available
-  if ! command -v protoc &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Warning: protoc not found. Skipping Go proto generation.${NC}"
-    echo "     See PROTO_VERSIONS.md for installation instructions"
-    return 1
-  fi
-
-  # Check if Go plugins are available
-  if ! command -v protoc-gen-go &> /dev/null || ! command -v protoc-gen-go-grpc &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Warning: Go protobuf plugins not found. Skipping Go proto generation.${NC}"
-    echo "     See PROTO_VERSIONS.md for installation instructions"
-    return 1
-  fi
-
-  # Generate proto files
-  make proto > /dev/null 2>&1
-
-  # Check if any files were modified
-  if ! git diff --quiet proto_gen/; then
-    PROTO_MODIFIED=true
-    git add proto_gen/
-    echo -e "  ${GREEN}✓${NC} Go proto files regenerated and staged"
-  else
-    echo "  ✓ Go proto files already up-to-date"
-  fi
-
-  # Verify no orphaned schemas (missing .proto source files)
-  echo "  → Verifying proto schemas..."
-  if make proto-check-orphans > /dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} Proto schema verification passed"
-  else
-    echo -e "  ${RED}❌ Orphaned proto schemas detected!${NC}"
-    echo ""
-    make proto-check-orphans  # Show detailed output
-    echo ""
-    echo -e "${YELLOW}Fix: Restore missing .proto files or run 'cd ingestion && make proto-clean'${NC}"
-    return 1
-  fi
-}
 
 # Function to generate Python proto files for backend
 generate_python_proto() {
@@ -139,8 +70,7 @@ generate_python_proto() {
   fi
 }
 
-# Run proto generation for both services
-generate_go_proto || true      # Continue even if Go proto generation fails
+# Run proto generation for backend (Python protos are committed to git)
 generate_python_proto || true  # Continue even if Python proto generation fails
 
 # Track if any Python files were formatted

@@ -3,9 +3,31 @@
   "info": {
     "title": "Junjo AI Studio",
     "description": "LLM Observability Platform - Python Backend",
-    "version": "0.1.0"
+    "version": "0.80.0"
   },
   "paths": {
+    "/api/admin/flush-wal": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Flush Wal",
+        "description": "Trigger WAL flush to Parquet files and index new files. Requires authentication.",
+        "operationId": "flush_wal_api_admin_flush_wal_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlushWALResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/db-has-users": {
       "get": {
         "tags": [
@@ -1086,6 +1108,39 @@
         "title": "DbHasUsersResponse",
         "description": "Response for db-has-users check."
       },
+      "FlushWALResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "examples": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "examples": [
+              "WAL flush completed"
+            ]
+          },
+          "files_indexed": {
+            "type": "integer",
+            "title": "Files Indexed",
+            "default": 0,
+            "examples": [
+              1
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "FlushWALResponse",
+        "description": "Response for WAL flush operation."
+      },
       "GenerateRequest": {
         "properties": {
           "model": {
@@ -1297,7 +1352,7 @@
             "type": "string",
             "title": "Version",
             "description": "API version",
-            "default": "0.1.0"
+            "default": "0.80.0"
           },
           "app_name": {
             "type": "string",

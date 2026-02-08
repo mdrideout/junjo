@@ -4,7 +4,7 @@ import { getApiHost } from '../../../config'
  * Model information from the unified Python backend.
  *
  * Matches backend schema:
- * backend_python/app/features/llm_playground/schemas.py:ModelInfo
+ * backend/app/features/llm_playground/schemas.py:ModelInfo
  */
 export interface ModelInfo {
   id: string // Full model name with provider prefix (e.g., 'openai/gpt-4o')

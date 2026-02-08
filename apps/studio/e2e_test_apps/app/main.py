@@ -72,18 +72,26 @@ async def main():
     provider.add_span_processor(exporter.span_processor)
     trace.set_tracer_provider(provider)
 
-    print(f"[{service_name}] Starting {num_workflows} workflow(s)...")
+    print(f"[{service_name}] Starting {num_workflows} workflow(s) concurrently...")
 
-    # Run workflows
+    # Create all workflows
+    workflows = []
     for i in range(num_workflows):
         # Vary the items list for each workflow
         items = ITEM_LISTS[i % len(ITEM_LISTS)]
+        workflows.append(create_workflow(items))
 
-        workflow = create_workflow(items)
+    # Run all workflows CONCURRENTLY (not sequentially)
+    async def run_workflow(idx: int, workflow):
         await workflow.execute()
-
         final_state = await workflow.get_state_json()
-        print(f"[{service_name}] Workflow {i+1}/{num_workflows} completed. Final state: {final_state}")
+        return idx, final_state
+
+    tasks = [run_workflow(i, w) for i, w in enumerate(workflows)]
+    results = await asyncio.gather(*tasks)
+
+    for idx, final_state in results:
+        print(f"[{service_name}] Workflow {idx+1}/{num_workflows} completed. Final state: {final_state}")
 
     print(f"[{service_name}] Completed {num_workflows} workflow(s)")
 

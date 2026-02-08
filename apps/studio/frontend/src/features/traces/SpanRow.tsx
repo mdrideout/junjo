@@ -1,7 +1,8 @@
 import { getSpanDurationString } from '../../util/duration-utils'
-import { JunjoSpanType, OtelSpan } from '../traces/schemas/schemas'
+import { OtelSpan } from '../traces/schemas/schemas'
 import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-icon'
 import { Link } from 'react-router'
+import { wrapSpan } from './utils/span-accessor'
 
 interface SpanRowProps {
   span: OtelSpan
@@ -22,7 +23,7 @@ export default function SpanRow(props: SpanRowProps) {
   })
 
   // Is Junjo Workflow Span
-  const isJunjoWorkflowSpan = span.junjo_span_type === JunjoSpanType.WORKFLOW
+  const isJunjoWorkflowSpan = wrapSpan(span).isWorkflow
 
   return (
     <div className="p-1">

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Regenerate all protocol buffer files for Go and Python
+# Regenerate all protocol buffer files for Python (backend).
+# Rust ingestion generates proto code at build time via build.rs.
 #
 # Usage: ./run-all-proto-gen.sh
 
@@ -13,12 +14,8 @@ echo "Regenerating All Proto Files"
 echo "========================================"
 echo ""
 
-# Go protos (ingestion service)
-echo "Regenerating Go proto files..."
-cd ingestion
-make proto
-cd ..
-echo "✅ Go proto files regenerated"
+# Rust protos (ingestion service)
+echo "Rust ingestion protos are generated at build time via ingestion/build.rs (no committed files)."
 echo ""
 
 # Python protos (backend service)

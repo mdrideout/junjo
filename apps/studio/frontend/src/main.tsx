@@ -16,6 +16,7 @@ import { Provider } from 'react-redux'
 import { MermaidProvider } from './mermaidjs/mermaid-provider.tsx'
 import UsersPage from './features/users/UsersPage.tsx'
 import ApiKeysPage from './features/api-keys/ApiKeysPage.tsx'
+import SettingsPage from './features/settings/SettingsPage.tsx'
 import TracesListPage from './features/traces/TracesListPage.tsx'
 import TraceDetails from './features/traces/TraceDetails.tsx'
 import PromptPlaygroundPage from './features/prompt-playground/PromptPlaygroundPage.tsx'
@@ -83,6 +84,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <ApiKeysPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <AuthGuard>
+                      <SettingsPage />
                     </AuthGuard>
                   }
                 />

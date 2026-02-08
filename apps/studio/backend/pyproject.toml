@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "junjo-backend"
-version = "0.1.0"
+version = "0.80.0"
 description = "Junjo AI Studio Python Backend - LLM Observability Platform"
 requires-python = ">=3.13"
 dependencies = [
@@ -17,9 +17,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "sqlalchemy[asyncio]>=2.0.36",
     "alembic>=1.14.0",
-    "aiosqlite>=0.20.0",                                # Async SQLite driver
-    "greenlet>=3.2.4",                                  # Required for SQLAlchemy async
-    "duckdb>=1.4.1",
+    "aiosqlite>=0.20.0", # Async SQLite driver
+    "greenlet>=3.2.4", # Required for SQLAlchemy async
     "opentelemetry-instrumentation-sqlalchemy>=0.59b0",
     "nanoid>=2.0.0",
     "bcrypt>=5.0.0",
@@ -33,6 +32,9 @@ dependencies = [
     "litellm>=1.79.0",
     "google-genai>=1.47.0",
     "tldextract>=5.1.3",
+    "pyarrow>=22.0.0",
+    "pytz>=2025.2",
+    "datafusion>=50.1.0",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +43,7 @@ dev = [
     "pytest-asyncio>=1.2.0",
     "httpx>=0.28.0",         # For testing FastAPI
     "ruff>=0.14.3",          # Linting
+    "python-ulid>=3.0.0",    # ULID generation for WAL integration tests
 ]
 
 [tool.setuptools]
@@ -76,4 +79,13 @@ markers = [
     "requires_openai_api: Tests requiring OPENAI_API_KEY environment variable",
     "requires_anthropic_api: Tests requiring ANTHROPIC_API_KEY environment variable",
     "requires_grpc_server: Tests requiring gRPC server running on port 50053",
+    "requires_ingestion_service: Tests requiring Rust ingestion service running on ports 50051/50052",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "python-ulid>=3.1.0",
+    "ruff>=0.14.3",
 ]

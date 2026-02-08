@@ -1,8 +1,8 @@
 """
-Internal authentication gRPC service for validating API keys.
+Internal gRPC service for ingestion ↔ backend communication.
 
-This service provides the ValidateApiKey RPC endpoint used by the ingestion service
-to validate API keys with caching support.
+This service provides:
+- ValidateApiKey: API key validation for ingestion auth
 """
 
 import grpc

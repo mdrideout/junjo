@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import settings to get database URL
 from app.config.settings import settings
+from app.db_sqlite.api_keys.models import APIKeyTable  # noqa: F401
 
 # Import Base to get metadata
 from app.db_sqlite.base import Base
@@ -25,8 +26,6 @@ from app.db_sqlite.base import Base
 # Import all models DIRECTLY (CRITICAL - ensures Alembic sees all tables)
 # Add new models here as they are created
 from app.db_sqlite.users.models import UserTable  # noqa: F401
-from app.db_sqlite.api_keys.models import APIKeyTable  # noqa: F401
-from app.db_sqlite.poller_state.models import PollerState  # noqa: F401
 
 # Alembic Config object
 config = context.config

@@ -2,39 +2,46 @@ syntax = "proto3";
 
 package ingestion;
 
-option go_package = ".;proto_gen";
-
-// InternalIngestionService provides an API for the main backend to read
-// spans from the BadgerDB WAL.
+// InternalIngestionService provides an API for the backend to trigger
+// snapshot creation and flushes. The backend reads snapshot files directly
+// via DataFusion rather than streaming data over gRPC.
 service InternalIngestionService {
-  // ReadSpans reads a batch of spans from the WAL, starting after the
-  // specified ULID. This is a server-streaming RPC.
-  rpc ReadSpans(ReadSpansRequest) returns (stream ReadSpansResponse) {}
+  // PrepareHotSnapshot flushes pending spans to IPC and creates a stable
+  // Parquet snapshot file that the backend can read directly without coordination.
+  // This enables zero-staleness reads without gRPC streaming overhead.
+  rpc PrepareHotSnapshot(PrepareHotSnapshotRequest) returns (PrepareHotSnapshotResponse) {}
+
+  // FlushWAL triggers an immediate flush of WAL data to cold Parquet storage.
+  rpc FlushWAL(FlushWALRequest) returns (FlushWALResponse) {}
 }
 
-// ReadSpansRequest defines the parameters for requesting a batch of spans.
-message ReadSpansRequest {
-  // The ULID of the last span successfully processed by the client.
-  // The server will return spans that were received *after* this key.
-  // If empty, the stream will start from the oldest available span.
-  bytes start_key_ulid = 1;
+// FlushWALRequest triggers a manual WAL flush.
+message FlushWALRequest {}
 
-  // The maximum number of spans to return in the batch.
-  uint32 batch_size = 2;
+// FlushWALResponse contains the result of a flush operation.
+message FlushWALResponse {
+  bool success = 1;
+  string error_message = 2;
 }
 
-// ReadSpansResponse contains a single span from the WAL.
-message ReadSpansResponse {
-  // The ULID key of the span, which also serves as its timestamp.
-  bytes key_ulid = 1;
+// PrepareHotSnapshotRequest triggers creation of a stable snapshot file.
+message PrepareHotSnapshotRequest {}
 
-  // The raw, serialized protobuf bytes of the OTel span.
-  bytes span_bytes = 2;
-
-  // The raw, serialized protobuf bytes of the OTel resource.
-  bytes resource_bytes = 3;
-
-  // The number of spans remaining in the WAL after this batch was retrieved.
-  // This count is decremented atomically when the batch is read.
-  uint64 remaining_count = 4;
+// PrepareHotSnapshotResponse contains the path to the snapshot file.
+message PrepareHotSnapshotResponse {
+  // Path to the stable snapshot file that can be read directly
+  string snapshot_path = 1;
+  // Number of rows in the snapshot
+  int64 row_count = 2;
+  // Size of the snapshot file in bytes
+  int64 file_size_bytes = 3;
+  // True if successful
+  bool success = 4;
+  // Error message if success=false
+  string error_message = 5;
+  // Recently flushed (but potentially not yet indexed) cold parquet files.
+  //
+  // This closes the "WAL flushed -> cold file exists -> metadata not indexed yet"
+  // visibility gap without requiring backend-side tracking.
+  repeated string recent_cold_paths = 6;
 }

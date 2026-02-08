@@ -48,12 +48,12 @@ class DatabaseSettings(BaseSettings):
             validation_alias="JUNJO_SQLITE_PATH",
         ),
     ]
-    duckdb_path: Annotated[
+    metadata_db_path: Annotated[
         str,
         Field(
-            default="../.dbdata/duckdb/traces.duckdb",
-            description="Path to DuckDB database file",
-            validation_alias="JUNJO_DUCKDB_PATH",
+            default="../.dbdata/sqlite/metadata.db",
+            description="Path to SQLite metadata index database",
+            validation_alias="JUNJO_METADATA_DB_PATH",
         ),
     ]
 
@@ -73,17 +73,16 @@ class DatabaseSettings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def duckdb_url(self) -> str:
-        """Computed DuckDB async URL with absolute path.
+    def metadata_db_path_resolved(self) -> str:
+        """Resolved absolute path for metadata database.
 
         Returns:
-            DuckDB connection URL for async SQLAlchemy engine with absolute path.
+            Absolute path to metadata.db file.
         """
-        # Resolve to absolute path (handles relative paths from any working directory)
-        abs_path = Path(self.duckdb_path).resolve()
+        abs_path = Path(self.metadata_db_path).resolve()
         # Ensure parent directory exists
         abs_path.parent.mkdir(parents=True, exist_ok=True)
-        return f"duckdb+aiosqlite:///{abs_path}"
+        return str(abs_path)
 
     model_config = SettingsConfigDict(
         env_file=find_env_file(),
@@ -92,14 +91,14 @@ class DatabaseSettings(BaseSettings):
     )
 
 
-class IngestionServiceSettings(BaseSettings):
-    """Ingestion service gRPC connection settings"""
+class SpanIngestionSettings(BaseSettings):
+    """Ingestion service internal gRPC connection settings."""
 
     host: Annotated[
         str,
         Field(
-            default="localhost",
-            description="Ingestion service gRPC host",
+            default="junjo-ai-studio-ingestion",
+            description="Ingestion service internal gRPC hostname",
             validation_alias="INGESTION_HOST",
         ),
     ]
@@ -117,65 +116,7 @@ class IngestionServiceSettings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def grpc_url(self) -> str:
-        """Computed gRPC URL"""
         return f"{self.host}:{self.port}"
-
-    model_config = SettingsConfigDict(
-        env_file=find_env_file(),
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-
-class SpanIngestionSettings(BaseSettings):
-    """Span ingestion poller configuration"""
-
-    INGESTION_HOST: Annotated[
-        str,
-        Field(
-            default="junjo-ai-studio-ingestion",
-            description="Ingestion service hostname for span reading",
-            validation_alias="INGESTION_HOST",
-        ),
-    ]
-    INGESTION_PORT: Annotated[
-        int,
-        Field(
-            default=50052,
-            ge=1,
-            le=65535,
-            description="Ingestion service gRPC port",
-            validation_alias="INGESTION_PORT",
-        ),
-    ]
-    SPAN_POLL_INTERVAL: Annotated[
-        int,
-        Field(
-            default=5,
-            ge=1,
-            le=3600,
-            description="Span polling interval in seconds",
-            validation_alias="SPAN_POLL_INTERVAL",
-        ),
-    ]
-    SPAN_BATCH_SIZE: Annotated[
-        int,
-        Field(
-            default=100,
-            ge=1,
-            le=10000,
-            description="Maximum spans to read per poll",
-            validation_alias="SPAN_BATCH_SIZE",
-        ),
-    ]
-    SPAN_STRICT_MODE: Annotated[
-        bool,
-        Field(
-            default=False,
-            description="If True, fail entire batch on state patch errors",
-            validation_alias="SPAN_STRICT_MODE",
-        ),
-    ]
 
     model_config = SettingsConfigDict(
         env_file=find_env_file(),
@@ -201,6 +142,61 @@ class LLMSettings(BaseSettings):
         env_file=find_env_file(),
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
+    )
+
+
+class ParquetIndexerSettings(BaseSettings):
+    """Parquet indexer configuration.
+
+    The indexer polls the filesystem for new Parquet files written by the
+    ingestion service, reads span metadata, and indexes it into the SQLite
+    metadata database.
+    """
+
+    parquet_storage_path: Annotated[
+        str,
+        Field(
+            default="../.dbdata/parquet",
+            description="Path to Parquet files (shared with ingestion service)",
+            validation_alias="JUNJO_PARQUET_STORAGE_PATH",
+        ),
+    ]
+    poll_interval: Annotated[
+        int,
+        Field(
+            default=30,
+            ge=5,
+            le=3600,
+            description="Indexer polling interval in seconds",
+            validation_alias="INDEXER_POLL_INTERVAL",
+        ),
+    ]
+    batch_size: Annotated[
+        int,
+        Field(
+            default=10,
+            ge=1,
+            le=100,
+            description="Maximum files to index per poll cycle",
+            validation_alias="INDEXER_BATCH_SIZE",
+        ),
+    ]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def parquet_storage_path_resolved(self) -> str:
+        """Resolved absolute path for Parquet storage.
+
+        Returns:
+            Absolute path to Parquet storage directory.
+        """
+        abs_path = Path(self.parquet_storage_path).resolve()
+        return str(abs_path)
+
+    model_config = SettingsConfigDict(
+        env_file=find_env_file(),
+        env_file_encoding="utf-8",
         extra="ignore",
     )
 
@@ -320,17 +316,17 @@ class AppSettings(BaseSettings):
     database: Annotated[
         DatabaseSettings, Field(default_factory=DatabaseSettings, description="Database settings")
     ]
-    ingestion: Annotated[
-        IngestionServiceSettings,
-        Field(default_factory=IngestionServiceSettings, description="Ingestion service settings"),
-    ]
     span_ingestion: Annotated[
         SpanIngestionSettings,
-        Field(default_factory=SpanIngestionSettings, description="Span ingestion poller settings"),
+        Field(default_factory=SpanIngestionSettings, description="Ingestion service settings"),
     ]
     llm: Annotated[
         LLMSettings,
         Field(default_factory=LLMSettings, description="LLM provider API keys for LiteLLM"),
+    ]
+    parquet_indexer: Annotated[
+        ParquetIndexerSettings,
+        Field(default_factory=ParquetIndexerSettings, description="V4 Parquet indexer settings"),
     ]
 
     @field_validator("secure_cookie_key", mode="before")

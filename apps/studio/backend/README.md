@@ -8,10 +8,10 @@ The backend service provides:
 - **HTTP REST API** for frontend and programmatic access
 - **User authentication** with session management
 - **LLM playground** for testing prompts across providers (OpenAI, Anthropic, Gemini)
-- **Span querying & analytics** using DuckDB
+- **Span querying & analytics** using DataFusion (Parquet) + SQLite metadata index
 - **Internal gRPC server** for authentication (port 50053)
 
-**Tech Stack**: Python 3.13+, FastAPI, SQLAlchemy, SQLite (metadata), DuckDB (analytics), Loguru
+**Tech Stack**: Python 3.13+, FastAPI, SQLAlchemy, SQLite, DataFusion, Loguru
 
 ---
 
@@ -368,8 +368,7 @@ backend/
 │   ├── common/                 # Shared utilities
 │   │   ├── audit.py            # Audit logging
 │   │   └── responses.py        # Common response models
-│   ├── db_sqlite/              # SQLite (users, API keys)
-│   ├── db_duckdb/              # DuckDB (span analytics)
+│   ├── db_sqlite/              # SQLite (users, API keys, metadata index)
 │   ├── grpc_server.py          # Internal gRPC server
 │   └── main.py                 # FastAPI app entry point
 ├── tests/                      # Test suite

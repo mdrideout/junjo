@@ -10,6 +10,7 @@ import {
   selectTraceSpansForTraceId,
 } from '../features/traces/store/selectors'
 import { useNavigate, useParams } from 'react-router'
+import { wrapSpan } from '../features/traces/utils/span-accessor'
 
 interface RenderJunjoGraphMermaidProps {
   traceId: string
@@ -39,9 +40,10 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   const traceSpans = useAppSelector((state: RootState) => selectTraceSpansForTraceId(state, { traceId }))
 
   // Identify Node / Subflow Spans
-  const nodeSpans = traceSpans.filter(
-    (span) => span.junjo_span_type === JunjoSpanType.NODE || span.junjo_span_type === JunjoSpanType.SUBFLOW,
-  )
+  const nodeSpans = traceSpans.filter((span) => {
+    const spanType = wrapSpan(span).junjoSpanType
+    return spanType === JunjoSpanType.NODE || spanType === JunjoSpanType.SUBFLOW
+  })
 
   /**
    * Attach listeners to the elements, and annotate where appropriate
@@ -50,10 +52,10 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     const existing = container.querySelectorAll('.node')
     existing.forEach((node) => {
       const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
-      const utilizedNodeSpan = nodeSpans.find((s) => s.junjo_id === junjoNodeId)
+      const utilizedNodeSpan = nodeSpans.find((s) => wrapSpan(s).junjoId === junjoNodeId)
       if (!utilizedNodeSpan) {
         node.classList.add('graph-element-not-utilized')
-      } else if (utilizedNodeSpan.junjo_span_type === JunjoSpanType.NODE) {
+      } else if (wrapSpan(utilizedNodeSpan).junjoSpanType === JunjoSpanType.NODE) {
         node.addEventListener('click', handleNodeClick as EventListener)
       } else {
         node.classList.add('node-subflow')
@@ -82,7 +84,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       const junjoID = extractJunjoIdFromMermaidElementId(nodeIdAttr)
       if (junjoID) {
         // Get the span with the junjo.id that matches the junjoID
-        const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
+        const clickedSpan = traceSpans.find((span) => wrapSpan(span).junjoId === junjoID)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
           dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
@@ -110,7 +112,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
 
         // Get the span with the junjo.id that matches the junjoID
-        const clickedSpan = traceSpans.find((span) => span.junjo_id === junjoID)
+        const clickedSpan = traceSpans.find((span) => wrapSpan(span).junjoId === junjoID)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
           dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
@@ -208,7 +210,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
     // --- Add active class to the new active node ---
     if (firstJunjoSpan) {
       // Construct the base ID prefix we expect
-      const baseTargetId = `flowchart-${firstJunjoSpan.junjo_id}`
+      const baseTargetId = `flowchart-${wrapSpan(firstJunjoSpan).junjoId}`
 
       // Use querySelector with an attribute "starts with" selector [id^=...]
       // Query within the specific svgContainerRef.current for better scoping
@@ -251,7 +253,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       const junjoNodeId = extractJunjoIdFromMermaidElementId(node.id)
 
       // Check if this node-subflow is part of the active workflowChain
-      const isActiveSubflow = workflowChain.some((span) => span.junjo_id === junjoNodeId)
+      const isActiveSubflow = workflowChain.some((span) => wrapSpan(span).junjoId === junjoNodeId)
       if (isActiveSubflow) {
         node.classList.add('node-subflow-active')
       }

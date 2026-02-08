@@ -25,6 +25,7 @@ from app.common.responses import HealthResponse
 from app.config.deployment_validation import log_deployment_configuration
 from app.config.logger import setup_logging
 from app.config.settings import settings
+from app.features.admin.router import router as admin_router
 from app.features.api_keys.router import router as api_keys_router
 from app.features.auth.router import router as auth_router
 from app.features.config.router import router as config_router
@@ -69,20 +70,33 @@ async def lifespan(app: FastAPI):
         os.environ["GEMINI_API_KEY"] = settings.llm.gemini_api_key
         logger.info("Gemini API key configured")
 
-    # Initialize DuckDB tables
-    from app.db_duckdb.db_config import initialize_tables
+    # Initialize SQLite metadata index
+    from app.db_sqlite.metadata import init_metadata_db
+    from app.db_sqlite.metadata.maintenance import sync_with_filesystem
 
-    initialize_tables()
-    logger.info("DuckDB tables initialized")
+    init_metadata_db(settings.database.metadata_db_path_resolved)
+    logger.info("SQLite metadata index initialized")
+
+    # Sync metadata index with filesystem (remove orphaned entries)
+    sync_result = sync_with_filesystem(settings.parquet_indexer.parquet_storage_path_resolved)
+    if sync_result["removed"] > 0 or sync_result["missing"]:
+        logger.info(
+            "Metadata index synced with filesystem",
+            extra={
+                "removed_orphans": sync_result["removed"],
+                "missing_files": len(sync_result["missing"]),
+            },
+        )
 
     # Log deployment configuration
     log_deployment_configuration()
 
-    # Start span ingestion poller as background task
-    from app.features.span_ingestion.background_poller import span_ingestion_poller
+    # V4 Architecture: Start Parquet indexer as background task
+    # Polls filesystem for Parquet files written by the ingestion service
+    from app.features.parquet_indexer.background_indexer import parquet_indexer
 
-    poller_task = asyncio.create_task(span_ingestion_poller())
-    logger.info("Span ingestion poller task created")
+    indexer_task = asyncio.create_task(parquet_indexer())
+    logger.info("Parquet indexer task created")
 
     # Start gRPC server as background task
     grpc_task = asyncio.create_task(start_grpc_server_background())
@@ -93,13 +107,13 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down application")
 
-    # Stop span ingestion poller
-    if not poller_task.done():
-        poller_task.cancel()
+    # Stop Parquet indexer (V4)
+    if not indexer_task.done():
+        indexer_task.cancel()
         try:
-            await poller_task
+            await indexer_task
         except asyncio.CancelledError:
-            logger.info("Span ingestion poller cancelled")
+            logger.info("Parquet indexer cancelled")
 
     # Stop gRPC server
     await stop_grpc_server()
@@ -114,9 +128,12 @@ async def lifespan(app: FastAPI):
 
     # Database cleanup
     from app.db_sqlite.db_config import checkpoint_wal, engine
+    from app.db_sqlite.metadata import checkpoint_wal as metadata_checkpoint_wal
 
-    await checkpoint_wal()  # Checkpoint SQLite WAL
+    await checkpoint_wal()  # Checkpoint SQLite WAL (user data)
     logger.info("SQLite WAL checkpointed")
+    metadata_checkpoint_wal()  # Checkpoint metadata WAL (synchronous)
+    logger.info("Metadata WAL checkpointed")
     await engine.dispose()  # Close database connections
     logger.info("Database connections closed")
 
@@ -125,7 +142,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Junjo AI Studio",
     description="LLM Observability Platform - Python Backend",
-    version="0.1.0",
+    version="0.80.0",
     lifespan=lifespan,
     # Disable Swagger UI and ReDoc (not needed for production deployments)
     docs_url=None,
@@ -167,6 +184,7 @@ app.add_middleware(
 # Outgoing:  request.session modified → SessionMiddleware (sign) → SecureCookiesMiddleware (encrypt) → Browser
 
 # === ROUTERS ===
+app.include_router(admin_router, prefix="/api")
 app.include_router(auth_router, tags=["auth"])
 app.include_router(api_keys_router)
 app.include_router(config_router, prefix="/api")
@@ -185,7 +203,7 @@ async def health() -> HealthResponse:
     logger.debug("Health endpoint called")
     return HealthResponse(
         status="ok",
-        version="0.1.0",
+        version="0.80.0",
         app_name="Junjo AI Studio",
     )
 
@@ -200,7 +218,7 @@ async def root() -> dict[str, str]:
     """
     return {
         "app": "Junjo AI Studio",
-        "version": "0.1.0",
+        "version": "0.80.0",
         "health": "/health",
     }
 

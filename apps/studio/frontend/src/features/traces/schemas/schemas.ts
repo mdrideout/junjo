@@ -28,13 +28,8 @@ export const OtelSpanSchema = z.object({
   status_message: z.string(),
   trace_flags: z.number(),
   trace_state: z.any(),
-  junjo_id: z.string(),
-  junjo_parent_id: z.string(),
-  junjo_span_type: z.nativeEnum(JunjoSpanType),
-  junjo_wf_state_start: z.record(z.any()),
-  junjo_wf_state_end: z.record(z.any()),
-  junjo_wf_graph_structure: z.record(z.any()),
-  junjo_wf_store_id: z.string(),
+  // Note: Junjo attributes (junjo.*, junjo.workflow.*) are in attributes_json.
+  // Use SpanAccessor from utils/span-accessor.ts for typed access.
 })
 export type OtelSpan = z.infer<typeof OtelSpanSchema>
 

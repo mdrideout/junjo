@@ -6,20 +6,19 @@ Create Date: 2025-11-11 16:52:02.122923
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # Import custom types
 from app.common.datetime_utils import UTCDateTime
 
-
 # revision identifiers, used by Alembic.
 revision: str = "c7cc17a2bbe9"
-down_revision: Union[str, Sequence[str], None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -36,13 +35,6 @@ def upgrade() -> None:
     with op.batch_alter_table("api_keys", schema=None) as batch_op:
         batch_op.create_index(batch_op.f("ix_api_keys_key"), ["key"], unique=True)
 
-    op.create_table(
-        "poller_state",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("last_key", sa.LargeBinary(), nullable=True),
-        sa.CheckConstraint("id = 1", name="single_row_check"),
-        sa.PrimaryKeyConstraint("id"),
-    )
     op.create_table(
         "users",
         sa.Column("id", sa.String(length=22), nullable=False),
@@ -66,7 +58,6 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f("ix_users_email"))
 
     op.drop_table("users")
-    op.drop_table("poller_state")
     with op.batch_alter_table("api_keys", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_api_keys_key"))
 

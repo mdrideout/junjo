@@ -10,6 +10,9 @@ const startListener = otelStateListenerMiddleware.startListening.withTypes<RootS
 startListener({
   actionCreator: TracesStateActions.fetchServiceNames,
   effect: async (_action, listenerApi) => {
+    const loading = listenerApi.getState().tracesState.serviceNames.loading
+    if (loading) return
+
     // Clear errors and set loading
     listenerApi.dispatch(TracesStateActions.setServiceNamesError(false))
     listenerApi.dispatch(TracesStateActions.setServiceNamesLoading(true))

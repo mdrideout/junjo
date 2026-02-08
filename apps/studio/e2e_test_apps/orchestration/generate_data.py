@@ -3,20 +3,30 @@
 import argparse
 import asyncio
 import json
+import os
 import time
 from pathlib import Path
 
 from coolname import generate_slug
 
+# Configure OTEL BatchSpanProcessor for high throughput
+# These are inherited by subprocesses
+os.environ.setdefault("OTEL_BSP_SCHEDULE_DELAY", "100")  # 100ms instead of 5000ms
+os.environ.setdefault("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "2048")  # 2048 instead of 512
+os.environ.setdefault("OTEL_BSP_MAX_QUEUE_SIZE", "8192")  # 8192 instead of 2048
 
-async def run_workflow(service_name: str, workflow_num: int, config_path: str) -> tuple[str, int, int]:
+
+async def run_workflow(
+    service_name: str, workflow_num: int, config_path: str, workflows_per_process: int = 1
+) -> tuple[str, int, int]:
     """
-    Run one workflow for a service.
+    Run workflows for a service.
 
     Args:
         service_name: Name of the service
         workflow_num: Workflow number (for tracking)
         config_path: Path to config.yaml
+        workflows_per_process: Number of workflows to run per subprocess (concurrent)
 
     Returns:
         Tuple of (service_name, workflow_num, return_code)
@@ -33,7 +43,7 @@ async def run_workflow(service_name: str, workflow_num: int, config_path: str) -
         "--service-name",
         service_name,
         "--num-workflows",
-        "1",
+        str(workflows_per_process),
         cwd=app_dir,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -42,19 +52,25 @@ async def run_workflow(service_name: str, workflow_num: int, config_path: str) -
     return service_name, workflow_num, process.returncode
 
 
-async def execute_round(services: list[str], round_num: int, config_path: str) -> tuple[int, list]:
+async def execute_round(
+    services: list[str], round_num: int, config_path: str, workflows_per_process: int = 1
+) -> tuple[int, list]:
     """
-    Execute one round: all services run 1 workflow each (concurrent).
+    Execute one round: all services run workflows (concurrent).
 
     Args:
         services: List of service names
         round_num: Round number (for tracking)
         config_path: Path to config.yaml
+        workflows_per_process: Number of workflows per subprocess
 
     Returns:
         Tuple of (round_num, results)
     """
-    tasks = [run_workflow(service, round_num, config_path) for service in services]
+    tasks = [
+        run_workflow(service, round_num, config_path, workflows_per_process)
+        for service in services
+    ]
     results = await asyncio.gather(*tasks)  # All services run together
     return round_num, results
 
@@ -64,21 +80,23 @@ async def generate_data(
     num_cycles: int | None,
     duration: int | None,
     concurrency: int,
+    workflows_per_process: int,
     config_path: str,
 ):
     """
     Generate test data with controlled concurrency.
 
     Execution model:
-        - Cycle = all services execute 1 workflow each (asyncio.gather)
+        - Cycle = all services execute workflows (asyncio.gather)
         - Concurrency = number of cycles running simultaneously
-        - Total concurrent workflows = num_services × concurrency
+        - Total concurrent workflows = num_services × concurrency × workflows_per_process
 
     Args:
         num_services: Number of unique services to create
         num_cycles: Number of cycles to run (ignored if duration is set)
         duration: Run for this many seconds (overrides num_cycles)
         concurrency: Number of cycles to run concurrently
+        workflows_per_process: Number of workflows each subprocess runs concurrently
         config_path: Path to config.yaml for the base app
     """
     # Generate unique service names using coolname
@@ -89,7 +107,7 @@ async def generate_data(
         print(f"  {i}. {name}")
     print()
 
-    total_concurrent = num_services * concurrency
+    total_concurrent = num_services * concurrency * workflows_per_process
     print(f"Configuration:")
     print(f"  Services: {num_services}")
     if duration:
@@ -97,6 +115,7 @@ async def generate_data(
     else:
         print(f"  Cycles: {num_cycles}")
     print(f"  Concurrency: {concurrency} cycles")
+    print(f"  Workflows per process: {workflows_per_process}")
     print(f"  Total concurrent workflows: {total_concurrent}")
     print()
 
@@ -115,20 +134,21 @@ async def generate_data(
             for _ in range(concurrency):
                 if time.time() >= end_time:
                     break
-                batch.append(execute_round(services, cycle_num, config_path))
+                batch.append(execute_round(services, cycle_num, config_path, workflows_per_process))
                 cycle_num += 1
 
             if batch:
                 await asyncio.gather(*batch)
                 cycles_completed += len(batch)
                 elapsed = time.time() - start
-                print(f"Progress: {cycles_completed} cycles completed ({elapsed:.1f}s elapsed)")
+                workflows_so_far = cycles_completed * num_services * workflows_per_process
+                print(f"Progress: {cycles_completed} cycles, {workflows_so_far} workflows ({elapsed:.1f}s elapsed)")
 
     # Cycle-based mode
     else:
         rounds = []
         for round_num in range(num_cycles):
-            rounds.append(execute_round(services, round_num, config_path))
+            rounds.append(execute_round(services, round_num, config_path, workflows_per_process))
 
         # Execute rounds with concurrency limit
         for i in range(0, len(rounds), concurrency):
@@ -138,7 +158,7 @@ async def generate_data(
             print(f"Progress: {cycles_completed}/{num_cycles} cycles completed")
 
     elapsed = time.time() - start
-    total = num_services * cycles_completed
+    total_workflows = num_services * cycles_completed * workflows_per_process
 
     # Save metadata for verification
     metadata = {
@@ -147,14 +167,15 @@ async def generate_data(
             "num_cycles": cycles_completed,
             "duration_seconds": duration,
             "concurrency": concurrency,
+            "workflows_per_process": workflows_per_process,
         },
         "services": services,
         "results": {
-            "total_workflows": total,
+            "total_workflows": total_workflows,
             "cycles_completed": cycles_completed,
-            "workflows_per_service": cycles_completed,
+            "workflows_per_service": cycles_completed * workflows_per_process,
             "duration_seconds": round(elapsed, 2),
-            "throughput": round(total / elapsed, 2),
+            "throughput_workflows_per_sec": round(total_workflows / elapsed, 2),
         },
     }
 
@@ -163,10 +184,10 @@ async def generate_data(
         json.dump(metadata, f, indent=2)
 
     print()
-    print(f"✅ Completed: {total} workflows in {elapsed:.2f}s")
+    print(f"✅ Completed: {total_workflows} workflows in {elapsed:.2f}s")
     print(f"   Cycles completed: {cycles_completed}")
-    print(f"   Workflows per service: {cycles_completed}")
-    print(f"   Throughput: {total / elapsed:.2f} workflows/sec")
+    print(f"   Workflows per service: {cycles_completed * workflows_per_process}")
+    print(f"   Throughput: {total_workflows / elapsed:.2f} workflows/sec")
     print(f"   Metadata saved to: {output_path}")
 
     return metadata
@@ -199,6 +220,12 @@ def main():
         help="Number of cycles to run concurrently (default: 5)",
     )
     parser.add_argument(
+        "--workflows-per-process",
+        type=int,
+        default=10,
+        help="Number of workflows each subprocess runs concurrently (default: 10)",
+    )
+    parser.add_argument(
         "--config",
         default="../app/config.yaml",
         help="Path to config file (default: ../app/config.yaml)",
@@ -215,6 +242,7 @@ def main():
             args.num_cycles,
             args.duration,
             args.concurrency,
+            args.workflows_per_process,
             args.config,
         )
     )

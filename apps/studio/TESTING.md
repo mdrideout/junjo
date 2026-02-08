@@ -28,14 +28,12 @@ cd backend
 **What it does:**
 - Runs unit tests (fast, no external dependencies)
 - Runs integration tests (database tests without gRPC)
-- Starts backend server locally on port 1323
-- Runs gRPC integration tests against local server
-- Cleans up and stops server
+- Runs gRPC integration tests (starts in-process gRPC server with isolated DB)
 
 **Why use this script:**
-- Port 50053 (internal gRPC) is not exposed in docker-compose.yml
-- Tests need a local backend server running to access port 50053
-- Script handles server startup, test execution, and cleanup automatically
+- Ensures all backend tests pass before committing
+- Handles cleanup of temporary database files
+- Validates that ports 1323 and 50053 are free before running gRPC tests
 
 ### Frontend Tests
 
@@ -541,7 +539,7 @@ it('handles server errors gracefully', async () => {
 ```python
 @pytest.mark.unit              # Fast, isolated unit tests
 @pytest.mark.integration        # Integration tests that use real database
-@pytest.mark.requires_grpc_server  # Tests requiring gRPC server on port 50053
+@pytest.mark.requires_grpc_server  # Tests requiring gRPC server (handled by fixture)
 @pytest.mark.security          # Security tests (auth bypass, SQL injection)
 @pytest.mark.concurrency       # Concurrency and race condition tests
 @pytest.mark.error_recovery    # Error recovery and resilience tests
@@ -585,6 +583,21 @@ async def test_openai_generation():
     response = await generate_completion(model="gpt-4o", prompt="Hello")
     assert response.content
 ```
+
+### gRPC Integration Tests
+
+**How they work:**
+These tests use a special fixture `grpc_server_for_tests` (in `backend/app/features/internal_auth/conftest.py`) that:
+1. Creates an isolated temporary SQLite database
+2. Starts the gRPC server in a background thread within the test process
+3. Configures the server to use the isolated database
+
+**Why this is better than starting `uvicorn`:**
+- **Isolation:** Each test run gets a fresh database
+- **Consistency:** Tests can seed data (like API keys) into the isolated DB and immediately use them
+- **Control:** Tests can manage the server lifecycle directly
+
+**Important:** Do NOT run `uvicorn` (or `docker compose up`) before running these tests. If port 50053 is in use, the tests will fail because they can't bind to the port (or will connect to the wrong server).
 
 ### Running Specific Test Categories
 

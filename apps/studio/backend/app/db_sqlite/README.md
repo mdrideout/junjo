@@ -114,7 +114,7 @@ connect_args={"check_same_thread": False}
 
 **✅ Solution: Temporary File-Based Databases**
 
-### Test Configuration (`tests/conftest.py`)
+### Test Configuration (`backend/conftest.py`)
 
 **Step 1: Set Environment Variable BEFORE Any Imports**
 ```python
@@ -126,7 +126,7 @@ _test_base_dir = tempfile.mkdtemp(prefix="junjo_test_")
 os.environ["JUNJO_SQLITE_PATH"] = f"{_test_base_dir}/production_stub.db"
 
 # NOW safe to import (db_config will use test path)
-from app.database.base import Base
+from app.db_sqlite.base import Base
 ```
 
 **Why this works:**
@@ -159,13 +159,13 @@ async def test_db():
 
 ❌ **DON'T: Import `async_session` directly in repositories**
 ```python
-from app.database.db_config import async_session  # Wrong!
+from app.db_sqlite.db_config import async_session  # Wrong!
 ```
 This creates a module-level reference that test fixtures can't override.
 
 ✅ **DO: Use dynamic access**
 ```python
-from app.database import db_config
+from app.db_sqlite import db_config
 
 async with db_config.async_session() as session:  # Correct!
 ```
@@ -216,16 +216,17 @@ Per PEP 249 and SQLAlchemy docs, all DBAPIs must support `rowcount` for UPDATE/D
 ```
 .dbdata/
 ├── sqlite/
-│   └── junjo.db              # Application database
-├── duckdb/
-│   └── traces.duckdb         # Analytics data
-└── badgerdb/                 # Ingestion service data
+│   ├── junjo.db              # Application database (users, API keys)
+│   └── metadata.db           # Span metadata index
+└── spans/
+    ├── parquet/              # Cold tier Parquet files
+    ├── wal/                  # Arrow IPC WAL segments
+    └── hot_snapshot.parquet  # Hot snapshot (overwritten on demand)
 ```
 
 ### Docker
 ```
-Container path: /dbdata/sqlite/junjo.db
-Host mount: ./.dbdata → /dbdata
+See `docker-compose.yml` for the container mount and `JUNJO_SQLITE_PATH` / `JUNJO_METADATA_DB_PATH` settings.
 ```
 
 ### Tests
@@ -249,7 +250,8 @@ uv run alembic upgrade head
 ```
 
 **Critical for Alembic:**
-- All models must be imported in `app/database/__init__.py`
+- Add new model imports to `backend/migrations/env.py` so Alembic autogenerate can see them
+- Add new model imports to `backend/app/db_sqlite/models.py` so tests register them via `Base.metadata`
 - Alembic's `env.py` uses `render_as_batch=True` for SQLite ALTER TABLE support
 - Migrations require file-based database (temporary files work fine)
 
