@@ -1,6 +1,6 @@
 import os
 from io import BytesIO
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from google import genai
 from google.genai import types
@@ -77,6 +77,46 @@ class GeminiTool:
             ),
         ]
 
+    @staticmethod
+    def _coalesce(mapping: dict[str, Any], *keys: str) -> Any:
+        for key in keys:
+            value = mapping.get(key)
+            if value is not None:
+                return value
+        return None
+
+    @staticmethod
+    def _log_ratings(context: str, prefix: str, ratings: list[Any]) -> None:
+        for rating in ratings or []:
+            if isinstance(rating, dict):
+                category = rating.get("category")
+                blocked = rating.get("blocked")
+                probability = rating.get("probability")
+                severity = rating.get("severity")
+            else:
+                category = getattr(rating, "category", None)
+                blocked = getattr(rating, "blocked", None)
+                probability = getattr(rating, "probability", None)
+                severity = getattr(rating, "severity", None)
+
+            logger.warning(
+                f"{context}: {prefix} safety_rating "
+                f"category={category} blocked={blocked} "
+                f"probability={probability} severity={severity}"
+            )
+
+    def _log_reason_and_ratings(
+        self,
+        *,
+        context: str,
+        prefix: str,
+        reason: Any,
+        message: Any,
+        ratings: list[Any],
+    ) -> None:
+        logger.warning(f"{context}: {prefix}={reason} message={message}")
+        self._log_ratings(context, prefix, ratings)
+
     def _log_block_reason(self, response: object, *, context: str) -> None:
         """
         Best-effort logging for Gemini content blocks.
@@ -93,77 +133,47 @@ class GeminiTool:
 
             prompt_feedback = getattr(response, "prompt_feedback", None)
             if prompt_feedback:
-                logger.warning(
-                    f"{context}: prompt_feedback.block_reason={getattr(prompt_feedback, 'block_reason', None)} "
-                    f"message={getattr(prompt_feedback, 'block_reason_message', None)}"
+                self._log_reason_and_ratings(
+                    context=context,
+                    prefix="prompt_feedback.block_reason",
+                    reason=getattr(prompt_feedback, "block_reason", None),
+                    message=getattr(prompt_feedback, "block_reason_message", None),
+                    ratings=getattr(prompt_feedback, "safety_ratings", []) or [],
                 )
-                for rating in getattr(prompt_feedback, "safety_ratings", []) or []:
-                    logger.warning(
-                        f"{context}: prompt safety_rating "
-                        f"category={getattr(rating, 'category', None)} "
-                        f"blocked={getattr(rating, 'blocked', None)} "
-                        f"probability={getattr(rating, 'probability', None)} "
-                        f"severity={getattr(rating, 'severity', None)}"
-                    )
 
             candidates = getattr(response, "candidates", []) or []
             if candidates:
                 candidate = candidates[0]
-                logger.warning(
-                    f"{context}: candidate.finish_reason={getattr(candidate, 'finish_reason', None)} "
-                    f"finish_message={getattr(candidate, 'finish_message', None)}"
+                self._log_reason_and_ratings(
+                    context=context,
+                    prefix="candidate.finish_reason",
+                    reason=getattr(candidate, "finish_reason", None),
+                    message=getattr(candidate, "finish_message", None),
+                    ratings=getattr(candidate, "safety_ratings", []) or [],
                 )
-                for rating in getattr(candidate, "safety_ratings", []) or []:
-                    logger.warning(
-                        f"{context}: candidate safety_rating "
-                        f"category={getattr(rating, 'category', None)} "
-                        f"blocked={getattr(rating, 'blocked', None)} "
-                        f"probability={getattr(rating, 'probability', None)} "
-                        f"severity={getattr(rating, 'severity', None)}"
+
+            sdk_http_response = getattr(response, "sdk_http_response", None)
+            raw = getattr(sdk_http_response, "json", None) if sdk_http_response else None
+            if isinstance(raw, dict):
+                prompt_feedback_raw = raw.get("promptFeedback") or raw.get("prompt_feedback")
+                if isinstance(prompt_feedback_raw, dict):
+                    self._log_reason_and_ratings(
+                        context=context,
+                        prefix="raw.prompt_feedback.block_reason",
+                        reason=self._coalesce(prompt_feedback_raw, "blockReason", "block_reason"),
+                        message=self._coalesce(prompt_feedback_raw, "blockReasonMessage", "block_reason_message"),
+                        ratings=self._coalesce(prompt_feedback_raw, "safetyRatings", "safety_ratings") or [],
                     )
 
-            # If available, log raw prompt feedback / safety ratings from the SDK's HTTP response.
-            # This helps when the client library doesn't fully map newer enum values (e.g. IMAGE_OTHER).
-            sdk_http_response = getattr(response, "sdk_http_response", None)
-            if sdk_http_response is not None:
-                raw = getattr(sdk_http_response, "json", None)
-                if isinstance(raw, dict):
-                    prompt_feedback_raw = raw.get("promptFeedback") or raw.get("prompt_feedback")
-                    if isinstance(prompt_feedback_raw, dict):
-                        logger.warning(
-                            f"{context}: raw.prompt_feedback.block_reason="
-                            f"{prompt_feedback_raw.get('blockReason') or prompt_feedback_raw.get('block_reason')} "
-                            f"message={prompt_feedback_raw.get('blockReasonMessage') or prompt_feedback_raw.get('block_reason_message')}"
-                        )
-                        for rating in (
-                            prompt_feedback_raw.get("safetyRatings")
-                            or prompt_feedback_raw.get("safety_ratings")
-                            or []
-                        ):
-                            logger.warning(
-                                f"{context}: raw.prompt safety_rating "
-                                f"category={rating.get('category')} "
-                                f"blocked={rating.get('blocked')} "
-                                f"probability={rating.get('probability')} "
-                                f"severity={rating.get('severity')}"
-                            )
-
-                    candidates_raw = raw.get("candidates") or []
-                    if candidates_raw:
-                        candidate_raw = candidates_raw[0]
-                        logger.warning(
-                            f"{context}: raw.candidate.finish_reason="
-                            f"{candidate_raw.get('finishReason') or candidate_raw.get('finish_reason')} "
-                            f"finish_message={candidate_raw.get('finishMessage') or candidate_raw.get('finish_message')}"
-                        )
-                        for rating in candidate_raw.get("safetyRatings") or candidate_raw.get("safety_ratings") or []:
-                            logger.warning(
-                                f"{context}: raw.candidate safety_rating "
-                                f"category={rating.get('category')} "
-                                f"blocked={rating.get('blocked')} "
-                                f"probability={rating.get('probability')} "
-                                f"severity={rating.get('severity')}"
-                            )
+                candidate_raw = (raw.get("candidates") or [None])[0]
+                if isinstance(candidate_raw, dict):
+                    self._log_reason_and_ratings(
+                        context=context,
+                        prefix="raw.candidate.finish_reason",
+                        reason=self._coalesce(candidate_raw, "finishReason", "finish_reason"),
+                        message=self._coalesce(candidate_raw, "finishMessage", "finish_message"),
+                        ratings=self._coalesce(candidate_raw, "safetyRatings", "safety_ratings") or [],
+                    )
         except Exception:
             logger.exception(f"{context}: failed to log Gemini block reason")
 

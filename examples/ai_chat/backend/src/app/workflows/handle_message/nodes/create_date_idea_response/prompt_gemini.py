@@ -2,7 +2,11 @@ from app.db.models.contact.schemas import ContactRead
 from app.db.models.message.schemas import MessageRead
 
 
-def create_date_idea_response_workflow_prompt(history: list[MessageRead], contact: ContactRead, most_recent_message: str) -> str:
+def create_date_idea_response_workflow_prompt(
+    history: list[MessageRead],
+    contact: ContactRead,
+    most_recent_message: str,
+) -> str:
     """Create a message response using history and contact bio information."""
 
     # Convert the message history into stringified JSON
@@ -26,7 +30,8 @@ MOST RECENT MESSAGE TO RESPOND TO:
 {most_recent_message}
 
 RESPONSE DIRECTIVE:
-You need to create a date idea response. Analyze the context for anything you have previously disucssed about finding a place to go on a date.
+You need to create a date idea response. Analyze the context for anything you have
+previously disucssed about finding a place to go on a date.
 The date ideas should be real places that you have been to or would like to go to in your geographic area.
 
 Make sure you can give specifics.

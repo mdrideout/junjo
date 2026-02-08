@@ -93,52 +93,61 @@ class GrokTool:
             return value
         return str(value)
 
+    @staticmethod
+    def _collect_user_parts(content: list[Any]) -> tuple[str, list[Any]]:
+        text_parts: list[str] = []
+        image_parts: list[Any] = []
+
+        for part in content:
+            if not isinstance(part, dict):
+                continue
+
+            part_type = part.get("type")
+            if part_type in ("input_text", "text"):
+                text = part.get("text")
+                if isinstance(text, str) and text:
+                    text_parts.append(text)
+                continue
+
+            if part_type in ("input_image", "image"):
+                image_url = part.get("image_url")
+                if isinstance(image_url, str) and image_url:
+                    image_parts.append(xai_image(image_url=image_url))
+                continue
+
+        return "\n".join(text_parts).strip(), image_parts
+
     @classmethod
-    def _to_xai_message(cls, message: dict[str, Any]) -> Any:
-        role = cls._stringify(message.get("role")).strip().lower()
-        content = message.get("content")
-
-        if role == "system":
-            return system(cls._stringify(content))
-
-        if role == "assistant":
-            return assistant(cls._stringify(content))
-
-        if role != "user":
-            logger.warning(f"Unknown message role '{role}', treating as user.")
-
+    def _to_xai_user_message(cls, content: Any) -> Any:
         # user messages can interleave text + images: user("...", image("..."), image("..."))
         if isinstance(content, str):
             return user(content)
 
         if isinstance(content, list):
-            text_parts: list[str] = []
-            image_parts: list[Any] = []
-
-            for part in content:
-                if not isinstance(part, dict):
-                    continue
-
-                part_type = part.get("type")
-                if part_type in ("input_text", "text"):
-                    text = part.get("text")
-                    if isinstance(text, str) and text:
-                        text_parts.append(text)
-                    continue
-
-                if part_type in ("input_image", "image"):
-                    image_url = part.get("image_url")
-                    if isinstance(image_url, str) and image_url:
-                        image_parts.append(xai_image(image_url=image_url))
-                    continue
-
-            text = "\n".join(text_parts).strip()
+            text, image_parts = cls._collect_user_parts(content)
             if image_parts:
                 return user(text, *image_parts)
-
             return user(text)
 
         return user(cls._stringify(content))
+
+    @classmethod
+    def _to_xai_message(cls, message: dict[str, Any]) -> Any:
+        role = cls._stringify(message.get("role")).strip().lower()
+        content = message.get("content")
+
+        role_handlers = {
+            "assistant": assistant,
+            "system": system,
+        }
+        role_handler = role_handlers.get(role)
+        if role_handler:
+            return role_handler(cls._stringify(content))
+
+        if role != "user":
+            logger.warning(f"Unknown message role '{role}', treating as user.")
+
+        return cls._to_xai_user_message(content)
 
     def _xai_messages(self, messages: list[dict[str, Any]] | None) -> list[Any]:
         if messages is None:

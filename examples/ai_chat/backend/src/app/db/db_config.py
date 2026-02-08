@@ -1,8 +1,6 @@
 from pathlib import Path
-from urllib.parse import urlparse
 
 from loguru import logger
-from opentelemetry import trace
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -71,94 +69,8 @@ async def init_db():
 
 
 # --- OpenTelemetry Instrumentation ---
-def add_details(span, conn, cursor, statement, parameters, context, exception_):
-    """Adds more details to the SQLAlchemy span."""
-    # **Crucial: Set db.system**
-    db_system = conn.dialect.name
-    span.set_attribute("db.system", db_system)
-
-    # Database Name
-    parsed_url = urlparse(str(conn.engine.url))
-    db_name = parsed_url.path.lstrip("/")  # Remove leading slash
-    if not db_name:
-        db_name = "Unknown SQLite"
-    span.set_attribute("db.name", db_name)
-
-    # db.user
-    span.set_attribute("db.user", conn.engine.url.username or "default")
-
-    # net.peer.name
-    span.set_attribute("net.peer.name", parsed_url.hostname)
-
-    # net.peer.port
-    span.set_attribute("net.peer.port", parsed_url.port or (3306 if db_system == "mysql" else 5432 if db_system == "postgresql" else 0))
-
-    # SQL Statement Type (db.operation)
-    statement_lower = statement.lower()
-    if statement_lower.startswith("select"):
-        span.set_attribute("db.operation", "SELECT")
-    elif statement_lower.startswith("insert"):
-        span.set_attribute("db.operation", "INSERT")
-    elif statement_lower.startswith("update"):
-        span.set_attribute("db.operation", "UPDATE")
-    elif statement_lower.startswith("delete"):
-        span.set_attribute("db.operation", "DELETE")
-    elif statement_lower.startswith("create"):
-        span.set_attribute("db.operation", "CREATE")
-    elif statement_lower.startswith("alter"):
-        span.set_attribute("db.operation", "ALTER")
-    elif statement_lower.startswith("drop"):
-        span.set_attribute("db.operation", "DROP")
-    else:
-        span.set_attribute("db.operation", "OTHER")
-
-    # Table Name (basic extraction)
-    if "from" in statement_lower:
-        parts = statement_lower.split("from")
-        if len(parts) > 1:
-            table_part = parts[1].split()[0]  # Get the first word after "from"
-            span.set_attribute("db.sql.table", table_part)
-    elif "into" in statement_lower:
-        parts = statement_lower.split("into")
-        if len(parts) > 1:
-            table_part = parts[1].split()[0]  # Get the first word after "into"
-            span.set_attribute("db.sql.table", table_part)
-    elif "table" in statement_lower:
-        parts = statement_lower.split("table")
-        if len(parts) > 1:
-            table_part = parts[1].split()[0]  # Get the first word after "table"
-            span.set_attribute("db.sql.table", table_part)
-
-    # Row Count (if available)
-    if cursor and hasattr(cursor, "rowcount"):
-        span.set_attribute("db.rowcount", cursor.rowcount)
-
-    # Parameters
-    if parameters:
-        span.set_attribute("db.params", str(parameters))
-
-    # db.statement
-    span.set_attribute("db.statement", statement)
-
-    # Exception Handling
-    if exception_:
-        span.set_status(trace.Status(trace.StatusCode.ERROR))
-        span.record_exception(exception_)
-
-    # Get isolation level
-    try:
-        isolation_level = conn.get_isolation_level()
-        span.set_attribute("db.connection.isolation_level", isolation_level)
-    except AttributeError:
-        span.set_attribute("db.connection.isolation_level", "N/A")
-
-    # db.connection.string
-    span.set_attribute("db.connection.string", str(conn.engine.url))
-
 SQLAlchemyInstrumentor().instrument(
-    engine=engine.sync_engine, # `.sync_engine` is required since this instrumentation does not support the async engine
-    before_cursor_execute=add_details,
-    after_cursor_execute=add_details,
-    dbapi_level_span=True
+    # `.sync_engine` is required since this instrumentation does not support the async engine.
+    engine=engine.sync_engine,
 )
 # --- End OpenTelemetry Instrumentation ---

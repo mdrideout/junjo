@@ -70,7 +70,12 @@ class ChatMembersRepository:
         """Reads multiple chat member records by chat_id with pagination."""
         try:
             async with async_session() as session:
-                stmt = select(model.ChatMembersTable).where(model.ChatMembersTable.chat_id == chat_id).offset(skip).limit(limit)
+                stmt = (
+                    select(model.ChatMembersTable)
+                    .where(model.ChatMembersTable.chat_id == chat_id)
+                    .offset(skip)
+                    .limit(limit)
+                )
                 db_chat_members = (await session.execute(stmt)).scalars().all()
                 return [schemas.ChatMemberRead.model_validate(db_chat_member) for db_chat_member in db_chat_members]
         except SQLAlchemyError as e:
