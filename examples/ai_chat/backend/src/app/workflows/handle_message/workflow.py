@@ -22,7 +22,7 @@ async def run_handle_message_workflow(message: MessageCreate) -> None:
     # Execute the workflow
     print("Executing handle_message_workflow")
     await handle_message_workflow.execute()
-    final_state = await handle_message_workflow.get_state()
+    await handle_message_workflow.get_state()
     print("handle_message_workflow is done")
 
     return

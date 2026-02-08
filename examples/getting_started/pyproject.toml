@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "The Junjo Getting Started documentation example."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["junjo", "ruff>=0.9.5"]
+dependencies = ["junjo", "ruff>=0.15.0"]
 
 [tool.uv.sources]
 junjo = { workspace = true }

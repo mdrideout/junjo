@@ -53,7 +53,7 @@ ignore = ["B006"]
 junjo = { workspace = true }
 
 [dependency-groups]
-dev = ["ruff>=0.9.5"]
+dev = ["ruff>=0.15.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

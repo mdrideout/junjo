@@ -8,7 +8,8 @@ from loguru import logger
 from PIL import Image
 from pydantic import BaseModel
 from xai_sdk import AsyncClient
-from xai_sdk.chat import assistant, image as xai_image, system, user
+from xai_sdk.chat import assistant, system, user
+from xai_sdk.chat import image as xai_image
 
 T = TypeVar("T", bound=BaseModel)
 

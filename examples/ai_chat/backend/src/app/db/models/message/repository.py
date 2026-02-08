@@ -1,6 +1,6 @@
 # app/db/models/message/repository.py
 
-from sqlalchemy import exists, select, update, func
+from sqlalchemy import exists, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import aliased
 

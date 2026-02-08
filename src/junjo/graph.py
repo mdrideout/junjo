@@ -197,7 +197,7 @@ class Graph:
 
         # Create nodes list for JSON output
         nodes_json = []
-        for node_id, node in all_nodes_dict.items():
+        for _node_id, node in all_nodes_dict.items():
             # Determine Label: Prioritize 'label', then 'name', then class name
             label = getattr(node, 'label', None) or \
                     getattr(node, 'name', None) or \
