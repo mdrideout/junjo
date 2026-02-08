@@ -12,7 +12,7 @@ class HealthResponse(BaseModel):
     """Health check response"""
 
     status: str = Field(default="ok", description="Health status")
-    version: str = Field(default="0.1.0", description="API version")
+    version: str = Field(default="0.80.0", description="API version")
     app_name: str = Field(description="Application name")
 
     model_config = ConfigDict(frozen=True)  # Immutable response

@@ -3,7 +3,7 @@
   "info": {
     "title": "Junjo AI Studio",
     "description": "LLM Observability Platform - Python Backend",
-    "version": "0.1.0"
+    "version": "0.80.0"
   },
   "paths": {
     "/api/admin/flush-wal": {
@@ -1352,7 +1352,7 @@
             "type": "string",
             "title": "Version",
             "description": "API version",
-            "default": "0.1.0"
+            "default": "0.80.0"
           },
           "app_name": {
             "type": "string",

@@ -585,6 +585,25 @@ This script runs:
 - Frontend: See [frontend/README.md](frontend/README.md) for component testing
 - Ingestion: See [ingestion/README.md](ingestion/README.md) for Rust tests
 
+### Version Management
+
+Junjo AI Studio uses a centralized root `VERSION` file for release/app metadata synchronization.
+
+```bash
+# Sync all managed version fields from VERSION
+./scripts/sync-version.sh
+
+# Set a new version and sync everything
+./scripts/sync-version.sh 0.80.0
+
+# Verify all managed files are in sync with VERSION
+./scripts/check-version-sync.sh
+```
+
+Managed files include backend (`pyproject`, FastAPI metadata, OpenAPI), ingestion (`Cargo.toml`/`Cargo.lock`), and frontend (`package.json`/`package-lock.json`).
+
+Release guardrail: Docker publish workflow validates that the GitHub release tag exactly matches `VERSION`.
+
 ### Development Workflow & Validation
 
 Understanding what each validation tool does helps avoid surprises at commit time.
@@ -665,6 +684,7 @@ Tests run automatically on all PRs via GitHub Actions:
 - `.github/workflows/backend-tests.yml` - Backend test suite
 - `.github/workflows/rest-api-contract-validation.yml` - REST API contract tests
 - `.github/workflows/proto-staleness-check.yml` - Proto file validation
+- `.github/workflows/version-sync-check.yml` - Version drift validation against `VERSION`
 
 ---
 
