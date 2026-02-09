@@ -73,16 +73,16 @@ Junjo AI Studio consists of three Docker services:
   - **Public Port:** 1323 (HTTP API server)
   - **Internal Port:** 50053 (gRPC for API key validation - Docker network only)
   - HTTP API server for authentication and data queries
-  - Uses SQLite for application data and DuckDB for telemetry analytics
-  - Polls ingestion service to process incoming telemetry
+  - Uses SQLite for application data and metadata indexing
+  - Queries cold Parquet telemetry and merges with ingestion hot snapshots
   - Served at the API subdomain (e.g., `https://api.junjo.example.com`)
 
 - **junjo-ai-studio-ingestion**
   - **Public Port:** 50051 (gRPC OTLP endpoint for telemetry)
   - **Internal Port:** 50052 (gRPC for span reading - Docker network only)
   - High-throughput gRPC service for receiving OpenTelemetry data
-  - Uses BadgerDB as a Write-Ahead Log (WAL) for durability
-  - Backend service polls this service's internal API to batch-process spans
+  - Uses Arrow IPC WAL segments and flushes to Parquet for durable cold storage
+  - Provides internal gRPC for hot snapshot preparation
   - Your Python applications send telemetry to this service (e.g., `https://grpc.junjo.example.com`)
 
 **Security Note:** Internal ports (50052, 50053) are only accessible within the Docker network and are not exposed to the host machine. This ensures secure service-to-service communication.
@@ -90,9 +90,9 @@ Junjo AI Studio consists of three Docker services:
 ### Data Flow
 
 1. Python applications → **Ingestion Service** (gRPC on port 50051)
-2. Ingestion Service → BadgerDB WAL
-3. Backend → Polls ingestion service (internal gRPC port 50052)
-4. Backend → Indexes spans into DuckDB
+2. Ingestion Service → Arrow IPC WAL segments → flushes to Parquet
+3. Backend → Calls ingestion internal gRPC (port 50052) for hot snapshots
+4. Backend → Uses SQLite metadata index + Parquet files for trace queries
 5. Frontend → Queries backend API → User views data
 
 ## Quick Start
@@ -121,22 +121,18 @@ Junjo AI Studio consists of three Docker services:
    # - JUNJO_SECURE_COOKIE_KEY with the second generated value
    ```
 
-4. Create the Docker network (first time only):
-   ```bash
-   docker network create junjo_network
-   ```
-
-5. Start services:
+4. Start services:
    ```bash
    docker compose up -d
    ```
+   > Note: Do not run `docker network create junjo_network` manually. Docker Compose creates and labels this network automatically.
 
-6. Access the frontend:
+5. Access the frontend:
    - **Frontend UI:** `http://localhost:5153`
      - _Troubleshooting: Try clearing your cookies if you encounter issues._
    - Create your first API key in the UI
 
-7. Configure your Junjo Python application's exporter:
+6. Configure your Junjo Python application's exporter:
    ```python
 	 	# Local example
 		junjo_server_exporter = JunjoServerOtelExporter(
@@ -228,9 +224,9 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 
 **Key Considerations:**
 - **Three separate services:** Each Junjo AI Studio service (backend, ingestion, frontend) deploys independently
-- **Persistent volumes:** Required for SQLite, DuckDB, and BadgerDB data
+- **Persistent volumes:** Required for SQLite and spans storage (WAL/snapshots/Parquet)
 - **Internal networking:** Services must communicate via internal URLs
-- **Environment variables:** Configure `JUNJO_ENV="production"` along with `JUNJO_PROD_FRONTEND_URL` and `JUNJO_PROD_BACKEND_URL`
+- **Environment variables:** Configure `JUNJO_ENV="production"` along with `JUNJO_PROD_FRONTEND_URL`, `JUNJO_PROD_BACKEND_URL`, and `JUNJO_PROD_INGESTION_URL`
 - **Cost:** Running 3 services simultaneously (check platform pricing)
 
 ---
@@ -249,11 +245,11 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 **Volume Configuration:**
 ```
 Backend Service:
-├─ /app/.dbdata/sqlite (SQLite database)
-└─ /app/.dbdata/duckdb (DuckDB analytics)
+├─ /app/.dbdata/sqlite (SQLite app + metadata databases)
+└─ /app/.dbdata/spans (Parquet cold data + hot snapshot access)
 
 Ingestion Service:
-└─ /app/.dbdata/badgerdb (BadgerDB WAL)
+└─ /app/.dbdata/spans (WAL, hot snapshot, and Parquet output)
 ```
 
 **Internal Networking:**
@@ -266,8 +262,7 @@ Ingestion Service:
 JUNJO_ENV=production
 JUNJO_PROD_FRONTEND_URL=https://app.your-domain.com
 JUNJO_PROD_BACKEND_URL=https://api.your-domain.com
-# Optional override (defaults to backend host:50051)
-# JUNJO_PROD_OTLP_ENDPOINT=https://api.your-domain.com:50051
+JUNJO_PROD_INGESTION_URL=https://ingestion.your-domain.com
 JUNJO_SESSION_SECRET=<generated-secret>
 JUNJO_SECURE_COOKIE_KEY=<generated-secret>
 ```
@@ -323,8 +318,7 @@ Set in Railway dashboard for each service:
 JUNJO_ENV=production
 JUNJO_PROD_FRONTEND_URL=https://app.your-app.up.railway.app
 JUNJO_PROD_BACKEND_URL=https://api.your-app.up.railway.app
-# Optional override:
-# JUNJO_PROD_OTLP_ENDPOINT=https://api.your-app.up.railway.app:50051
+JUNJO_PROD_INGESTION_URL=https://ingestion.your-app.up.railway.app
 JUNJO_SESSION_SECRET=<generated-secret>
 JUNJO_SECURE_COOKIE_KEY=<generated-secret>
 JUNJO_ALLOW_ORIGINS=https://app.your-app.up.railway.app

@@ -11,7 +11,7 @@
 
 services:
   junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:0.70.3
+    image: mdrideout/junjo-ai-studio-backend:0.80.0
     container_name: junjo-ai-studio-backend
     restart: unless-stopped
     volumes:
@@ -31,10 +31,12 @@ services:
       - RUN_MIGRATIONS=true
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-      - JUNJO_DUCKDB_PATH=/app/.dbdata/duckdb/traces.duckdb
+      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+      # Parquet file storage path (shared with ingestion service, indexer watches this)
+      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
   junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:0.70.3
+    image: mdrideout/junjo-ai-studio-ingestion:0.80.0
     container_name: junjo-ai-studio-ingestion
     restart: unless-stopped
     volumes:
@@ -49,20 +51,24 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
-      # Database path (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
-      - JUNJO_BADGERDB_PATH=/app/.dbdata/badgerdb
+      # Arrow IPC WAL directory
+      - WAL_DIR=/app/.dbdata/spans/wal
+      # Hot snapshot path (backend reads this file directly)
+      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+      # Parquet file output path (backend indexer watches this directory)
+      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
     depends_on:
       junjo-ai-studio-backend:
         condition: service_started
     healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 30s
 
   junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:0.70.3
+    image: mdrideout/junjo-ai-studio-frontend:0.80.0
     container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:
