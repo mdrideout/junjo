@@ -177,6 +177,7 @@ Your production domain configuration is manually set in the `caddy/Caddyfile`. T
 - A registered domain with DNS access
 - A records pointing to your server's IP
 - Cloudflare API token for automatic SSL (or configure alternative DNS provider)
+  - See cloudflare single API token setup here: https://github.com/caddy-dns/cloudflare
 
 #### DNS Configuration
 
@@ -237,11 +238,13 @@ ssh root@[your-ip-address]
 From your local machine, copy the repository files to the server:
 
 - _Copies via rsync (run from your local machine), excludes hidden files except for .env.example_
+- `/Users/user/...` path is the full path to your project folder on your machine
 - Note the `:/projects` after the IP address
 - Uplads to `<server_root>/projects`
 
 ```bash
-rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' /Users/user/project-root-folder/local/machine root@[your-ip-address]:/projects
+# Run from the root of the project directory you want to transfer
+rsync -avz --delete -e ssh --include='.env.example' --exclude='.??*' /Users/user/path/to/project-dir root@[your-ip-address]:/projects
 ```
 
 ### 4. Configure Files For Production
