@@ -18,7 +18,7 @@ Learn how to go from a fresh virtual machine to a production deployment that sup
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Quick Start (Local Development)](#quick-start-local-development)
+- [Local Quick Start](#local-quick-start)
 - [Production VM Deployment](#production-vm-deployment)
   - [1. Creating a VM (Digital Ocean Example)](#1-creating-a-vm-digital-ocean-example)
   - [2. DNS Configuration & Service Endpoints](#2-dns-configuration--service-endpoints)
@@ -40,8 +40,8 @@ Deploy Junjo AI Studio as a centralized observability backend for your AI applic
 This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo AI Studio into your own projects.
 
 ### Core Services
-- **Junjo AI Studio Backend**: HTTP API, authentication, and business logic (SQLite + DuckDB)
-- **Junjo AI Studio Ingestion**: High-throughput OpenTelemetry gRPC endpoint (BadgerDB WAL)
+- **Junjo AI Studio Backend**: HTTP API, authentication, and query orchestration (SQLite metadata + Parquet queries + hot snapshot merge)
+- **Junjo AI Studio Ingestion**: High-throughput OpenTelemetry gRPC endpoint (Arrow IPC WAL + Parquet flush)
 - **Junjo AI Studio Frontend**: Web-based debugging and workflow visualization interface
 
 ### Infrastructure
@@ -99,6 +99,8 @@ The `caddy/Caddyfile` is configured for local development by default (no SSL req
 docker compose up --build
 ```
 
+Docker Compose creates and labels `junjo_network` automatically for this stack. Do not manually pre-create this network.
+
 ### 4. Access the Services
 
 Once all the services are running, you can access them in your browser:
@@ -109,7 +111,7 @@ Once all the services are running, you can access them in your browser:
 
 The **demo application (`junjo-app`) automatically starts**. When configured with an API key, it will continuously execute a simple workflow in a loop, sending telemetry to Junjo AI Studio. 
 
-1. reate its API key
+1. Create its API key
 2. Set the `.env` variable
 3. Restart the container
 4. Observe workflow runs appearing inside Junjo AI Studio
@@ -316,11 +318,18 @@ vi caddy/Caddyfile
 
 #### Start The Services
 
-- Pull latest images and start services
+- Pull configured images and start services
 - Note: the first build of xcaddy image may take a few minutes, subsequent launches are faster.
 
 ```bash
 docker compose pull && docker compose up -d --build
+```
+
+If you previously created `junjo_network` manually, remove it once before startup so Compose can recreate it with the correct labels:
+
+```bash
+docker network rm junjo_network
+docker compose up -d
 ```
 
 #### Validate SSL
@@ -418,8 +427,9 @@ The docker-compose.yml is pre-configured to use the `JUNJO_HOST_DB_DATA_PATH` en
 
 The databases will now be stored in:
 - `/mnt/junjo-data/sqlite/` (SQLite - user/session data)
-- `/mnt/junjo-data/duckdb/` (DuckDB - trace analytics)
-- `/mnt/junjo-data/badgerdb/` (BadgerDB - ingestion WAL)
+- `/mnt/junjo-data/spans/wal/` (Arrow IPC WAL segments - hot ingestion buffer)
+- `/mnt/junjo-data/spans/parquet/` (Parquet files - cold span storage and analytics)
+- `/mnt/junjo-data/spans/hot_snapshot.parquet` (hot snapshot parquet used for near-real-time queries)
 
 ### 5. Services Architecture
 
@@ -428,17 +438,18 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.70.3`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.80.0`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
-*   **Details**: Lightweight Go service that receives telemetry via gRPC (port 50051) and writes to BadgerDB as a Write-Ahead Log. This decoupled architecture ensures data isn't lost during backend maintenance or restarts.
+*   **Details**: Rust service that receives telemetry via gRPC (port 50051), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
+*   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
 #### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.70.3`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.80.0`
 *   **Purpose**: API server, authentication, and data processing
-*   **Details**: Python FastAPI application that handles HTTP API requests (port 1323), user authentication, and business logic. Polls the ingestion service's WAL to index telemetry into DuckDB for fast querying. Uses SQLite for user/session data.
+*   **Details**: Python FastAPI application that handles HTTP API requests (port 1323), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 #### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.70.3`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.80.0`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 80 (internally), proxied through Caddy.
 
@@ -507,4 +518,3 @@ To test your setup without browser warnings, add the staging certificate to your
 4. Select "Always Trust" for both certificates
 
 5. Restart your browser (Chrome or Safari)
-

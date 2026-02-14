@@ -1,5 +1,6 @@
 import os
 import time
+import textwrap
 
 from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
 from loguru import logger
@@ -8,6 +9,25 @@ from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
+
+
+def _render_warning_box(title: str, lines: list[str], width: int = 62) -> str:
+    """Render a consistently sized Unicode warning box with wrapped content."""
+    top = "╔" + ("═" * (width + 2)) + "╗"
+    sep = "╠" + ("═" * (width + 2)) + "╣"
+    bottom = "╚" + ("═" * (width + 2)) + "╝"
+
+    def row(text: str = "") -> str:
+        return f"║ {text.ljust(width)} ║"
+
+    out: list[str] = [top, row(title), sep, row()]
+    for line in lines:
+        wrapped = textwrap.wrap(line, width=width) or [""]
+        for part in wrapped:
+            out.append(row(part))
+    out.append(row())
+    out.append(bottom)
+    return "\n".join(out)
 
 
 def setup_telemetry():
@@ -26,23 +46,21 @@ def setup_telemetry():
     ):
         time.sleep(4)
 
-        logger.error(
-            "\n"
-            "╔════════════════════════════════════════════════════════════════════════════╗\n"
-            "║ 🚨 API KEY 🔑 CONFIGURATION REQUIRED                                       ║\n"
-            "╠════════════════════════════════════════════════════════════════════════════╣\n"
-            "║                                                                            ║\n"
-            "║  The Junjo App requires a valid API Key to send telemetry.                 ║\n"
-            "║                                                                            ║\n"
-            "║  1. Go to your Junjo AI Studio UI: http://localhost:5153                   ║\n"
-            "║  2. Create a new API Key in the Settings                                   ║\n"
-            "║  3. Open your .env file                                                    ║\n"
-            "║  4. Set JUNJO_AI_STUDIO_API_KEY=<your-new-key>                             ║\n"
-            "║  5. Apply changes: docker compose up -d junjo-app                          ║\n"
-            "║     - The junjo-app container must rebuild to pickup .env changes          ║\n"
-            "║                                                                            ║\n"
-            "╚════════════════════════════════════════════════════════════════════════════╝\n"
+        warning_box = _render_warning_box(
+            title="🚨 Example App 'junjo_app' API KEY 🔑 Required",
+            lines=[
+                "This deployment example contains a 'junjo_app' example application in the project root.",
+                "This warning applies to that example container only.",
+                "",
+                "1. Go to Junjo AI Studio UI: http://localhost:5153",
+                "2. Create an API key in Settings -> API Keys",
+                "3. In the root .env file, set: JUNJO_AI_STUDIO_API_KEY=<key>",
+                "4. Recreate only the example app container:",
+                "   docker compose up --force-recreate --no-deps junjo-app -d",
+            ],
         )
+
+        logger.error(f"\n{warning_box}\n")
         return False
 
     # Configure OpenTelemetry for this application
