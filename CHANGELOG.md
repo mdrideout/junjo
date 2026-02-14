@@ -2,6 +2,17 @@
 
 All notable changes to Junjo will be documented in this file.
 
+## 0.62.1 - 2026-02-14
+
+This patch release focuses on updates to the AI Chat example.
+
+### Changed
+
+- Restored direct Gemini node usage across `examples/ai_chat` workflows instead of routing through provider abstractions.
+- Standardized Gemini model usage to `gemini-3-flash-preview` for text/schema generation and `gemini-2.5-flash-image` for image generation/editing flows.
+- Hardened Gemini schema request handling for empty/blocked responses and max-token edge cases.
+- Updated `examples/ai_chat/README.md` and backend `.env.example` so Gemini is the default path with Grok as an optional experimentation path.
+
 ## 0.62.0 - 2026-02-08
 
 This release is primarily a cleanup and polish pass across existing features.
@@ -39,4 +50,3 @@ and intentionally diverges from Junjo AI Studio version numbering.
 
 - This is mostly non-feature cleanup/polish, but consumers importing removed internal modules will need to migrate imports.
 - Example projects changed substantially; treat `examples/ai_chat` as an updated reference implementation rather than a drop-in patch.
-
