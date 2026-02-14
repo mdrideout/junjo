@@ -1,7 +1,7 @@
 from junjo.node import Node
 from loguru import logger
 
-from app.ai_services.grok import GrokTool
+from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.workflows.create_contact.nodes.create_name.prompt import create_name_prompt
 from app.workflows.create_contact.nodes.create_name.schema import CreateNameSchema
 from app.workflows.create_contact.store import CreateContactStore
@@ -39,12 +39,12 @@ class CreateNameNode(Node[CreateContactStore]):
         )
         logger.info(f"Creating response with prompt: {prompt}")
 
-        grok_tool = GrokTool(prompt=prompt, model="grok-4-1-fast-non-reasoning")
-        grok_result = await grok_tool.schema_request(CreateNameSchema)
-        logger.info(f"Grok result: {grok_result}")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-3-flash-preview")
+        gemini_result = await gemini_tool.schema_request(CreateNameSchema)
+        logger.info(f"Gemini result: {gemini_result}")
 
         # Update the state with the first name
-        await store.set_first_name(grok_result.first_name)
-        await store.set_last_name(grok_result.last_name)
+        await store.set_first_name(gemini_result.first_name)
+        await store.set_last_name(gemini_result.last_name)
 
         return

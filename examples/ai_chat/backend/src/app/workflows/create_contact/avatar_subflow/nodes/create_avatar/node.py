@@ -2,7 +2,7 @@ from junjo.node import Node
 from loguru import logger
 from nanoid import generate
 
-from app.ai_services.grok import GrokTool
+from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.util.save_image_file import save_image_file
 from app.workflows.create_contact.avatar_subflow.nodes.create_avatar.prompt import create_avatar_prompt
 from app.workflows.create_contact.avatar_subflow.store import AvatarSubflowStore
@@ -51,9 +51,9 @@ class CreateAvatarNode(Node[AvatarSubflowStore]):
         )
         logger.info(f"Creating image with prompt: {prompt}")
 
-        grok_tool = GrokTool(prompt=prompt, model="grok-imagine-image")
-        image_bytes = await grok_tool.image_request()
-        logger.info(f"Grok result image size: {len(image_bytes) / 1024} kb")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash-image")
+        image_bytes = await gemini_tool.gemini_image_request()
+        logger.info(f"Gemini result image size: {len(image_bytes) / 1024} kb")
 
         # Create an id for the avatar
         avatar_id = generate()

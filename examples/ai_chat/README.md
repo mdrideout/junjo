@@ -14,9 +14,15 @@ This is a more complete example of Junjo, showcasing:
 
 ## AI provider
 
-This example is currently wired up to use **xAI (Grok)** for text + image generation (via `GrokTool`).
+This example is currently wired up to use **Gemini** for all workflow AI calls via `GeminiTool`.
 
-If you'd rather use **Gemini**, you can swap the workflow nodes to use `GeminiTool` instead (both live in `backend/src/app/ai_services/`).
+Current node defaults:
+
+- Text generation / structured output: `gemini-3-flash-preview`
+- Image generation / image edit: `gemini-2.5-flash-image`
+
+For experimentation, you can switch specific nodes to `GrokTool` (or back) by editing the tool import and model in
+the node files under `backend/src/app/workflows/`.
 
 ## Run the example
 

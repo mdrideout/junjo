@@ -207,27 +207,46 @@ class GeminiTool:
         logger.info(f"Making schema request with prompt: {self._prompt}")
 
         logger.debug(f"Making schema request with model: {self._model}, prompt: {self._prompt}, schema: {schema}")
-        response = await self._client.aio.models.generate_content(
-            model=self._model,
-            contents=self._prompt,
-            config=types.GenerateContentConfig(
-                max_output_tokens=500,
-                temperature=2,
-                response_mime_type="application/json",
-                response_schema=schema,
-                safety_settings=self._safety_settings_off(),
-            ),
-        )
-        logger.info(f"Raw response: {response}")
 
-        schema_response = response.parsed
-        if schema_response is None:
-            logger.error(f"Parsed schema response is None: {response}")
+        for attempt, max_output_tokens in enumerate((1024, 2048), start=1):
+            config_kwargs: dict[str, Any] = {
+                "max_output_tokens": max_output_tokens,
+                "temperature": 0,
+                "response_mime_type": "application/json",
+                "response_schema": schema,
+                "safety_settings": self._safety_settings_off(),
+            }
+            if hasattr(types, "ThinkingConfig"):
+                config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
 
-        # Validate again using the provided model
-        validated = schema.model_validate(schema_response)
+            response = await self._client.aio.models.generate_content(
+                model=self._model,
+                contents=self._prompt,
+                config=types.GenerateContentConfig(**config_kwargs),
+            )
+            logger.info(f"Raw response (schema attempt {attempt}): {response}")
 
-        return validated
+            schema_response = response.parsed
+            if schema_response is not None:
+                return schema.model_validate(schema_response)
+
+            raw_text = (response.text or "").strip()
+            if raw_text:
+                try:
+                    return schema.model_validate_json(raw_text)
+                except Exception:
+                    logger.warning(f"Failed JSON fallback parsing on schema attempt {attempt}.")
+
+            finish_reason = None
+            if response.candidates:
+                finish_reason = response.candidates[0].finish_reason
+
+            logger.warning(
+                f"Parsed schema response is None on attempt {attempt}. "
+                f"finish_reason={finish_reason}, max_output_tokens={max_output_tokens}"
+            )
+
+        raise ValueError("Gemini schema_request failed: parsed response was None after retries.")
 
     async def gemini_image_request(self) -> bytes:
         """
