@@ -1,7 +1,7 @@
 from junjo.node import Node
 from loguru import logger
 
-from app.ai_services.grok import GrokTool
+from app.ai_services.gemini.gemini_tool import GeminiTool
 from app.workflows.create_contact.avatar_subflow.nodes.avatar_inspiration.prompt import avatar_inspiration_prompt
 from app.workflows.create_contact.avatar_subflow.store import AvatarSubflowStore
 
@@ -46,11 +46,11 @@ class AvatarInspirationNode(Node[AvatarSubflowStore]):
         )
         logger.info(f"Creating response with prompt: {prompt}")
 
-        grok_tool = GrokTool(prompt=prompt, model="grok-4-1-fast-non-reasoning")
-        grok_result = await grok_tool.text_request()
-        logger.info(f"Grok result: {grok_result}")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-3-flash-preview")
+        gemini_result = await gemini_tool.text_request()
+        logger.info(f"Gemini result: {gemini_result}")
 
         # Update the state with the avatar id
-        await store.set_inspiration_prompt(grok_result)
+        await store.set_inspiration_prompt(gemini_result)
 
         return
