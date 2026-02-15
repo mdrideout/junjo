@@ -277,6 +277,17 @@ The following steps walk you through configuring environment variables and Caddy
 These changes can be made locally and rsync'd to the server, or you can make them on the server using the **vi** editor.
 - _Note: the above rsync command excludes `.env`  would require changes to rsync the .env file_
 
+#### Option 1: Setup Script
+
+```bash
+# Execute this from the project root to start the .env setup script
+./scripts/junjo setup
+```
+
+The setup script updates `.env` values only. It does not edit `caddy/Caddyfile`.
+
+#### Option 2: Manual .env Copy + Configuration
+
 #### SSH into the server again
 ```bash
 # SSH into the server
@@ -327,16 +338,6 @@ openssl rand -base64 32  # JUNJO_SECURE_COOKIE_KEY
 # - CLOUDFLARE_API_TOKEN=<required_for_caddy_dns_challenge>
 vi .env
 ```
-
-Optional convenience:
-
-```bash
-./scripts/junjo setup --env production --hostname junjo.example.com
-# or
-./scripts/junjo setup --non-interactive --env production --hostname junjo.example.com --cloudflare-token <your_token>
-```
-
-The setup script updates `.env` values only. It does not edit `caddy/Caddyfile`.
 
 #### Caddyfile setup
 

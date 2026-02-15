@@ -295,9 +295,13 @@ def run_setup(args: argparse.Namespace) -> int:
     if not env_path.exists():
         print(f"Creating {env_path} from {env_example}.")
         if not args.dry_run:
-            env_path.write_text(env_example.read_text(encoding="utf-8"), encoding="utf-8")
+            env_path.write_text(
+                env_example.read_text(encoding="utf-8"), encoding="utf-8"
+            )
 
-    base_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    base_lines = (
+        env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    )
     current, _ = parse_env_lines(base_lines)
 
     print("\nJunjo AI Studio setup wizard")
@@ -313,7 +317,9 @@ def run_setup(args: argparse.Namespace) -> int:
         profile = profile_default
         target_env = env_default
     else:
-        target_env = env_default if args.env else prompt_runtime_environment(env_default)
+        target_env = (
+            env_default if args.env else prompt_runtime_environment(env_default)
+        )
         profile = profile_default if args.profile else prompt_profile(profile_default)
 
     updates: dict[str, str] = {
@@ -369,7 +375,9 @@ def run_setup(args: argparse.Namespace) -> int:
         else:
             cloudflare_token = prompt_text(
                 "Cloudflare API token (required for Caddy DNS challenge)",
-                default=existing_cloudflare_token if has_existing_cloudflare_token else None,
+                default=existing_cloudflare_token
+                if has_existing_cloudflare_token
+                else None,
                 required=not has_existing_cloudflare_token,
             ).strip()
 
@@ -459,17 +467,22 @@ def run_setup(args: argparse.Namespace) -> int:
 
     print("\nNext steps:")
     print("  1. Review .env")
-    print("  2. Run: docker compose config")
-    print("  3. Run: docker compose up -d")
+    print("  2. Configure caddy/Caddyfile for dev / production (see readme)")
+    print("  3. Run: docker compose config")
+    print("  4. Run: docker compose up -d")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="scripts/junjo", description="Junjo setup CLI")
+    parser = argparse.ArgumentParser(
+        prog="scripts/junjo", description="Junjo setup CLI"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     setup = subparsers.add_parser("setup", help="Guided .env setup wizard")
-    setup.add_argument("--env-file", default=".env", help="Path to .env file (default: ./.env)")
+    setup.add_argument(
+        "--env-file", default=".env", help="Path to .env file (default: ./.env)"
+    )
     setup.add_argument(
         "--non-interactive",
         action="store_true",
@@ -478,10 +491,18 @@ def build_parser() -> argparse.ArgumentParser:
             "--env production unless CLOUDFLARE_API_TOKEN is already set)."
         ),
     )
-    setup.add_argument("--dry-run", action="store_true", help="Show actions without writing files.")
-    setup.add_argument("--force-secrets", action="store_true", help="Regenerate security secrets.")
-    setup.add_argument("--env", choices=["development", "production"], help="Set JUNJO_ENV.")
-    setup.add_argument("--profile", choices=["1g", "2g", "4g"], help="Memory tuning profile.")
+    setup.add_argument(
+        "--dry-run", action="store_true", help="Show actions without writing files."
+    )
+    setup.add_argument(
+        "--force-secrets", action="store_true", help="Regenerate security secrets."
+    )
+    setup.add_argument(
+        "--env", choices=["development", "production"], help="Set JUNJO_ENV."
+    )
+    setup.add_argument(
+        "--profile", choices=["1g", "2g", "4g"], help="Memory tuning profile."
+    )
     setup.add_argument(
         "--hostname",
         help="Production frontend hostname (for example: junjo.example.com). Used only when --env production.",
