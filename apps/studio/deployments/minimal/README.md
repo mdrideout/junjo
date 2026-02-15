@@ -105,12 +105,23 @@ Junjo AI Studio consists of three Docker services:
    cd junjo-ai-studio-minimal-build
    ```
 
-2. Configure environment:
+2. Choose setup mode:
+
+   **Option A: Guided setup script (recommended)**
+   ```bash
+   ./scripts/junjo setup
+   ```
+   The wizard prompts for runtime environment:
+   - `development` uses localhost ports and service endpoints
+   - `production` asks for your production hostname and derives frontend/backend/ingestion URLs
+   - It also applies a memory profile and generates required secrets
+   - At completion, it prints the frontend/backend/ingestion URLs and ports
+
+   **Option B: Manual setup**
    ```bash
    cp .env.example .env
    ```
-
-3. Generate and set your session secrets:
+   Then generate and set secrets:
    ```bash
    # Generate TWO separate keys (run this command twice)
    openssl rand -base64 32
@@ -121,18 +132,18 @@ Junjo AI Studio consists of three Docker services:
    # - JUNJO_SECURE_COOKIE_KEY with the second generated value
    ```
 
-4. Start services:
+3. Start services:
    ```bash
    docker compose up -d
    ```
    > Note: Do not run `docker network create junjo_network` manually. Docker Compose creates and labels this network automatically.
 
-5. Access the frontend:
+4. Access the frontend:
    - **Frontend UI:** `http://localhost:5153`
      - _Troubleshooting: Try clearing your cookies if you encounter issues._
    - Create your first API key in the UI
 
-6. Configure your Junjo Python application's exporter:
+5. Configure your Junjo Python application's exporter:
    ```python
 	 	# Local example
 		junjo_server_exporter = JunjoServerOtelExporter(
@@ -143,7 +154,7 @@ Junjo AI Studio consists of three Docker services:
   	)
    ```
 
-**Note:** The default `.env.example` is configured for local development (`JUNJO_ENV="development"`). For production deployment with a reverse proxy, see [Scenario 2](#scenario-2-external-access-reverse-proxy-required) and change `JUNJO_ENV="production"`.
+**Note:** This repository always uses pre-built production Docker images from Docker Hub and does not use a `JUNJO_BUILD_TARGET` variable. For production runtime routing with a reverse proxy, set `JUNJO_ENV="production"` and provide production hostnames (the setup script can do this automatically).
 
 For a complete working example with reverse proxy included, see the [Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example).
 
