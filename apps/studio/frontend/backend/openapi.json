@@ -3,7 +3,7 @@
   "info": {
     "title": "Junjo AI Studio",
     "description": "LLM Observability Platform - Python Backend",
-    "version": "0.80.0"
+    "version": "0.80.1"
   },
   "paths": {
     "/api/admin/flush-wal": {
@@ -571,7 +571,7 @@
           "observability"
         ],
         "summary": "Get Service Spans",
-        "description": "Get all spans for a service.\n\nArgs:\n    service_name: Name of the service.\n    limit: Maximum number of spans to return (default 500, max 10000).\n\nReturns:\n    List of spans ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/services/my-service/spans?limit=100",
+        "description": "Get all spans for a service.\n\nArgs:\n    service_name: Name of the service.\n    limit: Maximum number of spans to return (default 100, max 250).\n\nReturns:\n    List of spans ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/services/my-service/spans?limit=100",
         "operationId": "get_service_spans_api_v1_observability_services__service_name__spans_get",
         "parameters": [
           {
@@ -589,10 +589,10 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 10000,
+              "maximum": 250,
               "minimum": 1,
               "description": "Maximum spans to return",
-              "default": 500,
+              "default": 100,
               "title": "Limit"
             },
             "description": "Maximum spans to return"
@@ -633,7 +633,7 @@
           "observability"
         ],
         "summary": "Get Root Spans",
-        "description": "Get root spans (no parent) for a service.\n\nRoot spans are entry points to traces (parent_span_id IS NULL).\n\nArgs:\n    service_name: Name of the service.\n    has_llm: If True, only return root spans from traces with LLM operations.\n    limit: Maximum number of spans to return (default 500, max 10000).\n\nReturns:\n    List of root spans ordered by start time (most recent first).\n\nExamples:\n    GET /api/v1/observability/services/my-service/spans/root\n    GET /api/v1/observability/services/my-service/spans/root?has_llm=true&limit=100",
+        "description": "Get root spans (no parent) for a service.\n\nRoot spans are entry points to traces (parent_span_id IS NULL).\n\nArgs:\n    service_name: Name of the service.\n    has_llm: If True, only return root spans from traces with LLM operations.\n    limit: Maximum number of spans to return (default 100, max 250).\n\nReturns:\n    List of root spans ordered by start time (most recent first).\n\nExamples:\n    GET /api/v1/observability/services/my-service/spans/root\n    GET /api/v1/observability/services/my-service/spans/root?has_llm=true&limit=100",
         "operationId": "get_root_spans_api_v1_observability_services__service_name__spans_root_get",
         "parameters": [
           {
@@ -663,10 +663,10 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 10000,
+              "maximum": 250,
               "minimum": 1,
               "description": "Maximum spans to return",
-              "default": 500,
+              "default": 100,
               "title": "Limit"
             },
             "description": "Maximum spans to return"
@@ -707,7 +707,7 @@
           "observability"
         ],
         "summary": "Get Workflow Spans",
-        "description": "Get workflow-type spans for a service.\n\nFilters spans where junjo_span_type = 'workflow'.\n\nArgs:\n    service_name: Name of the service.\n    limit: Maximum number of spans to return (default 500, max 10000).\n\nReturns:\n    List of workflow spans ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/services/my-service/workflows?limit=50",
+        "description": "Get workflow-type spans for a service.\n\nFilters spans where junjo_span_type = 'workflow'.\n\nArgs:\n    service_name: Name of the service.\n    limit: Maximum number of spans to return (default 100, max 250).\n\nReturns:\n    List of workflow spans ordered by start time (most recent first).\n\nExample:\n    GET /api/v1/observability/services/my-service/workflows?limit=50",
         "operationId": "get_workflow_spans_api_v1_observability_services__service_name__workflows_get",
         "parameters": [
           {
@@ -725,10 +725,10 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 10000,
+              "maximum": 250,
               "minimum": 1,
               "description": "Maximum spans to return",
-              "default": 500,
+              "default": 100,
               "title": "Limit"
             },
             "description": "Maximum spans to return"
@@ -1352,7 +1352,7 @@
             "type": "string",
             "title": "Version",
             "description": "API version",
-            "default": "0.80.0"
+            "default": "0.80.1"
           },
           "app_name": {
             "type": "string",

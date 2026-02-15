@@ -41,13 +41,13 @@ async def list_services() -> list[str]:
 @router.get("/services/{service_name}/spans", response_model=list[dict[str, Any]])
 async def get_service_spans(
     service_name: str,
-    limit: int = Query(default=500, ge=1, le=10000, description="Maximum spans to return"),
+    limit: int = Query(default=100, ge=1, le=250, description="Maximum spans to return"),
 ) -> list[dict[str, Any]]:
     """Get all spans for a service.
 
     Args:
         service_name: Name of the service.
-        limit: Maximum number of spans to return (default 500, max 10000).
+        limit: Maximum number of spans to return (default 100, max 250).
 
     Returns:
         List of spans ordered by start time (most recent first).
@@ -63,7 +63,7 @@ async def get_service_spans(
 async def get_root_spans(
     service_name: str,
     has_llm: bool = Query(default=False, description="Filter for traces containing LLM operations"),
-    limit: int = Query(default=500, ge=1, le=10000, description="Maximum spans to return"),
+    limit: int = Query(default=100, ge=1, le=250, description="Maximum spans to return"),
 ) -> list[dict[str, Any]]:
     """Get root spans (no parent) for a service.
 
@@ -72,7 +72,7 @@ async def get_root_spans(
     Args:
         service_name: Name of the service.
         has_llm: If True, only return root spans from traces with LLM operations.
-        limit: Maximum number of spans to return (default 500, max 10000).
+        limit: Maximum number of spans to return (default 100, max 250).
 
     Returns:
         List of root spans ordered by start time (most recent first).
@@ -93,7 +93,7 @@ async def get_root_spans(
 @router.get("/services/{service_name}/workflows", response_model=list[dict[str, Any]])
 async def get_workflow_spans(
     service_name: str,
-    limit: int = Query(default=500, ge=1, le=10000, description="Maximum spans to return"),
+    limit: int = Query(default=100, ge=1, le=250, description="Maximum spans to return"),
 ) -> list[dict[str, Any]]:
     """Get workflow-type spans for a service.
 
@@ -101,7 +101,7 @@ async def get_workflow_spans(
 
     Args:
         service_name: Name of the service.
-        limit: Maximum number of spans to return (default 500, max 10000).
+        limit: Maximum number of spans to return (default 100, max 250).
 
     Returns:
         List of workflow spans ordered by start time (most recent first).

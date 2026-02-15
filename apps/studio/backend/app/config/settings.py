@@ -201,6 +201,71 @@ class ParquetIndexerSettings(BaseSettings):
     )
 
 
+class DataFusionSettings(BaseSettings):
+    """DataFusion query runtime tuning for memory-constrained hosts."""
+
+    target_partitions: Annotated[
+        int,
+        Field(
+            default=1,
+            ge=1,
+            le=32,
+            description="DataFusion target partitions (parallelism). Use 1 on single-vCPU hosts.",
+            validation_alias="JUNJO_DF_TARGET_PARTITIONS",
+        ),
+    ]
+    batch_size: Annotated[
+        int,
+        Field(
+            default=4096,
+            ge=512,
+            le=65536,
+            description="DataFusion record batch size. Smaller values reduce per-batch peak memory.",
+            validation_alias="JUNJO_DF_BATCH_SIZE",
+        ),
+    ]
+    parquet_pruning: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="Enable Parquet predicate/statistics pruning.",
+            validation_alias="JUNJO_DF_PARQUET_PRUNING",
+        ),
+    ]
+    spill_enabled: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="Enable DataFusion disk spill to bound in-memory query pressure.",
+            validation_alias="JUNJO_DF_SPILL_ENABLED",
+        ),
+    ]
+    spill_pool_mb: Annotated[
+        int,
+        Field(
+            default=192,
+            ge=32,
+            le=4096,
+            description="DataFusion fair spill pool size in MB.",
+            validation_alias="JUNJO_DF_SPILL_POOL_MB",
+        ),
+    ]
+    spill_path: Annotated[
+        str,
+        Field(
+            default="/tmp/junjo-datafusion-spill",
+            description="Directory for DataFusion spill files.",
+            validation_alias="JUNJO_DF_SPILL_PATH",
+        ),
+    ]
+
+    model_config = SettingsConfigDict(
+        env_file=find_env_file(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 class AppSettings(BaseSettings):
     """Main application settings"""
 
@@ -327,6 +392,10 @@ class AppSettings(BaseSettings):
     parquet_indexer: Annotated[
         ParquetIndexerSettings,
         Field(default_factory=ParquetIndexerSettings, description="V4 Parquet indexer settings"),
+    ]
+    datafusion: Annotated[
+        DataFusionSettings,
+        Field(default_factory=DataFusionSettings, description="DataFusion query runtime settings"),
     ]
 
     @field_validator("secure_cookie_key", mode="before")
