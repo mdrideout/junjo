@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from coolname import generate_slug
@@ -16,9 +17,20 @@ os.environ.setdefault("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "2048")  # 2048 instead 
 os.environ.setdefault("OTEL_BSP_MAX_QUEUE_SIZE", "8192")  # 8192 instead of 2048
 
 
+@dataclass
+class WorkflowRunResult:
+    """Result from one subprocess execution."""
+
+    service_name: str
+    workflow_num: int
+    return_code: int
+    spans_emitted: int
+    flush_succeeded: bool
+
+
 async def run_workflow(
     service_name: str, workflow_num: int, config_path: str, workflows_per_process: int = 1
-) -> tuple[str, int, int]:
+) -> WorkflowRunResult:
     """
     Run workflows for a service.
 
@@ -29,7 +41,7 @@ async def run_workflow(
         workflows_per_process: Number of workflows to run per subprocess (concurrent)
 
     Returns:
-        Tuple of (service_name, workflow_num, return_code)
+        Workflow execution and telemetry summary for one subprocess.
     """
     app_dir = Path(__file__).parent.parent / "app"
 
@@ -48,13 +60,39 @@ async def run_workflow(
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    await process.wait()
-    return service_name, workflow_num, process.returncode
+    stdout, stderr = await process.communicate()
+    stdout_text = stdout.decode("utf-8", errors="replace")
+    stderr_text = stderr.decode("utf-8", errors="replace")
+
+    spans_emitted = (
+        stdout_text.count("Executing workflow:")
+        + stdout_text.count("Executing node:")
+        + stdout_text.count("Executing subflow:")
+        + stdout_text.count("Executing concurrent items within")
+    )
+    flush_succeeded = "Telemetry flushed successfully" in stdout_text
+
+    if process.returncode != 0:
+        print(
+            f"Warning: subprocess failed for service={service_name} "
+            f"cycle={workflow_num} (return code {process.returncode})"
+        )
+        stderr_preview = "\n".join(stderr_text.strip().splitlines()[-5:])
+        if stderr_preview:
+            print(stderr_preview)
+
+    return WorkflowRunResult(
+        service_name=service_name,
+        workflow_num=workflow_num,
+        return_code=process.returncode,
+        spans_emitted=spans_emitted,
+        flush_succeeded=flush_succeeded,
+    )
 
 
 async def execute_round(
     services: list[str], round_num: int, config_path: str, workflows_per_process: int = 1
-) -> tuple[int, list]:
+) -> tuple[int, list[WorkflowRunResult]]:
     """
     Execute one round: all services run workflows (concurrent).
 
@@ -122,6 +160,9 @@ async def generate_data(
     start = time.time()
     cycle_num = 0
     cycles_completed = 0
+    spans_emitted_so_far = 0
+    failed_processes = 0
+    flush_failures = 0
 
     # Duration-based mode
     if duration:
@@ -138,11 +179,21 @@ async def generate_data(
                 cycle_num += 1
 
             if batch:
-                await asyncio.gather(*batch)
+                batch_results = await asyncio.gather(*batch)
                 cycles_completed += len(batch)
+                for _, results in batch_results:
+                    for result in results:
+                        spans_emitted_so_far += result.spans_emitted
+                        if result.return_code != 0:
+                            failed_processes += 1
+                        if not result.flush_succeeded:
+                            flush_failures += 1
                 elapsed = time.time() - start
                 workflows_so_far = cycles_completed * num_services * workflows_per_process
-                print(f"Progress: {cycles_completed} cycles, {workflows_so_far} workflows ({elapsed:.1f}s elapsed)")
+                print(
+                    f"Progress: {cycles_completed} cycles, {workflows_so_far} workflows, "
+                    f"{spans_emitted_so_far} spans ({elapsed:.1f}s elapsed)"
+                )
 
     # Cycle-based mode
     else:
@@ -153,12 +204,28 @@ async def generate_data(
         # Execute rounds with concurrency limit
         for i in range(0, len(rounds), concurrency):
             batch = rounds[i : i + concurrency]
-            await asyncio.gather(*batch)
+            batch_results = await asyncio.gather(*batch)
             cycles_completed += len(batch)
-            print(f"Progress: {cycles_completed}/{num_cycles} cycles completed")
+            for _, results in batch_results:
+                for result in results:
+                    spans_emitted_so_far += result.spans_emitted
+                    if result.return_code != 0:
+                        failed_processes += 1
+                    if not result.flush_succeeded:
+                        flush_failures += 1
+
+            workflows_so_far = cycles_completed * num_services * workflows_per_process
+            print(
+                f"Progress: {cycles_completed}/{num_cycles} cycles, "
+                f"{workflows_so_far} workflows, {spans_emitted_so_far} spans"
+            )
 
     elapsed = time.time() - start
     total_workflows = num_services * cycles_completed * workflows_per_process
+    throughput_spans_per_sec = spans_emitted_so_far / elapsed if elapsed > 0 else 0
+    avg_spans_per_workflow = (
+        spans_emitted_so_far / total_workflows if total_workflows > 0 else 0
+    )
 
     # Save metadata for verification
     metadata = {
@@ -172,10 +239,15 @@ async def generate_data(
         "services": services,
         "results": {
             "total_workflows": total_workflows,
+            "total_spans": spans_emitted_so_far,
             "cycles_completed": cycles_completed,
             "workflows_per_service": cycles_completed * workflows_per_process,
             "duration_seconds": round(elapsed, 2),
             "throughput_workflows_per_sec": round(total_workflows / elapsed, 2),
+            "throughput_spans_per_sec": round(throughput_spans_per_sec, 2),
+            "avg_spans_per_workflow": round(avg_spans_per_workflow, 2),
+            "failed_processes": failed_processes,
+            "flush_failures": flush_failures,
         },
     }
 
@@ -187,7 +259,14 @@ async def generate_data(
     print(f"✅ Completed: {total_workflows} workflows in {elapsed:.2f}s")
     print(f"   Cycles completed: {cycles_completed}")
     print(f"   Workflows per service: {cycles_completed * workflows_per_process}")
+    print(f"   Total spans sent: {spans_emitted_so_far}")
+    print(f"   Avg spans/workflow: {avg_spans_per_workflow:.2f}")
     print(f"   Throughput: {total_workflows / elapsed:.2f} workflows/sec")
+    print(f"   Span throughput: {throughput_spans_per_sec:.2f} spans/sec")
+    if failed_processes:
+        print(f"   Warning: {failed_processes} subprocesses failed")
+    elif flush_failures:
+        print(f"   Warning: {flush_failures} subprocesses reported telemetry flush issues")
     print(f"   Metadata saved to: {output_path}")
 
     return metadata

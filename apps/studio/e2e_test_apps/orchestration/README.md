@@ -137,15 +137,18 @@ Configuration:
   Concurrency: 2 cycles
   Total concurrent workflows: 6
 
-Progress: 2/10 cycles completed
-Progress: 4/10 cycles completed
+Progress: 2/10 cycles, 6 workflows, 42 spans
+Progress: 4/10 cycles, 12 workflows, 84 spans
 ...
-Progress: 10/10 cycles completed
+Progress: 10/10 cycles, 30 workflows, 210 spans
 
 ✅ Completed: 30 workflows in 1.23s
    Cycles completed: 10
    Workflows per service: 10
+   Total spans sent: 210
+   Avg spans/workflow: 7.00
    Throughput: 24.39 workflows/sec
+   Span throughput: 170.73 spans/sec
    Metadata saved to: test_run_metadata.json
 ```
 
@@ -163,15 +166,18 @@ Configuration:
   Total concurrent workflows: 6
 
 Running for 5 seconds...
-Progress: 2 cycles completed (0.2s elapsed)
-Progress: 4 cycles completed (0.5s elapsed)
+Progress: 2 cycles, 6 workflows, 42 spans (0.2s elapsed)
+Progress: 4 cycles, 12 workflows, 84 spans (0.5s elapsed)
 ...
-Progress: 44 cycles completed (5.1s elapsed)
+Progress: 44 cycles, 132 workflows, 924 spans (5.1s elapsed)
 
 ✅ Completed: 132 workflows in 5.08s
    Cycles completed: 44
    Workflows per service: 44
+   Total spans sent: 924
+   Avg spans/workflow: 7.00
    Throughput: 25.99 workflows/sec
+   Span throughput: 181.94 spans/sec
    Metadata saved to: test_run_metadata.json
 ```
 
@@ -191,10 +197,15 @@ Progress: 44 cycles completed (5.1s elapsed)
   ],
   "results": {
     "total_workflows": 30,
+    "total_spans": 210,
     "cycles_completed": 10,
     "workflows_per_service": 10,
     "duration_seconds": 1.23,
-    "throughput": 24.39
+    "throughput_workflows_per_sec": 24.39,
+    "throughput_spans_per_sec": 170.73,
+    "avg_spans_per_workflow": 7.0,
+    "failed_processes": 0,
+    "flush_failures": 0
   }
 }
 ```
