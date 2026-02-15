@@ -1,0 +1,4 @@
+interface:
+  display_name: "Junjo Deployment Sync"
+  short_description: "Sync deployment-example to new Junjo releases"
+  default_prompt: "Use $junjo-deployment-sync to investigate upstream release changes and apply deployment-example updates safely."

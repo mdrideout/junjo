@@ -38,6 +38,7 @@ Deploy Junjo AI Studio as a centralized observability backend for your AI applic
 - **Production-ready**: Includes reverse proxy with automatic SSL, authentication and user management, and scalable ingestion
 
 This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo AI Studio into your own projects.
+The three Junjo AI Studio core services use pinned pre-built Docker images, while `caddy` and `junjo-app` are built from this repository.
 
 ### Core Services
 - **Junjo AI Studio Backend**: HTTP API, authentication, and query orchestration (SQLite metadata + Parquet queries + hot snapshot merge)
@@ -67,13 +68,23 @@ cd junjo-ai-studio-deployment-example
 
 ### 2. Configure Environment Variables
 
-Copy the example environment file and configure the required security keys.
+Choose a setup path:
 
-```bash
-cp .env.example .env
-```
+#### **Option 1: Script setup**
 
-**Generate and set TWO required security keys:**
+   ```bash
+   ./scripts/junjo setup
+   ```
+
+   The setup script can generate secrets, derive production URLs, and set `CLOUDFLARE_API_TOKEN` for production mode. It does not edit `caddy/Caddyfile`.
+
+#### **Option 2: Manual setup**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+Generate and set TWO required security keys:
 
 Both `JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` must be set for the backend to function properly.
 
@@ -90,6 +101,13 @@ Both `JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` must be set for the ba
    ```
 
 4. Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with this second generated key
+
+For production deployments, also set these values in `.env`:
+- `JUNJO_ENV=production`
+- `JUNJO_PROD_FRONTEND_URL=https://junjo.example.com`
+- `JUNJO_PROD_BACKEND_URL=https://api.junjo.example.com`
+- `JUNJO_PROD_INGESTION_URL=https://ingestion.junjo.example.com`
+- `CLOUDFLARE_API_TOKEN=<your_token>` (required for Caddy DNS challenge / automatic SSL for this deployment example.)
 
 ### 3. Run the Application
 
@@ -156,6 +174,11 @@ Create a Droplet with the following specifications *($6/mo)*:
 - **RAM**: 1GB
 - **vCPU**: 1
 - **Disk**: 25GB SSD
+
+For backend memory tuning defaults:
+- 1GB VM: use `./scripts/junjo setup --profile 1g` (default)
+- 2GB VM: use `./scripts/junjo setup --profile 2g`
+- 4GB VM: use `./scripts/junjo setup --profile 4g`
 
 This single VM can ingest telemetry from an unlimited number of AI applications running anywhere.
 
@@ -287,28 +310,38 @@ cd <project-folder-name>
 #### Environment Variable Setup
 
 ```bash
-# Copy the example environment variable file to a new .env
+# Copy the example environment file
 cp .env.example .env
 
-# Generate TWO security keys (run this command twice, use different values for each)
-openssl rand -base64 32  # First key - for JUNJO_SESSION_SECRET
-openssl rand -base64 32  # Second key - for JUNJO_SECURE_COOKIE_KEY
+# Generate TWO security keys (run twice and use different values)
+openssl rand -base64 32  # JUNJO_SESSION_SECRET
+openssl rand -base64 32  # JUNJO_SECURE_COOKIE_KEY
 
-# Edit the .env to configure production variables:
-# - JUNJO_ENV="production"
-# - JUNJO_PROD_FRONTEND_URL (e.g., https://junjo.example.com)
-# - JUNJO_PROD_BACKEND_URL (e.g., https://api.junjo.example.com)
-# - JUNJO_PROD_INGESTION_URL (e.g., https://ingestion.junjo.example.com)
-# - JUNJO_SESSION_SECRET (first generated key from above)
-# - JUNJO_SECURE_COOKIE_KEY (second generated key from above)
-# - CLOUDFLARE_API_TOKEN (For Caddy SSL certificate setup, created in the Cloudflare dashboard)
+# Edit .env and set production values:
+# - JUNJO_ENV=production
+# - JUNJO_PROD_FRONTEND_URL=https://junjo.example.com
+# - JUNJO_PROD_BACKEND_URL=https://api.junjo.example.com
+# - JUNJO_PROD_INGESTION_URL=https://ingestion.junjo.example.com
+# - JUNJO_SESSION_SECRET=<generated_key_1>
+# - JUNJO_SECURE_COOKIE_KEY=<generated_key_2>
+# - CLOUDFLARE_API_TOKEN=<required_for_caddy_dns_challenge>
 vi .env
 ```
+
+Optional convenience:
+
+```bash
+./scripts/junjo setup --env production --hostname junjo.example.com
+# or
+./scripts/junjo setup --non-interactive --env production --hostname junjo.example.com --cloudflare-token <your_token>
+```
+
+The setup script updates `.env` values only. It does not edit `caddy/Caddyfile`.
 
 #### Caddyfile setup
 
 Configures the Caddy reverse proxy container to handle traffic from your production domains / subdomains.
-- _Note: goole `vi multiline comment / uncomment` for shortcuts_
+- _Note: google `vi multiline comment / uncomment` for shortcuts_
 
 ```bash
 # 1. Comment out the local development section
@@ -441,18 +474,18 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.80.0`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.0`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
 *   **Details**: Rust service that receives telemetry via gRPC (port 50051), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
 *   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
 #### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.80.0`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.0`
 *   **Purpose**: API server, authentication, and data processing
 *   **Details**: Python FastAPI application that handles HTTP API requests (port 1323), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 #### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.80.0`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.0`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 80 (internally), proxied through Caddy.
 

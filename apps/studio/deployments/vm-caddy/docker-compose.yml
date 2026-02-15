@@ -21,9 +21,14 @@ services:
 
   # Junjo AI Studio Services
   junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:0.80.0
+    image: mdrideout/junjo-ai-studio-backend:0.81.0
     container_name: junjo-ai-studio-backend
     restart: unless-stopped
+    # Memory guardrails (tuned for small VMs; override in .env as needed)
+    mem_reservation: ${JUNJO_BACKEND_MEM_RESERVATION:-300m}
+    mem_limit: ${JUNJO_BACKEND_MEM_LIMIT:-450m}
+    memswap_limit: ${JUNJO_BACKEND_MEMSWAP_LIMIT:-900m}
+    pids_limit: ${JUNJO_BACKEND_PIDS_LIMIT:-128}
     volumes:
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
@@ -42,10 +47,21 @@ services:
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
       - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+      # Parquet file storage path (shared with ingestion service, indexer watches this)
       - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
+      # Allocator tuning for lower RSS fragmentation on glibc-based images
+      - MALLOC_ARENA_MAX=${JUNJO_MALLOC_ARENA_MAX:-2}
+      - MALLOC_TRIM_THRESHOLD_=${JUNJO_MALLOC_TRIM_THRESHOLD:-131072}
+      # DataFusion runtime tuning (bounded query memory pressure)
+      - JUNJO_DF_TARGET_PARTITIONS=${JUNJO_DF_TARGET_PARTITIONS:-1}
+      - JUNJO_DF_BATCH_SIZE=${JUNJO_DF_BATCH_SIZE:-4096}
+      - JUNJO_DF_PARQUET_PRUNING=${JUNJO_DF_PARQUET_PRUNING:-true}
+      - JUNJO_DF_SPILL_ENABLED=${JUNJO_DF_SPILL_ENABLED:-true}
+      - JUNJO_DF_SPILL_POOL_MB=${JUNJO_DF_SPILL_POOL_MB:-192}
+      - JUNJO_DF_SPILL_PATH=${JUNJO_DF_SPILL_PATH:-/tmp/junjo-datafusion-spill}
 
   junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:0.80.0
+    image: mdrideout/junjo-ai-studio-ingestion:0.81.0
     container_name: junjo-ai-studio-ingestion
     restart: unless-stopped
     volumes:
@@ -80,7 +96,7 @@ services:
       start_period: 30s
 
   junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:0.80.0
+    image: mdrideout/junjo-ai-studio-frontend:0.81.0
     container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:

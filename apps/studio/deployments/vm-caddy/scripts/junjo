@@ -1,0 +1,507 @@
+#!/usr/bin/env python3
+"""Junjo setup CLI for guided .env configuration."""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import re
+import secrets
+import shutil
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+ENV_KEY_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$")
+COMMENTED_ENV_KEY_RE = re.compile(r"^\s*#\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$")
+
+PROFILE_DEFAULTS: dict[str, dict[str, str]] = {
+    "1g": {
+        "JUNJO_BACKEND_MEM_RESERVATION": "300m",
+        "JUNJO_BACKEND_MEM_LIMIT": "450m",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT": "900m",
+        "JUNJO_BACKEND_PIDS_LIMIT": "128",
+        "JUNJO_MALLOC_ARENA_MAX": "2",
+        "JUNJO_MALLOC_TRIM_THRESHOLD": "131072",
+        "JUNJO_DF_TARGET_PARTITIONS": "1",
+        "JUNJO_DF_BATCH_SIZE": "4096",
+        "JUNJO_DF_PARQUET_PRUNING": "true",
+        "JUNJO_DF_SPILL_ENABLED": "true",
+        "JUNJO_DF_SPILL_POOL_MB": "192",
+        "JUNJO_DF_SPILL_PATH": "/tmp/junjo-datafusion-spill",
+    },
+    "2g": {
+        "JUNJO_BACKEND_MEM_RESERVATION": "700m",
+        "JUNJO_BACKEND_MEM_LIMIT": "1200m",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT": "2400m",
+        "JUNJO_BACKEND_PIDS_LIMIT": "192",
+        "JUNJO_MALLOC_ARENA_MAX": "2",
+        "JUNJO_MALLOC_TRIM_THRESHOLD": "131072",
+        "JUNJO_DF_TARGET_PARTITIONS": "2",
+        "JUNJO_DF_BATCH_SIZE": "4096",
+        "JUNJO_DF_PARQUET_PRUNING": "true",
+        "JUNJO_DF_SPILL_ENABLED": "true",
+        "JUNJO_DF_SPILL_POOL_MB": "384",
+        "JUNJO_DF_SPILL_PATH": "/tmp/junjo-datafusion-spill",
+    },
+    "4g": {
+        "JUNJO_BACKEND_MEM_RESERVATION": "1200m",
+        "JUNJO_BACKEND_MEM_LIMIT": "2500m",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT": "5000m",
+        "JUNJO_BACKEND_PIDS_LIMIT": "256",
+        "JUNJO_MALLOC_ARENA_MAX": "2",
+        "JUNJO_MALLOC_TRIM_THRESHOLD": "131072",
+        "JUNJO_DF_TARGET_PARTITIONS": "4",
+        "JUNJO_DF_BATCH_SIZE": "8192",
+        "JUNJO_DF_PARQUET_PRUNING": "true",
+        "JUNJO_DF_SPILL_ENABLED": "true",
+        "JUNJO_DF_SPILL_POOL_MB": "768",
+        "JUNJO_DF_SPILL_PATH": "/tmp/junjo-datafusion-spill",
+    },
+}
+
+PROFILE_DISPLAY_LABELS: dict[str, str] = {
+    "1g": "1GB VM",
+    "2g": "2GB VM",
+    "4g": "4GB VM",
+}
+
+SECRET_PLACEHOLDERS = {
+    "",
+    "your_base64_secret_here",
+    "your_base64_key_here",
+}
+
+CLOUDFLARE_TOKEN_PLACEHOLDERS = {
+    "",
+    "your_api_token",
+    "<your_token>",
+}
+
+
+def strip_wrapping_quotes(value: str) -> tuple[str, str]:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1], value[0]
+    return value, ""
+
+
+def parse_env_lines(lines: list[str]) -> tuple[dict[str, str], dict[str, str]]:
+    values: dict[str, str] = {}
+    quote_hint: dict[str, str] = {}
+    for line in lines:
+        if line.lstrip().startswith("#"):
+            continue
+        match = ENV_KEY_RE.match(line)
+        if not match:
+            continue
+        key, raw_value = match.group(1), match.group(2)
+        unwrapped, quote = strip_wrapping_quotes(raw_value)
+        values[key] = unwrapped
+        quote_hint[key] = quote
+    return values, quote_hint
+
+
+def format_env_assignment(key: str, value: str, quote_hint: dict[str, str]) -> str:
+    quote = quote_hint.get(key, "")
+    if quote:
+        return f"{key}={quote}{value}{quote}"
+    if any(ch.isspace() for ch in value) or "#" in value:
+        return f'{key}="{value}"'
+    return f"{key}={value}"
+
+
+def update_env_lines(lines: list[str], updates: dict[str, str]) -> list[str]:
+    values, quote_hint = parse_env_lines(lines)
+    output: list[str] = []
+    updated_keys: set[str] = set()
+
+    for line in lines:
+        if line.lstrip().startswith("#"):
+            commented_match = COMMENTED_ENV_KEY_RE.match(line)
+            if commented_match:
+                key = commented_match.group(1)
+                if key in updates and key not in updated_keys:
+                    output.append(format_env_assignment(key, updates[key], quote_hint))
+                    updated_keys.add(key)
+                    values[key] = updates[key]
+                    continue
+            output.append(line)
+            continue
+        match = ENV_KEY_RE.match(line)
+        if not match:
+            output.append(line)
+            continue
+        key = match.group(1)
+        if key not in updates:
+            output.append(line)
+            continue
+        output.append(format_env_assignment(key, updates[key], quote_hint))
+        updated_keys.add(key)
+        values[key] = updates[key]
+
+    missing = [key for key in updates if key not in updated_keys]
+    if missing:
+        if output and output[-1] != "":
+            output.append("")
+        output.append("# Added by scripts/junjo setup")
+        for key in missing:
+            output.append(format_env_assignment(key, updates[key], quote_hint))
+            values[key] = updates[key]
+
+    return output
+
+
+def mask_value(key: str, value: str) -> str:
+    if key in {
+        "JUNJO_SESSION_SECRET",
+        "JUNJO_SECURE_COOKIE_KEY",
+        "CLOUDFLARE_API_TOKEN",
+    }:
+        if len(value) <= 10:
+            return "*" * len(value)
+        return f"{value[:6]}...{value[-4:]}"
+    return value
+
+
+def generate_secret() -> str:
+    return base64.b64encode(secrets.token_bytes(32)).decode("ascii")
+
+
+def prompt_profile(default: str) -> str:
+    keys = ["1g", "2g", "4g"]
+    default_idx = keys.index(default) + 1
+    print("\nStep 2: Memory Profile")
+    print(
+        "Choose default memory limits and settings appropriate for your VM size. "
+        "These settings can be tuned in the .env file."
+    )
+    print()
+    for idx, key in enumerate(keys, start=1):
+        print(f"{idx}: {PROFILE_DISPLAY_LABELS[key]}")
+    while True:
+        raw = input(f"Select an option [default {default_idx}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(keys):
+                return keys[idx - 1]
+        if raw in PROFILE_DEFAULTS:
+            return raw
+        print("Invalid selection. Try again.")
+
+
+def prompt_runtime_environment(default: str) -> str:
+    keys = ["development", "production"]
+    default_idx = keys.index(default) + 1
+    print("\nStep 1: Runtime Environment")
+    print("Choose how services are addressed at runtime:")
+    print("  - development: localhost ports for frontend/backend/ingestion")
+    print("  - production: production hostname with subdomains")
+    print()
+    for idx, key in enumerate(keys, start=1):
+        print(f"{idx}. {key}")
+    while True:
+        raw = input(f"Select an option [default {default_idx}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(keys):
+                return keys[idx - 1]
+        if raw in keys:
+            return raw
+        print("Invalid selection. Try again.")
+
+
+def normalize_hostname(value: str) -> str:
+    raw = value.strip().lower()
+    if not raw:
+        raise ValueError("hostname is required")
+
+    if "://" in raw:
+        parsed = urlparse(raw)
+        host = (parsed.hostname or "").strip().lower()
+    else:
+        host = raw
+
+    host = host.rstrip(".")
+    if not host:
+        raise ValueError("hostname is required")
+    if "/" in host:
+        raise ValueError("hostname must not contain paths")
+    if ":" in host:
+        raise ValueError("hostname must not contain a port")
+    if "." not in host:
+        raise ValueError("hostname must be a valid domain like example.com")
+    return host
+
+
+def infer_hostname(current: dict[str, str]) -> str:
+    existing_url = current.get("JUNJO_PROD_FRONTEND_URL", "").strip()
+    if not existing_url:
+        return ""
+    parsed = urlparse(existing_url)
+    return (parsed.hostname or "").strip().lower()
+
+
+def prompt_text(prompt: str, default: str | None = None, required: bool = False) -> str:
+    suffix = f" [{default}]" if default else ""
+    while True:
+        raw = input(f"{prompt}{suffix}: ").strip()
+        if raw:
+            return raw
+        if default is not None:
+            return default
+        if not required:
+            return ""
+        print("Value is required.")
+
+
+def infer_profile(current: dict[str, str]) -> str:
+    mem_limit = current.get("JUNJO_BACKEND_MEM_LIMIT", "").lower()
+    if mem_limit in {"450m", "400m", "512m"}:
+        return "1g"
+    if mem_limit in {"1200m", "1536m", "1500m"}:
+        return "2g"
+    if mem_limit in {"2500m", "3g", "3072m"}:
+        return "4g"
+    return "1g"
+
+
+def detect_swap_enabled() -> bool | None:
+    if sys.platform != "linux":
+        return None
+    swaps_path = Path("/proc/swaps")
+    if not swaps_path.exists():
+        return None
+    lines = swaps_path.read_text(encoding="utf-8").strip().splitlines()
+    return len(lines) > 1
+
+
+def run_setup(args: argparse.Namespace) -> int:
+    repo_root = Path(__file__).resolve().parents[1]
+    env_example = repo_root / ".env.example"
+    env_path = Path(args.env_file).resolve() if args.env_file else repo_root / ".env"
+    non_interactive = args.non_interactive
+    env_preexisting = env_path.exists()
+
+    if not env_example.exists():
+        print(f"Error: {env_example} not found.")
+        return 1
+
+    if not env_path.exists():
+        print(f"Creating {env_path} from {env_example}.")
+        if not args.dry_run:
+            env_path.write_text(env_example.read_text(encoding="utf-8"), encoding="utf-8")
+
+    base_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    current, _ = parse_env_lines(base_lines)
+
+    print("\nJunjo AI Studio setup wizard")
+    print("============================")
+    print("Configures .env with safe defaults and runtime tuning.")
+
+    env_default = args.env or current.get("JUNJO_ENV", "development")
+    if env_default not in {"development", "production"}:
+        env_default = "development"
+    profile_default = args.profile or infer_profile(current)
+
+    if non_interactive:
+        profile = profile_default
+        target_env = env_default
+    else:
+        target_env = env_default if args.env else prompt_runtime_environment(env_default)
+        profile = profile_default if args.profile else prompt_profile(profile_default)
+
+    updates: dict[str, str] = {
+        "JUNJO_ENV": target_env,
+    }
+    updates.update(PROFILE_DEFAULTS[profile])
+
+    frontend_url: str
+    backend_url: str
+    ingestion_url: str
+
+    if target_env == "production":
+        hostname_default = args.hostname or infer_hostname(current)
+        hostname_input = hostname_default
+
+        if not non_interactive and not args.hostname:
+            hostname_input = prompt_text(
+                "Production hostname (frontend host, e.g. junjo.example.com)",
+                hostname_default or None,
+                required=True,
+            )
+
+        try:
+            hostname = normalize_hostname(hostname_input)
+        except ValueError as e:
+            print(f"Error: {e}")
+            return 1
+
+        frontend_url = f"https://{hostname}"
+        backend_url = f"https://api.{hostname}"
+        ingestion_url = f"https://ingestion.{hostname}"
+
+        updates["JUNJO_PROD_FRONTEND_URL"] = frontend_url
+        updates["JUNJO_PROD_BACKEND_URL"] = backend_url
+        updates["JUNJO_PROD_INGESTION_URL"] = ingestion_url
+
+        existing_cloudflare_token = current.get("CLOUDFLARE_API_TOKEN", "").strip()
+        has_existing_cloudflare_token = (
+            existing_cloudflare_token not in CLOUDFLARE_TOKEN_PLACEHOLDERS
+        )
+
+        if args.cloudflare_token:
+            cloudflare_token = args.cloudflare_token.strip()
+        elif non_interactive:
+            if has_existing_cloudflare_token:
+                cloudflare_token = existing_cloudflare_token
+            else:
+                print(
+                    "Error: --cloudflare-token is required for non-interactive "
+                    "production setup when CLOUDFLARE_API_TOKEN is not set."
+                )
+                return 1
+        else:
+            cloudflare_token = prompt_text(
+                "Cloudflare API token (required for Caddy DNS challenge)",
+                default=existing_cloudflare_token if has_existing_cloudflare_token else None,
+                required=not has_existing_cloudflare_token,
+            ).strip()
+
+        if cloudflare_token in CLOUDFLARE_TOKEN_PLACEHOLDERS:
+            print("Error: CLOUDFLARE_API_TOKEN is required for production setup.")
+            return 1
+
+        updates["CLOUDFLARE_API_TOKEN"] = cloudflare_token
+    else:
+        frontend_url = "http://localhost:5153"
+        backend_url = "http://localhost:1323"
+        ingestion_url = "grpc://localhost:50051"
+
+    # Security secrets
+    for secret_key in ("JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY"):
+        existing = current.get(secret_key, "")
+        needs_generation = args.force_secrets or existing in SECRET_PLACEHOLDERS
+        if needs_generation:
+            updates[secret_key] = generate_secret()
+
+    swap_state = detect_swap_enabled()
+    if swap_state is False:
+        print(
+            "\nWarning: no host swap detected. "
+            "JUNJO_BACKEND_MEM_LIMIT will still behave as a hard cap."
+        )
+    elif swap_state is True:
+        print("\nHost swap detected.")
+
+    updated_lines = update_env_lines(base_lines, updates)
+    new_text = "\n".join(updated_lines) + "\n"
+
+    if args.dry_run:
+        print("\nDry run mode: no files written.")
+    else:
+        if env_preexisting and env_path.exists():
+            backup_path = env_path.parent / f"{env_path.name}.bak"
+            shutil.copy2(env_path, backup_path)
+            print(f"Backup written to {backup_path}")
+        env_path.write_text(new_text, encoding="utf-8")
+        print(f"Wrote {env_path}")
+
+    print("\nConfiguration summary")
+    print("---------------------")
+    summary_order = [
+        "JUNJO_ENV",
+        "JUNJO_BACKEND_MEM_RESERVATION",
+        "JUNJO_BACKEND_MEM_LIMIT",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT",
+        "JUNJO_BACKEND_PIDS_LIMIT",
+        "JUNJO_MALLOC_ARENA_MAX",
+        "JUNJO_MALLOC_TRIM_THRESHOLD",
+        "JUNJO_DF_TARGET_PARTITIONS",
+        "JUNJO_DF_BATCH_SIZE",
+        "JUNJO_DF_PARQUET_PRUNING",
+        "JUNJO_DF_SPILL_ENABLED",
+        "JUNJO_DF_SPILL_POOL_MB",
+        "JUNJO_DF_SPILL_PATH",
+        "JUNJO_PROD_FRONTEND_URL",
+        "JUNJO_PROD_BACKEND_URL",
+        "JUNJO_PROD_INGESTION_URL",
+        "CLOUDFLARE_API_TOKEN",
+        "JUNJO_SESSION_SECRET",
+        "JUNJO_SECURE_COOKIE_KEY",
+    ]
+    for key in summary_order:
+        if key in updates:
+            print(f"  {key}={mask_value(key, updates[key])}")
+
+    print("\nService endpoints")
+    print("-----------------")
+    if target_env == "production":
+        print(f"  Frontend:  {frontend_url}:443")
+        print(f"  Backend:   {backend_url}:443")
+        print(f"  Ingestion: {ingestion_url}:443")
+        print("\nCaddy note")
+        print("----------")
+        print("  This setup updates .env only.")
+        print("  Update caddy/Caddyfile domains to match your production hostname:")
+        print(f"    - {hostname}")
+        print(f"    - api.{hostname}")
+        print(f"    - ingestion.{hostname}")
+    else:
+        print(f"  Frontend:  {frontend_url}")
+        print(f"  Backend:   {backend_url}")
+        print(f"  Ingestion: {ingestion_url}")
+
+    print("\nNext steps:")
+    print("  1. Review .env")
+    print("  2. Run: docker compose config")
+    print("  3. Run: docker compose up -d")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="scripts/junjo", description="Junjo setup CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    setup = subparsers.add_parser("setup", help="Guided .env setup wizard")
+    setup.add_argument("--env-file", default=".env", help="Path to .env file (default: ./.env)")
+    setup.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help=(
+            "Run without prompts (requires --hostname and --cloudflare-token when "
+            "--env production unless CLOUDFLARE_API_TOKEN is already set)."
+        ),
+    )
+    setup.add_argument("--dry-run", action="store_true", help="Show actions without writing files.")
+    setup.add_argument("--force-secrets", action="store_true", help="Regenerate security secrets.")
+    setup.add_argument("--env", choices=["development", "production"], help="Set JUNJO_ENV.")
+    setup.add_argument("--profile", choices=["1g", "2g", "4g"], help="Memory tuning profile.")
+    setup.add_argument(
+        "--hostname",
+        help="Production frontend hostname (for example: junjo.example.com). Used only when --env production.",
+    )
+    setup.add_argument(
+        "--cloudflare-token",
+        help="Cloudflare API token used by Caddy DNS challenge in production mode.",
+    )
+
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.command == "setup":
+        return run_setup(args)
+    parser.print_help()
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
