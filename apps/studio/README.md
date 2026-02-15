@@ -52,12 +52,21 @@ Get Junjo AI Studio running on your local machine in 5 minutes using the **[Junj
    cd junjo-ai-studio-minimal-build
    ```
 
-2. **Copy the environment configuration**
+2. **Choose setup mode**
+
+   **Option A: Guided setup script (recommended)**
+   ```bash
+   ./scripts/junjo setup
+   ```
+
+   The setup wizard creates/updates `.env`, applies a VM memory profile, and auto-generates required secrets.
+
+   **Option B: Manual setup**
    ```bash
    cp .env.example .env
    ```
 
-3. **Generate security secrets**
+   Then generate and set secrets:
    ```bash
    # Generate session secret (copy this output)
    openssl rand -base64 32
@@ -81,26 +90,26 @@ Get Junjo AI Studio running on your local machine in 5 minutes using the **[Junj
 
    _See the [Minimal Build template repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/README.md) for in-depth configuration instructions._
 
-4. **Create the Docker network** (first time only)
+3. **Create the Docker network** (first time only)
    ```bash
    docker network create junjo-network
    ```
 
-5. **Start all services**
+4. **Start all services**
    ```bash
    docker compose up -d
    ```
 
-6. **Access Junjo AI Studio**
+5. **Access Junjo AI Studio**
    - **Frontend**: http://localhost:5153
    - **Backend API**: http://localhost:1323
    - **OTLP Ingestion Endpoint**: grpc://localhost:50051
 
-7. **Create your first user**
+6. **Create your first user**
    - Navigate to http://localhost:5153
    - Follow the setup wizard to create your admin account
 
-8. **Create an API key** (for sending telemetry from your Junjo app)
+7. **Create an API key** (for sending telemetry from your Junjo app)
    - Sign in to the web UI
    - Navigate to **Settings → API Keys**
    - Click **Create API Key**
@@ -243,6 +252,12 @@ Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
 ### Environment Variables
 
 Junjo AI Studio uses a single `.env` file at the root of the project. All services read from this file.
+
+For a guided setup wizard that writes critical `.env` values (including memory tuning profiles), run:
+
+```bash
+./scripts/junjo setup
+```
 
 #### Key Configuration Variables
 

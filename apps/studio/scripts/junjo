@@ -1,0 +1,463 @@
+#!/usr/bin/env python3
+"""Junjo setup CLI for guided .env configuration."""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import re
+import secrets
+import shutil
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+ENV_KEY_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$")
+
+PROFILE_DEFAULTS: dict[str, dict[str, str]] = {
+    "1g": {
+        "JUNJO_BACKEND_MEM_RESERVATION": "300m",
+        "JUNJO_BACKEND_MEM_LIMIT": "450m",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT": "900m",
+        "JUNJO_BACKEND_PIDS_LIMIT": "128",
+        "JUNJO_MALLOC_ARENA_MAX": "2",
+        "JUNJO_MALLOC_TRIM_THRESHOLD": "131072",
+        "JUNJO_DF_TARGET_PARTITIONS": "1",
+        "JUNJO_DF_BATCH_SIZE": "4096",
+        "JUNJO_DF_PARQUET_PRUNING": "true",
+        "JUNJO_DF_SPILL_ENABLED": "true",
+        "JUNJO_DF_SPILL_POOL_MB": "192",
+        "JUNJO_DF_SPILL_PATH": "/tmp/junjo-datafusion-spill",
+    },
+    "2g": {
+        "JUNJO_BACKEND_MEM_RESERVATION": "700m",
+        "JUNJO_BACKEND_MEM_LIMIT": "1200m",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT": "2400m",
+        "JUNJO_BACKEND_PIDS_LIMIT": "192",
+        "JUNJO_MALLOC_ARENA_MAX": "2",
+        "JUNJO_MALLOC_TRIM_THRESHOLD": "131072",
+        "JUNJO_DF_TARGET_PARTITIONS": "2",
+        "JUNJO_DF_BATCH_SIZE": "4096",
+        "JUNJO_DF_PARQUET_PRUNING": "true",
+        "JUNJO_DF_SPILL_ENABLED": "true",
+        "JUNJO_DF_SPILL_POOL_MB": "384",
+        "JUNJO_DF_SPILL_PATH": "/tmp/junjo-datafusion-spill",
+    },
+    "4g": {
+        "JUNJO_BACKEND_MEM_RESERVATION": "1200m",
+        "JUNJO_BACKEND_MEM_LIMIT": "2500m",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT": "5000m",
+        "JUNJO_BACKEND_PIDS_LIMIT": "256",
+        "JUNJO_MALLOC_ARENA_MAX": "2",
+        "JUNJO_MALLOC_TRIM_THRESHOLD": "131072",
+        "JUNJO_DF_TARGET_PARTITIONS": "4",
+        "JUNJO_DF_BATCH_SIZE": "8192",
+        "JUNJO_DF_PARQUET_PRUNING": "true",
+        "JUNJO_DF_SPILL_ENABLED": "true",
+        "JUNJO_DF_SPILL_POOL_MB": "768",
+        "JUNJO_DF_SPILL_PATH": "/tmp/junjo-datafusion-spill",
+    },
+}
+
+PROFILE_DISPLAY_LABELS: dict[str, str] = {
+    "1g": "1GB VM",
+    "2g": "2GB VM",
+    "4g": "4GB VM",
+}
+
+SECRET_PLACEHOLDERS = {
+    "",
+    "your_base64_secret_here",
+    "your_base64_key_here",
+}
+
+
+def strip_wrapping_quotes(value: str) -> tuple[str, str]:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1], value[0]
+    return value, ""
+
+
+def parse_env_lines(lines: list[str]) -> tuple[dict[str, str], dict[str, str]]:
+    values: dict[str, str] = {}
+    quote_hint: dict[str, str] = {}
+    for line in lines:
+        if line.lstrip().startswith("#"):
+            continue
+        match = ENV_KEY_RE.match(line)
+        if not match:
+            continue
+        key, raw_value = match.group(1), match.group(2)
+        unwrapped, quote = strip_wrapping_quotes(raw_value)
+        values[key] = unwrapped
+        quote_hint[key] = quote
+    return values, quote_hint
+
+
+def format_env_assignment(key: str, value: str, quote_hint: dict[str, str]) -> str:
+    quote = quote_hint.get(key, "")
+    if quote:
+        return f"{key}={quote}{value}{quote}"
+    if any(ch.isspace() for ch in value) or "#" in value:
+        return f'{key}="{value}"'
+    return f"{key}={value}"
+
+
+def update_env_lines(lines: list[str], updates: dict[str, str]) -> list[str]:
+    values, quote_hint = parse_env_lines(lines)
+    output: list[str] = []
+    updated_keys: set[str] = set()
+
+    for line in lines:
+        if line.lstrip().startswith("#"):
+            output.append(line)
+            continue
+        match = ENV_KEY_RE.match(line)
+        if not match:
+            output.append(line)
+            continue
+        key = match.group(1)
+        if key not in updates:
+            output.append(line)
+            continue
+        output.append(format_env_assignment(key, updates[key], quote_hint))
+        updated_keys.add(key)
+        values[key] = updates[key]
+
+    missing = [key for key in updates if key not in updated_keys]
+    if missing:
+        if output and output[-1] != "":
+            output.append("")
+        output.append("# Added by scripts/junjo setup")
+        for key in missing:
+            output.append(format_env_assignment(key, updates[key], quote_hint))
+            values[key] = updates[key]
+
+    return output
+
+
+def mask_value(key: str, value: str) -> str:
+    if key in {"JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY"}:
+        if len(value) <= 10:
+            return "*" * len(value)
+        return f"{value[:6]}...{value[-4:]}"
+    return value
+
+
+def generate_secret() -> str:
+    return base64.b64encode(secrets.token_bytes(32)).decode("ascii")
+
+
+def prompt_choice(prompt: str, options: list[str], default: str) -> str:
+    print(f"\n{prompt}")
+    for idx, option in enumerate(options, start=1):
+        marker = " (default)" if option == default else ""
+        print(f"  {idx}. {option}{marker}")
+    while True:
+        raw = input(f"Select an option [{default}]: ").strip()
+        if not raw:
+            return default
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(options):
+                return options[idx - 1]
+        if raw in options:
+            return raw
+        print("Invalid selection. Try again.")
+
+
+def prompt_profile(default: str) -> str:
+    keys = ["1g", "2g", "4g"]
+    default_idx = keys.index(default) + 1
+    print("\nStep 2: Memory Profile")
+    print(
+        "Choose default memory limits and settings appropriate for your VM size. "
+        "These settings can be tuned in the .env file."
+    )
+    print()
+    for idx, key in enumerate(keys, start=1):
+        print(f"{idx}: {PROFILE_DISPLAY_LABELS[key]}")
+    while True:
+        raw = input(f"Select an option [default {default_idx}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(keys):
+                return keys[idx - 1]
+        if raw in PROFILE_DEFAULTS:
+            return raw
+        print("Invalid selection. Try again.")
+
+
+def prompt_build_target(default: str) -> str:
+    keys = ["development", "production"]
+    default_idx = keys.index(default) + 1
+    print("\nStep 1: Build Target")
+    print("\nBuild for development or production?\n")
+    for idx, key in enumerate(keys, start=1):
+        print(f"{idx}. {key}")
+    while True:
+        raw = input(f"Select an option [default {default_idx}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(keys):
+                return keys[idx - 1]
+        if raw in keys:
+            return raw
+        print("Invalid selection. Try again.")
+
+
+def prompt_text(prompt: str, default: str | None = None, required: bool = False) -> str:
+    suffix = f" [{default}]" if default else ""
+    while True:
+        raw = input(f"{prompt}{suffix}: ").strip()
+        if raw:
+            return raw
+        if default is not None:
+            return default
+        if not required:
+            return ""
+        print("Value is required.")
+
+
+def prompt_yes_no(prompt: str, default: bool = True) -> bool:
+    default_hint = "Y/n" if default else "y/N"
+    while True:
+        raw = input(f"{prompt} [{default_hint}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw in {"y", "yes"}:
+            return True
+        if raw in {"n", "no"}:
+            return False
+        print("Please answer yes or no.")
+
+
+def validate_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def registrable_domain(url: str) -> str:
+    host = (urlparse(url).hostname or "").lower().strip(".")
+    parts = host.split(".")
+    if len(parts) < 2:
+        return host
+    return ".".join(parts[-2:])
+
+
+def infer_profile(current: dict[str, str]) -> str:
+    mem_limit = current.get("JUNJO_BACKEND_MEM_LIMIT", "").lower()
+    if mem_limit in {"450m", "400m", "512m"}:
+        return "1g"
+    if mem_limit in {"1200m", "1536m", "1500m"}:
+        return "2g"
+    if mem_limit in {"2500m", "3g", "3072m"}:
+        return "4g"
+    return "1g"
+
+
+def detect_swap_enabled() -> bool | None:
+    if sys.platform != "linux":
+        return None
+    swaps_path = Path("/proc/swaps")
+    if not swaps_path.exists():
+        return None
+    lines = swaps_path.read_text(encoding="utf-8").strip().splitlines()
+    return len(lines) > 1
+
+
+def require_url(value: str, name: str) -> str:
+    if not validate_url(value):
+        raise ValueError(f"{name} must be a valid http(s) URL. Got: {value!r}")
+    return value
+
+
+def run_setup(args: argparse.Namespace) -> int:
+    repo_root = Path(__file__).resolve().parents[1]
+    env_example = repo_root / ".env.example"
+    env_path = Path(args.env_file).resolve() if args.env_file else repo_root / ".env"
+    non_interactive = args.non_interactive
+
+    if not env_example.exists():
+        print(f"Error: {env_example} not found.")
+        return 1
+
+    if not env_path.exists():
+        print(f"Creating {env_path} from {env_example}.")
+        if not args.dry_run:
+            env_path.write_text(env_example.read_text(encoding="utf-8"), encoding="utf-8")
+
+    base_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    current, _ = parse_env_lines(base_lines)
+
+    print("\nJunjo AI Studio setup wizard")
+    print("============================")
+    print("Configures .env with safe defaults and runtime tuning.")
+
+    env_default = args.env or "development"
+    build_default = (
+        args.build_target
+        or current.get("JUNJO_BUILD_TARGET")
+        or ("production" if env_default == "production" else "development")
+    )
+    profile_default = args.profile or infer_profile(current)
+
+    # Do not prompt for environment. Default to development unless explicitly supplied.
+    target_env = env_default
+
+    if non_interactive:
+        profile = profile_default
+        build_target = build_default
+    else:
+        build_target = (
+            build_default if args.build_target else prompt_build_target(build_default)
+        )
+        profile = profile_default if args.profile else prompt_profile(profile_default)
+
+    updates: dict[str, str] = {
+        "JUNJO_ENV": target_env,
+        "JUNJO_BUILD_TARGET": build_target,
+    }
+    updates.update(PROFILE_DEFAULTS[profile])
+
+    # Production URLs
+    if target_env == "production":
+        prod_frontend = args.prod_frontend_url or current.get("JUNJO_PROD_FRONTEND_URL", "")
+        prod_backend = args.prod_backend_url or current.get("JUNJO_PROD_BACKEND_URL", "")
+        prod_ingestion = args.prod_ingestion_url or current.get("JUNJO_PROD_INGESTION_URL", "")
+
+        if not non_interactive:
+            prod_frontend = prompt_text("Frontend URL", prod_frontend, required=True)
+            prod_backend = prompt_text("Backend URL", prod_backend, required=True)
+            prod_ingestion = prompt_text("Ingestion URL", prod_ingestion, required=True)
+
+        try:
+            updates["JUNJO_PROD_FRONTEND_URL"] = require_url(prod_frontend, "JUNJO_PROD_FRONTEND_URL")
+            updates["JUNJO_PROD_BACKEND_URL"] = require_url(prod_backend, "JUNJO_PROD_BACKEND_URL")
+            updates["JUNJO_PROD_INGESTION_URL"] = require_url(
+                prod_ingestion, "JUNJO_PROD_INGESTION_URL"
+            )
+        except ValueError as e:
+            print(f"Error: {e}")
+            return 1
+
+        frontend_domain = registrable_domain(updates["JUNJO_PROD_FRONTEND_URL"])
+        backend_domain = registrable_domain(updates["JUNJO_PROD_BACKEND_URL"])
+        if frontend_domain and backend_domain and frontend_domain != backend_domain:
+            print(
+                "\nWarning: frontend/backend registrable domains differ. "
+                "Session cookies may fail with SameSite=Strict."
+            )
+            print(f"  frontend domain: {frontend_domain}")
+            print(f"  backend domain:  {backend_domain}")
+            if not non_interactive and not prompt_yes_no("Continue anyway?", default=False):
+                print("Aborted.")
+                return 1
+
+    # Security secrets
+    for secret_key in ("JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY"):
+        existing = current.get(secret_key, "")
+        needs_generation = args.force_secrets or existing in SECRET_PLACEHOLDERS
+        if needs_generation:
+            updates[secret_key] = generate_secret()
+
+    swap_state = detect_swap_enabled()
+    if swap_state is False:
+        print(
+            "\nWarning: no host swap detected. "
+            "JUNJO_BACKEND_MEM_LIMIT will still behave as a hard cap."
+        )
+    elif swap_state is True:
+        print("\nHost swap detected.")
+
+    updated_lines = update_env_lines(base_lines, updates)
+    new_text = "\n".join(updated_lines) + "\n"
+
+    if args.dry_run:
+        print("\nDry run mode: no files written.")
+    else:
+        if env_path.exists():
+            backup_path = env_path.with_suffix(".env.bak")
+            shutil.copy2(env_path, backup_path)
+            print(f"Backup written to {backup_path}")
+        env_path.write_text(new_text, encoding="utf-8")
+        print(f"Wrote {env_path}")
+
+    print("\nConfiguration summary")
+    print("---------------------")
+    summary_order = [
+        "JUNJO_ENV",
+        "JUNJO_BUILD_TARGET",
+        "JUNJO_BACKEND_MEM_RESERVATION",
+        "JUNJO_BACKEND_MEM_LIMIT",
+        "JUNJO_BACKEND_MEMSWAP_LIMIT",
+        "JUNJO_BACKEND_PIDS_LIMIT",
+        "JUNJO_MALLOC_ARENA_MAX",
+        "JUNJO_MALLOC_TRIM_THRESHOLD",
+        "JUNJO_DF_TARGET_PARTITIONS",
+        "JUNJO_DF_BATCH_SIZE",
+        "JUNJO_DF_PARQUET_PRUNING",
+        "JUNJO_DF_SPILL_ENABLED",
+        "JUNJO_DF_SPILL_POOL_MB",
+        "JUNJO_DF_SPILL_PATH",
+        "JUNJO_PROD_FRONTEND_URL",
+        "JUNJO_PROD_BACKEND_URL",
+        "JUNJO_PROD_INGESTION_URL",
+        "JUNJO_SESSION_SECRET",
+        "JUNJO_SECURE_COOKIE_KEY",
+    ]
+    for key in summary_order:
+        if key in updates:
+            print(f"  {key}={mask_value(key, updates[key])}")
+
+    print("\nNext steps:")
+    print("  1. Review .env")
+    print("  2. Run: docker compose config")
+    print("  3. Run: docker compose up -d")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="scripts/junjo", description="Junjo setup CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    setup = subparsers.add_parser("setup", help="Guided .env setup wizard")
+    setup.add_argument("--env-file", default=".env", help="Path to .env file (default: ./.env)")
+    setup.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Run without prompts (requires production URLs when --env production).",
+    )
+    setup.add_argument("--dry-run", action="store_true", help="Show actions without writing files.")
+    setup.add_argument("--force-secrets", action="store_true", help="Regenerate security secrets.")
+    setup.add_argument("--env", choices=["development", "production"], help="Set JUNJO_ENV.")
+    setup.add_argument(
+        "--build-target",
+        choices=["development", "production"],
+        help="Set JUNJO_BUILD_TARGET.",
+    )
+    setup.add_argument("--profile", choices=["1g", "2g", "4g"], help="Memory tuning profile.")
+    setup.add_argument("--prod-frontend-url", help="Set JUNJO_PROD_FRONTEND_URL.")
+    setup.add_argument("--prod-backend-url", help="Set JUNJO_PROD_BACKEND_URL.")
+    setup.add_argument("--prod-ingestion-url", help="Set JUNJO_PROD_INGESTION_URL.")
+
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.command == "setup":
+        return run_setup(args)
+    parser.print_help()
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

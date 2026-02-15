@@ -24,6 +24,42 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from loguru import logger
 
+from app.config.settings import settings
+
+
+def _create_session_context() -> datafusion.SessionContext:
+    """Create a tuned DataFusion SessionContext from environment-backed settings."""
+    df_settings = settings.datafusion
+
+    session_config = datafusion.SessionConfig()
+    session_config = session_config.with_target_partitions(df_settings.target_partitions)
+    session_config = session_config.with_batch_size(df_settings.batch_size)
+    session_config = session_config.with_parquet_pruning(df_settings.parquet_pruning)
+
+    runtime = datafusion.RuntimeEnvBuilder()
+    if df_settings.spill_enabled:
+        spill_path = Path(df_settings.spill_path)
+        spill_path.mkdir(parents=True, exist_ok=True)
+        runtime = runtime.with_disk_manager_os()
+        runtime = runtime.with_temp_file_path(spill_path)
+        runtime = runtime.with_fair_spill_pool(df_settings.spill_pool_mb * 1024 * 1024)
+    else:
+        runtime = runtime.with_disk_manager_disabled()
+
+    logger.debug(
+        "DataFusion runtime configured",
+        extra={
+            "target_partitions": df_settings.target_partitions,
+            "batch_size": df_settings.batch_size,
+            "parquet_pruning": df_settings.parquet_pruning,
+            "spill_enabled": df_settings.spill_enabled,
+            "spill_pool_mb": df_settings.spill_pool_mb,
+            "spill_path": df_settings.spill_path if df_settings.spill_enabled else None,
+        },
+    )
+
+    return datafusion.SessionContext(session_config, runtime)
+
 
 class UnifiedSpanQuery:
     """Unified query engine for two-tier span data (Cold/Hot).
@@ -34,7 +70,14 @@ class UnifiedSpanQuery:
 
     def __init__(self) -> None:
         """Create a new UnifiedSpanQuery instance."""
-        self.ctx = datafusion.SessionContext()
+        try:
+            self.ctx = _create_session_context()
+        except Exception as e:
+            logger.warning(
+                "Failed to apply DataFusion runtime tuning; falling back to default session context",
+                extra={"error": str(e), "error_type": type(e).__name__},
+            )
+            self.ctx = datafusion.SessionContext()
         self._cold_registered = False
         self._hot_registered = False
 
