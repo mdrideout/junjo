@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from types import NoneType
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
@@ -41,6 +42,24 @@ class GraphFactory(Protocol, Generic[_CovariantGraphT]):
     """
     def __call__(self, *args, **kw) -> _CovariantGraphT: ...
 
+
+@dataclass(slots=True)
+class _ExecutionContext(Generic[StoreT]):
+    """Holds per-run workflow state so execution does not depend on instance mutation."""
+
+    graph: Graph
+    store: StoreT
+    node_execution_counter: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class _ExecutionResult(Generic[StoreT]):
+    """Captures the completed state of a single workflow execution."""
+
+    graph: Graph
+    store: StoreT
+    node_execution_counter: dict[str, int]
+
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
     Represents a generic abstract class for workflow / subflow execution.
@@ -57,21 +76,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     ):
         self._id = generate_safe_id()
         self._name = name
-        self.graph: Graph | None = None
         self.max_iterations = max_iterations
-        self.node_execution_counter: dict[str, int] = {}
         self.hook_manager = hook_manager
 
-        # Private stores (immutable interactions only)
         self._graph_factory = graph_factory
         self._store_factory = store_factory
-        self._store: StoreT | None = None
-
-    @property
-    def store(self) -> StoreT:
-        if self._store is None:
-            raise RuntimeError("Store cannot be accessed before execution. Call execute() first.")
-        return self._store
 
     @property
     def id(self) -> str:
@@ -94,21 +103,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             return JunjoOtelSpanTypes.SUBFLOW
         return JunjoOtelSpanTypes.WORKFLOW
 
-    async def get_state(self) -> StateT:
-        if self._store is None:
-            raise RuntimeError("Store cannot be accessed before execution. Call execute() first.")
-        return await self._store.get_state()
-
-    async def get_state_json(self) -> str:
-        if self._store is None:
-            raise RuntimeError("Store cannot be accessed before execution. Call execute() first.")
-        return await self._store.get_state_json()
-
     async def execute(  # noqa: C901
             self,
             parent_store: ParentStoreT | None = None,
             parent_id: str | None = None,
-        ):
+        ) -> _ExecutionResult[StoreT]:
         """
         Executes the workflow.
         """
@@ -116,9 +115,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
         # TODO: Test that the sink node can be reached
 
-        # Always start with a fresh store for *this* run.
-        self.graph = self._graph_factory()
-        self._store = self._store_factory()
+        # Always start with a fresh graph and store for *this* run.
+        ctx = _ExecutionContext(
+            graph=self._graph_factory(),
+            store=self._store_factory(),
+        )
 
         # # Execute workflow before hooks
         # if self.hook_manager is not None:
@@ -130,10 +131,9 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         # Start a new span and keep a reference to the span object
         with tracer.start_as_current_span(self.name) as span:
             # Set span attributes
-            span.set_attribute("junjo.workflow.state.start", await self.get_state_json())
-            if self.graph:
-                span.set_attribute("junjo.workflow.graph_structure", self.graph.serialize_to_json_string())
-            span.set_attribute("junjo.workflow.store.id", self.store.id)
+            span.set_attribute("junjo.workflow.state.start", await ctx.store.get_state_json())
+            span.set_attribute("junjo.workflow.graph_structure", ctx.graph.serialize_to_json_string())
+            span.set_attribute("junjo.workflow.store.id", ctx.store.id)
             span.set_attribute("junjo.span_type", self.span_type)
             span.set_attribute("junjo.id", self.id)
 
@@ -148,12 +148,10 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             if isinstance(self, Subflow):
                 if parent_store is None:
                     raise ValueError("Subflow requires a parent store to execute pre_run_actions.")
-                await self.pre_run_actions(parent_store)
+                await self.pre_run_actions(parent_store, ctx.store)
 
             # Loop to execute the nodes inside this workflow
-            if not self.graph:
-                raise RuntimeError("Graph not initialized. Call execute() first.")
-            current_executable = self.graph.source
+            current_executable = ctx.graph.source
             try:
                 while True:
 
@@ -166,18 +164,18 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         print("Executing subflow:", current_executable.name)
 
                         # Pass the current store as the parent store for the sub-flow
-                        await current_executable.execute(self.store, self.id)
+                        child_result = await current_executable.execute(ctx.store, self.id)
 
                         # Incorporate the Subflows node count
                         # into the parent workflow's node execution counter
-                        self.node_execution_counter[current_executable.id] = sum(
-                            current_executable.node_execution_counter.values()
+                        ctx.node_execution_counter[current_executable.id] = sum(
+                            child_result.node_execution_counter.values()
                         )
 
                     # If executing a node
                     if isinstance(current_executable, Node):
                         print("Executing node:", current_executable.name)
-                        await current_executable.execute(self.store, self.id)
+                        await current_executable.execute(ctx.store, self.id)
 
                         # # Execute node after hooks
                         # if self.hook_manager is not None:
@@ -186,8 +184,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         # Increment the execution counter for RunConcurrent executions
                         if isinstance(current_executable, RunConcurrent):
                             for item in current_executable.items:
-                                self.node_execution_counter[item.id] = self.node_execution_counter.get(item.id, 0) + 1
-                                if self.node_execution_counter[item.id] > self.max_iterations:
+                                ctx.node_execution_counter[item.id] = ctx.node_execution_counter.get(item.id, 0) + 1
+                                if ctx.node_execution_counter[item.id] > self.max_iterations:
                                     raise ValueError(
                                         f"Node '{item}' exceeded maximum execution count. \
                                         Check for loops in your graph. Ensure it transitions to the sink node."
@@ -195,26 +193,22 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
                         # Increment the execution counter for Node executions
                         else:
-                            self.node_execution_counter[current_executable.id] = (
-                                self.node_execution_counter.get(current_executable.id, 0) + 1
+                            ctx.node_execution_counter[current_executable.id] = (
+                                ctx.node_execution_counter.get(current_executable.id, 0) + 1
                             )
-                            if self.node_execution_counter[current_executable.id] > self.max_iterations:
+                            if ctx.node_execution_counter[current_executable.id] > self.max_iterations:
                                 raise ValueError(
                                     f"Node '{current_executable}' exceeded maximum execution count. \
                                     Check for loops in your graph. Ensure it transitions to the sink node."
                                 )
 
                     # Break the loop if the current node is the final node.
-                    if not self.graph:
-                        raise RuntimeError("Graph not initialized. Call execute() first.")
-                    if current_executable == self.graph.sink:
+                    if current_executable == ctx.graph.sink:
                         print("Sink has executed. Exiting loop.")
                         break
 
                     # Get the next executable in the workflow.
-                    if not self.graph:
-                        raise RuntimeError("Graph not initialized. Call execute() first.")
-                    current_executable = await self.graph.get_next_node(self.store, current_executable)
+                    current_executable = await ctx.graph.get_next_node(ctx.store, current_executable)
 
 
                 print(f"Completed workflow: {self.name} with ID: {self.id}")
@@ -225,7 +219,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         raise ValueError("Subflow requires a parent store to execute post_run_actions.")
                     else:
                         print("Performing post-run actions for subflow:", self.name)
-                        await self.post_run_actions(parent_store)
+                        await self.post_run_actions(parent_store, ctx.store)
 
             except Exception as e:
                 print(f"Error executing workflow: {e}")
@@ -236,10 +230,10 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 raise e
 
             finally:
-                execution_sum = sum(self.node_execution_counter.values())
+                execution_sum = sum(ctx.node_execution_counter.values())
 
                 # Update attributes *after* the workflow loop completes (or errors)
-                span.set_attribute("junjo.workflow.state.end", await self.get_state_json())
+                span.set_attribute("junjo.workflow.state.end", await ctx.store.get_state_json())
                 span.set_attribute("junjo.workflow.node.count", execution_sum)
 
             # # Execute workflow after hooks
@@ -248,7 +242,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             #         after_workflow_hook_args
             #     )
 
-            return
+            return _ExecutionResult(
+                graph=ctx.graph,
+                store=ctx.store,
+                node_execution_counter=dict(ctx.node_execution_counter),
+            )
 
 # Class Variation
 class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
@@ -395,15 +393,15 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         .. code-block:: python
 
             class ExampleSubflow(Subflow[SubflowState, SubflowStore, ParentState, ParentStore]):
-                async def pre_run_actions(self, parent_store):
+                async def pre_run_actions(self, parent_store, subflow_store):
                     parent_state = await parent_store.get_state()
-                    await self.store.set_parameter({
+                    await subflow_store.set_parameter({
                         "parameter": parent_state.parameter
                     })
 
-                async def post_run_actions(self, parent_store):
-                    async def post_run_actions(self, parent_store):
-                        sub_flow_state = await self.get_state()
+                async def post_run_actions(self, parent_store, subflow_store):
+                    async def post_run_actions(self, parent_store, subflow_store):
+                        sub_flow_state = await subflow_store.get_state()
                         await parent_store.set_subflow_result(self, sub_flow_state.result)
 
             # Instantiate the subflow
@@ -423,7 +421,7 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         )
 
     @abstractmethod
-    async def pre_run_actions(self, parent_store: ParentStoreT) -> None:
+    async def pre_run_actions(self, parent_store: ParentStoreT, subflow_store: StoreT) -> None:
         """
         This method is called before the workflow has run.
 
@@ -431,6 +429,7 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
 
         Args:
             parent_store: The parent store to interact with.
+            subflow_store: The store for this specific subflow execution.
 
         In this example, we are passing a parameter from the parent store to the subflow store, using
         the subflow's `set_parameter` method, defined in the subflow's store.
@@ -438,7 +437,7 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         pass
 
     @abstractmethod
-    async def post_run_actions(self, parent_store: ParentStoreT) -> None:
+    async def post_run_actions(self, parent_store: ParentStoreT, subflow_store: StoreT) -> None:
         """
         This method is called after the workflow has run.
 
@@ -447,5 +446,6 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
 
         Args:
             parent_store: The parent store to update.
+            subflow_store: The store for this specific subflow execution.
         """
         pass

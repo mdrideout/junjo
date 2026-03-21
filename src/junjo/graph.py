@@ -163,11 +163,7 @@ class Graph:
                         collect_nodes(run_concurrent_item)
 
                 # If it's a Subflow (inherits from _NestableWorkflow), recursively collect its graph
-                elif (
-                    isinstance(node, _NestableWorkflow)
-                    and hasattr(node, 'graph')
-                    and node.id not in processed_subflows
-                ):
+                elif isinstance(node, _NestableWorkflow) and node.id not in processed_subflows:
                     processed_subflows.add(node.id)  # Mark as processed to avoid cycles
 
                     # Collect subflow's source, sink and all nodes connected by edges
@@ -220,7 +216,7 @@ class Graph:
                 node_info["children"] = children_ids
 
             # Add subflow representation for Subflows
-            elif isinstance(node, _NestableWorkflow) and hasattr(node, 'graph'):
+            elif isinstance(node, _NestableWorkflow):
                 node_info["isSubflow"] = True
                 # Call the factory again to ensure we have the graph for IDs
                 subflow_graph = node._graph_factory()
