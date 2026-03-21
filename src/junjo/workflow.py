@@ -164,13 +164,18 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         print("Executing subflow:", current_executable.name)
 
                         # Pass the current store as the parent store for the sub-flow
-                        child_result = await current_executable.execute(ctx.store, self.id)
+                        await current_executable.execute(ctx.store, self.id)
 
-                        # Incorporate the Subflows node count
-                        # into the parent workflow's node execution counter
-                        ctx.node_execution_counter[current_executable.id] = sum(
-                            child_result.node_execution_counter.values()
+                        # Track subflow visits at the current workflow level so
+                        # loop protection stays scoped to this graph only.
+                        ctx.node_execution_counter[current_executable.id] = (
+                            ctx.node_execution_counter.get(current_executable.id, 0) + 1
                         )
+                        if ctx.node_execution_counter[current_executable.id] > self.max_iterations:
+                            raise ValueError(
+                                f"Node '{current_executable}' exceeded maximum execution count. \
+                                Check for loops in your graph. Ensure it transitions to the sink node."
+                            )
 
                     # If executing a node
                     if isinstance(current_executable, Node):
