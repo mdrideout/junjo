@@ -139,9 +139,7 @@ Finally, we'll create a `Workflow` instance and execute it. We'll pass our `grap
     async def main():
         def create_workflow() -> Workflow[SampleWorkflowState, SampleWorkflowStore]:
             """
-            Factory function to create a new instance of the workflow.
-            This pattern is recommended to avoid concurrency issues and ensure
-            fresh state/store initialization for each execution.
+            Helper function to build the workflow used in this example.
             """
             return Workflow[SampleWorkflowState, SampleWorkflowStore](
                 name="Getting Started Example Workflow",
@@ -155,8 +153,8 @@ Finally, we'll create a `Workflow` instance and execute it. We'll pass our `grap
 
         # Create and execute the workflow
         workflow = create_workflow()
-        await workflow.execute()
-        print("Final state: ", await workflow.get_state_json())
+        result = await workflow.execute()
+        print("Final state: ", result.state.model_dump_json())
 
     if __name__ == "__main__":
         asyncio.run(main())

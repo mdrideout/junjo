@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from types import NoneType
+from types import MappingProxyType, NoneType
 from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
 from opentelemetry import trace
@@ -47,18 +48,21 @@ class GraphFactory(Protocol, Generic[_CovariantGraphT]):
 class _ExecutionContext(Generic[StoreT]):
     """Holds per-run workflow state so execution does not depend on instance mutation."""
 
+    run_id: str
     graph: Graph
     store: StoreT
     node_execution_counter: dict[str, int] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
-class _ExecutionResult(Generic[StoreT]):
-    """Captures the completed state of a single workflow execution."""
+@dataclass(frozen=True, slots=True)
+class ExecutionResult(Generic[StateT]):
+    """Public snapshot of a completed workflow or subflow execution."""
 
-    graph: Graph
-    store: StoreT
-    node_execution_counter: dict[str, int]
+    run_id: str
+    definition_id: str
+    name: str
+    state: StateT
+    node_execution_counts: Mapping[str, int]
 
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
@@ -107,9 +111,9 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             self,
             parent_store: ParentStoreT | None = None,
             parent_id: str | None = None,
-        ) -> _ExecutionResult[StoreT]:
+        ) -> ExecutionResult[StateT]:
         """
-        Executes the workflow.
+        Executes the workflow and returns the final execution snapshot.
         """
         print(f"Executing workflow: {self.name} with ID: {self.id}")
 
@@ -117,6 +121,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
         # Always start with a fresh graph and store for *this* run.
         ctx = _ExecutionContext(
+            run_id=generate_safe_id(),
             graph=self._graph_factory(),
             store=self._store_factory(),
         )
@@ -247,10 +252,14 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             #         after_workflow_hook_args
             #     )
 
-            return _ExecutionResult(
-                graph=ctx.graph,
-                store=ctx.store,
-                node_execution_counter=dict(ctx.node_execution_counter),
+            return ExecutionResult(
+                run_id=ctx.run_id,
+                definition_id=self.id,
+                name=self.name,
+                state=await ctx.store.get_state(),
+                node_execution_counts=MappingProxyType(
+                    dict(ctx.node_execution_counter)
+                ),
             )
 
 # Class Variation
@@ -304,7 +313,8 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
                 store_factory=lambda: MyGraphStore(initial_state=MyGraphState()),
                 hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
             )
-            await workflow.execute()
+            result = await workflow.execute()
+            print(result.state.model_dump_json())
 
         .. _workflow-instantiation-params:
 
@@ -339,7 +349,8 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
             )
 
             # The workflow can now be executed normally
-            await workflow.execute()
+            result = await workflow.execute()
+            print(result.state.model_dump_json())
         """
         super().__init__(
             graph_factory=graph_factory,
@@ -405,9 +416,8 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
                     })
 
                 async def post_run_actions(self, parent_store, subflow_store):
-                    async def post_run_actions(self, parent_store, subflow_store):
-                        sub_flow_state = await subflow_store.get_state()
-                        await parent_store.set_subflow_result(self, sub_flow_state.result)
+                    sub_flow_state = await subflow_store.get_state()
+                    await parent_store.set_subflow_result(sub_flow_state.result)
 
             # Instantiate the subflow
             example_subflow = ExampleSubflow(

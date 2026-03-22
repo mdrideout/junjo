@@ -102,7 +102,7 @@ The following state and store example demonstrates Junjo's redux-inspired state 
   # node_set_data.py
   class SetDataNode(Node[SampleStore]):
     async def service(self, store: SampleStore) -> None:
-        # Get the current state and maybe do something with it
+        # Get a detached snapshot of the current state and maybe do something with it
         state = await store.get_state()
 
         # Get some data
@@ -126,7 +126,7 @@ The following state and store example demonstrates Junjo's redux-inspired state 
 
 The above nodes could be executed concurrently using `RunConcurrent`. Even when operating on the same state parameter, all set_state functions are concurrency safe.
 
-This approach significantly simplifies reasoning about concurrent execution, as you don't have to worry about locks or other synchronization primitives for state access within your node logic. Each node's execution can be considered more isolated from a state mutation perspective.
+This approach significantly simplifies reasoning about concurrent execution, as you don't have to worry about locks or other synchronization primitives for state access within your node logic. `get_state()` returns a detached snapshot for reads, and all real state changes still flow through store actions that call `set_state()`.
 
 Benefits of Junjo's Approach to Concurrency
 ===========================================

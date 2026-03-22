@@ -87,9 +87,7 @@ def create_graph() -> Graph:
 
 def create_workflow() -> Workflow[SampleWorkflowState, SampleWorkflowStore]:
     """
-    Factory function to create a new instance of the workflow.
-    This pattern is recommended to avoid concurrency issues and ensure
-    fresh state/store initialization for each execution.
+    Helper function to build the workflow used in this example.
     """
     return Workflow[SampleWorkflowState, SampleWorkflowStore](
         name="Getting Started Example Workflow",
@@ -104,8 +102,8 @@ async def main():
     """Entrypoint for the Junjo "Getting Started" example app."""
 
     workflow = create_workflow()
-    await workflow.execute()
-    print("Final state: ", await workflow.get_state_json())
+    result = await workflow.execute()
+    print("Final state: ", result.state.model_dump_json())
 
 
 if __name__ == "__main__":

@@ -42,8 +42,8 @@ To create a Subflow, you'll define a class that inherits from `junjo.Subflow`. T
 Key Components:
 ---------------
 *   **`Subflow[SubflowStateT, SubflowStoreT, ParentStateT, ParentStoreT]`**: The base class with generic type hints. These improve the developer experience when interacting with the subflow's store, and the parent store.
-*   **`pre_run_actions(self, parent_store: ParentStoreT)`**: Executed before the Subflow's internal graph starts. Use this to fetch necessary data from the parent workflow's store and initialize the Subflow's state.
-*   **`post_run_actions(self, parent_store: ParentStoreT)`**: Executed after the Subflow's internal graph completes. Use this to pass results or updated data from the Subflow's store back to the parent workflow's store.
+*   **`pre_run_actions(self, parent_store: ParentStoreT, subflow_store: SubflowStoreT)`**: Executed before the Subflow's internal graph starts. Use this to fetch necessary data from the parent workflow's store and initialize the current subflow run's store.
+*   **`post_run_actions(self, parent_store: ParentStoreT, subflow_store: SubflowStoreT)`**: Executed after the Subflow's internal graph completes. Use this to pass results or updated data from the current subflow run's store back to the parent workflow's store.
 
 Example Subflow Definition:
 ---------------------------
@@ -111,14 +111,22 @@ Now, implement the `SampleSubflow`:
           print("Subflow: GetFactNode executed")
 
   class SampleSubflow(Subflow[SampleSubflowState, SampleSubflowStore, SampleWorkflowState, SampleWorkflowStore]):
-      async def pre_run_actions(self, parent_store: SampleWorkflowStore) -> None:
+      async def pre_run_actions(
+          self,
+          parent_store: SampleWorkflowStore,
+          subflow_store: SampleSubflowStore,
+      ) -> None:
           parent_state = await parent_store.get_state()
           items_from_parent = parent_state.items
-          await self.store.set_items(items_from_parent)
+          await subflow_store.set_items(items_from_parent)
           print(f"Subflow: pre_run_actions executed, received items: {items_from_parent}")
 
-      async def post_run_actions(self, parent_store: SampleWorkflowStore) -> None:
-          subflow_state = await self.get_state()
+      async def post_run_actions(
+          self,
+          parent_store: SampleWorkflowStore,
+          subflow_store: SampleSubflowStore,
+      ) -> None:
+          subflow_state = await subflow_store.get_state()
           if subflow_state.joke is None or subflow_state.fact is None:
               raise ValueError("Subflow did not produce a joke and fact.")
           
@@ -151,6 +159,7 @@ Now, implement the `SampleSubflow`:
 In this example:
 - `pre_run_actions` copies `items` from the parent's state into the Subflow's state.
 - `post_run_actions` takes the `joke` and `fact` produced within the Subflow and updates the parent's state.
+- `subflow_store` is the isolated store for that specific subflow execution.
 - The `SampleSubflow` is instantiated with its own `Graph` factory (`create_subflow_graph`) and a factory for its `SampleSubflowStore`.
 
 The `Graph` class is used consistently for both main workflows and Subflows, providing a unified way to define execution logic.

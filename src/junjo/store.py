@@ -85,12 +85,11 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
     async def get_state(self) -> StateT:
         """
-        Return a shallow copy of the current state.
-        (Follows immutability principle)
+        Return a detached deep copy of the current state.
+        Mutating the returned snapshot must not mutate the store.
         """
         async with self._lock:
-            # Return a separate copy of the Pydantic model so outside code doesn't mutate the store
-            return self._state.model_copy()
+            return self._state.model_copy(deep=True)
 
 
     async def get_state_json(self) -> str:

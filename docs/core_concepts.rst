@@ -142,6 +142,7 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
 - **Executable:** The `Workflow` class has an `execute` method that starts the workflow.
 - **Manages Execution:** It traverses the graph, executing nodes and evaluating conditions, until the `sink` node is reached.
 - **Isolated Execution:** Each call to `execute` uses the provided factories to create a fresh `Graph` and `Store`, ensuring that each execution is isolated and concurrency-safe.
+- **Returns a Snapshot:** `execute` returns an `ExecutionResult` containing the final state and workflow-local execution counts for that run.
 
 .. code-block:: python
 
@@ -163,7 +164,8 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
 
     # Create and execute the workflow
     sample_workflow = create_workflow()
-    await sample_workflow.execute()
+    result = await sample_workflow.execute()
+    print(result.state.model_dump())
 
 **Passing Parameters to Factories**
 
@@ -195,4 +197,5 @@ concurrency safety.
 
     # The workflow can now be executed normally
     workflow = create_workflow()
-    await workflow.execute()
+    result = await workflow.execute()
+    print(result.state.model_dump())

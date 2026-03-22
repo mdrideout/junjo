@@ -29,8 +29,8 @@ async def run_create_contact_workflow(sex: Sex | None = None) -> CreateSetupCont
 
     # Execute the workflow
     print("Executing create_contact_workflow")
-    await create_contact_workflow.execute()
-    final_state = await create_contact_workflow.get_state()
+    result = await create_contact_workflow.execute()
+    final_state = result.state
     print("create_contact_workflow is done")
 
     if final_state.final_contact is None:

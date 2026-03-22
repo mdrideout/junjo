@@ -69,6 +69,8 @@ Using the Store in a Node
 
 Nodes receive an instance of the store in their `service` method. This allows them to read the current state and dispatch actions to update it.
 
+`get_state()` returns a detached deep snapshot of the current state. You can safely inspect the returned value, but mutating it does not update the store. To change workflow state, always call a store action that delegates to `set_state()`.
+
 .. code-block:: python
 
     from junjo import Node

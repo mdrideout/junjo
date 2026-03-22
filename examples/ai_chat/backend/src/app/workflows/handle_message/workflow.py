@@ -21,8 +21,8 @@ async def run_handle_message_workflow(message: MessageCreate) -> None:
 
     # Execute the workflow
     print("Executing handle_message_workflow")
-    await handle_message_workflow.execute()
-    await handle_message_workflow.get_state()
+    result = await handle_message_workflow.execute()
+    print(f"handle_message_workflow run_id={result.run_id}")
     print("handle_message_workflow is done")
 
     return

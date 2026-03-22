@@ -8,13 +8,13 @@ from app.workflows.test_sub_flow.store import TestSubFlowStore
 class TestSubFlow(Subflow[TestSubFlowState, TestSubFlowStore, MessageWorkflowState, MessageWorkflowStore]):
     """A test subflow to run inside the handle_message workflow."""
 
-    async def pre_run_actions(self, parent_store):
+    async def pre_run_actions(self, parent_store, subflow_store):
         pass
 
-    async def post_run_actions(self, parent_store):
+    async def post_run_actions(self, parent_store, subflow_store):
         """Post run actions that can update the parent store."""
         # Get this workflow's state
-        sub_flow_state = await self.get_state()
+        sub_flow_state = await subflow_store.get_state()
 
         parent_state = await parent_store.get_state()
 
