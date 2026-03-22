@@ -9,6 +9,7 @@
    state_management
    concurrency
    subflows
+   hooks
    visualizing_workflows
    eval_driven_dev
    api

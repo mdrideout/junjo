@@ -139,3 +139,44 @@ More advanced examples can be found in the `examples directory <https://github.c
     if __name__ == "__main__":
         import asyncio
         asyncio.run(main())
+
+Observing Execution With Hooks
+==============================
+
+Hooks are optional observers for workflow lifecycle events. A common pattern is
+to log the final result when a workflow completes:
+
+.. code-block:: python
+
+    from junjo import Hooks
+
+    hooks = Hooks()
+
+    def log_completed(event) -> None:
+        print(
+            "workflow completed",
+            {
+                "name": event.name,
+                "run_id": event.run_id,
+                "trace_id": event.trace_id,
+                "span_id": event.span_id,
+                "final_state": event.result.state.model_dump(),
+            },
+        )
+
+    hooks.on_workflow_completed(log_completed)
+
+    workflow = Workflow[SampleWorkflowState, SampleWorkflowStore](
+        name="Getting Started Example Workflow",
+        graph_factory=create_graph,
+        store_factory=lambda: SampleWorkflowStore(
+            initial_state=SampleWorkflowState(items=["laser", "coffee", "horse"])
+        ),
+        hooks=hooks,
+    )
+
+    result = await workflow.execute()
+
+See :doc:`hooks` for the full hook surface and payload types. The base example
+application also registers every public hook with logging so you can inspect the
+events emitted during a normal workflow run.

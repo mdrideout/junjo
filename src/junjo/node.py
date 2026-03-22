@@ -5,50 +5,49 @@ from typing import Generic
 from jsonpatch import JsonPatch
 from opentelemetry import trace
 
-from junjo.store import StoreT
-from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from junjo.telemetry.span_lifecycle import mark_span_cancelled
-from junjo.util import generate_safe_id
+from .store import StoreT
+from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME
+from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
+from .util import generate_safe_id
 
 
 class Node(Generic[StoreT], ABC):
     """
-    Nodes are the building blocks of a workflow. They represent a single unit of work
-    that can be executed within the context of a workflow.
+    Nodes are the building blocks of a workflow. They represent a single unit of
+    work that can be executed within the context of a workflow.
 
-    Place business logic to be executed by the node in the `service` method.
-    The `service` method is where the main logic of the node resides. It will be wrapped and
-    annotated with OpenTelemetry tracing.
+    Place business logic to be executed by the node in :meth:`service`. Junjo
+    wraps that service method with OpenTelemetry tracing, error handling, and
+    lifecycle hook dispatch during :meth:`execute`.
 
-    The Node is meant to remain decoupled from your business logic. While you can place business logic
-    directly in the `service` method, it is recommended that you call a service function located in a
-    separate module. This allows for better separation of concerns and makes it easier to test and
-    maintain your code.
+    The ``Node`` type is meant to remain decoupled from your application's
+    domain logic. While you can place business logic directly in the
+    :meth:`service` method, it is recommended that you call a service function
+    located in a separate module. This keeps nodes easy to test, easier to
+    understand, and focused on orchestration rather than implementation detail.
 
     Type Parameters:
-        StoreT: The workflow store type that will be passed into this node during execution.
+        StoreT: The workflow store type that will be passed into this node
+            during execution.
 
     Responsibilities:
-        - The Workflow passes the store to the node's execute function.
-        - The service function implements side effects using that store.
+        - The workflow passes the run-local store to the node's
+          :meth:`execute` method.
+        - :meth:`execute` manages tracing, lifecycle hooks, and error handling.
+        - :meth:`service` performs the side effects for this unit of work.
 
     Example implementation:
+
     .. code-block:: python
 
         class SaveMessageNode(Node[MessageWorkflowStore]):
             async def service(self, store) -> None:
-                state = await store.get_state() # Get the current state
-
-                # Perform some business logic
-                sentiment = await get_messasge_sentiment(state.message)
-
-                # Perform a state update
+                state = await store.get_state()
+                sentiment = await get_message_sentiment(state.message)
                 await store.set_message_sentiment(sentiment)
     """
 
-    def __init__(
-        self,
-    ):
+    def __init__(self):
         super().__init__()
         self._id = generate_safe_id()
         self._patches: list[JsonPatch] = []
@@ -69,7 +68,7 @@ class Node(Generic[StoreT], ABC):
 
     @property
     def patches(self) -> list[JsonPatch]:
-        """Returns the list of patches that have been applied to the state by this node."""
+        """Returns the list of state patches that have been applied by this node."""
         return self._patches
 
     def add_patch(self, patch: JsonPatch) -> None:
@@ -79,62 +78,117 @@ class Node(Generic[StoreT], ABC):
     @abstractmethod
     async def service(self, store: StoreT) -> None:
         """
-        This is main logic of the node. The concrete implementation of this method
-        should contain the side effects that this node will perform.
+        This is the main logic of the node.
 
-        This method is called by the `execute` method of the node. The `execute`
-        method is responsible for tracing and error handling.
+        The concrete implementation of this method should contain the side
+        effects that this node will perform. The method is called by
+        :meth:`execute`, which is responsible for tracing, lifecycle dispatch,
+        and error handling.
 
-        The `service` method should not be called directly. Instead, it should be
-        called by the `execute` method of the node.
+        The :meth:`service` method should not be called directly. Instead, it
+        should be called by the :meth:`execute` method of the node.
 
-        DO NOT EXECUTE `node.service()` DIRECTLY!
-        Use `node.execute()` instead.
+        DO NOT EXECUTE ``node.service()`` DIRECTLY!
+        Use ``node.execute()`` instead.
 
-        Args:
-            store (StoreT): The store that will be passed to the node's service function.
+        :param store: The run-local store passed to the node's service
+            function.
+        :type store: StoreT
         """
         raise NotImplementedError
 
-    async def execute(
-            self,
-            store: StoreT,
-            parent_id: str,
-        ) -> None:
+    async def execute(self, store: StoreT, parent_id: str) -> None:
         """
-        Execute the Node's service function with OpenTelemetry tracing.
+        Execute the node's :meth:`service` method with tracing and lifecycle
+        dispatch.
 
-        This method is responsible for tracing and error handling. It will
-        acquire a tracer, start a new span, and call the `service` method.
-        The `service` method should contain the side effects that this node will
-        perform.
+        This method acquires a tracer, opens a node span, emits lifecycle
+        events, and then calls :meth:`service`. Completed, failed, and cancelled
+        lifecycle hooks are dispatched only after the span has been finalized
+        and closed.
 
-        Args:
-            store (StoreT): The store that will be passed to the node's service function.
-            parent_id (str): The ID of the parent span. This is used to create a
-                child span for this node's execution.
+        :param store: The run-local store for the current workflow execution.
+        :type store: StoreT
+        :param parent_id: The identifier of the parent workflow or subflow.
+            This becomes the parent id recorded on the node span.
+        :type parent_id: str
         """
+        lifecycle_context = store._lifecycle_context
+        prepared_terminal_event = None
+        failure: Exception | None = None
+        cancellation: asyncio.CancelledError | None = None
 
-        # Acquire a tracer (will be a real tracer if configured, otherwise no-op)
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
-
-        # Start a new span and keep a reference to the span object
         with tracer.start_as_current_span(self.name) as span:
             try:
-                # Set an attribute on the span
-                span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.NODE)
+                span.set_attribute("junjo.span_type", "node")
                 span.set_attribute("junjo.parent_id", parent_id)
                 span.set_attribute("junjo.id", self.id)
 
-                # Perform your async operation
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    await lifecycle_context.dispatcher.node_started(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
+
                 await self.service(store)
+
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.node_completed(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
 
             except asyncio.CancelledError as exc:
                 mark_span_cancelled(span, exc)
-                raise
+                cancellation = exc
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.node_cancelled(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        reason=str(exc.args[0]) if exc.args else "cancelled",
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
 
-            except Exception as e:
-                print("Error executing node service", e)
-                span.set_status(trace.StatusCode.ERROR, str(e))
-                span.record_exception(e)
-                raise
+            except Exception as exc:
+                print("Error executing node service", exc)
+                span.set_status(trace.StatusCode.ERROR, str(exc))
+                span.record_exception(exc)
+                failure = exc
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.node_failed(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        error=exc,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
+
+        if lifecycle_context is not None:
+            await lifecycle_context.dispatcher.dispatch(prepared_terminal_event)
+
+        if cancellation is not None:
+            raise cancellation
+        if failure is not None:
+            raise failure

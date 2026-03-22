@@ -7,26 +7,35 @@ from opentelemetry import trace
 
 from .node import Node
 from .store import BaseStore
-from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from .telemetry.span_lifecycle import mark_span_cancelled
+from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME
+from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
     from junjo.workflow import Subflow
 
+
 class RunConcurrent(Node):
     """
-    Execute a list of nodes or subflows concurrently. Under the hood, this uses asyncio.gather
-    to run all items concurrently.
+    Execute a list of nodes or subflows concurrently.
 
-    An instance of RunConcurrent can be added to a workflow's graph the same was as any other node.
+    An instance of ``RunConcurrent`` can be added to a workflow graph the same
+    way as any other node. Under the hood it starts one task per child item and
+    waits for them to settle.
+
+    If one child fails, Junjo cancels all still-pending siblings and re-raises
+    the original failure. Cancelled siblings are marked as cancelled in
+    telemetry rather than as errors so traces tell the full story of the
+    failure boundary.
     """
 
-    def __init__(self, name:str, items: list[Node | Subflow]):
+    def __init__(self, name: str, items: list[Node | Subflow]):
         """
-        Args:
-            name: The name of this collection of concurrently executed nodes.
-            items: A list of nodes or subflows to execute with asyncio.gather.
+        :param name: The name of this collection of concurrently executed
+            nodes.
+        :type name: str
+        :param items: A list of nodes or subflows to execute concurrently.
+        :type items: list[Node | Subflow]
 
         .. code-block:: python
 
@@ -36,7 +45,7 @@ class RunConcurrent(Node):
 
             run_concurrent = RunConcurrent(
                 name="Concurrent Execution",
-                items=[node_1, node_2, node_3]
+                items=[node_1, node_2, node_3],
             )
         """
         super().__init__()
@@ -55,6 +64,7 @@ class RunConcurrent(Node):
 
     @property
     def name(self) -> str:
+        """Returns the configured name of this concurrent execution group."""
         return self._name
 
     async def _cancel_pending_tasks(
@@ -64,7 +74,6 @@ class RunConcurrent(Node):
     ) -> None:
         for task in pending:
             task.cancel(reason)
-
         if pending:
             await asyncio.gather(*pending, return_exceptions=True)
 
@@ -79,13 +88,15 @@ class RunConcurrent(Node):
                 continue
             except Exception as exc:  # noqa: PERF203
                 return exc
-
         return None
 
     async def service(self, store: BaseStore) -> None:
         """
         Execute the provided nodes and subflows concurrently.
-        If one item fails, cancel all still-pending siblings and re-raise the original error.
+
+        Child items receive the same run-local store. If one item fails, all
+        still-pending siblings are cancelled and the original failure is
+        re-raised once the cancellations have been drained.
         """
         print(f"Executing concurrent items within {self.name} ({self.id})")
         if not self.items:
@@ -101,13 +112,10 @@ class RunConcurrent(Node):
                 pending,
                 return_when=asyncio.FIRST_EXCEPTION,
             )
-
             failure = self._get_first_failure(done)
-
             if failure is not None:
                 await self._cancel_pending_tasks(pending, "sibling_failed")
                 pending.clear()
-
                 raise failure
 
             for task in done:
@@ -115,42 +123,99 @@ class RunConcurrent(Node):
 
         except asyncio.CancelledError:
             await self._cancel_pending_tasks(pending, "cancelled")
-
             raise
 
         print(f"Finished concurrent items within {self.name} ({self.id})")
 
-
     async def execute(self, store: BaseStore, parent_id: str) -> None:
         """
-        Execute the RunConcurrent node's service function with OpenTelemetry tracing.
-        This method is responsible for tracing and error handling.
+        Execute the ``RunConcurrent`` node with tracing and lifecycle dispatch.
 
-        Args:
-            store: The store to use for the items.
-            parent_id: The parent id of the workflow.
+        This wraps :meth:`service` with a dedicated run-concurrent span and the
+        same started/completed/failed/cancelled lifecycle semantics used by
+        ordinary nodes.
+
+        :param store: The run-local store for the current workflow execution.
+        :type store: BaseStore
+        :param parent_id: The parent workflow or subflow identifier.
+        :type parent_id: str
         """
+        lifecycle_context = store._lifecycle_context
+        prepared_terminal_event = None
+        failure: Exception | None = None
+        cancellation: asyncio.CancelledError | None = None
 
-        # Acquire a tracer (will be a real tracer if configured, otherwise no-op)
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
-
-        # Start a new span and keep a reference to the span object
         with tracer.start_as_current_span(self.name) as span:
             try:
-                # Set an attribute on the span
-                span.set_attribute("junjo.span_type", JunjoOtelSpanTypes.RUN_CONCURRENT)
+                span.set_attribute("junjo.span_type", "run_concurrent")
                 span.set_attribute("junjo.parent_id", parent_id)
                 span.set_attribute("junjo.id", self.id)
 
-                # Perform your async operation
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    await lifecycle_context.dispatcher.run_concurrent_started(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
+
                 await self.service(store)
+
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_completed(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
 
             except asyncio.CancelledError as exc:
                 mark_span_cancelled(span, exc)
-                raise
+                cancellation = exc
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_cancelled(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        reason=str(exc.args[0]) if exc.args else "cancelled",
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
 
-            except Exception as e:
-                print(f"Error executing node service: {e}")
-                span.set_status(trace.StatusCode.ERROR, str(e))
-                span.record_exception(e)
-                raise
+            except Exception as exc:
+                print(f"Error executing node service: {exc}")
+                span.set_status(trace.StatusCode.ERROR, str(exc))
+                span.record_exception(exc)
+                failure = exc
+                if lifecycle_context is not None:
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_failed(
+                        run_id=lifecycle_context.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        parent_definition_id=lifecycle_context.definition_id,
+                        store_id=store.id,
+                        error=exc,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                    )
+
+        if lifecycle_context is not None:
+            await lifecycle_context.dispatcher.dispatch(prepared_terminal_event)
+
+        if cancellation is not None:
+            raise cancellation
+        if failure is not None:
+            raise failure
