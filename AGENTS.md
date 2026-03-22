@@ -15,6 +15,9 @@ Use this file for repo-specific implementation guidance and authoring rules.
 
 - Be grug brained in approaches
 - Use clear separation of concerns
+- Do not create abstractions for single-use cases where inline is easier to understand
+- Do not build complex multi-line ternaries when clear if / else is more readable. Ternaries for very simple only.
+- Prefer more verbose, single purpose clear separation code over combined concepts or dual / multi-purpose functions.
 - Treat everything as greenfield: no fallbacks, deprecations, backward compatibility, or baggage should be carried through to new ideas.
   - Keep track of all breaking changes to incorporate into release notes, but do not worry about causing breaking changes.
   - These can go inside a "FUTURE RELESE" section of the changelog
