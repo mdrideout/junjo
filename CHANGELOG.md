@@ -2,6 +2,55 @@
 
 All notable changes to Junjo will be documented in this file.
 
+## FUTURE RELEASE
+
+This release is a runtime hardening and API cleanup pass across workflow
+execution, state management, and lifecycle observation.
+
+### Highlights
+
+- Hardened workflow and subflow execution so a single definition object can be reused safely across concurrent runs.
+- Standardized `Workflow.execute()` around `ExecutionResult`, making final state access explicit and run-scoped.
+- Hardened store reads and writes so state snapshots are detached and committed updates are validated atomically against the current locked state.
+- Replaced the old telemetry-shaped hook system with a greenfield lifecycle hooks API built around typed events and separated from OpenTelemetry internals.
+- Changed `RunConcurrent` to fail fast, cancel pending siblings, and record cancellation telemetry for cancelled branches.
+
+### Breaking Changes
+
+- `Workflow.execute()` now returns an `ExecutionResult` and workflow-instance state access is no longer the post-run access pattern.
+- Removed blueprint-style workflow state access from workflow definitions in favor of result-based access.
+- Replaced `HookManager` and its related telemetry hook schema with the new `Hooks` lifecycle API.
+- Renamed workflow constructor hook wiring from `hook_manager=` to `hooks=`.
+- Removed `BaseStore.subscribe()` and the old subscriber implementation.
+- Subflow hook implementations now work with explicit `subflow_store` access in `pre_run_actions` and `post_run_actions`.
+
+### Added
+
+- Added `ExecutionResult` as the public completion snapshot for workflows and subflows.
+- Added a public `Hooks` API with typed lifecycle events for workflows, subflows, nodes, concurrent execution, and state changes.
+- Added an internal lifecycle dispatch layer to keep runtime execution, telemetry, and public hooks separated.
+- Added regression coverage for:
+  - workflow and subflow execution isolation
+  - run-concurrent fail-fast cancellation behavior
+  - cancellation telemetry
+  - detached state snapshots
+  - store atomicity
+  - lifecycle hook ordering and failure isolation
+
+### Changed
+
+- `BaseStore.get_state()` now returns a detached deep snapshot.
+- `BaseStore.set_state()` now validates and commits atomically against the current locked state.
+- Parent workflow loop protection and execution counts now stay scoped to the current workflow rather than absorbing child subflow internals.
+- `RunConcurrent` no longer behaves like raw `asyncio.gather()`; sibling failures now cancel pending siblings deterministically.
+- Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
+- Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
+
+### Removed
+
+- Removed `src/junjo/telemetry/hook_manager.py`.
+- Removed `src/junjo/telemetry/hook_schema.py`.
+
 ## 0.62.1 - 2026-02-14
 
 This patch release focuses on updates to the AI Chat example.
