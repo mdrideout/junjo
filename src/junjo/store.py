@@ -1,7 +1,6 @@
 import abc
 import asyncio
 import inspect
-from collections.abc import Awaitable, Callable
 from types import NoneType
 from typing import Generic, TypeVar
 
@@ -20,9 +19,6 @@ StoreT = TypeVar("StoreT", bound="BaseStore")
 ParentStateT = TypeVar("ParentStateT", bound="BaseState | NoneType")
 ParentStoreT = TypeVar("ParentStoreT", bound="BaseStore | NoneType")
 
-# Type alias: each subscriber can be either a sync callable or an async callable (returns an Awaitable).
-Subscriber = Callable[[StateT], None] | Callable[[StateT], Awaitable[None]]
-
 class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
     BaseStore represents a generic store for managing the state of a workflow.
@@ -32,13 +28,10 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         | - Managing the state of the workflow.
         | - Making immuable updates to the state safely in a concurrent environment.
         | - Validating state updates against the Pydantic model.
-        | - Providing methods to subscribe to state changes.
-        | - Notifying subscribers when the state changes.
 
-    The store uses an asyncio.Lock to ensure that state updates are thread-safe and
-    that subscribers are notified in a safe manner. This is important in an async
-    environment where multiple coroutines may be trying to update the state or
-    subscribe to changes at the same time.
+    The store uses an asyncio.Lock to ensure that state updates are thread-safe.
+    This is important in an async environment where multiple coroutines may be
+    trying to update the state at the same time.
     """
 
     def __init__(self, initial_state: StateT) -> None:
@@ -55,33 +48,10 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         # The current state of the store
         self._state: StateT = initial_state
 
-        # Each subscriber can be a synchronous or asynchronous function
-        self._subscribers: list[Subscriber] = []
-
     @property
     def id(self) -> str:
         """Returns the unique identifier of a given store's implementation."""
         return self._id
-
-    async def subscribe(self, listener: Subscriber) -> Callable[[], Awaitable[None]]:
-        """
-        Register a listener (sync or async callable) to be called whenever the state changes.
-        Returns an *async* unsubscribe function that, when awaited, removes this listener.
-        """
-
-        async with self._lock:
-            self._subscribers.append(listener)
-
-        async def unsubscribe() -> None:
-            """
-            Async function to remove the listener from the subscriber list.
-            We lock again to ensure concurrency safety.
-            """
-            async with self._lock:
-                if listener in self._subscribers:
-                    self._subscribers.remove(listener)
-
-        return unsubscribe
 
     async def get_state(self) -> StateT:
         """
@@ -105,7 +75,6 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         | - Immutable update with a deep state copy
         | - Merges the current state with `updates` using `model_copy(update=...)`.
         | - Validates that each updated field is valid for StateT.
-        | - If there's a change, notifies subscribers outside the lock.
 
         Args:
             update: A dictionary of updates to apply to the state.
@@ -133,7 +102,6 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         if caller_frame and "self" in caller_frame.f_locals:
             caller_class_name = caller_frame.f_locals["self"].__class__.__name__
 
-        subscribers_to_notify: list[Subscriber] = []
         async with self._lock:
             try:
                 new_state = self._state.__class__.model_validate(
@@ -159,7 +127,6 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
                 # Update the stack (have lock)
                 self._state = new_state
-                subscribers_to_notify = list(self._subscribers)
 
             # --- OpenTelemetry Event (call even if nothing changed) --- #
             current_span = trace.get_current_span()
@@ -175,17 +142,3 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     },
                 )
             # --- End OpenTelemetry Event --- #
-
-        # Notify subscribers outside the lock
-        if subscribers_to_notify:
-            await self._notify_subscribers(new_state, subscribers_to_notify)
-
-    async def _notify_subscribers(self, new_state: StateT, subscribers: list[Subscriber]) -> None:
-        """
-        Private helper to call subscribers once the lock is released.
-        """
-        for subscriber in subscribers:
-            result = subscriber(new_state)
-            # If the subscriber is async, it returns a coroutine or awaitable
-            if asyncio.iscoroutine(result) or isinstance(result, Awaitable):
-                await result
