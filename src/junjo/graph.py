@@ -19,7 +19,7 @@ class Graph:
     Represents a directed graph of nodes and edges, defining the structure and
     flow of a workflow.
 
-    The `Graph` class is a fundamental component in Junjo, responsible for
+    The ``Graph`` class is a fundamental component in Junjo, responsible for
     encapsulating the relationships between different processing units (Nodes
     or Subflows) and the conditions under which transitions between them occur.
 
@@ -34,7 +34,7 @@ class Graph:
         connections and transition logic between nodes in the graph.
     :type edges: list[Edge]
 
-    Example:
+    .. rubric:: Example
 
     .. code-block:: python
 
@@ -106,16 +106,20 @@ class Graph:
 
     async def get_next_node(self, store: BaseStore, current_node: Node | _NestableWorkflow) -> Node | _NestableWorkflow:
         """
-        Retrieves the next node (or workflow / subflow) in the graph for the given current node.
-        This method checks the edges connected to the current node and resolves the next node based on the conditions
-        defined in the edges.
+        Retrieve the next node or subflow in the graph for the given current
+        executable.
 
-        Args:
-            store (BaseStore): The store instance to use for resolving the next node.
-            current_node (Node | _NestableWorkflow): The current node or subflow in the graph.
+        This method checks the edges connected to the current executable and
+        resolves the next executable based on the conditions defined in those
+        edges.
 
-        Returns:
-            Node | _NestableWorkflow: The next node or subflow in the graph.
+        :param store: The store instance to use for resolving the next
+            executable.
+        :type store: BaseStore
+        :param current_node: The current node or subflow in the graph.
+        :type current_node: Node | _NestableWorkflow
+        :returns: The next node or subflow in the graph.
+        :rtype: Node | _NestableWorkflow
         """
         matching_edges = [edge for edge in self.edges if edge.tail == current_node]
         resolved_edges = [edge for edge in matching_edges if await edge.next_node(store) is not None]
@@ -134,11 +138,13 @@ class Graph:
 
     def serialize_to_json_string(self) -> str:  # noqa: C901
         """
-        Converts the graph to a neutral serialized JSON string,
-        representing RunConcurrent instances as subgraphs and includes Subflow graphs as well.
+        Convert the graph to a neutral serialized JSON string.
 
-        Returns:
-            str: A JSON string containing the graph structure.
+        The serialized representation treats :class:`~junjo.RunConcurrent`
+        instances as subgraphs and includes nested subflow graphs as well.
+
+        :returns: A JSON string containing the graph structure.
+        :rtype: str
         """
         all_nodes_dict: dict[str, Node | _NestableWorkflow] = {} # Dictionary to store unique nodes found
         all_edges_dict: dict[str, Edge] = {} # Dictionary to store all edges including subflow edges
@@ -508,13 +514,13 @@ class Graph:
         clean: bool = True,
     ) -> dict[str, Path]:
         """
-        Render every digraph produced by `to_dot_notation()` and build a gallery
+        Render every digraph produced by :meth:`to_dot_notation` and build a gallery
         HTML page whose headings use the *human* labels (e.g. “SampleSubflow”)
         instead of raw digraph identifiers.
 
-        Returns
-        -------
-        Ordered mapping digraph_name → rendered file path, **in encounter order**.
+        :returns: An ordered mapping of digraph name to rendered file path, in
+            encounter order.
+        :rtype: dict[str, Path]
         """
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)

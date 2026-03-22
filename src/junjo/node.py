@@ -26,17 +26,17 @@ class Node(Generic[StoreT], ABC):
     located in a separate module. This keeps nodes easy to test, easier to
     understand, and focused on orchestration rather than implementation detail.
 
-    Type Parameters:
-        StoreT: The workflow store type that will be passed into this node
-            during execution.
+    ``StoreT`` is the workflow store type that will be passed into this node
+    during execution.
 
-    Responsibilities:
-        - The workflow passes the run-local store to the node's
-          :meth:`execute` method.
-        - :meth:`execute` manages tracing, lifecycle hooks, and error handling.
-        - :meth:`service` performs the side effects for this unit of work.
+    Nodes have three main responsibilities:
 
-    Example implementation:
+    - The workflow passes the run-local store to the node's
+      :meth:`execute` method.
+    - :meth:`execute` manages tracing, lifecycle hooks, and error handling.
+    - :meth:`service` performs the side effects for this unit of work.
+
+    .. rubric:: Example implementation
 
     .. code-block:: python
 

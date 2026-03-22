@@ -9,7 +9,21 @@ def graph_to_graphviz_image(
         engine: str = "dot",
         format: str = "png"
     ) -> None:
-    """Renders a junjo Graph to an image via dot notation intermediary."""
+    """
+    Render a Junjo graph to an image through a DOT-notation intermediary.
+
+    :param graph: The graph to render.
+    :type graph: Graph
+    :param output_filename: The filename stem for the rendered output.
+    :type output_filename: str
+    :param engine: The Graphviz engine to use, such as ``dot``.
+    :type engine: str
+    :param format: The image format to render, such as ``png`` or ``svg``.
+    :type format: str
+    :raises ImportError: If the optional ``graphviz`` dependency is not
+        installed.
+    :raises RuntimeError: If Graphviz rendering fails for another reason.
+    """
 
     dot_code = graph.to_dot_notation()
 
@@ -24,4 +38,3 @@ def graph_to_graphviz_image(
         ) from e
     except Exception as e:
         raise RuntimeError(f"Error rendering DOT code using Graphviz: {e}") from e
-

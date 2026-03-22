@@ -29,10 +29,11 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     model derived from :class:`~junjo.state.BaseState`).
 
     The store is responsible for:
-        | - Managing the state of a workflow or subflow execution.
-        | - Making immutable updates to that state safely in a concurrent
-            environment.
-        | - Validating committed updates against the underlying Pydantic model.
+
+    - Managing the state of a workflow or subflow execution.
+    - Making immutable updates to that state safely in a concurrent
+      environment.
+    - Validating committed updates against the underlying Pydantic model.
 
     The store uses an :class:`asyncio.Lock` to ensure that state updates are
     concurrency-safe. Each committed update is derived, validated, and applied
@@ -42,7 +43,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     Subclass ``BaseStore`` with your own state type and expose domain-specific
     actions that call :meth:`set_state`.
 
-    Example:
+    .. rubric:: Example
 
     .. code-block:: python
 
@@ -57,8 +58,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
     def __init__(self, initial_state: StateT) -> None:
         """
-        Args:
-            initial_state: The initial state of the store.
+        :param initial_state: The initial state of the store.
+        :type initial_state: StateT
         """
         self._lock = asyncio.Lock()
         self._id = generate_safe_id()
@@ -105,8 +106,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         state. This method also emits OpenTelemetry ``set_state`` events and
         lifecycle state-changed hooks when a commit occurs.
 
-        Args:
-            update: A dictionary of updates to apply to the state.
+        :param update: A dictionary of updates to apply to the state.
+        :type update: dict
 
         .. code-block:: python
 
@@ -120,12 +121,16 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
             payload = Message(...)
             await store.set_received_message(payload)
 
-        Notes:
-            - Validation happens while the store lock is held, so every
-              committed update is validated against the exact state version it
-              will be applied to.
-            - If the resulting state is unchanged, the store remains untouched
-              and an empty patch is recorded in telemetry.
+        .. note::
+
+            Validation happens while the store lock is held, so every committed
+            update is validated against the exact state version it will be
+            applied to.
+
+        .. note::
+
+            If the resulting state is unchanged, the store remains untouched
+            and an empty patch is recorded in telemetry.
         """
         caller_frame = inspect.currentframe()
         if caller_frame:

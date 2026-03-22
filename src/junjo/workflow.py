@@ -75,12 +75,16 @@ class ExecutionResult(Generic[StateT]):
     execution metadata without exposing live runtime objects like the internal
     store or graph.
 
-    Attributes:
-        run_id: The unique identifier for this specific execution.
-        definition_id: The stable identifier of the workflow or subflow definition.
-        name: The configured workflow or subflow name.
-        state: The detached final state snapshot for the completed execution.
-        node_execution_counts: Current-scope execution counts keyed by executable id.
+    The result includes:
+
+    - ``run_id``: The unique identifier for this specific execution.
+    - ``definition_id``: The stable identifier of the workflow or subflow
+      definition.
+    - ``name``: The configured workflow or subflow name.
+    - ``state``: The detached final state snapshot for the completed
+      execution.
+    - ``node_execution_counts``: Current-scope execution counts keyed by
+      executable id.
     """
 
     run_id: str
@@ -144,15 +148,15 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         fresh lifecycle dispatcher. This keeps the workflow definition itself
         immutable and safe to reuse across concurrent runs.
 
-        Args:
-            parent_store: The parent store when executing a subflow. Top-level
-                workflows should omit this argument.
-            parent_id: The parent workflow or subflow identifier when nested.
-
-        Returns:
-            ExecutionResult[StateT]: A detached snapshot of the completed
-            execution, including the final state and current-scope execution
-            counts.
+        :param parent_store: The parent store when executing a subflow.
+            Top-level workflows should omit this argument.
+        :type parent_store: ParentStoreT | None
+        :param parent_id: The parent workflow or subflow identifier when
+            nested.
+        :type parent_id: str | None
+        :returns: A detached snapshot of the completed execution, including
+            the final state and current-scope execution counts.
+        :rtype: ExecutionResult[StateT]
         """
         print(f"Executing workflow: {self.name} with ID: {self.id}")
 
@@ -370,11 +374,10 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
         This class is generic and requires two type parameters for a convenient
         and type-safe developer experience:
 
-        Generic Type Parameters:
-            | StateT: The type of state managed by this workflow, a subclass of
-                :class:`~junjo.state.BaseState`
-            | StoreT: The type of store used by this workflow, a subclass of
-                :class:`~junjo.store.BaseStore`
+        ``StateT`` is the type of state managed by this workflow and should be
+        a subclass of :class:`~junjo.state.BaseState`. ``StoreT`` is the store
+        type used by this workflow and should be a subclass of
+        :class:`~junjo.store.BaseStore`.
 
         Every call to :meth:`~junjo.workflow.Workflow.execute` creates a fresh
         graph, a fresh store, and a fresh execution context. That makes a
@@ -404,7 +407,7 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
             execution.
         :type hooks: Hooks | None, optional
 
-        Example without hooks:
+        .. rubric:: Example without hooks
 
         .. code-block:: python
 
@@ -417,7 +420,7 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
             result = await workflow.execute()
             print(result.state.model_dump_json())
 
-        Example with hooks:
+        .. rubric:: Example with hooks
 
         .. code-block:: python
 
@@ -440,7 +443,7 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
                 hooks=hooks,
             )
 
-        **Passing Parameters to Factories**
+        .. rubric:: Passing Parameters to Factories
 
         To provide parameters to your ``graph_factory`` or ``store_factory``
         when you create a workflow, wrap the factory call in a ``lambda``.
@@ -480,11 +483,12 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
     ):
         """
         A Subflow is a workflow that:
-            | 1. Executes within a parent workflow or parent subflow
-            | 2. Has its own isolated state and store
-            | 3. Can interact with its parent workflow state before and after
-                execution via :meth:`pre_run_actions` and
-                :meth:`post_run_actions`
+
+        - Executes within a parent workflow or parent subflow.
+        - Has its own isolated state and store.
+        - Can interact with its parent workflow state before and after
+          execution via :meth:`pre_run_actions` and
+          :meth:`post_run_actions`.
 
         Like top-level workflows, subflows create a fresh graph and a fresh
         store for every execution. The child run is isolated from the parent
@@ -510,6 +514,8 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         :param hooks: An optional :class:`~junjo.hooks.Hooks` registry for
             observing lifecycle events emitted by this subflow.
         :type hooks: Hooks | None, optional
+
+        .. rubric:: Example
 
         .. code-block:: python
 

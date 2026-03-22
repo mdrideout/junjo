@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 StateT = TypeVar("StateT", bound=BaseState)
 HookEventT = TypeVar("HookEventT")
 HookCallback = Callable[[HookEventT], None | Awaitable[None]]
+
+
 @dataclass(frozen=True, slots=True)
 class LifecycleEvent:
     """Base payload shared by every public hook event."""
@@ -52,7 +54,7 @@ class LifecycleEvent:
 
 @dataclass(frozen=True, slots=True)
 class WorkflowStartedEvent(LifecycleEvent):
-    """Payload delivered to `on_workflow_started` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_workflow_started` callbacks."""
 
     store_id: str
     graph_json: str
@@ -60,7 +62,7 @@ class WorkflowStartedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class WorkflowCompletedEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_workflow_completed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_workflow_completed` callbacks."""
 
     result: ExecutionResult[StateT]
     store_id: str
@@ -68,7 +70,7 @@ class WorkflowCompletedEvent(LifecycleEvent, Generic[StateT]):
 
 @dataclass(frozen=True, slots=True)
 class WorkflowFailedEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_workflow_failed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_workflow_failed` callbacks."""
 
     error: Exception
     state: StateT
@@ -77,7 +79,7 @@ class WorkflowFailedEvent(LifecycleEvent, Generic[StateT]):
 
 @dataclass(frozen=True, slots=True)
 class WorkflowCancelledEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_workflow_cancelled` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_workflow_cancelled` callbacks."""
 
     reason: str
     state: StateT
@@ -86,7 +88,7 @@ class WorkflowCancelledEvent(LifecycleEvent, Generic[StateT]):
 
 @dataclass(frozen=True, slots=True)
 class SubflowStartedEvent(LifecycleEvent):
-    """Payload delivered to `on_subflow_started` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_subflow_started` callbacks."""
 
     store_id: str
     graph_json: str
@@ -94,7 +96,7 @@ class SubflowStartedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class SubflowCompletedEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_subflow_completed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_subflow_completed` callbacks."""
 
     result: ExecutionResult[StateT]
     store_id: str
@@ -102,7 +104,7 @@ class SubflowCompletedEvent(LifecycleEvent, Generic[StateT]):
 
 @dataclass(frozen=True, slots=True)
 class SubflowFailedEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_subflow_failed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_subflow_failed` callbacks."""
 
     error: Exception
     state: StateT
@@ -111,7 +113,7 @@ class SubflowFailedEvent(LifecycleEvent, Generic[StateT]):
 
 @dataclass(frozen=True, slots=True)
 class SubflowCancelledEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_subflow_cancelled` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_subflow_cancelled` callbacks."""
 
     reason: str
     state: StateT
@@ -120,7 +122,7 @@ class SubflowCancelledEvent(LifecycleEvent, Generic[StateT]):
 
 @dataclass(frozen=True, slots=True)
 class NodeStartedEvent(LifecycleEvent):
-    """Payload delivered to `on_node_started` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_node_started` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -128,7 +130,7 @@ class NodeStartedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class NodeCompletedEvent(LifecycleEvent):
-    """Payload delivered to `on_node_completed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_node_completed` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -136,7 +138,7 @@ class NodeCompletedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class NodeFailedEvent(LifecycleEvent):
-    """Payload delivered to `on_node_failed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_node_failed` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -145,7 +147,7 @@ class NodeFailedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class NodeCancelledEvent(LifecycleEvent):
-    """Payload delivered to `on_node_cancelled` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_node_cancelled` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -154,7 +156,7 @@ class NodeCancelledEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class RunConcurrentStartedEvent(LifecycleEvent):
-    """Payload delivered to `on_run_concurrent_started` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_started` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -162,7 +164,7 @@ class RunConcurrentStartedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class RunConcurrentCompletedEvent(LifecycleEvent):
-    """Payload delivered to `on_run_concurrent_completed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_completed` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -170,7 +172,7 @@ class RunConcurrentCompletedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class RunConcurrentFailedEvent(LifecycleEvent):
-    """Payload delivered to `on_run_concurrent_failed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_failed` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -179,7 +181,7 @@ class RunConcurrentFailedEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class RunConcurrentCancelledEvent(LifecycleEvent):
-    """Payload delivered to `on_run_concurrent_cancelled` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_cancelled` callbacks."""
 
     parent_definition_id: str
     store_id: str
@@ -188,7 +190,7 @@ class RunConcurrentCancelledEvent(LifecycleEvent):
 
 @dataclass(frozen=True, slots=True)
 class StateChangedEvent(LifecycleEvent, Generic[StateT]):
-    """Payload delivered to `on_state_changed` callbacks."""
+    """Payload delivered to :meth:`junjo.Hooks.on_state_changed` callbacks."""
 
     store_id: str
     store_name: str
@@ -204,7 +206,9 @@ class Hooks:
 
     Hooks are observers. They do not create spans or control workflow execution.
     To use them, register one or more callbacks and pass the registry to a
-    workflow or subflow:
+    workflow or subflow.
+
+    .. rubric:: Example
 
     .. code-block:: python
 

@@ -22,11 +22,16 @@ class Edge:
         condition: Condition[StateT] | None = None,
     ):
         """
-        Args:
-            tail: The source node of the edge (where the transition originates).
-            head: The destination node of the edge (where the transition leads).
-            condition (Condition[StateT]): An optional function that determines whether the transition
-                       from tail to head should occur. If None, the transition is always valid.
+        :param tail: The source node of the edge where the transition
+            originates.
+        :type tail: Node | _NestableWorkflow
+        :param head: The destination node of the edge where the transition
+            leads.
+        :type head: Node | _NestableWorkflow
+        :param condition: An optional condition that determines whether the
+            transition from ``tail`` to ``head`` should occur. If ``None``, the
+            transition is always valid.
+        :type condition: Condition[StateT] | None
         """
 
         self.tail = tail
@@ -35,13 +40,13 @@ class Edge:
 
     async def next_node(self, store: BaseStore) -> Node | _NestableWorkflow | None:
         """
-        Determines the next node in the workflow based on the edge's condition (Condition[StateT]).
+        Determine the next node in the workflow based on this edge's
+        condition.
 
-        Args:
-            store (BaseStore): The store instance to use for resolving the next node.
-
-        Returns:
-            The next node if the transition is valid, otherwise None.
+        :param store: The store instance to use when resolving the next node.
+        :type store: BaseStore
+        :returns: The next node if the transition is valid, otherwise ``None``.
+        :rtype: Node | _NestableWorkflow | None
         """
         if self.condition is None:
             return self.head
