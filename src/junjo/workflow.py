@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ from .run_concurrent import RunConcurrent
 from .store import BaseStore, ParentStateT, ParentStoreT, StateT, StoreT
 from .telemetry.hook_manager import HookManager
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from .telemetry.span_lifecycle import mark_span_cancelled
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
@@ -230,6 +232,10 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     else:
                         print("Performing post-run actions for subflow:", self.name)
                         await self.post_run_actions(parent_store, ctx.store)
+
+            except asyncio.CancelledError as exc:
+                mark_span_cancelled(span, exc)
+                raise
 
             except Exception as e:
                 print(f"Error executing workflow: {e}")

@@ -8,6 +8,7 @@ from opentelemetry import trace
 from .node import Node
 from .store import BaseStore
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from .telemetry.span_lifecycle import mark_span_cancelled
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
@@ -56,18 +57,66 @@ class RunConcurrent(Node):
     def name(self) -> str:
         return self._name
 
+    async def _cancel_pending_tasks(
+        self,
+        pending: set[asyncio.Task[None]],
+        reason: str,
+    ) -> None:
+        for task in pending:
+            task.cancel(reason)
+
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+
+    def _get_first_failure(
+        self,
+        done: set[asyncio.Task[None]],
+    ) -> Exception | None:
+        for task in done:
+            try:
+                task.result()
+            except asyncio.CancelledError:
+                continue
+            except Exception as exc:  # noqa: PERF203
+                return exc
+
+        return None
+
     async def service(self, store: BaseStore) -> None:
         """
-        Execute the provided nodes and subflows concurrently using asyncio.gather.
+        Execute the provided nodes and subflows concurrently.
+        If one item fails, cancel all still-pending siblings and re-raise the original error.
         """
         print(f"Executing concurrent items within {self.name} ({self.id})")
         if not self.items:
             return
 
-        # Execute all items concurrently
-        # Using asyncio.gather to run all items concurrently
-        tasks = [item.execute(store, self.id) for item in self.items]
-        await asyncio.gather(*tasks)
+        pending = {
+            asyncio.create_task(item.execute(store, self.id))
+            for item in self.items
+        }
+
+        try:
+            done, pending = await asyncio.wait(
+                pending,
+                return_when=asyncio.FIRST_EXCEPTION,
+            )
+
+            failure = self._get_first_failure(done)
+
+            if failure is not None:
+                await self._cancel_pending_tasks(pending, "sibling_failed")
+                pending.clear()
+
+                raise failure
+
+            for task in done:
+                task.result()
+
+        except asyncio.CancelledError:
+            await self._cancel_pending_tasks(pending, "cancelled")
+
+            raise
 
         print(f"Finished concurrent items within {self.name} ({self.id})")
 
@@ -95,6 +144,10 @@ class RunConcurrent(Node):
 
                 # Perform your async operation
                 await self.service(store)
+
+            except asyncio.CancelledError as exc:
+                mark_span_cancelled(span, exc)
+                raise
 
             except Exception as e:
                 print(f"Error executing node service: {e}")

@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Generic
 
@@ -6,6 +7,7 @@ from opentelemetry import trace
 
 from junjo.store import StoreT
 from junjo.telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from junjo.telemetry.span_lifecycle import mark_span_cancelled
 from junjo.util import generate_safe_id
 
 
@@ -126,6 +128,10 @@ class Node(Generic[StoreT], ABC):
 
                 # Perform your async operation
                 await self.service(store)
+
+            except asyncio.CancelledError as exc:
+                mark_span_cancelled(span, exc)
+                raise
 
             except Exception as e:
                 print("Error executing node service", e)

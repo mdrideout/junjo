@@ -3,7 +3,7 @@ import builtins
 
 import pytest
 
-from junjo import BaseState, BaseStore, Edge, Graph, Node, Subflow, Workflow
+from junjo import BaseState, BaseStore, Edge, Graph, Node, RunConcurrent, Subflow, Workflow
 
 
 class RuntimeState(BaseState):
@@ -201,3 +201,65 @@ async def test_subflow_loops_are_stopped_by_max_iterations(
 
     with pytest.raises(ValueError, match="exceeded maximum execution count"):
         await asyncio.wait_for(workflow.execute(), timeout=0.1)
+
+
+class ConcurrentState(BaseState):
+    events: list[str] = []
+
+
+class ConcurrentStore(BaseStore[ConcurrentState]):
+    async def append_event(self, event: str) -> None:
+        state = await self.get_state()
+        await self.set_state({"events": [*state.events, event]})
+
+
+@pytest.mark.asyncio
+async def test_run_concurrent_cancels_siblings_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(builtins, "print", lambda *args, **kwargs: None)
+
+    sibling_started = asyncio.Event()
+    failure_observed_by_caller = asyncio.Event()
+    created_stores: list[ConcurrentStore] = []
+
+    class WaitingSiblingNode(Node[ConcurrentStore]):
+        async def service(self, store: ConcurrentStore) -> None:
+            sibling_started.set()
+            await failure_observed_by_caller.wait()
+            await store.append_event("late-write")
+
+    class FailingNode(Node[ConcurrentStore]):
+        async def service(self, store: ConcurrentStore) -> None:
+            await sibling_started.wait()
+            await store.append_event("fail-start")
+            raise RuntimeError("boom")
+
+    def create_store() -> ConcurrentStore:
+        store = ConcurrentStore(initial_state=ConcurrentState())
+        created_stores.append(store)
+        return store
+
+    def create_run_concurrent_graph() -> Graph:
+        run_concurrent = RunConcurrent(
+            name="Concurrent Execution",
+            items=[WaitingSiblingNode(), FailingNode()],
+        )
+        return Graph(source=run_concurrent, sink=run_concurrent, edges=[])
+
+    workflow = Workflow[ConcurrentState, ConcurrentStore](
+        graph_factory=create_run_concurrent_graph,
+        store_factory=create_store,
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await workflow.execute()
+
+    assert len(created_stores) == 1
+
+    failure_observed_by_caller.set()
+    await asyncio.sleep(0.05)
+
+    current_state = await created_stores[0].get_state()
+
+    assert current_state.events == ["fail-start"]
