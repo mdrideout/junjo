@@ -115,28 +115,28 @@ gate around those guarantees.
 
 This is now the largest untouched hardening area.
 
-The graph layer still lacks:
+The graph layer still needs a dedicated hardening pass covering:
 
-- `Graph.validate()`
-- a compiled graph model
-- stable structural IDs separate from runtime execution IDs
-- typed graph validation/serialization/render errors
-- a deterministic serialization strategy for nested/subflow structures
+- graph terminology and API direction
+- explicit multi-sink terminal support
+- ordered first-match traversal semantics
+- validation and compilation
+- serialization correctness
+- structural IDs separate from runtime telemetry IDs
+- typed graph exceptions
+
+See [GRAPH_HARDENING.md](/Users/matt/repos/junjo/GRAPH_HARDENING.md) for the
+full graph-specific plan.
 
 ### Remaining changes
 
-- Introduce a canonical compiled graph snapshot.
-- Validate graph topology before traversal where possible.
-- Add stable structural IDs for rendering and graph-diff use cases.
-- Replace JSON-shaped fallback failures with typed exceptions.
-- Revisit `to_mermaid()` and Graphviz export behavior from the perspective of hardened structural output.
+- Execute the phases in `GRAPH_HARDENING.md`.
+- Keep the root hardening plan high-level while the graph plan carries the
+  detailed design and implementation order.
 
 ### Exit criteria
 
-- Repeated serialization of the same graph structure is deterministic.
-- Invalid graphs fail in validation, not only during traversal.
-- Subflow serialization is internally consistent.
-- Graph render/export failures are typed and intentional.
+- The graph-specific exit criteria in `GRAPH_HARDENING.md` are met.
 
 ## Phase C - Observability Operational Safety
 
