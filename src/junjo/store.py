@@ -133,21 +133,17 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         if caller_frame and "self" in caller_frame.f_locals:
             caller_class_name = caller_frame.f_locals["self"].__class__.__name__
 
-        # Validate the update dictionary against the state's model OUTSIDE the lock
-        try:
-            self._state.__class__.model_validate(
-                {**self._state.model_dump(), **update}
-            )
-        except ValidationError as e:
-            raise ValueError(
-                f"Invalid state update from caller {caller_class_name} -> {caller_function_name}.\n"
-                f"Check that you are updating a valid state property and type: {e}"
-            ) from e
-
         subscribers_to_notify: list[Subscriber] = []
         async with self._lock:
-            # Create a new instance with partial updates, deep=True for true immutability
-            new_state = self._state.model_copy(update=update, deep=True)
+            try:
+                new_state = self._state.__class__.model_validate(
+                    {**self._state.model_dump(), **update}
+                )
+            except ValidationError as e:
+                raise ValueError(
+                    f"Invalid state update from caller {caller_class_name} -> {caller_function_name}.\n"
+                    f"Check that you are updating a valid state property and type: {e}"
+                ) from e
 
             # Patch starts as None
             patch = None
