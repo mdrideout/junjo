@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from .state import BaseState
 from .telemetry.otel_schema import JunjoOtelSpanTypes
@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 StateT = TypeVar("StateT", bound=BaseState)
 HookEventT = TypeVar("HookEventT")
 HookCallback = Callable[[HookEventT], None | Awaitable[None]]
-
-
 @dataclass(frozen=True, slots=True)
 class LifecycleEvent:
     """Base payload shared by every public hook event."""
@@ -27,6 +25,29 @@ class LifecycleEvent:
     trace_id: str
     span_id: str
     span_type: JunjoOtelSpanTypes
+
+    @property
+    def hook_name(self) -> str:
+        """
+        Return the public lifecycle hook name for this payload.
+
+        This is derived from the concrete event class name so callers can log
+        the event type directly without each payload redefining its own string
+        constant.
+        """
+        class_name = type(self).__name__
+        stem = class_name[:-5] if class_name.endswith("Event") else class_name
+
+        hook_name: list[str] = []
+        for index, char in enumerate(stem):
+            if char.isupper() and index > 0:
+                previous = stem[index - 1]
+                next_char = stem[index + 1] if index + 1 < len(stem) else ""
+                if previous.islower() or (previous.isupper() and next_char.islower()):
+                    hook_name.append("_")
+            hook_name.append(char.lower())
+
+        return "".join(hook_name)
 
 
 @dataclass(frozen=True, slots=True)
@@ -190,7 +211,7 @@ class Hooks:
         hooks = Hooks()
 
         def log_completed(event: WorkflowCompletedEvent[MyState]) -> None:
-            print(event.result.state.model_dump())
+            print(event.hook_name, event.result.state.model_dump())
 
         hooks.on_workflow_completed(log_completed)
 
@@ -227,25 +248,31 @@ class Hooks:
         return self._register("workflow_started", callback)
 
     def on_workflow_completed(
-        self, callback: HookCallback[WorkflowCompletedEvent[Any]]
+        self, callback: HookCallback[WorkflowCompletedEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for successful workflow completion."""
 
-        return self._register("workflow_completed", callback)
+        return self._register(
+            "workflow_completed",
+            cast(HookCallback[Any], callback),
+        )
 
     def on_workflow_failed(
-        self, callback: HookCallback[WorkflowFailedEvent[Any]]
+        self, callback: HookCallback[WorkflowFailedEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for workflow failures."""
 
-        return self._register("workflow_failed", callback)
+        return self._register("workflow_failed", cast(HookCallback[Any], callback))
 
     def on_workflow_cancelled(
-        self, callback: HookCallback[WorkflowCancelledEvent[Any]]
+        self, callback: HookCallback[WorkflowCancelledEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for workflow cancellation."""
 
-        return self._register("workflow_cancelled", callback)
+        return self._register(
+            "workflow_cancelled",
+            cast(HookCallback[Any], callback),
+        )
 
     def on_subflow_started(
         self, callback: HookCallback[SubflowStartedEvent]
@@ -255,25 +282,31 @@ class Hooks:
         return self._register("subflow_started", callback)
 
     def on_subflow_completed(
-        self, callback: HookCallback[SubflowCompletedEvent[Any]]
+        self, callback: HookCallback[SubflowCompletedEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for successful subflow completion."""
 
-        return self._register("subflow_completed", callback)
+        return self._register(
+            "subflow_completed",
+            cast(HookCallback[Any], callback),
+        )
 
     def on_subflow_failed(
-        self, callback: HookCallback[SubflowFailedEvent[Any]]
+        self, callback: HookCallback[SubflowFailedEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for subflow failures."""
 
-        return self._register("subflow_failed", callback)
+        return self._register("subflow_failed", cast(HookCallback[Any], callback))
 
     def on_subflow_cancelled(
-        self, callback: HookCallback[SubflowCancelledEvent[Any]]
+        self, callback: HookCallback[SubflowCancelledEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for subflow cancellation."""
 
-        return self._register("subflow_cancelled", callback)
+        return self._register(
+            "subflow_cancelled",
+            cast(HookCallback[Any], callback),
+        )
 
     def on_node_started(
         self, callback: HookCallback[NodeStartedEvent]
@@ -332,11 +365,11 @@ class Hooks:
         return self._register("run_concurrent_cancelled", callback)
 
     def on_state_changed(
-        self, callback: HookCallback[StateChangedEvent[Any]]
+        self, callback: HookCallback[StateChangedEvent[StateT]]
     ) -> Callable[[], None]:
         """Register a callback for committed state updates."""
 
-        return self._register("state_changed", callback)
+        return self._register("state_changed", cast(HookCallback[Any], callback))
 
 
 __all__ = [

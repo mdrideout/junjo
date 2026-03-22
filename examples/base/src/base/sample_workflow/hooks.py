@@ -1,10 +1,20 @@
 from __future__ import annotations
 
 from junjo import Hooks
+from junjo.hooks import (
+    LifecycleEvent,
+    StateChangedEvent,
+    SubflowCompletedEvent,
+    WorkflowCompletedEvent,
+)
+
+from base.sample_workflow.sample_subflow.store import SampleSubflowState
+from base.sample_workflow.store import SampleWorkflowState
 
 
-def _format_event_details(event) -> dict:
+def _base_event_details(event: LifecycleEvent) -> dict:
     details = {
+        "hook_name": event.hook_name,
         "name": event.name,
         "run_id": event.run_id,
         "definition_id": event.definition_id,
@@ -12,7 +22,11 @@ def _format_event_details(event) -> dict:
         "span_id": event.span_id,
         "span_type": event.span_type,
     }
+    return details
 
+
+def _format_event_details(event: LifecycleEvent) -> dict:
+    details = _base_event_details(event)
     for attribute in (
         "parent_definition_id",
         "store_id",
@@ -35,11 +49,55 @@ def _format_event_details(event) -> dict:
     return details
 
 
-def _log_event(event_name: str):
-    def callback(event) -> None:
-        print(f"[hook] {event_name}", _format_event_details(event))
+def _log_event(event: LifecycleEvent) -> None:
+    print(f"[hook] {event.hook_name}", _format_event_details(event))
 
-    return callback
+
+def _log_workflow_completed(
+    event: WorkflowCompletedEvent[SampleWorkflowState],
+) -> None:
+    state = event.result.state
+    print(
+        f"[hook] {event.hook_name}",
+        {
+            **_base_event_details(event),
+            "counter": state.counter,
+            "item_count": len(state.items),
+            "joke": state.joke,
+            "fact": state.fact,
+        },
+    )
+
+
+def _log_subflow_completed(
+    event: SubflowCompletedEvent[SampleSubflowState],
+) -> None:
+    state = event.result.state
+    print(
+        f"[hook] {event.hook_name}",
+        {
+            **_base_event_details(event),
+            "item_count": len(state.items or []),
+            "joke": state.joke,
+            "fact": state.fact,
+        },
+    )
+
+
+def _log_state_changed(event: StateChangedEvent[SampleWorkflowState]) -> None:
+    state = event.state
+    print(
+        f"[hook] {event.hook_name}",
+        {
+            **_base_event_details(event),
+            "action_name": event.action_name,
+            "counter": state.counter,
+            "item_count": len(state.items),
+            "joke": state.joke,
+            "fact": state.fact,
+            "patch": event.patch,
+        },
+    )
 
 
 def create_logging_hooks() -> Hooks:
@@ -50,21 +108,21 @@ def create_logging_hooks() -> Hooks:
     and state-changed hooks during a normal successful run.
     """
     hooks = Hooks()
-    hooks.on_workflow_started(_log_event("workflow_started"))
-    hooks.on_workflow_completed(_log_event("workflow_completed"))
-    hooks.on_workflow_failed(_log_event("workflow_failed"))
-    hooks.on_workflow_cancelled(_log_event("workflow_cancelled"))
-    hooks.on_subflow_started(_log_event("subflow_started"))
-    hooks.on_subflow_completed(_log_event("subflow_completed"))
-    hooks.on_subflow_failed(_log_event("subflow_failed"))
-    hooks.on_subflow_cancelled(_log_event("subflow_cancelled"))
-    hooks.on_node_started(_log_event("node_started"))
-    hooks.on_node_completed(_log_event("node_completed"))
-    hooks.on_node_failed(_log_event("node_failed"))
-    hooks.on_node_cancelled(_log_event("node_cancelled"))
-    hooks.on_run_concurrent_started(_log_event("run_concurrent_started"))
-    hooks.on_run_concurrent_completed(_log_event("run_concurrent_completed"))
-    hooks.on_run_concurrent_failed(_log_event("run_concurrent_failed"))
-    hooks.on_run_concurrent_cancelled(_log_event("run_concurrent_cancelled"))
-    hooks.on_state_changed(_log_event("state_changed"))
+    hooks.on_workflow_started(_log_event)
+    hooks.on_workflow_completed(_log_workflow_completed)
+    hooks.on_workflow_failed(_log_event)
+    hooks.on_workflow_cancelled(_log_event)
+    hooks.on_subflow_started(_log_event)
+    hooks.on_subflow_completed(_log_subflow_completed)
+    hooks.on_subflow_failed(_log_event)
+    hooks.on_subflow_cancelled(_log_event)
+    hooks.on_node_started(_log_event)
+    hooks.on_node_completed(_log_event)
+    hooks.on_node_failed(_log_event)
+    hooks.on_node_cancelled(_log_event)
+    hooks.on_run_concurrent_started(_log_event)
+    hooks.on_run_concurrent_completed(_log_event)
+    hooks.on_run_concurrent_failed(_log_event)
+    hooks.on_run_concurrent_cancelled(_log_event)
+    hooks.on_state_changed(_log_state_changed)
     return hooks

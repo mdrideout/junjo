@@ -116,6 +116,10 @@ async def test_workflow_and_node_hooks_emit_expected_lifecycle_payloads() -> Non
     node_completed = seen[2][1]
     workflow_completed = seen[3][1]
 
+    assert workflow_started.hook_name == "workflow_started"
+    assert node_started.hook_name == "node_started"
+    assert node_completed.hook_name == "node_completed"
+    assert workflow_completed.hook_name == "workflow_completed"
     assert workflow_started.run_id == result.run_id
     assert node_started.run_id == result.run_id
     assert node_started.parent_definition_id == workflow.id
@@ -202,6 +206,7 @@ async def test_on_state_changed_delivers_patch_and_detached_snapshot() -> None:
 
     assert len(state_events) == 1
     event = state_events[0]
+    assert event.hook_name == "state_changed"
     assert event.store_name == "HookStore"
     assert event.action_name == "append_step"
     assert event.patch != "{}"

@@ -11,6 +11,7 @@ Simple completion logging
 .. code-block:: python
 
     from junjo import BaseState, BaseStore, Graph, Hooks, Node, Workflow
+    from junjo.hooks import WorkflowCompletedEvent
 
 
     class MyState(BaseState):
@@ -34,16 +35,16 @@ Simple completion logging
     hooks = Hooks()
 
 
-    def log_completed(event) -> None:
+    def log_completed(event: WorkflowCompletedEvent[MyState]) -> None:
         print(
-            "workflow completed",
+            event.hook_name,
             {
                 "workflow_name": event.name,
                 "run_id": event.run_id,
                 "definition_id": event.definition_id,
                 "trace_id": event.trace_id,
                 "span_id": event.span_id,
-                "final_state": event.result.state.model_dump(),
+                "message": event.result.state.message,
             },
         )
 
@@ -66,6 +67,7 @@ Hook callbacks receive one immutable event object. Useful fields include:
 
 * ``event.run_id``: the unique execution id for this run
 * ``event.definition_id``: the stable id of the workflow, subflow, or node definition
+* ``event.hook_name``: the lifecycle hook name such as ``workflow_completed``
 * ``event.trace_id`` / ``event.span_id``: OpenTelemetry correlation ids
 * ``event.result.state``: final state on completion hooks
 * ``event.state``: detached state snapshot on failure, cancellation, and state-changed hooks
