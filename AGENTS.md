@@ -24,6 +24,7 @@ Use this file for repo-specific implementation guidance and authoring rules.
 ## Repo Truths
 
 - Junjo is a Python library for Python application developers.
+- Junjo is for building Graph-Based AI workflows where the workflow is conditionally traversed according to state.
 - Public APIs and docstrings are part of the product, not incidental comments.
 - OpenTelemetry is a first-class runtime concern.
 - Hooks are optional observers, not the control plane for telemetry.
