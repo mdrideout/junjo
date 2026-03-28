@@ -31,6 +31,8 @@ execution, state management, and lifecycle observation.
 - Added a public `Hooks` API with typed lifecycle events for workflows, subflows, nodes, concurrent execution, and state changes.
 - Added an internal lifecycle dispatch layer to keep runtime execution, telemetry, and public hooks separated.
 - Added `Graph.validate()` and typed graph exceptions for validation, serialization, compilation, and rendering failures.
+- Added `Graph.compile()` plus public compiled graph snapshot types for normalized graph inspection and shared graph internals.
+- Added explicit runtime and structural identity fields across compiled graphs, serialized graph payloads, hook events, and OpenTelemetry span attributes.
 - Added regression coverage for:
   - workflow and subflow execution isolation
   - run-concurrent fail-fast cancellation behavior
@@ -50,7 +52,11 @@ execution, state management, and lifecycle observation.
 - Graph traversal now follows the first matching edge in declared order.
 - Workflows and subflows now terminate when any declared sink is reached, and dead ends on non-sink nodes raise.
 - Workflows and subflows now validate freshly created graphs before execution by default, with an opt-out `validate_graph=False` runtime parameter for targeted testing and debugging.
-- Graph serialization now preserves multiple same-tail/head subflow edges and records plural subflow sink ids as `subflowSinkIds`.
+- Graph validation, traversal adjacency, and serialization now all run through one compiled graph snapshot per graph instance.
+- Graph serialization now preserves multiple same-tail/head subflow edges and records explicit runtime and structural identity fields such as `graphStructuralId`, `nodeRuntimeId`, `nodeStructuralId`, and `edgeStructuralId`.
+- OpenTelemetry span attributes now use explicit identity names such as `junjo.executable_runtime_id`, `junjo.executable_structural_id`, and `junjo.enclosing_graph_structural_id` instead of the old generic `junjo.id` and `junjo.parent_id` keys.
+- OpenTelemetry and hook payloads now use `executable_definition_id` and `parent_executable_definition_id` instead of the older generic `definition_id` naming on those surfaces.
+- Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
 

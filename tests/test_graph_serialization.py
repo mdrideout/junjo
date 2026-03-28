@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 import pytest
 
@@ -108,12 +109,18 @@ def test_subflow_serialization_source_and_sink_ids_exist_in_same_payload() -> No
     parent_graph = Graph(source=subflow, sinks=[subflow], edges=[])
 
     serialized = json.loads(parent_graph.serialize_to_json_string())
-    nodes_by_id = {node["id"]: node for node in serialized["nodes"]}
+    nodes_by_id = {node["nodeRuntimeId"]: node for node in serialized["nodes"]}
     subflow_node = next(node for node in serialized["nodes"] if node.get("isSubflow"))
 
-    assert subflow_node["subflowSourceId"] in nodes_by_id
-    assert len(subflow_node["subflowSinkIds"]) == 2
-    assert all(sink_id in nodes_by_id for sink_id in subflow_node["subflowSinkIds"])
+    assert subflow_node["subflowSourceNodeRuntimeId"] in nodes_by_id
+    assert subflow_node["subflowSourceNodeStructuralId"].startswith("node_")
+    assert len(subflow_node["subflowSinkNodeRuntimeIds"]) == 2
+    assert len(subflow_node["subflowSinkNodeStructuralIds"]) == 2
+    assert all(sink_id in nodes_by_id for sink_id in subflow_node["subflowSinkNodeRuntimeIds"])
+    assert all(
+        sink_structural_id.startswith("node_")
+        for sink_structural_id in subflow_node["subflowSinkNodeStructuralIds"]
+    )
 
 
 def test_subflow_serialization_preserves_multiple_edges_with_same_tail_and_head() -> None:
@@ -139,17 +146,37 @@ def test_subflow_serialization_preserves_multiple_edges_with_same_tail_and_head(
     subflow_edges = [
         edge
         for edge in serialized["edges"]
-        if edge["type"] == "subflow" and edge["subflowId"] == subflow.id
+        if edge["edgeScope"] == "subflow" and edge["parentSubflowRuntimeId"] == subflow.id
     ]
 
     assert len(subflow_edges) == 2
-    assert len({edge["id"] for edge in subflow_edges}) == 2
+    assert len({edge["edgeStructuralId"] for edge in subflow_edges}) == 2
 
 
-def test_serialize_to_json_string_raises_typed_error_for_non_serializable_payload() -> None:
+def test_serialize_to_json_string_raises_typed_error_for_json_encoding_failure() -> None:
     node = EndNode()
-    node.label = object()
     graph = Graph(source=node, sinks=[node], edges=[])
+    graph.compile()
 
-    with pytest.raises(GraphSerializationError, match="Failed to serialize graph to JSON"):
-        graph.serialize_to_json_string()
+    with patch.object(json, "dumps", side_effect=TypeError("boom")):
+        with pytest.raises(GraphSerializationError, match="Failed to serialize graph to JSON"):
+            graph.serialize_to_json_string()
+
+
+def test_serialized_graph_includes_explicit_runtime_and_structural_identity_fields() -> None:
+    start = StartNode()
+    end = EndNode()
+    graph = Graph(
+        source=start,
+        sinks=[end],
+        edges=[Edge(tail=start, head=end)],
+    )
+
+    serialized = json.loads(graph.serialize_to_json_string())
+
+    assert serialized["graphStructuralId"].startswith("graph_")
+    assert serialized["nodes"][0]["nodeRuntimeId"]
+    assert serialized["nodes"][0]["nodeStructuralId"].startswith("node_")
+    assert serialized["edges"][0]["edgeStructuralId"].startswith("edge_")
+    assert serialized["edges"][0]["tailNodeRuntimeId"] == start.id
+    assert serialized["edges"][0]["headNodeRuntimeId"] == end.id

@@ -22,11 +22,16 @@ class LifecycleEvent:
     """Base payload shared by every public hook event."""
 
     run_id: str
-    definition_id: str
+    executable_definition_id: str
     name: str
     trace_id: str
     span_id: str
     span_type: JunjoOtelSpanTypes
+    executable_runtime_id: str
+    executable_structural_id: str
+    enclosing_graph_structural_id: str
+    parent_executable_runtime_id: str | None
+    parent_executable_structural_id: str | None
 
     @property
     def hook_name(self) -> str:
@@ -124,7 +129,7 @@ class SubflowCancelledEvent(LifecycleEvent, Generic[StateT]):
 class NodeStartedEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_started` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
 
 
@@ -132,7 +137,7 @@ class NodeStartedEvent(LifecycleEvent):
 class NodeCompletedEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_completed` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
 
 
@@ -140,7 +145,7 @@ class NodeCompletedEvent(LifecycleEvent):
 class NodeFailedEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_failed` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
     error: Exception
 
@@ -149,7 +154,7 @@ class NodeFailedEvent(LifecycleEvent):
 class NodeCancelledEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_cancelled` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
     reason: str
 
@@ -158,7 +163,7 @@ class NodeCancelledEvent(LifecycleEvent):
 class RunConcurrentStartedEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_started` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
 
 
@@ -166,7 +171,7 @@ class RunConcurrentStartedEvent(LifecycleEvent):
 class RunConcurrentCompletedEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_completed` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
 
 
@@ -174,7 +179,7 @@ class RunConcurrentCompletedEvent(LifecycleEvent):
 class RunConcurrentFailedEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_failed` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
     error: Exception
 
@@ -183,7 +188,7 @@ class RunConcurrentFailedEvent(LifecycleEvent):
 class RunConcurrentCancelledEvent(LifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_cancelled` callbacks."""
 
-    parent_definition_id: str
+    parent_executable_definition_id: str
     store_id: str
     reason: str
 
@@ -197,7 +202,7 @@ class StateChangedEvent(LifecycleEvent, Generic[StateT]):
     action_name: str
     patch: str
     state: StateT
-    parent_definition_id: str
+    parent_executable_definition_id: str
 
 
 class Hooks:

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from opentelemetry import trace
 
+from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, get_active_executable_identity
 from .node import Node
 from .store import BaseStore
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME
@@ -127,7 +128,7 @@ class RunConcurrent(Node):
 
         print(f"Finished concurrent items within {self.name} ({self.id})")
 
-    async def execute(self, store: BaseStore, parent_id: str) -> None:
+    async def execute(self, store: BaseStore, parent_id: str) -> None:  # noqa: C901
         """
         Execute the ``RunConcurrent`` node with tracing and lifecycle dispatch.
 
@@ -144,39 +145,107 @@ class RunConcurrent(Node):
         prepared_terminal_event = None
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
+        parent_active_identity = get_active_executable_identity()
+        run_concurrent_structural_id = (
+            lifecycle_context.compiled_node_structural_ids_by_runtime_id[self.id]
+            if lifecycle_context is not None
+            else None
+        )
 
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
         with tracer.start_as_current_span(self.name) as span:
             try:
                 span.set_attribute("junjo.span_type", "run_concurrent")
-                span.set_attribute("junjo.parent_id", parent_id)
-                span.set_attribute("junjo.id", self.id)
+                span.set_attribute("junjo.executable_definition_id", self.id)
+                span.set_attribute("junjo.parent_executable_definition_id", parent_id)
+                span.set_attribute("junjo.executable_runtime_id", self.id)
+                if run_concurrent_structural_id is not None:
+                    span.set_attribute(
+                        "junjo.executable_structural_id",
+                        run_concurrent_structural_id,
+                    )
+                if lifecycle_context is not None:
+                    span.set_attribute(
+                        "junjo.enclosing_graph_structural_id",
+                        lifecycle_context.enclosing_graph_structural_id,
+                    )
+                if parent_active_identity is not None:
+                    span.set_attribute(
+                        "junjo.parent_executable_runtime_id",
+                        parent_active_identity.executable_runtime_id,
+                    )
+                    span.set_attribute(
+                        "junjo.parent_executable_structural_id",
+                        parent_active_identity.executable_structural_id,
+                    )
 
                 if lifecycle_context is not None:
                     trace_id, span_id = get_span_identifiers(span)
                     await lifecycle_context.dispatcher.run_concurrent_started(
                         run_id=lifecycle_context.run_id,
-                        definition_id=self.id,
+                        executable_definition_id=self.id,
                         name=self.name,
-                        parent_definition_id=lifecycle_context.definition_id,
+                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
                         store_id=store.id,
                         trace_id=trace_id,
                         span_id=span_id,
+                        executable_runtime_id=self.id,
+                        executable_structural_id=run_concurrent_structural_id,
+                        enclosing_graph_structural_id=(
+                            lifecycle_context.enclosing_graph_structural_id
+                        ),
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
-                await self.service(store)
+                if run_concurrent_structural_id is None:
+                    await self.service(store)
+                else:
+                    with active_executable_identity(
+                        ActiveExecutableIdentity(
+                            executable_definition_id=self.id,
+                            executable_runtime_id=self.id,
+                            executable_structural_id=run_concurrent_structural_id,
+                        )
+                    ):
+                        await self.service(store)
 
-                if lifecycle_context is not None:
-                    trace_id, span_id = get_span_identifiers(span)
-                    prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_completed(
-                        run_id=lifecycle_context.run_id,
-                        definition_id=self.id,
-                        name=self.name,
-                        parent_definition_id=lifecycle_context.definition_id,
-                        store_id=store.id,
-                        trace_id=trace_id,
-                        span_id=span_id,
-                    )
+                        if lifecycle_context is not None:
+                            trace_id, span_id = get_span_identifiers(span)
+                            prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_completed(
+                                run_id=lifecycle_context.run_id,
+                                executable_definition_id=self.id,
+                                name=self.name,
+                                parent_executable_definition_id=(
+                                    lifecycle_context.executable_definition_id
+                                ),
+                                store_id=store.id,
+                                trace_id=trace_id,
+                                span_id=span_id,
+                                executable_runtime_id=self.id,
+                                executable_structural_id=run_concurrent_structural_id,
+                                enclosing_graph_structural_id=(
+                                    lifecycle_context.enclosing_graph_structural_id
+                                ),
+                                parent_executable_runtime_id=(
+                                    parent_active_identity.executable_runtime_id
+                                    if parent_active_identity is not None
+                                    else None
+                                ),
+                                parent_executable_structural_id=(
+                                    parent_active_identity.executable_structural_id
+                                    if parent_active_identity is not None
+                                    else None
+                                ),
+                            )
 
             except asyncio.CancelledError as exc:
                 mark_span_cancelled(span, exc)
@@ -185,13 +254,28 @@ class RunConcurrent(Node):
                     trace_id, span_id = get_span_identifiers(span)
                     prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_cancelled(
                         run_id=lifecycle_context.run_id,
-                        definition_id=self.id,
+                        executable_definition_id=self.id,
                         name=self.name,
-                        parent_definition_id=lifecycle_context.definition_id,
+                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
                         store_id=store.id,
                         reason=str(exc.args[0]) if exc.args else "cancelled",
                         trace_id=trace_id,
                         span_id=span_id,
+                        executable_runtime_id=self.id,
+                        executable_structural_id=run_concurrent_structural_id,
+                        enclosing_graph_structural_id=(
+                            lifecycle_context.enclosing_graph_structural_id
+                        ),
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
             except Exception as exc:
@@ -203,13 +287,28 @@ class RunConcurrent(Node):
                     trace_id, span_id = get_span_identifiers(span)
                     prepared_terminal_event = lifecycle_context.dispatcher.run_concurrent_failed(
                         run_id=lifecycle_context.run_id,
-                        definition_id=self.id,
+                        executable_definition_id=self.id,
                         name=self.name,
-                        parent_definition_id=lifecycle_context.definition_id,
+                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
                         store_id=store.id,
                         error=exc,
                         trace_id=trace_id,
                         span_id=span_id,
+                        executable_runtime_id=self.id,
+                        executable_structural_id=run_concurrent_structural_id,
+                        enclosing_graph_structural_id=(
+                            lifecycle_context.enclosing_graph_structural_id
+                        ),
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
         if lifecycle_context is not None:

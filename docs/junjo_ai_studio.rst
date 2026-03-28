@@ -330,10 +330,13 @@ Workflow Spans
 --------------
 
 - ``junjo.span_type``: "workflow" or "subflow"
-- ``junjo.id``: Unique workflow instance ID
+- ``junjo.executable_definition_id``: Workflow or subflow definition ID
+- ``junjo.executable_runtime_id``: Runtime ID for the current workflow or subflow execution
+- ``junjo.executable_structural_id``: Stable structural ID for the current workflow or subflow executable
+- ``junjo.enclosing_graph_structural_id``: Stable structural ID for the enclosing execution graph
 - ``junjo.workflow.state.start``: Initial state JSON
 - ``junjo.workflow.state.end``: Final state JSON
-- ``junjo.workflow.graph_structure``: Graph definition
+- ``junjo.workflow.execution_graph_snapshot``: Execution-scoped compiled graph snapshot, including runtime and structural node and edge identities
 - ``junjo.workflow.node.count``: Number of nodes executed
 - ``junjo.workflow.store.id``: Store instance ID
 
@@ -341,14 +344,38 @@ Node Spans
 ----------
 
 - ``junjo.span_type``: "node"
-- ``junjo.id``: Unique node instance ID
-- ``junjo.parent_id``: Parent workflow/subflow ID
+- ``junjo.executable_definition_id``: Node definition ID
+- ``junjo.executable_runtime_id``: Runtime ID for the current node or concurrent executable
+- ``junjo.executable_structural_id``: Stable structural ID for the current node or concurrent executable
+- ``junjo.parent_executable_definition_id``: Parent workflow or subflow definition ID
+- ``junjo.parent_executable_runtime_id``: Parent workflow, subflow, or concurrent executable runtime ID
+- ``junjo.parent_executable_structural_id``: Parent workflow, subflow, or concurrent executable structural ID
+- ``junjo.enclosing_graph_structural_id``: Stable structural ID for the enclosing execution graph
 
 Subflow Spans
 -------------
 
-- ``junjo.parent_id``: Parent workflow ID
+- ``junjo.parent_executable_definition_id``: Parent workflow or concurrent definition ID
 - ``junjo.workflow.parent_store.id``: Parent store ID
+
+Graph Node To Span Mapping
+--------------------------
+
+When Junjo AI Studio maps graph nodes back to spans, it should use the explicit
+runtime and structural identity fields from the execution graph snapshot rather
+than the older generic ``junjo.id`` model.
+
+Recommended mapping rules:
+
+- For normal nodes and ``RunConcurrent`` executables:
+  ``nodeRuntimeId`` in the execution graph snapshot maps to
+  ``junjo.executable_runtime_id`` on the emitted span.
+- For subflow nodes rendered inside a parent graph:
+  ``subflowGraphStructuralId`` maps cleanly to the child subflow span's
+  ``junjo.executable_structural_id``.
+- For definition-level matching of subflow nodes:
+  the parent graph's subflow ``nodeRuntimeId`` still corresponds to the
+  subflow executable definition id.
 
 These attributes power Junjo AI Studio's specialized visualization and debugging features.
 

@@ -8,7 +8,11 @@ import jsonpatch
 from opentelemetry import trace
 from pydantic import ValidationError
 
-from ._lifecycle import StoreLifecycleContext
+from ._lifecycle import (
+    StoreLifecycleContext,
+    get_active_executable_identity,
+    get_parent_active_executable_identity,
+)
 from .state import BaseState
 from .telemetry.span_lifecycle import get_current_span_identifiers
 from .util import generate_safe_id
@@ -176,9 +180,13 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
             if patch is not None and self._lifecycle_context is not None:
                 trace_id, span_id = get_current_span_identifiers()
+                active_identity = get_active_executable_identity()
+                parent_active_identity = get_parent_active_executable_identity()
                 state_changed_payload = {
                     "run_id": self._lifecycle_context.run_id,
-                    "definition_id": self._lifecycle_context.definition_id,
+                    "executable_definition_id": (
+                        self._lifecycle_context.executable_definition_id
+                    ),
                     "name": self._lifecycle_context.name,
                     "span_type": self._lifecycle_context.span_type,
                     "store_id": self.id,
@@ -186,9 +194,34 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     "action_name": caller_function_name,
                     "patch": patch.to_string(),
                     "state": new_state.model_copy(deep=True),
-                    "parent_definition_id": self._lifecycle_context.definition_id,
+                    "parent_executable_definition_id": (
+                        self._lifecycle_context.executable_definition_id
+                    ),
                     "trace_id": trace_id,
                     "span_id": span_id,
+                    "executable_runtime_id": (
+                        active_identity.executable_runtime_id
+                        if active_identity is not None
+                        else self._lifecycle_context.executable_runtime_id
+                    ),
+                    "executable_structural_id": (
+                        active_identity.executable_structural_id
+                        if active_identity is not None
+                        else self._lifecycle_context.executable_structural_id
+                    ),
+                    "enclosing_graph_structural_id": (
+                        self._lifecycle_context.enclosing_graph_structural_id
+                    ),
+                    "parent_executable_runtime_id": (
+                        parent_active_identity.executable_runtime_id
+                        if parent_active_identity is not None
+                        else None
+                    ),
+                    "parent_executable_structural_id": (
+                        parent_active_identity.executable_structural_id
+                        if parent_active_identity is not None
+                        else None
+                    ),
                 }
 
         if state_changed_payload is not None and self._lifecycle_context is not None:

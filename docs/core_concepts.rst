@@ -118,6 +118,7 @@ A `Graph` is a collection of nodes and edges that defines the complete structure
 **Key Characteristics:**
 - **Source and Sinks:** A graph has a single entry point (``source``) and one or more explicit terminal nodes (``sinks``).
 - **Defines the Workflow Structure:** The graph is a complete representation of all possible paths of execution in your workflow.
+- **Compiles To A Structural Snapshot:** ``Graph.compile()`` returns a canonical compiled view that Junjo uses for validation, serialization, and rendering-oriented graph operations.
 
 .. code-block:: python
 
@@ -131,6 +132,88 @@ A `Graph` is a collection of nodes and edges that defines the complete structure
             Edge(tail=process_node, head=end_node, condition=DataIsProcessed())
         ]
     )
+
+    # Inspect the normalized structural snapshot for debugging or tooling.
+    compiled = workflow_graph.compile()
+    print(compiled.source_node_runtime_id)
+    print(compiled.sink_node_runtime_ids)
+
+Compiled Graph Snapshot
+-----------------------
+
+**What is it?**
+A compiled graph snapshot is the canonical structural view that Junjo derives
+from a single `Graph` instance. It is exposed through `Graph.compile()` as a
+`CompiledGraph` and is the one graph representation Junjo uses for validation,
+ordered traversal lookups, serialization, and rendering-oriented tooling.
+
+**Why it exists**
+
+- **One Structural Source of Truth:** Junjo no longer walks raw runtime graph
+  objects differently for validation, serialization, and traversal.
+- **Stable Graph Identity:** The compiled snapshot assigns deterministic
+  `graph_structural_id`, `node_structural_id`, and `edge_structural_id`
+  values so identical graph shapes can be correlated across runs.
+- **Explicit Runtime vs Structural Identity:** Compiled nodes and edges retain
+  runtime ids for exact execution correlation while also carrying structural ids
+  for graph-shape analysis and telemetry aggregation.
+
+**What you get**
+
+- `CompiledGraph`: the full compiled snapshot for one graph instance
+- `CompiledNode`: normalized node metadata, including both runtime and
+  structural identity
+- `CompiledEdge`: normalized edge metadata, including declared edge order and
+  structural identity
+
+.. code-block:: python
+
+    compiled = workflow_graph.compile()
+
+    print(compiled.graph_structural_id)
+
+    for compiled_node in compiled.compiled_nodes:
+        print(
+            compiled_node.node_runtime_id,
+            compiled_node.node_structural_id,
+            compiled_node.node_type_name,
+        )
+
+    for compiled_edge in compiled.compiled_edges:
+        print(
+            compiled_edge.edge_structural_id,
+            compiled_edge.tail_node_runtime_id,
+            compiled_edge.head_node_runtime_id,
+        )
+
+Runtime Identity vs Structural Identity
+---------------------------------------
+
+Junjo now exposes two different identity layers for graph executables:
+
+- **Runtime identity:** identifies the exact executable instance used in one
+  execution. This is what lets telemetry and hooks talk about the specific node,
+  subflow, or concurrent executable that actually ran.
+- **Structural identity:** identifies the same conceptual graph position across
+  repeated runs of the same graph shape.
+
+This distinction matters because a fresh workflow execution creates a fresh
+graph. Runtime identities should rotate from run to run, while structural
+identities should remain stable when the graph shape does not change.
+
+For telemetry and hooks, the most important fields are:
+
+- ``executable_runtime_id``: the runtime identity of the executable that fired
+  the span or hook
+- ``executable_structural_id``: the stable structural identity of that same
+  executable
+- ``enclosing_graph_structural_id``: the stable structural identity of the
+  compiled graph that contains the executable
+
+This lets Junjo support both:
+
+- **single-run debugging** using runtime ids
+- **cross-run aggregation** using structural ids
 
 Workflow
 ========

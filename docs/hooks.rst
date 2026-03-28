@@ -41,7 +41,10 @@ Simple completion logging
             {
                 "workflow_name": event.name,
                 "run_id": event.run_id,
-                "definition_id": event.definition_id,
+                "executable_definition_id": event.executable_definition_id,
+                "executable_runtime_id": event.executable_runtime_id,
+                "executable_structural_id": event.executable_structural_id,
+                "enclosing_graph_structural_id": event.enclosing_graph_structural_id,
                 "trace_id": event.trace_id,
                 "span_id": event.span_id,
                 "message": event.result.state.message,
@@ -66,8 +69,13 @@ Common hook payloads
 Hook callbacks receive one immutable event object. Useful fields include:
 
 * ``event.run_id``: the unique execution id for this run
-* ``event.definition_id``: the stable id of the workflow, subflow, or node definition
+* ``event.executable_definition_id``: the stable id of the workflow, subflow, or node definition
 * ``event.hook_name``: the lifecycle hook name such as ``workflow_completed``
+* ``event.executable_runtime_id``: the runtime id of the executable that fired the hook
+* ``event.executable_structural_id``: the stable structural id of the executable that fired the hook
+* ``event.enclosing_graph_structural_id``: the stable structural id of the graph enclosing the executable
+* ``event.parent_executable_definition_id``: the stable definition id of the parent workflow, subflow, or concurrent executable when the hook fires inside a nested execution scope
+* ``event.parent_executable_runtime_id`` / ``event.parent_executable_structural_id``: parent executable identities when the hook fires inside a nested execution scope
 * ``event.trace_id`` / ``event.span_id``: OpenTelemetry correlation ids
 * ``event.result.state``: final state on completion hooks
 * ``event.state``: detached state snapshot on failure, cancellation, and state-changed hooks

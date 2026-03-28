@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 from .edge import Edge
 from .node import Node
@@ -33,9 +36,9 @@ class GraphCompilationError(GraphError):
     """
     Raised when a graph cannot be compiled into a canonical structural form.
 
-    Junjo does not yet expose a full graph compilation phase, but this type is
-    reserved for that future hardening step so callers can distinguish compile
-    failures from validation, serialization, and rendering failures.
+    Compilation failures are structural normalization failures, not traversal
+    or validation failures. This exception is used when Junjo cannot produce a
+    consistent compiled graph snapshot from the runtime graph definition.
     """
 
 
@@ -57,6 +60,96 @@ class GraphRenderError(GraphError):
     This includes Graphviz command failures and unsupported rendering paths
     such as Mermaid output that Junjo has not implemented yet.
     """
+
+
+@dataclass(frozen=True)
+class CompiledEdge:
+    """
+    A normalized structural edge within a compiled graph snapshot.
+
+    Compiled edges preserve the original declared ordering through
+    ``edge_ordinal`` and keep a reference to the runtime :class:`~junjo.Edge`
+    object so traversal can still evaluate conditions against the run-local
+    store.
+    """
+
+    edge_structural_id: str
+    edge_ordinal: int
+    tail_node_runtime_id: str
+    tail_node_structural_id: str
+    head_node_runtime_id: str
+    head_node_structural_id: str
+    edge_condition_label: str | None
+    edge_runtime_ref: Edge
+
+
+@dataclass(frozen=True)
+class CompiledNode:
+    """
+    A normalized structural node within a compiled graph snapshot.
+
+    Compiled nodes capture the graph-facing metadata Junjo needs for
+    validation, serialization, and rendering while preserving the original
+    runtime node or subflow reference for execution-time operations.
+    """
+
+    node_runtime_id: str
+    node_structural_id: str
+    node_type_name: str
+    node_label: str
+    node_runtime_ref: Node | _NestableWorkflow
+    is_concurrent_subgraph: bool = False
+    is_subflow: bool = False
+    child_node_runtime_ids: tuple[str, ...] = ()
+    compiled_subflow_graph: CompiledGraph | None = None
+
+
+@dataclass(frozen=True)
+class CompiledGraph:
+    """
+    The canonical structural representation of a single :class:`~junjo.Graph`
+    instance.
+
+    A compiled graph is immutable and normalized for graph-facing features:
+
+    - validation
+    - traversal adjacency lookups
+    - serialization
+    - rendering
+
+    Runtime graph objects still define the graph, but compiled snapshots are
+    the single structural source of truth for all graph operations.
+    """
+
+    graph_structural_id: str
+    source_node_runtime_id: str
+    sink_node_runtime_ids: tuple[str, ...]
+    compiled_nodes: tuple[CompiledNode, ...]
+    compiled_nodes_by_runtime_id: Mapping[str, CompiledNode]
+    compiled_edges: tuple[CompiledEdge, ...]
+    outgoing_compiled_edges_by_tail_runtime_id: Mapping[str, tuple[CompiledEdge, ...]]
+    reachable_node_runtime_ids: frozenset[str]
+
+
+@dataclass(frozen=True)
+class _CompiledNodeSeed:
+    node_runtime_id: str
+    node_type_name: str
+    node_label: str
+    node_runtime_ref: Node | _NestableWorkflow
+    is_concurrent_subgraph: bool = False
+    is_subflow: bool = False
+    child_node_runtime_ids: tuple[str, ...] = ()
+    compiled_subflow_graph: CompiledGraph | None = None
+
+
+@dataclass(frozen=True)
+class _CompiledEdgeSeed:
+    edge_ordinal: int
+    tail_node_runtime_id: str
+    head_node_runtime_id: str
+    edge_condition_label: str | None
+    edge_runtime_ref: Edge
 
 
 class Graph:
@@ -158,83 +251,442 @@ class Graph:
         self.source = source
         self.sinks = tuple(sinks)
         self.edges = edges
+        self._compiled_graph: CompiledGraph | None = None
 
-    def _collect_structural_nodes(self) -> dict[str, Node | _NestableWorkflow]:
-        all_nodes: dict[str, Node | _NestableWorkflow] = {self.source.id: self.source}
-        for sink in self.sinks:
-            all_nodes[sink.id] = sink
-        for edge in self.edges:
-            all_nodes[edge.tail.id] = edge.tail
-            all_nodes[edge.head.id] = edge.head
-        return all_nodes
+    @staticmethod
+    def _node_label(node: Node | _NestableWorkflow) -> str:
+        return str(
+            getattr(node, "label", None)
+            or getattr(node, "name", None)
+            or node.__class__.__name__
+        )
 
-    def _build_outgoing_edges(self) -> dict[str, list[Edge]]:
-        outgoing_edges: dict[str, list[Edge]] = {}
-        for edge in self.edges:
-            outgoing_edges.setdefault(edge.tail.id, []).append(edge)
-        return outgoing_edges
+    @staticmethod
+    def _hash_structural_descriptor(prefix: str, payload: dict) -> str:
+        serialized = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest = hashlib.sha256(serialized).hexdigest()[:32]
+        return f"{prefix}_{digest}"
 
-    def _validate_sinks_have_no_outgoing_edges(
+    def _compile_subflow_graph(
         self,
-        outgoing_edges: dict[str, list[Edge]],
-    ) -> None:
-        for sink in self.sinks:
-            if outgoing_edges.get(sink.id):
-                raise GraphValidationError(
-                    f"Declared sink '{sink}' has outgoing edges."
+        subflow: _NestableWorkflow,
+        compiled_subflows: dict[str, CompiledGraph],
+        active_subflows: set[str],
+    ) -> CompiledGraph:
+        if subflow.id in compiled_subflows:
+            return compiled_subflows[subflow.id]
+        if subflow.id in active_subflows:
+            raise GraphCompilationError(
+                f"Recursive subflow graph definition detected for '{subflow}'."
+            )
+
+        active_subflows.add(subflow.id)
+        try:
+            child_graph = subflow._graph_factory()
+            compiled_graph = child_graph._compile(compiled_subflows, active_subflows)
+            compiled_subflows[subflow.id] = compiled_graph
+            return compiled_graph
+        finally:
+            active_subflows.discard(subflow.id)
+
+    def _register_compiled_node_seed(
+        self,
+        node: Node | _NestableWorkflow,
+        runtime_nodes_by_id: dict[str, Node | _NestableWorkflow],
+        compiled_node_seeds_by_runtime_id: dict[str, _CompiledNodeSeed],
+        compiled_subflows: dict[str, CompiledGraph],
+        active_subflows: set[str],
+    ) -> _CompiledNodeSeed:
+        existing_runtime = runtime_nodes_by_id.get(node.id)
+        if existing_runtime is not None and existing_runtime is not node:
+            raise GraphCompilationError(
+                f"Graph contains multiple runtime objects with the same id '{node.id}'."
+            )
+        existing_node = compiled_node_seeds_by_runtime_id.get(node.id)
+        if existing_node is not None:
+            return existing_node
+
+        runtime_nodes_by_id[node.id] = node
+
+        is_subgraph = isinstance(node, RunConcurrent)
+        is_subflow = isinstance(node, _NestableWorkflow)
+        child_item_ids = tuple(item.id for item in node.items) if is_subgraph else ()
+        subflow_graph = (
+            self._compile_subflow_graph(node, compiled_subflows, active_subflows)
+            if is_subflow
+            else None
+        )
+
+        compiled_node = _CompiledNodeSeed(
+            node_runtime_id=node.id,
+            node_type_name=node.__class__.__name__,
+            node_label=self._node_label(node),
+            node_runtime_ref=node,
+            is_concurrent_subgraph=is_subgraph,
+            is_subflow=is_subflow,
+            child_node_runtime_ids=child_item_ids,
+            compiled_subflow_graph=subflow_graph,
+        )
+        compiled_node_seeds_by_runtime_id[node.id] = compiled_node
+
+        if is_subgraph:
+            for item in node.items:
+                self._register_compiled_node_seed(
+                    item,
+                    runtime_nodes_by_id,
+                    compiled_node_seeds_by_runtime_id,
+                    compiled_subflows,
+                    active_subflows,
                 )
 
-    def _collect_reachable_nodes(
-        self,
-        outgoing_edges: dict[str, list[Edge]],
-    ) -> dict[str, Node | _NestableWorkflow]:
-        reachable_nodes: dict[str, Node | _NestableWorkflow] = {}
-        queue: list[Node | _NestableWorkflow] = [self.source]
-        while queue:
-            current = queue.pop(0)
-            if current.id in reachable_nodes:
-                continue
-            reachable_nodes[current.id] = current
-            for edge in outgoing_edges.get(current.id, []):
-                if edge.head.id not in reachable_nodes:
-                    queue.append(edge.head)
-        return reachable_nodes
+        return compiled_node
 
-    def _validate_reachable_non_sink_nodes(
+    def _build_compiled_edge_seeds(
         self,
-        reachable_nodes: dict[str, Node | _NestableWorkflow],
-        outgoing_edges: dict[str, list[Edge]],
-    ) -> None:
-        sink_ids = {sink.id for sink in self.sinks}
-        for node_id, node in reachable_nodes.items():
+        runtime_nodes_by_id: dict[str, Node | _NestableWorkflow],
+        compiled_node_seeds_by_runtime_id: dict[str, _CompiledNodeSeed],
+        compiled_subflows: dict[str, CompiledGraph],
+        active_subflows: set[str],
+    ) -> list[_CompiledEdgeSeed]:
+        compiled_edges: list[_CompiledEdgeSeed] = []
+        for ordinal, edge in enumerate(self.edges):
+            self._register_compiled_node_seed(
+                edge.tail,
+                runtime_nodes_by_id,
+                compiled_node_seeds_by_runtime_id,
+                compiled_subflows,
+                active_subflows,
+            )
+            self._register_compiled_node_seed(
+                edge.head,
+                runtime_nodes_by_id,
+                compiled_node_seeds_by_runtime_id,
+                compiled_subflows,
+                active_subflows,
+            )
+            compiled_edges.append(
+                _CompiledEdgeSeed(
+                    edge_ordinal=ordinal,
+                    tail_node_runtime_id=edge.tail.id,
+                    head_node_runtime_id=edge.head.id,
+                    edge_condition_label=str(edge.condition) if edge.condition else None,
+                    edge_runtime_ref=edge,
+                )
+            )
+        return compiled_edges
+
+    @staticmethod
+    def _build_graph_structural_id(
+        source_node_runtime_id: str,
+        sink_node_runtime_ids: tuple[str, ...],
+        compiled_node_seeds: list[_CompiledNodeSeed],
+        compiled_edge_seeds: list[_CompiledEdgeSeed],
+    ) -> str:
+        node_ordinal_by_runtime_id = {
+            node_seed.node_runtime_id: ordinal
+            for ordinal, node_seed in enumerate(compiled_node_seeds)
+        }
+        descriptor = {
+            "sourceNodeOrdinal": node_ordinal_by_runtime_id[source_node_runtime_id],
+            "sinkNodeOrdinals": [
+                node_ordinal_by_runtime_id[sink_runtime_id]
+                for sink_runtime_id in sink_node_runtime_ids
+            ],
+            "nodes": [
+                {
+                    "nodeOrdinal": ordinal,
+                    "nodeTypeName": node_seed.node_type_name,
+                    "nodeLabel": node_seed.node_label,
+                    "isConcurrentSubgraph": node_seed.is_concurrent_subgraph,
+                    "isSubflow": node_seed.is_subflow,
+                    "childNodeOrdinals": [
+                        node_ordinal_by_runtime_id[child_runtime_id]
+                        for child_runtime_id in node_seed.child_node_runtime_ids
+                    ],
+                    "subflowGraphStructuralId": (
+                        node_seed.compiled_subflow_graph.graph_structural_id
+                        if node_seed.compiled_subflow_graph is not None
+                        else None
+                    ),
+                }
+                for ordinal, node_seed in enumerate(compiled_node_seeds)
+            ],
+            "edges": [
+                {
+                    "edgeOrdinal": edge_seed.edge_ordinal,
+                    "tailNodeOrdinal": node_ordinal_by_runtime_id[edge_seed.tail_node_runtime_id],
+                    "headNodeOrdinal": node_ordinal_by_runtime_id[edge_seed.head_node_runtime_id],
+                    "edgeConditionLabel": edge_seed.edge_condition_label,
+                }
+                for edge_seed in compiled_edge_seeds
+            ],
+        }
+        return Graph._hash_structural_descriptor("graph", descriptor)
+
+    @staticmethod
+    def _build_compiled_nodes(
+        graph_structural_id: str,
+        compiled_node_seeds: list[_CompiledNodeSeed],
+    ) -> list[CompiledNode]:
+        compiled_nodes: list[CompiledNode] = []
+        for ordinal, node_seed in enumerate(compiled_node_seeds):
+            node_structural_id = Graph._hash_structural_descriptor(
+                "node",
+                {
+                    "graphStructuralId": graph_structural_id,
+                    "nodeOrdinal": ordinal,
+                    "nodeTypeName": node_seed.node_type_name,
+                    "nodeLabel": node_seed.node_label,
+                    "isConcurrentSubgraph": node_seed.is_concurrent_subgraph,
+                    "isSubflow": node_seed.is_subflow,
+                    "childNodeRuntimeIds": list(node_seed.child_node_runtime_ids),
+                    "subflowGraphStructuralId": (
+                        node_seed.compiled_subflow_graph.graph_structural_id
+                        if node_seed.compiled_subflow_graph is not None
+                        else None
+                    ),
+                },
+            )
+            compiled_nodes.append(
+                CompiledNode(
+                    node_runtime_id=node_seed.node_runtime_id,
+                    node_structural_id=node_structural_id,
+                    node_type_name=node_seed.node_type_name,
+                    node_label=node_seed.node_label,
+                    node_runtime_ref=node_seed.node_runtime_ref,
+                    is_concurrent_subgraph=node_seed.is_concurrent_subgraph,
+                    is_subflow=node_seed.is_subflow,
+                    child_node_runtime_ids=node_seed.child_node_runtime_ids,
+                    compiled_subflow_graph=node_seed.compiled_subflow_graph,
+                )
+            )
+        return compiled_nodes
+
+    @staticmethod
+    def _build_compiled_edges(
+        graph_structural_id: str,
+        compiled_node_seeds: list[_CompiledNodeSeed],
+        compiled_nodes_by_runtime_id: Mapping[str, CompiledNode],
+        compiled_edge_seeds: list[_CompiledEdgeSeed],
+    ) -> list[CompiledEdge]:
+        node_ordinal_by_runtime_id = {
+            node_seed.node_runtime_id: ordinal
+            for ordinal, node_seed in enumerate(compiled_node_seeds)
+        }
+        compiled_edges: list[CompiledEdge] = []
+        for edge_seed in compiled_edge_seeds:
+            tail_node = compiled_nodes_by_runtime_id[edge_seed.tail_node_runtime_id]
+            head_node = compiled_nodes_by_runtime_id[edge_seed.head_node_runtime_id]
+            edge_structural_id = Graph._hash_structural_descriptor(
+                "edge",
+                {
+                    "graphStructuralId": graph_structural_id,
+                    "edgeOrdinal": edge_seed.edge_ordinal,
+                    "tailNodeOrdinal": node_ordinal_by_runtime_id[edge_seed.tail_node_runtime_id],
+                    "headNodeOrdinal": node_ordinal_by_runtime_id[edge_seed.head_node_runtime_id],
+                    "edgeConditionLabel": edge_seed.edge_condition_label,
+                },
+            )
+            compiled_edges.append(
+                CompiledEdge(
+                    edge_structural_id=edge_structural_id,
+                    edge_ordinal=edge_seed.edge_ordinal,
+                    tail_node_runtime_id=edge_seed.tail_node_runtime_id,
+                    tail_node_structural_id=tail_node.node_structural_id,
+                    head_node_runtime_id=edge_seed.head_node_runtime_id,
+                    head_node_structural_id=head_node.node_structural_id,
+                    edge_condition_label=edge_seed.edge_condition_label,
+                    edge_runtime_ref=edge_seed.edge_runtime_ref,
+                )
+            )
+        return compiled_edges
+
+    @staticmethod
+    def _freeze_outgoing_compiled_edges(
+        compiled_edges: list[CompiledEdge],
+    ) -> Mapping[str, tuple[CompiledEdge, ...]]:
+        outgoing_edge_map: dict[str, list[CompiledEdge]] = {}
+        for edge in compiled_edges:
+            outgoing_edge_map.setdefault(edge.tail_node_runtime_id, []).append(edge)
+        return MappingProxyType(
+            {
+                node_id: tuple(edges)
+                for node_id, edges in outgoing_edge_map.items()
+            }
+        )
+
+    @staticmethod
+    def _collect_reachable_node_runtime_ids(
+        source_node_runtime_id: str,
+        outgoing_compiled_edges_by_tail_runtime_id: Mapping[str, tuple[CompiledEdge, ...]],
+    ) -> frozenset[str]:
+        reachable_node_ids: set[str] = set()
+        queue: list[str] = [source_node_runtime_id]
+        while queue:
+            current_id = queue.pop(0)
+            if current_id in reachable_node_ids:
+                continue
+            reachable_node_ids.add(current_id)
+            for edge in outgoing_compiled_edges_by_tail_runtime_id.get(current_id, ()):
+                if edge.head_node_runtime_id not in reachable_node_ids:
+                    queue.append(edge.head_node_runtime_id)
+        return frozenset(reachable_node_ids)
+
+    def _compile(
+        self,
+        compiled_subflows: dict[str, CompiledGraph],
+        active_subflows: set[str],
+    ) -> CompiledGraph:
+        if self._compiled_graph is not None:
+            return self._compiled_graph
+
+        runtime_nodes_by_id: dict[str, Node | _NestableWorkflow] = {}
+        compiled_node_seeds_by_runtime_id: dict[str, _CompiledNodeSeed] = {}
+
+        self._register_compiled_node_seed(
+            self.source,
+            runtime_nodes_by_id,
+            compiled_node_seeds_by_runtime_id,
+            compiled_subflows,
+            active_subflows,
+        )
+        for sink in self.sinks:
+            self._register_compiled_node_seed(
+                sink,
+                runtime_nodes_by_id,
+                compiled_node_seeds_by_runtime_id,
+                compiled_subflows,
+                active_subflows,
+            )
+
+        compiled_edge_seeds = self._build_compiled_edge_seeds(
+            runtime_nodes_by_id,
+            compiled_node_seeds_by_runtime_id,
+            compiled_subflows,
+            active_subflows,
+        )
+        compiled_node_seeds = list(compiled_node_seeds_by_runtime_id.values())
+        graph_structural_id = self._build_graph_structural_id(
+            self.source.id,
+            tuple(sink.id for sink in self.sinks),
+            compiled_node_seeds,
+            compiled_edge_seeds,
+        )
+        compiled_nodes = self._build_compiled_nodes(
+            graph_structural_id,
+            compiled_node_seeds,
+        )
+        compiled_nodes_by_runtime_id = MappingProxyType(
+            {
+                compiled_node.node_runtime_id: compiled_node
+                for compiled_node in compiled_nodes
+            }
+        )
+        compiled_edges = self._build_compiled_edges(
+            graph_structural_id,
+            compiled_node_seeds,
+            compiled_nodes_by_runtime_id,
+            compiled_edge_seeds,
+        )
+        outgoing_compiled_edges_by_tail_runtime_id = self._freeze_outgoing_compiled_edges(
+            compiled_edges
+        )
+        reachable_node_runtime_ids = self._collect_reachable_node_runtime_ids(
+            self.source.id,
+            outgoing_compiled_edges_by_tail_runtime_id,
+        )
+
+        compiled_graph = CompiledGraph(
+            graph_structural_id=graph_structural_id,
+            source_node_runtime_id=self.source.id,
+            sink_node_runtime_ids=tuple(sink.id for sink in self.sinks),
+            compiled_nodes=tuple(compiled_nodes),
+            compiled_nodes_by_runtime_id=compiled_nodes_by_runtime_id,
+            compiled_edges=tuple(compiled_edges),
+            outgoing_compiled_edges_by_tail_runtime_id=outgoing_compiled_edges_by_tail_runtime_id,
+            reachable_node_runtime_ids=reachable_node_runtime_ids,
+        )
+        self._compiled_graph = compiled_graph
+        return compiled_graph
+
+    def compile(self) -> CompiledGraph:
+        """
+        Compile this graph into one canonical structural snapshot.
+
+        The compiled snapshot is cached per :class:`~junjo.Graph` instance and
+        becomes the structural source of truth for validation, traversal, and
+        serialization.
+
+        Compiling a graph does not execute node logic or evaluate edge
+        conditions. It only normalizes the graph structure into a single,
+        immutable representation.
+
+        :returns: The compiled structural snapshot for this graph instance.
+        :rtype: CompiledGraph
+        :raises GraphCompilationError: If Junjo cannot build a consistent
+            structural representation of the graph.
+        """
+        return self._compile(compiled_subflows={}, active_subflows=set())
+
+    @staticmethod
+    def _validate_compiled_sinks_have_no_outgoing_edges(compiled: CompiledGraph) -> None:
+        for sink_id in compiled.sink_node_runtime_ids:
+            if compiled.outgoing_compiled_edges_by_tail_runtime_id.get(sink_id):
+                sink_runtime = compiled.compiled_nodes_by_runtime_id[sink_id].node_runtime_ref
+                raise GraphValidationError(
+                    f"Declared sink '{sink_runtime}' has outgoing edges."
+                )
+
+    @staticmethod
+    def _validate_compiled_reachable_non_sink_nodes(compiled: CompiledGraph) -> None:
+        sink_ids = set(compiled.sink_node_runtime_ids)
+        for node_id in compiled.reachable_node_runtime_ids:
             if node_id in sink_ids:
                 continue
-            if not outgoing_edges.get(node_id):
+            if not compiled.outgoing_compiled_edges_by_tail_runtime_id.get(node_id):
+                node_runtime = compiled.compiled_nodes_by_runtime_id[node_id].node_runtime_ref
                 raise GraphValidationError(
-                    f"Reachable non-sink '{node}' dead-ends without an outgoing edge."
+                    "Reachable non-sink "
+                    f"'{node_runtime}' dead-ends without an outgoing edge."
                 )
 
-    def _validate_declared_sinks_are_reachable(
-        self,
-        reachable_nodes: dict[str, Node | _NestableWorkflow],
-    ) -> None:
-        for sink in self.sinks:
-            if sink.id not in reachable_nodes:
+    @staticmethod
+    def _validate_compiled_declared_sinks_are_reachable(compiled: CompiledGraph) -> None:
+        for sink_id in compiled.sink_node_runtime_ids:
+            if sink_id not in compiled.reachable_node_runtime_ids:
+                sink_runtime = compiled.compiled_nodes_by_runtime_id[sink_id].node_runtime_ref
                 raise GraphValidationError(
-                    f"Declared sink '{sink}' is unreachable from the source."
+                    f"Declared sink '{sink_runtime}' is unreachable from the source."
                 )
 
-    def _validate_nested_subflows(
+    def _validate_compiled_nested_subflows(
         self,
-        all_nodes: dict[str, Node | _NestableWorkflow],
+        compiled: CompiledGraph,
         validated_subflows: set[str],
     ) -> None:
-        for node in all_nodes.values():
-            if isinstance(node, _NestableWorkflow) and node.id not in validated_subflows:
-                validated_subflows.add(node.id)
-                node._graph_factory().validate(validated_subflows)
+        for node in compiled.compiled_nodes:
+            if not node.is_subflow or node.compiled_subflow_graph is None:
+                continue
+            if node.node_runtime_id in validated_subflows:
+                continue
+            validated_subflows.add(node.node_runtime_id)
+            self._validate_compiled_graph(node.compiled_subflow_graph, validated_subflows)
 
-    def validate(self, _validated_subflows: set[str] | None = None) -> None:
+    def _validate_compiled_graph(
+        self,
+        compiled: CompiledGraph,
+        validated_subflows: set[str],
+    ) -> None:
+        self._validate_compiled_sinks_have_no_outgoing_edges(compiled)
+        self._validate_compiled_reachable_non_sink_nodes(compiled)
+        self._validate_compiled_declared_sinks_are_reachable(compiled)
+        self._validate_compiled_nested_subflows(compiled, validated_subflows)
+
+    def validate(self) -> None:
         """
         Validate the graph's structural shape and declared terminal nodes.
 
@@ -255,16 +707,7 @@ class Graph:
         :raises GraphValidationError: If the graph shape violates Junjo's
             current validation rules.
         """
-        validated_subflows = set() if _validated_subflows is None else _validated_subflows
-        all_nodes = self._collect_structural_nodes()
-        outgoing_edges = self._build_outgoing_edges()
-
-        self._validate_sinks_have_no_outgoing_edges(outgoing_edges)
-
-        reachable_nodes = self._collect_reachable_nodes(outgoing_edges)
-        self._validate_reachable_non_sink_nodes(reachable_nodes, outgoing_edges)
-        self._validate_declared_sinks_are_reachable(reachable_nodes)
-        self._validate_nested_subflows(all_nodes, validated_subflows)
+        self._validate_compiled_graph(self.compile(), validated_subflows=set())
 
     async def get_next_node(self, store: BaseStore, current_node: Node | _NestableWorkflow) -> Node | _NestableWorkflow:
         """
@@ -292,9 +735,9 @@ class Graph:
         :returns: The next node or subflow in the graph.
         :rtype: Node | _NestableWorkflow
         """
-        matching_edges = [edge for edge in self.edges if edge.tail == current_node]
-        for edge in matching_edges:
-            resolved_edge = await edge.next_node(store)
+        compiled = self.compile()
+        for edge in compiled.outgoing_compiled_edges_by_tail_runtime_id.get(current_node.id, ()):
+            resolved_edge = await edge.edge_runtime_ref.next_node(store)
             if resolved_edge is not None:
                 return resolved_edge
 
@@ -311,130 +754,83 @@ class Graph:
         The serialized representation treats :class:`~junjo.RunConcurrent`
         instances as subgraphs and includes nested subflow graphs as well.
 
-        Nested subflow payloads include:
-
-        - ``subflowSourceId`` for the child graph's source
-        - ``subflowSinkIds`` for the child graph's explicit terminal nodes
+        The serialized payload includes explicit runtime and structural
+        identities for the graph, nodes, and edges. Nested subflow nodes also
+        include their child graph structural id plus explicit source and sink
+        runtime and structural ids.
 
         :returns: A JSON string containing the graph structure.
         :rtype: str
         :raises GraphSerializationError: If the graph payload cannot be
             converted into JSON.
         """
-        all_nodes_dict: dict[str, Node | _NestableWorkflow] = {} # Dictionary to store unique nodes found
-        all_edges_dict: dict[str, Edge] = {} # Dictionary to store all edges including subflow edges
-        processed_subflows: set[str] = set() # Track processed subflows to avoid recursion loops
-        subflow_graphs: dict[str, Graph] = {} # Cache one graph snapshot per subflow for this pass
+        compiled = self.compile()
+        nodes_json: list[dict] = []
+        edges_json: list[dict] = []
+        seen_node_runtime_ids: set[str] = set()
 
-        def get_subflow_graph(subflow: _NestableWorkflow) -> Graph:
-            if subflow.id not in subflow_graphs:
-                subflow_graphs[subflow.id] = subflow._graph_factory()
-            return subflow_graphs[subflow.id]
+        def collect_serialized_graph(
+            graph: CompiledGraph,
+            *,
+            parent_subflow_runtime_id: str | None = None,
+        ) -> None:
+            for node in graph.compiled_nodes:
+                if node.node_runtime_id not in seen_node_runtime_ids:
+                    node_info = {
+                        "nodeRuntimeId": node.node_runtime_id,
+                        "nodeStructuralId": node.node_structural_id,
+                        "nodeType": node.node_type_name,
+                        "nodeLabel": node.node_label,
+                    }
+                    if node.is_concurrent_subgraph:
+                        node_info["isConcurrentSubgraph"] = True
+                        node_info["childNodeRuntimeIds"] = list(node.child_node_runtime_ids)
+                    elif node.is_subflow and node.compiled_subflow_graph is not None:
+                        subflow_graph = node.compiled_subflow_graph
+                        node_info["isSubflow"] = True
+                        node_info["subflowGraphStructuralId"] = subflow_graph.graph_structural_id
+                        node_info["subflowSourceNodeRuntimeId"] = subflow_graph.source_node_runtime_id
+                        node_info["subflowSourceNodeStructuralId"] = (
+                            subflow_graph.compiled_nodes_by_runtime_id[
+                                subflow_graph.source_node_runtime_id
+                            ].node_structural_id
+                        )
+                        node_info["subflowSinkNodeRuntimeIds"] = list(subflow_graph.sink_node_runtime_ids)
+                        node_info["subflowSinkNodeStructuralIds"] = [
+                            subflow_graph.compiled_nodes_by_runtime_id[sink_runtime_id].node_structural_id
+                            for sink_runtime_id in subflow_graph.sink_node_runtime_ids
+                        ]
+                    nodes_json.append(node_info)
+                    seen_node_runtime_ids.add(node.node_runtime_id)
 
-        # Recursive helper function to find all nodes, including those inside RunConcurrent and Subflows
-        def collect_nodes(node: Node | _NestableWorkflow | None):
-            if node is None:
-                return
+                if node.is_subflow and node.compiled_subflow_graph is not None:
+                    collect_serialized_graph(
+                        node.compiled_subflow_graph,
+                        parent_subflow_runtime_id=node.node_runtime_id,
+                    )
 
-            # Skip if not a Node or _NestableWorkflow or doesn't have an ID
-            if not (isinstance(node, Node) or isinstance(node, _NestableWorkflow)) or not hasattr(node, 'id'):
-                print(f"Warning: Item '{node}' is not a valid Node or Workflow with an id, skipping collection.")
-                return
+            for edge in graph.compiled_edges:
+                edges_json.append(
+                    {
+                        "edgeStructuralId": edge.edge_structural_id,
+                        "tailNodeRuntimeId": edge.tail_node_runtime_id,
+                        "tailNodeStructuralId": edge.tail_node_structural_id,
+                        "headNodeRuntimeId": edge.head_node_runtime_id,
+                        "headNodeStructuralId": edge.head_node_structural_id,
+                        "edgeConditionLabel": edge.edge_condition_label,
+                        "edgeScope": (
+                            "subflow" if parent_subflow_runtime_id is not None else "explicit"
+                        ),
+                        "parentSubflowRuntimeId": parent_subflow_runtime_id,
+                    }
+                )
 
-            if node.id not in all_nodes_dict:
-                all_nodes_dict[node.id] = node
-
-                # If it's a RunConcurrent, recursively collect the items it contains
-                if isinstance(node, RunConcurrent) and hasattr(node, 'items'):
-                    for run_concurrent_item in node.items:
-                        collect_nodes(run_concurrent_item)
-
-                # If it's a Subflow (inherits from _NestableWorkflow), recursively collect its graph
-                elif isinstance(node, _NestableWorkflow) and node.id not in processed_subflows:
-                    processed_subflows.add(node.id)  # Mark as processed to avoid cycles
-
-                    # Collect subflow's source, sinks, and all nodes connected by edges.
-                    # Reuse a single graph snapshot for the entire serialization pass.
-                    subflow_graph = get_subflow_graph(node)
-                    collect_nodes(subflow_graph.source)
-                    for sink in subflow_graph.sinks:
-                        collect_nodes(sink)
-
-                    # Collect all edges from the subflow
-                    for i, edge in enumerate(subflow_graph.edges):
-                        # Create a unique ID for the subflow edge
-                        edge_id = f"subflow_{node.id}_edge_{edge.tail.id}_{edge.head.id}_{i}"
-                        all_edges_dict[edge_id] = edge
-                        collect_nodes(edge.tail)
-                        collect_nodes(edge.head)
-
-        # Collect edges from the main graph
-        for i, edge in enumerate(self.edges):
-            edge_id = f"edge_{edge.tail.id}_{edge.head.id}_{i}"
-            all_edges_dict[edge_id] = edge
-
-        # Start node collection
-        collect_nodes(self.source)
-        for sink in self.sinks:
-            collect_nodes(sink)
-        for edge in self.edges:
-            collect_nodes(edge.tail)
-            collect_nodes(edge.head)
-
-        # Create nodes list for JSON output
-        nodes_json = []
-        for _node_id, node in all_nodes_dict.items():
-            # Determine Label: Prioritize 'label', then 'name', then class name
-            label = getattr(node, 'label', None) or \
-                    getattr(node, 'name', None) or \
-                    node.__class__.__name__
-
-            node_info = {
-                "id": node.id,
-                "type": node.__class__.__name__,
-                "label": label
-            }
-
-            # Add subgraph representation for RunConcurrent
-            if isinstance(node, RunConcurrent):
-                node_info["isSubgraph"] = True
-                children_ids = [
-                    n.id for n in node.items
-                    if (isinstance(n, Node) or isinstance(n, _NestableWorkflow)) and hasattr(n, 'id')
-                ]
-                node_info["children"] = children_ids
-
-            # Add subflow representation for Subflows
-            elif isinstance(node, _NestableWorkflow):
-                node_info["isSubflow"] = True
-                subflow_graph = get_subflow_graph(node)
-                node_info["subflowSourceId"] = subflow_graph.source.id
-                node_info["subflowSinkIds"] = [sink.id for sink in subflow_graph.sinks]
-
-            nodes_json.append(node_info)
-
-        # Create explicit edges list for JSON output
-        edges_json = []
-        for edge_id, edge in all_edges_dict.items():
-            # Determine if this is a subflow edge
-            is_subflow_edge = edge_id.startswith("subflow_")
-            subflow_id = None
-            if is_subflow_edge:
-                # Extract the subflow ID from the edge_id (between "subflow_" and "_edge_")
-                subflow_id = edge_id.split("_edge_")[0].replace("subflow_", "")
-
-            edges_json.append({
-                "id": edge_id,
-                "source": str(edge.tail.id),
-                "target": str(edge.head.id),
-                "condition": str(edge.condition) if edge.condition else None,
-                "type": "subflow" if is_subflow_edge else "explicit",
-                "subflowId": subflow_id if is_subflow_edge else None
-            })
+        collect_serialized_graph(compiled)
 
         # Final graph dictionary structure
         graph_dict = {
             "v": 1, # Schema version
+            "graphStructuralId": compiled.graph_structural_id,
             "nodes": nodes_json,
             "edges": edges_json
         }
@@ -461,22 +857,22 @@ class Graph:
         graph: dict,
         edge_filter: Callable[[dict], bool],
     ) -> tuple[dict[str, dict], list[dict], set[str], dict[str, dict], dict[str, str], dict[str, str]]:
-        nodes_by_id = {node["id"]: node for node in graph["nodes"]}
+        nodes_by_id = {node["nodeRuntimeId"]: node for node in graph["nodes"]}
         edges = [edge for edge in graph["edges"] if edge_filter(edge)]
 
         node_ids: set[str] = set()
         for edge in edges:
-            node_ids.update((edge["source"], edge["target"]))
+            node_ids.update((edge["tailNodeRuntimeId"], edge["headNodeRuntimeId"]))
 
         for node_id in list(node_ids):
             node = nodes_by_id.get(node_id)
-            if node and node.get("isSubgraph"):
-                node_ids.update(node["children"])
+            if node and node.get("isConcurrentSubgraph"):
+                node_ids.update(node["childNodeRuntimeIds"])
 
         clusters = {
-            node["id"]: node
+            node["nodeRuntimeId"]: node
             for node in graph["nodes"]
-            if node.get("isSubgraph") and node["id"] in node_ids
+            if node.get("isConcurrentSubgraph") and node["nodeRuntimeId"] in node_ids
         }
         entry_anchor = {cluster_id: f"{cluster_id}__entry" for cluster_id in clusters}
         exit_anchor = {cluster_id: f"{cluster_id}__exit" for cluster_id in clusters}
@@ -514,14 +910,14 @@ class Graph:
         append = output.append
         for cluster_id, cluster_node in clusters.items():
             append(f'  subgraph "cluster_{cluster_id}" {{')
-            append(f'    label="{self._safe_label(cluster_node["label"])} (Concurrent)";')
+            append(f'    label="{self._safe_label(cluster_node["nodeLabel"])} (Concurrent)";')
             append('    style="filled"; fillcolor="lightblue"; color="blue";')
             append('    node [fillcolor="lightblue", style="filled,rounded"];')
             append(f'    "{entry_anchor[cluster_id]}" [label="", shape=point, width=0.01, style=invis];')
             append(f'    "{exit_anchor[cluster_id]}"  [label="", shape=point, width=0.01, style=invis];')
-            for child_id in cluster_node["children"]:
+            for child_id in cluster_node["childNodeRuntimeIds"]:
                 child = nodes_by_id[child_id]
-                append(f'    {self._q(child_id)} [label="{self._safe_label(child["label"])}"];')
+                append(f'    {self._q(child_id)} [label="{self._safe_label(child["nodeLabel"])}"];')
             append("  }")
 
     def _append_dot_nodes(
@@ -538,20 +934,20 @@ class Graph:
             node = nodes_by_id[node_id]
             if node.get("isSubflow"):
                 append(
-                    f'  {self._q(node_id)} [label="{self._safe_label(node["label"])}", '
+                    f'  {self._q(node_id)} [label="{self._safe_label(node["nodeLabel"])}", '
                     'shape=component, style="filled,rounded", fillcolor="lightyellow"];'
                 )
             else:
-                append(f'  {self._q(node_id)} [label="{self._safe_label(node["label"])}"];')
+                append(f'  {self._q(node_id)} [label="{self._safe_label(node["nodeLabel"])}"];')
 
     def _dot_edge_attrs(self, edge: dict, clusters: dict[str, dict]) -> list[str]:
         attrs: list[str] = []
-        if edge["source"] in clusters:
-            attrs.append(f'ltail="cluster_{edge["source"]}"')
-        if edge["target"] in clusters:
-            attrs.append(f'lhead="cluster_{edge["target"]}"')
-        if edge.get("condition"):
-            attrs.extend(('style="dashed"', f'label="{self._safe_label(edge["condition"])}"'))
+        if edge["tailNodeRuntimeId"] in clusters:
+            attrs.append(f'ltail="cluster_{edge["tailNodeRuntimeId"]}"')
+        if edge["headNodeRuntimeId"] in clusters:
+            attrs.append(f'lhead="cluster_{edge["headNodeRuntimeId"]}"')
+        if edge.get("edgeConditionLabel"):
+            attrs.extend(('style="dashed"', f'label="{self._safe_label(edge["edgeConditionLabel"])}"'))
         else:
             attrs.append('style="solid"')
         return attrs
@@ -567,14 +963,14 @@ class Graph:
         append = output.append
         for edge in edges:
             src = self._dot_anchor(
-                edge["source"],
+                edge["tailNodeRuntimeId"],
                 is_src=True,
                 clusters=clusters,
                 entry_anchor=entry_anchor,
                 exit_anchor=exit_anchor,
             )
             target = self._dot_anchor(
-                edge["target"],
+                edge["headNodeRuntimeId"],
                 is_src=False,
                 clusters=clusters,
                 entry_anchor=entry_anchor,
@@ -611,18 +1007,21 @@ class Graph:
             self._render_dot_graph(
                 graph=graph,
                 graph_name="G",
-                edge_filter=lambda edge: edge["type"] == "explicit",
+                edge_filter=lambda edge: edge["edgeScope"] == "explicit",
             )
         ]
 
         subflows = [node for node in graph["nodes"] if node.get("isSubflow")]
         for subflow in subflows:
-            subflow_id = subflow["id"]
+            subflow_id = subflow["nodeRuntimeId"]
             dot_parts.append(
                 self._render_dot_graph(
                     graph=graph,
                     graph_name=f"subflow_{subflow_id}",
-                    edge_filter=lambda edge, sid=subflow_id: edge["type"] == "subflow" and edge["subflowId"] == sid,
+                    edge_filter=lambda edge, sid=subflow_id: (
+                        edge["edgeScope"] == "subflow"
+                        and edge["parentSubflowRuntimeId"] == sid
+                    ),
                 )
             )
 
@@ -674,7 +1073,7 @@ class Graph:
         json_graph = json.loads(self.serialize_to_json_string())
         for node in json_graph["nodes"]:
             if node.get("isSubflow"):
-                label_lookup[f"subflow_{node['id']}"] = node["label"]
+                label_lookup[f"subflow_{node['nodeRuntimeId']}"] = node["nodeLabel"]
         return label_lookup
 
     @staticmethod

@@ -191,8 +191,7 @@ async def test_workflow_execute_validates_graph_before_running_by_default() -> N
     with pytest.raises(GraphValidationError, match="dead-ends without an outgoing edge"):
         await workflow.execute()
 
-    assert len(created_stores) == 1
-    assert (await created_stores[0].get_state()).steps == []
+    assert len(created_stores) == 0
 
 
 @pytest.mark.asyncio

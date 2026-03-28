@@ -10,6 +10,9 @@ execution telemetry.
 from .condition import Condition
 from .edge import Edge
 from .graph import (
+    CompiledEdge,
+    CompiledGraph,
+    CompiledNode,
     Graph,
     GraphCompilationError,
     GraphRenderError,
@@ -33,6 +36,9 @@ from .workflow import (
 __all__ = [
     "Condition",
     "Graph",
+    "CompiledGraph",
+    "CompiledNode",
+    "CompiledEdge",
     "GraphValidationError",
     "GraphCompilationError",
     "GraphSerializationError",

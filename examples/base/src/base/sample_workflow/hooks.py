@@ -17,7 +17,12 @@ def _base_event_details(event: LifecycleEvent) -> dict:
         "hook_name": event.hook_name,
         "name": event.name,
         "run_id": event.run_id,
-        "definition_id": event.definition_id,
+        "executable_definition_id": event.executable_definition_id,
+        "executable_runtime_id": event.executable_runtime_id,
+        "executable_structural_id": event.executable_structural_id,
+        "enclosing_graph_structural_id": event.enclosing_graph_structural_id,
+        "parent_executable_runtime_id": event.parent_executable_runtime_id,
+        "parent_executable_structural_id": event.parent_executable_structural_id,
         "trace_id": event.trace_id,
         "span_id": event.span_id,
         "span_type": event.span_type,
@@ -28,7 +33,7 @@ def _base_event_details(event: LifecycleEvent) -> dict:
 def _format_event_details(event: LifecycleEvent) -> dict:
     details = _base_event_details(event)
     for attribute in (
-        "parent_definition_id",
+        "parent_executable_definition_id",
         "store_id",
         "graph_json",
         "patch",

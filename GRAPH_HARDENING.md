@@ -34,6 +34,9 @@ store correctness, hooks, and telemetry hardening are tracked elsewhere.
   fresh graph by default before any nodes run.
 - Validation can be disabled per execution with ``validate_graph=False`` for
   targeted tests and debugging.
+- ``Graph.compile()`` now builds one canonical compiled graph snapshot per
+  graph instance, and validation, traversal adjacency, and serialization all
+  consume that shared structural representation.
 
 ## Terminology Decisions
 
@@ -78,20 +81,21 @@ documented, validated where possible, and tested directly.
 
 These are the graph-specific issues that still need to be addressed.
 
-### 1. Topology Validation Is Still Incomplete
+### 1. Rendering Still Lacks A Hardened Structural Source
 
-Junjo now has a real validation phase and enforces it by default at execution
-time, but validation is not yet backed by a canonical compiled graph snapshot.
+The core graph layer now compiles to one canonical structural snapshot, but
+Graphviz and future Mermaid output still route through serialized JSON rather
+than rendering directly from the compiled model.
 
-### 2. Rendering Still Lacks A Hardened Structural Source
-
-Graphviz and future Mermaid rendering still depend on the current serialization
-path rather than a canonical compiled graph model.
-
-### 3. Structural IDs Are Still Missing
+### 2. Structural IDs Are Still Missing
 
 Runtime IDs remain execution-unique, but Junjo still lacks stable structural
 IDs for graph-shape identity across repeated factory calls.
+
+Status: in progress. Compiled graphs now emit deterministic graph, node, and
+edge structural IDs, and serialized graph payloads carry explicit runtime and
+structural identity fields. Remaining work is to propagate those identities
+through telemetry and rendering more completely.
 
 ## Design Direction
 
@@ -117,7 +121,19 @@ Structural IDs should be:
 This means the graph layer should stop treating runtime IDs as the only graph
 identity available.
 
+Identity keys should also be self-describing without requiring surrounding
+context. Public field names and telemetry attributes should say both what they
+identify and what kind of identity they carry. Examples:
+
+- ``graph_structural_id``
+- ``node_structural_id``
+- ``edge_structural_id``
+- ``junjo.executable_runtime_id``
+- ``junjo.parent_executable_structural_id``
+
 ### 2. Introduce A Canonical Compiled Graph Snapshot
+
+Status: complete
 
 Junjo should compile a graph definition into one canonical structural snapshot
 before:
@@ -259,7 +275,7 @@ Status: complete
 
 ### Phase 2 - Explicit Terminal Nodes
 
-Status: partially complete
+Status: complete
 
 ### Scope
 
@@ -277,7 +293,7 @@ Status: partially complete
 
 ### Phase 3 - Graph Compilation And Validation
 
-Status: partially complete
+Status: mostly complete
 
 ### Scope
 
@@ -291,18 +307,18 @@ Status: partially complete
 
 - invalid graphs fail before traversal where possible
 - traversal semantics are explicit and documented
-- compiled graph shape is reusable across validation and rendering
+- compiled graph shape is reusable across validation and serialization
 
 ### Phase 4 - Structural IDs
 
-Status: desired enhancement
+Status: in progress
 
 ### Scope
 
-- add stable structural IDs for nodes and edges
+- add stable structural IDs for graphs, nodes, and edges
 - keep runtime IDs for execution uniqueness
 - include both runtime and structural IDs in telemetry-facing graph payloads
-  when useful
+- expose explicit runtime and structural identity names in hooks and telemetry
 - use structural IDs for graph rendering and diffing
 
 ### Exit Criteria
@@ -310,6 +326,7 @@ Status: desired enhancement
 - the same graph shape produces the same structural IDs across runs
 - runtime IDs remain unique for telemetry
 - graph-shape identity is separable from execution identity
+- telemetry and hooks expose explicit runtime and structural identity fields
 
 ### Phase 5 - Rendering Hardening
 

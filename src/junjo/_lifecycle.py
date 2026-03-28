@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeVar
 
@@ -16,6 +19,43 @@ if TYPE_CHECKING:
 
 
 StateT = TypeVar("StateT", bound="BaseState")
+_ACTIVE_EXECUTABLE_STACK: ContextVar[tuple[ActiveExecutableIdentity, ...]] = ContextVar(
+    "junjo_active_executable_stack",
+    default=(),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ActiveExecutableIdentity:
+    executable_definition_id: str
+    executable_runtime_id: str
+    executable_structural_id: str
+
+
+@contextmanager
+def active_executable_identity(
+    identity: ActiveExecutableIdentity,
+):
+    stack = _ACTIVE_EXECUTABLE_STACK.get()
+    token = _ACTIVE_EXECUTABLE_STACK.set((*stack, identity))
+    try:
+        yield
+    finally:
+        _ACTIVE_EXECUTABLE_STACK.reset(token)
+
+
+def get_active_executable_identity() -> ActiveExecutableIdentity | None:
+    stack = _ACTIVE_EXECUTABLE_STACK.get()
+    if not stack:
+        return None
+    return stack[-1]
+
+
+def get_parent_active_executable_identity() -> ActiveExecutableIdentity | None:
+    stack = _ACTIVE_EXECUTABLE_STACK.get()
+    if len(stack) < 2:
+        return None
+    return stack[-2]
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,9 +68,13 @@ class PreparedHookEvent:
 class StoreLifecycleContext:
     dispatcher: LifecycleDispatcher
     run_id: str
-    definition_id: str
+    executable_definition_id: str
     name: str
     span_type: JunjoOtelSpanTypes
+    executable_runtime_id: str
+    executable_structural_id: str
+    enclosing_graph_structural_id: str
+    compiled_node_structural_ids_by_runtime_id: Mapping[str, str]
 
 
 class LifecycleDispatcher:
@@ -53,24 +97,34 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
         span_type: JunjoOtelSpanTypes,
         store_id: str,
         graph_json: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> None:
         event_name = "subflow_started" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_started"
         event_kwargs = {
             "run_id": run_id,
-            "definition_id": definition_id,
+            "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
             "span_type": span_type,
             "store_id": store_id,
             "graph_json": graph_json,
+            "executable_runtime_id": executable_runtime_id,
+            "executable_structural_id": executable_structural_id,
+            "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_runtime_id": parent_executable_runtime_id,
+            "parent_executable_structural_id": parent_executable_structural_id,
         }
         event = (
             hook_events.SubflowStartedEvent(**event_kwargs)
@@ -83,26 +137,36 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
         span_type: JunjoOtelSpanTypes,
         result: ExecutionResult[StateT],
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
         event_name = "subflow_completed" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_completed"
         event_kwargs = {
             "run_id": run_id,
-            "definition_id": definition_id,
+            "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
             "span_type": span_type,
             "result": result,
             "store_id": store_id,
+            "executable_runtime_id": executable_runtime_id,
+            "executable_structural_id": executable_structural_id,
+            "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_runtime_id": parent_executable_runtime_id,
+            "parent_executable_structural_id": parent_executable_structural_id,
         }
         event = (
             hook_events.SubflowCompletedEvent(**event_kwargs)
@@ -115,7 +179,7 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
         span_type: JunjoOtelSpanTypes,
         error: Exception,
@@ -123,13 +187,18 @@ class LifecycleDispatcher:
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
         event_name = "subflow_failed" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_failed"
         event_kwargs = {
             "run_id": run_id,
-            "definition_id": definition_id,
+            "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
@@ -137,6 +206,11 @@ class LifecycleDispatcher:
             "error": error,
             "state": state,
             "store_id": store_id,
+            "executable_runtime_id": executable_runtime_id,
+            "executable_structural_id": executable_structural_id,
+            "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_runtime_id": parent_executable_runtime_id,
+            "parent_executable_structural_id": parent_executable_structural_id,
         }
         event = (
             hook_events.SubflowFailedEvent(**event_kwargs)
@@ -149,7 +223,7 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
         span_type: JunjoOtelSpanTypes,
         reason: str,
@@ -157,13 +231,18 @@ class LifecycleDispatcher:
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
         event_name = "subflow_cancelled" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_cancelled"
         event_kwargs = {
             "run_id": run_id,
-            "definition_id": definition_id,
+            "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
@@ -171,6 +250,11 @@ class LifecycleDispatcher:
             "reason": reason,
             "state": state,
             "store_id": store_id,
+            "executable_runtime_id": executable_runtime_id,
+            "executable_structural_id": executable_structural_id,
+            "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_runtime_id": parent_executable_runtime_id,
+            "parent_executable_structural_id": parent_executable_structural_id,
         }
         event = (
             hook_events.SubflowCancelledEvent(**event_kwargs)
@@ -183,25 +267,35 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> None:
         await self.dispatch(
             PreparedHookEvent(
                 "node_started",
                 hook_events.NodeStartedEvent(
                     run_id=run_id,
-                    definition_id=definition_id,
+                    executable_definition_id=executable_definition_id,
                     name=name,
                     trace_id=trace_id,
                     span_id=span_id,
                     span_type=JunjoOtelSpanTypes.NODE,
-                    parent_definition_id=parent_definition_id,
+                    parent_executable_definition_id=parent_executable_definition_id,
                     store_id=store_id,
+                    executable_runtime_id=executable_runtime_id,
+                    executable_structural_id=executable_structural_id,
+                    enclosing_graph_structural_id=enclosing_graph_structural_id,
+                    parent_executable_runtime_id=parent_executable_runtime_id,
+                    parent_executable_structural_id=parent_executable_structural_id,
                 ),
             )
         )
@@ -210,12 +304,17 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
@@ -223,13 +322,18 @@ class LifecycleDispatcher:
             "node_completed",
             hook_events.NodeCompletedEvent(
                 run_id=run_id,
-                definition_id=definition_id,
+                executable_definition_id=executable_definition_id,
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
                 span_type=JunjoOtelSpanTypes.NODE,
-                parent_definition_id=parent_definition_id,
+                parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
+                executable_runtime_id=executable_runtime_id,
+                executable_structural_id=executable_structural_id,
+                enclosing_graph_structural_id=enclosing_graph_structural_id,
+                parent_executable_runtime_id=parent_executable_runtime_id,
+                parent_executable_structural_id=parent_executable_structural_id,
             ),
         )
 
@@ -237,13 +341,18 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
         error: Exception,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
@@ -251,14 +360,19 @@ class LifecycleDispatcher:
             "node_failed",
             hook_events.NodeFailedEvent(
                 run_id=run_id,
-                definition_id=definition_id,
+                executable_definition_id=executable_definition_id,
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
                 span_type=JunjoOtelSpanTypes.NODE,
-                parent_definition_id=parent_definition_id,
+                parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 error=error,
+                executable_runtime_id=executable_runtime_id,
+                executable_structural_id=executable_structural_id,
+                enclosing_graph_structural_id=enclosing_graph_structural_id,
+                parent_executable_runtime_id=parent_executable_runtime_id,
+                parent_executable_structural_id=parent_executable_structural_id,
             ),
         )
 
@@ -266,13 +380,18 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
         reason: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
@@ -280,14 +399,19 @@ class LifecycleDispatcher:
             "node_cancelled",
             hook_events.NodeCancelledEvent(
                 run_id=run_id,
-                definition_id=definition_id,
+                executable_definition_id=executable_definition_id,
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
                 span_type=JunjoOtelSpanTypes.NODE,
-                parent_definition_id=parent_definition_id,
+                parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 reason=reason,
+                executable_runtime_id=executable_runtime_id,
+                executable_structural_id=executable_structural_id,
+                enclosing_graph_structural_id=enclosing_graph_structural_id,
+                parent_executable_runtime_id=parent_executable_runtime_id,
+                parent_executable_structural_id=parent_executable_structural_id,
             ),
         )
 
@@ -295,25 +419,35 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> None:
         await self.dispatch(
             PreparedHookEvent(
                 "run_concurrent_started",
                 hook_events.RunConcurrentStartedEvent(
                     run_id=run_id,
-                    definition_id=definition_id,
+                    executable_definition_id=executable_definition_id,
                     name=name,
                     trace_id=trace_id,
                     span_id=span_id,
                     span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
-                    parent_definition_id=parent_definition_id,
+                    parent_executable_definition_id=parent_executable_definition_id,
                     store_id=store_id,
+                    executable_runtime_id=executable_runtime_id,
+                    executable_structural_id=executable_structural_id,
+                    enclosing_graph_structural_id=enclosing_graph_structural_id,
+                    parent_executable_runtime_id=parent_executable_runtime_id,
+                    parent_executable_structural_id=parent_executable_structural_id,
                 ),
             )
         )
@@ -322,12 +456,17 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
@@ -335,13 +474,18 @@ class LifecycleDispatcher:
             "run_concurrent_completed",
             hook_events.RunConcurrentCompletedEvent(
                 run_id=run_id,
-                definition_id=definition_id,
+                executable_definition_id=executable_definition_id,
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
                 span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
-                parent_definition_id=parent_definition_id,
+                parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
+                executable_runtime_id=executable_runtime_id,
+                executable_structural_id=executable_structural_id,
+                enclosing_graph_structural_id=enclosing_graph_structural_id,
+                parent_executable_runtime_id=parent_executable_runtime_id,
+                parent_executable_structural_id=parent_executable_structural_id,
             ),
         )
 
@@ -349,13 +493,18 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
         error: Exception,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
@@ -363,14 +512,19 @@ class LifecycleDispatcher:
             "run_concurrent_failed",
             hook_events.RunConcurrentFailedEvent(
                 run_id=run_id,
-                definition_id=definition_id,
+                executable_definition_id=executable_definition_id,
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
                 span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
-                parent_definition_id=parent_definition_id,
+                parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 error=error,
+                executable_runtime_id=executable_runtime_id,
+                executable_structural_id=executable_structural_id,
+                enclosing_graph_structural_id=enclosing_graph_structural_id,
+                parent_executable_runtime_id=parent_executable_runtime_id,
+                parent_executable_structural_id=parent_executable_structural_id,
             ),
         )
 
@@ -378,13 +532,18 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         store_id: str,
         trace_id: str,
         span_id: str,
         reason: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> PreparedHookEvent | None:
         if self._hooks is None:
             return None
@@ -392,14 +551,19 @@ class LifecycleDispatcher:
             "run_concurrent_cancelled",
             hook_events.RunConcurrentCancelledEvent(
                 run_id=run_id,
-                definition_id=definition_id,
+                executable_definition_id=executable_definition_id,
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
                 span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
-                parent_definition_id=parent_definition_id,
+                parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 reason=reason,
+                executable_runtime_id=executable_runtime_id,
+                executable_structural_id=executable_structural_id,
+                enclosing_graph_structural_id=enclosing_graph_structural_id,
+                parent_executable_runtime_id=parent_executable_runtime_id,
+                parent_executable_structural_id=parent_executable_structural_id,
             ),
         )
 
@@ -407,7 +571,7 @@ class LifecycleDispatcher:
         self,
         *,
         run_id: str,
-        definition_id: str,
+        executable_definition_id: str,
         name: str,
         span_type: JunjoOtelSpanTypes,
         store_id: str,
@@ -415,16 +579,21 @@ class LifecycleDispatcher:
         action_name: str,
         patch: str,
         state: StateT,
-        parent_definition_id: str,
+        parent_executable_definition_id: str,
         trace_id: str,
         span_id: str,
+        executable_runtime_id: str,
+        executable_structural_id: str,
+        enclosing_graph_structural_id: str,
+        parent_executable_runtime_id: str | None,
+        parent_executable_structural_id: str | None,
     ) -> None:
         await self.dispatch(
             PreparedHookEvent(
                 "state_changed",
                 hook_events.StateChangedEvent(
                     run_id=run_id,
-                    definition_id=definition_id,
+                    executable_definition_id=executable_definition_id,
                     name=name,
                     trace_id=trace_id,
                     span_id=span_id,
@@ -434,7 +603,12 @@ class LifecycleDispatcher:
                     action_name=action_name,
                     patch=patch,
                     state=state,
-                    parent_definition_id=parent_definition_id,
+                    parent_executable_definition_id=parent_executable_definition_id,
+                    executable_runtime_id=executable_runtime_id,
+                    executable_structural_id=executable_structural_id,
+                    enclosing_graph_structural_id=enclosing_graph_structural_id,
+                    parent_executable_runtime_id=parent_executable_runtime_id,
+                    parent_executable_structural_id=parent_executable_structural_id,
                 ),
             )
         )
@@ -461,6 +635,36 @@ class LifecycleDispatcher:
             span.set_attribute("junjo.trace_id", event.trace_id)
             span.set_attribute("junjo.span_id", event.span_id)
             span.set_attribute("junjo.run_id", event.run_id)
-            span.set_attribute("junjo.definition_id", event.definition_id)
+            span.set_attribute(
+                "junjo.executable_definition_id",
+                event.executable_definition_id,
+            )
+            if "parent_executable_definition_id" in type(event).__dataclass_fields__:
+                span.set_attribute(
+                    "junjo.parent_executable_definition_id",
+                    event.parent_executable_definition_id,  # type: ignore[attr-defined]
+                )
+            span.set_attribute(
+                "junjo.executable_runtime_id",
+                event.executable_runtime_id,
+            )
+            span.set_attribute(
+                "junjo.executable_structural_id",
+                event.executable_structural_id,
+            )
+            span.set_attribute(
+                "junjo.enclosing_graph_structural_id",
+                event.enclosing_graph_structural_id,
+            )
+            if event.parent_executable_runtime_id is not None:
+                span.set_attribute(
+                    "junjo.parent_executable_runtime_id",
+                    event.parent_executable_runtime_id,
+                )
+            if event.parent_executable_structural_id is not None:
+                span.set_attribute(
+                    "junjo.parent_executable_structural_id",
+                    event.parent_executable_structural_id,
+                )
             span.set_status(trace.StatusCode.ERROR, str(exc))
             span.record_exception(exc)

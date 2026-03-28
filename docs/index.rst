@@ -23,6 +23,7 @@
    docker_reference
    deployment
    opentelemetry
+   ai_studio_migration_checklist
 
 .. toctree::
    :maxdepth: 1

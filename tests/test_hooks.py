@@ -1,5 +1,6 @@
 import builtins
 import importlib
+import json
 
 import pytest
 from opentelemetry import trace
@@ -60,13 +61,17 @@ def span_exporter(monkeypatch: pytest.MonkeyPatch) -> InMemorySpanExporter:
 
 
 def create_simple_workflow(*, hooks: Hooks | None = None) -> Workflow[HookState, HookStore]:
-    node = HookNode()
     return Workflow[HookState, HookStore](
         name="Hook Workflow",
-        graph_factory=lambda: Graph(source=node, sinks=[node], edges=[]),
+        graph_factory=lambda: _create_single_node_graph(),
         store_factory=lambda: HookStore(initial_state=HookState()),
         hooks=hooks,
     )
+
+
+def _create_single_node_graph() -> Graph:
+    node = HookNode()
+    return Graph(source=node, sinks=[node], edges=[])
 
 
 @pytest.mark.asyncio
@@ -121,9 +126,29 @@ async def test_workflow_and_node_hooks_emit_expected_lifecycle_payloads() -> Non
     assert node_completed.hook_name == "node_completed"
     assert workflow_completed.hook_name == "workflow_completed"
     assert workflow_started.run_id == result.run_id
+    assert workflow_started.executable_definition_id == workflow.id
+    assert workflow_started.executable_runtime_id == result.run_id
+    assert workflow_started.executable_structural_id.startswith("graph_")
+    assert (
+        workflow_started.enclosing_graph_structural_id
+        == workflow_started.executable_structural_id
+    )
+    assert workflow_started.parent_executable_runtime_id is None
     assert node_started.run_id == result.run_id
-    assert node_started.parent_definition_id == workflow.id
-    assert node_completed.parent_definition_id == workflow.id
+    assert node_started.executable_runtime_id != result.run_id
+    assert node_started.executable_structural_id.startswith("node_")
+    assert (
+        node_started.enclosing_graph_structural_id
+        == workflow_started.enclosing_graph_structural_id
+    )
+    assert node_started.parent_executable_definition_id == workflow.id
+    assert node_completed.parent_executable_definition_id == workflow.id
+    assert node_started.parent_executable_runtime_id == result.run_id
+    assert (
+        node_started.parent_executable_structural_id
+        == workflow_started.executable_structural_id
+    )
+    assert node_completed.executable_structural_id == node_started.executable_structural_id
     assert workflow_completed.result == result
     assert workflow_completed.store_id == workflow_started.store_id
 
@@ -131,12 +156,17 @@ async def test_workflow_and_node_hooks_emit_expected_lifecycle_payloads() -> Non
 @pytest.mark.asyncio
 async def test_subflow_and_run_concurrent_hooks_are_distinct() -> None:
     hooks = Hooks()
-    seen: list[str] = []
+    seen: list[tuple[str, object]] = []
+    runtime_ids: dict[str, str] = {}
 
-    hooks.on_subflow_started(lambda event: seen.append("subflow_started"))
-    hooks.on_subflow_completed(lambda event: seen.append("subflow_completed"))
-    hooks.on_run_concurrent_started(lambda event: seen.append("run_concurrent_started"))
-    hooks.on_run_concurrent_completed(lambda event: seen.append("run_concurrent_completed"))
+    hooks.on_subflow_started(lambda event: seen.append(("subflow_started", event)))
+    hooks.on_subflow_completed(lambda event: seen.append(("subflow_completed", event)))
+    hooks.on_run_concurrent_started(
+        lambda event: seen.append(("run_concurrent_started", event))
+    )
+    hooks.on_run_concurrent_completed(
+        lambda event: seen.append(("run_concurrent_completed", event))
+    )
 
     subflow_node = HookNode()
     subflow = ExampleSubflow(
@@ -151,6 +181,7 @@ async def test_subflow_and_run_concurrent_hooks_are_distinct() -> None:
             name="Parallel Work",
             items=[subflow, NoopNode()],
         )
+        runtime_ids["run_concurrent"] = run_concurrent.id
         return Graph(source=run_concurrent, sinks=[run_concurrent], edges=[])
 
     workflow = Workflow[HookState, HookStore](
@@ -162,12 +193,24 @@ async def test_subflow_and_run_concurrent_hooks_are_distinct() -> None:
 
     await workflow.execute()
 
-    assert seen == [
+    assert [name for name, _ in seen] == [
         "run_concurrent_started",
         "subflow_started",
         "subflow_completed",
         "run_concurrent_completed",
     ]
+    run_concurrent_started = seen[0][1]
+    subflow_started = seen[1][1]
+
+    assert run_concurrent_started.executable_runtime_id == runtime_ids["run_concurrent"]
+    assert run_concurrent_started.executable_structural_id.startswith("node_")
+    assert subflow_started.parent_executable_runtime_id == runtime_ids["run_concurrent"]
+    assert (
+        subflow_started.parent_executable_structural_id
+        == run_concurrent_started.executable_structural_id
+    )
+    assert subflow_started.executable_runtime_id != runtime_ids["run_concurrent"]
+    assert subflow_started.executable_structural_id.startswith("graph_")
 
 
 @pytest.mark.asyncio
@@ -210,9 +253,106 @@ async def test_on_state_changed_delivers_patch_and_detached_snapshot() -> None:
     assert event.store_name == "HookStore"
     assert event.action_name == "append_step"
     assert event.patch != "{}"
-    assert event.parent_definition_id == result.definition_id
+    assert event.parent_executable_definition_id == result.definition_id
+    assert event.executable_runtime_id != result.run_id
+    assert event.executable_structural_id.startswith("node_")
+    assert event.enclosing_graph_structural_id.startswith("graph_")
+    assert event.parent_executable_runtime_id == result.run_id
+    assert event.parent_executable_structural_id == event.enclosing_graph_structural_id
     assert event.state.steps == ["HookNode", "hook-mutated"]
     assert result.state.steps == ["HookNode"]
+
+
+@pytest.mark.asyncio
+async def test_spans_emit_explicit_runtime_and_structural_identity_attributes(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    result = await create_simple_workflow().execute()
+
+    spans = {span.name: span for span in span_exporter.get_finished_spans()}
+    workflow_span = spans["Hook Workflow"]
+    node_span = spans["HookNode"]
+
+    assert "junjo.id" not in workflow_span.attributes
+    assert "junjo.parent_id" not in workflow_span.attributes
+    assert "junjo.id" not in node_span.attributes
+    assert "junjo.parent_id" not in node_span.attributes
+    assert "junjo.workflow.graph_structure" not in workflow_span.attributes
+    assert "junjo.workflow.execution_graph_snapshot" in workflow_span.attributes
+
+    assert workflow_span.attributes["junjo.executable_runtime_id"] == result.run_id
+    assert (
+        workflow_span.attributes["junjo.executable_structural_id"]
+        == workflow_span.attributes["junjo.enclosing_graph_structural_id"]
+    )
+    assert str(workflow_span.attributes["junjo.executable_structural_id"]).startswith(
+        "graph_"
+    )
+
+    assert node_span.attributes["junjo.executable_runtime_id"] != result.run_id
+    assert str(node_span.attributes["junjo.executable_structural_id"]).startswith(
+        "node_"
+    )
+    assert node_span.attributes["junjo.parent_executable_runtime_id"] == result.run_id
+    assert (
+        node_span.attributes["junjo.parent_executable_structural_id"]
+        == workflow_span.attributes["junjo.executable_structural_id"]
+    )
+    assert (
+        node_span.attributes["junjo.enclosing_graph_structural_id"]
+        == workflow_span.attributes["junjo.enclosing_graph_structural_id"]
+    )
+
+    execution_graph_snapshot = json.loads(
+        str(workflow_span.attributes["junjo.workflow.execution_graph_snapshot"])
+    )
+    assert execution_graph_snapshot["graphStructuralId"].startswith("graph_")
+    assert execution_graph_snapshot["nodes"][0]["nodeRuntimeId"] == node_span.attributes[
+        "junjo.executable_runtime_id"
+    ]
+    assert execution_graph_snapshot["nodes"][0]["nodeStructuralId"] == node_span.attributes[
+        "junjo.executable_structural_id"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_same_workflow_definition_rotates_runtime_ids_but_preserves_structural_ids() -> None:
+    hooks = Hooks()
+    workflow_events = []
+    node_events = []
+
+    hooks.on_workflow_started(lambda event: workflow_events.append(event))
+    hooks.on_node_started(lambda event: node_events.append(event))
+
+    workflow = create_simple_workflow(hooks=hooks)
+
+    first_result = await workflow.execute()
+    second_result = await workflow.execute()
+
+    assert first_result.run_id != second_result.run_id
+    assert len(workflow_events) == 2
+    assert len(node_events) == 2
+
+    first_workflow_event = workflow_events[0]
+    second_workflow_event = workflow_events[1]
+    assert first_workflow_event.executable_runtime_id != second_workflow_event.executable_runtime_id
+    assert (
+        first_workflow_event.executable_structural_id
+        == second_workflow_event.executable_structural_id
+    )
+    assert (
+        first_workflow_event.enclosing_graph_structural_id
+        == second_workflow_event.enclosing_graph_structural_id
+    )
+
+    first_node_event = node_events[0]
+    second_node_event = node_events[1]
+    assert first_node_event.executable_runtime_id != second_node_event.executable_runtime_id
+    assert first_node_event.executable_structural_id == second_node_event.executable_structural_id
+    assert (
+        first_node_event.enclosing_graph_structural_id
+        == second_node_event.enclosing_graph_structural_id
+    )
 
 
 @pytest.mark.asyncio
@@ -242,7 +382,16 @@ async def test_hook_failures_are_isolated_and_recorded(
     assert hook_error_span.attributes["junjo.hook.error.type"] == "RuntimeError"
     assert hook_error_span.attributes["junjo.hook.error.message"] == "bad hook"
     assert hook_error_span.attributes["junjo.run_id"] == result.run_id
-    assert hook_error_span.attributes["junjo.definition_id"] == result.definition_id
+    assert (
+        hook_error_span.attributes["junjo.executable_definition_id"]
+        == result.definition_id
+    )
+    assert "junjo.parent_executable_definition_id" not in hook_error_span.attributes
+    assert hook_error_span.attributes["junjo.executable_runtime_id"] == result.run_id
+    assert (
+        hook_error_span.attributes["junjo.executable_structural_id"]
+        == hook_error_span.attributes["junjo.enclosing_graph_structural_id"]
+    )
 
 
 def test_old_hook_manager_module_is_removed() -> None:
