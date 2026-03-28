@@ -142,7 +142,7 @@ Now, implement the `SampleSubflow`:
       # Define the internal graph for the SampleSubflow
       return Graph(
           source=get_joke_node,
-          sink=get_fact_node, # For simplicity, joke then fact
+          sinks=[get_fact_node], # For simplicity, joke then fact
           edges=[
               Edge(tail=get_joke_node, head=get_fact_node)
           ]
@@ -199,7 +199,7 @@ Example Parent Workflow Graph with a Subflow:
       # Define the parent workflow's graph, including the Subflow instance
       return Graph(
           source=parent_start_node,
-          sink=parent_end_node,
+          sinks=[parent_end_node],
           edges=[
               Edge(tail=parent_start_node, head=sample_subflow_instance), # Subflow as a node
               Edge(tail=sample_subflow_instance, head=parent_end_node)
@@ -213,9 +213,13 @@ In this structure:
 Visualizing Subflows
 ====================
 
-Junjo's graph visualization capabilities, such as `graph.export_graphviz_assets()`, are designed to handle Subflows intelligently.
+Junjo's graph visualization capabilities, such as `graph.export_graphviz_assets()` and `graph.to_mermaid()`, are designed to handle Subflows intelligently.
+
 - In the **overview graph** of the parent workflow, a Subflow is rendered as a "component" node, abstracting away its internal complexity.
 - Separate **detailed graphs** are generated for each Subflow, showing its internal structure of nodes and edges.
+- These Graphviz and Mermaid views are now rendered directly from Junjo's
+  compiled graph snapshot, so subflow diagrams stay aligned with the same
+  structural model used for validation, traversal, and serialization.
 
 This hierarchical visualization makes it easier to understand complex workflows at different levels of detail.
 

@@ -1,5 +1,4 @@
-from junjo.telemetry.hook_manager import HookManager
-from junjo.workflow import Workflow
+from junjo import Workflow
 
 from app.db.models.contact.schemas import Sex
 from app.db.queries.create_setup_contact.schemas import CreateSetupContactResponse
@@ -24,7 +23,6 @@ async def run_create_contact_workflow(sex: Sex | None = None) -> CreateSetupCont
         store_factory=lambda: CreateContactStore(
             initial_state=CreateContactState(sex=sex)
         ),
-        hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
     )
 
     # Execute the workflow

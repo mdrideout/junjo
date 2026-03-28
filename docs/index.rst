@@ -9,6 +9,7 @@
    state_management
    concurrency
    subflows
+   hooks
    visualizing_workflows
    eval_driven_dev
    api
@@ -22,6 +23,7 @@
    docker_reference
    deployment
    opentelemetry
+   ai_studio_migration_checklist
 
 .. toctree::
    :maxdepth: 1

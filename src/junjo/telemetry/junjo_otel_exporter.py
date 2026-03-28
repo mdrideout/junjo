@@ -21,67 +21,68 @@ class JunjoOtelExporter:
                      Defaults to ``False``.
     :type insecure: bool
 
-    Example:
-        **Local Development:**
+    .. rubric:: Local Development
 
-        To send telemetry to a local Junjo AI Studio instance (e.g., running via Docker Compose):
+    To send telemetry to a local Junjo AI Studio instance, such as one
+    running through Docker Compose:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            import os
-            from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-            from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry import trace
+        import os
+        from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry import trace
 
-            # Retrieve API key from environment
-            JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+        # Retrieve API key from environment
+        JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
 
-            # Option 1: Using localhost
-            junjo_exporter_local = JunjoOtelExporter(
-                host="localhost",
-                port="50051",
-                api_key=JUNJO_AI_STUDIO_API_KEY,
-                insecure=True,
-            )
+        # Option 1: Using localhost
+        junjo_exporter_local = JunjoOtelExporter(
+            host="localhost",
+            port="50051",
+            api_key=JUNJO_AI_STUDIO_API_KEY,
+            insecure=True,
+        )
 
-            # Option 2: Using Docker service name (if running in same Docker network)
-            junjo_exporter_docker = JunjoOtelExporter(
-                host="junjo-ai-studio-ingestion",  # Docker service name
-                port="50051",
-                api_key=JUNJO_AI_STUDIO_API_KEY,
-                insecure=True,
-            )
+        # Option 2: Using Docker service name (if running in same Docker network)
+        junjo_exporter_docker = JunjoOtelExporter(
+            host="junjo-ai-studio-ingestion",  # Docker service name
+            port="50051",
+            api_key=JUNJO_AI_STUDIO_API_KEY,
+            insecure=True,
+        )
 
-            # Add to your tracer provider
-            provider = TracerProvider()
-            provider.add_span_processor(junjo_exporter_local.span_processor) # or junjo_exporter_docker.span_processor
-            trace.set_tracer_provider(provider)
+        # Add to your tracer provider
+        provider = TracerProvider()
+        provider.add_span_processor(junjo_exporter_local.span_processor)
+        trace.set_tracer_provider(provider)
 
-        **Production Deployment:**
+    .. rubric:: Production Deployment
 
-        For a production environment with TLS enabled (e.g., using a reverse proxy like Caddy):
+    For a production environment with TLS enabled, such as one behind a
+    reverse proxy like Caddy:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            import os
-            from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-            from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry import trace
+        import os
+        from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry import trace
 
-            # Retrieve API key from environment
-            JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+        # Retrieve API key from environment
+        JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
 
-            junjo_exporter_prod = JunjoOtelExporter(
-                host="ingestion.junjo.example.com",   # Your domain
-                port="443",                       	  # HTTPS port
-                api_key=JUNJO_AI_STUDIO_API_KEY,
-                insecure=False,                   	  # TLS enabled
-            )
+        junjo_exporter_prod = JunjoOtelExporter(
+            host="ingestion.junjo.example.com",  # Your domain
+            port="443",  # HTTPS port
+            api_key=JUNJO_AI_STUDIO_API_KEY,
+            insecure=False,  # TLS enabled
+        )
 
-            # Add to your tracer provider
-            provider = TracerProvider()
-            provider.add_span_processor(junjo_exporter_prod.span_processor)
-            trace.set_tracer_provider(provider)
+        # Add to your tracer provider
+        provider = TracerProvider()
+        provider.add_span_processor(junjo_exporter_prod.span_processor)
+        trace.set_tracer_provider(provider)
     """
 
     def __init__(

@@ -43,12 +43,16 @@ async def test_run_concurrent_marks_cancelled_sibling_spans(
     span_exporter: InMemorySpanExporter,
 ) -> None:
     sibling_started = asyncio.Event()
-    failure_observed_by_caller = asyncio.Event()
+    sibling_cancelled = asyncio.Event()
 
     class WaitingSiblingNode(Node[TelemetryStore]):
         async def service(self, store: TelemetryStore) -> None:
             sibling_started.set()
-            await failure_observed_by_caller.wait()
+            try:
+                await asyncio.Future()
+            except asyncio.CancelledError:
+                sibling_cancelled.set()
+                raise
 
     class FailingNode(Node[TelemetryStore]):
         async def service(self, store: TelemetryStore) -> None:
@@ -60,7 +64,7 @@ async def test_run_concurrent_marks_cancelled_sibling_spans(
             name="Concurrent Execution",
             items=[WaitingSiblingNode(), FailingNode()],
         )
-        return Graph(source=run_concurrent, sink=run_concurrent, edges=[])
+        return Graph(source=run_concurrent, sinks=[run_concurrent], edges=[])
 
     workflow = Workflow[TelemetryState, TelemetryStore](
         name="Telemetry Workflow",
@@ -71,8 +75,7 @@ async def test_run_concurrent_marks_cancelled_sibling_spans(
     with pytest.raises(RuntimeError, match="boom"):
         await workflow.execute()
 
-    failure_observed_by_caller.set()
-    await asyncio.sleep(0.05)
+    await asyncio.wait_for(sibling_cancelled.wait(), timeout=0.2)
 
     spans = {span.name: span for span in span_exporter.get_finished_spans()}
 

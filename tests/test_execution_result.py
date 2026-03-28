@@ -22,7 +22,7 @@ class SetWorkflowStatusNode(Node[WorkflowStore]):
 
 def create_single_node_workflow_graph() -> Graph:
     node = SetWorkflowStatusNode()
-    return Graph(source=node, sink=node, edges=[])
+    return Graph(source=node, sinks=[node], edges=[])
 
 
 class SubflowParentState(BaseState):
@@ -53,7 +53,7 @@ class CompleteSubflowNode(Node[SubflowStore]):
 
 def create_single_node_subflow_graph() -> Graph:
     node = CompleteSubflowNode()
-    return Graph(source=node, sink=node, edges=[])
+    return Graph(source=node, sinks=[node], edges=[])
 
 
 class ExampleSubflow(
@@ -104,7 +104,7 @@ class SecondScopeChildNode(Node[ScopeChildStore]):
 def create_scope_child_graph() -> Graph:
     first = FirstScopeChildNode()
     second = SecondScopeChildNode()
-    return Graph(source=first, sink=second, edges=[Edge(tail=first, head=second)])
+    return Graph(source=first, sinks=[second], edges=[Edge(tail=first, head=second)])
 
 
 class ScopeSubflow(
@@ -174,7 +174,7 @@ async def test_execution_result_node_execution_counts_are_current_scope_only() -
         store_factory=lambda: ScopeChildStore(initial_state=ScopeChildState()),
     )
     workflow = Workflow[ScopeParentState, ScopeParentStore](
-        graph_factory=lambda: Graph(source=subflow, sink=subflow, edges=[]),
+        graph_factory=lambda: Graph(source=subflow, sinks=[subflow], edges=[]),
         store_factory=lambda: ScopeParentStore(initial_state=ScopeParentState()),
     )
 

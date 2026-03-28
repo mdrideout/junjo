@@ -25,7 +25,7 @@ def create_test_sub_flow_graph() -> Graph:
     # Construct the graph for the SubFlow
     return Graph(
         source=sub_flow_node_1,
-        sink=sub_flow_node_3,
+        sinks=[sub_flow_node_3],
         edges=[
             Edge(tail=sub_flow_node_1, head=sub_sub_flow),
             Edge(tail=sub_sub_flow, head=sub_flow_node_2),

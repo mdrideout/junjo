@@ -1,7 +1,8 @@
 from dotenv import load_dotenv
 
 from base.otel_config import init_otel
-from base.sample_workflow.workflow import sample_workflow
+from base.sample_workflow.hooks import create_logging_hooks
+from base.sample_workflow.workflow import create_sample_workflow
 
 
 async def main():
@@ -13,8 +14,10 @@ async def main():
     # Setup OpenTelemetry before anything else happens
     exporter = init_otel(service_name="Junjo Base Example")
 
+    workflow = create_sample_workflow(hooks=create_logging_hooks())
+
     print("Executing the workflow...")
-    result = await sample_workflow.execute()
+    result = await workflow.execute()
     print("Final state: ", result.state.model_dump_json())
 
     print("Done executing the base example workflow.")

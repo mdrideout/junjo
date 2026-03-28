@@ -9,45 +9,49 @@ class Condition(Generic[StateT], ABC):
     """
     Abstract base class for edge conditions in a workflow graph.
 
-    Implement a concrete condition that determines whether a transition along an edge should occur
-    based only on the current state.
+    Implement a concrete condition that determines whether a transition along
+    an edge should occur based only on the current state.
 
-    This is designed to be used with the `Edge` class, which represents a directed
-    edge in the workflow graph. The condition is evaluated when determining
-    whether to transition from the tail node to the head node.
+    This is designed to be used with the :class:`~junjo.Edge` class, which
+    represents a directed edge in the workflow graph. The condition is
+    evaluated when determining whether to transition from the tail node to the
+    head node.
 
-    Type Parameters:
-        StateT: The type of the state that the condition will evaluate against.
-                This should be a subclass of `BaseState`.
+    ``StateT`` is the state type that the condition evaluates against. It
+    should be a subclass of :class:`~junjo.BaseState`.
 
-    Responsibilities:
-        - The condition should be stateless and only depend on the current state.
-        - DO NOT use any side effects in the condition (e.g., network calls, database queries).
-        - The condition should be a pure function of the state.
+    Conditions should follow these rules:
 
-        .. code-block:: python
+    - The condition should be stateless and depend only on the current state.
+    - Do not use side effects in the condition, such as network calls or
+      database queries.
+    - The condition should be a pure function of the state.
 
-            class MyCondition(Condition[MyState]):
-                def evaluate(self, state: MyState) -> bool: # implement the abstract method
-                    return state.some_property == "some_value"
+    .. rubric:: Example
 
-            my_condition = MyCondition()
-            edges = [
-                Edge(tail=node_1, head=node_2, condition=my_condition),
-                Edge(tail=node_2, head=node_3),  # No condition, (or None) means the condition is always valid
-            ]
+    .. code-block:: python
+
+        class MyCondition(Condition[MyState]):
+            def evaluate(self, state: MyState) -> bool:
+                return state.some_property == "some_value"
+
+        my_condition = MyCondition()
+        edges = [
+            Edge(tail=node_1, head=node_2, condition=my_condition),
+            Edge(tail=node_2, head=node_3),
+        ]
     """
 
     @abstractmethod
     def evaluate(self, state: StateT) -> bool:
         """
-        Evaluates whether the transition should occur based on store state.
+        Evaluate whether the transition should occur based on the current
+        workflow state.
 
-        Args:
-            store: The workflow store containing the current state.
-
-        Returns:
-            True if the transition should occur, False otherwise.
+        :param state: The current workflow state.
+        :type state: StateT
+        :returns: ``True`` if the transition should occur, ``False`` otherwise.
+        :rtype: bool
         """
         pass
 

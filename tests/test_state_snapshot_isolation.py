@@ -55,7 +55,7 @@ async def test_execution_result_state_is_detached_from_internal_store_snapshot()
 
     node = MutateNestedStateNode()
     workflow = Workflow[SnapshotState, SnapshotStore](
-        graph_factory=lambda: Graph(source=node, sink=node, edges=[]),
+        graph_factory=lambda: Graph(source=node, sinks=[node], edges=[]),
         store_factory=create_store,
     )
 

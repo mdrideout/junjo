@@ -1,5 +1,4 @@
 from junjo import Workflow
-from junjo.telemetry.hook_manager import HookManager
 
 from app.db.models.message.schemas import MessageCreate
 from app.workflows.handle_message.graph import create_handle_message_graph
@@ -16,7 +15,6 @@ async def run_handle_message_workflow(message: MessageCreate) -> None:
         store_factory=lambda:MessageWorkflowStore(
             initial_state=MessageWorkflowState(received_message=message)
         ),
-        hook_manager=HookManager(verbose_logging=True, open_telemetry=True),
     )
 
     # Execute the workflow

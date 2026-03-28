@@ -1,134 +1,138 @@
-# Junjo Library Overview for LLM Agents
+# Junjo Agent Guide
 
-This document provides a concise overview of the Junjo library, designed to give LLM agents the necessary context to understand, modify, and extend the codebase.
+This file is for code-writing agents working in the Junjo repo.
 
-## High-Level Summary
+Do not treat this as the main source of API truth. Public behavior, examples,
+and conceptual explanations should live in:
 
-Junjo is a Python library for building and managing complex, graph-based AI workflows. It is designed to be consumed by Python application developers. The library provides a framework for defining workflows as a series of nodes and edges, managing state in a predictable and concurrency-safe manner, and visualizing the workflow's structure and execution.
+- public class and function docstrings
+- Sphinx docs under `/Users/matt/repos/junjo/docs`
+- runnable examples under `/Users/matt/repos/junjo/examples`
 
-**Key Use Cases:**
+Use this file for repo-specific implementation guidance and authoring rules.
 
-*   Building complex LLM-powered agents and applications.
-*   Orchestrating data processing pipelines.
-*   Creating workflows with conditional branching and parallel execution.
+## Code Opinions
 
-## Core Concepts
+- Be grug brained in approaches
+- Use clear separation of concerns
+- Do not create abstractions for single-use cases where inline is easier to understand
+- Do not build complex multi-line ternaries when clear if / else is more readable. Ternaries for very simple only.
+- Prefer more verbose, single purpose clear separation code over combined concepts or dual / multi-purpose functions.
+- Treat everything as greenfield: no fallbacks, deprecations, backward compatibility, or baggage should be carried through to new ideas.
+  - Keep track of all breaking changes to incorporate into release notes, but do not worry about causing breaking changes.
+  - These can go inside a "FUTURE RELESE" section of the changelog
+  - Document major changes and breaking changes in the CHANELOG.md as we go (not implementation details in the weeds)
+  - CHANGELOG.md should have the newest changes at the top
 
-The following are the fundamental building blocks of the Junjo library:
+## Repo Truths
 
-### 1. `State` and `Store`
+- Junjo is a Python library for Python application developers.
+- Junjo is for building Graph-Based AI workflows where the workflow is conditionally traversed according to state.
+- Public APIs and docstrings are part of the product, not incidental comments.
+- OpenTelemetry is a first-class runtime concern.
+- Hooks are optional observers, not the control plane for telemetry.
+- Workflow execution is isolated per run. A `Workflow` or `Subflow` object is a reusable definition, not a live mutable run container.
+- `Workflow.execute()` returns an `ExecutionResult`.
+- `BaseStore.get_state()` returns a detached deep snapshot.
+- `BaseStore.set_state()` is patch-oriented and validates atomically against the current locked state.
 
-*   **`BaseState` (`src/junjo/state.py`):** A Pydantic `BaseModel` that defines the data structure for a workflow's state. All workflow states must inherit from this class.
-*   **`BaseStore` (`src/junjo/store.py`):** A class that manages the state of a workflow. It holds the `BaseState` and provides methods (actions) to update the state in a controlled and predictable manner. It uses an `asyncio.Lock` to ensure that state updates are atomic and concurrency-safe.
+## What AGENTS Should Optimize For
 
-**Example:**
+- Prefer the least surprising design over the most abstract one.
+- Optimize for readability by a Python application developer, not framework cleverness.
+- Keep separation of concerns obvious in both runtime code and examples.
+- Preserve or improve the teaching surface of the library when changing code.
 
-```python
-from junjo import BaseState, BaseStore
+## Public Docs Rules
 
-class MyWorkflowState(BaseState):
-    user_input: str
-    processed_data: dict | None = None
+- Preserve verbose public docstrings.
+- If behavior changes, update the existing docstrings and examples instead of shrinking or deleting them.
+- Public runtime APIs should use Sphinx/reST-friendly docstrings.
+- Prefer `:param:` / `:type:` formatting in public API method docstrings.
+- Keep rich API docs on `__init__` when that improves generated docs and editor hover help.
+- Short class docstrings are fine, but do not move detailed constructor docs away from `__init__` unless explicitly asked.
+- Preserve explicit footgun warnings when they are still true.
+  Example: `Node.service()` should not be called directly.
 
-class MyWorkflowStore(BaseStore[MyWorkflowState]):
-    async def set_processed_data(self, data: dict) -> None:
-        await self.set_state({"processed_data": data})
-```
+## Examples Rules
 
-### 2. `Node`
+- Keep workflow definition files focused on graph and store construction.
+- Put hook registration, logging, app wiring, and telemetry setup in separate example modules or entrypoints.
+- Do not add extra files or wrapper layers to examples unless they clearly improve comprehension.
+- Do not show placeholder configuration that does nothing.
+- If a feature is added to the public API, show one concrete developer use case for it in docs or examples.
+  Example: log `on_workflow_completed` with `run_id`, `trace_id`, and final state.
 
-*   **`Node` (`src/junjo/node.py`):** An abstract base class that represents a single unit of work in a workflow. The business logic is implemented in the `service` method. Nodes interact with the `Store` to get and set state.
+## Architecture Rules
 
-**Example:**
+- Keep runtime execution, lifecycle dispatch, public hooks, and telemetry as separate concerns.
+- We intentionally clearly separate Workflow / Graph / State / and Execution layers cleanly.
+- Telemetry must not depend on public hooks.
+- Prefer an internal lifecycle layer over constructing public hook events directly inside runtime modules.
+- Avoid coupling workflow execution files to example-only or logging-only concerns.
+- Avoid introducing compatibility scaffolding in greenfield work unless explicitly requested.
 
-```python
-from junjo import Node
+## Store And State Rules
 
-class ProcessDataNode(Node[MyWorkflowStore]):
-    async def service(self, store: MyWorkflowStore) -> None:
-        state = await store.get_state()
-        processed_data = {"result": "some_value"}
-        await store.set_processed_data(processed_data)
-```
+- Keep the public store API patch-oriented and simple.
+- The library owns correct state transition mechanics.
+- Consumers own domain invariants and action boundaries.
+- Do not reintroduce stale validate-then-apply behavior.
+- Do not expose live mutable store internals through public result or hook APIs unless explicitly required.
 
-### 3. `Edge` and `Condition`
+## When Editing Public Surfaces
 
-*   **`Edge` (`src/junjo/edge.py`):** Defines a directed connection between two nodes (`tail` and `head`) in a workflow graph.
-*   **`Condition` (`src/junjo/condition.py`):** An abstract base class for implementing conditional logic on an `Edge`. The `evaluate` method determines if a transition between nodes should occur based on the current state.
+Whenever behavior or public APIs change, update all of the following together:
 
-**Example:**
+1. runtime code
+2. tests
+3. public docstrings
+4. Sphinx docs
+5. examples
 
-```python
-from junjo import Edge, Condition
+Do not stop after tests pass if the docs/examples are now misleading.
 
-class DataIsProcessed(Condition[MyWorkflowState]):
-    def evaluate(self, state: MyWorkflowState) -> bool:
-        return state.processed_data is not None
+## Validation Checklist
 
-edge = Edge(tail=node1, head=node2, condition=DataIsProcessed())
-```
+For meaningful public-surface changes, run:
 
-### 4. `Graph`
+- `uv run ruff check .`
+- `uv run pytest -q`
+- `uv run sphinx-build -b html docs docs/_build/html`
 
-*   **`Graph` (`src/junjo/graph.py`):** A collection of nodes and edges that defines the complete structure of a workflow. It has a single entry point (`source`) and a single exit point (`sink`).
+If Sphinx warnings appear, do not ignore them by default. Check whether they
+were pre-existing or introduced by the change.
 
-**Example:**
+## File Map
 
-```python
-from junjo import Graph
+- `/Users/matt/repos/junjo/src/junjo/workflow.py`: workflow and subflow execution
+- `/Users/matt/repos/junjo/src/junjo/store.py`: state management
+- `/Users/matt/repos/junjo/src/junjo/node.py`: node execution contract
+- `/Users/matt/repos/junjo/src/junjo/run_concurrent.py`: concurrent execution behavior
+- `/Users/matt/repos/junjo/src/junjo/hooks.py`: public hook API
+- `/Users/matt/repos/junjo/src/junjo/_lifecycle.py`: internal lifecycle dispatch
+- `/Users/matt/repos/junjo/src/junjo/telemetry`: OpenTelemetry implementation
+- `/Users/matt/repos/junjo/docs`: public documentation
+- `/Users/matt/repos/junjo/examples`: runnable examples
 
-workflow_graph = Graph(
-    source=start_node,
-    sink=end_node,
-    edges=[
-        Edge(tail=start_node, head=process_node),
-        Edge(tail=process_node, head=end_node, condition=DataIsProcessed())
-    ]
-)
-```
+## Core Concepts To Inspect
 
-### 5. `Workflow` and `Subflow`
+- `/Users/matt/repos/junjo/src/junjo/state.py`: `BaseState`
+- `/Users/matt/repos/junjo/src/junjo/store.py`: `BaseStore`
+- `/Users/matt/repos/junjo/src/junjo/node.py`: `Node`
+- `/Users/matt/repos/junjo/src/junjo/edge.py`: `Edge`
+- `/Users/matt/repos/junjo/src/junjo/condition.py`: `Condition`
+- `/Users/matt/repos/junjo/src/junjo/graph.py`: `Graph`
+- `/Users/matt/repos/junjo/src/junjo/workflow.py`: `Workflow`, `Subflow`, `_NestableWorkflow`, `ExecutionResult`
+- `/Users/matt/repos/junjo/src/junjo/run_concurrent.py`: `RunConcurrent`
+- `/Users/matt/repos/junjo/src/junjo/hooks.py`: public hooks API
+- `/Users/matt/repos/junjo/src/junjo/_lifecycle.py`: internal lifecycle dispatch
+- `/Users/matt/repos/junjo/src/junjo/telemetry`: OpenTelemetry implementation
 
-*   **`Workflow` (`src/junjo/workflow.py`):** The main executable component that takes a `graph_factory` and a `store_factory` and runs the defined process.
-*   **`Subflow` (`src/junjo/workflow.py`):** A workflow that can be nested within another workflow, allowing for modular and reusable logic. It has its own isolated state and can interact with its parent's state via `pre_run_actions` and `post_run_actions`.
+## Anti-Patterns To Avoid
 
-### 6. `RunConcurrent`
-
-*   **`RunConcurrent` (`src/junjo/run_concurrent.py`):** A special type of `Node` that allows for the parallel execution of multiple nodes or subflows using `asyncio.gather`.
-
-## Key Design Patterns
-
-*   **Asyncio-native:** The library is built on top of Python's `asyncio`, enabling non-blocking I/O operations and efficient concurrency.
-*   **Immutable State Management:** Inspired by Redux, state is treated as immutable. State changes are made by calling methods on the `Store`, which creates a new state object with the updates. This ensures predictable state transitions and concurrency safety.
-*   **Dependency Injection via Factories:** `Workflow` and `Subflow` are initialized with `graph_factory` and `store_factory` callables. This ensures that each workflow execution gets a fresh, isolated graph and store, which is critical for concurrency safety.
-
-## How to...
-
-### Create a new Node
-
-1.  Create a new class that inherits from `junjo.Node`.
-2.  Specify the `Store` type as a generic parameter.
-3.  Implement the `async def service(self, store: StoreT) -> None:` method with your business logic.
-
-### Add a Condition to an Edge
-
-1.  Create a new class that inherits from `junjo.Condition`.
-2.  Specify the `State` type as a generic parameter.
-3.  Implement the `def evaluate(self, state: StateT) -> bool:` method.
-4.  Instantiate the condition and pass it to the `condition` parameter of the `Edge`.
-
-### Create a Subflow
-
-1.  Create a new class that inherits from `junjo.Subflow`.
-2.  Specify the `SubflowState`, `SubflowStore`, `ParentState`, and `ParentStore` types as generic parameters.
-3.  Implement the `pre_run_actions` and `post_run_actions` methods to interact with the parent store.
-4.  Instantiate the subflow with its own `graph_factory` and `store_factory`.
-
-## Important Files
-
-*   `src/junjo/workflow.py`: Contains the core logic for workflow and subflow execution.
-*   `src/junjo/graph.py`: Defines the structure of a workflow.
-*   `src/junjo/node.py`: Defines the base class for all nodes.
-*   `src/junjo/store.py`: Contains the base class for state management.
-*   `src/junjo/edge.py`: Defines the connection between nodes.
-*   `src/junjo/condition.py`: Defines the base class for conditional logic.
+- Rewriting or shrinking helpful public docstrings without replacing the lost guidance.
+- Mixing hook wiring or app bootstrapping into workflow definition modules when a separate entrypoint is clearer.
+- Adding abstraction layers that make examples or public APIs harder to understand.
+- Treating AGENTS.md as a duplicate of the public docs.
+- Letting tests pass while docs or examples drift out of date.

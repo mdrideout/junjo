@@ -13,7 +13,7 @@ def create_avatar_subflow_graph() -> Graph:
     # Construct the graph for the SubFlow
     return Graph(
         source=avatar_inspiration,
-        sink=create_avatar,
+        sinks=[create_avatar],
         edges=[
             Edge(tail=avatar_inspiration, head=create_avatar)
         ]

@@ -46,7 +46,7 @@ def create_sample_workflow_graph() -> Graph:
 
     return Graph(
       source=count_items_node,
-      sink=final_node,
+      sinks=[final_node],
       edges=[
           Edge(tail=count_items_node, head=modify_counter_concurrent),
           Edge(tail=modify_counter_concurrent, head=sample_subflow),

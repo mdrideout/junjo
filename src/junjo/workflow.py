@@ -9,40 +9,55 @@ from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
 from opentelemetry import trace
 
+from ._lifecycle import (
+    ActiveExecutableIdentity,
+    LifecycleDispatcher,
+    StoreLifecycleContext,
+    active_executable_identity,
+    get_active_executable_identity,
+)
+from .hooks import Hooks
 from .node import Node
 from .run_concurrent import RunConcurrent
 from .store import BaseStore, ParentStateT, ParentStoreT, StateT, StoreT
-from .telemetry.hook_manager import HookManager
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from .telemetry.span_lifecycle import mark_span_cancelled
+from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
-    from .graph import Graph
+    from .graph import CompiledGraph, Graph
 
-# Define a covariant TypeVar specifically for the StoreFactory protocol.
-# It's bound to BaseStore, ensuring the factory produces BaseStore compatible instances.
+
 _CovariantStoreT = TypeVar("_CovariantStoreT", bound="BaseStore", covariant=True)
+
+
 class StoreFactory(Protocol, Generic[_CovariantStoreT]):
     """
     A callable that returns a new instance of a workflow's store.
 
-    This factory is invoked at the beginning of each :meth:`~.Workflow.execute`
-    call to ensure a fresh state for the workflow's specific execution.
+    This factory is invoked at the beginning of each
+    :meth:`~junjo.workflow.Workflow.execute` or
+    :meth:`~junjo.workflow.Subflow.execute` call to ensure fresh, isolated
+    state for that execution.
     """
+
     def __call__(self, *args, **kw) -> _CovariantStoreT: ...
 
-# Define a covariant TypeVar for the GraphFactory protocol.
-# It's bound to Graph, ensuring the factory produces Graph compatible instances.
+
 _CovariantGraphT = TypeVar("_CovariantGraphT", bound="Graph", covariant=True)
+
+
 class GraphFactory(Protocol, Generic[_CovariantGraphT]):
     """
     A callable that returns a new instance of a workflow's graph.
 
-    This factory is invoked at the beginning of each :meth:`~.Workflow.execute`
-    call to ensure a fresh, isolated graph for the workflow's specific execution.
-    This is critical for concurrency safety.
+    This factory is invoked at the beginning of each
+    :meth:`~junjo.workflow.Workflow.execute` or
+    :meth:`~junjo.workflow.Subflow.execute` call to ensure a fresh, isolated
+    graph for that execution. This is critical for concurrency safety because
+    nodes and subflows are runtime objects with per-run identities.
     """
+
     def __call__(self, *args, **kw) -> _CovariantGraphT: ...
 
 
@@ -52,13 +67,32 @@ class _ExecutionContext(Generic[StoreT]):
 
     run_id: str
     graph: Graph
+    compiled_graph: CompiledGraph
     store: StoreT
+    dispatcher: LifecycleDispatcher
     node_execution_counter: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
 class ExecutionResult(Generic[StateT]):
-    """Public snapshot of a completed workflow or subflow execution."""
+    """
+    Immutable snapshot of a completed workflow or subflow execution.
+
+    ``ExecutionResult`` is the public post-run API for accessing final state and
+    execution metadata without exposing live runtime objects like the internal
+    store or graph.
+
+    The result includes:
+
+    - ``run_id``: The unique identifier for this specific execution.
+    - ``definition_id``: The stable identifier of the workflow or subflow
+      definition.
+    - ``name``: The configured workflow or subflow name.
+    - ``state``: The detached final state snapshot for the completed
+      execution.
+    - ``node_execution_counts``: Current-scope execution counts keyed by
+      executable id.
+    """
 
     run_id: str
     definition_id: str
@@ -66,216 +100,379 @@ class ExecutionResult(Generic[StateT]):
     state: StateT
     node_execution_counts: Mapping[str, int]
 
+
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
-    Represents a generic abstract class for workflow / subflow execution.
+    Shared execution implementation for :class:`Workflow` and :class:`Subflow`.
 
-    Should not be used directly. Only utilizer Workflow and Subflow.
+    This type should not be used directly. Consumers should instantiate
+    :class:`Workflow` or subclass :class:`Subflow`.
     """
+
     def __init__(
         self,
         graph_factory: GraphFactory[Graph],
         store_factory: StoreFactory[StoreT],
         max_iterations: int = 100,
-        hook_manager: HookManager | None = None,
+        hooks: Hooks | None = None,
         name: str | None = None,
     ):
         self._id = generate_safe_id()
         self._name = name
         self.max_iterations = max_iterations
-        self.hook_manager = hook_manager
-
+        self.hooks = hooks
         self._graph_factory = graph_factory
         self._store_factory = store_factory
 
     @property
     def id(self) -> str:
-        """Returns the unique identifier for the node."""
+        """Returns the stable definition identifier for this workflow object."""
         return self._id
 
     @property
     def name(self) -> str:
-        """Returns the name of the node class instance."""
+        """Returns the configured workflow name or the class name."""
         if self._name is not None:
             return self._name
-
         return self.__class__.__name__
 
     @property
     def span_type(self) -> JunjoOtelSpanTypes:
-        """Returns the span type of the workflow."""
-
+        """Returns the OpenTelemetry span type for this executable."""
         if isinstance(self, Subflow):
             return JunjoOtelSpanTypes.SUBFLOW
         return JunjoOtelSpanTypes.WORKFLOW
 
     async def execute(  # noqa: C901
-            self,
-            parent_store: ParentStoreT | None = None,
-            parent_id: str | None = None,
-        ) -> ExecutionResult[StateT]:
+        self,
+        parent_store: ParentStoreT | None = None,
+        parent_id: str | None = None,
+        *,
+        validate_graph: bool = True,
+    ) -> ExecutionResult[StateT]:
         """
-        Executes the workflow and returns the final execution snapshot.
+        Execute the workflow or subflow and return the final execution snapshot.
+
+        Each call creates a fresh graph, a fresh store, a fresh run id, and a
+        fresh lifecycle dispatcher. This keeps the workflow definition itself
+        immutable and safe to reuse across concurrent runs.
+
+        :param parent_store: The parent store when executing a subflow.
+            Top-level workflows should omit this argument.
+        :type parent_store: ParentStoreT | None
+        :param parent_id: The parent workflow or subflow identifier when
+            nested.
+        :type parent_id: str | None
+        :param validate_graph: Whether to run ``Graph.validate()`` on the
+            fresh graph before execution starts. Defaults to ``True``.
+        :type validate_graph: bool
+        :returns: A detached snapshot of the completed execution, including
+            the final state and current-scope execution counts.
+        :rtype: ExecutionResult[StateT]
         """
         print(f"Executing workflow: {self.name} with ID: {self.id}")
-
-        # TODO: Test that the sink node can be reached
-
-        # Always start with a fresh graph and store for *this* run.
+        parent_active_identity = get_active_executable_identity()
+        graph = self._graph_factory()
+        if validate_graph:
+            graph.validate()
+        compiled_graph = graph.compile()
         ctx = _ExecutionContext(
             run_id=generate_safe_id(),
-            graph=self._graph_factory(),
+            graph=graph,
+            compiled_graph=compiled_graph,
             store=self._store_factory(),
+            dispatcher=LifecycleDispatcher(self.hooks),
+        )
+        ctx.store._set_lifecycle_context(
+            StoreLifecycleContext(
+                dispatcher=ctx.dispatcher,
+                run_id=ctx.run_id,
+                executable_definition_id=self.id,
+                name=self.name,
+                span_type=self.span_type,
+                executable_runtime_id=ctx.run_id,
+                executable_structural_id=ctx.compiled_graph.graph_structural_id,
+                enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                compiled_node_structural_ids_by_runtime_id=MappingProxyType(
+                    {
+                        compiled_node.node_runtime_id: compiled_node.node_structural_id
+                        for compiled_node in ctx.compiled_graph.compiled_nodes
+                    }
+                ),
+            )
         )
 
-        # # Execute workflow before hooks
-        # if self.hook_manager is not None:
-            # self.hook_manager.run_before_workflow_execute_hooks(before_workflow_hook_args)
-
-        # Acquire a tracer (will be a real tracer if configured, otherwise no-op)
+        graph_json = ctx.graph.serialize_to_json_string()
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
+        prepared_terminal_event = None
+        result: ExecutionResult[StateT] | None = None
+        failure: Exception | None = None
+        cancellation: asyncio.CancelledError | None = None
 
-        # Start a new span and keep a reference to the span object
         with tracer.start_as_current_span(self.name) as span:
-            # Set span attributes
-            span.set_attribute("junjo.workflow.state.start", await ctx.store.get_state_json())
-            span.set_attribute("junjo.workflow.graph_structure", ctx.graph.serialize_to_json_string())
-            span.set_attribute("junjo.workflow.store.id", ctx.store.id)
-            span.set_attribute("junjo.span_type", self.span_type)
-            span.set_attribute("junjo.id", self.id)
-
-            # Set the parent ID and store ID if available (for subflows)
-            if parent_id is not None:
-                span.set_attribute("junjo.parent_id", parent_id)
-
-            if parent_store is not None and parent_store.id is not None:
-                span.set_attribute("junjo.workflow.parent_store.id", parent_store.id)
-
-            # If executing a subflow, run pre-run actions
-            if isinstance(self, Subflow):
-                if parent_store is None:
-                    raise ValueError("Subflow requires a parent store to execute pre_run_actions.")
-                await self.pre_run_actions(parent_store, ctx.store)
-
-            # Loop to execute the nodes inside this workflow
-            current_executable = ctx.graph.source
             try:
-                while True:
+                span.set_attribute(
+                    "junjo.workflow.state.start",
+                    await ctx.store.get_state_json(),
+                )
+                span.set_attribute("junjo.workflow.execution_graph_snapshot", graph_json)
+                span.set_attribute("junjo.workflow.store.id", ctx.store.id)
+                span.set_attribute("junjo.span_type", self.span_type)
+                span.set_attribute("junjo.executable_definition_id", self.id)
+                span.set_attribute("junjo.executable_runtime_id", ctx.run_id)
+                span.set_attribute(
+                    "junjo.executable_structural_id",
+                    ctx.compiled_graph.graph_structural_id,
+                )
+                span.set_attribute(
+                    "junjo.enclosing_graph_structural_id",
+                    ctx.compiled_graph.graph_structural_id,
+                )
+                if parent_id is not None:
+                    span.set_attribute("junjo.parent_executable_definition_id", parent_id)
 
-                    # # Execute node before hooks
-                    # if self.hook_manager is not None:
-                    #     self.hook_manager.run_before_node_execute_hooks(span_open_node_args)
+                if parent_active_identity is not None:
+                    span.set_attribute(
+                        "junjo.parent_executable_runtime_id",
+                        parent_active_identity.executable_runtime_id,
+                    )
+                    span.set_attribute(
+                        "junjo.parent_executable_structural_id",
+                        parent_active_identity.executable_structural_id,
+                    )
 
-                    # # If executing a subflow
-                    if isinstance(current_executable, Subflow):
-                        print("Executing subflow:", current_executable.name)
+                if parent_store is not None and parent_store.id is not None:
+                    span.set_attribute("junjo.workflow.parent_store.id", parent_store.id)
 
-                        # Pass the current store as the parent store for the sub-flow
-                        await current_executable.execute(ctx.store, self.id)
+                with active_executable_identity(
+                    ActiveExecutableIdentity(
+                        executable_definition_id=self.id,
+                        executable_name=self.name,
+                        span_type=self.span_type,
+                        executable_runtime_id=ctx.run_id,
+                        executable_structural_id=ctx.compiled_graph.graph_structural_id,
+                    )
+                ):
+                    trace_id, span_id = get_span_identifiers(span)
+                    await ctx.dispatcher.workflow_started(
+                        run_id=ctx.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        span_type=self.span_type,
+                        store_id=ctx.store.id,
+                        graph_json=graph_json,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=ctx.run_id,
+                        executable_structural_id=ctx.compiled_graph.graph_structural_id,
+                        enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
 
-                        # Track subflow visits at the current workflow level so
-                        # loop protection stays scoped to this graph only.
-                        ctx.node_execution_counter[current_executable.id] = (
-                            ctx.node_execution_counter.get(current_executable.id, 0) + 1
-                        )
-                        if ctx.node_execution_counter[current_executable.id] > self.max_iterations:
+                    if isinstance(self, Subflow):
+                        if parent_store is None:
                             raise ValueError(
-                                f"Node '{current_executable}' exceeded maximum execution count. \
-                                Check for loops in your graph. Ensure it transitions to the sink node."
+                                "Subflow requires a parent store to execute pre_run_actions."
                             )
+                        await self.pre_run_actions(parent_store, ctx.store)
 
-                    # If executing a node
-                    if isinstance(current_executable, Node):
-                        print("Executing node:", current_executable.name)
-                        await current_executable.execute(ctx.store, self.id)
-
-                        # # Execute node after hooks
-                        # if self.hook_manager is not None:
-                        #     self.hook_manager.run_after_node_execute_hooks(span_close_node_args)
-
-                        # Increment the execution counter for RunConcurrent executions
-                        if isinstance(current_executable, RunConcurrent):
-                            for item in current_executable.items:
-                                ctx.node_execution_counter[item.id] = ctx.node_execution_counter.get(item.id, 0) + 1
-                                if ctx.node_execution_counter[item.id] > self.max_iterations:
-                                    raise ValueError(
-                                        f"Node '{item}' exceeded maximum execution count. \
-                                        Check for loops in your graph. Ensure it transitions to the sink node."
-                                    )
-
-                        # Increment the execution counter for Node executions
-                        else:
+                    current_executable = ctx.graph.source
+                    while True:
+                        if isinstance(current_executable, Subflow):
+                            print("Executing subflow:", current_executable.name)
+                            await current_executable.execute(
+                                ctx.store,
+                                self.id,
+                                validate_graph=validate_graph,
+                            )
                             ctx.node_execution_counter[current_executable.id] = (
                                 ctx.node_execution_counter.get(current_executable.id, 0) + 1
                             )
-                            if ctx.node_execution_counter[current_executable.id] > self.max_iterations:
+                            if (
+                                ctx.node_execution_counter[current_executable.id]
+                                > self.max_iterations
+                            ):
                                 raise ValueError(
-                                    f"Node '{current_executable}' exceeded maximum execution count. \
-                                    Check for loops in your graph. Ensure it transitions to the sink node."
+                                    f"Node '{current_executable}' exceeded maximum execution count. "
+                                    "Check for loops in your graph. Ensure it transitions to a declared sink."
                                 )
 
-                    # Break the loop if the current node is the final node.
-                    if current_executable == ctx.graph.sink:
-                        print("Sink has executed. Exiting loop.")
-                        break
+                        if isinstance(current_executable, Node):
+                            print("Executing node:", current_executable.name)
+                            await current_executable.execute(ctx.store, self.id)
 
-                    # Get the next executable in the workflow.
-                    current_executable = await ctx.graph.get_next_node(ctx.store, current_executable)
+                            if isinstance(current_executable, RunConcurrent):
+                                for item in current_executable.items:
+                                    ctx.node_execution_counter[item.id] = (
+                                        ctx.node_execution_counter.get(item.id, 0) + 1
+                                    )
+                                    if ctx.node_execution_counter[item.id] > self.max_iterations:
+                                        raise ValueError(
+                                            f"Node '{item}' exceeded maximum execution count. "
+                                            "Check for loops in your graph. Ensure it transitions to a declared sink."
+                                        )
+                            else:
+                                ctx.node_execution_counter[current_executable.id] = (
+                                    ctx.node_execution_counter.get(current_executable.id, 0) + 1
+                                )
+                                if (
+                                    ctx.node_execution_counter[current_executable.id]
+                                    > self.max_iterations
+                                ):
+                                    raise ValueError(
+                                        f"Node '{current_executable}' exceeded maximum execution count. "
+                                        "Check for loops in your graph. Ensure it transitions to a declared sink."
+                                    )
 
+                        if current_executable in ctx.graph.sinks:
+                            print("A declared sink has executed. Exiting loop.")
+                            break
 
-                print(f"Completed workflow: {self.name} with ID: {self.id}")
+                        current_executable = await ctx.graph.get_next_node(
+                            ctx.store,
+                            current_executable,
+                        )
 
-                # Perform subflow post-run actions
-                if isinstance(self, Subflow):
-                    if parent_store is None:
-                        raise ValueError("Subflow requires a parent store to execute post_run_actions.")
-                    else:
+                    print(f"Completed workflow: {self.name} with ID: {self.id}")
+
+                    if isinstance(self, Subflow):
+                        if parent_store is None:
+                            raise ValueError(
+                                "Subflow requires a parent store to execute post_run_actions."
+                            )
                         print("Performing post-run actions for subflow:", self.name)
                         await self.post_run_actions(parent_store, ctx.store)
 
             except asyncio.CancelledError as exc:
                 mark_span_cancelled(span, exc)
-                raise
+                cancellation = exc
 
-            except Exception as e:
-                print(f"Error executing workflow: {e}")
-                span.set_status(trace.StatusCode.ERROR, str(e))
-                span.record_exception(e)
-
-                # Raise the error to be handled by the caller
-                raise e
+            except Exception as exc:
+                print(f"Error executing workflow: {exc}")
+                span.set_status(trace.StatusCode.ERROR, str(exc))
+                span.record_exception(exc)
+                failure = exc
 
             finally:
                 execution_sum = sum(ctx.node_execution_counter.values())
+                final_state = await ctx.store.get_state()
+                trace_id, span_id = get_span_identifiers(span)
 
-                # Update attributes *after* the workflow loop completes (or errors)
-                span.set_attribute("junjo.workflow.state.end", await ctx.store.get_state_json())
+                span.set_attribute(
+                    "junjo.workflow.state.end",
+                    final_state.model_dump_json(),
+                )
                 span.set_attribute("junjo.workflow.node.count", execution_sum)
 
-            # # Execute workflow after hooks
-            # if self.hook_manager is not None:
-            #     self.hook_manager.run_after_workflow_execute_hooks(
-            #         after_workflow_hook_args
-            #     )
+                if cancellation is None and failure is None:
+                    result = ExecutionResult(
+                        run_id=ctx.run_id,
+                        definition_id=self.id,
+                        name=self.name,
+                        state=final_state,
+                        node_execution_counts=MappingProxyType(
+                            dict(ctx.node_execution_counter)
+                        ),
+                    )
+                    prepared_terminal_event = ctx.dispatcher.workflow_completed(
+                        run_id=ctx.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        span_type=self.span_type,
+                        result=result,
+                        store_id=ctx.store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=ctx.run_id,
+                        executable_structural_id=ctx.compiled_graph.graph_structural_id,
+                        enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
+                elif cancellation is not None:
+                    prepared_terminal_event = ctx.dispatcher.workflow_cancelled(
+                        run_id=ctx.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        span_type=self.span_type,
+                        reason=str(cancellation.args[0]) if cancellation.args else "cancelled",
+                        state=final_state,
+                        store_id=ctx.store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=ctx.run_id,
+                        executable_structural_id=ctx.compiled_graph.graph_structural_id,
+                        enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
+                elif failure is not None:
+                    prepared_terminal_event = ctx.dispatcher.workflow_failed(
+                        run_id=ctx.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        span_type=self.span_type,
+                        error=failure,
+                        state=final_state,
+                        store_id=ctx.store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=ctx.run_id,
+                        executable_structural_id=ctx.compiled_graph.graph_structural_id,
+                        enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
 
-            return ExecutionResult(
-                run_id=ctx.run_id,
-                definition_id=self.id,
-                name=self.name,
-                state=await ctx.store.get_state(),
-                node_execution_counts=MappingProxyType(
-                    dict(ctx.node_execution_counter)
-                ),
-            )
+        await ctx.dispatcher.dispatch(prepared_terminal_event)
 
-# Class Variation
+        if cancellation is not None:
+            raise cancellation
+        if failure is not None:
+            raise failure
+        return result
+
+
 class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
     def __init__(
         self,
         graph_factory: GraphFactory[Graph],
         store_factory: StoreFactory[StoreT],
         max_iterations: int = 100,
-        hook_manager: HookManager | None = None,
+        hooks: Hooks | None = None,
         name: str | None = None,
     ):
         """
@@ -283,88 +480,106 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
         arranged as a graph. It manages its own state and store, distinct from
         any parent or sub-workflows.
 
-        This class is generic and requires four type parameters for a convenient and type safe developer experience:
+        This class is generic and requires two type parameters for a convenient
+        and type-safe developer experience:
 
-        Generic Type Parameters:
-            | StateT: The type of state managed by this workflow, (subclass of :class:`~.BaseState`)
-            | StoreT: The type of store used by this workflow, (subclass of :class:`~.BaseStore`)
+        ``StateT`` is the type of state managed by this workflow and should be
+        a subclass of :class:`~junjo.state.BaseState`. ``StoreT`` is the store
+        type used by this workflow and should be a subclass of
+        :class:`~junjo.store.BaseStore`.
 
-        :param name: An optional name for the workflow. If not provided,
-                    the class name is used.
+        Every call to :meth:`~junjo.workflow.Workflow.execute` creates a fresh
+        graph, a fresh store, and a fresh execution context. That makes a
+        ``Workflow`` instance a reusable definition or blueprint rather than a
+        mutable live-run container.
+
+        :param name: An optional name for the workflow. If not provided, the
+            class name is used.
         :type name: str | None, optional
-        :param graph_factory: A callable that returns a new instance of the workflow's
-                            graph (``Graph``). This factory is invoked at the beginning
-                            of each :meth:`~.Workflow.execute` call to ensure a fresh, isolated
-                            graph for the workflow's specific execution. This is critical
-                            for concurrency safety.
+        :param graph_factory: A callable that returns a new instance of the
+            workflow's graph (``Graph``). This factory is invoked at the
+            beginning of each :meth:`~junjo.workflow.Workflow.execute` call to
+            ensure a fresh, isolated graph for that execution.
         :type graph_factory: GraphFactory[Graph]
-        :param store_factory: A callable that returns a new instance of the workflow's
-                            store (``StoreT``). This factory is invoked at the beginning
-                            of each :meth:`~.Workflow.execute` call to ensure a fresh state for the
-                            workflow's specific execution.
+        :param store_factory: A callable that returns a new instance of the
+            workflow's store (``StoreT``). This factory is invoked at the
+            beginning of each :meth:`~junjo.workflow.Workflow.execute` call to
+            ensure a fresh store for that execution.
         :type store_factory: StoreFactory[StoreT]
-        :param max_iterations: The maximum number of times any single node can be
-                            executed within one workflow run. This helps prevent
-                            infinite loops. Defaults to 100.
+        :param max_iterations: The maximum number of times any single node or
+            executable may run within one workflow execution. This helps detect
+            accidental loops. Defaults to 100.
         :type max_iterations: int, optional
-        :param hook_manager: An optional :class:`~.HookManager` for handling
-                            workflow lifecycle events and telemetry. Defaults to None.
-        :type hook_manager: HookManager | None, optional
+        :param hooks: An optional :class:`~junjo.hooks.Hooks` registry for
+            observing workflow lifecycle events. Hooks are optional observers;
+            they do not control OpenTelemetry instrumentation or workflow
+            execution.
+        :type hooks: Hooks | None, optional
+
+        .. rubric:: Example without hooks
 
         .. code-block:: python
 
-            workflow = Workflow[MyGraphState, MyGraphStore](
+            workflow = Workflow[MyState, MyStore](
                 name="demo_base_workflow",
                 graph_factory=create_my_graph,
-                store_factory=lambda: MyGraphStore(initial_state=MyGraphState()),
-                hook_manager=HookManager(verbose_logging=False, open_telemetry=True),
+                store_factory=lambda: MyStore(initial_state=MyState()),
             )
+
             result = await workflow.execute()
             print(result.state.model_dump_json())
 
-        .. _workflow-instantiation-params:
-
-        **Passing Parameters to Factories**
-
-        To provide parameters to your `graph_factory` or `store_factory` when
-        you create a `Workflow`, you can wrap your factory function call in a
-        `lambda`. This creates a new, argument-less factory that calls your
-        function with the desired parameters when executed.
-
-        This is useful for injecting dependencies like configuration objects or
-        API clients into your graph at instantiation time, while preserving
-        concurrency safety.
+        .. rubric:: Example with hooks
 
         .. code-block:: python
 
-            # Your factory function that requires a dependency
-            def create_graph_with_dependency(emulator: Emulator) -> Graph:
-                # ... setup graph using the emulator
-                return Graph(...)
+            hooks = Hooks()
 
-            # An instance of the dependency
-            my_emulator = Emulator()
+            def log_completed(event) -> None:
+                print(
+                    "workflow completed",
+                    event.name,
+                    event.run_id,
+                    event.result.state.model_dump(),
+                )
 
-            # Instantiate the workflow, using a lambda to create the factory
+            hooks.on_workflow_completed(log_completed)
+
             workflow = Workflow[MyState, MyStore](
                 name="configured_workflow",
-                graph_factory=lambda: create_graph_with_dependency(
-                    emulator=my_emulator
-                ),
-                store_factory=lambda: MyStore(initial_state=MyState())
+                graph_factory=create_my_graph,
+                store_factory=lambda: MyStore(initial_state=MyState()),
+                hooks=hooks,
             )
 
-            # The workflow can now be executed normally
-            result = await workflow.execute()
-            print(result.state.model_dump_json())
+        .. rubric:: Passing Parameters to Factories
+
+        To provide parameters to your ``graph_factory`` or ``store_factory``
+        when you create a workflow, wrap the factory call in a ``lambda``.
+        This creates an argument-less factory that closes over the dependencies
+        you want to inject while preserving the fresh-per-run execution model.
+
+        .. code-block:: python
+
+            def create_graph_with_dependency(emulator: Emulator) -> Graph:
+                return Graph(...)
+
+            my_emulator = Emulator()
+
+            workflow = Workflow[MyState, MyStore](
+                name="configured_workflow",
+                graph_factory=lambda: create_graph_with_dependency(my_emulator),
+                store_factory=lambda: MyStore(initial_state=MyState()),
+            )
         """
         super().__init__(
             graph_factory=graph_factory,
             store_factory=store_factory,
             max_iterations=max_iterations,
-            hook_manager=hook_manager,
+            hooks=hooks,
             name=name,
         )
+
 
 class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC):
     def __init__(
@@ -372,60 +587,60 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
         graph_factory: GraphFactory[Graph],
         store_factory: StoreFactory[StoreT],
         max_iterations: int = 100,
-        hook_manager: HookManager | None = None,
+        hooks: Hooks | None = None,
         name: str | None = None,
     ):
         """
         A Subflow is a workflow that:
-            | 1. Executes within a parent workflow or parent subflow
-            | 2. Has its own isolated state and store
-            | 3. Can interact with it's parent workflow state before and after execution
-                via :meth:`~.pre_run_actions` and :meth:`~.post_run_actions`
 
-        This class is generic and requires four type parameters for a convenient and type safe developer experience:
+        - Executes within a parent workflow or parent subflow.
+        - Has its own isolated state and store.
+        - Can interact with its parent workflow state before and after
+          execution via :meth:`pre_run_actions` and
+          :meth:`post_run_actions`.
 
-        Generic Type Parameters:
-            | StateT: The type of state managed by this subflow, (subclass of :class:`~.BaseState`)
-            | StoreT: The type of store used by this subflow, (subclass of :class:`~.BaseStore`)
-            | ParentStateT: The type of state managed by the parent workflow, (subclass of :class:`~.BaseState`)
-            | ParentStoreT: The type of store used by the parent workflow, (subclass of :class:`~.BaseStore`)
+        Like top-level workflows, subflows create a fresh graph and a fresh
+        store for every execution. The child run is isolated from the parent
+        store except for the explicit handoff points provided by the pre- and
+        post-run hooks.
 
-        :param name: An optional name for the workflow. If not provided,
-                    the class name is used.
+        :param name: An optional name for the subflow. If not provided, the
+            class name is used.
         :type name: str | None, optional
-        :param graph_factory: A callable that returns a new instance of the workflow's
-                            graph (``Graph``). This factory is invoked at the beginning
-                            of each :meth:`~.Subflow.execute` call to ensure a fresh, isolated
-                            graph for the workflow's specific execution. This is critical
-                            for concurrency safety.
+        :param graph_factory: A callable that returns a new instance of the
+            subflow's graph (``Graph``). This factory is invoked at the
+            beginning of each :meth:`~junjo.workflow.Subflow.execute` call to
+            ensure a fresh, isolated graph for that execution.
         :type graph_factory: GraphFactory[Graph]
-        :param store_factory: A callable that returns a new instance of the workflow's
-                            store (``StoreT``). This factory is invoked at the beginning
-                            of each :meth:`~.Subflow.execute` call to ensure a fresh state for the
-                            workflow's specific execution.
+        :param store_factory: A callable that returns a new instance of the
+            subflow's store (``StoreT``). This factory is invoked at the
+            beginning of each :meth:`~junjo.workflow.Subflow.execute` call to
+            ensure a fresh store for that execution.
         :type store_factory: StoreFactory[StoreT]
-        :param max_iterations: The maximum number of times any single node can be
-                            executed within one workflow run. This helps prevent
-                            infinite loops. Defaults to 100.
+        :param max_iterations: The maximum number of times any single node or
+            executable may run within one subflow execution. Defaults to 100.
         :type max_iterations: int, optional
-        :param hook_manager: An optional :class:`~.HookManager` for handling
-                            workflow lifecycle events and telemetry. Defaults to None.
-        :type hook_manager: HookManager | None, optional
+        :param hooks: An optional :class:`~junjo.hooks.Hooks` registry for
+            observing lifecycle events emitted by this subflow.
+        :type hooks: Hooks | None, optional
+
+        .. rubric:: Example
 
         .. code-block:: python
 
-            class ExampleSubflow(Subflow[SubflowState, SubflowStore, ParentState, ParentStore]):
+            class ExampleSubflow(
+                Subflow[SubflowState, SubflowStore, ParentState, ParentStore]
+            ):
                 async def pre_run_actions(self, parent_store, subflow_store):
                     parent_state = await parent_store.get_state()
-                    await subflow_store.set_parameter({
-                        "parameter": parent_state.parameter
-                    })
+                    await subflow_store.set_parameter(
+                        {"parameter": parent_state.parameter}
+                    )
 
                 async def post_run_actions(self, parent_store, subflow_store):
-                    sub_flow_state = await subflow_store.get_state()
-                    await parent_store.set_subflow_result(sub_flow_state.result)
+                    subflow_state = await subflow_store.get_state()
+                    await parent_store.set_subflow_result(subflow_state.result)
 
-            # Instantiate the subflow
             example_subflow = ExampleSubflow(
                 graph_factory=create_example_subflow_graph,
                 store_factory=lambda: ExampleSubflowStore(
@@ -437,36 +652,44 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
             graph_factory=graph_factory,
             store_factory=store_factory,
             max_iterations=max_iterations,
-            hook_manager=hook_manager,
+            hooks=hooks,
             name=name,
         )
 
     @abstractmethod
-    async def pre_run_actions(self, parent_store: ParentStoreT, subflow_store: StoreT) -> None:
+    async def pre_run_actions(
+        self,
+        parent_store: ParentStoreT,
+        subflow_store: StoreT,
+    ) -> None:
         """
-        This method is called before the workflow has run.
+        This method is called before the subflow has run.
 
-        This is where you can pass initial state values from the parent workflow to the subflow state.
+        This is where you can pass initial state values from the parent workflow
+        to the subflow store for this specific run.
 
-        Args:
-            parent_store: The parent store to interact with.
-            subflow_store: The store for this specific subflow execution.
-
-        In this example, we are passing a parameter from the parent store to the subflow store, using
-        the subflow's `set_parameter` method, defined in the subflow's store.
+        :param parent_store: The parent store to interact with.
+        :type parent_store: ParentStoreT
+        :param subflow_store: The store for this specific subflow execution.
+        :type subflow_store: StoreT
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    async def post_run_actions(self, parent_store: ParentStoreT, subflow_store: StoreT) -> None:
+    async def post_run_actions(
+        self,
+        parent_store: ParentStoreT,
+        subflow_store: StoreT,
+    ) -> None:
         """
-        This method is called after the workflow has run.
+        This method is called after the subflow has run.
 
-        This is where you can update the parent store with the results of the workflow.
-        This is useful for subflows that need to update the parent workflow store with their results.
+        This is where you can update the parent store with the results of the
+        child workflow.
 
-        Args:
-            parent_store: The parent store to update.
-            subflow_store: The store for this specific subflow execution.
+        :param parent_store: The parent store to update.
+        :type parent_store: ParentStoreT
+        :param subflow_store: The store for this specific subflow execution.
+        :type subflow_store: StoreT
         """
-        pass
+        raise NotImplementedError

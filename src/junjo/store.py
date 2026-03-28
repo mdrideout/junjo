@@ -1,7 +1,6 @@
 import abc
 import asyncio
 import inspect
-from collections.abc import Awaitable, Callable
 from types import NoneType
 from typing import Generic, TypeVar
 
@@ -9,7 +8,13 @@ import jsonpatch
 from opentelemetry import trace
 from pydantic import ValidationError
 
+from ._lifecycle import (
+    StoreLifecycleContext,
+    get_active_executable_identity,
+    get_parent_active_executable_identity,
+)
 from .state import BaseState
+from .telemetry.span_lifecycle import get_current_span_identifiers
 from .util import generate_safe_id
 
 # State / Store
@@ -20,120 +25,127 @@ StoreT = TypeVar("StoreT", bound="BaseStore")
 ParentStateT = TypeVar("ParentStateT", bound="BaseState | NoneType")
 ParentStoreT = TypeVar("ParentStoreT", bound="BaseStore | NoneType")
 
-# Type alias: each subscriber can be either a sync callable or an async callable (returns an Awaitable).
-Subscriber = Callable[[StateT], None] | Callable[[StateT], Awaitable[None]]
 
 class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
     """
     BaseStore represents a generic store for managing the state of a workflow.
-    It is designed to be subclassed with a specific state type (Pydantic model).
+    It is designed to be subclassed with a specific state type (a Pydantic
+    model derived from :class:`~junjo.state.BaseState`).
 
     The store is responsible for:
-        | - Managing the state of the workflow.
-        | - Making immuable updates to the state safely in a concurrent environment.
-        | - Validating state updates against the Pydantic model.
-        | - Providing methods to subscribe to state changes.
-        | - Notifying subscribers when the state changes.
 
-    The store uses an asyncio.Lock to ensure that state updates are thread-safe and
-    that subscribers are notified in a safe manner. This is important in an async
-    environment where multiple coroutines may be trying to update the state or
-    subscribe to changes at the same time.
+    - Managing the state of a workflow or subflow execution.
+    - Making immutable updates to that state safely in a concurrent
+      environment.
+    - Validating committed updates against the underlying Pydantic model.
+
+    The store uses an :class:`asyncio.Lock` to ensure that state updates are
+    concurrency-safe. Each committed update is derived, validated, and applied
+    against the exact locked state version it modifies, which prevents stale
+    validate-then-apply races under concurrent execution.
+
+    Subclass ``BaseStore`` with your own state type and expose domain-specific
+    actions that call :meth:`set_state`.
+
+    .. rubric:: Example
+
+    .. code-block:: python
+
+        class MyWorkflowState(BaseState):
+            user_input: str
+            processed_data: dict | None = None
+
+        class MyWorkflowStore(BaseStore[MyWorkflowState]):
+            async def set_processed_data(self, data: dict) -> None:
+                await self.set_state({"processed_data": data})
     """
 
     def __init__(self, initial_state: StateT) -> None:
         """
-        Args:
-            initial_state: The initial state of the store, based on the Pydantic model.
+        :param initial_state: The initial state of the store.
+        :type initial_state: StateT
         """
-        # Use an asyncio.Lock for concurrency control in an async environment
         self._lock = asyncio.Lock()
-
-        # Generate a unique ID for the store instance
         self._id = generate_safe_id()
-
-        # The current state of the store
         self._state: StateT = initial_state
-
-        # Each subscriber can be a synchronous or asynchronous function
-        self._subscribers: list[Subscriber] = []
+        self._lifecycle_context: StoreLifecycleContext | None = None
 
     @property
     def id(self) -> str:
-        """Returns the unique identifier of a given store's implementation."""
+        """Returns the unique identifier of this store instance."""
         return self._id
-
-    async def subscribe(self, listener: Subscriber) -> Callable[[], Awaitable[None]]:
-        """
-        Register a listener (sync or async callable) to be called whenever the state changes.
-        Returns an *async* unsubscribe function that, when awaited, removes this listener.
-        """
-
-        async with self._lock:
-            self._subscribers.append(listener)
-
-        async def unsubscribe() -> None:
-            """
-            Async function to remove the listener from the subscriber list.
-            We lock again to ensure concurrency safety.
-            """
-            async with self._lock:
-                if listener in self._subscribers:
-                    self._subscribers.remove(listener)
-
-        return unsubscribe
 
     async def get_state(self) -> StateT:
         """
         Return a detached deep copy of the current state.
-        Mutating the returned snapshot must not mutate the store.
+
+        This method follows the immutability principle for read access: callers
+        receive a deep snapshot that can be inspected freely without mutating
+        the live store. Store updates must still flow through store actions and
+        :meth:`set_state`.
         """
         async with self._lock:
             return self._state.model_copy(deep=True)
 
-
     async def get_state_json(self) -> str:
         """
         Return the current state as a JSON string.
+
+        This is useful for logging, tracing, or serializing the current state
+        without manually calling ``model_dump_json`` on a snapshot.
         """
         async with self._lock:
             return self._state.model_dump_json()
 
+    def _set_lifecycle_context(self, context: StoreLifecycleContext | None) -> None:
+        """Attach internal lifecycle dispatch context for this execution."""
+        self._lifecycle_context = context
+
     async def set_state(self, update: dict) -> None:
         """
         Update the store's state with a dictionary of changes.
-        | - Immutable update with a deep state copy
-        | - Merges the current state with `updates` using `model_copy(update=...)`.
-        | - Validates that each updated field is valid for StateT.
-        | - If there's a change, notifies subscribers outside the lock.
 
-        Args:
-            update: A dictionary of updates to apply to the state.
+        The update is merged with the current locked state, validated against
+        the store's Pydantic model, and committed atomically if it changes the
+        state. This method also emits OpenTelemetry ``set_state`` events and
+        lifecycle state-changed hooks when a commit occurs.
+
+        :param update: A dictionary of updates to apply to the state.
+        :type update: dict
 
         .. code-block:: python
 
-            class MessageWorkflowState(BaseState): # A pydantic model to represent the state
+            class MessageWorkflowState(BaseState):
                 received_message: Message
 
-            class MessageWorkflowStore(BaseStore[MessageWorkflowState]): # A concrete store for MessageWorkflowState
+            class MessageWorkflowStore(BaseStore[MessageWorkflowState]):
                 async def set_received_message(self, payload: Message) -> None:
                     await self.set_state({"received_message": payload})
 
             payload = Message(...)
-            await store.set_received_message(payload) # Utilizes the set_state method to update a particular field
+            await store.set_received_message(payload)
+
+        .. note::
+
+            Validation happens while the store lock is held, so every committed
+            update is validated against the exact state version it will be
+            applied to.
+
+        .. note::
+
+            If the resulting state is unchanged, the store remains untouched
+            and an empty patch is recorded in telemetry.
         """
-        # Get the caller function's name and class name for telemetry purposes
         caller_frame = inspect.currentframe()
         if caller_frame:
             caller_frame = caller_frame.f_back
         caller_function_name = caller_frame.f_code.co_name if caller_frame else "unknown action"
 
-        # Get the caller class name if available
         caller_class_name = "unknown store"
         if caller_frame and "self" in caller_frame.f_locals:
             caller_class_name = caller_frame.f_locals["self"].__class__.__name__
 
-        subscribers_to_notify: list[Subscriber] = []
+        state_changed_payload: dict | None = None
         async with self._lock:
             try:
                 new_state = self._state.__class__.model_validate(
@@ -145,23 +157,14 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     f"Check that you are updating a valid state property and type: {e}"
                 ) from e
 
-            # Patch starts as None
             patch = None
 
-            # Only notify if something actually changed
             if new_state != self._state:
                 state_json_before = self._state.model_dump(mode="json")
                 state_json_after = new_state.model_dump(mode="json")
-
-                # Calculate the patch
                 patch = jsonpatch.make_patch(state_json_before, state_json_after)
-                # print("PATCH: ", patch)
-
-                # Update the stack (have lock)
                 self._state = new_state
-                subscribers_to_notify = list(self._subscribers)
 
-            # --- OpenTelemetry Event (call even if nothing changed) --- #
             current_span = trace.get_current_span()
             if current_span.is_recording():
                 current_span.add_event(
@@ -171,21 +174,67 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                         "junjo.store.name": caller_class_name,
                         "junjo.store.id": self.id,
                         "junjo.store.action": caller_function_name,
-                        "junjo.state_json_patch": patch.to_string() if patch else "{}", # Empty if nothing changed
+                        "junjo.state_json_patch": patch.to_string() if patch else "{}",
                     },
                 )
-            # --- End OpenTelemetry Event --- #
 
-        # Notify subscribers outside the lock
-        if subscribers_to_notify:
-            await self._notify_subscribers(new_state, subscribers_to_notify)
+            if patch is not None and self._lifecycle_context is not None:
+                trace_id, span_id = get_current_span_identifiers()
+                active_identity = get_active_executable_identity()
+                parent_active_identity = get_parent_active_executable_identity()
+                state_changed_payload = {
+                    "run_id": self._lifecycle_context.run_id,
+                    "executable_definition_id": (
+                        active_identity.executable_definition_id
+                        if active_identity is not None
+                        else self._lifecycle_context.executable_definition_id
+                    ),
+                    "name": (
+                        active_identity.executable_name
+                        if active_identity is not None
+                        else self._lifecycle_context.name
+                    ),
+                    "span_type": (
+                        active_identity.span_type
+                        if active_identity is not None
+                        else self._lifecycle_context.span_type
+                    ),
+                    "store_id": self.id,
+                    "store_name": caller_class_name,
+                    "action_name": caller_function_name,
+                    "patch": patch.to_string(),
+                    "state": new_state.model_copy(deep=True),
+                    "parent_executable_definition_id": (
+                        parent_active_identity.executable_definition_id
+                        if parent_active_identity is not None
+                        else self._lifecycle_context.executable_definition_id
+                    ),
+                    "trace_id": trace_id,
+                    "span_id": span_id,
+                    "executable_runtime_id": (
+                        active_identity.executable_runtime_id
+                        if active_identity is not None
+                        else self._lifecycle_context.executable_runtime_id
+                    ),
+                    "executable_structural_id": (
+                        active_identity.executable_structural_id
+                        if active_identity is not None
+                        else self._lifecycle_context.executable_structural_id
+                    ),
+                    "enclosing_graph_structural_id": (
+                        self._lifecycle_context.enclosing_graph_structural_id
+                    ),
+                    "parent_executable_runtime_id": (
+                        parent_active_identity.executable_runtime_id
+                        if parent_active_identity is not None
+                        else None
+                    ),
+                    "parent_executable_structural_id": (
+                        parent_active_identity.executable_structural_id
+                        if parent_active_identity is not None
+                        else None
+                    ),
+                }
 
-    async def _notify_subscribers(self, new_state: StateT, subscribers: list[Subscriber]) -> None:
-        """
-        Private helper to call subscribers once the lock is released.
-        """
-        for subscriber in subscribers:
-            result = subscriber(new_state)
-            # If the subscriber is async, it returns a coroutine or awaitable
-            if asyncio.iscoroutine(result) or isinstance(result, Awaitable):
-                await result
+        if state_changed_payload is not None and self._lifecycle_context is not None:
+            await self._lifecycle_context.dispatcher.state_changed(**state_changed_payload)

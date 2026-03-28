@@ -3,13 +3,13 @@ from nanoid import generate
 
 def generate_safe_id(size: int = 21) -> str:
     """
-    Generates a random ID using a safe alphabet for Mermaid diagrams.
+    Generate a random identifier using an alphabet that remains safe for
+    Mermaid diagrams.
 
-    Args:
-        size: The length of the ID to generate.
-
-    Returns:
-        A random ID string.
+    :param size: The length of the identifier to generate.
+    :type size: int
+    :returns: A random identifier string.
+    :rtype: str
     """
     alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     return generate(alphabet, size)

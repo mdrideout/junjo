@@ -45,7 +45,7 @@ When you execute a workflow, Junjo creates a hierarchy of OpenTelemetry spans:
     ├── Subflow Span
     │   ├── Node Span
     │   └── Node Span
-    └── Node Span (sink)
+    └── Node Span (declared sink)
 
 Each span includes Junjo-specific attributes that provide workflow context.
 
@@ -172,15 +172,20 @@ Workflow/Subflow Span Attributes
 
     {
         "junjo.span_type": "workflow" | "subflow",
-        "junjo.id": "<unique-workflow-id>",
+        "junjo.executable_definition_id": "<workflow-definition-id>",
+        "junjo.executable_runtime_id": "<workflow-run-id>",
+        "junjo.executable_structural_id": "<graph-structural-id>",
+        "junjo.enclosing_graph_structural_id": "<graph-structural-id>",
         "junjo.workflow.state.start": "<initial-state-json>",
         "junjo.workflow.state.end": "<final-state-json>",
-        "junjo.workflow.graph_structure": "<graph-definition-json>",
+        "junjo.workflow.execution_graph_snapshot": "<execution-graph-snapshot-json>",
         "junjo.workflow.node.count": 5,
         "junjo.workflow.store.id": "<store-id>",
         
         # Subflow only:
-        "junjo.parent_id": "<parent-workflow-id>",
+        "junjo.parent_executable_definition_id": "<parent-workflow-definition-id>",
+        "junjo.parent_executable_runtime_id": "<parent-executable-runtime-id>",
+        "junjo.parent_executable_structural_id": "<parent-executable-structural-id>",
         "junjo.workflow.parent_store.id": "<parent-store-id>"
     }
 
@@ -191,8 +196,13 @@ Node Span Attributes
 
     {
         "junjo.span_type": "node",
-        "junjo.id": "<unique-node-id>",
-        "junjo.parent_id": "<parent-workflow-id>"
+        "junjo.executable_definition_id": "<node-definition-id>",
+        "junjo.parent_executable_definition_id": "<parent-workflow-or-subflow-definition-id>",
+        "junjo.executable_runtime_id": "<node-runtime-id>",
+        "junjo.executable_structural_id": "<node-structural-id>",
+        "junjo.parent_executable_runtime_id": "<parent-executable-runtime-id>",
+        "junjo.parent_executable_structural_id": "<parent-executable-structural-id>",
+        "junjo.enclosing_graph_structural_id": "<graph-structural-id>"
     }
 
 These attributes enable:
