@@ -149,6 +149,12 @@ class Graph:
         all_nodes_dict: dict[str, Node | _NestableWorkflow] = {} # Dictionary to store unique nodes found
         all_edges_dict: dict[str, Edge] = {} # Dictionary to store all edges including subflow edges
         processed_subflows: set[str] = set() # Track processed subflows to avoid recursion loops
+        subflow_graphs: dict[str, Graph] = {} # Cache one graph snapshot per subflow for this pass
+
+        def get_subflow_graph(subflow: _NestableWorkflow) -> Graph:
+            if subflow.id not in subflow_graphs:
+                subflow_graphs[subflow.id] = subflow._graph_factory()
+            return subflow_graphs[subflow.id]
 
         # Recursive helper function to find all nodes, including those inside RunConcurrent and Subflows
         def collect_nodes(node: Node | _NestableWorkflow | None):
@@ -173,15 +179,15 @@ class Graph:
                     processed_subflows.add(node.id)  # Mark as processed to avoid cycles
 
                     # Collect subflow's source, sink and all nodes connected by edges
-                    # We call the factory directly to get a temporary graph for serialization
-                    subflow_graph = node._graph_factory()
+                    # Reuse a single graph snapshot for the entire serialization pass.
+                    subflow_graph = get_subflow_graph(node)
                     collect_nodes(subflow_graph.source)
                     collect_nodes(subflow_graph.sink)
 
                     # Collect all edges from the subflow
-                    for edge in subflow_graph.edges:
+                    for i, edge in enumerate(subflow_graph.edges):
                         # Create a unique ID for the subflow edge
-                        edge_id = f"subflow_{node.id}_edge_{edge.tail.id}_{edge.head.id}"
+                        edge_id = f"subflow_{node.id}_edge_{edge.tail.id}_{edge.head.id}_{i}"
                         all_edges_dict[edge_id] = edge
                         collect_nodes(edge.tail)
                         collect_nodes(edge.head)
@@ -224,8 +230,7 @@ class Graph:
             # Add subflow representation for Subflows
             elif isinstance(node, _NestableWorkflow):
                 node_info["isSubflow"] = True
-                # Call the factory again to ensure we have the graph for IDs
-                subflow_graph = node._graph_factory()
+                subflow_graph = get_subflow_graph(node)
                 node_info["subflowSourceId"] = subflow_graph.source.id
                 node_info["subflowSinkId"] = subflow_graph.sink.id
 
