@@ -19,6 +19,7 @@ summarized briefly. Open work is described in more detail.
 - Atomic validation and commit in `BaseStore.set_state()`
 - Removal of the old subscriber implementation
 - Replacement of `HookManager` with the new `Hooks` + internal lifecycle split
+- Graph validation, compilation, structural IDs, and rendering hardening
 - Public docstring, docs, and example alignment for the hardened runtime model
 
 ### Partially Complete
@@ -30,7 +31,6 @@ summarized briefly. Open work is described in more detail.
 ### Still Open
 
 - CI and release hardening
-- Graph validation, compilation, and deterministic serialization
 - Production-safe observability controls
 - Release/process discipline improvements
 
@@ -84,6 +84,20 @@ Delivered:
 - Examples now separate workflow definition from hook/logging wiring.
 - Hook documentation and examples now show real usage rather than placeholder configuration.
 
+### 5. Graph Hardening
+
+Status: completed
+
+Delivered:
+
+- `Graph` now uses explicit plural `sinks` for terminal nodes.
+- Traversal follows ordered first-match semantics directly.
+- `Graph.validate()` and `Graph.compile()` now provide a canonical validated structural model.
+- Typed graph exceptions now distinguish validation, compilation, serialization, and rendering failures.
+- Graph, node, and edge structural IDs are now separate from runtime execution IDs.
+- DOT, Graphviz, and Mermaid rendering now consume `CompiledGraph` directly.
+- Graph definitions are immutable after construction, so compiled snapshots cannot silently go stale.
+
 ## Phase A - CI And Release Hardening
 
 ### Why this is still open
@@ -109,36 +123,7 @@ gate around those guarantees.
 - Core library CI is hermetic and trustworthy.
 - Example/integration evals no longer define package health implicitly.
 
-## Phase B - Graph Validation, Compilation, And Determinism
-
-### Why this is still open
-
-This is now the largest untouched hardening area.
-
-The graph layer still needs a dedicated hardening pass covering:
-
-- graph terminology and API direction
-- explicit multi-sink terminal support
-- ordered first-match traversal semantics
-- validation and compilation
-- serialization correctness
-- structural IDs separate from runtime telemetry IDs
-- typed graph exceptions
-
-See [GRAPH_HARDENING.md](/Users/matt/repos/junjo/GRAPH_HARDENING.md) for the
-full graph-specific plan.
-
-### Remaining changes
-
-- Execute the phases in `GRAPH_HARDENING.md`.
-- Keep the root hardening plan high-level while the graph plan carries the
-  detailed design and implementation order.
-
-### Exit criteria
-
-- The graph-specific exit criteria in `GRAPH_HARDENING.md` are met.
-
-## Phase C - Observability Operational Safety
+## Phase B - Observability Operational Safety
 
 ### Why this is still open
 
@@ -165,7 +150,7 @@ configuration model for redaction, payload size, or capture profiles.
 - Telemetry payload controls are configurable and documented.
 - Exporter lifecycle and failure behavior are explicit.
 
-## Phase D - Quality Gates And Release Discipline
+## Phase C - Quality Gates And Release Discipline
 
 ### Why this is still open
 
@@ -205,15 +190,13 @@ as active plan items:
 ## Recommended Next Order
 
 1. CI and release hardening
-2. Graph validation / deterministic serialization
-3. Observability operational controls
-4. Long-term release/process discipline
+2. Observability operational controls
+3. Long-term release/process discipline
 
 ## Final Note
 
 The highest-risk runtime correctness work is already done. The remaining work is
 primarily about:
 
-- making graph structure trustworthy
 - making observability production-safe
 - making release quality enforceable by process instead of memory
