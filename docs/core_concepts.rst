@@ -167,6 +167,15 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
     result = await sample_workflow.execute()
     print(result.state.model_dump())
 
+By default, ``Workflow.execute()`` validates the freshly created graph before
+execution begins. This catches invalid terminal topology, unreachable sinks,
+and reachable non-sink dead ends before any nodes run. For targeted testing or
+advanced debugging, validation can be disabled per run:
+
+.. code-block:: python
+
+    result = await sample_workflow.execute(validate_graph=False)
+
 **Passing Parameters to Factories**
 
 To provide parameters to your `graph_factory` or `store_factory` when

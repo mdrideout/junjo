@@ -1,6 +1,17 @@
 import json
 
-from junjo import BaseState, BaseStore, Condition, Edge, Graph, Node, Subflow
+import pytest
+
+from junjo import (
+    BaseState,
+    BaseStore,
+    Condition,
+    Edge,
+    Graph,
+    GraphSerializationError,
+    Node,
+    Subflow,
+)
 
 
 class ParentState(BaseState):
@@ -133,3 +144,12 @@ def test_subflow_serialization_preserves_multiple_edges_with_same_tail_and_head(
 
     assert len(subflow_edges) == 2
     assert len({edge["id"] for edge in subflow_edges}) == 2
+
+
+def test_serialize_to_json_string_raises_typed_error_for_non_serializable_payload() -> None:
+    node = EndNode()
+    node.label = object()
+    graph = Graph(source=node, sinks=[node], edges=[])
+
+    with pytest.raises(GraphSerializationError, match="Failed to serialize graph to JSON"):
+        graph.serialize_to_json_string()

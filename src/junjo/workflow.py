@@ -140,6 +140,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         self,
         parent_store: ParentStoreT | None = None,
         parent_id: str | None = None,
+        *,
+        validate_graph: bool = True,
     ) -> ExecutionResult[StateT]:
         """
         Execute the workflow or subflow and return the final execution snapshot.
@@ -154,6 +156,9 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         :param parent_id: The parent workflow or subflow identifier when
             nested.
         :type parent_id: str | None
+        :param validate_graph: Whether to run ``Graph.validate()`` on the
+            fresh graph before execution starts. Defaults to ``True``.
+        :type validate_graph: bool
         :returns: A detached snapshot of the completed execution, including
             the final state and current-scope execution counts.
         :rtype: ExecutionResult[StateT]
@@ -166,6 +171,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             store=self._store_factory(),
             dispatcher=LifecycleDispatcher(self.hooks),
         )
+        if validate_graph:
+            ctx.graph.validate()
         ctx.store._set_lifecycle_context(
             StoreLifecycleContext(
                 dispatcher=ctx.dispatcher,
@@ -223,7 +230,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 while True:
                     if isinstance(current_executable, Subflow):
                         print("Executing subflow:", current_executable.name)
-                        await current_executable.execute(ctx.store, self.id)
+                        await current_executable.execute(
+                            ctx.store,
+                            self.id,
+                            validate_graph=validate_graph,
+                        )
                         ctx.node_execution_counter[current_executable.id] = (
                             ctx.node_execution_counter.get(current_executable.id, 0) + 1
                         )

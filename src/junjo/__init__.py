@@ -9,7 +9,13 @@ execution telemetry.
 """
 from .condition import Condition
 from .edge import Edge
-from .graph import Graph
+from .graph import (
+    Graph,
+    GraphCompilationError,
+    GraphRenderError,
+    GraphSerializationError,
+    GraphValidationError,
+)
 from .hooks import Hooks
 from .node import Node
 from .run_concurrent import RunConcurrent
@@ -27,6 +33,10 @@ from .workflow import (
 __all__ = [
     "Condition",
     "Graph",
+    "GraphValidationError",
+    "GraphCompilationError",
+    "GraphSerializationError",
+    "GraphRenderError",
     "Hooks",
     "GraphFactory",
     "StoreFactory",

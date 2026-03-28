@@ -2,7 +2,17 @@ import builtins
 
 import pytest
 
-from junjo import BaseState, BaseStore, Condition, Edge, Graph, Node, Subflow, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Condition,
+    Edge,
+    Graph,
+    GraphValidationError,
+    Node,
+    Subflow,
+    Workflow,
+)
 
 
 class WorkflowState(BaseState):
@@ -188,7 +198,7 @@ async def test_workflow_raises_when_dead_ending_on_node_not_in_sinks() -> None:
         store_factory=lambda: WorkflowStore(initial_state=WorkflowState(route="approve")),
     )
 
-    with pytest.raises(ValueError, match="No resolved edges"):
+    with pytest.raises(GraphValidationError, match="dead-ends without an outgoing edge"):
         await workflow.execute()
 
 
@@ -278,7 +288,7 @@ async def test_subflow_raises_when_dead_ending_on_node_not_in_sinks() -> None:
     )
     parent_store = ParentStore(initial_state=ParentState(route="approve"))
 
-    with pytest.raises(ValueError, match="No resolved edges"):
+    with pytest.raises(GraphValidationError, match="dead-ends without an outgoing edge"):
         await subflow.execute(parent_store=parent_store, parent_id="parent-id")
 
 

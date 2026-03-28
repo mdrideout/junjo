@@ -14,6 +14,51 @@ from .store import BaseStore
 from .workflow import _NestableWorkflow
 
 
+class GraphError(Exception):
+    """Base class for graph-specific errors raised by Junjo."""
+
+
+class GraphValidationError(GraphError, ValueError):
+    """
+    Raised when a graph shape or traversal outcome violates Junjo's graph
+    rules.
+
+    This includes invalid constructor inputs such as an empty ``sinks`` list
+    and runtime traversal situations where execution dead-ends on a non-sink
+    node.
+    """
+
+
+class GraphCompilationError(GraphError):
+    """
+    Raised when a graph cannot be compiled into a canonical structural form.
+
+    Junjo does not yet expose a full graph compilation phase, but this type is
+    reserved for that future hardening step so callers can distinguish compile
+    failures from validation, serialization, and rendering failures.
+    """
+
+
+class GraphSerializationError(GraphError):
+    """
+    Raised when a graph cannot be converted into its serialized JSON form.
+
+    This exception is used when Junjo successfully builds an in-memory graph
+    payload, but ``json.dumps`` cannot serialize part of that payload. This is
+    typically caused by attaching non-JSON-serializable values to graph-facing
+    metadata such as node labels.
+    """
+
+
+class GraphRenderError(GraphError):
+    """
+    Raised when a graph cannot be rendered into an output format.
+
+    This includes Graphviz command failures and unsupported rendering paths
+    such as Mermaid output that Junjo has not implemented yet.
+    """
+
+
 class Graph:
     """
     Represents a directed graph of nodes and edges, defining the structure and
@@ -109,10 +154,117 @@ class Graph:
         edges: list[Edge],
     ):
         if not sinks:
-            raise ValueError("Graph requires at least one sink.")
+            raise GraphValidationError("Graph requires at least one sink.")
         self.source = source
         self.sinks = tuple(sinks)
         self.edges = edges
+
+    def _collect_structural_nodes(self) -> dict[str, Node | _NestableWorkflow]:
+        all_nodes: dict[str, Node | _NestableWorkflow] = {self.source.id: self.source}
+        for sink in self.sinks:
+            all_nodes[sink.id] = sink
+        for edge in self.edges:
+            all_nodes[edge.tail.id] = edge.tail
+            all_nodes[edge.head.id] = edge.head
+        return all_nodes
+
+    def _build_outgoing_edges(self) -> dict[str, list[Edge]]:
+        outgoing_edges: dict[str, list[Edge]] = {}
+        for edge in self.edges:
+            outgoing_edges.setdefault(edge.tail.id, []).append(edge)
+        return outgoing_edges
+
+    def _validate_sinks_have_no_outgoing_edges(
+        self,
+        outgoing_edges: dict[str, list[Edge]],
+    ) -> None:
+        for sink in self.sinks:
+            if outgoing_edges.get(sink.id):
+                raise GraphValidationError(
+                    f"Declared sink '{sink}' has outgoing edges."
+                )
+
+    def _collect_reachable_nodes(
+        self,
+        outgoing_edges: dict[str, list[Edge]],
+    ) -> dict[str, Node | _NestableWorkflow]:
+        reachable_nodes: dict[str, Node | _NestableWorkflow] = {}
+        queue: list[Node | _NestableWorkflow] = [self.source]
+        while queue:
+            current = queue.pop(0)
+            if current.id in reachable_nodes:
+                continue
+            reachable_nodes[current.id] = current
+            for edge in outgoing_edges.get(current.id, []):
+                if edge.head.id not in reachable_nodes:
+                    queue.append(edge.head)
+        return reachable_nodes
+
+    def _validate_reachable_non_sink_nodes(
+        self,
+        reachable_nodes: dict[str, Node | _NestableWorkflow],
+        outgoing_edges: dict[str, list[Edge]],
+    ) -> None:
+        sink_ids = {sink.id for sink in self.sinks}
+        for node_id, node in reachable_nodes.items():
+            if node_id in sink_ids:
+                continue
+            if not outgoing_edges.get(node_id):
+                raise GraphValidationError(
+                    f"Reachable non-sink '{node}' dead-ends without an outgoing edge."
+                )
+
+    def _validate_declared_sinks_are_reachable(
+        self,
+        reachable_nodes: dict[str, Node | _NestableWorkflow],
+    ) -> None:
+        for sink in self.sinks:
+            if sink.id not in reachable_nodes:
+                raise GraphValidationError(
+                    f"Declared sink '{sink}' is unreachable from the source."
+                )
+
+    def _validate_nested_subflows(
+        self,
+        all_nodes: dict[str, Node | _NestableWorkflow],
+        validated_subflows: set[str],
+    ) -> None:
+        for node in all_nodes.values():
+            if isinstance(node, _NestableWorkflow) and node.id not in validated_subflows:
+                validated_subflows.add(node.id)
+                node._graph_factory().validate(validated_subflows)
+
+    def validate(self, _validated_subflows: set[str] | None = None) -> None:
+        """
+        Validate the graph's structural shape and declared terminal nodes.
+
+        This validation pass is intentionally structural. It does not execute
+        node logic or edge conditions. Instead, it checks the graph topology
+        using the declared edges, source, and sinks.
+
+        Validation currently enforces:
+
+        - every declared sink is reachable from the source
+        - declared sinks do not have outgoing edges
+        - every reachable non-sink node has at least one outgoing edge
+        - nested subflow graphs validate recursively
+
+        Cycles are allowed as long as the graph still has a reachable sink and
+        no reachable non-sink dead ends.
+
+        :raises GraphValidationError: If the graph shape violates Junjo's
+            current validation rules.
+        """
+        validated_subflows = set() if _validated_subflows is None else _validated_subflows
+        all_nodes = self._collect_structural_nodes()
+        outgoing_edges = self._build_outgoing_edges()
+
+        self._validate_sinks_have_no_outgoing_edges(outgoing_edges)
+
+        reachable_nodes = self._collect_reachable_nodes(outgoing_edges)
+        self._validate_reachable_non_sink_nodes(reachable_nodes, outgoing_edges)
+        self._validate_declared_sinks_are_reachable(reachable_nodes)
+        self._validate_nested_subflows(all_nodes, validated_subflows)
 
     async def get_next_node(self, store: BaseStore, current_node: Node | _NestableWorkflow) -> Node | _NestableWorkflow:
         """
@@ -130,7 +282,7 @@ class Graph:
         - later edges are not evaluated once a match is found
 
         If no outgoing edge resolves and the current executable is not already
-        a declared sink, this method raises a ``ValueError``.
+        a declared sink, this method raises ``GraphValidationError``.
 
         :param store: The store instance to use for resolving the next
             executable.
@@ -146,7 +298,7 @@ class Graph:
             if resolved_edge is not None:
                 return resolved_edge
 
-        raise ValueError(
+        raise GraphValidationError(
             "Check your Graph. No resolved edges. "
             f"No valid transition found for node or subflow: '{current_node}'."
         )
@@ -166,6 +318,8 @@ class Graph:
 
         :returns: A JSON string containing the graph structure.
         :rtype: str
+        :raises GraphSerializationError: If the graph payload cannot be
+            converted into JSON.
         """
         all_nodes_dict: dict[str, Node | _NestableWorkflow] = {} # Dictionary to store unique nodes found
         all_edges_dict: dict[str, Edge] = {} # Dictionary to store all edges including subflow edges
@@ -289,20 +443,18 @@ class Graph:
             # Serialize the dictionary to a JSON string
             return json.dumps(graph_dict, indent=2)
         except TypeError as e:
-            print(f"Error serializing graph to JSON: {e}")
-            error_info = {
-                "error": "Failed to serialize graph",
-                "detail": str(e),
-            }
-            return json.dumps(error_info, indent=2)
+            raise GraphSerializationError(
+                f"Failed to serialize graph to JSON: {e}"
+            ) from e
 
 
     def to_mermaid(self) -> str:
         """
         Converts the graph to Mermaid syntax.
-        This is a placeholder for future implementation.
+
+        :raises GraphRenderError: Mermaid output is not implemented yet.
         """
-        raise NotImplementedError("Mermaid conversion is not implemented yet.")
+        raise GraphRenderError("Mermaid conversion is not implemented yet.")
 
     def _build_dot_render_context(
         self,
@@ -505,7 +657,16 @@ class Graph:
         dot_path = out_dir / f"{stem}.dot"
         img_path = out_dir / f"{stem}.{fmt}"
         dot_path.write_text(dot_block, encoding="utf-8")
-        subprocess.run([dot_cmd, "-T", fmt, str(dot_path), "-o", str(img_path)], check=True)
+        try:
+            subprocess.run([dot_cmd, "-T", fmt, str(dot_path), "-o", str(img_path)], check=True)
+        except FileNotFoundError as exc:
+            raise GraphRenderError(
+                f"Failed to render Graphviz asset '{stem}': command '{dot_cmd}' was not found."
+            ) from exc
+        except subprocess.CalledProcessError as exc:
+            raise GraphRenderError(
+                f"Failed to render Graphviz asset '{stem}': {exc}"
+            ) from exc
         return img_path
 
     def _build_graphviz_label_lookup(self) -> dict[str, str]:

@@ -28,6 +28,12 @@ store correctness, hooks, and telemetry hardening are tracked elsewhere.
   ``sink``.
 - Runtime traversal now follows ordered first-match semantics directly: the
   first declared matching edge wins, and later edges are not evaluated.
+- Graph serialization now raises a typed ``GraphSerializationError`` instead
+  of returning an error-shaped JSON payload.
+- ``Graph.validate()`` now exists and workflow/subflow execution validates the
+  fresh graph by default before any nodes run.
+- Validation can be disabled per execution with ``validate_graph=False`` for
+  targeted tests and debugging.
 
 ## Terminology Decisions
 
@@ -72,23 +78,17 @@ documented, validated where possible, and tested directly.
 
 These are the graph-specific issues that still need to be addressed.
 
-### 1. Serialization Failure Handling Is Too Loose
+### 1. Topology Validation Is Still Incomplete
 
-``serialize_to_json_string()`` currently falls back to returning an
-error-shaped JSON payload instead of failing with a typed exception. That makes
-it too easy for callers to continue with corrupted graph data.
+Junjo now has a real validation phase and enforces it by default at execution
+time, but validation is not yet backed by a canonical compiled graph snapshot.
 
-### 2. Topology Validation Is Still Minimal
-
-The graph layer still lacks a real validation phase. Invalid shapes are often
-detected only during traversal, if at all.
-
-### 3. Rendering Still Lacks A Hardened Structural Source
+### 2. Rendering Still Lacks A Hardened Structural Source
 
 Graphviz and future Mermaid rendering still depend on the current serialization
 path rather than a canonical compiled graph model.
 
-### 4. Structural IDs Are Still Missing
+### 3. Structural IDs Are Still Missing
 
 Runtime IDs remain execution-unique, but Junjo still lacks stable structural
 IDs for graph-shape identity across repeated factory calls.
@@ -241,7 +241,7 @@ These exceptions should make it obvious whether the failure came from:
 
 ### Phase 1 - Serialization Correctness
 
-Status: partially complete
+Status: complete
 
 ### Scope
 

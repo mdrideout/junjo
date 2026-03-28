@@ -200,7 +200,7 @@ async def test_subflow_loops_are_stopped_by_max_iterations(
     )
 
     with pytest.raises(ValueError, match="exceeded maximum execution count"):
-        await asyncio.wait_for(workflow.execute(), timeout=0.1)
+        await asyncio.wait_for(workflow.execute(validate_graph=False), timeout=0.1)
 
 
 class ConcurrentState(BaseState):

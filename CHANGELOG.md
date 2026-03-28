@@ -30,6 +30,7 @@ execution, state management, and lifecycle observation.
 - Added `ExecutionResult` as the public completion snapshot for workflows and subflows.
 - Added a public `Hooks` API with typed lifecycle events for workflows, subflows, nodes, concurrent execution, and state changes.
 - Added an internal lifecycle dispatch layer to keep runtime execution, telemetry, and public hooks separated.
+- Added `Graph.validate()` and typed graph exceptions for validation, serialization, compilation, and rendering failures.
 - Added regression coverage for:
   - workflow and subflow execution isolation
   - run-concurrent fail-fast cancellation behavior
@@ -48,6 +49,7 @@ execution, state management, and lifecycle observation.
 - `RunConcurrent` no longer behaves like raw `asyncio.gather()`; sibling failures now cancel pending siblings deterministically.
 - Graph traversal now follows the first matching edge in declared order.
 - Workflows and subflows now terminate when any declared sink is reached, and dead ends on non-sink nodes raise.
+- Workflows and subflows now validate freshly created graphs before execution by default, with an opt-out `validate_graph=False` runtime parameter for targeted testing and debugging.
 - Graph serialization now preserves multiple same-tail/head subflow edges and records plural subflow sink ids as `subflowSinkIds`.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
