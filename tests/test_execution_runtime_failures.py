@@ -7,48 +7,72 @@ from junjo import BaseState, BaseStore, Edge, Graph, Node, RunConcurrent, Subflo
 
 
 class RuntimeState(BaseState):
-    pass
+    token: str
+    seen: list[str] = []
 
 
 class RuntimeStore(BaseStore[RuntimeState]):
-    pass
-
-
-class SlowStartNode(Node[RuntimeStore]):
-    async def service(self, store: RuntimeStore) -> None:
-        await asyncio.sleep(0.05)
-
-
-class FastFinalNode(Node[RuntimeStore]):
-    async def service(self, store: RuntimeStore) -> None:
-        return
-
-
-def create_reentrant_graph() -> Graph:
-    first = SlowStartNode()
-    final = FastFinalNode()
-    return Graph(source=first, sinks=[final], edges=[Edge(tail=first, head=final)])
+    async def record_seen_token(self) -> None:
+        state = await self.get_state()
+        await self.set_state({"seen": [*state.seen, state.token]})
 
 
 @pytest.mark.asyncio
-async def test_same_workflow_instance_can_be_reentered_without_state_corruption(
+async def test_same_workflow_instance_isolates_state_between_concurrent_runs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(builtins, "print", lambda *args, **kwargs: None)
 
+    started_tokens: list[str] = []
+    active_runs = 0
+    active_runs_lock = asyncio.Lock()
+    both_runs_started = asyncio.Event()
+    release_runs = asyncio.Event()
+
+    class CoordinatedStartNode(Node[RuntimeStore]):
+        async def service(self, store: RuntimeStore) -> None:
+            nonlocal active_runs
+
+            state = await store.get_state()
+            started_tokens.append(state.token)
+
+            async with active_runs_lock:
+                active_runs += 1
+                if active_runs == 2:
+                    both_runs_started.set()
+
+            await both_runs_started.wait()
+            await release_runs.wait()
+            await store.record_seen_token()
+
+    class FinalNode(Node[RuntimeStore]):
+        async def service(self, store: RuntimeStore) -> None:
+            return
+
+    def create_graph() -> Graph:
+        first = CoordinatedStartNode()
+        final = FinalNode()
+        return Graph(source=first, sinks=[final], edges=[Edge(tail=first, head=final)])
+
+    tokens = iter(["alpha", "beta"])
+
     workflow = Workflow[RuntimeState, RuntimeStore](
-        graph_factory=create_reentrant_graph,
-        store_factory=lambda: RuntimeStore(initial_state=RuntimeState()),
+        graph_factory=create_graph,
+        store_factory=lambda: RuntimeStore(initial_state=RuntimeState(token=next(tokens))),
     )
 
     first = asyncio.create_task(workflow.execute())
-    await asyncio.sleep(0.01)
     second = asyncio.create_task(workflow.execute())
+    await asyncio.wait_for(both_runs_started.wait(), timeout=0.2)
 
-    results = await asyncio.gather(first, second, return_exceptions=True)
-    exceptions = [result for result in results if isinstance(result, BaseException)]
+    release_runs.set()
 
-    assert exceptions == []
+    results = await asyncio.gather(first, second)
+
+    assert sorted(started_tokens) == ["alpha", "beta"]
+    assert results[0].run_id != results[1].run_id
+    assert {result.state.token for result in results} == {"alpha", "beta"}
+    assert {tuple(result.state.seen) for result in results} == {("alpha",), ("beta",)}
 
 
 class HookParentState(BaseState):
@@ -72,14 +96,7 @@ class HookChildStore(BaseStore[HookChildState]):
 
 class SharedSlowChildNode(Node[HookChildStore]):
     async def service(self, store: HookChildStore) -> None:
-        await asyncio.sleep(0.05)
-
-
-SHARED_CHILD_NODE = SharedSlowChildNode()
-
-
-def create_shared_single_node_subflow_graph() -> Graph:
-    return Graph(source=SHARED_CHILD_NODE, sinks=[SHARED_CHILD_NODE], edges=[])
+        return
 
 
 class HookLeakingSubflow(
@@ -105,23 +122,54 @@ class HookLeakingSubflow(
 
 
 @pytest.mark.asyncio
-async def test_same_subflow_instance_leaks_child_store_between_concurrent_runs(
+async def test_same_subflow_instance_isolates_child_store_between_concurrent_runs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(builtins, "print", lambda *args, **kwargs: None)
 
+    observed_labels: list[str] = []
+    active_runs = 0
+    active_runs_lock = asyncio.Lock()
+    both_runs_started = asyncio.Event()
+    release_runs = asyncio.Event()
+
+    class CoordinatedSharedChildNode(Node[HookChildStore]):
+        async def service(self, store: HookChildStore) -> None:
+            nonlocal active_runs
+
+            state = await store.get_state()
+            if state.label is None:
+                raise ValueError("Subflow label is required.")
+            observed_labels.append(state.label)
+
+            async with active_runs_lock:
+                active_runs += 1
+                if active_runs == 2:
+                    both_runs_started.set()
+
+            await both_runs_started.wait()
+            await release_runs.wait()
+
+    shared_child_node = CoordinatedSharedChildNode()
     subflow = HookLeakingSubflow(
-        graph_factory=create_shared_single_node_subflow_graph,
+        graph_factory=lambda: Graph(
+            source=shared_child_node,
+            sinks=[shared_child_node],
+            edges=[],
+        ),
         store_factory=lambda: HookChildStore(initial_state=HookChildState()),
     )
     parent_a = HookParentStore(initial_state=HookParentState(label="alpha"))
     parent_b = HookParentStore(initial_state=HookParentState(label="beta"))
 
     first = asyncio.create_task(subflow.execute(parent_a, "parent-a"))
-    await asyncio.sleep(0.01)
     second = asyncio.create_task(subflow.execute(parent_b, "parent-b"))
+    await asyncio.wait_for(both_runs_started.wait(), timeout=0.2)
+
+    release_runs.set()
     await asyncio.gather(first, second)
 
+    assert sorted(observed_labels) == ["alpha", "beta"]
     assert (await parent_a.get_state()).result == "alpha"
     assert (await parent_b.get_state()).result == "beta"
 
@@ -220,14 +268,17 @@ async def test_run_concurrent_cancels_siblings_on_failure(
     monkeypatch.setattr(builtins, "print", lambda *args, **kwargs: None)
 
     sibling_started = asyncio.Event()
-    failure_observed_by_caller = asyncio.Event()
+    sibling_cancelled = asyncio.Event()
     created_stores: list[ConcurrentStore] = []
 
     class WaitingSiblingNode(Node[ConcurrentStore]):
         async def service(self, store: ConcurrentStore) -> None:
             sibling_started.set()
-            await failure_observed_by_caller.wait()
-            await store.append_event("late-write")
+            try:
+                await asyncio.Future()
+            except asyncio.CancelledError:
+                sibling_cancelled.set()
+                raise
 
     class FailingNode(Node[ConcurrentStore]):
         async def service(self, store: ConcurrentStore) -> None:
@@ -256,9 +307,7 @@ async def test_run_concurrent_cancels_siblings_on_failure(
         await workflow.execute()
 
     assert len(created_stores) == 1
-
-    failure_observed_by_caller.set()
-    await asyncio.sleep(0.05)
+    await asyncio.wait_for(sibling_cancelled.wait(), timeout=0.2)
 
     current_state = await created_stores[0].get_state()
 

@@ -57,8 +57,8 @@ class GraphRenderError(GraphError):
     """
     Raised when a graph cannot be rendered into an output format.
 
-    This includes Graphviz command failures and unsupported rendering paths
-    such as Mermaid output that Junjo has not implemented yet.
+    This includes Graphviz command failures and failures while producing
+    Mermaid or DOT output from the compiled graph snapshot.
     """
 
 
@@ -165,6 +165,10 @@ class Graph:
     nodes (sinks) of the graph, as well as a list of all edges that connect
     the nodes.
 
+    Graph definitions are immutable after construction. Junjo stores the
+    source, sinks, and edges as read-only graph-shape metadata so the cached
+    compiled snapshot cannot silently drift away from the graph definition.
+
     :param source: The starting node or subflow of the graph. Execution of the workflow begins here.
     :type source: Node | _NestableWorkflow
     :param sinks: The explicit terminal nodes or subflows of the graph.
@@ -248,10 +252,25 @@ class Graph:
     ):
         if not sinks:
             raise GraphValidationError("Graph requires at least one sink.")
-        self.source = source
-        self.sinks = tuple(sinks)
-        self.edges = edges
+        self._source = source
+        self._sinks = tuple(sinks)
+        self._edges = tuple(edges)
         self._compiled_graph: CompiledGraph | None = None
+
+    @property
+    def source(self) -> Node | _NestableWorkflow:
+        """Return the immutable source executable for this graph definition."""
+        return self._source
+
+    @property
+    def sinks(self) -> tuple[Node | _NestableWorkflow, ...]:
+        """Return the immutable terminal executables for this graph definition."""
+        return self._sinks
+
+    @property
+    def edges(self) -> tuple[Edge, ...]:
+        """Return the immutable ordered edge set for this graph definition."""
+        return self._edges
 
     @staticmethod
     def _node_label(node: Node | _NestableWorkflow) -> str:
@@ -851,16 +870,8 @@ class Graph:
             ) from e
 
 
-    def to_mermaid(self) -> str:
-        """
-        Converts the graph to Mermaid syntax.
-
-        :raises GraphRenderError: Mermaid output is not implemented yet.
-        """
-        raise GraphRenderError("Mermaid conversion is not implemented yet.")
-
     @staticmethod
-    def _collect_dot_visible_runtime_ids(compiled: CompiledGraph) -> set[str]:
+    def _collect_render_visible_runtime_ids(compiled: CompiledGraph) -> set[str]:
         visible_runtime_ids = {
             compiled.source_node_runtime_id,
             *compiled.sink_node_runtime_ids,
@@ -878,7 +889,7 @@ class Graph:
 
         return visible_runtime_ids
 
-    def _build_compiled_dot_render_context(
+    def _build_compiled_render_context(
         self,
         compiled: CompiledGraph,
     ) -> tuple[
@@ -888,7 +899,7 @@ class Graph:
         dict[str, str],
         dict[str, str],
     ]:
-        visible_runtime_ids = self._collect_dot_visible_runtime_ids(compiled)
+        visible_runtime_ids = self._collect_render_visible_runtime_ids(compiled)
         visible_nodes = tuple(
             node
             for node in compiled.compiled_nodes
@@ -1066,7 +1077,7 @@ class Graph:
             cluster_child_runtime_ids,
             entry_anchor,
             exit_anchor,
-        ) = self._build_compiled_dot_render_context(
+        ) = self._build_compiled_render_context(
             compiled
         )
         output: list[str] = []
@@ -1094,6 +1105,172 @@ class Graph:
         output.append("}")
         return "\n".join(output)
 
+    @staticmethod
+    def _safe_mermaid_label(text: str) -> str:
+        return str(text).replace("\\", "\\\\").replace('"', "&quot;").replace(
+            "\n", "<br/>"
+        )
+
+    @staticmethod
+    def _mermaid_edge(
+        source_id: str,
+        target_id: str,
+        *,
+        edge_condition_label: str | None,
+    ) -> str:
+        if edge_condition_label:
+            label = Graph._safe_mermaid_label(edge_condition_label)
+            return f'{source_id} -. "{label}" .-> {target_id}'
+        return f"{source_id} --> {target_id}"
+
+    def _append_mermaid_clusters(
+        self,
+        output: list[str],
+        clusters_by_runtime_id: dict[str, CompiledNode],
+        entry_anchor: dict[str, str],
+        exit_anchor: dict[str, str],
+        compiled_nodes_by_runtime_id: Mapping[str, CompiledNode],
+        *,
+        indent: str,
+    ) -> None:
+        append = output.append
+        for cluster_runtime_id, cluster_node in clusters_by_runtime_id.items():
+            label = self._safe_mermaid_label(f"{cluster_node.node_label} (Concurrent)")
+            append(
+                f'{indent}subgraph {cluster_node.node_structural_id}["{label}"]'
+            )
+            append(f"{indent}  direction LR")
+            append(f'{indent}  {entry_anchor[cluster_runtime_id]}((" "))')
+            for child_runtime_id in cluster_node.child_node_runtime_ids:
+                child = compiled_nodes_by_runtime_id[child_runtime_id]
+                child_label = self._safe_mermaid_label(child.node_label)
+                append(
+                    f'{indent}  {child.node_structural_id}["{child_label}"]'
+                )
+            append(f'{indent}  {exit_anchor[cluster_runtime_id]}((" "))')
+            append(f"{indent}end")
+            append(
+                f"{indent}style {entry_anchor[cluster_runtime_id]} "
+                "fill:transparent,stroke:transparent,color:transparent"
+            )
+            append(
+                f"{indent}style {exit_anchor[cluster_runtime_id]} "
+                "fill:transparent,stroke:transparent,color:transparent"
+            )
+
+    def _append_mermaid_nodes(
+        self,
+        output: list[str],
+        visible_nodes: tuple[CompiledNode, ...],
+        clusters_by_runtime_id: dict[str, CompiledNode],
+        cluster_child_runtime_ids: set[str],
+        *,
+        indent: str,
+    ) -> None:
+        append = output.append
+        for node in visible_nodes:
+            if node.node_runtime_id in clusters_by_runtime_id:
+                continue
+            if node.node_runtime_id in cluster_child_runtime_ids:
+                continue
+            label = self._safe_mermaid_label(node.node_label)
+            if node.is_subflow:
+                append(f'{indent}{node.node_structural_id}[["{label}"]]')
+            else:
+                append(f'{indent}{node.node_structural_id}["{label}"]')
+
+    def _append_mermaid_edges(
+        self,
+        output: list[str],
+        compiled: CompiledGraph,
+        clusters_by_runtime_id: dict[str, CompiledNode],
+        entry_anchor: dict[str, str],
+        exit_anchor: dict[str, str],
+        *,
+        indent: str,
+    ) -> None:
+        append = output.append
+        for edge in compiled.compiled_edges:
+            source_id = self._dot_anchor(
+                edge.tail_node_runtime_id,
+                is_src=True,
+                compiled_nodes_by_runtime_id=compiled.compiled_nodes_by_runtime_id,
+                clusters_by_runtime_id=clusters_by_runtime_id,
+                entry_anchor=entry_anchor,
+                exit_anchor=exit_anchor,
+            )
+            target_id = self._dot_anchor(
+                edge.head_node_runtime_id,
+                is_src=False,
+                compiled_nodes_by_runtime_id=compiled.compiled_nodes_by_runtime_id,
+                clusters_by_runtime_id=clusters_by_runtime_id,
+                entry_anchor=entry_anchor,
+                exit_anchor=exit_anchor,
+            )
+            append(
+                f"{indent}{self._mermaid_edge(source_id, target_id, edge_condition_label=edge.edge_condition_label)}"
+            )
+
+    def _append_mermaid_graph_body(
+        self,
+        output: list[str],
+        compiled: CompiledGraph,
+        *,
+        indent: str,
+    ) -> None:
+        (
+            visible_nodes,
+            clusters_by_runtime_id,
+            cluster_child_runtime_ids,
+            entry_anchor,
+            exit_anchor,
+        ) = self._build_compiled_render_context(compiled)
+        self._append_mermaid_clusters(
+            output,
+            clusters_by_runtime_id,
+            entry_anchor,
+            exit_anchor,
+            compiled.compiled_nodes_by_runtime_id,
+            indent=indent,
+        )
+        self._append_mermaid_nodes(
+            output,
+            visible_nodes,
+            clusters_by_runtime_id,
+            cluster_child_runtime_ids,
+            indent=indent,
+        )
+        self._append_mermaid_edges(
+            output,
+            compiled,
+            clusters_by_runtime_id,
+            entry_anchor,
+            exit_anchor,
+            indent=indent,
+        )
+
+    def _append_mermaid_subflow_details(
+        self,
+        output: list[str],
+        compiled: CompiledGraph,
+    ) -> None:
+        for node in compiled.compiled_nodes:
+            if not node.is_subflow or node.compiled_subflow_graph is None:
+                continue
+            label = self._safe_mermaid_label(f"Subflow: {node.node_label}")
+            output.append("")
+            output.append(
+                f'  subgraph subflow_{node.node_structural_id}["{label}"]'
+            )
+            output.append("    direction LR")
+            self._append_mermaid_graph_body(
+                output,
+                node.compiled_subflow_graph,
+                indent="    ",
+            )
+            output.append("  end")
+            self._append_mermaid_subflow_details(output, node.compiled_subflow_graph)
+
     def _append_subflow_dot_parts(
         self,
         compiled: CompiledGraph,
@@ -1109,6 +1286,31 @@ class Graph:
                 )
             )
             self._append_subflow_dot_parts(node.compiled_subflow_graph, dot_parts)
+
+    def to_mermaid(self) -> str:
+        """
+        Render the graph as Mermaid flowchart syntax.
+
+        Mermaid rendering consumes the compiled graph snapshot directly instead
+        of routing through serialized JSON. The returned string contains one
+        flowchart with:
+
+        - the overview graph
+        - concurrent executables rendered as Mermaid subgraphs
+        - disconnected detail subgraphs for each subflow
+
+        Node, concurrent, and subflow identifiers are structural, which keeps
+        Mermaid output stable across repeated fresh graph builds with the same
+        topology.
+
+        :returns: Mermaid flowchart syntax for the compiled graph.
+        :rtype: str
+        """
+        compiled = self.compile()
+        output = ["flowchart LR"]
+        self._append_mermaid_graph_body(output, compiled, indent="  ")
+        self._append_mermaid_subflow_details(output, compiled)
+        return "\n".join(output)
 
     def to_dot_notation(self) -> str:
         """

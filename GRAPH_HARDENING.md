@@ -79,25 +79,11 @@ documented, validated where possible, and tested directly.
 
 ## Current Graph Risks
 
-These are the graph-specific issues that still need to be addressed.
+No open graph-specific correctness risks are currently tracked in this plan.
 
-### 1. Mermaid Rendering Still Needs A Product Decision
-
-Graphviz rendering now consumes the compiled graph snapshot directly, so Junjo
-no longer routes static DOT/Graphviz output through serialized JSON payloads.
-
-The remaining rendering question is Mermaid:
-
-- either implement Mermaid from ``CompiledGraph``
-- or explicitly keep Mermaid unsupported and de-emphasize it in docs
-
-### 2. Structural ID Adoption Needs Final Rendering Follow-Through
-
-Structural IDs now exist and are propagated through compiled graphs,
-serialized graph payloads, workflow telemetry, and hooks.
-
-Remaining work is to decide whether Mermaid should adopt the same structural
-rendering model or stay intentionally unsupported.
+The major graph hardening phases below are now complete. Future graph work can
+be tracked as separate product expansion rather than unresolved hardening
+debt.
 
 ## Design Direction
 
@@ -157,8 +143,7 @@ The compiled graph should:
 
 This compiled snapshot becomes the foundation for every graph-facing feature.
 
-Graphviz rendering now consumes the compiled snapshot directly. Mermaid is
-still unimplemented.
+Graphviz and Mermaid rendering now consume the compiled snapshot directly.
 
 ### 3. Move To Explicit ``sinks``
 
@@ -335,18 +320,18 @@ Status: complete
 
 ### Phase 5 - Rendering Hardening
 
-Status: partially complete
+Status: complete
 
 ### Scope
 
 - make Graphviz export depend on the compiled structural snapshot
-- decide whether to implement Mermaid output or remove/de-emphasize it
+- implement Mermaid output from the compiled structural snapshot
 - ensure render/export failures use typed exceptions
 
 ### Exit Criteria
 
 - Graphviz output is based on the compiled graph model
-- Mermaid has an intentional product direction
+- Mermaid output is based on the compiled graph model
 - rendering errors are typed and explicit
 
 ## Testing Plan

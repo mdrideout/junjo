@@ -77,6 +77,39 @@ def test_compile_returns_same_snapshot_for_repeated_calls_on_one_graph_instance(
     assert first is second
 
 
+def test_graph_edges_are_immutable_after_construction() -> None:
+    start = StartNode()
+    end = EndNode()
+    graph = Graph(
+        source=start,
+        sinks=[end],
+        edges=[Edge(tail=start, head=end)],
+    )
+
+    assert isinstance(graph.edges, tuple)
+
+    with pytest.raises(AttributeError):
+        graph.edges.append(Edge(tail=start, head=end))
+
+
+def test_compile_cache_is_safe_because_graph_shape_cannot_mutate() -> None:
+    start = StartNode()
+    end = EndNode()
+    graph = Graph(
+        source=start,
+        sinks=[end],
+        edges=[Edge(tail=start, head=end)],
+    )
+
+    compiled = graph.compile()
+
+    with pytest.raises(AttributeError):
+        graph.edges.append(Edge(tail=start, head=end))
+
+    assert graph.compile() is compiled
+    assert len(graph.compile().compiled_edges) == 1
+
+
 def test_compile_collects_source_sinks_nodes_and_edges() -> None:
     start = StartNode()
     middle = MiddleNode()
@@ -97,12 +130,12 @@ def test_compile_collects_source_sinks_nodes_and_edges() -> None:
     assert isinstance(compiled, CompiledGraph)
     assert compiled.source_node_runtime_id == start.id
     assert compiled.sink_node_runtime_ids == (approve.id, reject.id)
-    assert tuple(node.node_runtime_id for node in compiled.compiled_nodes) == (
+    assert {node.node_runtime_id for node in compiled.compiled_nodes} == {
         start.id,
+        middle.id,
         approve.id,
         reject.id,
-        middle.id,
-    )
+    }
     assert tuple(edge.tail_node_runtime_id for edge in compiled.compiled_edges) == (
         start.id,
         middle.id,

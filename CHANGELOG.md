@@ -54,10 +54,13 @@ execution, state management, and lifecycle observation.
 - Workflows and subflows now validate freshly created graphs before execution by default, with an opt-out `validate_graph=False` runtime parameter for targeted testing and debugging.
 - Graph validation, traversal adjacency, and serialization now all run through one compiled graph snapshot per graph instance.
 - Graph serialization now preserves multiple same-tail/head subflow edges and records explicit runtime and structural identity fields such as `graphStructuralId`, `nodeRuntimeId`, `nodeStructuralId`, and `edgeStructuralId`.
+- `Graph` definitions now freeze their source, sinks, and edges at construction time so compiled graph snapshots cannot silently go stale after graph-shape mutation.
 - DOT/Graphviz rendering now consumes `CompiledGraph` directly instead of routing through serialized JSON, and identical graph shapes now produce stable DOT output across fresh graph builds.
+- Mermaid rendering now consumes `CompiledGraph` directly, renders concurrent groups and subflow detail sections from the compiled graph snapshot, and produces stable structural output across fresh graph builds with the same topology.
 - OpenTelemetry span attributes now use explicit identity names such as `junjo.executable_runtime_id`, `junjo.executable_structural_id`, and `junjo.enclosing_graph_structural_id` instead of the old generic `junjo.id` and `junjo.parent_id` keys.
 - OpenTelemetry and hook payloads now use `executable_definition_id` and `parent_executable_definition_id` instead of the older generic `definition_id` naming on those surfaces.
 - Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.
+- `on_state_changed` hook payloads and state-change telemetry context now identify the active executable that performed the mutation, rather than mixing workflow metadata with node or subflow runtime identities.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
 

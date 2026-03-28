@@ -250,6 +250,10 @@ async def test_on_state_changed_delivers_patch_and_detached_snapshot() -> None:
     assert len(state_events) == 1
     event = state_events[0]
     assert event.hook_name == "state_changed"
+    assert event.executable_definition_id != result.definition_id
+    assert event.executable_definition_id == event.executable_runtime_id
+    assert event.name == "HookNode"
+    assert event.span_type == "node"
     assert event.store_name == "HookStore"
     assert event.action_name == "append_step"
     assert event.patch != "{}"
@@ -261,6 +265,105 @@ async def test_on_state_changed_delivers_patch_and_detached_snapshot() -> None:
     assert event.parent_executable_structural_id == event.enclosing_graph_structural_id
     assert event.state.steps == ["HookNode", "hook-mutated"]
     assert result.state.steps == ["HookNode"]
+
+
+@pytest.mark.asyncio
+async def test_state_changed_in_run_concurrent_uses_active_child_node_identity() -> None:
+    hooks = Hooks()
+    state_events = []
+
+    hooks.on_state_changed(lambda event: state_events.append(event))
+
+    child_node = HookNode()
+
+    def create_graph() -> Graph:
+        concurrent = RunConcurrent(name="Parallel Work", items=[child_node])
+        return Graph(source=concurrent, sinks=[concurrent], edges=[])
+
+    workflow = Workflow[HookState, HookStore](
+        name="Concurrent Workflow",
+        graph_factory=create_graph,
+        store_factory=lambda: HookStore(initial_state=HookState()),
+        hooks=hooks,
+    )
+
+    await workflow.execute()
+
+    assert len(state_events) == 1
+    event = state_events[0]
+    assert event.executable_definition_id == child_node.id
+    assert event.name == child_node.name
+    assert event.span_type == "node"
+    assert event.executable_runtime_id == child_node.id
+    assert event.executable_structural_id.startswith("node_")
+    assert event.parent_executable_definition_id != workflow.id
+    assert event.parent_executable_runtime_id != workflow.id
+    assert event.parent_executable_structural_id is not None
+
+
+@pytest.mark.asyncio
+async def test_state_changed_in_subflow_uses_child_node_identity_and_subflow_parent() -> None:
+    hooks = Hooks()
+    state_events = []
+
+    hooks.on_state_changed(lambda event: state_events.append(event))
+
+    child_node = HookNode()
+    subflow = ExampleSubflow(
+        name="Child Subflow",
+        graph_factory=lambda: Graph(source=child_node, sinks=[child_node], edges=[]),
+        store_factory=lambda: HookStore(initial_state=HookState()),
+        hooks=hooks,
+    )
+
+    def create_graph() -> Graph:
+        return Graph(source=subflow, sinks=[subflow], edges=[])
+
+    workflow = Workflow[HookState, HookStore](
+        name="Parent Workflow",
+        graph_factory=create_graph,
+        store_factory=lambda: HookStore(initial_state=HookState()),
+        hooks=hooks,
+    )
+
+    await workflow.execute()
+
+    child_events = [
+        event
+        for event in state_events
+        if event.executable_definition_id == child_node.id
+    ]
+
+    assert len(child_events) == 1
+    event = child_events[0]
+    assert event.name == child_node.name
+    assert event.span_type == "node"
+    assert event.executable_runtime_id == child_node.id
+    assert event.executable_structural_id.startswith("node_")
+    assert event.parent_executable_definition_id == subflow.id
+    assert event.parent_executable_runtime_id != workflow.id
+    assert event.parent_executable_structural_id is not None
+
+
+@pytest.mark.asyncio
+async def test_state_changed_identity_matches_active_node_span_attributes(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    hooks = Hooks()
+    state_events = []
+
+    hooks.on_state_changed(lambda event: state_events.append(event))
+
+    await create_simple_workflow(hooks=hooks).execute()
+
+    spans = {span.name: span for span in span_exporter.get_finished_spans()}
+    node_span = spans["HookNode"]
+    event = state_events[0]
+
+    assert event.executable_definition_id == node_span.attributes["junjo.executable_definition_id"]
+    assert event.executable_runtime_id == node_span.attributes["junjo.executable_runtime_id"]
+    assert event.executable_structural_id == node_span.attributes["junjo.executable_structural_id"]
+    assert event.enclosing_graph_structural_id == node_span.attributes["junjo.enclosing_graph_structural_id"]
 
 
 @pytest.mark.asyncio

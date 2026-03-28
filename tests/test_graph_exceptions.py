@@ -61,15 +61,6 @@ async def test_workflow_dead_end_raises_typed_graph_validation_error() -> None:
         await workflow.execute()
 
 
-def test_to_mermaid_raises_typed_graph_render_error() -> None:
-    start = StartNode()
-    end = EndNode()
-    graph = Graph(source=start, sinks=[end], edges=[Edge(tail=start, head=end)])
-
-    with pytest.raises(GraphRenderError, match="Mermaid conversion is not implemented"):
-        graph.to_mermaid()
-
-
 def test_export_graphviz_assets_wraps_render_command_failures(
     tmp_path,
 ) -> None:

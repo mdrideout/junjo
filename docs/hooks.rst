@@ -83,6 +83,11 @@ Hook callbacks receive one immutable event object. Useful fields include:
 * ``event.error``: original exception on failure hooks
 * ``event.reason``: cancellation reason on cancellation hooks
 
+For ``on_state_changed``, the executable identity fields describe the active
+workflow, subflow, node, or concurrent executable that actually triggered the
+state update. The parent executable fields describe the containing execution
+scope around that update.
+
 Base example
 ------------
 

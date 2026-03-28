@@ -28,6 +28,8 @@ _ACTIVE_EXECUTABLE_STACK: ContextVar[tuple[ActiveExecutableIdentity, ...]] = Con
 @dataclass(frozen=True, slots=True)
 class ActiveExecutableIdentity:
     executable_definition_id: str
+    executable_name: str
+    span_type: JunjoOtelSpanTypes
     executable_runtime_id: str
     executable_structural_id: str
 

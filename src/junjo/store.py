@@ -185,17 +185,29 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                 state_changed_payload = {
                     "run_id": self._lifecycle_context.run_id,
                     "executable_definition_id": (
-                        self._lifecycle_context.executable_definition_id
+                        active_identity.executable_definition_id
+                        if active_identity is not None
+                        else self._lifecycle_context.executable_definition_id
                     ),
-                    "name": self._lifecycle_context.name,
-                    "span_type": self._lifecycle_context.span_type,
+                    "name": (
+                        active_identity.executable_name
+                        if active_identity is not None
+                        else self._lifecycle_context.name
+                    ),
+                    "span_type": (
+                        active_identity.span_type
+                        if active_identity is not None
+                        else self._lifecycle_context.span_type
+                    ),
                     "store_id": self.id,
                     "store_name": caller_class_name,
                     "action_name": caller_function_name,
                     "patch": patch.to_string(),
                     "state": new_state.model_copy(deep=True),
                     "parent_executable_definition_id": (
-                        self._lifecycle_context.executable_definition_id
+                        parent_active_identity.executable_definition_id
+                        if parent_active_identity is not None
+                        else self._lifecycle_context.executable_definition_id
                     ),
                     "trace_id": trace_id,
                     "span_id": span_id,

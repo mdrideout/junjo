@@ -247,6 +247,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 with active_executable_identity(
                     ActiveExecutableIdentity(
                         executable_definition_id=self.id,
+                        executable_name=self.name,
+                        span_type=self.span_type,
                         executable_runtime_id=ctx.run_id,
                         executable_structural_id=ctx.compiled_graph.graph_structural_id,
                     )

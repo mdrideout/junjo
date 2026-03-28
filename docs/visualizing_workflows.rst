@@ -6,7 +6,9 @@ Visualizing AI Workflows
 
 Understanding the structure and execution flow of your AI workflows and agents is crucial for development, debugging, and optimization. 
 
-This guide focuses on Junjo's built-in Graphviz integration to generate static diagrams of your workflow architecture as you code, and touches upon the dynamic visualization capabilities of Junjo AI Studio.
+This guide covers Junjo's built-in Graphviz and Mermaid integrations for
+generating static workflow diagrams as you code, and touches upon the dynamic
+visualization capabilities of Junjo AI Studio.
 
 .. image:: _static/junjo-screenshot-graphviz.png
    :alt: Basic example of a Junjo workflow graph rendered by Graphviz
@@ -100,6 +102,47 @@ Visual Elements:
 * **Clusters (for RunConcurrent):** ``RunConcurrent`` nodes are rendered as distinct clusters, visually grouping the concurrently executing nodes.
 * **Subflows:** Subflows are initially shown as a single "component" shape in the overview graph. A separate diagram is generated for each subflow, detailing its internal structure. This allows for a clean, hierarchical drill-down approach to understanding complex workflows.
 
+Generating Mermaid Flowcharts
+-----------------------------
+
+Junjo also supports Mermaid flowchart generation directly from the compiled
+graph snapshot produced by ``Graph.compile()``.
+
+Like the Graphviz renderer, Mermaid rendering now uses the same canonical
+structural representation as validation and traversal rather than routing
+through the serialized execution graph snapshot. That keeps Mermaid output
+stable across repeated fresh graph builds with the same topology.
+
+The ``Graph.to_mermaid()`` method returns Mermaid flowchart syntax with:
+
+* **Structural node identifiers:** Stable identifiers derived from graph shape instead of runtime object IDs.
+* **Concurrent groups as Mermaid subgraphs:** ``RunConcurrent`` items stay visually grouped.
+* **Subflow overview and detail sections:** Subflows appear as subroutine nodes in the overview graph and as disconnected detail subgraphs lower in the Mermaid document.
+
+Example Usage
+~~~~~~~~~~~~~
+
+.. code-block:: python
+  :caption: visualize_mermaid.py
+
+  from pathlib import Path
+
+  from base.sample_workflow.graph import create_sample_workflow_graph
+
+
+  def main() -> None:
+      graph = create_sample_workflow_graph()
+      mermaid = graph.to_mermaid()
+      Path("workflow.mmd").write_text(mermaid, encoding="utf-8")
+
+
+  if __name__ == "__main__":
+      main()
+
+You can paste the generated Mermaid text into tools that support Mermaid
+flowcharts, or commit the ``.mmd`` file alongside your documentation for
+lightweight graph review in pull requests and design discussions.
+
 Dynamic Telemetry with Junjo AI Studio
 --------------------------------------
 For real-time observation and debugging of workflow executions, Junjo integrates seamlessly with OpenTelemetry. The optional, open-source `Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_ ingests these telemetry traces and provides a web interface to:
@@ -113,12 +156,18 @@ For real-time observation and debugging of workflow executions, Junjo integrates
    :align: center
    :width: 600px
 
-While Graphviz provides a static "blueprint" of your workflow's potential paths, Junjo AI Studio offers a dynamic view of actual executions, making it an invaluable tool for debugging and fine-tuning your AI applications.
+While Graphviz and Mermaid provide static "blueprints" of your workflow's
+potential paths, Junjo AI Studio offers a dynamic view of actual executions,
+making it an invaluable tool for debugging and fine-tuning your AI
+applications.
 
 .. note::
    Junjo remains decoupled from any specific AI model or framework. The visualization tools help you organize and understand the flow of your Python functions, regardless of whether they are LLM calls, database operations, or other business logic.
 
-By combining static Graphviz diagrams for architectural understanding with dynamic Junjo AI Studio telemetry for execution analysis, developers can build, test, and maintain complex AI workflows with greater confidence and clarity.
+By combining static Graphviz or Mermaid diagrams for architectural
+understanding with dynamic Junjo AI Studio telemetry for execution analysis,
+developers can build, test, and maintain complex AI workflows with greater
+confidence and clarity.
 
 ---
 

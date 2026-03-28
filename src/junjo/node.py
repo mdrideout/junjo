@@ -7,7 +7,7 @@ from opentelemetry import trace
 
 from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, get_active_executable_identity
 from .store import StoreT
-from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME
+from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
 from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
 from .util import generate_safe_id
 
@@ -185,6 +185,8 @@ class Node(Generic[StoreT], ABC):
                     with active_executable_identity(
                         ActiveExecutableIdentity(
                             executable_definition_id=self.id,
+                            executable_name=self.name,
+                            span_type=JunjoOtelSpanTypes.NODE,
                             executable_runtime_id=self.id,
                             executable_structural_id=node_structural_id,
                         )

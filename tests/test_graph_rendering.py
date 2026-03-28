@@ -203,3 +203,79 @@ def test_to_dot_notation_renders_subflow_digraph_from_compiled_subflow_graph() -
         subflow_node.compiled_subflow_graph.compiled_nodes[0].node_structural_id
         in dot
     )
+
+
+def test_to_mermaid_does_not_call_serialize_to_json_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = create_render_graph()
+
+    def raise_if_called() -> str:
+        raise AssertionError("to_mermaid should render from CompiledGraph")
+
+    monkeypatch.setattr(graph, "serialize_to_json_string", raise_if_called)
+
+    mermaid = graph.to_mermaid()
+
+    assert mermaid.startswith("flowchart LR")
+
+
+def test_identical_graph_shapes_produce_identical_mermaid_output() -> None:
+    first_graph = create_render_graph()
+    second_graph = create_render_graph()
+
+    assert first_graph.to_mermaid() == second_graph.to_mermaid()
+
+
+def test_to_mermaid_uses_structural_ids_for_identifiers() -> None:
+    start = StartNode()
+    end = EndNode()
+    graph = Graph(
+        source=start,
+        sinks=[end],
+        edges=[Edge(tail=start, head=end)],
+    )
+
+    compiled = graph.compile()
+    start_node = compiled.compiled_nodes_by_runtime_id[start.id]
+    end_node = compiled.compiled_nodes_by_runtime_id[end.id]
+    mermaid = graph.to_mermaid()
+
+    assert start_node.node_structural_id in mermaid
+    assert end_node.node_structural_id in mermaid
+    assert start.id not in mermaid
+    assert end.id not in mermaid
+
+
+def test_to_mermaid_renders_run_concurrent_cluster_from_compiled_node_metadata() -> None:
+    graph = create_render_graph()
+    compiled = graph.compile()
+    concurrent_node = next(
+        node for node in compiled.compiled_nodes if node.is_concurrent_subgraph
+    )
+
+    mermaid = graph.to_mermaid()
+
+    assert f'subgraph {concurrent_node.node_structural_id}["Concurrent Work (Concurrent)"]' in mermaid
+    assert f"{concurrent_node.node_structural_id}__entry" in mermaid
+    assert f"{concurrent_node.node_structural_id}__exit" in mermaid
+
+
+def test_to_mermaid_renders_subflow_details_from_compiled_subflow_graph() -> None:
+    graph = create_render_graph(subflow_name="Child Review")
+    compiled = graph.compile()
+    subflow_node = next(node for node in compiled.compiled_nodes if node.is_subflow)
+    assert subflow_node.compiled_subflow_graph is not None
+
+    mermaid = graph.to_mermaid()
+
+    assert f'{subflow_node.node_structural_id}["Child Review"]' not in mermaid
+    assert f'{subflow_node.node_structural_id}[["Child Review"]]' in mermaid
+    assert (
+        f'subgraph subflow_{subflow_node.node_structural_id}["Subflow: Child Review"]'
+        in mermaid
+    )
+    assert (
+        subflow_node.compiled_subflow_graph.compiled_nodes[0].node_structural_id
+        in mermaid
+    )

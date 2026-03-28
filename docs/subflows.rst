@@ -213,12 +213,13 @@ In this structure:
 Visualizing Subflows
 ====================
 
-Junjo's graph visualization capabilities, such as `graph.export_graphviz_assets()`, are designed to handle Subflows intelligently.
+Junjo's graph visualization capabilities, such as `graph.export_graphviz_assets()` and `graph.to_mermaid()`, are designed to handle Subflows intelligently.
+
 - In the **overview graph** of the parent workflow, a Subflow is rendered as a "component" node, abstracting away its internal complexity.
 - Separate **detailed graphs** are generated for each Subflow, showing its internal structure of nodes and edges.
-- These Graphviz diagrams are now rendered directly from Junjo's compiled graph
-  snapshot, so subflow diagrams stay aligned with the same structural model
-  used for validation and traversal.
+- These Graphviz and Mermaid views are now rendered directly from Junjo's
+  compiled graph snapshot, so subflow diagrams stay aligned with the same
+  structural model used for validation, traversal, and serialization.
 
 This hierarchical visualization makes it easier to understand complex workflows at different levels of detail.
 
