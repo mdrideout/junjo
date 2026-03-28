@@ -48,7 +48,7 @@ def create_create_contact_graph() -> Graph:
     # Graph
     return Graph(
         source=initial_data_node,
-        sink=sink_node,
+        sinks=[sink_node],
         edges=[
             Edge(tail=initial_data_node, head=create_bio_node),
             Edge(tail=create_bio_node, head=create_name_node),
@@ -57,5 +57,4 @@ def create_create_contact_graph() -> Graph:
             Edge(tail=save_contact_node, head=sink_node),
         ]
     )
-
 

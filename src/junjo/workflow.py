@@ -233,7 +233,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         ):
                             raise ValueError(
                                 f"Node '{current_executable}' exceeded maximum execution count. "
-                                "Check for loops in your graph. Ensure it transitions to the sink node."
+                                "Check for loops in your graph. Ensure it transitions to a declared sink."
                             )
 
                     if isinstance(current_executable, Node):
@@ -248,7 +248,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                                 if ctx.node_execution_counter[item.id] > self.max_iterations:
                                     raise ValueError(
                                         f"Node '{item}' exceeded maximum execution count. "
-                                        "Check for loops in your graph. Ensure it transitions to the sink node."
+                                        "Check for loops in your graph. Ensure it transitions to a declared sink."
                                     )
                         else:
                             ctx.node_execution_counter[current_executable.id] = (
@@ -260,11 +260,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             ):
                                 raise ValueError(
                                     f"Node '{current_executable}' exceeded maximum execution count. "
-                                    "Check for loops in your graph. Ensure it transitions to the sink node."
+                                    "Check for loops in your graph. Ensure it transitions to a declared sink."
                                 )
 
-                    if current_executable == ctx.graph.sink:
-                        print("Sink has executed. Exiting loop.")
+                    if current_executable in ctx.graph.sinks:
+                        print("A declared sink has executed. Exiting loop.")
                         break
 
                     current_executable = await ctx.graph.get_next_node(

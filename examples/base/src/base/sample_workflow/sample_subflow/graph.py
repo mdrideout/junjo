@@ -15,7 +15,7 @@ def create_sample_subflow_graph() -> Graph:
     # Define the graph structure
     return Graph(
       source=create_joke_node,
-      sink=create_fact_node,
+      sinks=[create_fact_node],
       edges=[
           Edge(tail=create_joke_node, head=create_fact_node),
       ]

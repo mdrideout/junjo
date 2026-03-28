@@ -23,13 +23,16 @@ class Graph:
     encapsulating the relationships between different processing units (Nodes
     or Subflows) and the conditions under which transitions between them occur.
 
-    It holds references to the entry point (source) and exit point (sink) of
-    the graph, as well as a list of all edges that connect the nodes.
+    It holds references to the entry point (source) and explicit terminal
+    nodes (sinks) of the graph, as well as a list of all edges that connect
+    the nodes.
 
     :param source: The starting node or subflow of the graph. Execution of the workflow begins here.
     :type source: Node | _NestableWorkflow
-    :param sink: The terminal node or subflow of the graph. Reaching this node signifies the completion of the workflow.
-    :type sink: Node | _NestableWorkflow
+    :param sinks: The explicit terminal nodes or subflows of the graph.
+        Execution completes successfully only when one of these executables is
+        reached.
+    :type sinks: list[Node | _NestableWorkflow]
     :param edges: A list of :class:`~.Edge` instances that define the
         connections and transition logic between nodes in the graph.
     :type edges: list[Edge]
@@ -89,7 +92,7 @@ class Graph:
         # Create the workflow graph
         workflow_graph = Graph(
             source=first_node,
-            sink=final_node,
+            sinks=[final_node],
             edges=[
                 Edge(tail=first_node, head=count_items_node),
                 Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()),
@@ -99,9 +102,16 @@ class Graph:
             ]
         )
     """
-    def __init__(self, source: Node | _NestableWorkflow, sink: Node | _NestableWorkflow, edges: list[Edge]):
+    def __init__(
+        self,
+        source: Node | _NestableWorkflow,
+        sinks: list[Node | _NestableWorkflow],
+        edges: list[Edge],
+    ):
+        if not sinks:
+            raise ValueError("Graph requires at least one sink.")
         self.source = source
-        self.sink = sink
+        self.sinks = tuple(sinks)
         self.edges = edges
 
     async def get_next_node(self, store: BaseStore, current_node: Node | _NestableWorkflow) -> Node | _NestableWorkflow:
@@ -113,6 +123,15 @@ class Graph:
         resolves the next executable based on the conditions defined in those
         edges.
 
+        Junjo uses ordered first-match traversal semantics:
+
+        - outgoing edges are considered in the order they were declared
+        - the first edge whose condition resolves to a next executable wins
+        - later edges are not evaluated once a match is found
+
+        If no outgoing edge resolves and the current executable is not already
+        a declared sink, this method raises a ``ValueError``.
+
         :param store: The store instance to use for resolving the next
             executable.
         :type store: BaseStore
@@ -122,18 +141,15 @@ class Graph:
         :rtype: Node | _NestableWorkflow
         """
         matching_edges = [edge for edge in self.edges if edge.tail == current_node]
-        resolved_edges = [edge for edge in matching_edges if await edge.next_node(store) is not None]
+        for edge in matching_edges:
+            resolved_edge = await edge.next_node(store)
+            if resolved_edge is not None:
+                return resolved_edge
 
-        if len(resolved_edges) == 0:
-            raise ValueError("Check your Graph. No resolved edges. "
-                             f"No valid transition found for node or subflow: '{current_node}'.")
-        else:
-            resolved_edge = await resolved_edges[0].next_node(store)
-            if resolved_edge is None:
-                raise ValueError("Check your Graph. Resolved edge is None. "
-                                 f"No valid transition found for node or subflow: '{current_node}'")
-
-            return resolved_edge
+        raise ValueError(
+            "Check your Graph. No resolved edges. "
+            f"No valid transition found for node or subflow: '{current_node}'."
+        )
 
 
     def serialize_to_json_string(self) -> str:  # noqa: C901
@@ -142,6 +158,11 @@ class Graph:
 
         The serialized representation treats :class:`~junjo.RunConcurrent`
         instances as subgraphs and includes nested subflow graphs as well.
+
+        Nested subflow payloads include:
+
+        - ``subflowSourceId`` for the child graph's source
+        - ``subflowSinkIds`` for the child graph's explicit terminal nodes
 
         :returns: A JSON string containing the graph structure.
         :rtype: str
@@ -178,11 +199,12 @@ class Graph:
                 elif isinstance(node, _NestableWorkflow) and node.id not in processed_subflows:
                     processed_subflows.add(node.id)  # Mark as processed to avoid cycles
 
-                    # Collect subflow's source, sink and all nodes connected by edges
+                    # Collect subflow's source, sinks, and all nodes connected by edges.
                     # Reuse a single graph snapshot for the entire serialization pass.
                     subflow_graph = get_subflow_graph(node)
                     collect_nodes(subflow_graph.source)
-                    collect_nodes(subflow_graph.sink)
+                    for sink in subflow_graph.sinks:
+                        collect_nodes(sink)
 
                     # Collect all edges from the subflow
                     for i, edge in enumerate(subflow_graph.edges):
@@ -199,7 +221,8 @@ class Graph:
 
         # Start node collection
         collect_nodes(self.source)
-        collect_nodes(self.sink)
+        for sink in self.sinks:
+            collect_nodes(sink)
         for edge in self.edges:
             collect_nodes(edge.tail)
             collect_nodes(edge.head)
@@ -232,7 +255,7 @@ class Graph:
                 node_info["isSubflow"] = True
                 subflow_graph = get_subflow_graph(node)
                 node_info["subflowSourceId"] = subflow_graph.source.id
-                node_info["subflowSinkId"] = subflow_graph.sink.id
+                node_info["subflowSinkIds"] = [sink.id for sink in subflow_graph.sinks]
 
             nodes_json.append(node_info)
 

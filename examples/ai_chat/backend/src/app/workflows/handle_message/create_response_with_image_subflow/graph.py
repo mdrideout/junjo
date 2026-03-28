@@ -21,7 +21,7 @@ def create_response_with_image_subflow_graph() -> Graph:
     # Construct the graph for the SubFlow
     return Graph(
         source=image_inspiration,
-        sink=create_image_response,
+        sinks=[create_image_response],
         edges=[
             Edge(tail=image_inspiration, head=create_image),
             Edge(tail=create_image, head=create_image_response),

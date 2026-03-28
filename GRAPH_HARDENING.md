@@ -17,6 +17,18 @@ store correctness, hooks, and telemetry hardening are tracked elsewhere.
 - Fail invalid graph shapes intentionally through typed exceptions instead of
   incidental runtime behavior.
 
+## Completed Since Draft
+
+- Subflow serialization now reuses one child graph snapshot per serialization
+  pass, so source and sink references are internally consistent within a
+  single payload.
+- Subflow edge IDs now include an ordinal, so multiple same-tail/head edges
+  are preserved during serialization.
+- ``Graph`` now uses explicit plural ``sinks`` instead of a singular
+  ``sink``.
+- Runtime traversal now follows ordered first-match semantics directly: the
+  first declared matching edge wins, and later edges are not evaluated.
+
 ## Terminology Decisions
 
 ### Source
@@ -60,46 +72,26 @@ documented, validated where possible, and tested directly.
 
 These are the graph-specific issues that still need to be addressed.
 
-### 1. Subflow Serialization Is Internally Inconsistent
-
-Subflow graphs are currently instantiated more than once during a single
-serialization pass. That can produce payloads where:
-
-- subflow nodes and edges come from one graph instance
-- ``subflowSourceId`` / ``subflowSinkId`` come from another
-
-Since runtime node IDs are generated at construction time, one serialized graph
-payload can contain internally inconsistent references.
-
-This is the highest-priority graph correctness bug.
-
-### 2. Subflow Edge IDs Can Collide
-
-Main-graph edges currently include an ordinal index in their serialized ID, but
-subflow edges do not. A subflow with multiple edges sharing the same tail/head
-pair can overwrite earlier entries during serialization.
-
-### 3. Serialization Failure Handling Is Too Loose
+### 1. Serialization Failure Handling Is Too Loose
 
 ``serialize_to_json_string()`` currently falls back to returning an
 error-shaped JSON payload instead of failing with a typed exception. That makes
 it too easy for callers to continue with corrupted graph data.
 
-### 4. Topology Validation Is Still Minimal
+### 2. Topology Validation Is Still Minimal
 
 The graph layer still lacks a real validation phase. Invalid shapes are often
 detected only during traversal, if at all.
 
-### 5. The Terminal Model Is Too Narrow
-
-The current singular ``sink`` requirement forces artificial wiring patterns,
-such as connecting multiple valid terminal endpoints to one synthetic final
-node.
-
-### 6. Rendering Still Lacks A Hardened Structural Source
+### 3. Rendering Still Lacks A Hardened Structural Source
 
 Graphviz and future Mermaid rendering still depend on the current serialization
 path rather than a canonical compiled graph model.
+
+### 4. Structural IDs Are Still Missing
+
+Runtime IDs remain execution-unique, but Junjo still lacks stable structural
+IDs for graph-shape identity across repeated factory calls.
 
 ## Design Direction
 
@@ -168,7 +160,7 @@ Junjo should not rely on implicit “no outgoing edges means terminal” behavio
 
 ### 4. Codify Ordered First-Match Traversal
 
-Traversal should short-circuit on the first valid edge in declared order.
+Traversal should follow the first valid edge in declared order.
 
 This should become explicit in both code and docs:
 
@@ -249,7 +241,7 @@ These exceptions should make it obvious whether the failure came from:
 
 ### Phase 1 - Serialization Correctness
 
-Status: not started
+Status: partially complete
 
 ### Scope
 
@@ -267,7 +259,7 @@ Status: not started
 
 ### Phase 2 - Explicit Terminal Nodes
 
-Status: not started
+Status: partially complete
 
 ### Scope
 
@@ -285,7 +277,7 @@ Status: not started
 
 ### Phase 3 - Graph Compilation And Validation
 
-Status: not started
+Status: partially complete
 
 ### Scope
 

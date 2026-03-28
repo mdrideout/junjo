@@ -27,7 +27,7 @@ class FastFinalNode(Node[RuntimeStore]):
 def create_reentrant_graph() -> Graph:
     first = SlowStartNode()
     final = FastFinalNode()
-    return Graph(source=first, sink=final, edges=[Edge(tail=first, head=final)])
+    return Graph(source=first, sinks=[final], edges=[Edge(tail=first, head=final)])
 
 
 @pytest.mark.asyncio
@@ -79,7 +79,7 @@ SHARED_CHILD_NODE = SharedSlowChildNode()
 
 
 def create_shared_single_node_subflow_graph() -> Graph:
-    return Graph(source=SHARED_CHILD_NODE, sink=SHARED_CHILD_NODE, edges=[])
+    return Graph(source=SHARED_CHILD_NODE, sinks=[SHARED_CHILD_NODE], edges=[])
 
 
 class HookLeakingSubflow(
@@ -155,7 +155,7 @@ class ChildNode(Node[ChildStore]):
 def create_child_graph() -> Graph:
     first = ChildNode()
     final = ChildNode()
-    return Graph(source=first, sink=final, edges=[Edge(tail=first, head=final)])
+    return Graph(source=first, sinks=[final], edges=[Edge(tail=first, head=final)])
 
 
 class LoopingSubflow(Subflow[ChildState, ChildStore, ParentState, ParentStore]):
@@ -182,7 +182,7 @@ def create_parent_graph_with_subflow_loop() -> Graph:
     unreachable_sink = ParentNode()
     return Graph(
         source=subflow,
-        sink=unreachable_sink,
+        sinks=[unreachable_sink],
         edges=[Edge(tail=subflow, head=subflow)],
     )
 
@@ -245,7 +245,7 @@ async def test_run_concurrent_cancels_siblings_on_failure(
             name="Concurrent Execution",
             items=[WaitingSiblingNode(), FailingNode()],
         )
-        return Graph(source=run_concurrent, sink=run_concurrent, edges=[])
+        return Graph(source=run_concurrent, sinks=[run_concurrent], edges=[])
 
     workflow = Workflow[ConcurrentState, ConcurrentStore](
         graph_factory=create_run_concurrent_graph,

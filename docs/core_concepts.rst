@@ -116,7 +116,7 @@ Graph
 A `Graph` is a collection of nodes and edges that defines the complete structure of your workflow.
 
 **Key Characteristics:**
-- **Source and Sink:** A graph has a single entry point (`source`) and a single exit point (`sink`).
+- **Source and Sinks:** A graph has a single entry point (``source``) and one or more explicit terminal nodes (``sinks``).
 - **Defines the Workflow Structure:** The graph is a complete representation of all possible paths of execution in your workflow.
 
 .. code-block:: python
@@ -125,7 +125,7 @@ A `Graph` is a collection of nodes and edges that defines the complete structure
 
     workflow_graph = Graph(
         source=start_node,
-        sink=end_node,
+        sinks=[end_node],
         edges=[
             Edge(tail=start_node, head=process_node),
             Edge(tail=process_node, head=end_node, condition=DataIsProcessed())
@@ -140,7 +140,7 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
 
 **Key Characteristics:**
 - **Executable:** The `Workflow` class has an `execute` method that starts the workflow.
-- **Manages Execution:** It traverses the graph, executing nodes and evaluating conditions, until the `sink` node is reached.
+- **Manages Execution:** It traverses the graph, executing nodes and evaluating conditions, until one of the declared ``sinks`` is reached.
 - **Isolated Execution:** Each call to `execute` uses the provided factories to create a fresh `Graph` and `Store`, ensuring that each execution is isolated and concurrency-safe.
 - **Returns a Snapshot:** `execute` returns an `ExecutionResult` containing the final state and workflow-local execution counts for that run.
 

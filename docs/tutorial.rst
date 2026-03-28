@@ -116,7 +116,7 @@ Now we'll bring everything together in a `Graph`. We'll create a `graph_factory`
         # Create the workflow graph
         return Graph(
             source=first_node,
-            sink=final_node,
+            sinks=[final_node],
             edges=[
                 Edge(tail=first_node, head=count_items_node),
                 Edge(tail=count_items_node, head=even_items_node, condition=CountIsEven()),

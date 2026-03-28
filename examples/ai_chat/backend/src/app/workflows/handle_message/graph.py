@@ -53,7 +53,7 @@ def create_handle_message_graph() -> Graph:
     # Construct a graph
     return Graph(
         source=save_message_node,
-        sink=sink_node,
+        sinks=[sink_node],
         edges=[
             Edge(tail=save_message_node, head=initial_data_load),
             Edge(tail=initial_data_load, head=assess_message_directive_node),

@@ -29,7 +29,7 @@ Simple completion logging
 
     def create_graph() -> Graph:
         node = MyNode()
-        return Graph(source=node, sink=node, edges=[])
+        return Graph(source=node, sinks=[node], edges=[])
 
 
     hooks = Hooks()

@@ -61,7 +61,7 @@ def test_subflow_serialization_uses_one_graph_snapshot_per_pass() -> None:
         end = EndNode()
         return Graph(
             source=start,
-            sink=end,
+            sinks=[end],
             edges=[Edge(tail=start, head=end)],
         )
 
@@ -69,7 +69,7 @@ def test_subflow_serialization_uses_one_graph_snapshot_per_pass() -> None:
         graph_factory=create_child_graph,
         store_factory=lambda: ChildStore(initial_state=ChildState()),
     )
-    parent_graph = Graph(source=subflow, sink=subflow, edges=[])
+    parent_graph = Graph(source=subflow, sinks=[subflow], edges=[])
 
     parent_graph.serialize_to_json_string()
 
@@ -80,24 +80,29 @@ def test_subflow_serialization_source_and_sink_ids_exist_in_same_payload() -> No
     def create_child_graph() -> Graph:
         start = StartNode()
         end = EndNode()
+        alternate_end = EndNode()
         return Graph(
             source=start,
-            sink=end,
-            edges=[Edge(tail=start, head=end)],
+            sinks=[end, alternate_end],
+            edges=[
+                Edge(tail=start, head=end),
+                Edge(tail=start, head=alternate_end),
+            ],
         )
 
     subflow = ExampleSubflow(
         graph_factory=create_child_graph,
         store_factory=lambda: ChildStore(initial_state=ChildState()),
     )
-    parent_graph = Graph(source=subflow, sink=subflow, edges=[])
+    parent_graph = Graph(source=subflow, sinks=[subflow], edges=[])
 
     serialized = json.loads(parent_graph.serialize_to_json_string())
     nodes_by_id = {node["id"]: node for node in serialized["nodes"]}
     subflow_node = next(node for node in serialized["nodes"] if node.get("isSubflow"))
 
     assert subflow_node["subflowSourceId"] in nodes_by_id
-    assert subflow_node["subflowSinkId"] in nodes_by_id
+    assert len(subflow_node["subflowSinkIds"]) == 2
+    assert all(sink_id in nodes_by_id for sink_id in subflow_node["subflowSinkIds"])
 
 
 def test_subflow_serialization_preserves_multiple_edges_with_same_tail_and_head() -> None:
@@ -106,7 +111,7 @@ def test_subflow_serialization_preserves_multiple_edges_with_same_tail_and_head(
         end = EndNode()
         return Graph(
             source=start,
-            sink=end,
+            sinks=[end],
             edges=[
                 Edge(tail=start, head=end, condition=AlwaysTrue()),
                 Edge(tail=start, head=end),
@@ -117,7 +122,7 @@ def test_subflow_serialization_preserves_multiple_edges_with_same_tail_and_head(
         graph_factory=create_child_graph,
         store_factory=lambda: ChildStore(initial_state=ChildState()),
     )
-    parent_graph = Graph(source=subflow, sink=subflow, edges=[])
+    parent_graph = Graph(source=subflow, sinks=[subflow], edges=[])
 
     serialized = json.loads(parent_graph.serialize_to_json_string())
     subflow_edges = [

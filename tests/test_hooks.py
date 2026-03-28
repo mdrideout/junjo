@@ -63,7 +63,7 @@ def create_simple_workflow(*, hooks: Hooks | None = None) -> Workflow[HookState,
     node = HookNode()
     return Workflow[HookState, HookStore](
         name="Hook Workflow",
-        graph_factory=lambda: Graph(source=node, sink=node, edges=[]),
+        graph_factory=lambda: Graph(source=node, sinks=[node], edges=[]),
         store_factory=lambda: HookStore(initial_state=HookState()),
         hooks=hooks,
     )
@@ -141,7 +141,7 @@ async def test_subflow_and_run_concurrent_hooks_are_distinct() -> None:
     subflow_node = HookNode()
     subflow = ExampleSubflow(
         name="Child Subflow",
-        graph_factory=lambda: Graph(source=subflow_node, sink=subflow_node, edges=[]),
+        graph_factory=lambda: Graph(source=subflow_node, sinks=[subflow_node], edges=[]),
         store_factory=lambda: HookStore(initial_state=HookState()),
         hooks=hooks,
     )
@@ -151,7 +151,7 @@ async def test_subflow_and_run_concurrent_hooks_are_distinct() -> None:
             name="Parallel Work",
             items=[subflow, NoopNode()],
         )
-        return Graph(source=run_concurrent, sink=run_concurrent, edges=[])
+        return Graph(source=run_concurrent, sinks=[run_concurrent], edges=[])
 
     workflow = Workflow[HookState, HookStore](
         name="Parent Workflow",

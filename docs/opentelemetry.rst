@@ -45,7 +45,7 @@ When you execute a workflow, Junjo creates a hierarchy of OpenTelemetry spans:
     ├── Subflow Span
     │   ├── Node Span
     │   └── Node Span
-    └── Node Span (sink)
+    └── Node Span (declared sink)
 
 Each span includes Junjo-specific attributes that provide workflow context.
 

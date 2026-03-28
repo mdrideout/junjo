@@ -23,6 +23,7 @@ execution, state management, and lifecycle observation.
 - Renamed workflow constructor hook wiring from `hook_manager=` to `hooks=`.
 - Removed `BaseStore.subscribe()` and the old subscriber implementation.
 - Subflow hook implementations now work with explicit `subflow_store` access in `pre_run_actions` and `post_run_actions`.
+- `Graph` now requires `sinks=[...]` instead of `sink=...`.
 
 ### Added
 
@@ -35,6 +36,8 @@ execution, state management, and lifecycle observation.
   - cancellation telemetry
   - detached state snapshots
   - store atomicity
+  - plural-sink workflow and subflow execution semantics
+  - graph serialization consistency for nested subflows
   - lifecycle hook ordering and failure isolation
 
 ### Changed
@@ -43,6 +46,9 @@ execution, state management, and lifecycle observation.
 - `BaseStore.set_state()` now validates and commits atomically against the current locked state.
 - Parent workflow loop protection and execution counts now stay scoped to the current workflow rather than absorbing child subflow internals.
 - `RunConcurrent` no longer behaves like raw `asyncio.gather()`; sibling failures now cancel pending siblings deterministically.
+- Graph traversal now follows the first matching edge in declared order.
+- Workflows and subflows now terminate when any declared sink is reached, and dead ends on non-sink nodes raise.
+- Graph serialization now preserves multiple same-tail/head subflow edges and records plural subflow sink ids as `subflowSinkIds`.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
 

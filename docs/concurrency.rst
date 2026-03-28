@@ -45,7 +45,7 @@ When defining your workflow's graph or subflow, you can easily execute nodes and
   # Define the graph structure
   record_workout_activity_graph = Graph(
     source=initial_analysis_node,
-    sink=final_node,
+    sinks=[final_node],
     edges=[
         # Specify the RunConcurrent instance like any other Graph node
         Edge(tail=initial_analysis_node, head=activity_query_splitter, condition=IsMultipleActivities()),

@@ -60,7 +60,7 @@ async def test_run_concurrent_marks_cancelled_sibling_spans(
             name="Concurrent Execution",
             items=[WaitingSiblingNode(), FailingNode()],
         )
-        return Graph(source=run_concurrent, sink=run_concurrent, edges=[])
+        return Graph(source=run_concurrent, sinks=[run_concurrent], edges=[])
 
     workflow = Workflow[TelemetryState, TelemetryStore](
         name="Telemetry Workflow",

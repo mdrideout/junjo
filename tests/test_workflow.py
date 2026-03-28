@@ -32,7 +32,7 @@ class TestWorkflow(unittest.IsolatedAsyncioTestCase):
                 Edge(tail=node1, head=final_node)
             ]
 
-            return Graph(source=node1, sink=final_node, edges=edges)
+            return Graph(source=node1, sinks=[final_node], edges=edges)
 
         workflow = Workflow[MockState, MockStore](
             graph_factory=create_graph,
@@ -54,7 +54,7 @@ class TestWorkflow(unittest.IsolatedAsyncioTestCase):
             Edge(tail=node1, head=node2),
         ]
 
-        workflow_graph = Graph(source=node1, sink=final_node, edges=edges)
+        workflow_graph = Graph(source=node1, sinks=[final_node], edges=edges)
         store = MockStore(initial_state=MockState())
 
         with self.assertRaises(ValueError) as context:

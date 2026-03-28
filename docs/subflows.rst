@@ -142,7 +142,7 @@ Now, implement the `SampleSubflow`:
       # Define the internal graph for the SampleSubflow
       return Graph(
           source=get_joke_node,
-          sink=get_fact_node, # For simplicity, joke then fact
+          sinks=[get_fact_node], # For simplicity, joke then fact
           edges=[
               Edge(tail=get_joke_node, head=get_fact_node)
           ]
@@ -199,7 +199,7 @@ Example Parent Workflow Graph with a Subflow:
       # Define the parent workflow's graph, including the Subflow instance
       return Graph(
           source=parent_start_node,
-          sink=parent_end_node,
+          sinks=[parent_end_node],
           edges=[
               Edge(tail=parent_start_node, head=sample_subflow_instance), # Subflow as a node
               Edge(tail=sample_subflow_instance, head=parent_end_node)
