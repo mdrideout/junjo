@@ -81,21 +81,23 @@ documented, validated where possible, and tested directly.
 
 These are the graph-specific issues that still need to be addressed.
 
-### 1. Rendering Still Lacks A Hardened Structural Source
+### 1. Mermaid Rendering Still Needs A Product Decision
 
-The core graph layer now compiles to one canonical structural snapshot, but
-Graphviz and future Mermaid output still route through serialized JSON rather
-than rendering directly from the compiled model.
+Graphviz rendering now consumes the compiled graph snapshot directly, so Junjo
+no longer routes static DOT/Graphviz output through serialized JSON payloads.
 
-### 2. Structural IDs Are Still Missing
+The remaining rendering question is Mermaid:
 
-Runtime IDs remain execution-unique, but Junjo still lacks stable structural
-IDs for graph-shape identity across repeated factory calls.
+- either implement Mermaid from ``CompiledGraph``
+- or explicitly keep Mermaid unsupported and de-emphasize it in docs
 
-Status: in progress. Compiled graphs now emit deterministic graph, node, and
-edge structural IDs, and serialized graph payloads carry explicit runtime and
-structural identity fields. Remaining work is to propagate those identities
-through telemetry and rendering more completely.
+### 2. Structural ID Adoption Needs Final Rendering Follow-Through
+
+Structural IDs now exist and are propagated through compiled graphs,
+serialized graph payloads, workflow telemetry, and hooks.
+
+Remaining work is to decide whether Mermaid should adopt the same structural
+rendering model or stay intentionally unsupported.
 
 ## Design Direction
 
@@ -154,6 +156,9 @@ The compiled graph should:
   or serialization pass
 
 This compiled snapshot becomes the foundation for every graph-facing feature.
+
+Graphviz rendering now consumes the compiled snapshot directly. Mermaid is
+still unimplemented.
 
 ### 3. Move To Explicit ``sinks``
 
@@ -293,7 +298,7 @@ Status: complete
 
 ### Phase 3 - Graph Compilation And Validation
 
-Status: mostly complete
+Status: complete
 
 ### Scope
 
@@ -311,7 +316,7 @@ Status: mostly complete
 
 ### Phase 4 - Structural IDs
 
-Status: in progress
+Status: complete
 
 ### Scope
 
@@ -330,7 +335,7 @@ Status: in progress
 
 ### Phase 5 - Rendering Hardening
 
-Status: not started
+Status: partially complete
 
 ### Scope
 

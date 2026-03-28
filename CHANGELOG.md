@@ -54,6 +54,7 @@ execution, state management, and lifecycle observation.
 - Workflows and subflows now validate freshly created graphs before execution by default, with an opt-out `validate_graph=False` runtime parameter for targeted testing and debugging.
 - Graph validation, traversal adjacency, and serialization now all run through one compiled graph snapshot per graph instance.
 - Graph serialization now preserves multiple same-tail/head subflow edges and records explicit runtime and structural identity fields such as `graphStructuralId`, `nodeRuntimeId`, `nodeStructuralId`, and `edgeStructuralId`.
+- DOT/Graphviz rendering now consumes `CompiledGraph` directly instead of routing through serialized JSON, and identical graph shapes now produce stable DOT output across fresh graph builds.
 - OpenTelemetry span attributes now use explicit identity names such as `junjo.executable_runtime_id`, `junjo.executable_structural_id`, and `junjo.enclosing_graph_structural_id` instead of the old generic `junjo.id` and `junjo.parent_id` keys.
 - OpenTelemetry and hook payloads now use `executable_definition_id` and `parent_executable_definition_id` instead of the older generic `definition_id` naming on those surfaces.
 - Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.

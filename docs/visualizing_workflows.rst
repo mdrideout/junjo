@@ -64,6 +64,12 @@ The ``Graph`` object in Junjo provides an ``export_graphviz_assets()`` method. T
 * Render these ``.dot`` files into image files (SVG).
 * Create an HTML page (``index.html``) that displays all generated diagrams with appropriate headings.
 
+Junjo's Graphviz renderer now works directly from the compiled graph snapshot
+produced by ``Graph.compile()``. This means the visualization path uses the
+same canonical structural representation as validation and traversal, rather
+than routing through the serialized telemetry snapshot. In practice, identical
+graph shapes now produce stable DOT output across repeated fresh graph builds.
+
 Example Usage
 ~~~~~~~~~~~~~
 

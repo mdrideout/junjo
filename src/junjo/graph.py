@@ -5,7 +5,7 @@ import html
 import json
 import re
 import subprocess
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -432,6 +432,10 @@ class Graph:
         graph_structural_id: str,
         compiled_node_seeds: list[_CompiledNodeSeed],
     ) -> list[CompiledNode]:
+        node_ordinal_by_runtime_id = {
+            node_seed.node_runtime_id: ordinal
+            for ordinal, node_seed in enumerate(compiled_node_seeds)
+        }
         compiled_nodes: list[CompiledNode] = []
         for ordinal, node_seed in enumerate(compiled_node_seeds):
             node_structural_id = Graph._hash_structural_descriptor(
@@ -443,7 +447,10 @@ class Graph:
                     "nodeLabel": node_seed.node_label,
                     "isConcurrentSubgraph": node_seed.is_concurrent_subgraph,
                     "isSubflow": node_seed.is_subflow,
-                    "childNodeRuntimeIds": list(node_seed.child_node_runtime_ids),
+                    "childNodeOrdinals": [
+                        node_ordinal_by_runtime_id[child_runtime_id]
+                        for child_runtime_id in node_seed.child_node_runtime_ids
+                    ],
                     "subflowGraphStructuralId": (
                         node_seed.compiled_subflow_graph.graph_structural_id
                         if node_seed.compiled_subflow_graph is not None
@@ -852,44 +859,84 @@ class Graph:
         """
         raise GraphRenderError("Mermaid conversion is not implemented yet.")
 
-    def _build_dot_render_context(
-        self,
-        graph: dict,
-        edge_filter: Callable[[dict], bool],
-    ) -> tuple[dict[str, dict], list[dict], set[str], dict[str, dict], dict[str, str], dict[str, str]]:
-        nodes_by_id = {node["nodeRuntimeId"]: node for node in graph["nodes"]}
-        edges = [edge for edge in graph["edges"] if edge_filter(edge)]
-
-        node_ids: set[str] = set()
-        for edge in edges:
-            node_ids.update((edge["tailNodeRuntimeId"], edge["headNodeRuntimeId"]))
-
-        for node_id in list(node_ids):
-            node = nodes_by_id.get(node_id)
-            if node and node.get("isConcurrentSubgraph"):
-                node_ids.update(node["childNodeRuntimeIds"])
-
-        clusters = {
-            node["nodeRuntimeId"]: node
-            for node in graph["nodes"]
-            if node.get("isConcurrentSubgraph") and node["nodeRuntimeId"] in node_ids
+    @staticmethod
+    def _collect_dot_visible_runtime_ids(compiled: CompiledGraph) -> set[str]:
+        visible_runtime_ids = {
+            compiled.source_node_runtime_id,
+            *compiled.sink_node_runtime_ids,
         }
-        entry_anchor = {cluster_id: f"{cluster_id}__entry" for cluster_id in clusters}
-        exit_anchor = {cluster_id: f"{cluster_id}__exit" for cluster_id in clusters}
-        return nodes_by_id, edges, node_ids, clusters, entry_anchor, exit_anchor
+        for edge in compiled.compiled_edges:
+            visible_runtime_ids.update(
+                (edge.tail_node_runtime_id, edge.head_node_runtime_id)
+            )
+
+        for node in compiled.compiled_nodes:
+            if node.node_runtime_id not in visible_runtime_ids:
+                continue
+            if node.is_concurrent_subgraph:
+                visible_runtime_ids.update(node.child_node_runtime_ids)
+
+        return visible_runtime_ids
+
+    def _build_compiled_dot_render_context(
+        self,
+        compiled: CompiledGraph,
+    ) -> tuple[
+        tuple[CompiledNode, ...],
+        dict[str, CompiledNode],
+        set[str],
+        dict[str, str],
+        dict[str, str],
+    ]:
+        visible_runtime_ids = self._collect_dot_visible_runtime_ids(compiled)
+        visible_nodes = tuple(
+            node
+            for node in compiled.compiled_nodes
+            if node.node_runtime_id in visible_runtime_ids
+        )
+        clusters_by_runtime_id = {
+            node.node_runtime_id: node
+            for node in visible_nodes
+            if node.is_concurrent_subgraph
+        }
+        cluster_child_runtime_ids = {
+            child_runtime_id
+            for cluster_node in clusters_by_runtime_id.values()
+            for child_runtime_id in cluster_node.child_node_runtime_ids
+        }
+        entry_anchor = {
+            runtime_id: f"{cluster.node_structural_id}__entry"
+            for runtime_id, cluster in clusters_by_runtime_id.items()
+        }
+        exit_anchor = {
+            runtime_id: f"{cluster.node_structural_id}__exit"
+            for runtime_id, cluster in clusters_by_runtime_id.items()
+        }
+        return (
+            visible_nodes,
+            clusters_by_runtime_id,
+            cluster_child_runtime_ids,
+            entry_anchor,
+            exit_anchor,
+        )
 
     @staticmethod
     def _dot_anchor(
-        node_id: str,
+        node_runtime_id: str,
         *,
         is_src: bool,
-        clusters: dict[str, dict],
+        compiled_nodes_by_runtime_id: Mapping[str, CompiledNode],
+        clusters_by_runtime_id: dict[str, CompiledNode],
         entry_anchor: dict[str, str],
         exit_anchor: dict[str, str],
     ) -> str:
-        if node_id in clusters:
-            return exit_anchor[node_id] if is_src else entry_anchor[node_id]
-        return node_id
+        if node_runtime_id in clusters_by_runtime_id:
+            return (
+                exit_anchor[node_runtime_id]
+                if is_src
+                else entry_anchor[node_runtime_id]
+            )
+        return compiled_nodes_by_runtime_id[node_runtime_id].node_structural_id
 
     def _append_dot_header(self, output: list[str], graph_name: str) -> None:
         append = output.append
@@ -902,52 +949,79 @@ class Graph:
     def _append_dot_clusters(
         self,
         output: list[str],
-        clusters: dict[str, dict],
+        clusters_by_runtime_id: dict[str, CompiledNode],
         entry_anchor: dict[str, str],
         exit_anchor: dict[str, str],
-        nodes_by_id: dict[str, dict],
+        compiled_nodes_by_runtime_id: Mapping[str, CompiledNode],
     ) -> None:
         append = output.append
-        for cluster_id, cluster_node in clusters.items():
-            append(f'  subgraph "cluster_{cluster_id}" {{')
-            append(f'    label="{self._safe_label(cluster_node["nodeLabel"])} (Concurrent)";')
+        for cluster_runtime_id, cluster_node in clusters_by_runtime_id.items():
+            append(f'  subgraph "cluster_{cluster_node.node_structural_id}" {{')
+            append(
+                f'    label="{self._safe_label(cluster_node.node_label)} (Concurrent)";'
+            )
             append('    style="filled"; fillcolor="lightblue"; color="blue";')
             append('    node [fillcolor="lightblue", style="filled,rounded"];')
-            append(f'    "{entry_anchor[cluster_id]}" [label="", shape=point, width=0.01, style=invis];')
-            append(f'    "{exit_anchor[cluster_id]}"  [label="", shape=point, width=0.01, style=invis];')
-            for child_id in cluster_node["childNodeRuntimeIds"]:
-                child = nodes_by_id[child_id]
-                append(f'    {self._q(child_id)} [label="{self._safe_label(child["nodeLabel"])}"];')
+            append(
+                f'    "{entry_anchor[cluster_runtime_id]}" '
+                '[label="", shape=point, width=0.01, style=invis];'
+            )
+            append(
+                f'    "{exit_anchor[cluster_runtime_id]}"  '
+                '[label="", shape=point, width=0.01, style=invis];'
+            )
+            for child_runtime_id in cluster_node.child_node_runtime_ids:
+                child = compiled_nodes_by_runtime_id[child_runtime_id]
+                append(
+                    f'    {self._q(child.node_structural_id)} '
+                    f'[label="{self._safe_label(child.node_label)}"];'
+                )
             append("  }")
 
     def _append_dot_nodes(
         self,
         output: list[str],
-        node_ids: set[str],
-        clusters: dict[str, dict],
-        nodes_by_id: dict[str, dict],
+        visible_nodes: tuple[CompiledNode, ...],
+        clusters_by_runtime_id: dict[str, CompiledNode],
+        cluster_child_runtime_ids: set[str],
     ) -> None:
         append = output.append
-        for node_id in node_ids:
-            if node_id in clusters:
+        for node in visible_nodes:
+            if node.node_runtime_id in clusters_by_runtime_id:
                 continue
-            node = nodes_by_id[node_id]
-            if node.get("isSubflow"):
+            if node.node_runtime_id in cluster_child_runtime_ids:
+                continue
+            if node.is_subflow:
                 append(
-                    f'  {self._q(node_id)} [label="{self._safe_label(node["nodeLabel"])}", '
+                    f'  {self._q(node.node_structural_id)} '
+                    f'[label="{self._safe_label(node.node_label)}", '
                     'shape=component, style="filled,rounded", fillcolor="lightyellow"];'
                 )
             else:
-                append(f'  {self._q(node_id)} [label="{self._safe_label(node["nodeLabel"])}"];')
+                append(
+                    f'  {self._q(node.node_structural_id)} '
+                    f'[label="{self._safe_label(node.node_label)}"];'
+                )
 
-    def _dot_edge_attrs(self, edge: dict, clusters: dict[str, dict]) -> list[str]:
+    def _dot_edge_attrs(
+        self,
+        edge: CompiledEdge,
+        clusters_by_runtime_id: dict[str, CompiledNode],
+    ) -> list[str]:
         attrs: list[str] = []
-        if edge["tailNodeRuntimeId"] in clusters:
-            attrs.append(f'ltail="cluster_{edge["tailNodeRuntimeId"]}"')
-        if edge["headNodeRuntimeId"] in clusters:
-            attrs.append(f'lhead="cluster_{edge["headNodeRuntimeId"]}"')
-        if edge.get("edgeConditionLabel"):
-            attrs.extend(('style="dashed"', f'label="{self._safe_label(edge["edgeConditionLabel"])}"'))
+        tail_cluster = clusters_by_runtime_id.get(edge.tail_node_runtime_id)
+        head_cluster = clusters_by_runtime_id.get(edge.head_node_runtime_id)
+        if tail_cluster is not None:
+            attrs.append(f'ltail="cluster_{tail_cluster.node_structural_id}"')
+        if head_cluster is not None:
+            attrs.append(f'lhead="cluster_{head_cluster.node_structural_id}"')
+        if edge.edge_condition_label:
+            attrs.extend(
+                (
+                    'style="dashed"',
+                    f'label="{self._safe_label(edge.edge_condition_label)}"',
+                )
+            )
         else:
             attrs.append('style="solid"')
         return attrs
@@ -955,75 +1029,106 @@ class Graph:
     def _append_dot_edges(
         self,
         output: list[str],
-        edges: list[dict],
-        clusters: dict[str, dict],
+        compiled: CompiledGraph,
+        clusters_by_runtime_id: dict[str, CompiledNode],
         entry_anchor: dict[str, str],
         exit_anchor: dict[str, str],
     ) -> None:
         append = output.append
-        for edge in edges:
+        for edge in compiled.compiled_edges:
             src = self._dot_anchor(
-                edge["tailNodeRuntimeId"],
+                edge.tail_node_runtime_id,
                 is_src=True,
-                clusters=clusters,
+                compiled_nodes_by_runtime_id=compiled.compiled_nodes_by_runtime_id,
+                clusters_by_runtime_id=clusters_by_runtime_id,
                 entry_anchor=entry_anchor,
                 exit_anchor=exit_anchor,
             )
             target = self._dot_anchor(
-                edge["headNodeRuntimeId"],
+                edge.head_node_runtime_id,
                 is_src=False,
-                clusters=clusters,
+                compiled_nodes_by_runtime_id=compiled.compiled_nodes_by_runtime_id,
+                clusters_by_runtime_id=clusters_by_runtime_id,
                 entry_anchor=entry_anchor,
                 exit_anchor=exit_anchor,
             )
-            attrs = self._dot_edge_attrs(edge, clusters)
+            attrs = self._dot_edge_attrs(edge, clusters_by_runtime_id)
             append(f'  {self._q(src)} -> {self._q(target)} [{", ".join(attrs)}];')
 
     def _render_dot_graph(
         self,
-        graph: dict,
+        compiled: CompiledGraph,
         graph_name: str,
-        edge_filter: Callable[[dict], bool],
     ) -> str:
-        nodes_by_id, edges, node_ids, clusters, entry_anchor, exit_anchor = self._build_dot_render_context(
-            graph, edge_filter
+        (
+            visible_nodes,
+            clusters_by_runtime_id,
+            cluster_child_runtime_ids,
+            entry_anchor,
+            exit_anchor,
+        ) = self._build_compiled_dot_render_context(
+            compiled
         )
         output: list[str] = []
         self._append_dot_header(output, graph_name)
-        self._append_dot_clusters(output, clusters, entry_anchor, exit_anchor, nodes_by_id)
-        self._append_dot_nodes(output, node_ids, clusters, nodes_by_id)
-        self._append_dot_edges(output, edges, clusters, entry_anchor, exit_anchor)
+        self._append_dot_clusters(
+            output,
+            clusters_by_runtime_id,
+            entry_anchor,
+            exit_anchor,
+            compiled.compiled_nodes_by_runtime_id,
+        )
+        self._append_dot_nodes(
+            output,
+            visible_nodes,
+            clusters_by_runtime_id,
+            cluster_child_runtime_ids,
+        )
+        self._append_dot_edges(
+            output,
+            compiled,
+            clusters_by_runtime_id,
+            entry_anchor,
+            exit_anchor,
+        )
         output.append("}")
         return "\n".join(output)
+
+    def _append_subflow_dot_parts(
+        self,
+        compiled: CompiledGraph,
+        dot_parts: list[str],
+    ) -> None:
+        for node in compiled.compiled_nodes:
+            if not node.is_subflow or node.compiled_subflow_graph is None:
+                continue
+            dot_parts.append(
+                self._render_dot_graph(
+                    compiled=node.compiled_subflow_graph,
+                    graph_name=f"subflow_{node.node_structural_id}",
+                )
+            )
+            self._append_subflow_dot_parts(node.compiled_subflow_graph, dot_parts)
 
     def to_dot_notation(self) -> str:
         """
         Render the Junjo graph as a main overview digraph plus one additional
         digraph for each subflow.
+
+        DOT rendering consumes the compiled graph snapshot directly instead of
+        routing through serialized JSON. Rendered node and subflow identifiers
+        are structural, which keeps DOT output stable across repeated fresh
+        graph builds with the same topology.
         """
-        graph = json.loads(self.serialize_to_json_string())
+        compiled = self.compile()
 
         dot_parts: list[str] = [
             self._render_dot_graph(
-                graph=graph,
+                compiled=compiled,
                 graph_name="G",
-                edge_filter=lambda edge: edge["edgeScope"] == "explicit",
             )
         ]
-
-        subflows = [node for node in graph["nodes"] if node.get("isSubflow")]
-        for subflow in subflows:
-            subflow_id = subflow["nodeRuntimeId"]
-            dot_parts.append(
-                self._render_dot_graph(
-                    graph=graph,
-                    graph_name=f"subflow_{subflow_id}",
-                    edge_filter=lambda edge, sid=subflow_id: (
-                        edge["edgeScope"] == "subflow"
-                        and edge["parentSubflowRuntimeId"] == sid
-                    ),
-                )
-            )
+        self._append_subflow_dot_parts(compiled, dot_parts)
 
         return "\n\n".join(dot_parts)
 
@@ -1070,10 +1175,15 @@ class Graph:
 
     def _build_graphviz_label_lookup(self) -> dict[str, str]:
         label_lookup = {"G": "Overview"}
-        json_graph = json.loads(self.serialize_to_json_string())
-        for node in json_graph["nodes"]:
-            if node.get("isSubflow"):
-                label_lookup[f"subflow_{node['nodeRuntimeId']}"] = node["nodeLabel"]
+
+        def add_subflow_labels(compiled: CompiledGraph) -> None:
+            for node in compiled.compiled_nodes:
+                if not node.is_subflow or node.compiled_subflow_graph is None:
+                    continue
+                label_lookup[f"subflow_{node.node_structural_id}"] = node.node_label
+                add_subflow_labels(node.compiled_subflow_graph)
+
+        add_subflow_labels(self.compile())
         return label_lookup
 
     @staticmethod
@@ -1105,6 +1215,11 @@ class Graph:
         Render every digraph produced by :meth:`to_dot_notation` and build a gallery
         HTML page whose headings use the *human* labels (e.g. “SampleSubflow”)
         instead of raw digraph identifiers.
+
+        Graphviz export renders directly from the compiled graph snapshot. It
+        does not depend on the serialized graph JSON payload, which keeps the
+        rendering path aligned with the same canonical structure used for
+        validation and traversal.
 
         :returns: An ordered mapping of digraph name to rendered file path, in
             encounter order.

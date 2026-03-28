@@ -344,3 +344,33 @@ def test_graph_structural_id_changes_when_graph_shape_changes() -> None:
     )
 
     assert first_graph.compile().graph_structural_id != second_graph.compile().graph_structural_id
+
+
+def test_run_concurrent_node_structural_ids_are_stable_across_repeated_factory_calls() -> None:
+    def create_graph() -> Graph:
+        concurrent = RunConcurrent(
+            name="fan-out",
+            items=[StartNode(), EndNode()],
+        )
+        sink = EndNode()
+        return Graph(
+            source=concurrent,
+            sinks=[sink],
+            edges=[Edge(tail=concurrent, head=sink)],
+        )
+
+    first = create_graph().compile()
+    second = create_graph().compile()
+
+    first_concurrent_node = next(
+        node for node in first.compiled_nodes if node.is_concurrent_subgraph
+    )
+    second_concurrent_node = next(
+        node for node in second.compiled_nodes if node.is_concurrent_subgraph
+    )
+
+    assert first_concurrent_node.node_runtime_id != second_concurrent_node.node_runtime_id
+    assert (
+        first_concurrent_node.node_structural_id
+        == second_concurrent_node.node_structural_id
+    )
