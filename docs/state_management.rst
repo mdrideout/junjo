@@ -34,6 +34,34 @@ The `BaseState` class, which is a Pydantic `BaseModel`, is used to define the st
 
 In this example, we've defined a state for a chat application. Any workflow that uses this state will have access to these fields, and Pydantic will ensure that the data conforms to the specified types.
 
+Because Junjo uses your state's normal Pydantic serialization for workflow
+state telemetry, this is also the place where you control telemetry-facing
+serialization behavior. If a field should be excluded, redacted, or truncated
+for OpenTelemetry state payloads, implement that at the state model layer.
+
+.. code-block:: python
+
+    from pydantic import Field, field_serializer
+    from junjo import BaseState
+
+
+    class AgentState(BaseState):
+        prompt: str
+        provider_api_key: str | None = Field(default=None, exclude=True)
+
+        @field_serializer("prompt")
+        def serialize_prompt_for_telemetry(self, value: str) -> str:
+            if len(value) <= 2000:
+                return value
+            return value[:2000] + "...[truncated]"
+
+In this example:
+
+- ``provider_api_key`` stays in runtime state but is omitted from serialized
+  telemetry state
+- ``prompt`` stays complete in runtime state but is truncated in serialized
+  telemetry state
+
 BaseStore: Managing Your State
 ==============================
 

@@ -177,6 +177,80 @@ below:
 Cancelled spans do not set ``error.type`` and are not marked with ``Error``
 status unless they actually fail.
 
+State Serialization And Telemetry
+=================================
+
+Junjo intentionally records rich workflow state in telemetry by default. This
+is a debugging-oriented design choice: many AI workflows need full prompts,
+tool inputs, tool outputs, and intermediate state to be visible in traces.
+
+Workflow state telemetry is derived from your state model's normal Pydantic
+serialization:
+
+- ``junjo.workflow.state.start`` and ``junjo.workflow.state.end`` use the
+  serialized state JSON
+- ``junjo.state_json_patch`` is built from serialized before/after state dumps
+
+This means your state model controls what appears in OpenTelemetry state
+payloads. If you want to exclude, redact, or truncate fields for telemetry,
+shape that behavior in your state model serialization.
+
+This does **not** apply to ``junjo.workflow.execution_graph_snapshot``, which
+is generated from the compiled graph rather than from state serialization.
+
+Controlling Telemetry State Payloads
+------------------------------------
+
+If you need to keep a field in runtime state but remove it from serialized
+telemetry payloads, exclude it from Pydantic serialization:
+
+.. code-block:: python
+
+    from pydantic import Field
+    from junjo import BaseState
+
+
+    class ChatWorkflowState(BaseState):
+        user_message: str
+        llm_response: str | None = None
+        raw_api_key: str | None = Field(default=None, exclude=True)
+
+In this example, ``raw_api_key`` remains available in runtime state, but it is
+omitted from serialized OpenTelemetry state snapshots and JSON patches.
+
+If you want to keep a field but truncate or reshape it for telemetry, use a
+serializer on the state model:
+
+.. code-block:: python
+
+    from pydantic import field_serializer
+    from junjo import BaseState
+
+
+    class PromptWorkflowState(BaseState):
+        prompt: str
+        final_answer: str | None = None
+
+        @field_serializer("prompt")
+        def serialize_prompt_for_telemetry(self, value: str) -> str:
+            if len(value) <= 2000:
+                return value
+            return value[:2000] + "...[truncated]"
+
+In this example, runtime state still holds the full prompt, but Junjo's
+OpenTelemetry state fields and patches use the truncated serialized form.
+
+Hook Events Use Copied State Objects
+------------------------------------
+
+Hook event state payloads are separate from OpenTelemetry serialization.
+
+- OpenTelemetry state fields use serialized state from your model
+- hook ``event.state`` values use a copied in-memory state object
+
+So excluding or truncating a field for telemetry serialization does **not**
+automatically remove it from ``event.state`` inside hook callbacks.
+
 Workflow/Subflow Span Attributes
 ---------------------------------
 
