@@ -165,6 +165,18 @@ Junjo's Custom Span Attributes
 
 Junjo adds workflow-specific attributes to all spans. These work with any OTLP exporter:
 
+Failed workflow, subflow, node, and concurrent-execution spans also follow the
+standard OpenTelemetry error contract in addition to the Junjo-specific fields
+below:
+
+- ``error.type`` is set to the exception class name on failed spans.
+- span status is set to ``Error``.
+- the standard ``exception`` span event is recorded via OpenTelemetry's
+  exception recording support.
+
+Cancelled spans do not set ``error.type`` and are not marked with ``Error``
+status unless they actually fail.
+
 Workflow/Subflow Span Attributes
 ---------------------------------
 

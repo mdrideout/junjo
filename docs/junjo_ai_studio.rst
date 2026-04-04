@@ -326,6 +326,15 @@ Junjo-Specific Telemetry Attributes
 
 Junjo automatically adds these attributes to OpenTelemetry spans:
 
+When an executable span fails, Junjo also emits the standard OpenTelemetry
+error fields alongside the Junjo-specific attributes below:
+
+- ``error.type``: Exception class name for the failed operation
+- span status ``Error``
+- the standard ``exception`` span event with exception details
+
+Ordinary cancellations stay classified as cancellations rather than errors.
+
 Workflow Spans
 --------------
 

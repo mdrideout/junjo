@@ -8,7 +8,11 @@ from opentelemetry import trace
 from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, get_active_executable_identity
 from .store import StoreT
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
+from .telemetry.span_lifecycle import (
+    get_span_identifiers,
+    mark_span_cancelled,
+    mark_span_failed,
+)
 from .util import generate_safe_id
 
 
@@ -259,7 +263,7 @@ class Node(Generic[StoreT], ABC):
 
             except Exception as exc:
                 print("Error executing node service", exc)
-                span.set_status(trace.StatusCode.ERROR, str(exc))
+                mark_span_failed(span, exc)
                 span.record_exception(exc)
                 failure = exc
                 if lifecycle_context is not None:

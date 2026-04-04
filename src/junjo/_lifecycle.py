@@ -11,6 +11,7 @@ from opentelemetry import trace
 
 from . import hooks as hook_events
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
+from .telemetry.span_lifecycle import mark_span_failed
 
 if TYPE_CHECKING:
     from .hooks import Hooks
@@ -673,5 +674,5 @@ class LifecycleDispatcher:
                     "junjo.parent_executable_structural_id",
                     event.parent_executable_structural_id,
                 )
-            span.set_status(trace.StatusCode.ERROR, str(exc))
+            mark_span_failed(span, exc)
             span.record_exception(exc)

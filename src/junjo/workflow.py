@@ -21,7 +21,11 @@ from .node import Node
 from .run_concurrent import RunConcurrent
 from .store import BaseStore, ParentStateT, ParentStoreT, StateT, StoreT
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
+from .telemetry.span_lifecycle import (
+    get_span_identifiers,
+    mark_span_cancelled,
+    mark_span_failed,
+)
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
@@ -370,7 +374,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
             except Exception as exc:
                 print(f"Error executing workflow: {exc}")
-                span.set_status(trace.StatusCode.ERROR, str(exc))
+                mark_span_failed(span, exc)
                 span.record_exception(exc)
                 failure = exc
 

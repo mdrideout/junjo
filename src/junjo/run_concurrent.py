@@ -9,7 +9,11 @@ from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, ge
 from .node import Node
 from .store import BaseStore
 from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from .telemetry.span_lifecycle import get_span_identifiers, mark_span_cancelled
+from .telemetry.span_lifecycle import (
+    get_span_identifiers,
+    mark_span_cancelled,
+    mark_span_failed,
+)
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
@@ -286,7 +290,7 @@ class RunConcurrent(Node):
 
             except Exception as exc:
                 print(f"Error executing node service: {exc}")
-                span.set_status(trace.StatusCode.ERROR, str(exc))
+                mark_span_failed(span, exc)
                 span.record_exception(exc)
                 failure = exc
                 if lifecycle_context is not None:

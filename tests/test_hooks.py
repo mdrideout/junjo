@@ -9,6 +9,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
     InMemorySpanExporter,
 )
+from opentelemetry.trace import StatusCode
 
 from junjo import BaseState, BaseStore, Graph, Hooks, Node, RunConcurrent, Subflow, Workflow
 
@@ -31,6 +32,11 @@ class HookNode(Node[HookStore]):
 class NoopNode(Node[HookStore]):
     async def service(self, store: HookStore) -> None:
         return None
+
+
+class FailingNode(Node[HookStore]):
+    async def service(self, store: HookStore) -> None:
+        raise RuntimeError("boom")
 
 
 class ExampleSubflow(Subflow[HookState, HookStore, HookState, HookStore]):
@@ -482,8 +488,14 @@ async def test_hook_failures_are_isolated_and_recorded(
 
     hook_error_span = hook_error_spans[0]
     assert hook_error_span.attributes["junjo.hook.event"] == "workflow_started"
+    assert hook_error_span.attributes["error.type"] == "RuntimeError"
     assert hook_error_span.attributes["junjo.hook.error.type"] == "RuntimeError"
     assert hook_error_span.attributes["junjo.hook.error.message"] == "bad hook"
+    hook_error_exception = next(
+        event for event in hook_error_span.events if event.name == "exception"
+    )
+    assert hook_error_exception.attributes["exception.type"] == "RuntimeError"
+    assert hook_error_exception.attributes["exception.message"] == "bad hook"
     assert hook_error_span.attributes["junjo.run_id"] == result.run_id
     assert (
         hook_error_span.attributes["junjo.executable_definition_id"]
@@ -495,6 +507,34 @@ async def test_hook_failures_are_isolated_and_recorded(
         hook_error_span.attributes["junjo.executable_structural_id"]
         == hook_error_span.attributes["junjo.enclosing_graph_structural_id"]
     )
+    assert hook_error_span.status.status_code is StatusCode.ERROR
+
+
+@pytest.mark.asyncio
+async def test_failed_workflow_and_node_spans_emit_standard_error_type(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    failing_node = FailingNode()
+
+    workflow = Workflow[HookState, HookStore](
+        name="Failing Workflow",
+        graph_factory=lambda: Graph(source=failing_node, sinks=[failing_node], edges=[]),
+        store_factory=lambda: HookStore(initial_state=HookState()),
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await workflow.execute()
+
+    spans = {span.name: span for span in span_exporter.get_finished_spans()}
+    workflow_span = spans["Failing Workflow"]
+    node_span = spans["FailingNode"]
+
+    for span in (workflow_span, node_span):
+        assert span.status.status_code is StatusCode.ERROR
+        assert span.attributes["error.type"] == "RuntimeError"
+        exception_event = next(event for event in span.events if event.name == "exception")
+        assert exception_event.attributes["exception.type"] == "RuntimeError"
+        assert exception_event.attributes["exception.message"] == "boom"
 
 
 def test_old_hook_manager_module_is_removed() -> None:

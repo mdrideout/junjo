@@ -79,11 +79,19 @@ async def test_run_concurrent_marks_cancelled_sibling_spans(
 
     spans = {span.name: span for span in span_exporter.get_finished_spans()}
 
+    workflow_span = spans["Telemetry Workflow"]
+    run_concurrent_span = spans["Concurrent Execution"]
     failing_span = spans["FailingNode"]
     sibling_span = spans["WaitingSiblingNode"]
 
-    assert failing_span.status.status_code is StatusCode.ERROR
-    assert any(event.name == "exception" for event in failing_span.events)
+    for span in (workflow_span, run_concurrent_span, failing_span):
+        assert span.status.status_code is StatusCode.ERROR
+        assert span.attributes["error.type"] == "RuntimeError"
+        exception_event = next(event for event in span.events if event.name == "exception")
+        assert exception_event.attributes["exception.type"] == "RuntimeError"
+        assert exception_event.attributes["exception.message"] == "boom"
 
     assert sibling_span.attributes["junjo.cancelled"] is True
     assert sibling_span.attributes["junjo.cancelled_reason"] == "sibling_failed"
+    assert "error.type" not in sibling_span.attributes
+    assert sibling_span.status.status_code is not StatusCode.ERROR
