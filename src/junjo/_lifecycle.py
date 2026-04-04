@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import traceback
 from collections.abc import Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -10,8 +11,7 @@ from typing import TYPE_CHECKING, TypeVar
 from opentelemetry import trace
 
 from . import hooks as hook_events
-from .telemetry.otel_schema import JUNJO_OTEL_MODULE_NAME, JunjoOtelSpanTypes
-from .telemetry.span_lifecycle import mark_span_failed
+from .telemetry.otel_schema import JunjoOtelSpanTypes
 
 if TYPE_CHECKING:
     from .hooks import Hooks
@@ -94,7 +94,7 @@ class LifecycleDispatcher:
                 if inspect.isawaitable(result):
                     await result
             except Exception as exc:
-                self._record_hook_error(prepared.event_name, callback, exc, prepared.event)
+                self._record_hook_error(prepared.event_name, callback, exc)
 
     async def workflow_started(
         self,
@@ -621,58 +621,22 @@ class LifecycleDispatcher:
         event_name: str,
         callback,
         exc: Exception,
-        event: hook_events.LifecycleEvent,
     ) -> None:
-        tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
+        span = trace.get_current_span()
+        if not span.is_recording():
+            return
+
         callback_name = getattr(callback, "__qualname__", callback.__class__.__qualname__)
         callback_module = getattr(callback, "__module__", callback.__class__.__module__)
-
-        with tracer.start_as_current_span("junjo.hook_error") as span:
-            span.set_attribute("junjo.hook.event", event_name)
-            span.set_attribute(
-                "junjo.hook.callback",
-                f"{callback_module}.{callback_name}",
-            )
-            span.set_attribute("junjo.hook.error.type", type(exc).__name__)
-            span.set_attribute("junjo.hook.error.message", str(exc))
-            span.set_attribute("junjo.trace_id", event.trace_id)
-            span.set_attribute("junjo.span_id", event.span_id)
-            span.set_attribute("junjo.run_id", event.run_id)
-            span.set_attribute(
-                "junjo.executable_definition_id",
-                event.executable_definition_id,
-            )
-            parent_executable_definition_id = getattr(
-                event,
-                "parent_executable_definition_id",
-                None,
-            )
-            if parent_executable_definition_id is not None:
-                span.set_attribute(
-                    "junjo.parent_executable_definition_id",
-                    parent_executable_definition_id,
-                )
-            span.set_attribute(
-                "junjo.executable_runtime_id",
-                event.executable_runtime_id,
-            )
-            span.set_attribute(
-                "junjo.executable_structural_id",
-                event.executable_structural_id,
-            )
-            span.set_attribute(
-                "junjo.enclosing_graph_structural_id",
-                event.enclosing_graph_structural_id,
-            )
-            if event.parent_executable_runtime_id is not None:
-                span.set_attribute(
-                    "junjo.parent_executable_runtime_id",
-                    event.parent_executable_runtime_id,
-                )
-            if event.parent_executable_structural_id is not None:
-                span.set_attribute(
-                    "junjo.parent_executable_structural_id",
-                    event.parent_executable_structural_id,
-                )
-            mark_span_failed(span, exc)
-            span.record_exception(exc)
+        error_attributes: dict[str, str] = {
+            "junjo.hook.event": event_name,
+            "junjo.hook.callback": f"{callback_module}.{callback_name}",
+            "junjo.hook.error.type": type(exc).__name__,
+            "junjo.hook.error.message": str(exc),
+            "exception.type": type(exc).__name__,
+            "exception.message": str(exc),
+            "exception.stacktrace": "".join(
+                traceback.format_exception(type(exc), exc, exc.__traceback__)
+            ),
+        }
+        span.add_event("junjo.hook_error", error_attributes)

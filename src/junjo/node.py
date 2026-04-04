@@ -295,8 +295,8 @@ class Node(Generic[StoreT], ABC):
                         ),
                     )
 
-        if lifecycle_context is not None:
-            await lifecycle_context.dispatcher.dispatch(prepared_terminal_event)
+            if lifecycle_context is not None:
+                await lifecycle_context.dispatcher.dispatch(prepared_terminal_event)
 
         if cancellation is not None:
             raise cancellation

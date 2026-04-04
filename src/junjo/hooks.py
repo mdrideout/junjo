@@ -210,6 +210,9 @@ class Hooks:
     Registry for optional Junjo lifecycle callbacks.
 
     Hooks are observers. They do not create spans or control workflow execution.
+    If a hook callback raises, Junjo keeps execution isolated and continues
+    dispatching the remaining callbacks for that hook.
+
     To use them, register one or more callbacks and pass the registry to a
     workflow or subflow.
 

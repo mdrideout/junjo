@@ -61,9 +61,10 @@ execution, state management, and lifecycle observation.
 - OpenTelemetry span attributes now use explicit identity names such as `junjo.executable_runtime_id`, `junjo.executable_structural_id`, and `junjo.enclosing_graph_structural_id` instead of the old generic `junjo.id` and `junjo.parent_id` keys.
 - OpenTelemetry and hook payloads now use `executable_definition_id` and `parent_executable_definition_id` instead of the older generic `definition_id` naming on those surfaces.
 - Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.
-- Failed workflow, subflow, node, concurrent, and hook-error spans now set the standard OpenTelemetry `error.type` attribute in addition to Junjo-specific error metadata.
+- Failed workflow, subflow, node, and concurrent spans now set the standard OpenTelemetry `error.type` attribute in addition to Junjo-specific error metadata.
 - `JunjoOtelExporter` now exposes `shutdown()`, and the docs/examples now teach provider shutdown as the normal OpenTelemetry lifecycle while keeping `flush()` as a targeted manual drain tool.
 - `on_state_changed` hook payloads and state-change telemetry context now identify the active executable that performed the mutation, rather than mixing workflow metadata with node or subflow runtime identities.
+- Hook callback failures are now recorded as `junjo.hook_error` events on the surrounding workflow, subflow, node, or concurrent span, and terminal hooks now dispatch before span close so those events stay attached to the real execution span.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
 - `_NestableWorkflow` remains documented in the generated API reference, but is no longer exported from the top-level `junjo` package for direct consumption.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.

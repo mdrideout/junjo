@@ -473,7 +473,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         ),
                     )
 
-        await ctx.dispatcher.dispatch(prepared_terminal_event)
+                await ctx.dispatcher.dispatch(prepared_terminal_event)
 
         if cancellation is not None:
             raise cancellation

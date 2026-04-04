@@ -220,24 +220,31 @@ async def test_subflow_and_run_concurrent_hooks_are_distinct() -> None:
 
 
 @pytest.mark.asyncio
-async def test_terminal_hooks_run_after_span_close(
+async def test_terminal_hooks_run_before_span_close(
     span_exporter: InMemorySpanExporter,
 ) -> None:
     hooks = Hooks()
-    seen_closed: list[bool] = []
+    span_open: list[bool] = []
+    current_span_matches_event: list[bool] = []
 
     def on_completed(event) -> None:
         finished_span_ids = {
             format(span.context.span_id, "016x")
             for span in span_exporter.get_finished_spans()
         }
-        seen_closed.append(event.span_id in finished_span_ids)
+        current_span_id = format(
+            trace.get_current_span().get_span_context().span_id,
+            "016x",
+        )
+        span_open.append(event.span_id not in finished_span_ids)
+        current_span_matches_event.append(current_span_id == event.span_id)
 
     hooks.on_workflow_completed(on_completed)
 
     await create_simple_workflow(hooks=hooks).execute()
 
-    assert seen_closed == [True]
+    assert span_open == [True]
+    assert current_span_matches_event == [True]
 
 
 @pytest.mark.asyncio
@@ -480,34 +487,66 @@ async def test_hook_failures_are_isolated_and_recorded(
     result = await create_simple_workflow(hooks=hooks).execute()
 
     assert observed == ["ran"]
+    assert result.state.steps == ["HookNode"]
 
-    hook_error_spans = [
-        span for span in span_exporter.get_finished_spans() if span.name == "junjo.hook_error"
+    finished_spans = span_exporter.get_finished_spans()
+    assert all(span.name != "junjo.hook_error" for span in finished_spans)
+
+    spans = {span.name: span for span in finished_spans}
+    workflow_span = spans["Hook Workflow"]
+    hook_error_events = [
+        event for event in workflow_span.events if event.name == "junjo.hook_error"
     ]
-    assert len(hook_error_spans) == 1
+    assert len(hook_error_events) == 1
 
-    hook_error_span = hook_error_spans[0]
-    assert hook_error_span.attributes["junjo.hook.event"] == "workflow_started"
-    assert hook_error_span.attributes["error.type"] == "RuntimeError"
-    assert hook_error_span.attributes["junjo.hook.error.type"] == "RuntimeError"
-    assert hook_error_span.attributes["junjo.hook.error.message"] == "bad hook"
-    hook_error_exception = next(
-        event for event in hook_error_span.events if event.name == "exception"
-    )
-    assert hook_error_exception.attributes["exception.type"] == "RuntimeError"
-    assert hook_error_exception.attributes["exception.message"] == "bad hook"
-    assert hook_error_span.attributes["junjo.run_id"] == result.run_id
-    assert (
-        hook_error_span.attributes["junjo.executable_definition_id"]
-        == result.definition_id
-    )
-    assert "junjo.parent_executable_definition_id" not in hook_error_span.attributes
-    assert hook_error_span.attributes["junjo.executable_runtime_id"] == result.run_id
-    assert (
-        hook_error_span.attributes["junjo.executable_structural_id"]
-        == hook_error_span.attributes["junjo.enclosing_graph_structural_id"]
-    )
-    assert hook_error_span.status.status_code is StatusCode.ERROR
+    hook_error_event = hook_error_events[0]
+    assert hook_error_event.attributes["junjo.hook.event"] == "workflow_started"
+    assert "failing_hook" in hook_error_event.attributes["junjo.hook.callback"]
+    assert hook_error_event.attributes["junjo.hook.error.type"] == "RuntimeError"
+    assert hook_error_event.attributes["junjo.hook.error.message"] == "bad hook"
+    assert hook_error_event.attributes["exception.type"] == "RuntimeError"
+    assert hook_error_event.attributes["exception.message"] == "bad hook"
+    assert "exception.stacktrace" in hook_error_event.attributes
+    assert workflow_span.status.status_code is StatusCode.UNSET
+
+
+@pytest.mark.asyncio
+async def test_terminal_hook_failures_are_recorded_on_the_terminal_span(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    hooks = Hooks()
+    span_open: list[bool] = []
+
+    def failing_hook(event) -> None:
+        finished_span_ids = {
+            format(span.context.span_id, "016x")
+            for span in span_exporter.get_finished_spans()
+        }
+        span_open.append(event.span_id not in finished_span_ids)
+        raise RuntimeError("bad terminal hook")
+
+    hooks.on_workflow_completed(failing_hook)
+
+    result = await create_simple_workflow(hooks=hooks).execute()
+
+    assert result.state.steps == ["HookNode"]
+    assert span_open == [True]
+
+    finished_spans = span_exporter.get_finished_spans()
+    assert all(span.name != "junjo.hook_error" for span in finished_spans)
+
+    workflow_span = next(span for span in finished_spans if span.name == "Hook Workflow")
+    hook_error_events = [
+        event for event in workflow_span.events if event.name == "junjo.hook_error"
+    ]
+    assert len(hook_error_events) == 1
+    hook_error_event = hook_error_events[0]
+    assert hook_error_event.attributes["junjo.hook.event"] == "workflow_completed"
+    assert hook_error_event.attributes["junjo.hook.error.type"] == "RuntimeError"
+    assert hook_error_event.attributes["junjo.hook.error.message"] == "bad terminal hook"
+    assert hook_error_event.attributes["exception.type"] == "RuntimeError"
+    assert hook_error_event.attributes["exception.message"] == "bad terminal hook"
+    assert workflow_span.status.status_code is StatusCode.UNSET
 
 
 @pytest.mark.asyncio
