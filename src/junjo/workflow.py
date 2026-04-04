@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -33,6 +34,9 @@ if TYPE_CHECKING:
 
 
 _CovariantStoreT = TypeVar("_CovariantStoreT", bound="BaseStore", covariant=True)
+
+
+logger = logging.getLogger("junjo.workflow")
 
 
 class StoreFactory(Protocol, Generic[_CovariantStoreT]):
@@ -174,7 +178,6 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             the final state and current-scope execution counts.
         :rtype: ExecutionResult[StateT]
         """
-        print(f"Executing workflow: {self.name} with ID: {self.id}")
         parent_active_identity = get_active_executable_identity()
         graph = self._graph_factory()
         if validate_graph:
@@ -212,6 +215,19 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         result: ExecutionResult[StateT] | None = None
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
+        workflow_log_extra = {
+            "run_id": ctx.run_id,
+            "executable_definition_id": self.id,
+            "executable_runtime_id": ctx.run_id,
+            "span_type": str(self.span_type),
+        }
+
+        logger.debug(
+            "Executing workflow %s (%s)",
+            self.name,
+            self.id,
+            extra=workflow_log_extra,
+        )
 
         with tracer.start_as_current_span(self.name) as span:
             try:
@@ -298,7 +314,6 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     current_executable = ctx.graph.source
                     while True:
                         if isinstance(current_executable, Subflow):
-                            print("Executing subflow:", current_executable.name)
                             await current_executable.execute(
                                 ctx.store,
                                 self.id,
@@ -317,7 +332,6 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                                 )
 
                         if isinstance(current_executable, Node):
-                            print("Executing node:", current_executable.name)
                             await current_executable.execute(ctx.store, self.id)
 
                             if isinstance(current_executable, RunConcurrent):
@@ -344,7 +358,12 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                                     )
 
                         if current_executable in ctx.graph.sinks:
-                            print("A declared sink has executed. Exiting loop.")
+                            logger.debug(
+                                "Reached declared sink %s (%s); exiting workflow loop.",
+                                current_executable.name,
+                                current_executable.id,
+                                extra=workflow_log_extra,
+                            )
                             break
 
                         current_executable = await ctx.graph.get_next_node(
@@ -352,14 +371,24 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             current_executable,
                         )
 
-                    print(f"Completed workflow: {self.name} with ID: {self.id}")
+                    logger.debug(
+                        "Completed workflow %s (%s)",
+                        self.name,
+                        self.id,
+                        extra=workflow_log_extra,
+                    )
 
                     if isinstance(self, Subflow):
                         if parent_store is None:
                             raise ValueError(
                                 "Subflow requires a parent store to execute post_run_actions."
                             )
-                        print("Performing post-run actions for subflow:", self.name)
+                        logger.debug(
+                            "Performing post-run actions for subflow %s (%s)",
+                            self.name,
+                            self.id,
+                            extra=workflow_log_extra,
+                        )
                         await cast(
                             "Subflow[StateT, StoreT, ParentStateT, ParentStoreT]",
                             self,
@@ -373,7 +402,12 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 cancellation = exc
 
             except Exception as exc:
-                print(f"Error executing workflow: {exc}")
+                logger.exception(
+                    "Workflow execution failed for %s (%s)",
+                    self.name,
+                    self.id,
+                    extra=workflow_log_extra,
+                )
                 mark_span_failed(span, exc)
                 span.record_exception(exc)
                 failure = exc
@@ -550,11 +584,14 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
 
         .. code-block:: python
 
+            import logging
+
             hooks = Hooks()
+            logger = logging.getLogger(__name__)
 
             def log_completed(event) -> None:
-                print(
-                    "workflow completed",
+                logger.info(
+                    "workflow completed %s %s %s",
                     event.name,
                     event.run_id,
                     event.result.state.model_dump(),

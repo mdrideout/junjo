@@ -1,7 +1,11 @@
+import logging
+
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+logger = logging.getLogger("junjo.telemetry")
 
 
 class JunjoOtelExporter:
@@ -158,20 +162,34 @@ class JunjoOtelExporter:
                                in milliseconds. Defaults to ``30000``.
         :type timeout_millis: float
         :returns: ``True`` if both components shut down cleanly, ``False`` if
-                  either shutdown path raises.
+                  either shutdown path raises. Failures are logged through the
+                  ``junjo.telemetry`` logger.
         :rtype: bool
         """
         success = True
+        exporter_log_extra = {"endpoint": self._endpoint}
 
         try:
             self._span_processor.shutdown()
         except Exception:
             success = False
+            logger.warning(
+                "Failed to shut down the Junjo span processor for endpoint %s.",
+                self._endpoint,
+                extra=exporter_log_extra,
+                exc_info=True,
+            )
 
         try:
             self._metric_reader.shutdown(timeout_millis=timeout_millis)
         except Exception:
             success = False
+            logger.warning(
+                "Failed to shut down the Junjo metric reader for endpoint %s.",
+                self._endpoint,
+                extra=exporter_log_extra,
+                exc_info=True,
+            )
 
         return success
 
@@ -192,23 +210,48 @@ class JunjoOtelExporter:
                                Defaults to 120000ms (120 seconds) to match the
                                exporter timeout and allow for retries.
         :type timeout_millis: float
-        :returns: ``True`` if all telemetry was flushed successfully, ``False`` otherwise.
+        :returns: ``True`` if all telemetry was flushed successfully, ``False``
+                  otherwise. Failures are logged through the
+                  ``junjo.telemetry`` logger.
         :rtype: bool
         """
         success = True
+        exporter_log_extra = {"endpoint": self._endpoint}
 
         # Flush span processor
         try:
             if not self._span_processor.force_flush(int(timeout_millis)):
                 success = False
+                logger.warning(
+                    "Junjo span processor force_flush returned false for endpoint %s.",
+                    self._endpoint,
+                    extra=exporter_log_extra,
+                )
         except Exception:
             success = False
+            logger.warning(
+                "Failed to force-flush the Junjo span processor for endpoint %s.",
+                self._endpoint,
+                extra=exporter_log_extra,
+                exc_info=True,
+            )
 
         # Flush metric reader
         try:
             if not self._metric_reader.force_flush(timeout_millis):
                 success = False
+                logger.warning(
+                    "Junjo metric reader force_flush returned false for endpoint %s.",
+                    self._endpoint,
+                    extra=exporter_log_extra,
+                )
         except Exception:
             success = False
+            logger.warning(
+                "Failed to force-flush the Junjo metric reader for endpoint %s.",
+                self._endpoint,
+                extra=exporter_log_extra,
+                exc_info=True,
+            )
 
         return success

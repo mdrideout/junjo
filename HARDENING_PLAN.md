@@ -21,17 +21,19 @@ summarized briefly. Open work is described in more detail.
 - Removal of the old subscriber implementation
 - Replacement of `HookManager` with the new `Hooks` + internal lifecycle split
 - Graph validation, compilation, structural IDs, and rendering hardening
+- Standard OpenTelemetry `error.type` alignment on failed spans
+- Provider-owned OpenTelemetry shutdown lifecycle with wrapper-local `shutdown()` / `flush()` semantics
+- Hook callback failure telemetry attached to the surrounding execution span instead of standalone hook-error spans
 - Public docstring, docs, and example alignment for the hardened runtime model
+- Changelog and agent guidance cleanup for the current hardening work
 
 ### Partially Complete
 
 - Regression coverage for major known runtime/store failures
-- Documentation and example truthfulness
-- Changelog and agent guidance cleanup
+- Observability operational safety
 
 ### Still Open
 
-- Production-safe observability controls
 - Release/process discipline improvements
 
 ## Completed Work
@@ -72,10 +74,12 @@ Delivered:
 - Runtime execution, internal lifecycle dispatch, public hooks, and telemetry are separated.
 - Hook failures are isolated and recorded without failing workflow execution.
 - State change hooks now receive detached state snapshots and JSON patch payloads.
+- Hook callback failures are now recorded on the surrounding execution span instead of being modeled as standalone hook-error spans.
+- Terminal hooks now dispatch before span close so hook failure telemetry stays attached to the real workflow, subflow, node, or concurrent span.
 
 ### 4. Docs And Example Truthfulness
 
-Status: largely completed
+Status: completed
 
 Delivered:
 
@@ -83,6 +87,7 @@ Delivered:
 - `Workflow` and `Subflow` constructor docs remain on `__init__` for generated docs and hover help.
 - Examples now separate workflow definition from hook/logging wiring.
 - Hook documentation and examples now show real usage rather than placeholder configuration.
+- OpenTelemetry docs now describe provider-owned shutdown and state-model-controlled telemetry serialization truthfully.
 
 ### 5. Graph Hardening
 
@@ -116,36 +121,43 @@ Delivered:
 
 ## Phase B - Observability Operational Safety
 
+Status: partially complete
+
+### Delivered so far
+
+- Failed workflow, subflow, node, and concurrent spans now set standard OpenTelemetry `error.type`.
+- `JunjoOtelExporter` now exposes `shutdown()`, and docs/examples now teach provider shutdown as the normal lifecycle instead of exporter-local flush on exit.
+- Hook callback failures now stay attached to the surrounding execution span rather than creating standalone hook-error spans.
+- State telemetry docs now explain the current control point clearly:
+  state snapshots and JSON patches follow the state model's Pydantic serialization.
+- Core runtime execution paths now emit through package logging instead of direct `print()`.
+- Junjo now uses the standard Python `logging` package under the `junjo` logger hierarchy and installs only a `NullHandler` at the library root.
+- Exporter-local `flush()` and `shutdown()` failures now log through `junjo.telemetry` instead of failing silently.
+- Runtime log records now carry run-scoped correlation fields, and propagated failures now log once at the owning workflow or subflow boundary instead of duplicating nested stack traces.
+
 ### Why this is still open
 
-Telemetry correctness improved, but operational controls are still missing.
-Core runtime paths still use `print()` and there is no real telemetry
-configuration model for redaction, payload size, or capture profiles.
+Telemetry correctness improved, but the library still has no explicit
+library-level telemetry capture policy for redaction, payload size ceilings, or
+different observability profiles.
 
 ### Remaining changes
 
-- Replace direct runtime `print()` calls with package logging.
-- Remove stdout emission from shipped library execution paths, currently including:
-  - workflow start / progress / completion / failure messages in ``src/junjo/workflow.py``
-  - node failure prints in ``src/junjo/node.py``
-  - run-concurrent start / completion / failure prints in ``src/junjo/run_concurrent.py``
-- Define package logger names, log levels, and expectations for library consumers.
-- Keep example-app logging and demo ``print()`` usage out of the core library runtime.
-- Introduce explicit telemetry configuration:
+- Decide whether Junjo needs explicit library-level telemetry capture configuration beyond the current state-model serialization controls and current graph snapshot defaults.
+- If explicit capture controls are added, design them deliberately:
   - state capture policy
   - graph capture policy
   - patch capture policy
   - redaction/masking support
   - size ceilings
   - AI Studio vs generic OTLP profiles
-- Add explicit exporter lifecycle behavior such as shutdown/flush expectations.
-- Consider versioning Junjo-specific telemetry schema fields.
+- Decide later whether point-in-time lifecycle telemetry should stay span/event-first or move toward correlated logs; current instrumentation remains span/event-first intentionally.
+- Consider versioning Junjo-specific telemetry schema fields once the capture model stabilizes.
 
 ### Exit criteria
 
-- Core runtime emits through logging instead of `print()`.
-- Telemetry payload controls are configurable and documented.
-- Exporter lifecycle and failure behavior are explicit.
+- The repo has a clear documented stance on telemetry payload controls, whether that remains state-model serialization only or expands into explicit capture configuration.
+- Exporter lifecycle and failure behavior remain explicit and accurate in docs/examples.
 
 ## Phase C - Quality Gates And Release Discipline
 
@@ -195,4 +207,5 @@ The highest-risk runtime correctness work is already done. The remaining work is
 primarily about:
 
 - making observability production-safe
+- deciding how much explicit telemetry capture policy Junjo should own as a library
 - making release quality enforceable by process instead of memory

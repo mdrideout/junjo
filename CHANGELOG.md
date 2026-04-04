@@ -63,6 +63,9 @@ execution, state management, and lifecycle observation.
 - Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.
 - Failed workflow, subflow, node, and concurrent spans now set the standard OpenTelemetry `error.type` attribute in addition to Junjo-specific error metadata.
 - `JunjoOtelExporter` now exposes `shutdown()`, and the docs/examples now teach provider shutdown as the normal OpenTelemetry lifecycle while keeping `flush()` as a targeted manual drain tool.
+- Core library execution paths now use the standard Python logging system under the `junjo` logger hierarchy instead of writing directly to stdout, and the library root now installs only a `NullHandler`.
+- `JunjoOtelExporter.flush()` and `shutdown()` now log warning details through `junjo.telemetry` when Junjo-owned export components fail or refuse to flush cleanly.
+- Runtime log records now include run-scoped correlation fields such as `run_id`, and propagated execution failures are logged once at the owning workflow or subflow boundary instead of emitting duplicate stack traces from nested execution layers.
 - `on_state_changed` hook payloads and state-change telemetry context now identify the active executable that performed the mutation, rather than mixing workflow metadata with node or subflow runtime identities.
 - Hook callback failures are now recorded as `junjo.hook_error` events on the surrounding workflow, subflow, node, or concurrent span, and terminal hooks now dispatch before span close so those events stay attached to the real execution span.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.

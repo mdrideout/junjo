@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from abc import ABC, abstractmethod
 from typing import Generic
 
@@ -14,6 +15,8 @@ from .telemetry.span_lifecycle import (
     mark_span_failed,
 )
 from .util import generate_safe_id
+
+logger = logging.getLogger("junjo.node")
 
 
 class Node(Generic[StoreT], ABC):
@@ -108,9 +111,9 @@ class Node(Generic[StoreT], ABC):
         dispatch.
 
         This method acquires a tracer, opens a node span, emits lifecycle
-        events, and then calls :meth:`service`. Completed, failed, and cancelled
-        lifecycle hooks are dispatched only after the span has been finalized
-        and closed.
+        events, and then calls :meth:`service`. Terminal lifecycle hooks are
+        dispatched before the span closes so hook failure telemetry can stay
+        attached to the real node span.
 
         :param store: The run-local store for the current workflow execution.
         :type store: StoreT
@@ -123,6 +126,7 @@ class Node(Generic[StoreT], ABC):
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
         parent_active_identity = get_active_executable_identity()
+        run_id = lifecycle_context.run_id if lifecycle_context is not None else None
         node_structural_id = (
             lifecycle_context.compiled_node_structural_ids_by_runtime_id[self.id]
             if lifecycle_context is not None
@@ -130,10 +134,22 @@ class Node(Generic[StoreT], ABC):
         )
         if lifecycle_context is not None:
             assert node_structural_id is not None
+        node_log_extra = {
+            "run_id": run_id,
+            "executable_definition_id": self.id,
+            "executable_runtime_id": self.id,
+            "span_type": "node",
+        }
 
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
         with tracer.start_as_current_span(self.name) as span:
             try:
+                logger.debug(
+                    "Starting node %s (%s)",
+                    self.name,
+                    self.id,
+                    extra=node_log_extra,
+                )
                 span.set_attribute("junjo.span_type", "node")
                 span.set_attribute("junjo.executable_definition_id", self.id)
                 span.set_attribute("junjo.parent_executable_definition_id", parent_id)
@@ -229,6 +245,13 @@ class Node(Generic[StoreT], ABC):
                                 ),
                             )
 
+                logger.debug(
+                    "Completed node %s (%s)",
+                    self.name,
+                    self.id,
+                    extra=node_log_extra,
+                )
+
             except asyncio.CancelledError as exc:
                 mark_span_cancelled(span, exc)
                 cancellation = exc
@@ -262,7 +285,13 @@ class Node(Generic[StoreT], ABC):
                     )
 
             except Exception as exc:
-                print("Error executing node service", exc)
+                if lifecycle_context is None:
+                    logger.exception(
+                        "Node execution failed for %s (%s)",
+                        self.name,
+                        self.id,
+                        extra=node_log_extra,
+                    )
                 mark_span_failed(span, exc)
                 span.record_exception(exc)
                 failure = exc

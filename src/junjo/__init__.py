@@ -7,6 +7,8 @@ nodes, edges, and graphs that can be executed by a workflow.
 This library also produces annotated Opentelemetry Spans to help make sense of
 execution telemetry.
 """
+import logging
+
 from .condition import Condition
 from .edge import Edge
 from .graph import (
@@ -31,6 +33,8 @@ from .workflow import (
     Subflow,
     Workflow,
 )
+
+logging.getLogger("junjo").addHandler(logging.NullHandler())
 
 __all__ = [
     "Condition",

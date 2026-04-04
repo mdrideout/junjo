@@ -1,3 +1,4 @@
+import logging
 import os
 
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
@@ -6,6 +7,8 @@ from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
+
+logger = logging.getLogger(__name__)
 
 
 def init_otel(
@@ -16,8 +19,10 @@ def init_otel(
     # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
     JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
     if JUNJO_AI_STUDIO_API_KEY is None:
-        print("JUNJO_AI_STUDIO_API_KEY environment variable is not set. "
-                         "Generate a new API key in the Junjo AI Studio UI.")
+        logger.warning(
+            "JUNJO_AI_STUDIO_API_KEY environment variable is not set. "
+            "Generate a new API key in the Junjo AI Studio UI."
+        )
         return None
 
     # Configure OpenTelemetry for this application

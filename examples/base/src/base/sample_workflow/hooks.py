@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from junjo import Hooks
 from junjo.hooks import (
     LifecycleEvent,
@@ -10,6 +12,8 @@ from junjo.hooks import (
 
 from base.sample_workflow.sample_subflow.store import SampleSubflowState
 from base.sample_workflow.store import SampleWorkflowState
+
+logger = logging.getLogger(__name__)
 
 
 def _base_event_details(event: LifecycleEvent) -> dict:
@@ -55,15 +59,16 @@ def _format_event_details(event: LifecycleEvent) -> dict:
 
 
 def _log_event(event: LifecycleEvent) -> None:
-    print(f"[hook] {event.hook_name}", _format_event_details(event))
+    logger.info("[hook] %s %s", event.hook_name, _format_event_details(event))
 
 
 def _log_workflow_completed(
     event: WorkflowCompletedEvent[SampleWorkflowState],
 ) -> None:
     state = event.result.state
-    print(
-        f"[hook] {event.hook_name}",
+    logger.info(
+        "[hook] %s %s",
+        event.hook_name,
         {
             **_base_event_details(event),
             "counter": state.counter,
@@ -78,8 +83,9 @@ def _log_subflow_completed(
     event: SubflowCompletedEvent[SampleSubflowState],
 ) -> None:
     state = event.result.state
-    print(
-        f"[hook] {event.hook_name}",
+    logger.info(
+        "[hook] %s %s",
+        event.hook_name,
         {
             **_base_event_details(event),
             "item_count": len(state.items or []),
@@ -91,8 +97,9 @@ def _log_subflow_completed(
 
 def _log_state_changed(event: StateChangedEvent[SampleWorkflowState]) -> None:
     state = event.state
-    print(
-        f"[hook] {event.hook_name}",
+    logger.info(
+        "[hook] %s %s",
+        event.hook_name,
         {
             **_base_event_details(event),
             "action_name": event.action_name,

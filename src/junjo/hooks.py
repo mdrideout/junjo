@@ -220,10 +220,13 @@ class Hooks:
 
     .. code-block:: python
 
+        import logging
+
         hooks = Hooks()
+        logger = logging.getLogger(__name__)
 
         def log_completed(event: WorkflowCompletedEvent[MyState]) -> None:
-            print(event.hook_name, event.result.state.model_dump())
+            logger.info("%s %s", event.hook_name, event.result.state.model_dump())
 
         hooks.on_workflow_completed(log_completed)
 

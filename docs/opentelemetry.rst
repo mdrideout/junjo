@@ -70,6 +70,56 @@ It also exposes:
 Use ``flush()`` for targeted cases such as tests or short-lived scripts. Use
 provider shutdown for the normal application lifecycle.
 
+Library Logging
+===============
+
+Junjo emits library logs under the ``junjo`` logger hierarchy. Applications own
+handlers, formatting, and log levels.
+
+The main library loggers are:
+
+- ``junjo.workflow``
+- ``junjo.node``
+- ``junjo.run_concurrent``
+- ``junjo.telemetry``
+
+Junjo does not install real log handlers of its own. If you want to see Junjo
+execution diagnostics, configure logging in your application and opt in to the
+``junjo`` logger namespace.
+
+.. code-block:: python
+
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s %(name)s %(message)s",
+    )
+    logging.getLogger("junjo").setLevel(logging.DEBUG)
+
+With that configuration, Junjo emits debug-level execution progress through the
+standard Python logging system without taking over your application's logging
+setup.
+
+Runtime log records include run-scoped correlation fields through standard
+logging ``extra`` attributes when that execution context exists:
+
+- ``run_id``
+- ``executable_definition_id``
+- ``executable_runtime_id``
+- ``span_type``
+
+Applications using structured logging handlers can capture those fields
+directly from the log record without parsing log message text.
+
+Execution failures are logged at the owning workflow or subflow boundary so one
+propagated failure produces one library-owned error log instead of multiple
+stack traces from each nested execution layer.
+
+Exporter-local warning logs under ``junjo.telemetry`` also include the OTLP
+``endpoint`` on the log record so operational failures can be tied back to the
+destination that failed.
+
 Choosing an OpenTelemetry Exporter
 ===================================
 

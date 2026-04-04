@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING
 
 from opentelemetry import trace
@@ -18,6 +19,9 @@ from .util import generate_safe_id
 
 if TYPE_CHECKING:
     from junjo.workflow import Subflow
+
+
+logger = logging.getLogger("junjo.run_concurrent")
 
 
 class RunConcurrent(Node):
@@ -103,7 +107,23 @@ class RunConcurrent(Node):
         still-pending siblings are cancelled and the original failure is
         re-raised once the cancellations have been drained.
         """
-        print(f"Executing concurrent items within {self.name} ({self.id})")
+        lifecycle_context = store._lifecycle_context
+        run_concurrent_log_extra = {
+            "run_id": (
+                lifecycle_context.run_id
+                if lifecycle_context is not None
+                else None
+            ),
+            "executable_definition_id": self.id,
+            "executable_runtime_id": self.id,
+            "span_type": "run_concurrent",
+        }
+        logger.debug(
+            "Executing concurrent items within %s (%s)",
+            self.name,
+            self.id,
+            extra=run_concurrent_log_extra,
+        )
         if not self.items:
             return
 
@@ -130,7 +150,12 @@ class RunConcurrent(Node):
             await self._cancel_pending_tasks(pending, "cancelled")
             raise
 
-        print(f"Finished concurrent items within {self.name} ({self.id})")
+        logger.debug(
+            "Finished concurrent items within %s (%s)",
+            self.name,
+            self.id,
+            extra=run_concurrent_log_extra,
+        )
 
     async def execute(self, store: BaseStore, parent_id: str) -> None:  # noqa: C901
         """
@@ -150,6 +175,7 @@ class RunConcurrent(Node):
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
         parent_active_identity = get_active_executable_identity()
+        run_id = lifecycle_context.run_id if lifecycle_context is not None else None
         run_concurrent_structural_id = (
             lifecycle_context.compiled_node_structural_ids_by_runtime_id[self.id]
             if lifecycle_context is not None
@@ -157,6 +183,12 @@ class RunConcurrent(Node):
         )
         if lifecycle_context is not None:
             assert run_concurrent_structural_id is not None
+        run_concurrent_log_extra = {
+            "run_id": run_id,
+            "executable_definition_id": self.id,
+            "executable_runtime_id": self.id,
+            "span_type": "run_concurrent",
+        }
 
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
         with tracer.start_as_current_span(self.name) as span:
@@ -289,7 +321,13 @@ class RunConcurrent(Node):
                     )
 
             except Exception as exc:
-                print(f"Error executing node service: {exc}")
+                if lifecycle_context is None:
+                    logger.exception(
+                        "RunConcurrent execution failed for %s (%s)",
+                        self.name,
+                        self.id,
+                        extra=run_concurrent_log_extra,
+                    )
                 mark_span_failed(span, exc)
                 span.record_exception(exc)
                 failure = exc
