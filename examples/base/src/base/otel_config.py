@@ -8,8 +8,10 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
 
-def init_otel(service_name: str) -> JunjoOtelExporter | None:
-    """Configure OpenTelemetry for this application."""
+def init_otel(
+    service_name: str,
+) -> tuple[TracerProvider, MeterProvider] | None:
+    """Configure OpenTelemetry for this application and return the providers."""
 
     # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
     JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
@@ -54,4 +56,4 @@ def init_otel(service_name: str) -> JunjoOtelExporter | None:
     # Google genai
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
-    return junjo_ai_studio_exporter
+    return tracer_provider, meter_provider

@@ -224,6 +224,8 @@ Create an OpenTelemetry configuration file:
         )
         metrics.set_meter_provider(meter_provider)
 
+        return tracer_provider, meter_provider
+
 Step 3: Initialize Telemetry in Your Application
 -------------------------------------------------
 
@@ -233,11 +235,27 @@ Call the initialization function before executing workflows:
 
     from otel_config import init_telemetry
     
-    # Initialize telemetry
-    init_telemetry(service_name="my-ai-workflow")
-    
-    # Execute your workflow - telemetry is automatic!
-    await my_workflow.execute()
+    tracer_provider, meter_provider = init_telemetry(service_name="my-ai-workflow")
+
+    try:
+        # Execute your workflow - telemetry is automatic!
+        await my_workflow.execute()
+    finally:
+        tracer_provider.shutdown()
+        meter_provider.shutdown()
+
+Normal Lifecycle vs Manual Flush
+================================
+
+In normal applications, shut down the owning ``TracerProvider`` and
+``MeterProvider`` when the process is terminating. That is the standard
+OpenTelemetry lifecycle and covers all processors and readers attached to those
+providers.
+
+``JunjoOtelExporter.flush()`` is still available, but it is for manual
+immediate drain when you truly need it, such as in tests or very short-lived
+scripts. ``JunjoOtelExporter.shutdown()`` is a wrapper-local helper that shuts
+down only the Junjo-owned span processor and metric reader.
 
 Key Features Deep Dive
 ======================

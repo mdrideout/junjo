@@ -49,6 +49,27 @@ When you execute a workflow, Junjo creates a hierarchy of OpenTelemetry spans:
 
 Each span includes Junjo-specific attributes that provide workflow context.
 
+Provider Lifecycle
+==================
+
+In normal applications, your ``TracerProvider`` and ``MeterProvider`` remain
+the top-level owners of OpenTelemetry shutdown. When the process is
+terminating, shut down those providers rather than treating exporter-local
+flush as the default exit path.
+
+``JunjoOtelExporter`` gives you components to attach to those providers:
+
+- ``span_processor`` for tracing
+- ``metric_reader`` for metrics
+
+It also exposes:
+
+- ``shutdown()`` for wrapper-local shutdown of the Junjo-owned components
+- ``flush()`` for manual immediate drain when you truly need it
+
+Use ``flush()`` for targeted cases such as tests or short-lived scripts. Use
+provider shutdown for the normal application lifecycle.
+
 Choosing an OpenTelemetry Exporter
 ===================================
 
@@ -343,12 +364,18 @@ Here's a complete OpenTelemetry setup for Junjo:
         
         # Add span processor
         tracer_provider.add_span_processor(junjo_exporter.span_processor)
-        
+       
+        # Configure metrics with the Junjo metric reader
+        meter_provider = MeterProvider(
+            resource=resource,
+            metric_readers=[junjo_exporter.metric_reader]
+        )
+        metrics.set_meter_provider(meter_provider)
+
         # Set as global tracer provider
         trace.set_tracer_provider(tracer_provider)
-        
-        print(f"OpenTelemetry configured for {service_name}")
-        print(f"Sending traces to Junjo AI Studio at localhost:50051")
+
+        return tracer_provider, meter_provider
 
 Use in your application:
 
@@ -356,11 +383,14 @@ Use in your application:
 
     from otel_config import init_telemetry
     
-    # Initialize before running workflows
-    init_telemetry(service_name="my-ai-workflow")
-    
-    # Execute workflows - automatic instrumentation
-    await my_workflow.execute()
+    tracer_provider, meter_provider = init_telemetry(service_name="my-ai-workflow")
+
+    try:
+        # Execute workflows - automatic instrumentation
+        await my_workflow.execute()
+    finally:
+        tracer_provider.shutdown()
+        meter_provider.shutdown()
 
 Advanced Configuration
 ======================

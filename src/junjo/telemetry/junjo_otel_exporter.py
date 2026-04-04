@@ -6,10 +6,19 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 class JunjoOtelExporter:
     """
-    An OpenTelemetry SpanExporter that sends spans to the Junjo AI Studio.
+    Configure Junjo AI Studio OTLP components for an existing OpenTelemetry setup.
 
     Junjo is designed to be compatible with existing OpenTelemetry configurations,
     by adding to an existing configuration instead of creating a new one.
+
+    In normal applications, the tracer provider and meter provider remain the
+    top-level owners of shutdown. Call ``TracerProvider.shutdown()`` and
+    ``MeterProvider.shutdown()`` when the process is terminating.
+
+    :meth:`flush` is available for manual immediate export when you truly need
+    it, such as in short-lived scripts or tests. :meth:`shutdown` is a
+    wrapper-local helper that shuts down only the Junjo-owned span processor
+    and metric reader.
 
     :param host: The hostname of the Junjo AI Studio.
     :type host: str
@@ -91,7 +100,7 @@ class JunjoOtelExporter:
         port: str,
         api_key: str,
         insecure: bool = False,
-    ):
+    ) -> None:
         """
         Initializes the JunjoOtelExporter.
         """
@@ -127,22 +136,57 @@ class JunjoOtelExporter:
         )
 
     @property
-    def span_processor(self):
+    def span_processor(self) -> BatchSpanProcessor:
         """Returns the configured span processor."""
         return self._span_processor
 
     @property
-    def metric_reader(self):
+    def metric_reader(self) -> PeriodicExportingMetricReader:
         """Returns the configured metric reader."""
         return self._metric_reader
 
+    def shutdown(self, timeout_millis: float = 30000) -> bool:
+        """
+        Shut down the Junjo-owned telemetry components.
+
+        In most applications, the preferred terminal lifecycle is to shut down
+        the owning ``TracerProvider`` and ``MeterProvider``. This helper is
+        provided for cases where you need to shut down only the Junjo-owned
+        span processor and metric reader directly.
+
+        :param timeout_millis: Maximum time to wait for metric reader shutdown
+                               in milliseconds. Defaults to ``30000``.
+        :type timeout_millis: float
+        :returns: ``True`` if both components shut down cleanly, ``False`` if
+                  either shutdown path raises.
+        :rtype: bool
+        """
+        success = True
+
+        try:
+            self._span_processor.shutdown()
+        except Exception:
+            success = False
+
+        try:
+            self._metric_reader.shutdown(timeout_millis=timeout_millis)
+        except Exception:
+            success = False
+
+        return success
+
     def flush(self, timeout_millis: float = 120000) -> bool:
         """
-        Flush all pending telemetry manually.
+        Force a manual drain of pending telemetry.
 
-        This method blocks until all telemetry is exported or the timeout is reached.
-        It leverages the existing retry/timeout logic in the underlying gRPC exporters.
-        It can be used to force a flush of all pending telemetry before the application exits.
+        This method blocks until pending telemetry is exported or the timeout is
+        reached. Use it only when you need an immediate manual export, such as
+        in tests, short-lived scripts, or other environments where the normal
+        provider shutdown lifecycle is not the right fit.
+
+        In normal applications, shut down the owning ``TracerProvider`` and
+        ``MeterProvider`` instead of using :meth:`flush` as the standard exit
+        path.
 
         :param timeout_millis: Maximum time to wait for flush in milliseconds.
                                Defaults to 120000ms (120 seconds) to match the
