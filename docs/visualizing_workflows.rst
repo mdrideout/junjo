@@ -35,13 +35,17 @@ Complex AI systems, especially those involving multiple Large Language Model (LL
 Generating Workflow Diagrams with Graphviz
 ------------------------------------------
 
-Junjo can directly render your workflow graphs as images using Graphviz. Generate detailed diagrams of your main workflow and any nested subflows, including how ``RunConcurrent`` nodes are structured.
+Junjo can directly render your workflow graphs as images using Graphviz.
+Generate detailed diagrams of your main workflow and any nested subflows,
+including how ``RunConcurrent`` nodes are structured.
 
 Prerequisites
 ~~~~~~~~~~~~~
 
 1.  **Graphviz System Installation:**
-    Graphviz must be installed on the system where you're generating the diagrams (e.g., your development machine or Docker container).
+    Graphviz must be installed on the system where you're generating rendered
+    image assets (for example, your development machine or a Docker container
+    running ``Graph.export_graphviz_assets()``).
 
     For macOS with Homebrew:
 
@@ -51,12 +55,13 @@ Prerequisites
 
     For other systems, please refer to the official `Graphviz download page <https://graphviz.org/download/>`_.
 
-2.  **Python Dependencies:**
-    Install the optional ``graphviz`` extras for the Junjo library. If you are using ``uv`` and have a ``pyproject.toml`` with these defined (e.g., in a `dev` or `graphviz` extra):
+2.  **Junjo Installation:**
+    Install Junjo in the environment where you want to generate workflow
+    diagrams.
 
     .. code-block:: bash
 
-        uv pip install -e ".[dev,graphviz]"
+        uv pip install -e ".[dev]"
 
 Generating Assets
 ~~~~~~~~~~~~~~~~~
@@ -66,11 +71,9 @@ The ``Graph`` object in Junjo provides an ``export_graphviz_assets()`` method. T
 * Render these ``.dot`` files into image files (SVG).
 * Create an HTML page (``index.html``) that displays all generated diagrams with appropriate headings.
 
-Junjo's Graphviz renderer now works directly from the compiled graph snapshot
-produced by ``Graph.compile()``. This means the visualization path uses the
-same canonical structural representation as validation and traversal, rather
-than routing through the serialized telemetry snapshot. In practice, identical
-graph shapes now produce stable DOT output across repeated fresh graph builds.
+Junjo's Graphviz renderer works directly from the compiled graph snapshot
+produced by ``Graph.compile()``. That keeps diagram generation aligned with
+the same graph structure Junjo uses for validation and traversal.
 
 Example Usage
 ~~~~~~~~~~~~~

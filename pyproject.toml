@@ -9,7 +9,8 @@ description = "AI graph workflow and state machine framework for building debugg
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Matthew Rideout", email = "boon4376@gmail.com" }]
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -19,7 +20,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: Apache Software License",
 ]
 
 dependencies = [
@@ -46,16 +46,11 @@ dev = [
     "ruff~=0.15.0",
     "sphinx-rtd-theme",
     "simple-sphinx-xml-sitemap",
-    "mypy",
+    "ty",
     "build>=1.2.1",
     "twine>=6.1.0",
     "pre-commit",
 ]
-graphviz = ["graphviz"]
-
-[tool.mypy]
-files = ["src"]
-strict = true
 
 [tool.setuptools.packages.find]
 where = ["src"]

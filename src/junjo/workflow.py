@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType, NoneType
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast
 
 from opentelemetry import trace
 
@@ -283,7 +283,13 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             raise ValueError(
                                 "Subflow requires a parent store to execute pre_run_actions."
                             )
-                        await self.pre_run_actions(parent_store, ctx.store)
+                        await cast(
+                            "Subflow[StateT, StoreT, ParentStateT, ParentStoreT]",
+                            self,
+                        ).pre_run_actions(
+                            parent_store,
+                            cast(StoreT, ctx.store),
+                        )
 
                     current_executable = ctx.graph.source
                     while True:
@@ -350,7 +356,13 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                                 "Subflow requires a parent store to execute post_run_actions."
                             )
                         print("Performing post-run actions for subflow:", self.name)
-                        await self.post_run_actions(parent_store, ctx.store)
+                        await cast(
+                            "Subflow[StateT, StoreT, ParentStateT, ParentStoreT]",
+                            self,
+                        ).post_run_actions(
+                            parent_store,
+                            cast(StoreT, ctx.store),
+                        )
 
             except asyncio.CancelledError as exc:
                 mark_span_cancelled(span, exc)
@@ -463,6 +475,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             raise cancellation
         if failure is not None:
             raise failure
+        assert result is not None
         return result
 
 

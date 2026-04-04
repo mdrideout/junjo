@@ -641,10 +641,15 @@ class LifecycleDispatcher:
                 "junjo.executable_definition_id",
                 event.executable_definition_id,
             )
-            if "parent_executable_definition_id" in type(event).__dataclass_fields__:
+            parent_executable_definition_id = getattr(
+                event,
+                "parent_executable_definition_id",
+                None,
+            )
+            if parent_executable_definition_id is not None:
                 span.set_attribute(
                     "junjo.parent_executable_definition_id",
-                    event.parent_executable_definition_id,  # type: ignore[attr-defined]
+                    parent_executable_definition_id,
                 )
             span.set_attribute(
                 "junjo.executable_runtime_id",

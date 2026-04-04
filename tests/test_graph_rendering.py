@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -140,6 +141,29 @@ def test_export_graphviz_assets_does_not_depend_on_serialized_graph_payload(
     html = (tmp_path / "graphviz" / "index.html").read_text(encoding="utf-8")
     assert "Overview" in html
     assert "Approval Subflow" in html
+
+
+def test_export_graphviz_assets_renders_real_svg_when_dot_is_installed(
+    tmp_path: Path,
+) -> None:
+    if shutil.which("dot") is None:
+        pytest.skip("Graphviz 'dot' is not installed")
+
+    graph = create_render_graph(subflow_name="Approval Subflow")
+
+    digraph_files = graph.export_graphviz_assets(
+        out_dir=tmp_path / "graphviz",
+        fmt="svg",
+    )
+
+    overview_svg = digraph_files["G"]
+    assert overview_svg.exists()
+    assert overview_svg.suffix == ".svg"
+    assert "<svg" in overview_svg.read_text(encoding="utf-8")
+
+    subflow_svgs = [path for name, path in digraph_files.items() if name != "G"]
+    assert subflow_svgs
+    assert all(path.exists() for path in subflow_svgs)
 
 
 def test_identical_graph_shapes_produce_identical_dot_output() -> None:

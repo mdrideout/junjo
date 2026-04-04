@@ -10,6 +10,7 @@ summarized briefly. Open work is described in more detail.
 
 ### Completed
 
+- CI and release hardening
 - Workflow and subflow execution isolation
 - Per-run `ExecutionResult`
 - Parent-scope loop protection
@@ -30,7 +31,6 @@ summarized briefly. Open work is described in more detail.
 
 ### Still Open
 
-- CI and release hardening
 - Production-safe observability controls
 - Release/process discipline improvements
 
@@ -100,28 +100,19 @@ Delivered:
 
 ## Phase A - CI And Release Hardening
 
-### Why this is still open
+Status: completed
 
-The code is much safer now, but the repo still does not have a strong automated
-gate around those guarantees.
+Delivered:
 
-### Remaining changes
-
-- Add real PR/push CI for library health:
+- Added real PR/push CI for hermetic library health:
   - `uv run ruff check .`
   - `uv run pytest -q`
-  - `uv run mypy`
+  - `uv run ty check --error-on-warning src`
   - `python -m build`
   - `twine check dist/*`
-- Make publish depend on green CI.
-- Separate hermetic library health from optional example or provider-backed evals.
-- Decide whether current package maturity signaling is still justified.
-
-### Exit criteria
-
-- Publish depends on green CI.
-- Core library CI is hermetic and trustworthy.
-- Example/integration evals no longer define package health implicitly.
+- Updated the publish workflow so PyPI upload depends on green library-health checks and validated artifacts.
+- Kept required CI focused on the root library rather than optional examples or provider-backed evals.
+- Kept current package maturity signaling unchanged after adding real release gates.
 
 ## Phase B - Observability Operational Safety
 
@@ -133,7 +124,13 @@ configuration model for redaction, payload size, or capture profiles.
 
 ### Remaining changes
 
-- Replace runtime `print()` calls with package logging.
+- Replace direct runtime `print()` calls with package logging.
+- Remove stdout emission from shipped library execution paths, currently including:
+  - workflow start / progress / completion / failure messages in ``src/junjo/workflow.py``
+  - node failure prints in ``src/junjo/node.py``
+  - run-concurrent start / completion / failure prints in ``src/junjo/run_concurrent.py``
+- Define package logger names, log levels, and expectations for library consumers.
+- Keep example-app logging and demo ``print()`` usage out of the core library runtime.
 - Introduce explicit telemetry configuration:
   - state capture policy
   - graph capture policy
@@ -189,9 +186,8 @@ as active plan items:
 
 ## Recommended Next Order
 
-1. CI and release hardening
-2. Observability operational controls
-3. Long-term release/process discipline
+1. Observability operational controls
+2. Long-term release/process discipline
 
 ## Final Note
 

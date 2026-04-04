@@ -98,6 +98,7 @@ For meaningful public-surface changes, run:
 
 - `uv run ruff check .`
 - `uv run pytest -q`
+- `uv run ty check --error-on-warning src`
 - `uv run sphinx-build -b html docs docs/_build/html`
 
 If Sphinx warnings appear, do not ignore them by default. Check whether they

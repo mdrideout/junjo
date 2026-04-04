@@ -30,7 +30,6 @@ from .workflow import (
     StoreFactory,
     Subflow,
     Workflow,
-    _NestableWorkflow,
 )
 
 __all__ = [
@@ -49,7 +48,6 @@ __all__ = [
     "ExecutionResult",
     "Workflow",
     "Subflow",
-    "_NestableWorkflow",
     "Node",
     "RunConcurrent",
     "BaseState",

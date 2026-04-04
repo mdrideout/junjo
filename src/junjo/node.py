@@ -124,6 +124,8 @@ class Node(Generic[StoreT], ABC):
             if lifecycle_context is not None
             else None
         )
+        if lifecycle_context is not None:
+            assert node_structural_id is not None
 
         tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
         with tracer.start_as_current_span(self.name) as span:
@@ -153,6 +155,7 @@ class Node(Generic[StoreT], ABC):
                     )
 
                 if lifecycle_context is not None:
+                    assert node_structural_id is not None
                     trace_id, span_id = get_span_identifiers(span)
                     await lifecycle_context.dispatcher.node_started(
                         run_id=lifecycle_context.run_id,
@@ -226,6 +229,7 @@ class Node(Generic[StoreT], ABC):
                 mark_span_cancelled(span, exc)
                 cancellation = exc
                 if lifecycle_context is not None:
+                    assert node_structural_id is not None
                     trace_id, span_id = get_span_identifiers(span)
                     prepared_terminal_event = lifecycle_context.dispatcher.node_cancelled(
                         run_id=lifecycle_context.run_id,
@@ -259,6 +263,7 @@ class Node(Generic[StoreT], ABC):
                 span.record_exception(exc)
                 failure = exc
                 if lifecycle_context is not None:
+                    assert node_structural_id is not None
                     trace_id, span_id = get_span_identifiers(span)
                     prepared_terminal_event = lifecycle_context.dispatcher.node_failed(
                         run_id=lifecycle_context.run_id,

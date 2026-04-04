@@ -19,3 +19,7 @@ Telemetry API
    :undoc-members:
    :show-inheritance:
 
+.. autoclass:: junjo.workflow._NestableWorkflow
+   :members:
+   :undoc-members:
+   :show-inheritance:

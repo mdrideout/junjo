@@ -235,7 +235,9 @@ See the [Junjo AI Studio](https://python-api.junjo.ai/junjo_ai_studio.html) for 
 
 ## Graphviz
 
-Junjo can render workflow graphs as images. It requires [Graphviz](https://graphviz.org/) to be installed on the underlying system (your developer computer or the docker image), as well as the above optional graphviz development dependencies in this python library.
+Junjo can render workflow graphs as images with Graphviz. Install Graphviz on
+the host system, then call `Graph.export_graphviz_assets()` on the graph you
+want to visualize.
 
 ```bash
 # Install Graphviz on MacOS with homebrew
@@ -276,13 +278,13 @@ This project was made with the [uv](https://github.com/astral-sh/uv) python pack
 $ uv venv --python 3.11 .venv
 $ source .venv/bin/activate
 
-# Install optional development dependencies (graphviz is optional for running the graphviz visualizer)
-# Graphviz, if utilized, must also be installed on the host system (see below)
+# Install optional development dependencies
+# Graphviz, if utilized, must also be installed on the host system (see above)
 # Option 1:
-$ uv pip install -e ".[dev,graphviz]"
+$ uv pip install -e ".[dev]"
 
 # Option 2:
-$ uv sync --all-extras
+$ uv sync --extra dev
 ```
 
 ### Code Linting and Formatting

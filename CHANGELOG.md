@@ -33,6 +33,7 @@ execution, state management, and lifecycle observation.
 - Added `Graph.validate()` and typed graph exceptions for validation, serialization, compilation, and rendering failures.
 - Added `Graph.compile()` plus public compiled graph snapshot types for normalized graph inspection and shared graph internals.
 - Added explicit runtime and structural identity fields across compiled graphs, serialized graph payloads, hook events, and OpenTelemetry span attributes.
+- Added required PR/push library-health CI for `ruff`, `pytest`, `ty`, package builds, and `twine check`.
 - Added regression coverage for:
   - workflow and subflow execution isolation
   - run-concurrent fail-fast cancellation behavior
@@ -62,12 +63,15 @@ execution, state management, and lifecycle observation.
 - Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.
 - `on_state_changed` hook payloads and state-change telemetry context now identify the active executable that performed the mutation, rather than mixing workflow metadata with node or subflow runtime identities.
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
+- `_NestableWorkflow` remains documented in the generated API reference, but is no longer exported from the top-level `junjo` package for direct consumption.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
+- PyPI publish now depends on green library-health checks and validated distribution artifacts.
 
 ### Removed
 
 - Removed `src/junjo/telemetry/hook_manager.py`.
 - Removed `src/junjo/telemetry/hook_schema.py`.
+- Removed the unused `junjo.graphviz` helper module and the unnecessary Python `graphviz` package dependency from the main library surface.
 
 ## 0.62.1 - 2026-02-14
 

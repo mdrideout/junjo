@@ -331,14 +331,25 @@ class Graph:
 
         runtime_nodes_by_id[node.id] = node
 
-        is_subgraph = isinstance(node, RunConcurrent)
-        is_subflow = isinstance(node, _NestableWorkflow)
-        child_item_ids = tuple(item.id for item in node.items) if is_subgraph else ()
-        subflow_graph = (
-            self._compile_subflow_graph(node, compiled_subflows, active_subflows)
-            if is_subflow
-            else None
-        )
+        if isinstance(node, RunConcurrent):
+            is_subgraph = True
+            is_subflow = False
+            child_item_ids = tuple(item.id for item in node.items)
+            subflow_graph = None
+        elif isinstance(node, _NestableWorkflow):
+            is_subgraph = False
+            is_subflow = True
+            child_item_ids = ()
+            subflow_graph = self._compile_subflow_graph(
+                node,
+                compiled_subflows,
+                active_subflows,
+            )
+        else:
+            is_subgraph = False
+            is_subflow = False
+            child_item_ids = ()
+            subflow_graph = None
 
         compiled_node = _CompiledNodeSeed(
             node_runtime_id=node.id,
@@ -352,7 +363,7 @@ class Graph:
         )
         compiled_node_seeds_by_runtime_id[node.id] = compiled_node
 
-        if is_subgraph:
+        if isinstance(node, RunConcurrent):
             for item in node.items:
                 self._register_compiled_node_seed(
                     item,
@@ -802,7 +813,7 @@ class Graph:
         ) -> None:
             for node in graph.compiled_nodes:
                 if node.node_runtime_id not in seen_node_runtime_ids:
-                    node_info = {
+                    node_info: dict[str, object] = {
                         "nodeRuntimeId": node.node_runtime_id,
                         "nodeStructuralId": node.node_structural_id,
                         "nodeType": node.node_type_name,
