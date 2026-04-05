@@ -15,26 +15,18 @@ import pyarrow.parquet as pq
 import pytest
 
 from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
-
-# Arrow schema matching the Rust ingestion output (spans Parquet).
-SPAN_SCHEMA = pa.schema(
-    [
-        pa.field("span_id", pa.string(), nullable=False),
-        pa.field("trace_id", pa.string(), nullable=False),
-        pa.field("parent_span_id", pa.string(), nullable=True),
-        pa.field("service_name", pa.string(), nullable=False),
-        pa.field("name", pa.string(), nullable=False),
-        pa.field("span_kind", pa.int8(), nullable=False),
-        pa.field("start_time", pa.timestamp("ns", tz="UTC"), nullable=False),
-        pa.field("end_time", pa.timestamp("ns", tz="UTC"), nullable=False),
-        pa.field("duration_ns", pa.int64(), nullable=False),
-        pa.field("status_code", pa.int8(), nullable=False),
-        pa.field("status_message", pa.string(), nullable=True),
-        pa.field("attributes", pa.string(), nullable=False),
-        pa.field("events", pa.string(), nullable=False),
-        pa.field("resource_attributes", pa.string(), nullable=False),
-    ]
+from tests.helpers.junjo_fixture_loader import (
+    list_junjo_fixture_case_names,
+    load_junjo_fixture_case,
 )
+from tests.helpers.junjo_transport_builders import (
+    SPAN_SCHEMA,
+    api_span_to_parquet_row,
+    normalize_api_spans,
+    workflow_spans_for_case,
+)
+
+JUNJO_FIXTURE_CASE_NAMES = list_junjo_fixture_case_names()
 
 
 def _ns_now() -> int:
@@ -321,3 +313,66 @@ def test_register_cold_with_only_empty_files_returns_no_results(temp_parquet_dir
     query = UnifiedSpanQuery()
     query.register_cold([empty_path])
     assert query.query_spans_two_tier(trace_id=trace_id) == []
+
+
+@pytest.mark.parametrize("case_name", JUNJO_FIXTURE_CASE_NAMES)
+def test_current_junjo_fixture_round_trips_from_cold_parquet(temp_parquet_dir, case_name):
+    case = load_junjo_fixture_case(case_name)
+    file_path = os.path.join(temp_parquet_dir, f"{case_name}.parquet")
+    write_spans_to_parquet([api_span_to_parquet_row(span) for span in case["spans"]], file_path)
+
+    query = UnifiedSpanQuery()
+    query.register_cold([file_path])
+
+    results = query.query_spans_two_tier(trace_id=case["trace_id"], order_by="start_time ASC")
+    assert normalize_api_spans(results) == normalize_api_spans(case["spans"])
+
+
+@pytest.mark.parametrize("case_name", JUNJO_FIXTURE_CASE_NAMES)
+def test_current_junjo_fixture_round_trips_from_hot_parquet(temp_parquet_dir, case_name):
+    case = load_junjo_fixture_case(case_name)
+    file_path = os.path.join(temp_parquet_dir, f"{case_name}.hot.parquet")
+    write_spans_to_parquet([api_span_to_parquet_row(span) for span in case["spans"]], file_path)
+
+    query = UnifiedSpanQuery()
+    query.register_hot(file_path)
+
+    results = query.query_spans_two_tier(trace_id=case["trace_id"], order_by="start_time ASC")
+    assert normalize_api_spans(results) == normalize_api_spans(case["spans"])
+
+
+@pytest.mark.parametrize("case_name", JUNJO_FIXTURE_CASE_NAMES)
+def test_current_junjo_fixture_round_trips_from_fused_hot_and_cold(
+    temp_parquet_dir,
+    case_name,
+):
+    case = load_junjo_fixture_case(case_name)
+    cold_path = os.path.join(temp_parquet_dir, f"{case_name}.cold.parquet")
+    hot_path = os.path.join(temp_parquet_dir, f"{case_name}.hot.parquet")
+    rows = [api_span_to_parquet_row(span) for span in case["spans"]]
+    write_spans_to_parquet(rows, cold_path)
+    write_spans_to_parquet(rows, hot_path)
+
+    query = UnifiedSpanQuery()
+    query.register_cold([cold_path])
+    query.register_hot(hot_path)
+
+    results = query.query_spans_two_tier(trace_id=case["trace_id"], order_by="start_time ASC")
+    assert normalize_api_spans(results) == normalize_api_spans(case["spans"])
+
+
+@pytest.mark.parametrize("case_name", JUNJO_FIXTURE_CASE_NAMES)
+def test_workflow_only_query_finds_current_junjo_workflow_spans(temp_parquet_dir, case_name):
+    case = load_junjo_fixture_case(case_name)
+    file_path = os.path.join(temp_parquet_dir, f"{case_name}.workflow.parquet")
+    write_spans_to_parquet([api_span_to_parquet_row(span) for span in case["spans"]], file_path)
+
+    query = UnifiedSpanQuery()
+    query.register_cold([file_path])
+
+    results = query.query_spans_two_tier(
+        service_name=case["service_name"],
+        workflow_only=True,
+        order_by="start_time ASC",
+    )
+    assert normalize_api_spans(results) == normalize_api_spans(workflow_spans_for_case(case))

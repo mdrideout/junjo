@@ -171,6 +171,9 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         "PARQUET_OUTPUT_DIR": parquet_dir,
         "GRPC_PORT": str(INGESTION_PUBLIC_PORT),
         "INTERNAL_GRPC_PORT": str(INGESTION_INTERNAL_PORT),
+        # Integration tests need fresh snapshots on each request; cache reuse can hide
+        # just-ingested spans across parametrized cases.
+        "PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS": "0",
         # Provide a tiny in-process backend auth gRPC so OTLP ingest can validate API keys.
         "BACKEND_GRPC_HOST": mock_backend_auth_server["host"],
         "BACKEND_GRPC_PORT": str(mock_backend_auth_server["port"]),

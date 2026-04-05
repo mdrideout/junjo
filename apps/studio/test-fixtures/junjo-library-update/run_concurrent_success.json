@@ -1,0 +1,149 @@
+{
+  "scenario": "run_concurrent_success",
+  "trace_id": "33333333333333333333333333333333",
+  "service_name": "svc-junjo-phase0-run-concurrent",
+  "spans": [
+    {
+      "trace_id": "33333333333333333333333333333333",
+      "span_id": "3333333333333331",
+      "parent_span_id": null,
+      "service_name": "svc-junjo-phase0-run-concurrent",
+      "name": "concurrent_workflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:10:00.000000+00:00",
+      "end_time": "2026-04-05T12:10:00.500000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.workflow.state.start": "{\"fanout_complete\":false}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":1,\"graphStructuralId\":\"graph-run-concurrent-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.concurrent.prepare\",\"nodeStructuralId\":\"struct-concurrent-prepare\",\"nodeType\":\"Node\",\"nodeLabel\":\"prepare\"},{\"nodeRuntimeId\":\"run.concurrent.fanout\",\"nodeStructuralId\":\"struct-concurrent-fanout\",\"nodeType\":\"RunConcurrent\",\"nodeLabel\":\"fanout\",\"isConcurrentSubgraph\":true,\"childNodeRuntimeIds\":[\"node.concurrent.branch_a\",\"node.concurrent.branch_b\"]},{\"nodeRuntimeId\":\"node.concurrent.branch_a\",\"nodeStructuralId\":\"struct-concurrent-branch-a\",\"nodeType\":\"Node\",\"nodeLabel\":\"branch_a\"},{\"nodeRuntimeId\":\"node.concurrent.branch_b\",\"nodeStructuralId\":\"struct-concurrent-branch-b\",\"nodeType\":\"Node\",\"nodeLabel\":\"branch_b\"}],\"edges\":[{\"edgeStructuralId\":\"edge-concurrent-prepare-fanout\",\"tailNodeRuntimeId\":\"node.concurrent.prepare\",\"tailNodeStructuralId\":\"struct-concurrent-prepare\",\"headNodeRuntimeId\":\"run.concurrent.fanout\",\"headNodeStructuralId\":\"struct-concurrent-fanout\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
+        "junjo.workflow.store.id": "store-run-concurrent-01",
+        "junjo.span_type": "workflow",
+        "junjo.executable_definition_id": "workflow.concurrent",
+        "junjo.executable_runtime_id": "run-concurrent-01",
+        "junjo.executable_structural_id": "graph-run-concurrent-01",
+        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "33333333333333333333333333333333",
+      "span_id": "3333333333333332",
+      "parent_span_id": "3333333333333331",
+      "service_name": "svc-junjo-phase0-run-concurrent",
+      "name": "prepare",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:10:00.020000+00:00",
+      "end_time": "2026-04-05T12:10:00.080000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.concurrent.prepare",
+        "junjo.parent_executable_definition_id": "workflow.concurrent",
+        "junjo.executable_runtime_id": "node.concurrent.prepare",
+        "junjo.executable_structural_id": "struct-concurrent-prepare",
+        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01",
+        "junjo.parent_executable_runtime_id": "run-concurrent-01",
+        "junjo.parent_executable_structural_id": "graph-run-concurrent-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "33333333333333333333333333333333",
+      "span_id": "3333333333333333",
+      "parent_span_id": "3333333333333331",
+      "service_name": "svc-junjo-phase0-run-concurrent",
+      "name": "fanout",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:10:00.100000+00:00",
+      "end_time": "2026-04-05T12:10:00.320000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.span_type": "run_concurrent",
+        "junjo.executable_definition_id": "run.concurrent.fanout",
+        "junjo.parent_executable_definition_id": "workflow.concurrent",
+        "junjo.executable_runtime_id": "run.concurrent.fanout",
+        "junjo.executable_structural_id": "struct-concurrent-fanout",
+        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01",
+        "junjo.parent_executable_runtime_id": "run-concurrent-01",
+        "junjo.parent_executable_structural_id": "graph-run-concurrent-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "33333333333333333333333333333333",
+      "span_id": "3333333333333334",
+      "parent_span_id": "3333333333333333",
+      "service_name": "svc-junjo-phase0-run-concurrent",
+      "name": "branch_a",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:10:00.140000+00:00",
+      "end_time": "2026-04-05T12:10:00.250000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.concurrent.branch_a",
+        "junjo.parent_executable_definition_id": "run.concurrent.fanout",
+        "junjo.executable_runtime_id": "node.concurrent.branch_a",
+        "junjo.executable_structural_id": "struct-concurrent-branch-a",
+        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01",
+        "junjo.parent_executable_runtime_id": "run.concurrent.fanout",
+        "junjo.parent_executable_structural_id": "struct-concurrent-fanout"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "33333333333333333333333333333333",
+      "span_id": "3333333333333335",
+      "parent_span_id": "3333333333333333",
+      "service_name": "svc-junjo-phase0-run-concurrent",
+      "name": "branch_b",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:10:00.150000+00:00",
+      "end_time": "2026-04-05T12:10:00.260000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.concurrent.branch_b",
+        "junjo.parent_executable_definition_id": "run.concurrent.fanout",
+        "junjo.executable_runtime_id": "node.concurrent.branch_b",
+        "junjo.executable_structural_id": "struct-concurrent-branch-b",
+        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01",
+        "junjo.parent_executable_runtime_id": "run.concurrent.fanout",
+        "junjo.parent_executable_structural_id": "struct-concurrent-fanout"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": 1775391000180000000,
+          "attributes": {
+            "id": "state-event-concurrent-01",
+            "junjo.store.name": "ConcurrentWorkflowState",
+            "junjo.store.id": "store-run-concurrent-01",
+            "junjo.store.action": "mark_fanout_complete",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/fanout_complete\",\"value\":true}]"
+          }
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    }
+  ]
+}

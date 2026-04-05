@@ -1,0 +1,97 @@
+{
+  "scenario": "failed_executable_with_error_type",
+  "trace_id": "44444444444444444444444444444444",
+  "service_name": "svc-junjo-phase0-failure",
+  "spans": [
+    {
+      "trace_id": "44444444444444444444444444444444",
+      "span_id": "4444444444444441",
+      "parent_span_id": null,
+      "service_name": "svc-junjo-phase0-failure",
+      "name": "failure_workflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:15:00.000000+00:00",
+      "end_time": "2026-04-05T12:15:00.350000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.workflow.state.start": "{\"validated\":false}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":1,\"graphStructuralId\":\"graph-failure-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.failure.validate\",\"nodeStructuralId\":\"struct-failure-validate\",\"nodeType\":\"Node\",\"nodeLabel\":\"validate\"},{\"nodeRuntimeId\":\"node.failure.persist\",\"nodeStructuralId\":\"struct-failure-persist\",\"nodeType\":\"Node\",\"nodeLabel\":\"persist\"}],\"edges\":[{\"edgeStructuralId\":\"edge-failure-validate-persist\",\"tailNodeRuntimeId\":\"node.failure.validate\",\"tailNodeStructuralId\":\"struct-failure-validate\",\"headNodeRuntimeId\":\"node.failure.persist\",\"headNodeStructuralId\":\"struct-failure-persist\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
+        "junjo.workflow.store.id": "store-failure-01",
+        "junjo.span_type": "workflow",
+        "junjo.executable_definition_id": "workflow.failure",
+        "junjo.executable_runtime_id": "run-failure-01",
+        "junjo.executable_structural_id": "graph-failure-01",
+        "junjo.enclosing_graph_structural_id": "graph-failure-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "44444444444444444444444444444444",
+      "span_id": "4444444444444442",
+      "parent_span_id": "4444444444444441",
+      "service_name": "svc-junjo-phase0-failure",
+      "name": "validate",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:15:00.030000+00:00",
+      "end_time": "2026-04-05T12:15:00.080000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.failure.validate",
+        "junjo.parent_executable_definition_id": "workflow.failure",
+        "junjo.executable_runtime_id": "node.failure.validate",
+        "junjo.executable_structural_id": "struct-failure-validate",
+        "junjo.enclosing_graph_structural_id": "graph-failure-01",
+        "junjo.parent_executable_runtime_id": "run-failure-01",
+        "junjo.parent_executable_structural_id": "graph-failure-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "44444444444444444444444444444444",
+      "span_id": "4444444444444443",
+      "parent_span_id": "4444444444444441",
+      "service_name": "svc-junjo-phase0-failure",
+      "name": "persist",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:15:00.100000+00:00",
+      "end_time": "2026-04-05T12:15:00.180000+00:00",
+      "status_code": "2",
+      "status_message": "validation failed",
+      "attributes_json": {
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.failure.persist",
+        "junjo.parent_executable_definition_id": "workflow.failure",
+        "junjo.executable_runtime_id": "node.failure.persist",
+        "junjo.executable_structural_id": "struct-failure-persist",
+        "junjo.enclosing_graph_structural_id": "graph-failure-01",
+        "junjo.parent_executable_runtime_id": "run-failure-01",
+        "junjo.parent_executable_structural_id": "graph-failure-01",
+        "error.type": "ValueError"
+      },
+      "events_json": [
+        {
+          "name": "exception",
+          "timeUnixNano": 1775391300150000000,
+          "attributes": {
+            "exception.type": "ValueError",
+            "exception.message": "validation failed",
+            "exception.stacktrace": "Traceback (most recent call last):\n  File \"workflow.py\", line 10, in persist\nValueError: validation failed",
+            "exception.escaped": "false"
+          }
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    }
+  ]
+}
