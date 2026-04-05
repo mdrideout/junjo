@@ -43,8 +43,6 @@ describe('SpanAccessor', () => {
     expect(subflow.isSubflow).toBe(true)
     expect(subflow.workflowStoreId).toBe('store-subflow-child-01')
     expect(subflow.workflowParentStoreId).toBe('store-subflow-parent-01')
-    expect(subflow.graphNodeId).toBe('workflow.child.subflow')
-    expect(subflow.matchesGraphNodeId('workflow.child.subflow')).toBe(true)
     expect(subflow.workflowExecutionGraphSnapshot?.graphStructuralId).toBe('graph-child-subflow-01')
   })
 
@@ -53,8 +51,6 @@ describe('SpanAccessor', () => {
     const runConcurrent = wrapSpan(findSpan(spans, '3333333333333333'))
 
     expect(runConcurrent.isRunConcurrent).toBe(true)
-    expect(runConcurrent.graphNodeId).toBe('run.concurrent.fanout')
-    expect(runConcurrent.matchesGraphNodeId('run.concurrent.fanout')).toBe(true)
     expect(runConcurrent.hasFailureSignal).toBe(false)
   })
 

@@ -1,10 +1,15 @@
 import mermaid from 'mermaid'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { extractGraphNodeIdFromMermaidElementId } from './mermaid-render-utils'
+import {
+  findRenderedGraphNodeIdForSpan,
+  findSpanForRenderedGraphNodeId,
+} from './junjo-graph-span-matching'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 import { RootState } from '../root-store/store'
 import { JunjoSpanType, OtelSpan } from '../features/traces/schemas/schemas'
 import { WorkflowDetailStateActions } from '../features/junjo-data/workflow-detail/store/slice'
+import { JGraph } from '../junjo-graph/schemas'
 import {
   selectActiveSpanFirstJunjoParent,
   selectTraceSpansForTraceId,
@@ -13,6 +18,7 @@ import { useNavigate, useParams } from 'react-router'
 import { wrapSpan } from '../features/traces/utils/span-accessor'
 
 interface RenderJunjoGraphMermaidProps {
+  graphSnapshot: JGraph
   traceId: string
   workflowChain: OtelSpan[]
   mermaidFlowString: string
@@ -21,7 +27,7 @@ interface RenderJunjoGraphMermaidProps {
 }
 
 export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidProps) {
-  const { traceId, workflowChain, mermaidFlowString, mermaidUniqueId } = props
+  const { graphSnapshot, traceId, workflowChain, mermaidFlowString, mermaidUniqueId } = props
   const dispatch = useAppDispatch()
   const svgContainerRef = useRef<HTMLDivElement>(null)
   const [highlightTrigger, setHighlightTrigger] = useState(0) // State to trigger re-render
@@ -48,8 +54,8 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
   })
 
   const findSpanForGraphNodeId = useCallback(
-    (graphNodeId: string) => graphSpans.find((span) => wrapSpan(span).matchesGraphNodeId(graphNodeId)),
-    [graphSpans],
+    (graphNodeId: string) => findSpanForRenderedGraphNodeId(graphSnapshot, graphNodeId, graphSpans),
+    [graphSnapshot, graphSpans],
   )
 
   /**
@@ -185,8 +191,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
     // --- Add active class to the new active node ---
     if (firstJunjoSpan) {
-      // Construct the base ID prefix we expect
-      const graphNodeId = wrapSpan(firstJunjoSpan).graphNodeId
+      const graphNodeId = findRenderedGraphNodeIdForSpan(graphSnapshot, firstJunjoSpan)
       if (!graphNodeId) {
         return
       }
@@ -211,7 +216,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       }
     }
     // Dependencies: Ensure all variables used inside are listed, including the container ref's existence indirectly
-  }, [firstJunjoSpan, highlightTrigger])
+  }, [firstJunjoSpan, graphSnapshot, highlightTrigger])
 
   // --- Effect for subflow highlighting ---
   // This effect runs when the workflowChain changes to highlight subflow nodes
@@ -226,6 +231,12 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
 
     // Find all subflow nodes within the container
     const subflowNodes = containerElement.querySelectorAll('.node-subflow')
+    const activeWorkflowNodeIds = new Set(
+      workflowChain
+        .map((span) => findRenderedGraphNodeIdForSpan(graphSnapshot, span))
+        .filter((nodeId): nodeId is string => nodeId !== null),
+    )
+
     subflowNodes.forEach((node) => {
       // Remove the '.node-subflow-active' class if it exists
       node.classList.remove('node-subflow-active')
@@ -234,13 +245,12 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       const graphNodeId = extractGraphNodeIdFromMermaidElementId(node.id)
 
       // Check if this node-subflow is part of the active workflowChain
-      const isActiveSubflow =
-        graphNodeId !== null && workflowChain.some((span) => wrapSpan(span).matchesGraphNodeId(graphNodeId))
+      const isActiveSubflow = graphNodeId !== null && activeWorkflowNodeIds.has(graphNodeId)
       if (isActiveSubflow) {
         node.classList.add('node-subflow-active')
       }
     })
-  }, [workflowChain, svgContainerRef, highlightTrigger])
+  }, [graphSnapshot, workflowChain, highlightTrigger])
 
   // --- Render the Mermaid diagram ---
   // Render the container div where the SVG will be placed

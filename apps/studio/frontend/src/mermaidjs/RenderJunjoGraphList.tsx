@@ -45,6 +45,7 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>
         <div className={'font-bold text-sm'}>{workflowSpan.name}</div>
         <RenderJunjoGraphMermaid
+          graphSnapshot={graphStructure}
           traceId={traceId}
           workflowChain={workflowChain}
           mermaidFlowString={mermaidFlowString}

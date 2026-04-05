@@ -208,22 +208,6 @@ export class SpanAccessor {
     return this.spanType !== JunjoSpanType.OTHER
   }
 
-  get graphNodeId(): string | null {
-    if (this.isSubflow) {
-      return this.executableDefinitionId ?? null
-    }
-
-    if (this.isNode || this.isRunConcurrent) {
-      return this.executableRuntimeId ?? null
-    }
-
-    return null
-  }
-
-  matchesGraphNodeId(nodeId: string): boolean {
-    return this.graphNodeId === nodeId
-  }
-
   attr<T = unknown>(key: string): T | undefined {
     return this.span.attributes_json?.[key] as T | undefined
   }
