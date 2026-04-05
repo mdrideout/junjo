@@ -33,7 +33,7 @@ Library Example
 
 Check out :code:`src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
 
-- `Github link to test example <https://github.com/mdrideout/junjo/tree/main/examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test>`_
+- `Github link to test example <https://github.com/mdrideout/junjo/tree/master/examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test>`_
 
 - It uses a combination of asserts and live LLM evaluations
 - This example uses Gemini to evaluate the results of the `create_joke_node` against several test inputs inside `test_cases.py`
@@ -48,4 +48,3 @@ Testing Model Changes
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This is also a great way to evaluate whether changing LLM models increases or decreases eval pass / fail rates, or changes the speed at which evals are completed.
-

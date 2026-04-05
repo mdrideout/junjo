@@ -30,7 +30,7 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 
 <center>
 <b>Junjo AI Studio Screenshot</b>
-<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot.png" width="1000" />
+<img src="https://raw.githubusercontent.com/mdrideout/junjo/master/junjo-screenshot.png" width="1000" />
 </center>
 
 
@@ -70,15 +70,15 @@ You can execute autonomous agent capabilities from other libraries inside a Junj
 
 ## Code Examples
 
-_**Find several example Junjo applications inside the [examples](https://github.com/mdrideout/junjo/tree/main/examples) directory in this repository.**_
+_**Find several example Junjo applications inside the [examples](https://github.com/mdrideout/junjo/tree/master/examples) directory in this repository.**_
 
-- [AI Chat](https://github.com/mdrideout/junjo/tree/main/examples/ai_chat) - a full featured chat application that can spawn new personas to chat with. This includes a react frontend and a FastAPI backend.
-- [Getting Started](https://github.com/mdrideout/junjo/tree/main/examples/getting_started) - the basis of our getting started documentation
-- [Base Example](https://github.com/mdrideout/junjo/tree/main/examples/base) - a minimal python example showcasing several Junjo patterns
+- [AI Chat](https://github.com/mdrideout/junjo/tree/master/examples/ai_chat) - a full featured chat application that can spawn new personas to chat with. This includes a react frontend and a FastAPI backend.
+- [Getting Started](https://github.com/mdrideout/junjo/tree/master/examples/getting_started) - the basis of our getting started documentation
+- [Base Example](https://github.com/mdrideout/junjo/tree/master/examples/base) - a minimal python example showcasing several Junjo patterns
 
 ### Getting Started Code
 
-This is a single-file implementation of a basic Junjo powered python application. See the [getting started](https://github.com/mdrideout/junjo/tree/main/examples/getting_started) directory for dependencies, requirements, and instructions to run this.
+This is a single-file implementation of a basic Junjo powered python application. See the [getting started](https://github.com/mdrideout/junjo/tree/master/examples/getting_started) directory for dependencies, requirements, and instructions to run this.
 
 ```python
 
@@ -265,7 +265,7 @@ $ uv run --package base -m base.visualize
 
 <center>
 <b>Screenshot: Graphviz visualized Junjo workflow and subflow</b>
-<img src="https://raw.githubusercontent.com/mdrideout/junjo/main/junjo-screenshot-graphviz.png" width="1000" />
+<img src="https://raw.githubusercontent.com/mdrideout/junjo/master/junjo-screenshot-graphviz.png" width="1000" />
 </center>
 
 

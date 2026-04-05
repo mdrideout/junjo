@@ -39,8 +39,8 @@
    :caption: Example Apps
    :hidden:
 
-   Base Example <https://github.com/mdrideout/junjo/tree/main/examples/base>
-   AI Chat <https://github.com/mdrideout/junjo/tree/main/examples/ai_chat>
+   Base Example <https://github.com/mdrideout/junjo/tree/master/examples/base>
+   AI Chat <https://github.com/mdrideout/junjo/tree/master/examples/ai_chat>
 
 Junjo Python SDK - API Reference
 ==================================

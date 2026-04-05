@@ -28,7 +28,7 @@ The following is a basic, single file example of how to use Junjo to create a si
 
 *The above screenshot shows the telemetry visualization of this getting started example. Visually step through the workflow nodes and individual state updates.*
 
-More advanced examples can be found in the `examples directory <https://github.com/mdrideout/junjo/tree/main/examples>`_ of the Junjo repository.
+More advanced examples can be found in the `examples directory <https://github.com/mdrideout/junjo/tree/master/examples>`_ of the Junjo repository.
 
 .. code-block:: python
 

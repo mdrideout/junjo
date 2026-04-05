@@ -1,10 +1,9 @@
 # Junjo Hardening Plan
 
-This plan tracks the remaining hardening work after the major runtime and store
-correctness fixes already completed on `workflow-hardening`.
+This plan tracked the hardening work after the major runtime and store
+correctness fixes completed on `workflow-hardening`.
 
-The goal of this document is to stay truthful and actionable. Completed work is
-summarized briefly. Open work is described in more detail.
+All planned hardening phases in this document are now complete.
 
 ## Current Status
 
@@ -25,16 +24,13 @@ summarized briefly. Open work is described in more detail.
 - Provider-owned OpenTelemetry shutdown lifecycle with wrapper-local `shutdown()` / `flush()` semantics
 - Hook callback failure telemetry attached to the surrounding execution span instead of standalone hook-error spans
 - Public docstring, docs, and example alignment for the hardened runtime model
+- Explicit release policy and changelog structure for future releases
+- Manual example smoke workflow separated from required library-health checks
 - Changelog and agent guidance cleanup for the current hardening work
 
 ### Partially Complete
 
 - Regression coverage for major known runtime/store failures
-- Observability operational safety
-
-### Still Open
-
-- Release/process discipline improvements
 
 ## Completed Work
 
@@ -121,9 +117,9 @@ Delivered:
 
 ## Phase B - Observability Operational Safety
 
-Status: partially complete
+Status: completed
 
-### Delivered so far
+### Delivered
 
 - Failed workflow, subflow, node, and concurrent spans now set standard OpenTelemetry `error.type`.
 - `JunjoOtelExporter` now exposes `shutdown()`, and docs/examples now teach provider shutdown as the normal lifecycle instead of exporter-local flush on exit.
@@ -134,44 +130,24 @@ Status: partially complete
 - Junjo now uses the standard Python `logging` package under the `junjo` logger hierarchy and installs only a `NullHandler` at the library root.
 - Exporter-local `flush()` and `shutdown()` failures now log through `junjo.telemetry` instead of failing silently.
 - Runtime log records now carry run-scoped correlation fields, and propagated failures now log once at the owning workflow or subflow boundary instead of duplicating nested stack traces.
-
-### Why this is still open
-
-Telemetry correctness improved, but the library still has no explicit
-library-level telemetry capture policy for redaction, payload size ceilings, or
-different observability profiles.
-
-### Remaining changes
-
-- Decide whether Junjo needs explicit library-level telemetry capture configuration beyond the current state-model serialization controls and current graph snapshot defaults.
-- If explicit capture controls are added, design them deliberately:
-  - state capture policy
-  - graph capture policy
-  - patch capture policy
-  - redaction/masking support
-  - size ceilings
-  - AI Studio vs generic OTLP profiles
-- Decide later whether point-in-time lifecycle telemetry should stay span/event-first or move toward correlated logs; current instrumentation remains span/event-first intentionally.
-- Consider versioning Junjo-specific telemetry schema fields once the capture model stabilizes.
+- Junjo intentionally keeps rich telemetry as a product feature and does not add a separate library-owned telemetry policy layer beyond state-model serialization controls and application/exporter-level filtering.
 
 ### Exit criteria
 
-- The repo has a clear documented stance on telemetry payload controls, whether that remains state-model serialization only or expands into explicit capture configuration.
+- The repo has a clear documented stance on telemetry payload controls and observability ownership.
 - Exporter lifecycle and failure behavior remain explicit and accurate in docs/examples.
 
 ## Phase C - Quality Gates And Release Discipline
 
-### Why this is still open
+Status: completed
 
-Docs and examples improved substantially, but long-term repo discipline is
-still mostly process, not code.
+### Delivered
 
-### Remaining changes
-
-- Keep root CI focused on hermetic library health.
-- Classify optional example/integration tests separately.
-- Keep changelog entries focused on library behavior, with examples/docs/tooling clearly separated when needed.
-- Continue auditing docs/examples whenever public behavior changes.
+- Kept root CI focused on hermetic library health.
+- Classified optional example smoke checks separately with a manual-only workflow.
+- Added `RELEASE_POLICY.md` to make branch, publish, changelog, and examples policy explicit.
+- Tightened changelog structure so library, telemetry, docs/examples, and tooling changes stay separated.
+- Restricted PyPI publishing to release publication from `master`.
 
 ### Exit criteria
 
@@ -196,16 +172,8 @@ as active plan items:
   current direction for this hardening work is greenfield cleanup without
   backward-compatibility baggage unless explicitly required.
 
-## Recommended Next Order
-
-1. Observability operational controls
-2. Long-term release/process discipline
-
 ## Final Note
 
-The highest-risk runtime correctness work is already done. The remaining work is
-primarily about:
-
-- making observability production-safe
-- deciding how much explicit telemetry capture policy Junjo should own as a library
-- making release quality enforceable by process instead of memory
+The highest-risk runtime correctness and operational-safety work covered by this
+plan is now complete. Future work should be tracked as new roadmap items rather
+than by reopening these hardening phases.

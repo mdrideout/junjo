@@ -7,14 +7,6 @@ All notable changes to Junjo will be documented in this file.
 This release is a runtime hardening and API cleanup pass across workflow
 execution, state management, and lifecycle observation.
 
-### Highlights
-
-- Hardened workflow and subflow execution so a single definition object can be reused safely across concurrent runs.
-- Standardized `Workflow.execute()` around `ExecutionResult`, making final state access explicit and run-scoped.
-- Hardened store reads and writes so state snapshots are detached and committed updates are validated atomically against the current locked state.
-- Replaced the old telemetry-shaped hook system with a greenfield lifecycle hooks API built around typed events and separated from OpenTelemetry internals.
-- Changed `RunConcurrent` to fail fast, cancel pending siblings, and record cancellation telemetry for cancelled branches.
-
 ### Breaking Changes
 
 - `Workflow.execute()` now returns an `ExecutionResult` and workflow-instance state access is no longer the post-run access pattern.
@@ -25,27 +17,19 @@ execution, state management, and lifecycle observation.
 - Subflow hook implementations now work with explicit `subflow_store` access in `pre_run_actions` and `post_run_actions`.
 - `Graph` now requires `sinks=[...]` instead of `sink=...`.
 
-### Added
+### Library
 
+- Hardened workflow and subflow execution so a single definition object can be reused safely across concurrent runs.
+- Standardized `Workflow.execute()` around `ExecutionResult`, making final state access explicit and run-scoped.
+- Hardened store reads and writes so state snapshots are detached and committed updates are validated atomically against the current locked state.
+- Replaced the old telemetry-shaped hook system with a greenfield lifecycle hooks API built around typed events and separated from OpenTelemetry internals.
+- Changed `RunConcurrent` to fail fast, cancel pending siblings, and record cancellation telemetry for cancelled branches.
 - Added `ExecutionResult` as the public completion snapshot for workflows and subflows.
 - Added a public `Hooks` API with typed lifecycle events for workflows, subflows, nodes, concurrent execution, and state changes.
 - Added an internal lifecycle dispatch layer to keep runtime execution, telemetry, and public hooks separated.
 - Added `Graph.validate()` and typed graph exceptions for validation, serialization, compilation, and rendering failures.
 - Added `Graph.compile()` plus public compiled graph snapshot types for normalized graph inspection and shared graph internals.
 - Added explicit runtime and structural identity fields across compiled graphs, serialized graph payloads, hook events, and OpenTelemetry span attributes.
-- Added required PR/push library-health CI for `ruff`, `pytest`, `ty`, package builds, and `twine check`.
-- Added regression coverage for:
-  - workflow and subflow execution isolation
-  - run-concurrent fail-fast cancellation behavior
-  - cancellation telemetry
-  - detached state snapshots
-  - store atomicity
-  - plural-sink workflow and subflow execution semantics
-  - graph serialization consistency for nested subflows
-  - lifecycle hook ordering and failure isolation
-
-### Changed
-
 - `BaseStore.get_state()` now returns a detached deep snapshot.
 - `BaseStore.set_state()` now validates and commits atomically against the current locked state.
 - Parent workflow loop protection and execution counts now stay scoped to the current workflow rather than absorbing child subflow internals.
@@ -58,26 +42,44 @@ execution, state management, and lifecycle observation.
 - `Graph` definitions now freeze their source, sinks, and edges at construction time so compiled graph snapshots cannot silently go stale after graph-shape mutation.
 - DOT/Graphviz rendering now consumes `CompiledGraph` directly instead of routing through serialized JSON, and identical graph shapes now produce stable DOT output across fresh graph builds.
 - Mermaid rendering now consumes `CompiledGraph` directly, renders concurrent groups and subflow detail sections from the compiled graph snapshot, and produces stable structural output across fresh graph builds with the same topology.
+- Removed `src/junjo/telemetry/hook_manager.py`.
+- Removed `src/junjo/telemetry/hook_schema.py`.
+- Removed the unused `junjo.graphviz` helper module and the unnecessary Python `graphviz` package dependency from the main library surface.
+
+### Telemetry
+
 - OpenTelemetry span attributes now use explicit identity names such as `junjo.executable_runtime_id`, `junjo.executable_structural_id`, and `junjo.enclosing_graph_structural_id` instead of the old generic `junjo.id` and `junjo.parent_id` keys.
 - OpenTelemetry and hook payloads now use `executable_definition_id` and `parent_executable_definition_id` instead of the older generic `definition_id` naming on those surfaces.
 - Workflow telemetry now records `junjo.workflow.execution_graph_snapshot` to make it explicit that the graph payload is an execution-scoped compiled snapshot containing both runtime and structural identities.
 - Failed workflow, subflow, node, and concurrent spans now set the standard OpenTelemetry `error.type` attribute in addition to Junjo-specific error metadata.
 - `JunjoOtelExporter` now exposes `shutdown()`, and the docs/examples now teach provider shutdown as the normal OpenTelemetry lifecycle while keeping `flush()` as a targeted manual drain tool.
-- Core library execution paths now use the standard Python logging system under the `junjo` logger hierarchy instead of writing directly to stdout, and the library root now installs only a `NullHandler`.
 - `JunjoOtelExporter.flush()` and `shutdown()` now log warning details through `junjo.telemetry` when Junjo-owned export components fail or refuse to flush cleanly.
-- Runtime log records now include run-scoped correlation fields such as `run_id`, and propagated execution failures are logged once at the owning workflow or subflow boundary instead of emitting duplicate stack traces from nested execution layers.
 - `on_state_changed` hook payloads and state-change telemetry context now identify the active executable that performed the mutation, rather than mixing workflow metadata with node or subflow runtime identities.
 - Hook callback failures are now recorded as `junjo.hook_error` events on the surrounding workflow, subflow, node, or concurrent span, and terminal hooks now dispatch before span close so those events stay attached to the real execution span.
+
+### Docs and Examples
+
 - Lifecycle observation examples and docs now show hook registration as a separate concern from workflow definition.
 - `_NestableWorkflow` remains documented in the generated API reference, but is no longer exported from the top-level `junjo` package for direct consumption.
 - Public docstrings and examples were updated to reflect the current execution, hooks, and result APIs.
+- OpenTelemetry docs now describe provider-owned shutdown and state-model-controlled telemetry serialization truthfully.
+
+### Tooling and CI
+
+- Added required PR/push library-health CI for `ruff`, `pytest`, `ty`, package builds, and `twine check`.
+- Added regression coverage for:
+  - workflow and subflow execution isolation
+  - run-concurrent fail-fast cancellation behavior
+  - cancellation telemetry
+  - detached state snapshots
+  - store atomicity
+  - plural-sink workflow and subflow execution semantics
+  - graph serialization consistency for nested subflows
+  - lifecycle hook ordering and failure isolation
+- Core library execution paths now use the standard Python logging system under the `junjo` logger hierarchy instead of writing directly to stdout, and the library root now installs only a `NullHandler`.
+- Runtime log records now include run-scoped correlation fields such as `run_id`, and propagated execution failures are logged once at the owning workflow or subflow boundary instead of emitting duplicate stack traces from nested execution layers.
 - PyPI publish now depends on green library-health checks and validated distribution artifacts.
-
-### Removed
-
-- Removed `src/junjo/telemetry/hook_manager.py`.
-- Removed `src/junjo/telemetry/hook_schema.py`.
-- Removed the unused `junjo.graphviz` helper module and the unnecessary Python `graphviz` package dependency from the main library surface.
+- PyPI publish is now restricted to release publication from `master`, and the repo includes a manual-only examples smoke workflow plus an explicit `RELEASE_POLICY.md`.
 
 ## 0.62.1 - 2026-02-14
 

@@ -411,8 +411,8 @@ Complete Example
 
 See working examples in the repository:
 
-- `Base Example with Junjo AI Studio <https://github.com/mdrideout/junjo/tree/main/examples/base>`_
-- `AI Chat Example <https://github.com/mdrideout/junjo/tree/main/examples/ai_chat>`_
+- `Base Example with Junjo AI Studio <https://github.com/mdrideout/junjo/tree/master/examples/base>`_
+- `AI Chat Example <https://github.com/mdrideout/junjo/tree/master/examples/ai_chat>`_
 
 Using Other OpenTelemetry Platforms
 ====================================
