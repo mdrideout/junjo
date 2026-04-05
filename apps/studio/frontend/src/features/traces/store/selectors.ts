@@ -1,7 +1,6 @@
 import { createSelector, createSelectorCreator, lruMemoize } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
 import {
-  JunjoExceptionEventSchema,
   JunjoSetStateEvent,
   JunjoSetStateEventSchema,
   JunjoSpanType,
@@ -307,30 +306,14 @@ export const selectSpanAndChildren = createSelector(
 )
 
 /**
- * Select Trace Spans With Exceptions
- * For a given workflow span, create a list of all of the workflow span's exceptions,
- * including its lineage and child spans.
+ * Select Trace Spans With Failures
+ * For a given trace, create a list of all spans that carry Junjo failure signals.
  * @returns {OtelSpan[]} sorted by their timeUnixNano
  */
-export const selectTraceExceptionSpans = createSelector(
+export const selectTraceFailureSpans = createSelector(
   [selectTraceSpansForTraceId],
   (traceSpans): OtelSpan[] => {
-    const exceptionSpans: OtelSpan[] = []
-
-    for (const span of traceSpans) {
-      // Basic check if events_json exists and is an array
-
-      const hasExceptions = span.events_json.some((event) => {
-        const parsedEvent = JunjoExceptionEventSchema.safeParse(event)
-        return parsedEvent.success && parsedEvent.data.attributes['exception.type'] !== undefined
-      })
-
-      if (hasExceptions) {
-        exceptionSpans.push(span)
-      }
-    }
-
-    return exceptionSpans
+    return traceSpans.filter((span) => wrapSpan(span).hasFailureSignal)
   },
 )
 
@@ -354,9 +337,8 @@ export const selectStateEventsByJunjoStoreId = createSelector(
             if (parsedEvent.attributes['junjo.store.id'] === storeId) {
               junjoSetStateEvents.push(parsedEvent)
             }
-          } catch (error) {
-            // Consider less noisy logging or specific handling
-            // console.error('Error parsing event in selector:', error);
+          } catch {
+            // Ignore non-Junjo events.
           }
         })
       }
@@ -421,7 +403,7 @@ export const selectActiveStoreID = createSelector(
 
     // Else, if there is no active set_state event, return the store ID that the current span acts on
     if (wrapSpan(activeSpan).isSubflow) {
-      return activeSpan.attributes_json['junjo.workflow.parent_store.id'] as string | undefined
+      return wrapSpan(activeSpan).workflowParentStoreId
     }
 
     // Otherwise, return the store ID of the current workflow
@@ -470,9 +452,8 @@ export const selectAllWorkflowStateEvents = createSelector(
           try {
             const parsedEvent = JunjoSetStateEventSchema.parse(event)
             junjoSetStateEvents.push(parsedEvent)
-          } catch (error) {
-            // Consider less noisy logging or specific handling
-            // console.error('Error parsing event in selector:', error);
+          } catch {
+            // Ignore non-Junjo events.
           }
         })
       }

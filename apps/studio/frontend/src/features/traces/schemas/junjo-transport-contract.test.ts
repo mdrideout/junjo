@@ -1,10 +1,11 @@
+import { describe, expect, it } from 'vitest'
 import { loadAllJunjoTransportFixtures } from '../../../test-utils/junjo-fixture-loader'
 import { OtelSpanSchema } from './schemas'
 
 describe('Junjo transport contract', () => {
   const fixtures = loadAllJunjoTransportFixtures()
 
-  it.each(fixtures)('parses current backend payload for %s', (fixture) => {
+  it.each(fixtures)('parses current backend payload for %s', (fixture: (typeof fixtures)[number]) => {
     const parsedSpans = OtelSpanSchema.array().parse(fixture.spans)
 
     expect(parsedSpans).toHaveLength(fixture.spans.length)

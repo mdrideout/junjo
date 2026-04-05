@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import JsonView from '@uiw/react-json-view'
 import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
@@ -8,7 +8,7 @@ import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import * as jsonpatch from 'fast-json-patch'
 import { OtelSpan } from '../../traces/schemas/schemas'
-import SpanExceptionsList from './SpanExceptionsList'
+import SpanFailuresList from './SpanFailuresList'
 import {
   selectActiveSpanJunjoWorkflow,
   selectActiveStoreID,
@@ -26,7 +26,7 @@ enum DiffTabOptions {
   PATCH = 'Patch',
   CHANGES = 'Changes',
   DETAILED = 'Detailed',
-  EXCEPTIONS = 'Exceptions',
+  FAILURES = 'Failures',
   SPAN_DETAILS = 'Span Details',
 }
 
@@ -52,7 +52,7 @@ const TabButton = ({
       onClick={() => tabChangeHandler(tab)}
     >
       <div className={'flex items-center gap-x-1 text-left'}>
-        {tab === DiffTabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-4 text-red-700'} />}
+        {tab === DiffTabOptions.FAILURES && <ExclamationTriangleIcon className={'size-4 text-red-700'} />}
         {tab}
       </div>
     </button>
@@ -68,17 +68,14 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   const { defaultWorkflowSpan } = props
   const hasMountedRef = useRef(false)
 
-  const openExceptionsTrigger = useAppSelector(
-    (state: RootState) => state.workflowDetailState.openExceptionsTrigger,
+  const openFailuresTrigger = useAppSelector(
+    (state: RootState) => state.workflowDetailState.openFailuresTrigger,
   )
   const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
   const activeSetStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeSetStateEvent,
   )
-  const hasExceptions =
-    activeSpan?.events_json.some((event) => {
-      return event.attributes && event.attributes['exception.type'] !== undefined
-    }) ?? false
+  const hasFailures = activeSpan ? wrapSpan(activeSpan).hasFailureSignal : false
 
   // Get All Workflow State Events
   // This includes the default top level workflow and all subflows
@@ -113,7 +110,10 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
   // The starting state of the active workflow
   // Used for accumulating patches
-  const workflowStateStart = activeStoreWorkflowSpan ? wrapSpan(activeStoreWorkflowSpan).workflowStateStart : {}
+  const workflowStateStart = useMemo(
+    () => (activeStoreWorkflowSpan ? wrapSpan(activeStoreWorkflowSpan).workflowStateStart : {}),
+    [activeStoreWorkflowSpan],
+  )
 
   // Workflow JSON States
   // Different representations of the Workflow's states for rendering
@@ -167,7 +167,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     return () => mediaQuery.removeEventListener('change', listener)
   }, [])
 
-  // Detect openExceptions trigger and set the active tab to exceptions
+  // Detect openFailures trigger and set the active tab to failures
   useEffect(() => {
     // skip on first render
     if (!hasMountedRef.current) {
@@ -175,17 +175,17 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       return
     }
     // only switch if we actually got a new trigger
-    if (openExceptionsTrigger != null) {
-      setActiveTab(DiffTabOptions.EXCEPTIONS)
+    if (openFailuresTrigger != null) {
+      setActiveTab(DiffTabOptions.FAILURES)
     }
-  }, [openExceptionsTrigger])
+  }, [openFailuresTrigger])
 
-  // Detect if there are no exceptions, and we are on the exceptions tab, and switch to After tab
+  // Detect if there are no failures, and we are on the failures tab, and switch to the default tab
   useEffect(() => {
-    if (activeTab === DiffTabOptions.EXCEPTIONS && !hasExceptions) {
+    if (activeTab === DiffTabOptions.FAILURES && !hasFailures) {
       setActiveTab(defaultTab)
     }
-  }, [activeTab, hasExceptions])
+  }, [activeTab, defaultTab, hasFailures])
 
   // When the active state event is cleared, go to the span details tab
   // When a state event is selected, and we are on the span details tab, go to the after tab
@@ -197,42 +197,65 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         setActiveTab(DiffTabOptions.AFTER)
       }
     }
-  }, [activeSetStateEvent])
+  }, [activeSetStateEvent, activeTab])
 
   /**
    * Ensure parent paths exist for array index operations.
    * When a patch like {"op":"add","path":"/foo/0"} is applied,
    * the parent path "/foo" must exist as an array.
    */
-  const ensureParentPathsExist = (doc: Record<string, any>, patch: jsonpatch.Operation[]): void => {
+  const ensureParentPathsExist = useCallback((doc: Record<string, unknown>, patch: jsonpatch.Operation[]): void => {
     for (const op of patch) {
       if (op.op === 'add' && op.path) {
         const pathParts = op.path.split('/').filter(Boolean)
-        let current: any = doc
+        let current: Record<string, unknown> | unknown[] = doc
 
         // Walk through path parts except the last one (which is the target)
         for (let i = 0; i < pathParts.length - 1; i++) {
           const part = pathParts[i]
           const nextPart = pathParts[i + 1]
+          const shouldCreateArray = /^\d+$/.test(nextPart)
+
+          if (Array.isArray(current)) {
+            const index = Number(part)
+            if (current[index] === undefined) {
+              current[index] = shouldCreateArray ? [] : {}
+            }
+
+            const nextValue = current[index]
+            if (typeof nextValue !== 'object' || nextValue === null) {
+              break
+            }
+
+            current = nextValue as Record<string, unknown> | unknown[]
+            continue
+          }
 
           if (current[part] === undefined) {
-            // If next part is a number, create an array; otherwise create an object
-            current[part] = /^\d+$/.test(nextPart) ? [] : {}
+            current[part] = shouldCreateArray ? [] : {}
           }
-          current = current[part]
+
+          const nextValue = current[part]
+          if (typeof nextValue !== 'object' || nextValue === null) {
+            break
+          }
+
+          current = nextValue as Record<string, unknown> | unknown[]
         }
       }
     }
-  }
+  }, [])
 
   /**
    * Accumulate State Patches To Index (inclusive)
    *
    * Given a patch index, this function will accumulate the patches up to and including the patch at the given index.
    *
-   * @returns {[Record<string, any>, Record<string, any>]} - before / after state
+   * @returns {[Record<string, unknown>, Record<string, unknown>]} - before / after state
    */
-  const accumulateStatePathesToIndex = (patchIndex: number): [Record<string, any>, Record<string, any>] => {
+  const accumulateStatePathesToIndex = useCallback((
+    patchIndex: number,
+  ): [Record<string, unknown>, Record<string, unknown>] => {
     // If there are no patches, just set the original state
     if (activeStoreStateEvents.length === 0) {
       return [workflowStateStart, workflowStateStart]
@@ -254,7 +277,11 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       const patchString = thisEvent.attributes['junjo.state_json_patch']
       let patch: jsonpatch.Operation[]
       try {
-        patch = JSON.parse(patchString)
+        const parsedPatch = JSON.parse(patchString) as unknown
+        if (!Array.isArray(parsedPatch)) {
+          throw new Error('Patch payload is not an array')
+        }
+        patch = parsedPatch as jsonpatch.Operation[]
       } catch (e) {
         console.error('Failed to parse patch string', e)
         continue
@@ -265,7 +292,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
 
       // Apply to after state
       try {
-        afterCumulativeState = jsonpatch.applyPatch(afterCumulativeState, patch).newDocument
+        afterCumulativeState = jsonpatch.applyPatch<Record<string, unknown>>(afterCumulativeState, patch)
+          .newDocument
       } catch (e) {
         console.error('Failed to apply patch to after state', e, patch)
       }
@@ -274,7 +302,8 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       if (i < patchIndex) {
         ensureParentPathsExist(beforeCumulativeState, patch)
         try {
-          beforeCumulativeState = jsonpatch.applyPatch(beforeCumulativeState, patch).newDocument
+          beforeCumulativeState = jsonpatch.applyPatch<Record<string, unknown>>(beforeCumulativeState, patch)
+            .newDocument
         } catch (e) {
           console.error('Failed to apply patch to before state', e, patch)
         }
@@ -282,7 +311,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     }
 
     return [beforeCumulativeState, afterCumulativeState]
-  }
+  }, [activeStoreStateEvents, ensureParentPathsExist, workflowStateStart])
 
   /**
    * Run the patch accumulation functions based on the active span / active state event
@@ -299,7 +328,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
       const indexOfBeforeActiveSpanSetStateEventInsideActiveStore = activeStoreStateEvents.findIndex(
         (event) => event.attributes.id === beforeActiveSpanStateEvent?.attributes.id,
       )
-      const [_before, after] = accumulateStatePathesToIndex(
+      const [, after] = accumulateStatePathesToIndex(
         indexOfBeforeActiveSpanSetStateEventInsideActiveStore,
       )
       setBeforeJson(after)
@@ -315,7 +344,12 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
     const [before, after] = accumulateStatePathesToIndex(indexOfActiveSetStateEventInsideActiveStore)
     setBeforeJson(before)
     setAfterJson(after)
-  }, [activeStoreStateEvents, activeWorkflowSpan, activeSetStateEvent, beforeActiveSpanStateEvent])
+  }, [
+    activeStoreStateEvents,
+    activeSetStateEvent,
+    beforeActiveSpanStateEvent,
+    accumulateStatePathesToIndex,
+  ])
 
   // Get Tab Collapsed Level
   const getTabCollapsedLevel = (tab: DiffTabOptions) => {
@@ -365,14 +399,14 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
             tabChangeHandler={setActiveTab}
           />
         )}
-        {hasExceptions && (
-          <TabButton tab={DiffTabOptions.EXCEPTIONS} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        {hasFailures && (
+          <TabButton tab={DiffTabOptions.FAILURES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
       </div>
-      {/* Exception View */}
-      {activeSpan && activeTab === DiffTabOptions.EXCEPTIONS && (
+      {/* Failure View */}
+      {activeSpan && activeTab === DiffTabOptions.FAILURES && (
         <div className={'grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'}>
-          <SpanExceptionsList spans={[activeSpan]} />
+          <SpanFailuresList spans={[activeSpan]} />
         </div>
       )}
       {/* Attributes View */}
@@ -382,7 +416,7 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
         </div>
       )}
       {/* JSON View */}
-      {activeTab !== DiffTabOptions.EXCEPTIONS && activeTab !== DiffTabOptions.SPAN_DETAILS && (
+      {activeTab !== DiffTabOptions.FAILURES && activeTab !== DiffTabOptions.SPAN_DETAILS && (
         <div
           className={
             'workflow-logs-json-container grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700'

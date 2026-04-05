@@ -39,6 +39,15 @@ export const WorkflowSpansE2EResponseSchema = z.object({
 })
 export type WorkflowSpansE2EResponse = z.infer<typeof WorkflowSpansE2EResponseSchema>
 
+const SpanEventAttributesSchema = z.record(z.unknown())
+
+export const OtelSpanEventSchema = z.object({
+  name: z.string(),
+  timeUnixNano: z.number(),
+  attributes: SpanEventAttributesSchema,
+})
+export type OtelSpanEvent = z.infer<typeof OtelSpanEventSchema>
+
 // Define the schema for events_json set_state events
 export const NodeSetStateAttributesSchema = z.object({
   id: z.string(),
@@ -48,24 +57,37 @@ export const NodeSetStateAttributesSchema = z.object({
   'junjo.store.id': z.string(),
 })
 
-export const JunjoSetStateEventSchema = z.object({
-  name: z.literal('set_state'), // Discriminator field
-  timeUnixNano: z.number(),
+export const JunjoSetStateEventSchema = OtelSpanEventSchema.extend({
+  name: z.literal('set_state'),
   attributes: NodeSetStateAttributesSchema,
 })
 export type JunjoSetStateEvent = z.infer<typeof JunjoSetStateEventSchema>
 
-// Define the schema for events_json exceptions
 export const NodeExceptionAttributesSchema = z.object({
-  'exception.message': z.string(),
-  'exception.stacktrace': z.string(),
+  'exception.message': z.string().optional(),
+  'exception.stacktrace': z.string().optional(),
   'exception.type': z.string(),
-  'exception.escaped': z.string(),
+  'exception.escaped': z.union([z.string(), z.boolean()]).optional(),
 })
 
-export const JunjoExceptionEventSchema = z.object({
-  name: z.literal('exception'), // Discriminator field
-  timeUnixNano: z.number(),
+export const JunjoExceptionEventSchema = OtelSpanEventSchema.extend({
+  name: z.literal('exception'),
   attributes: NodeExceptionAttributesSchema,
 })
 export type JunjoExceptionEvent = z.infer<typeof JunjoExceptionEventSchema>
+
+export const JunjoHookErrorAttributesSchema = z.object({
+  'junjo.hook.event': z.string(),
+  'junjo.hook.callback': z.string(),
+  'junjo.hook.error.type': z.string(),
+  'junjo.hook.error.message': z.string(),
+  'exception.type': z.string(),
+  'exception.message': z.string().optional(),
+  'exception.stacktrace': z.string().optional(),
+})
+
+export const JunjoHookErrorEventSchema = OtelSpanEventSchema.extend({
+  name: z.literal('junjo.hook_error'),
+  attributes: JunjoHookErrorAttributesSchema,
+})
+export type JunjoHookErrorEvent = z.infer<typeof JunjoHookErrorEventSchema>

@@ -5,7 +5,7 @@ import { OtelSpan } from '../../traces/schemas/schemas'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
-import { selectTraceExceptionSpans } from '../../traces/store/selectors'
+import { selectTraceFailureSpans } from '../../traces/store/selectors'
 
 // Define the shape of one span; replace `any` with your real type if you have one
 interface Props {
@@ -19,12 +19,12 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
   const startString = new Date(workflowSpan.start_time).toLocaleString()
   const durationString = getSpanDurationString(workflowSpan.start_time, workflowSpan.end_time)
 
-  const exceptionSpans = useAppSelector((state: RootState) =>
-    selectTraceExceptionSpans(state, {
+  const failureSpans = useAppSelector((state: RootState) =>
+    selectTraceFailureSpans(state, {
       traceId: workflowSpan.trace_id,
     }),
   )
-  const hasExceptions = exceptionSpans.length > 0
+  const hasFailures = failureSpans.length > 0
 
   const destination = `/workflows/${workflowSpan.service_name}/${workflowSpan.trace_id}/${workflowSpan.span_id}`
 
@@ -81,7 +81,7 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
       </td>
       <td className="p-0">
         <Link to={destination} onClick={handleLinkClick} className="block px-4 py-1.5 h-full">
-          {hasExceptions && (
+          {hasFailures && (
             <ExclamationTriangleIcon className="size-4 m-auto text-red-700 dark:text-red-300" />
           )}
         </Link>
