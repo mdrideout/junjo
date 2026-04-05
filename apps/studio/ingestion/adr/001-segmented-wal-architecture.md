@@ -1,215 +1,176 @@
-# ADR-001: Segmented Write-Ahead Log Architecture
+# ADR-001: Segmented WAL Architecture
 
 ## Status
+
 Accepted
 
 ## Context
 
-The ingestion service receives OpenTelemetry spans via gRPC and must durably store them before flushing to Parquet files. Key requirements:
+The ingestion service receives OTLP spans on the public gRPC path and must make them durable before they are eventually queried through the backend.
 
-1. **Durability**: Spans must survive process crashes
-2. **Low latency**: gRPC responses should be fast
-3. **Non-blocking flush**: Writing new spans should not block during cold flush
-4. **Bounded memory**: Memory usage should not grow unbounded
+The end-state system has to satisfy all of these at once:
+
+- keep OTLP write latency low
+- survive process crashes without losing accepted batches
+- avoid blocking new writes while cold files are being produced
+- support backend reads of unflushed data
+- stay within a small-host memory budget
+
+A single append-only WAL file is the wrong shape for those requirements because read-heavy work and write-heavy work contend on the same artifact:
+
+- cold flush needs to read historical buffered data and turn it into Parquet
+- hot reads need a stable snapshot the backend can open directly
+- OTLP ingestion needs to keep accepting new writes while those read operations are happening
+
+The strategic requirement is not just "buffer before Parquet." It is "use one durable intermediate representation that can serve both background cold flush and on-demand hot reads without turning either path into a streaming RPC problem."
 
 ## Decision
 
-Use a **segmented write-ahead log** with Arrow IPC format.
+Use a segmented Arrow IPC write-ahead log.
 
-### Architecture
+### End-State Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              WRITE PATH                                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  gRPC Request (spans)                                                       │
-│        │                                                                    │
-│        ▼                                                                    │
-│  ┌──────────────┐                                                           │
-│  │ pending      │  In-memory buffer (up to 1000 spans)                      │
-│  │ Vec<Span>    │                                                           │
-│  └──────┬───────┘                                                           │
-│         │                                                                   │
-│         │  Trigger: 1000 spans OR 3 seconds                                 │
-│         ▼                                                                   │
-│  ┌──────────────┐                                                           │
-│  │ StreamWriter │  Write batch to NEW segment file                          │
-│  └──────┬───────┘                                                           │
-│         │                                                                   │
-│         ▼                                                                   │
-│  wal/                                                                       │
-│    seg_0001_1734567890.ipc  (1-2MB)                                         │
-│    seg_0002_1734567893.ipc  (1-2MB)                                         │
-│    seg_0003_1734567896.ipc  (1-2MB)                                         │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+The durable flow is:
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    COLD FLUSH (Background, Non-blocking)                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Trigger: total_size ≥ 25MB OR age ≥ 1 hour (checked every 10s)             │
-│                                                                             │
-│  1. Flush pending buffer → create final segment                             │
-│  2. SNAPSHOT: List all .ipc segments                                        │
-│     (New segments can be created during flush)                              │
-│  3. STREAM: Read each segment → write to Parquet                            │
-│     Memory: O(batch), not O(total_size)                                     │
-│  4. DELETE: Remove only the flushed segments                                │
-│  5. RECORD: Track flushed Parquet path (in-memory, bounded)                 │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+1. OTLP ingestion converts spans into records and appends them to an in-memory pending batch.
+2. Completed batches are written as new Arrow IPC WAL segment files.
+3. Background cold flush snapshots the currently completed segments, streams them into Parquet, and deletes only the segments it flushed.
+4. On-demand hot snapshot creation uses the same segment set to build a stable Parquet file for backend queries.
+5. The backend reads Parquet files directly rather than receiving span payloads over gRPC.
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      HOT SNAPSHOT (On-demand RPC)                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  PrepareHotSnapshot() called by backend                                     │
-│                                                                             │
-│  1. Flush pending buffer → create segment                                   │
-│  2. SNAPSHOT: List all .ipc segments                                        │
-│  3. STREAM: Read segments → write to temp Parquet                           │
-│  4. RENAME: Atomic rename to hot_snapshot.parquet                           │
-│  5. RETURN: snapshot_path + recent_cold_paths                               │
-│     (backend reads files directly via DataFusion)                           │
-│                                                                             │
-│  NOTE: Does NOT delete segments (cold flush handles deletion)               │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+That gives the system one durable source of truth between ingest and queryable Parquet, while keeping backend query transport simple.
 
-### Why Segmented vs Single File?
+### Why Segmented Instead Of Single-File WAL
 
-**Problem with single IPC file:**
-- Cannot read and write simultaneously
-- During flush (reading), new spans would be blocked
-- Flush can take 1-4 seconds
+Segmenting the WAL is part of the architectural decision, not an implementation detail.
 
-**Segmented solution:**
-- Each batch creates a NEW segment file
-- Writer and flusher operate on different files
-- New segments accumulate while old segments are being flushed
+Problem with a single append-only WAL file:
 
-### Atomic Segment Completion
+- readers and writers contend on the same file
+- cold flush and hot snapshot creation would either block new writes or require more complex file swapping
+- large flushes would turn into longer write stalls
 
-**Problem:** Flusher might read a segment while writer is still writing it.
+Segmented WAL strategy:
 
-**Solution:** Atomic file rename
+- each completed batch becomes its own immutable segment
+- readers operate on a snapshot of completed segments
+- writers keep producing new segments while older ones are being flushed
+- crash recovery is "recover whatever complete segments remain"
 
-```
-Writer flow:
-1. Write to seg_XXX.ipc.tmp
-2. Call writer.finish() (closes file)
-3. Atomic rename: seg_XXX.ipc.tmp → seg_XXX.ipc
+### Why Arrow IPC
 
-Flusher flow:
-1. list_segments() only returns *.ipc files
-2. .ipc.tmp files are invisible to flusher
-3. All .ipc files are guaranteed complete
-```
+Arrow IPC is the durable intermediate format because it fits the end state:
 
-### Memory Profile
+- fast to write in batches
+- efficient to stream back into Arrow/Parquet
+- usable as the shared source for both cold flush and hot snapshot creation
 
-| Phase | Memory Usage |
-|-------|--------------|
-| Buffering spans | ~3MB (1000 spans) |
-| Writing segment | ~3MB (batch to Arrow) |
-| Flushing | ~3MB per batch (streaming) |
+The strategic contract is "segments are durable, batch-shaped, and re-readable," not "the backend ever reads IPC directly."
 
-Total memory is O(batch_size), not O(file_size).
+### Hot Snapshot Strategy
 
-### Configuration
+The backend does not fetch spans over gRPC.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `BATCH_SIZE` | 1000 | Spans per segment |
-| `FLUSH_MAX_MB` | 25 | Total WAL size before cold flush |
-| `FLUSH_MAX_AGE_SECS` | 3600 | Max age before cold flush |
+Instead:
+
+- ingestion creates a stable Parquet snapshot on demand
+- backend receives a file path plus query context
+- backend reads the file directly with DataFusion alongside cold Parquet files
+
+This keeps the internal RPC surface small and avoids inventing a second transport/query protocol for recent data.
+
+### Operational Invariants
+
+These are part of the decision:
+
+- completed segments must appear atomically so readers never consume partial files
+- cold flush must operate on a snapshot of completed segments, not the live mutable write target
+- hot snapshot creation must produce a stable file the backend can open safely
+- memory usage must scale with batch size and streaming behavior, not with total WAL size
+- deleting flushed segments must not race with newly written segments
+
+Implementation defaults and tunables are not owned by this ADR. They live in code, especially `ingestion/src/config.rs`.
+
+## Strategic Lessons Locked Into The End State
+
+These are not transient implementation notes. They explain why the current shape exists.
+
+### Timer-Based Durability Flush Must Stay Off The Hot Path
+
+Timer-based "flush pending to IPC" work should be background-driven rather than checked on every write.
+
+Why:
+
+- per-request timer checks on the write path can collapse batching after idle periods
+- collapsed batching creates too many tiny segments
+- too many tiny segments increases lock hold time and file I/O churn
+
+The end-state strategy is:
+
+- batch-threshold flushes may happen while handling writes
+- timer-based durability flushes happen in the flusher background loop
+
+### Backpressure Monitoring Must Stay Off The Hot Path
+
+The system uses RSS-based backpressure, but request handlers should not do heavyweight process-memory syscalls on every request.
+
+The end-state strategy is:
+
+- a background monitor computes pressure state periodically
+- the OTLP path reads a cheap shared flag
+- rejection under pressure is fast and predictable
+
+### Allocator Choice Matters Because Backpressure Uses Process Memory
+
+Allocator behavior affects operational correctness when backpressure is based on process memory rather than only logical in-process buffers.
+
+The end-state system uses `mimalloc` so memory can return to the OS more predictably without the severe throughput penalty previously seen with more aggressive allocator behavior.
+
+This ADR does not freeze allocator benchmarks or tuning values, but it does record the architectural reason allocator choice matters here.
+
+## Alternatives Considered
+
+### Single WAL File
+
+Rejected because it couples writers, flush readers, and hot-read preparation to the same artifact and makes non-blocking behavior harder.
+
+### Direct Parquet Writes
+
+Rejected because it pushes more work and latency into the ingest path and weakens the buffering layer between acceptance and cold storage.
+
+### Streaming Hot Reads Over gRPC
+
+Rejected because it would create a second query transport path when the backend already reads Parquet with DataFusion.
 
 ## Consequences
 
 ### Positive
-- Non-blocking writes during flush
-- Bounded memory usage
-- Simple crash recovery (just read all .ipc files)
-- Streaming flush prevents memory spikes
+
+- New writes can continue while older segments are being flushed.
+- Crash recovery is straightforward: recover from complete remaining segments.
+- Cold flush and hot snapshot creation share the same durable source.
+- Backend query integration stays simple because hot data is exposed as a file, not a stream protocol.
+- Memory pressure is bounded by batching and streaming rather than total retained WAL history.
 
 ### Negative
-- More files to manage than single-file approach
-- Need to handle atomic rename for safety
-- Directory listing on each flush
 
-### Alternatives Considered
+- The system manages more files than a single-log design.
+- Atomic segment finalization and reader filtering are mandatory for correctness.
+- The architecture depends on careful coordination between WAL, flusher, hot snapshot, and backend query registration.
 
-1. **Single IPC file with double buffering**: More complex, requires file swapping
-2. **Single IPC file with write blocking**: Simpler but blocks during flush
-3. **Direct Parquet writes**: Higher latency, no buffering
+## Source Of Truth
 
-## Performance Lessons Learned
+The active implementation lives in:
 
-### Timer-Based Flush Must Be Background Only
-
-**Problem:** Original implementation checked timer on every `write_span()`:
-```rust
-// BAD: Every span checks timer, causing excessive flushes
-let should_flush = pending.len() >= batch_size
-    || (last_flush.elapsed() >= 3s && !pending.is_empty());
-```
-
-After 3+ seconds of idle time, the first span triggers a flush of 1 span. With high concurrency (50 requests × 70 spans), this caused:
-- 70 IPC files per request instead of batched writes
-- 1.3+ second lock contention waiting for file I/O
-- ~15 workflows/sec instead of ~300/sec
-
-**Solution:** Timer check moved to background flusher task:
-```rust
-// write_span() - only batch threshold
-if pending.len() >= batch_size { flush_pending(); }
-
-// flusher background task - timer check every 3s
-if wal.needs_timer_flush() { wal.flush_pending(); }
-```
-
-### Memory Allocator Selection
-
-**Problem:** Default Rust allocator pools freed memory and never returns it to OS, causing RSS to grow to 550MB+ even when actual usage is lower. This triggers backpressure based on RSS measurement.
-
-**Attempted Solutions:**
-1. **jemalloc**: Returns memory to OS but caused 20x slowdown due to aggressive memory return causing allocation thrashing
-2. **mimalloc**: Returns memory to OS with better performance characteristics
-
-**Current Choice:** mimalloc - balances memory return to OS (for container coexistence) with performance.
-
-### Backpressure Monitoring Must Be Background
-
-**Problem:** Original backpressure check called sysinfo syscalls on every gRPC request:
-```rust
-// BAD: Expensive syscalls on hot path
-fn check(&self) -> bool {
-    let mut sys = System::new();
-    sys.refresh_memory();
-    sys.refresh_processes(...);
-    // ...
-}
-```
-
-**Solution:** Background task updates AtomicBool every 500ms:
-```rust
-// Background task
-loop {
-    let is_under_pressure = check_memory();
-    pressure_flag.store(is_under_pressure, Ordering::Relaxed);
-    sleep(500ms).await;
-}
-
-// Hot path - just reads AtomicBool
-fn is_under_pressure(&self) -> bool {
-    self.under_pressure.load(Ordering::Relaxed)
-}
-```
+- `ingestion/src/wal/`
+- `ingestion/src/flusher/`
+- `ingestion/src/server/trace_service.rs`
+- `ingestion/src/server/internal_service.rs`
+- `ingestion/src/server/backpressure.rs`
+- `ingestion/src/main.rs`
+- `ingestion/src/config.rs`
 
 ## Related
 
-- Arrow IPC format: https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format
-- Parquet format: https://parquet.apache.org/docs/
+- `ingestion/adr/002-sqlite-metadata-index.md`
+- `proto/ingestion.proto`
