@@ -385,10 +385,8 @@ export const selectBeforeSpanStateEventInWorkflow = createSelector(
  * Select: Active Store ID
  * This selector finds the store ID of the store that the current span acts on.
  *
- * If: the activeSpan is a subflow, this is the parent_store.id
- *     (because the pre_run and post_run functions operate on the parent store)
- *
- * Else: For all other spans, it's the store.id of the current workflow.
+ * If a state event is selected, use the store that event actually mutated.
+ * Otherwise, default to the selected workflow or subflow span's own store.
  */
 export const selectActiveStoreID = createSelector(
   [selectActiveSetStateEvent, selectWorkflowDetailActiveSpan, selectActiveSpanJunjoWorkflow],
@@ -401,12 +399,7 @@ export const selectActiveStoreID = createSelector(
       return activeSetStateEvent.attributes['junjo.store.id']
     }
 
-    // Else, if there is no active set_state event, return the store ID that the current span acts on
-    if (wrapSpan(activeSpan).isSubflow) {
-      return wrapSpan(activeSpan).workflowParentStoreId
-    }
-
-    // Otherwise, return the store ID of the current workflow
+    // Otherwise, default to the active workflow or subflow span's own store.
     return activeWorkflowSpan ? wrapSpan(activeWorkflowSpan).workflowStoreId : undefined
   },
 )

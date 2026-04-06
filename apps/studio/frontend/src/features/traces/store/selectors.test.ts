@@ -112,14 +112,25 @@ describe('trace selectors', () => {
     expect(workflowSpan?.span_id).toBe('2222222222222223')
   })
 
-  it('keeps current active store selection behavior for subflows', () => {
+  it('defaults a selected subflow to the subflow store', () => {
     const spans = loadFixtureSpans('subflow_with_parent_store')
     const state = buildState({
       spans,
       activeSpanId: '2222222222222223',
     })
 
-    expect(selectActiveStoreID(state)).toBe('store-subflow-parent-01')
+    expect(selectActiveStoreID(state)).toBe('store-subflow-child-01')
+  })
+
+  it('uses the selected state event store even when a subflow is selected', () => {
+    const spans = loadFixtureSpans('subflow_with_parent_store')
+    const state = buildState({
+      spans,
+      activeSpanId: '2222222222222223',
+      activeSetStateEventId: 'state-event-subflow-01',
+    })
+
+    expect(selectActiveStoreID(state)).toBe('store-subflow-child-01')
   })
 
   it('selects state events by junjo.store.id using the current event contract', () => {
