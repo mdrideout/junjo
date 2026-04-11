@@ -42,7 +42,7 @@ class CreateImageNode(Node[CreateResponseWithImageSubflowStore]):
         # Get the avatar image bytes
         avatar_image_bytes = get_image_bytes("avatars", contact.avatar_id, "png")
 
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash-image")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-3.1-flash-image-preview")
         image_bytes, text_response = await gemini_tool.gemini_image_edit_request(avatar_image_bytes)
 
         if image_bytes:

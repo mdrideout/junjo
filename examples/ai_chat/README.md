@@ -19,7 +19,7 @@ This example is currently wired up to use **Gemini** for all workflow AI calls v
 Current node defaults:
 
 - Text generation / structured output: `gemini-3-flash-preview`
-- Image generation / image edit: `gemini-2.5-flash-image`
+- Image generation / image edit: `gemini-3.1-flash-image-preview`
 
 For experimentation, you can switch specific nodes to `GrokTool` (or back) by editing the tool import and model in
 the node files under `backend/src/app/workflows/`.

@@ -51,7 +51,7 @@ class CreateAvatarNode(Node[AvatarSubflowStore]):
         )
         logger.info(f"Creating image with prompt: {prompt}")
 
-        gemini_tool = GeminiTool(prompt=prompt, model="gemini-2.5-flash-image")
+        gemini_tool = GeminiTool(prompt=prompt, model="gemini-3.1-flash-image-preview")
         image_bytes = await gemini_tool.gemini_image_request()
         logger.info(f"Gemini result image size: {len(image_bytes) / 1024} kb")
 
