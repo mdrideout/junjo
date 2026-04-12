@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-export const API_HOST = window.runtimeConfig?.API_HOST || 'http://localhost:1323'
+export const API_HOST = window.runtimeConfig?.API_HOST || ''
 
 export function getApiHost(_endpoint: string): string {
   return API_HOST

@@ -84,7 +84,7 @@ RUN chmod +x /entrypoint.sh
 RUN mkdir -p ./.dbdata
 
 # Expose ports
-# HTTP API (public - mapped to host in docker-compose.yml)
+# HTTP API (published by compose override files)
 EXPOSE 1323
 # Internal gRPC for API key validation (NOT mapped to host - internal Docker network only)
 EXPOSE 50053
@@ -99,4 +99,4 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323"]
 FROM production AS development
 
 # Override CMD for hot reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323", "--reload", "--reload-dir", "/app/app"]

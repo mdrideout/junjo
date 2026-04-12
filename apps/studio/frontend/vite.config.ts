@@ -14,13 +14,41 @@ export default defineConfig({
     process.env.ANALYZE ? analyzer() : undefined,
   ].filter(Boolean),
   server: {
-    port: 5151,
+    port: 5173,
     host: true,
+    strictPort: true,
     watch: {
       usePolling: true,
     },
-    hmr: {
-      clientPort: 5152, // must be mapped in docker compose to 5151
+    proxy: {
+      '/api': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
+      '/api_keys': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
+      '/users': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
+      '/sign-in': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
+      '/sign-out': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
+      '/auth-test': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://backend:1323',
+        changeOrigin: true,
+      },
     },
   },
   build: {

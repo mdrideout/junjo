@@ -85,7 +85,7 @@ COPY ingestion/src/ src/
 RUN mkdir -p /app/.dbdata/spans/wal /app/.dbdata/spans/parquet
 
 # Default environment - paths only, tunables come from .env or config.rs defaults
-ENV GRPC_PORT=50051
+ENV GRPC_PORT=4317
 ENV INTERNAL_GRPC_PORT=50052
 ENV WAL_DIR=/app/.dbdata/spans/wal
 ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
@@ -93,11 +93,11 @@ ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
 ENV JUNJO_LOG_LEVEL=debug
 ENV RUST_BACKTRACE=1
 
-EXPOSE 50051 50052
+EXPOSE 4317 50052
 
 # Use cargo-watch for hot reloading in development
 # -i .dbdata ignores the data directory to prevent restart loops when WAL/parquet files change
-CMD ["cargo", "watch", "-i", ".dbdata", "-i", "target", "-x", "run"]
+CMD ["cargo", "watch", "-i", ".dbdata", "-i", "target", "-w", "src", "-w", "/proto", "-w", "Cargo.toml", "-w", "build.rs", "-x", "run"]
 
 # ============================================================
 # Production stage (minimal runtime image)
@@ -118,13 +118,13 @@ COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 RUN mkdir -p /app/.dbdata/wal /app/.dbdata/parquet
 
 # Default environment - paths only, tunables come from .env or config.rs defaults
-ENV GRPC_PORT=50051
+ENV GRPC_PORT=4317
 ENV INTERNAL_GRPC_PORT=50052
 ENV WAL_DIR=/app/.dbdata/spans/wal
 ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
 ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
 ENV JUNJO_LOG_LEVEL=info
 
-EXPOSE 50051 50052
+EXPOSE 4317 50052
 
 CMD ["/app/ingestion"]

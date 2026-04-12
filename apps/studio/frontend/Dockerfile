@@ -31,9 +31,6 @@ CMD ["nginx", "-g", "daemon off;"]
 FROM base AS development
 WORKDIR /app
 COPY frontend/ .
-# Environment variables for Vite HMR with Docker
 ENV CHOKIDAR_USEPOLLING=true
-ENV WDS_SOCKET_HOST=0.0.0.0
-ENV WDS_SOCKET_PORT=4951
-EXPOSE 4951
+EXPOSE 5173
 CMD ["npm", "run", "dev"]

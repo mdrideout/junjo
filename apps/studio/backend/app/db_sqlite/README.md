@@ -226,7 +226,7 @@ Per PEP 249 and SQLAlchemy docs, all DBAPIs must support `rowcount` for UPDATE/D
 
 ### Docker
 ```
-See `docker-compose.yml` for the container mount and `JUNJO_SQLITE_PATH` / `JUNJO_METADATA_DB_PATH` settings.
+See `compose.yaml` for the container mount and `JUNJO_SQLITE_PATH` / `JUNJO_METADATA_DB_PATH` settings.
 ```
 
 ### Tests

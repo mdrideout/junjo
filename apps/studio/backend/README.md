@@ -26,16 +26,16 @@ The backend service provides:
 docker compose up -d
 
 # View backend logs
-docker compose logs -f junjo-ai-studio-backend
+docker compose logs -f backend
 
 # Restart backend only
-docker compose restart junjo-ai-studio-backend
+docker compose restart backend
 ```
 
 The backend will be available at:
-- **API**: http://localhost:1323
-- **Health Check**: http://localhost:1323/health
-- **gRPC (internal)**: localhost:50053
+- **API**: http://localhost:26152
+- **Health Check**: http://localhost:26152/health
+- **gRPC (internal)**: `50053` on the Compose network only
 
 ---
 
@@ -397,7 +397,7 @@ GRPC_PORT=50053                 # Internal gRPC port
 
 # Database storage (where files are stored on host machine)
 JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
-# Note: Container paths are set automatically in docker-compose.yml
+# Note: Container paths are set automatically in compose.yaml
 
 # Logging
 JUNJO_LOG_LEVEL=info            # debug | info | warn | error

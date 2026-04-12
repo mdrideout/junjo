@@ -19,7 +19,7 @@ Rust codegen happens at build time via `ingestion/build.rs` from the shared `pro
 
 ## Running
 
-For the standard workflow, run via `docker-compose.yml` from the repository root (recommended).
+For the standard workflow, run via `compose.yaml` from the repository root (recommended).
 
 For local-native runs, `cargo run` requires `protoc` to be available on your PATH (see `PROTO_VERSIONS.md`).
 
@@ -35,4 +35,3 @@ cargo test
 ```
 
 Some backend integration tests also start the ingestion binary; see `backend/tests/conftest.py`.
-

@@ -8,7 +8,7 @@ Pattern validated for high-concurrency asyncio environments.
 """
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from pydantic import AliasChoices, Field, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -269,6 +269,10 @@ class DataFusionSettings(BaseSettings):
 class AppSettings(BaseSettings):
     """Main application settings"""
 
+    DEFAULT_DEV_FRONTEND_PORT: ClassVar[int] = 26151
+    DEFAULT_DEV_BACKEND_PORT: ClassVar[int] = 26152
+    DEFAULT_DEV_OTLP_GRPC_PORT: ClassVar[int] = 26153
+
     # Environment
     junjo_env: Annotated[
         str,
@@ -323,6 +327,38 @@ class AppSettings(BaseSettings):
         ),
     ]
 
+    # Development Host Ports
+    dev_frontend_port: Annotated[
+        int,
+        Field(
+            default=DEFAULT_DEV_FRONTEND_PORT,
+            ge=1,
+            le=65535,
+            description="Host port for the local frontend dev server",
+            validation_alias="JUNJO_DEV_FRONTEND_PORT",
+        ),
+    ]
+    dev_backend_port: Annotated[
+        int,
+        Field(
+            default=DEFAULT_DEV_BACKEND_PORT,
+            ge=1,
+            le=65535,
+            description="Host port for the local backend API",
+            validation_alias="JUNJO_DEV_BACKEND_PORT",
+        ),
+    ]
+    dev_otlp_grpc_port: Annotated[
+        int,
+        Field(
+            default=DEFAULT_DEV_OTLP_GRPC_PORT,
+            ge=1,
+            le=65535,
+            description="Host port for the local OTLP gRPC endpoint",
+            validation_alias="JUNJO_DEV_OTLP_GRPC_PORT",
+        ),
+    ]
+
     # Server
     port: Annotated[
         int,
@@ -371,9 +407,11 @@ class AppSettings(BaseSettings):
     cors_origins: Annotated[
         str | list[str],
         Field(
-            default=["http://localhost:5151", "http://localhost:5153"],
+            default=[f"http://localhost:{DEFAULT_DEV_FRONTEND_PORT}"],
             description="Allowed CORS origins (comma-separated string or list)",
-            validation_alias=AliasChoices("junjo_allow_origins", "cors_origins"),
+            validation_alias=AliasChoices(
+                "JUNJO_ALLOW_ORIGINS", "junjo_allow_origins", "cors_origins"
+            ),
         ),
     ]
 
@@ -442,19 +480,33 @@ class AppSettings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def dev_frontend_origin(self) -> str:
+        return f"http://localhost:{self.dev_frontend_port}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def dev_backend_url(self) -> str:
+        return f"http://localhost:{self.dev_backend_port}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def dev_otlp_endpoint(self) -> str:
+        return f"grpc://localhost:{self.dev_otlp_grpc_port}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def otlp_endpoint(self) -> str:
         """OTLP ingestion endpoint.
 
-        Returns the production ingestion URL if set, otherwise defaults to localhost
-        for development. The ingestion service is a separate container with its own
-        public URL (e.g., https://ingestion.example.com). Reverse proxy (Caddy) handles
-        internal port mapping to gRPC port 50051.
+        Returns the production ingestion URL if set, otherwise defaults to the
+        Junjo development host port. The ingestion service is a separate container
+        with its own public URL (e.g., https://ingestion.example.com). Reverse proxy
+        (Caddy) handles internal port mapping to gRPC port 4317.
         """
         if self.prod_ingestion_url:
             return self.prod_ingestion_url
 
-        # Fallback for development
-        return "grpc://localhost:50051"
+        return self.dev_otlp_endpoint
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -482,6 +534,9 @@ class AppSettings(BaseSettings):
     def validate_production_configuration(self) -> "AppSettings":
         """Validate production URLs and configuration."""
         if self.junjo_env != "production":
+            default_dev_origins = [f"http://localhost:{self.DEFAULT_DEV_FRONTEND_PORT}"]
+            if not self.cors_origins or self.cors_origins == default_dev_origins:
+                self.cors_origins = [self.dev_frontend_origin]
             return self
 
         # Validate production URLs are set
@@ -544,7 +599,7 @@ class AppSettings(BaseSettings):
 
         # Auto-derive CORS origins from frontend URL in production
         # Only auto-derive if not explicitly set (still using default localhost origins)
-        default_localhost_origins = ["http://localhost:5151", "http://localhost:5153"]
+        default_localhost_origins = [f"http://localhost:{self.DEFAULT_DEV_FRONTEND_PORT}"]
         if not self.cors_origins or self.cors_origins == default_localhost_origins:
             if self.prod_frontend_url:
                 self.cors_origins = [self.prod_frontend_url]

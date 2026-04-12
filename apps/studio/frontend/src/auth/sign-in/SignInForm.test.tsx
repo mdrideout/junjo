@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { renderWithProviders, userEvent } from '../test-utils/test-helpers'
-import { server } from '../test-utils/mock-server'
+import { API_BASE, server } from '../test-utils/mock-server'
 import SignInForm from './SignInForm'
 
 // Mock useNavigate from react-router
@@ -56,7 +56,7 @@ describe('SignInForm', () => {
 
     // Override mock to return API keys
     server.use(
-      http.get('http://localhost:1323/api_keys', () => {
+      http.get(`${API_BASE}/api_keys`, () => {
         return HttpResponse.json([
           {
             id: 'existing-key-id',
@@ -89,14 +89,14 @@ describe('SignInForm', () => {
 
     // Override mock to return 401 Unauthorized
     server.use(
-      http.post('http://localhost:1323/sign-in', () => {
+      http.post(`${API_BASE}/sign-in`, () => {
         return HttpResponse.json(
           { detail: 'Invalid credentials' },
           { status: 401 }
         )
       }),
       // Also mock auth-test to return unauthorized (sign-in failed, user not authenticated)
-      http.get('http://localhost:1323/auth-test', () => {
+      http.get(`${API_BASE}/auth-test`, () => {
         return HttpResponse.json(
           { detail: 'Unauthorized' },
           { status: 401 }

@@ -90,26 +90,23 @@ Get Junjo AI Studio running on your local machine in 5 minutes using the **[Junj
 
    _See the [Minimal Build template repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/README.md) for in-depth configuration instructions._
 
-3. **Create the Docker network** (first time only)
-   ```bash
-   docker network create junjo-network
-   ```
-
-4. **Start all services**
+3. **Start all services**
    ```bash
    docker compose up -d
    ```
 
-5. **Access Junjo AI Studio**
-   - **Frontend**: http://localhost:5153
-   - **Backend API**: http://localhost:1323
-   - **OTLP Ingestion Endpoint**: grpc://localhost:50051
+4. **Access Junjo AI Studio**
+   - Published URLs depend on the compose files you are running.
+   - This source repository's hot-reload contributor stack uses:
+     - **Frontend**: http://localhost:26151
+     - **Backend API**: http://localhost:26152
+     - **OTLP Ingestion Endpoint**: grpc://localhost:26153
 
-6. **Create your first user**
-   - Navigate to http://localhost:5153
+5. **Create your first user**
+   - Navigate to your frontend URL
    - Follow the setup wizard to create your admin account
 
-7. **Create an API key** (for sending telemetry from your Junjo app)
+6. **Create an API key** (for sending telemetry from your Junjo app)
    - Sign in to the web UI
    - Navigate to **Settings → API Keys**
    - Click **Create API Key**
@@ -142,7 +139,7 @@ docker compose down -v
 
 ### Next Steps
 
-Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) application to send telemetry to `grpc://localhost:50051` using the API key you created.
+Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) application to send telemetry to the OTLP endpoint published by your compose setup. In this source repository's dev stack, that is `grpc://localhost:26153`.
 
 **For source code development**: If you want to modify Junjo AI Studio's source code (not just use it), see the development guides in `backend/README.md`, `frontend/README.md`, and `ingestion/README.md` in the main [junjo-ai-studio repository](https://github.com/mdrideout/junjo-ai-studio).
 
@@ -190,7 +187,7 @@ The Junjo AI Studio is composed of three primary services:
 ### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
 - **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
 - **Responsibilities**:
-  - OpenTelemetry OTLP/gRPC endpoint (port 50051)
+  - OpenTelemetry OTLP/gRPC endpoint (port 4317)
   - High-throughput span ingestion with backpressure
   - Write-Ahead Log using Arrow IPC segments
   - Flush WAL to date-partitioned Parquet files (cold storage)
@@ -277,15 +274,20 @@ JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
 
 # === CORS ==========================================================
 # IMPORTANT: Cannot use "*" with session cookies (credentials=True)
-# Default: http://localhost:5151,http://localhost:5153 (dev/prod build ports)
+# Default: http://localhost:26151 (source repo dev compose frontend)
 # Production: Auto-derived from JUNJO_PROD_FRONTEND_URL if not set
 # Explicitly set for multiple frontends:
 # JUNJO_ALLOW_ORIGINS=https://app.example.com,https://admin.example.com
 
-# === Ports =========================================================
-PORT=1323                   # Backend HTTP port
-INGESTION_PORT=50051        # OTLP ingestion gRPC port (public)
-GRPC_PORT=50053             # Backend internal gRPC port
+# === Local Development Host Ports ==================================
+JUNJO_DEV_FRONTEND_PORT=26151
+JUNJO_DEV_BACKEND_PORT=26152
+JUNJO_DEV_OTLP_GRPC_PORT=26153
+
+# === Internal Service Ports ========================================
+PORT=1323                   # Backend HTTP port inside the container
+INGESTION_PORT=4317         # OTLP ingestion gRPC port inside the container
+GRPC_PORT=50053             # Backend internal auth gRPC port
 
 # === Database Storage ==============================================
 # Where database files are stored on your host machine/VM
@@ -317,7 +319,7 @@ JUNJO_HOST_DB_DATA_PATH=./.dbdata
 JUNJO_BUILD_TARGET=development
 ```
 
-This stores databases in `./.dbdata` directory next to your `docker-compose.yml`. Docker creates this directory automatically.
+This stores databases in `./.dbdata` directory next to your `compose.yaml`. Docker creates this directory automatically.
 
 **Benefits:**
 - Easy to reset by deleting the directory
@@ -360,7 +362,7 @@ docker compose up -d
 #### Important Notes
 
 - The `JUNJO_HOST_DB_DATA_PATH` variable is the ONLY path you need to configure
-- Container-internal paths are set automatically in `docker-compose.yml`
+- Container-internal paths are set automatically in `compose.yaml`
 - If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
 - All three services (backend, ingestion, frontend) share the same storage location
 
@@ -380,7 +382,7 @@ All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend
 ### Creating API Keys
 
 After starting Junjo AI Studio:
-1. Sign in to the web UI (http://localhost:5153)
+1. Sign in to the web UI exposed by your compose setup (the source repo dev stack uses `http://localhost:26151`)
 2. Navigate to **Settings → API Keys**
 3. Click **Create API Key**
 4. Copy the 64-character key (shown only once)
@@ -441,52 +443,44 @@ Junjo AI Studio is built and deployed to **Docker Hub** with each GitHub release
 - **Ingestion Service**: [mdrideout/junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)
 - **Frontend**: [mdrideout/junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)
 
-**Example docker-compose.yml:**
+**Example compose.yaml:**
 
 ```yaml
 services:
-  junjo-ai-studio-backend:
+  backend:
     image: mdrideout/junjo-ai-studio-backend:latest
-    container_name: junjo-ai-studio-backend
     restart: unless-stopped
     volumes:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
       - "1323:1323"   # HTTP API (public)
-      # Port 50053 (internal gRPC for API key validation) is NOT exposed - only accessible via Docker network
-    networks:
-      - junjo-network
     env_file:
       - .env
     environment:
-      - INGESTION_HOST=junjo-ai-studio-ingestion
+      - INGESTION_HOST=ingestion
       - INGESTION_PORT=50052
       - RUN_MIGRATIONS=true
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
       - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
       - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
-  junjo-ai-studio-ingestion:
+  ingestion:
     image: mdrideout/junjo-ai-studio-ingestion:latest
-    container_name: junjo-ai-studio-ingestion
     restart: unless-stopped
     volumes:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
-      # Port 50052 (internal gRPC for PrepareHotSnapshot/FlushWAL) is NOT exposed - only accessible via Docker network
-    networks:
-      - junjo-network
+      - "4317:4317"  # Public OTLP endpoint (authenticated via API key)
     env_file:
       - .env
     environment:
-      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_HOST=backend
       - BACKEND_GRPC_PORT=50053
       - WAL_DIR=/app/.dbdata/spans/wal
       - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
       - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
     depends_on:
-      junjo-ai-studio-backend:
+      backend:
         condition: service_started
     healthcheck:
       test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
@@ -495,27 +489,19 @@ services:
       retries: 5
       start_period: 30s
 
-  junjo-ai-studio-frontend:
+  frontend:
     image: mdrideout/junjo-ai-studio-frontend:latest
-    container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:
-      - "5153:80"
+      - "8080:80"
     env_file:
       - .env
-    networks:
-      - junjo-network
     depends_on:
-      junjo-ai-studio-backend:
+      backend:
         condition: service_started
-
-networks:
-  junjo-network:
-    name: junjo_network
-    driver: bridge
 ```
 
-For a more complete example with reverse proxy, see the [Junjo AI Studio Deployment Example Repository](https://github.com/mdrideout/junjo-ai-studio-deployment-example/blob/master/docker-compose.yml).
+For a more complete example with reverse proxy, see the [Junjo AI Studio Deployment Example Repository](https://github.com/mdrideout/junjo-ai-studio-deployment-example/blob/master/compose.yaml).
 
 ### VM Resource Requirements
 
@@ -736,7 +722,7 @@ Tests run automatically on all PRs via GitHub Actions:
 **Solution:**
 ```bash
 # Find process using the port
-lsof -i :1323  # or :50051, :5153, etc.
+lsof -i :26151  # or :26152, :26153, etc.
 
 # Kill the process
 kill -9 <PID>
@@ -758,12 +744,7 @@ PORT=1324
    docker compose logs frontend
    ```
 
-2. **Ensure network exists**
-   ```bash
-   docker network create junjo-network
-   ```
-
-3. **Clear volumes and rebuild**
+2. **Clear volumes and rebuild**
    ```bash
    docker compose down -v
    docker compose up --build
