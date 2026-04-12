@@ -11,14 +11,22 @@ export default function viteJunjoPlugin() {
         // Optional: Clear the console for a cleaner look
         console.clear()
 
+        const scheme = server.config.server.https ? 'https' : 'http'
+        const containerPort = server.config.server.port ?? 5173
+        const hostPort = process.env.JUNJO_DEV_FRONTEND_PORT ?? String(containerPort)
+        const hostUrl = `${scheme}://localhost:${hostPort}`
+        const containerUrl = `${scheme}://0.0.0.0:${containerPort}`
+        const networkUrl = server.resolvedUrls.network?.[0] ?? 'unavailable'
+
         // Your custom message here!  Customize as you like.
         console.log(
           bold(
             green(`
   🎏 Junjo AI Studio UI is running (Development) 🎏 
 
-  Local:    ${server.config.server.https ? 'https' : 'http'}://localhost:${server.config.server.port}
-  Network:  ${server.resolvedUrls.network[0]}
+  Host:      ${hostUrl}
+  Container: ${containerUrl}
+  Network:   ${networkUrl}
 
   ----------------------------------
         `),

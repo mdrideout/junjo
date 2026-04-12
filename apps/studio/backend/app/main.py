@@ -54,8 +54,8 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 60)
     logger.info("Starting Junjo AI Studio")
     logger.info("Python 3.13+ with Pydantic v2")
-    logger.info(f"FastAPI Server: http://0.0.0.0:{settings.port}")
-    logger.info(f"gRPC Server: [::]:{settings.GRPC_PORT}")
+    logger.info(f"Backend HTTP (container): http://0.0.0.0:{settings.port}")
+    logger.info(f"Internal auth gRPC (container): [::]:{settings.GRPC_PORT}")
     logger.info(f"CORS origins: {settings.cors_origins}")
     logger.info("=" * 60)
 

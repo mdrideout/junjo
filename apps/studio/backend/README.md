@@ -19,7 +19,7 @@ The backend service provides:
 
 ### Primary Method: Docker Compose (Recommended)
 
-**For running the full Junjo AI Studio stack**, see the [root README.md](../README.md) Quick Start guide. The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
+For running the full Junjo AI Studio stack from this repository, see the [root README.md](../README.md#source-development). The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
 
 ```bash
 # From repository root
@@ -196,7 +196,7 @@ uv run pytest -m "integration" -v
 
 ```bash
 # Terminal 1: Start all services
-docker compose up --build
+docker compose up -d --build
 
 # Terminal 2: Run integration tests
 cd backend
@@ -421,14 +421,17 @@ Configuration is loaded using **Pydantic Settings** with precedence:
 ### Port Already in Use
 
 ```bash
-# Check what's using port 1323
-lsof -i :1323
+# Compose workflow: check what's using the published backend port
+lsof -i :26152
 
 # Kill the process
 kill -9 <PID>
 
-# Or change the port in .env
-JUNJO_BACKEND_PORT=1324
+# Or change the published dev port in the repo root .env
+JUNJO_DEV_BACKEND_PORT=27152
+
+# Direct uvicorn runs can use a different port explicitly
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 1324
 ```
 
 ### Module Import Errors
@@ -477,5 +480,6 @@ uv run pytest -m "integration" -v
 ## Additional Resources
 
 - **[Root README](../README.md)** - Full Junjo AI Studio documentation
-- **[Deployment Guide](../docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Image-based deployment starting point
+- **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - End-to-end deployment example
 - **[Junjo Python Library](https://github.com/mdrideout/junjo)** - AI graph workflow framework

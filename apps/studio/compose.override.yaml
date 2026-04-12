@@ -2,6 +2,10 @@ services:
   backend:
     build:
       target: development
+    environment:
+      JUNJO_DEV_FRONTEND_PORT: ${JUNJO_DEV_FRONTEND_PORT:-26151}
+      JUNJO_DEV_BACKEND_PORT: ${JUNJO_DEV_BACKEND_PORT:-26152}
+      JUNJO_DEV_OTLP_GRPC_PORT: ${JUNJO_DEV_OTLP_GRPC_PORT:-26153}
     volumes:
       - ./backend/app:/app/app
     ports:
@@ -24,6 +28,9 @@ services:
   frontend:
     build:
       target: development
+    environment:
+      JUNJO_DEV_FRONTEND_PORT: ${JUNJO_DEV_FRONTEND_PORT:-26151}
+      VITE_API_HOST: http://localhost:${JUNJO_DEV_BACKEND_PORT:-26152}
     volumes:
       - frontend-modules:/app/node_modules
       - ./frontend:/app

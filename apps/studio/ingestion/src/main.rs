@@ -121,8 +121,8 @@ async fn main() -> anyhow::Result<()> {
     let public_addr: SocketAddr = format!("0.0.0.0:{}", config.grpc_port).parse()?;
     let internal_addr: SocketAddr = format!("0.0.0.0:{}", config.internal_grpc_port).parse()?;
 
-    info!(%public_addr, "Starting public gRPC server (OTLP)");
-    info!(%internal_addr, "Starting internal gRPC server");
+    info!(container_public_addr = %public_addr, "Starting public gRPC server bind (OTLP)");
+    info!(container_internal_addr = %internal_addr, "Starting internal gRPC server bind");
 
     // Run both servers
     tokio::try_join!(

@@ -41,8 +41,10 @@ Run all frontend tests:
 
 ```bash
 cd frontend
-npm test
+npm run test:run
 ```
+
+Use `npm test` only when you want Vitest watch mode.
 
 **What it covers:**
 - Contract tests (Zod schemas vs OpenAPI)

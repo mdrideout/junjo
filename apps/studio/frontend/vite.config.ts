@@ -20,36 +20,6 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
-    proxy: {
-      '/api': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-      '/api_keys': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-      '/users': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-      '/sign-in': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-      '/sign-out': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-      '/auth-test': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-      '/health': {
-        target: 'http://backend:1323',
-        changeOrigin: true,
-      },
-    },
   },
   build: {
     sourcemap: true,

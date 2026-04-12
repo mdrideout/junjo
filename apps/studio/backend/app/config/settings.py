@@ -500,8 +500,9 @@ class AppSettings(BaseSettings):
 
         Returns the production ingestion URL if set, otherwise defaults to the
         Junjo development host port. The ingestion service is a separate container
-        with its own public URL (e.g., https://ingestion.example.com). Reverse proxy
-        (Caddy) handles internal port mapping to gRPC port 4317.
+        with its own public URL (e.g., https://ingestion.example.com). An
+        operator-managed reverse proxy maps that public endpoint to the internal
+        gRPC port 4317.
         """
         if self.prod_ingestion_url:
             return self.prod_ingestion_url
