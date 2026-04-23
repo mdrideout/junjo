@@ -226,7 +226,7 @@ describe('User Request Integration Tests', () => {
     let capturedUserId: string | undefined
 
     server.use(
-      http.delete('http://localhost:1323/users/:user_id', ({ params }) => {
+      http.delete('http://localhost:26154/users/:user_id', ({ params }) => {
         capturedUserId = params.user_id as string
         return HttpResponse.json({ message: 'User deleted successfully' })
       }),
@@ -243,7 +243,7 @@ describe('User Request Integration Tests', () => {
     let capturedBody: any
 
     server.use(
-      http.post('http://localhost:1323/users', async ({ request }) => {
+      http.post('http://localhost:26154/users', async ({ request }) => {
         capturedBody = await request.json()
         return HttpResponse.json({ id: 'usr_123', ...capturedBody })
       }),

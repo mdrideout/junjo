@@ -17,31 +17,31 @@ The backend service provides:
 
 ## Running the Backend
 
-### Primary Method: Docker Compose (Recommended)
+### Primary Method: Docker Compose
 
 For running the full Junjo AI Studio stack from this repository, see the [root README.md](../README.md#source-development). The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
 
 ```bash
 # From repository root
-docker compose up -d
+docker compose up --build
 
-# View backend logs
-docker compose logs -f backend
-
-# Restart backend only
+# Restart backend only, after the stack is running
 docker compose restart backend
+
+# View backend logs from another terminal
+docker compose logs -f backend
 ```
 
 The backend will be available at:
-- **API**: http://localhost:26152
-- **Health Check**: http://localhost:26152/health
+- **API**: http://localhost:26154
+- **Health Check**: http://localhost:26154/health
 - **gRPC (internal)**: `50053` on the Compose network only
 
 ---
 
-### Secondary Method: Direct Execution with uv (Development)
+### Secondary Method: Direct Execution with uv (Testing/Debugging)
 
-Run the backend directly for development, testing, or debugging. This is useful when:
+Run the backend directly only for backend-focused testing or debugging. The supported full-stack workflow for this repository is Docker Compose. Direct execution is useful when:
 - Working on backend-specific features
 - Running integration tests locally
 - Debugging without Docker overhead
@@ -180,7 +180,7 @@ uv run pytest -m "not integration" --cov=app --cov-report=term-missing
 
 Integration tests require the backend service to be running (gRPC server on port 50053).
 
-**Option 1: Run Backend Service Directly** (Recommended for local development)
+**Option 1: Run backend service directly** (backend testing/debugging)
 
 ```bash
 # Terminal 1: Start backend
@@ -192,11 +192,11 @@ cd backend
 uv run pytest -m "integration" -v
 ```
 
-**Option 2: Use Docker Compose** (Matches CI environment)
+**Option 2: Use Docker Compose** (full local stack)
 
 ```bash
 # Terminal 1: Start all services
-docker compose up -d --build
+docker compose up --build
 
 # Terminal 2: Run integration tests
 cd backend
@@ -392,8 +392,8 @@ The backend reads configuration from environment variables (`.env` file at repos
 
 ```bash
 # Ports
-JUNJO_BACKEND_PORT=1323         # Backend HTTP port
-GRPC_PORT=50053                 # Internal gRPC port
+JUNJO_BACKEND_PORT=1323        # Backend HTTP internal port
+# Internal auth gRPC remains on port 50053
 
 # Database storage (where files are stored on host machine)
 JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
@@ -422,13 +422,10 @@ Configuration is loaded using **Pydantic Settings** with precedence:
 
 ```bash
 # Compose workflow: check what's using the published backend port
-lsof -i :26152
+lsof -i :26154
 
 # Kill the process
 kill -9 <PID>
-
-# Or change the published dev port in the repo root .env
-JUNJO_DEV_BACKEND_PORT=27152
 
 # Direct uvicorn runs can use a different port explicitly
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 1324

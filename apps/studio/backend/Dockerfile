@@ -84,7 +84,7 @@ RUN chmod +x /entrypoint.sh
 RUN mkdir -p ./.dbdata
 
 # Expose ports
-# HTTP API (published by compose override files)
+# HTTP API (published by compose)
 EXPOSE 1323
 # Internal gRPC for API key validation (NOT mapped to host - internal Docker network only)
 EXPOSE 50053

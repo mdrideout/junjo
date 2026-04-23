@@ -19,7 +19,7 @@ Simple Junjo application for E2E testing of Junjo AI Studio. Based on the gettin
    ```yaml
    exporter:
      api_key: "your_actual_api_key_here"  # Get from Junjo AI Studio Settings → API Keys
-     endpoint: "grpc://localhost:26153"
+     endpoint: "grpc://localhost:26155"
      service_name: "default-service"
      insecure: true
 
@@ -83,7 +83,7 @@ The test app uses the getting_started workflow structure:
 
 After running, verify telemetry in Junjo AI Studio:
 
-1. Open Junjo AI Studio web UI (http://localhost:26151)
+1. Open the Junjo AI Studio web UI for your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
 2. Navigate to the service you specified
 3. Check that workflows appear with correct service name
 4. Inspect workflow graph structure and state transitions

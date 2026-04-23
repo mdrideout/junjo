@@ -56,7 +56,7 @@ impl Config {
             grpc_port: env::var("GRPC_PORT")
                 .ok()
                 .and_then(|s| s.parse().ok())
-                .unwrap_or(4317),
+                .unwrap_or(50051),
 
             internal_grpc_port: env::var("INTERNAL_GRPC_PORT")
                 .ok()

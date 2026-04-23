@@ -22,7 +22,7 @@ from app.proto_gen import auth_pb2, auth_pb2_grpc
 # Path to ingestion service
 INGESTION_DIR = Path(__file__).parent.parent.parent / "ingestion"
 INGESTION_INTERNAL_PORT = 50052  # Internal gRPC port for WAL reads
-INGESTION_PUBLIC_PORT = 50051  # Public port for span ingestion
+INGESTION_PUBLIC_PORT = 50051  # Direct OTLP gRPC port for spawned ingestion tests
 
 
 def is_port_in_use(port: int) -> bool:

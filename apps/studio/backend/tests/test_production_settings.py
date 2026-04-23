@@ -136,7 +136,7 @@ class TestIngestionURLConfiguration:
             JUNJO_SECURE_COOKIE_KEY=TEST_COOKIE_KEY,
             JUNJO_SESSION_SECRET=TEST_SESSION_SECRET,
         )
-        assert settings.otlp_endpoint == "grpc://localhost:26153"
+        assert settings.otlp_endpoint == "grpc://localhost:26155"
 
 
 class TestSameDomainValidation:

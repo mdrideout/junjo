@@ -97,7 +97,7 @@ class SpanIngestionSettings(BaseSettings):
     host: Annotated[
         str,
         Field(
-            default="junjo-ai-studio-ingestion",
+            default="ingestion",
             description="Ingestion service internal gRPC hostname",
             validation_alias="INGESTION_HOST",
         ),
@@ -270,8 +270,10 @@ class AppSettings(BaseSettings):
     """Main application settings"""
 
     DEFAULT_DEV_FRONTEND_PORT: ClassVar[int] = 26151
-    DEFAULT_DEV_BACKEND_PORT: ClassVar[int] = 26152
-    DEFAULT_DEV_OTLP_GRPC_PORT: ClassVar[int] = 26153
+    DEFAULT_PROD_FRONTEND_PORT: ClassVar[int] = 26153
+    DEFAULT_DEV_BACKEND_PORT: ClassVar[int] = 26154
+    DEFAULT_DEV_OTLP_GRPC_PORT: ClassVar[int] = 26155
+    DEFAULT_BACKEND_PORT: ClassVar[int] = 1323
 
     # Environment
     junjo_env: Annotated[
@@ -327,43 +329,11 @@ class AppSettings(BaseSettings):
         ),
     ]
 
-    # Development Host Ports
-    dev_frontend_port: Annotated[
-        int,
-        Field(
-            default=DEFAULT_DEV_FRONTEND_PORT,
-            ge=1,
-            le=65535,
-            description="Host port for the local frontend dev server",
-            validation_alias="JUNJO_DEV_FRONTEND_PORT",
-        ),
-    ]
-    dev_backend_port: Annotated[
-        int,
-        Field(
-            default=DEFAULT_DEV_BACKEND_PORT,
-            ge=1,
-            le=65535,
-            description="Host port for the local backend API",
-            validation_alias="JUNJO_DEV_BACKEND_PORT",
-        ),
-    ]
-    dev_otlp_grpc_port: Annotated[
-        int,
-        Field(
-            default=DEFAULT_DEV_OTLP_GRPC_PORT,
-            ge=1,
-            le=65535,
-            description="Host port for the local OTLP gRPC endpoint",
-            validation_alias="JUNJO_DEV_OTLP_GRPC_PORT",
-        ),
-    ]
-
     # Server
     port: Annotated[
         int,
         Field(
-            default=1323,
+            default=DEFAULT_BACKEND_PORT,
             ge=1,
             le=65535,
             description="HTTP server port (internal container port, typically 1323)",
@@ -407,7 +377,10 @@ class AppSettings(BaseSettings):
     cors_origins: Annotated[
         str | list[str],
         Field(
-            default=[f"http://localhost:{DEFAULT_DEV_FRONTEND_PORT}"],
+            default=[
+                f"http://localhost:{DEFAULT_DEV_FRONTEND_PORT}",
+                f"http://localhost:{DEFAULT_PROD_FRONTEND_PORT}",
+            ],
             description="Allowed CORS origins (comma-separated string or list)",
             validation_alias=AliasChoices(
                 "JUNJO_ALLOW_ORIGINS", "junjo_allow_origins", "cors_origins"
@@ -481,17 +454,22 @@ class AppSettings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def dev_frontend_origin(self) -> str:
-        return f"http://localhost:{self.dev_frontend_port}"
+        return f"http://localhost:{self.DEFAULT_DEV_FRONTEND_PORT}"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def prod_frontend_origin(self) -> str:
+        return f"http://localhost:{self.DEFAULT_PROD_FRONTEND_PORT}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def dev_backend_url(self) -> str:
-        return f"http://localhost:{self.dev_backend_port}"
+        return f"http://localhost:{self.DEFAULT_DEV_BACKEND_PORT}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def dev_otlp_endpoint(self) -> str:
-        return f"grpc://localhost:{self.dev_otlp_grpc_port}"
+        return f"grpc://localhost:{self.DEFAULT_DEV_OTLP_GRPC_PORT}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -499,10 +477,7 @@ class AppSettings(BaseSettings):
         """OTLP ingestion endpoint.
 
         Returns the production ingestion URL if set, otherwise defaults to the
-        Junjo development host port. The ingestion service is a separate container
-        with its own public URL (e.g., https://ingestion.example.com). An
-        operator-managed reverse proxy maps that public endpoint to the internal
-        gRPC port 4317.
+        Junjo development host port.
         """
         if self.prod_ingestion_url:
             return self.prod_ingestion_url
@@ -535,9 +510,12 @@ class AppSettings(BaseSettings):
     def validate_production_configuration(self) -> "AppSettings":
         """Validate production URLs and configuration."""
         if self.junjo_env != "production":
-            default_dev_origins = [f"http://localhost:{self.DEFAULT_DEV_FRONTEND_PORT}"]
+            default_dev_origins = [
+                f"http://localhost:{self.DEFAULT_DEV_FRONTEND_PORT}",
+                f"http://localhost:{self.DEFAULT_PROD_FRONTEND_PORT}",
+            ]
             if not self.cors_origins or self.cors_origins == default_dev_origins:
-                self.cors_origins = [self.dev_frontend_origin]
+                self.cors_origins = [self.dev_frontend_origin, self.prod_frontend_origin]
             return self
 
         # Validate production URLs are set

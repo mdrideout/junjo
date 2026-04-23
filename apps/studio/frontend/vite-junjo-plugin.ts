@@ -12,8 +12,8 @@ export default function viteJunjoPlugin() {
         console.clear()
 
         const scheme = server.config.server.https ? 'https' : 'http'
-        const containerPort = server.config.server.port ?? 5173
-        const hostPort = process.env.JUNJO_DEV_FRONTEND_PORT ?? String(containerPort)
+        const containerPort = server.config.server.port ?? 5151
+        const hostPort = 26151
         const hostUrl = `${scheme}://localhost:${hostPort}`
         const containerUrl = `${scheme}://0.0.0.0:${containerPort}`
         const networkUrl = server.resolvedUrls.network?.[0] ?? 'unavailable'

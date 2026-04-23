@@ -14,11 +14,14 @@ export default defineConfig({
     process.env.ANALYZE ? analyzer() : undefined,
   ].filter(Boolean),
   server: {
-    port: 5173,
+    port: 5151,
     host: true,
     strictPort: true,
     watch: {
       usePolling: true,
+    },
+    hmr: {
+      clientPort: 26152,
     },
   },
   build: {

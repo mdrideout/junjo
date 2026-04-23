@@ -6,7 +6,7 @@ services:
     image: gcr.io/cadvisor/cadvisor:v0.47.0
     profiles: ["monitoring"]
     ports:
-      - "127.0.0.1:${JUNJO_DEV_CADVISOR_PORT:-26154}:8080"
+      - "127.0.0.1:26156:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

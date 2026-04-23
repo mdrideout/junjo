@@ -32,5 +32,5 @@ FROM base AS development
 WORKDIR /app
 COPY frontend/ .
 ENV CHOKIDAR_USEPOLLING=true
-EXPOSE 5173
+EXPOSE 5151
 CMD ["npm", "run", "dev"]

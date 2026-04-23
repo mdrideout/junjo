@@ -86,7 +86,7 @@ If you want to use Junjo AI Studio rather than modify its source code, start wit
 
 3. **Start all services**
    ```bash
-   docker compose up -d
+   docker compose up
    ```
 
 4. **Access Junjo AI Studio**
@@ -145,13 +145,14 @@ Use the default hot-reload local stack when you want to develop or modify Junjo 
 
 ```bash
 ./scripts/junjo setup
-docker compose up -d
+docker compose up --build
 ```
 
-Default local development URLs for this repository:
-- **Frontend UI**: http://localhost:26151
-- **Backend API**: http://localhost:26152
-- **OTLP Ingestion Endpoint**: grpc://localhost:26153
+Local URLs are selected by `JUNJO_BUILD_TARGET`:
+- `JUNJO_BUILD_TARGET=development`: frontend `http://localhost:26151`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
+- `JUNJO_BUILD_TARGET=production`: frontend `http://localhost:26153`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
+
+After changing `JUNJO_BUILD_TARGET`, rerun `docker compose up --build` so Docker rebuilds the matching image targets. Use `-d` only when you intentionally want detached containers.
 
 For service-specific development notes, see [backend/README.md](./backend/README.md), [frontend/README.md](./frontend/README.md), and [ingestion/README.md](./ingestion/README.md).
 
@@ -199,7 +200,7 @@ The Junjo AI Studio is composed of three primary services:
 ### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
 - **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
 - **Responsibilities**:
-  - OpenTelemetry OTLP/gRPC endpoint (port 4317)
+  - OpenTelemetry OTLP/gRPC endpoint
   - High-throughput span ingestion with backpressure
   - Write-Ahead Log using Arrow IPC segments
   - Flush WAL to date-partitioned Parquet files (cold storage)
@@ -286,20 +287,13 @@ JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
 
 # === CORS ==========================================================
 # IMPORTANT: Cannot use "*" with session cookies (credentials=True)
-# Default: http://localhost:26151 (this repository's default local frontend)
+# Default: http://localhost:26151,http://localhost:26153
 # Production: Auto-derived from JUNJO_PROD_FRONTEND_URL if not set
 # Explicitly set for multiple frontends:
 # JUNJO_ALLOW_ORIGINS=https://app.example.com,https://admin.example.com
 
-# === Local Development Host Ports ==================================
-JUNJO_DEV_FRONTEND_PORT=26151
-JUNJO_DEV_BACKEND_PORT=26152
-JUNJO_DEV_OTLP_GRPC_PORT=26153
-
-# === Internal Service Ports ========================================
-PORT=1323                   # Backend HTTP port inside the container
-INGESTION_PORT=4317         # OTLP ingestion gRPC port inside the container
-GRPC_PORT=50053             # Backend internal auth gRPC port
+# Backend Server Port (internal container port)
+JUNJO_BACKEND_PORT=1323
 
 # === Database Storage ==============================================
 # Where database files are stored on your host machine/VM
@@ -362,7 +356,7 @@ JUNJO_BUILD_TARGET=production
 
 **3. Start services:**
 ```bash
-docker compose up -d
+docker compose up --build
 ```
 
 **Benefits:**
@@ -394,7 +388,7 @@ All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend
 ### Creating API Keys
 
 After starting Junjo AI Studio:
-1. Sign in to the web UI exposed by your local stack (`http://localhost:26151`)
+1. Sign in to the web UI exposed by your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
 2. Navigate to **Settings → API Keys**
 3. Click **Create API Key**
 4. Copy the 64-character key (shown only once)
@@ -406,10 +400,9 @@ After starting Junjo AI Studio:
 
 This source repository does not define a complete hosted deployment topology. It defines the production runtime contract:
 - explicit public URLs via `JUNJO_PROD_FRONTEND_URL`, `JUNJO_PROD_BACKEND_URL`, and `JUNJO_PROD_INGESTION_URL`
-- stable internal container ports
 - the frontend/backend same-domain requirement for session cookies
 
-Bring your own reverse proxy, ingress, or load balancer. Map your public URLs to the stable container ports below.
+Bring your own reverse proxy, ingress, or load balancer. For a production `compose.yaml` example, see the [minimal build repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build).
 
 ### Deployment Requirements
 
@@ -422,14 +415,6 @@ Bring your own reverse proxy, ingress, or load balancer. Map your public URLs to
 - ❌ `app.example.com` + `service.run.app` (different domains - **will NOT work**)
 
 **Why?** Junjo AI Studio uses session cookies with `SameSite=Strict` for security (CSRF protection). Cross-domain deployments will cause authentication to fail.
-
-### Stable Internal Service Ports
-
-- **Frontend static UI**: container port `80`
-- **Backend HTTP API**: container port `1323`
-- **Ingestion OTLP/gRPC**: container port `4317`
-
-These are the ports your operator-managed routing layer should target.
 
 ### Turn-Key Example Repositories
 
@@ -687,15 +672,10 @@ Hosted deployment troubleshooting lives with the deployment stack you choose. Fo
 **Solution:**
 ```bash
 # Find process using the port
-lsof -i :26151  # or :26152, :26153, etc.
+lsof -i :26151  # or :26152, :26153, :26154, :26155, etc.
 
 # Kill the process
 kill -9 <PID>
-
-# Or change the published dev ports in .env
-JUNJO_DEV_FRONTEND_PORT=27151
-JUNJO_DEV_BACKEND_PORT=27152
-JUNJO_DEV_OTLP_GRPC_PORT=27153
 ```
 
 ### Container Startup Issues
@@ -714,7 +694,7 @@ JUNJO_DEV_OTLP_GRPC_PORT=27153
 2. **Clear volumes and rebuild**
    ```bash
    docker compose down -v
-   docker compose up -d --build
+   docker compose up --build
    ```
 
 4. **Check .env file**
@@ -734,7 +714,7 @@ docker compose down
 mv .dbdata .dbdata.backup
 
 # Restart (will create fresh databases)
-docker compose up
+docker compose up --build
 ```
 
 ---

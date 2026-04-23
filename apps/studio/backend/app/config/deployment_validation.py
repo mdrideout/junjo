@@ -61,7 +61,7 @@ def _log_production_config() -> None:
     logger.info("   □ Frontend accessible at configured URL")
     logger.info("   □ Backend accessible at configured URL")
     logger.info("   □ Ingestion service accessible at configured URL")
-    logger.info("   □ Reverse proxy routes ingestion traffic to port 4317")
+    logger.info("   □ Reverse proxy routes ingestion traffic to port 50051")
     logger.info("   □ SSL certificates valid for all domains")
 
 
@@ -73,6 +73,7 @@ def _log_development_config() -> None:
     logger.info("✅ Session cookies: Encrypted (AES-256) + Signed (HMAC)")
     logger.info("✅ CSRF protection: SameSite=Strict")
     logger.info("")
-    logger.info(f"Frontend: {settings.dev_frontend_origin}")
+    logger.info(f"Frontend (development build): {settings.dev_frontend_origin}")
+    logger.info(f"Frontend (production build):  {settings.prod_frontend_origin}")
     logger.info(f"Backend:  {settings.dev_backend_url}")
     logger.info(f"OTLP:     {settings.dev_otlp_endpoint}")

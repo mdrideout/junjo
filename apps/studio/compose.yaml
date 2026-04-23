@@ -8,9 +8,12 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-      target: production
+      target: ${JUNJO_BUILD_TARGET:-production}
     volumes:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      - ./backend/app:/app/app
+    ports:
+      - "127.0.0.1:26154:1323"
     env_file:
       - .env
     environment:
@@ -34,14 +37,21 @@ services:
     build:
       context: .
       dockerfile: ingestion/Dockerfile
-      target: production
+      target: ${JUNJO_BUILD_TARGET:-production}
     volumes:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      - ./ingestion/src:/app/src:ro
+      - ./proto:/proto:ro
+      - ./ingestion/Cargo.toml:/app/Cargo.toml:ro
+      - ./ingestion/Cargo.lock:/app/Cargo.lock
+      - ./ingestion/build.rs:/app/build.rs:ro
+      - ingestion-cargo-cache:/usr/local/cargo/registry
+      - ingestion-target-cache:/app/target
+    ports:
+      - "127.0.0.1:26155:50051"
     env_file:
       - .env
     environment:
-      GRPC_PORT: 4317
-      INTERNAL_GRPC_PORT: 50052
       BACKEND_GRPC_HOST: backend
       BACKEND_GRPC_PORT: 50053
       WAL_DIR: /app/.dbdata/spans/wal
@@ -50,21 +60,27 @@ services:
     depends_on:
       backend:
         condition: service_started
-    healthcheck:
-      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
 
   frontend:
     restart: unless-stopped
     build:
       context: .
       dockerfile: frontend/Dockerfile
-      target: production
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      - frontend-modules:/app/node_modules
+      - ./frontend:/app
+    ports:
+      - "127.0.0.1:26151:5151"
+      - "127.0.0.1:26152:5151"
+      - "127.0.0.1:26153:80"
     env_file:
       - .env
     depends_on:
       backend:
         condition: service_started
+
+volumes:
+  frontend-modules:
+  ingestion-cargo-cache:
+  ingestion-target-cache:

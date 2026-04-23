@@ -58,7 +58,7 @@ mod config_tests {
     #[test]
     fn test_default_ports() {
         // gRPC port defaults
-        assert!(4317 > 0 && 4317 < 65536);
+        assert!(50051 > 0 && 50051 < 65536);
         assert!(50052 > 0 && 50052 < 65536);
     }
 

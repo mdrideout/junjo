@@ -4,19 +4,7 @@ FROM rust:1.85-slim-bookworm AS builder
 # Install protobuf compiler for proto compilation
 RUN apt-get update && apt-get install -y \
     protobuf-compiler \
-    curl \
     && rm -rf /var/lib/apt/lists/*
-
-# Install grpc_health_probe
-RUN GRPC_HEALTH_PROBE_VERSION=v0.4.35 && \
-    case $(dpkg --print-architecture) in \
-        "amd64") ARCH="amd64" ;; \
-        "arm64") ARCH="arm64" ;; \
-        *) echo "Unsupported architecture" && exit 1 ;; \
-    esac && \
-    curl -fsSL -o /bin/grpc_health_probe \
-        "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${ARCH}" && \
-    chmod +x /bin/grpc_health_probe
 
 WORKDIR /app
 
@@ -45,22 +33,10 @@ FROM rust:1.85-slim-bookworm AS development
 
 RUN apt-get update && apt-get install -y \
     protobuf-compiler \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install cargo-watch for hot reloading
 RUN cargo install cargo-watch --locked
-
-# Install grpc_health_probe
-RUN GRPC_HEALTH_PROBE_VERSION=v0.4.35 && \
-    case $(dpkg --print-architecture) in \
-        "amd64") ARCH="amd64" ;; \
-        "arm64") ARCH="arm64" ;; \
-        *) echo "Unsupported architecture" && exit 1 ;; \
-    esac && \
-    curl -fsSL -o /bin/grpc_health_probe \
-        "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${ARCH}" && \
-    chmod +x /bin/grpc_health_probe
 
 WORKDIR /app
 
@@ -85,15 +61,15 @@ COPY ingestion/src/ src/
 RUN mkdir -p /app/.dbdata/spans/wal /app/.dbdata/spans/parquet
 
 # Default environment - paths only, tunables come from .env or config.rs defaults
-ENV GRPC_PORT=4317
 ENV INTERNAL_GRPC_PORT=50052
+ENV GRPC_PORT=50051
 ENV WAL_DIR=/app/.dbdata/spans/wal
 ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
 ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
 ENV JUNJO_LOG_LEVEL=debug
 ENV RUST_BACKTRACE=1
 
-EXPOSE 4317 50052
+EXPOSE 50051 50052
 
 # Use cargo-watch for hot reloading in development
 # -i .dbdata ignores the data directory to prevent restart loops when WAL/parquet files change
@@ -110,21 +86,20 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy binary and health probe from builder
+# Copy binary from builder
 COPY --from=builder /app/target/release/ingestion /app/ingestion
-COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
 # Create data directories
 RUN mkdir -p /app/.dbdata/wal /app/.dbdata/parquet
 
 # Default environment - paths only, tunables come from .env or config.rs defaults
-ENV GRPC_PORT=4317
 ENV INTERNAL_GRPC_PORT=50052
+ENV GRPC_PORT=50051
 ENV WAL_DIR=/app/.dbdata/spans/wal
 ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
 ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
 ENV JUNJO_LOG_LEVEL=info
 
-EXPOSE 4317 50052
+EXPOSE 50051 50052
 
 CMD ["/app/ingestion"]

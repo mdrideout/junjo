@@ -7,15 +7,20 @@ React + TypeScript frontend for the Junjo AI Studio web UI.
 Primary workflow is the full hot-reload stack from the repository root:
 
 ```bash
-docker compose up -d
+docker compose up --build
+```
+
+From another terminal:
+
+```bash
 docker compose logs -f frontend
 ```
 
-Default contributor URLs:
-- Frontend UI: `http://localhost:26151`
-- Backend API: `http://localhost:26152`
+Local URLs are selected by `JUNJO_BUILD_TARGET`:
+- `JUNJO_BUILD_TARGET=development`: frontend `http://localhost:26151`, backend `http://localhost:26154`
+- `JUNJO_BUILD_TARGET=production`: frontend `http://localhost:26153`, backend `http://localhost:26154`
 
-For frontend-only work outside Docker:
+For frontend-only testing/debugging outside Docker:
 
 ```bash
 cd frontend
@@ -23,7 +28,7 @@ npm install
 npm run dev
 ```
 
-Vite serves on `http://localhost:5173` by default. If you run the frontend outside Compose, set `VITE_API_HOST` so browser requests go to the backend you want to use.
+Vite serves on `http://localhost:5151` by default. This path is intended for frontend-focused testing/debugging and assumes the backend is reachable at the Compose-published URL `http://localhost:26154`. The supported full-stack workflow is `docker compose up --build` from the repository root.
 
 ## Commands
 
