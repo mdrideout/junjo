@@ -85,7 +85,7 @@ RUN mkdir -p ./.dbdata
 
 # Expose ports
 # HTTP API (published by compose)
-EXPOSE 1323
+EXPOSE 26154
 # Internal gRPC for API key validation (NOT mapped to host - internal Docker network only)
 EXPOSE 50053
 
@@ -93,10 +93,10 @@ EXPOSE 50053
 ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
 
 # Run uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "26154"]
 
 # Stage 3: Development - Add dev dependencies and hot reload
 FROM production AS development
 
 # Override CMD for hot reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "1323", "--reload", "--reload-dir", "/app/app"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "26154", "--reload", "--reload-dir", "/app/app"]

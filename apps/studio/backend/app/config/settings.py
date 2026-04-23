@@ -273,7 +273,7 @@ class AppSettings(BaseSettings):
     DEFAULT_PROD_FRONTEND_PORT: ClassVar[int] = 26153
     DEFAULT_DEV_BACKEND_PORT: ClassVar[int] = 26154
     DEFAULT_DEV_OTLP_GRPC_PORT: ClassVar[int] = 26155
-    DEFAULT_BACKEND_PORT: ClassVar[int] = 1323
+    DEFAULT_BACKEND_PORT: ClassVar[int] = 26154
 
     # Environment
     junjo_env: Annotated[
@@ -336,8 +336,7 @@ class AppSettings(BaseSettings):
             default=DEFAULT_BACKEND_PORT,
             ge=1,
             le=65535,
-            description="HTTP server port (internal container port, typically 1323)",
-            validation_alias="JUNJO_BACKEND_PORT",
+            description="HTTP server port",
         ),
     ]
 

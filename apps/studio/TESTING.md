@@ -33,7 +33,7 @@ cd backend
 **Why use this script:**
 - Ensures all backend tests pass before committing
 - Handles cleanup of temporary database files
-- Validates that ports 1323 and 50053 are free before running gRPC tests
+- Validates that port 50053 is free before running gRPC tests
 
 ### Frontend Tests
 

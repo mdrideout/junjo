@@ -148,9 +148,11 @@ Use the default hot-reload local stack when you want to develop or modify Junjo 
 docker compose up --build
 ```
 
-Local URLs are selected by `JUNJO_BUILD_TARGET`:
+Local URLs use the same port numbers inside Docker and on localhost:
 - `JUNJO_BUILD_TARGET=development`: frontend `http://localhost:26151`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
 - `JUNJO_BUILD_TARGET=production`: frontend `http://localhost:26153`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
+
+The port numbers stay the same for same-network containers. Only the hostname changes: use `backend:26154` for the backend API and `ingestion:26155` for OTLP from another container on this Compose network.
 
 After changing `JUNJO_BUILD_TARGET`, rerun `docker compose up --build` so Docker rebuilds the matching image targets. Use `-d` only when you intentionally want detached containers.
 
@@ -189,7 +191,7 @@ For service-specific development notes, see [backend/README.md](./backend/README
 
 The Junjo AI Studio is composed of three primary services:
 
-### 1. Backend (`junjo-ai-studio-backend`)
+### 1. Backend (`backend`)
 - **Tech Stack**: FastAPI (Python), SQLite, DataFusion
 - **Responsibilities**:
   - HTTP REST API
@@ -197,7 +199,7 @@ The Junjo AI Studio is composed of three primary services:
   - LLM playground
   - Span querying & analytics
 
-### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
+### 2. Ingestion Service (`ingestion`)
 - **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
 - **Responsibilities**:
   - OpenTelemetry OTLP/gRPC endpoint
@@ -206,7 +208,7 @@ The Junjo AI Studio is composed of three primary services:
   - Flush WAL to date-partitioned Parquet files (cold storage)
   - Prepare hot snapshots for real-time queries
 
-### 3. Frontend (`junjo-ai-studio-frontend`)
+### 3. Frontend (`frontend`)
 - **Tech Stack**: React, TypeScript
 - **Responsibilities**:
   - Web UI for workflow visualization
@@ -291,9 +293,6 @@ JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
 # Production: Auto-derived from JUNJO_PROD_FRONTEND_URL if not set
 # Explicitly set for multiple frontends:
 # JUNJO_ALLOW_ORIGINS=https://app.example.com,https://admin.example.com
-
-# Backend Server Port (internal container port)
-JUNJO_BACKEND_PORT=1323
 
 # === Database Storage ==============================================
 # Where database files are stored on your host machine/VM
@@ -403,6 +402,8 @@ This source repository does not define a complete hosted deployment topology. It
 - the frontend/backend same-domain requirement for session cookies
 
 Bring your own reverse proxy, ingress, or load balancer. For a production `compose.yaml` example, see the [minimal build repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build).
+
+If you route directly to this source repository's Compose services, target `frontend:26153`, `backend:26154`, and `ingestion:26155`.
 
 ### Deployment Requirements
 
@@ -672,7 +673,7 @@ Hosted deployment troubleshooting lives with the deployment stack you choose. Fo
 **Solution:**
 ```bash
 # Find process using the port
-lsof -i :26151  # or :26152, :26153, :26154, :26155, etc.
+lsof -i :26151  # or :26153, :26154, :26155, etc.
 
 # Kill the process
 kill -9 <PID>

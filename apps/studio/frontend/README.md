@@ -28,7 +28,7 @@ npm install
 npm run dev
 ```
 
-Vite serves on `http://localhost:5151` by default. This path is intended for frontend-focused testing/debugging and assumes the backend is reachable at the Compose-published URL `http://localhost:26154`. The supported full-stack workflow is `docker compose up --build` from the repository root.
+Vite serves on `http://localhost:26151` by default. This path is intended for frontend-focused testing/debugging and assumes the backend is reachable at `http://localhost:26154`. The supported full-stack workflow is `docker compose up --build` from the repository root.
 
 ## Commands
 

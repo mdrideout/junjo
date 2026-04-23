@@ -13,7 +13,7 @@ services:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
       - ./backend/app:/app/app
     ports:
-      - "127.0.0.1:26154:1323"
+      - "127.0.0.1:26154:26154"
     env_file:
       - .env
     environment:
@@ -48,7 +48,7 @@ services:
       - ingestion-cargo-cache:/usr/local/cargo/registry
       - ingestion-target-cache:/app/target
     ports:
-      - "127.0.0.1:26155:50051"
+      - "127.0.0.1:26155:26155"
     env_file:
       - .env
     environment:
@@ -71,9 +71,8 @@ services:
       - frontend-modules:/app/node_modules
       - ./frontend:/app
     ports:
-      - "127.0.0.1:26151:5151"
-      - "127.0.0.1:26152:5151"
-      - "127.0.0.1:26153:80"
+      - "127.0.0.1:26151:26151"
+      - "127.0.0.1:26153:26153"
     env_file:
       - .env
     depends_on:

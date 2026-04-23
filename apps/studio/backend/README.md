@@ -71,19 +71,19 @@ uv sync
 
 ```bash
 # Option 1: Using uv run (recommended)
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 1323
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 26154
 
 # Option 2: Via main module
 uv run python -m app.main
 
 # Option 3: With activated virtual environment
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 1323
+uvicorn app.main:app --reload --host 0.0.0.0 --port 26154
 ```
 
 The backend will be available at:
-- **API**: http://localhost:1323
-- **Health Check**: http://localhost:1323/health
+- **API**: http://localhost:26154
+- **Health Check**: http://localhost:26154/health
 
 **Important**: The backend automatically starts its internal gRPC server on port 50053 via the FastAPI lifespan manager. No additional steps needed.
 
@@ -91,10 +91,10 @@ The backend will be available at:
 
 ```bash
 # Test health endpoint
-curl http://localhost:1323/health
+curl http://localhost:26154/health
 
 # Test ping endpoint
-curl http://localhost:1323/ping
+curl http://localhost:26154/ping
 ```
 
 ---
@@ -176,32 +176,16 @@ uv run pytest tests/test_main.py -v
 uv run pytest -m "not integration" --cov=app --cov-report=term-missing
 ```
 
-#### Integration Tests (Requires Backend Running)
+#### Integration Tests
 
-Integration tests require the backend service to be running (gRPC server on port 50053).
-
-**Option 1: Run backend service directly** (backend testing/debugging)
+Most integration tests use in-process test fixtures. The `requires_grpc_server` tests start an isolated gRPC server on port 50053.
 
 ```bash
-# Terminal 1: Start backend
-cd backend
-uv run uvicorn app.main:app --host 0.0.0.0 --port 1323
-
-# Terminal 2: Run integration tests
 cd backend
 uv run pytest -m "integration" -v
 ```
 
-**Option 2: Use Docker Compose** (full local stack)
-
-```bash
-# Terminal 1: Start all services
-docker compose up --build
-
-# Terminal 2: Run integration tests
-cd backend
-uv run pytest -m "integration" -v
-```
+Do not start `uvicorn` or `docker compose up` just to run these tests; the gRPC tests need to bind their own isolated test server.
 
 #### LLM Playground Tests (Requires API Keys)
 
@@ -392,8 +376,8 @@ The backend reads configuration from environment variables (`.env` file at repos
 
 ```bash
 # Ports
-JUNJO_BACKEND_PORT=1323        # Backend HTTP internal port
-# Internal auth gRPC remains on port 50053
+# Backend HTTP uses port 26154 in Docker Compose and direct debug runs.
+# Internal auth gRPC remains on port 50053.
 
 # Database storage (where files are stored on host machine)
 JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
@@ -457,19 +441,13 @@ uv sync --all-extras
 
 ### Integration Test Failures
 
-**Symptom**: `pytest -m "integration"` fails with connection errors
+**Symptom**: `pytest -m "requires_grpc_server"` fails with connection errors
 
-**Solution**: Ensure backend is running on port 1323 with gRPC server on port 50053
+**Solution**: Ensure port 50053 is free so the isolated test gRPC server can bind.
 
 ```bash
-# Terminal 1: Start backend
-uv run uvicorn app.main:app --host 0.0.0.0 --port 1323
-
-# Terminal 2: Verify gRPC server is running
+# Check for a conflicting process
 lsof -i :50053
-
-# Terminal 2: Run tests
-uv run pytest -m "integration" -v
 ```
 
 ---

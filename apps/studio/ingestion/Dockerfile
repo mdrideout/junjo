@@ -60,16 +60,16 @@ COPY ingestion/src/ src/
 # Create data directories (needed for development mode)
 RUN mkdir -p /app/.dbdata/spans/wal /app/.dbdata/spans/parquet
 
-# Default environment - paths only, tunables come from .env or config.rs defaults
+# Container defaults for local Compose paths and service ports.
 ENV INTERNAL_GRPC_PORT=50052
-ENV GRPC_PORT=50051
+ENV GRPC_PORT=26155
 ENV WAL_DIR=/app/.dbdata/spans/wal
 ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
 ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
 ENV JUNJO_LOG_LEVEL=debug
 ENV RUST_BACKTRACE=1
 
-EXPOSE 50051 50052
+EXPOSE 26155 50052
 
 # Use cargo-watch for hot reloading in development
 # -i .dbdata ignores the data directory to prevent restart loops when WAL/parquet files change
@@ -92,14 +92,14 @@ COPY --from=builder /app/target/release/ingestion /app/ingestion
 # Create data directories
 RUN mkdir -p /app/.dbdata/wal /app/.dbdata/parquet
 
-# Default environment - paths only, tunables come from .env or config.rs defaults
+# Container defaults for local Compose paths and service ports.
 ENV INTERNAL_GRPC_PORT=50052
-ENV GRPC_PORT=50051
+ENV GRPC_PORT=26155
 ENV WAL_DIR=/app/.dbdata/spans/wal
 ENV SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
 ENV PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
 ENV JUNJO_LOG_LEVEL=info
 
-EXPOSE 50051 50052
+EXPOSE 26155 50052
 
 CMD ["/app/ingestion"]

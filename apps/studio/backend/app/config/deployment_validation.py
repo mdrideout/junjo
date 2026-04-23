@@ -61,7 +61,7 @@ def _log_production_config() -> None:
     logger.info("   □ Frontend accessible at configured URL")
     logger.info("   □ Backend accessible at configured URL")
     logger.info("   □ Ingestion service accessible at configured URL")
-    logger.info("   □ Reverse proxy routes ingestion traffic to port 50051")
+    logger.info("   □ Reverse proxy routes ingestion traffic to port 26155")
     logger.info("   □ SSL certificates valid for all domains")
 
 
