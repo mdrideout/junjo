@@ -464,10 +464,6 @@ same Docker Compose network. Only the hostname changes:
     Junjo application -> ingestion:26155 -> OTLP gRPC ingest
     Frontend          -> backend:26154 -> backend HTTP API
 
-    Container on another Docker network
-
-    Junjo application -> host.docker.internal:26155 -> OTLP gRPC ingest
-
 **Port Reference:**
 
 - **26151**: Local host HTTP - Development web UI

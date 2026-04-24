@@ -65,14 +65,6 @@ class JunjoOtelExporter:
             insecure=True,
         )
 
-        # Option 3: Running in a different Docker network on Docker Desktop
-        junjo_exporter_other_network = JunjoOtelExporter(
-            host="host.docker.internal",
-            port="26155",
-            api_key=JUNJO_AI_STUDIO_API_KEY,
-            insecure=True,
-        )
-
         # Add to your tracer provider
         provider = TracerProvider()
         provider.add_span_processor(junjo_exporter_local.span_processor)

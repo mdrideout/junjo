@@ -322,9 +322,8 @@ These ports need to be accessible:
 
 - Frontend: ``http://localhost:26151`` for local source-development builds, or ``http://localhost:26153`` for local production-build frontends
 - Backend API: ``localhost:26154`` (Optional, usually only accessed by frontend)
-- Ingestion: ``localhost:26155`` (Your applications connect here)
+- Ingestion: ``localhost:26155`` (Applications running on the host machine connect here)
 - Same-network container ingestion: ``ingestion:26155``
-- Other Docker network ingestion: ``host.docker.internal:26155`` on Docker Desktop
 
 **Production (with reverse proxy):**
 
