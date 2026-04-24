@@ -13,7 +13,9 @@ services:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
       - ./backend/app:/app/app
     ports:
-      - "127.0.0.1:26154:26154"
+      - "26154:26154"
+    networks:
+      - junjo-network
     env_file:
       - .env
     environment:
@@ -48,7 +50,9 @@ services:
       - ingestion-cargo-cache:/usr/local/cargo/registry
       - ingestion-target-cache:/app/target
     ports:
-      - "127.0.0.1:26155:26155"
+      - "26155:26155"
+    networks:
+      - junjo-network
     env_file:
       - .env
     environment:
@@ -60,6 +64,12 @@ services:
     depends_on:
       backend:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
 
   frontend:
     restart: unless-stopped
@@ -71,8 +81,10 @@ services:
       - frontend-modules:/app/node_modules
       - ./frontend:/app
     ports:
-      - "127.0.0.1:26151:26151"
-      - "127.0.0.1:26153:26153"
+      - "26151:26151"
+      - "26153:26153"
+    networks:
+      - junjo-network
     env_file:
       - .env
     depends_on:
@@ -83,3 +95,8 @@ volumes:
   frontend-modules:
   ingestion-cargo-cache:
   ingestion-target-cache:
+
+networks:
+  junjo-network:
+    name: junjo_network
+    driver: bridge

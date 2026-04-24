@@ -577,7 +577,7 @@ class AppSettings(BaseSettings):
 
         # Auto-derive CORS origins from frontend URL in production
         # Only auto-derive if not explicitly set (still using default localhost origins)
-        default_localhost_origins = [f"http://localhost:{self.DEFAULT_DEV_FRONTEND_PORT}"]
+        default_localhost_origins = [self.dev_frontend_origin, self.prod_frontend_origin]
         if not self.cors_origins or self.cors_origins == default_localhost_origins:
             if self.prod_frontend_url:
                 self.cors_origins = [self.prod_frontend_url]

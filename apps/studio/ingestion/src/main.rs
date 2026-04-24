@@ -150,7 +150,10 @@ async fn run_internal_server(
 ) -> anyhow::Result<()> {
     use proto::internal_ingestion_service_server::InternalIngestionServiceServer;
 
+    let (_health_reporter, health_service) = tonic_health::server::health_reporter();
+
     Server::builder()
+        .add_service(health_service)
         .add_service(InternalIngestionServiceServer::new(internal_service))
         .serve(addr)
         .await?;
