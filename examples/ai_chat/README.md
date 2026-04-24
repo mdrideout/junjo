@@ -59,6 +59,12 @@ Environment variables live in `backend/.env.example` (copy to `backend/.env` and
 
 Have the [junjo-ai-studio](https://github.com/mdrideout/junjo-ai-studio) running on your machine to see the telemetry and graph visualizations.
 
+For a local Docker Compose AI Studio stack, the default host-side ports are:
+
+- UI: `http://localhost:26151`
+- API: `localhost:26154`
+- OTLP gRPC ingestion: `localhost:26155`
+
 ### Clearing the SQLite database
 
 The SQLite database (see `backend/src/app/db/db_config.py`) should persist inside the `backend/sqlite-data` folder in this project.

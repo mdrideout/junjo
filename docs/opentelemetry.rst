@@ -141,8 +141,8 @@ See :doc:`junjo_ai_studio` for complete setup.
     from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",  # Junjo AI Studio ingestion service
-        port="50051",      # gRPC port for receiving spans
+        host="localhost",  # Local Junjo AI Studio Docker Compose stack
+        port="26155",      # Host-side OTLP gRPC port
         api_key=api_key,
         insecure=True      # Use False in production with TLS
     )
@@ -217,8 +217,8 @@ You can send telemetry to multiple platforms simultaneously:
     
     # Add Junjo AI Studio exporter
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",  # Junjo AI Studio ingestion service
-        port="50051",      # gRPC port for receiving spans
+        host="localhost",  # Local Junjo AI Studio Docker Compose stack
+        port="26155",      # Host-side OTLP gRPC port
         api_key=junjo_api_key,
         insecure=True      # Use False in production with TLS
     )
@@ -406,8 +406,8 @@ Here's a complete OpenTelemetry setup for Junjo:
         
         # Configure Junjo AI Studio exporter
         junjo_exporter = JunjoOtelExporter(
-            host="localhost",  # Junjo AI Studio ingestion service
-            port="50051",      # gRPC port for receiving spans
+            host="localhost",  # Local Junjo AI Studio Docker Compose stack
+            port="26155",      # Host-side OTLP gRPC port
             api_key=api_key,
             insecure=not is_production  # True for local dev, False for production
         )

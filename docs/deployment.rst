@@ -39,7 +39,7 @@ This GitHub template repository provides:
     docker compose up -d
 
     # Access UI
-    open http://localhost:5153
+    open http://localhost:26151
 
 Digital Ocean VM Deployment Example
 ------------------------------------
@@ -60,7 +60,7 @@ This example demonstrates:
 
   - Web UI: ``https://junjo.example.com``
   - API: ``https://api.junjo.example.com``
-  - Ingestion: ``grpc.junjo.example.com:443``
+  - Ingestion: ``https://ingestion.junjo.example.com``
 
 - **Data persistence** - Optional block storage for scalable data management
 - **Production-ready configuration** - Environment variables, Docker networking, and service orchestration

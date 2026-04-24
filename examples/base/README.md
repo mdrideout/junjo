@@ -14,7 +14,13 @@ See the **ai_chat** example for a more advanced frontend / backend E2E experienc
 
 ### Recommended Setup: Junjo AI Studio
 
-Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) for a turn-key way to see how this example streams debugging telemetry. This is optional. Junjo works with any OpenTelemetry provider. 
+Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) for a turn-key way to see how this example streams debugging telemetry. This is optional. Junjo works with any OpenTelemetry provider.
+
+For a local Docker Compose AI Studio stack, the default host-side ports are:
+
+- UI: `http://localhost:26151`
+- API: `localhost:26154`
+- OTLP gRPC ingestion: `localhost:26155`
 
 ### Run the example
 

@@ -36,7 +36,7 @@ The ingestion service provides high-throughput OpenTelemetry data reception usin
 
 **Ports:**
 
-- ``50051`` - OpenTelemetry gRPC ingestion endpoint (public, your applications connect here)
+- ``26155`` - OpenTelemetry gRPC ingestion endpoint exposed by the ingestion service
 - ``50052`` - Internal gRPC for backend queries (PrepareHotSnapshot / FlushWAL) (internal)
 
 **Notes:**
@@ -55,7 +55,8 @@ The frontend service provides the interactive web UI for visualizing and debuggi
 
 **Ports:**
 
-- ``80`` - Web UI HTTP server (public)
+- ``26151`` - Development web UI HTTP server
+- ``26153`` - Production-build web UI HTTP server
 
 **Notes:**
 
@@ -79,22 +80,21 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
     # https://github.com/mdrideout/junjo-ai-studio-minimal-build
 
     services:
-      junjo-ai-studio-backend:
+      backend:
         image: mdrideout/junjo-ai-studio-backend:latest
-        container_name: junjo-ai-studio-backend
         restart: unless-stopped
         volumes:
           # Database storage (required for all modes)
           - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         ports:
-          - "1323:1323" # HTTP API (public)
+          - "26154:26154" # Local backend API
         networks:
           - junjo-network
         env_file:
           - .env
         environment:
-          # Override host/port for Docker network communication
-          - INGESTION_HOST=junjo-ai-studio-ingestion
+          # Private backend-to-ingestion RPC; not an OTLP endpoint
+          - INGESTION_HOST=ingestion
           - INGESTION_PORT=50052
           # Enable migrations on startup
           - RUN_MIGRATIONS=true
@@ -103,21 +103,21 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
           - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
-      junjo-ai-studio-ingestion:
+      ingestion:
         image: mdrideout/junjo-ai-studio-ingestion:latest
-        container_name: junjo-ai-studio-ingestion
         restart: unless-stopped
         volumes:
           # Database storage (required for all modes)
           - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         ports:
-          - "50051:50051" # Public OTLP endpoint (authenticated via API key)
+          - "26155:26155" # Local OTLP endpoint (authenticated via API key)
         networks:
           - junjo-network
         env_file:
           - .env
         environment:
-          - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+          # Private ingestion-to-backend auth RPC
+          - BACKEND_GRPC_HOST=backend
           - BACKEND_GRPC_PORT=50053
           # Arrow IPC WAL directory
           - WAL_DIR=/app/.dbdata/spans/wal
@@ -126,7 +126,7 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           # Parquet output directory (backend indexer watches this)
           - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
         depends_on:
-          junjo-ai-studio-backend:
+          backend:
             condition: service_started
         healthcheck:
           test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
@@ -135,18 +135,18 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           retries: 5
           start_period: 5s
 
-      junjo-ai-studio-frontend:
+      frontend:
         image: mdrideout/junjo-ai-studio-frontend:latest
-        container_name: junjo-ai-studio-frontend
         restart: unless-stopped
         ports:
-          - "5153:80" # Public frontend (production build - nginx serving static files on port 80)
+          - "26151:26151" # Local development frontend
+          - "26153:26153" # Local production-build frontend
         env_file:
           - .env
         networks:
           - junjo-network
         depends_on:
-          junjo-ai-studio-backend:
+          backend:
             condition: service_started
 
     networks:
@@ -182,7 +182,7 @@ Common Configuration
 ``JUNJO_ALLOW_ORIGINS``
     **Optional.** Comma-separated list of allowed CORS origins for API requests.
 
-    - **Development Default:** ``http://localhost:5151,http://localhost:5153``
+    - **Development Default:** ``http://localhost:26151,http://localhost:26153``
     - **Production:** Auto-derived from ``JUNJO_PROD_FRONTEND_URL`` if not set.
 
 Security (Backend)
@@ -302,13 +302,16 @@ Port Mappings
 Internal Communication
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Services communicate internally via the Docker network. These ports do not need to be exposed to the host:
+Junjo AI Studio services communicate privately inside the Docker network for
+hot-snapshot and API-key validation RPCs. Junjo library applications do not use
+these private RPC ports as telemetry endpoints:
 
 .. code-block:: text
 
-    Backend (1323) ←→ Frontend
-    Backend (50052) ←→ Ingestion (internal RPC)
-    Backend (50053) ←→ Ingestion (internal auth RPC)
+    Frontend -> Backend (26154)
+    Backend -> Ingestion (50052, internal hot-snapshot / WAL-flush RPC)
+    Ingestion -> Backend (50053, internal API-key validation RPC)
+    Same-network application -> Ingestion (26155, OTLP gRPC)
 
 External Access
 ~~~~~~~~~~~~~~~
@@ -317,15 +320,17 @@ These ports need to be accessible:
 
 **Development:**
 
-- Frontend: ``http://localhost:5153`` (Web UI)
-- Backend API: ``http://localhost:1323`` (Optional, usually only accessed by frontend)
-- Ingestion: ``localhost:50051`` (Your applications connect here)
+- Frontend: ``http://localhost:26151`` for local source-development builds, or ``http://localhost:26153`` for local production-build frontends
+- Backend API: ``localhost:26154`` (Optional, usually only accessed by frontend)
+- Ingestion: ``localhost:26155`` (Your applications connect here)
+- Same-network container ingestion: ``ingestion:26155``
+- Other Docker network ingestion: ``host.docker.internal:26155`` on Docker Desktop
 
 **Production (with reverse proxy):**
 
 - Frontend: ``https://junjo.example.com`` (Web UI)
 - Backend API: ``https://api.junjo.example.com`` (API)
-- Ingestion: ``ingestion.junjo.example.com`` (gRPC with TLS - see Caddyfile routing example)
+- Ingestion: ``https://ingestion.example.com`` (gRPC with TLS - see Caddyfile routing example)
 
 See :doc:`deployment` for production deployment examples with Caddy reverse proxy.
 
@@ -382,18 +387,18 @@ Example Caddyfile:
       # backend: api.junjo.example.com
       @api host api.junjo.example.com
       handle @api {
-        reverse_proxy junjo-ai-studio-backend:1323
+        reverse_proxy backend:26154
       }
 
       # ingestion: ingestion.junjo.example.com
       @ingestion host ingestion.junjo.example.com
       handle @ingestion {
-        reverse_proxy h2c://junjo-ai-studio-ingestion:50051
+        reverse_proxy h2c://ingestion:26155
       }
 
       # frontend: Fallback for the root domain
       handle {
-        reverse_proxy junjo-ai-studio-frontend:80
+        reverse_proxy frontend:26153
       }
     }
 
@@ -422,9 +427,9 @@ Check logs for specific errors:
 
 .. code-block:: bash
 
-    docker compose logs junjo-ai-studio-backend
-    docker compose logs junjo-ai-studio-ingestion
-    docker compose logs junjo-ai-studio-frontend
+    docker compose logs backend
+    docker compose logs ingestion
+    docker compose logs frontend
 
 Common issues:
 

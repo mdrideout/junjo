@@ -66,7 +66,7 @@ class FalseReturningMetricReader:
 def test_shutdown_calls_span_processor_and_metric_reader_shutdown() -> None:
     exporter = JunjoOtelExporter(
         host="localhost",
-        port="50051",
+        port="26155",
         api_key="test-key",
         insecure=True,
     )
@@ -87,7 +87,7 @@ def test_shutdown_calls_span_processor_and_metric_reader_shutdown() -> None:
 def test_flush_calls_force_flush_without_shutdown() -> None:
     exporter = JunjoOtelExporter(
         host="localhost",
-        port="50051",
+        port="26155",
         api_key="test-key",
         insecure=True,
     )
@@ -110,7 +110,7 @@ def test_shutdown_logs_warnings_when_component_shutdown_fails(
 ) -> None:
     exporter = JunjoOtelExporter(
         host="localhost",
-        port="50051",
+        port="26155",
         api_key="test-key",
         insecure=True,
     )
@@ -123,14 +123,14 @@ def test_shutdown_logs_warnings_when_component_shutdown_fails(
     assert success is False
     messages = [record.getMessage() for record in caplog.records]
     assert (
-        "Failed to shut down the Junjo span processor for endpoint localhost:50051."
+        "Failed to shut down the Junjo span processor for endpoint localhost:26155."
         in messages
     )
     assert (
-        "Failed to shut down the Junjo metric reader for endpoint localhost:50051."
+        "Failed to shut down the Junjo metric reader for endpoint localhost:26155."
         in messages
     )
-    assert all(getattr(record, "endpoint", None) == "localhost:50051" for record in caplog.records)
+    assert all(getattr(record, "endpoint", None) == "localhost:26155" for record in caplog.records)
 
 
 def test_flush_logs_warnings_when_components_do_not_flush_cleanly(
@@ -138,7 +138,7 @@ def test_flush_logs_warnings_when_components_do_not_flush_cleanly(
 ) -> None:
     exporter = JunjoOtelExporter(
         host="localhost",
-        port="50051",
+        port="26155",
         api_key="test-key",
         insecure=True,
     )
@@ -151,14 +151,14 @@ def test_flush_logs_warnings_when_components_do_not_flush_cleanly(
     assert success is False
     messages = [record.getMessage() for record in caplog.records]
     assert (
-        "Junjo span processor force_flush returned false for endpoint localhost:50051."
+        "Junjo span processor force_flush returned false for endpoint localhost:26155."
         in messages
     )
     assert (
-        "Junjo metric reader force_flush returned false for endpoint localhost:50051."
+        "Junjo metric reader force_flush returned false for endpoint localhost:26155."
         in messages
     )
-    assert all(getattr(record, "endpoint", None) == "localhost:50051" for record in caplog.records)
+    assert all(getattr(record, "endpoint", None) == "localhost:26155" for record in caplog.records)
 
 
 def test_flush_logs_warnings_when_component_flush_raises(
@@ -166,7 +166,7 @@ def test_flush_logs_warnings_when_component_flush_raises(
 ) -> None:
     exporter = JunjoOtelExporter(
         host="localhost",
-        port="50051",
+        port="26155",
         api_key="test-key",
         insecure=True,
     )
@@ -179,11 +179,11 @@ def test_flush_logs_warnings_when_component_flush_raises(
     assert success is False
     messages = [record.getMessage() for record in caplog.records]
     assert (
-        "Failed to force-flush the Junjo span processor for endpoint localhost:50051."
+        "Failed to force-flush the Junjo span processor for endpoint localhost:26155."
         in messages
     )
     assert (
-        "Failed to force-flush the Junjo metric reader for endpoint localhost:50051."
+        "Failed to force-flush the Junjo metric reader for endpoint localhost:26155."
         in messages
     )
-    assert all(getattr(record, "endpoint", None) == "localhost:50051" for record in caplog.records)
+    assert all(getattr(record, "endpoint", None) == "localhost:26155" for record in caplog.records)

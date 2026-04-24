@@ -213,7 +213,8 @@ A directed graph gives one the building blocks to create any sort of agentic app
 # Start services
 docker compose up -d
 
-# Access UI at http://localhost:5153
+# Access the local source-development UI at http://localhost:26151
+# Local production-build UI is usually available at http://localhost:26153
 ```
 
 **Features:**
