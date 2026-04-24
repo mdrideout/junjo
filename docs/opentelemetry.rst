@@ -136,13 +136,17 @@ Built specifically for graph workflow debugging with:
 
 See :doc:`junjo_ai_studio` for complete setup.
 
+When your Junjo application runs in Docker, it only needs to be on the same
+Docker network as the Junjo AI Studio ingestion service. Use ``localhost:26155``
+only for applications running directly on the local machine.
+
 .. code-block:: python
 
     from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",  # Local Junjo AI Studio Docker Compose stack
-        port="26155",      # Host-side OTLP gRPC port
+        host="ingestion",  # The Junjo AI Studio container name on the same docker network
+        port="26155",
         api_key=api_key,
         insecure=True      # Use False in production with TLS
     )
@@ -217,8 +221,8 @@ You can send telemetry to multiple platforms simultaneously:
     
     # Add Junjo AI Studio exporter
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",  # Local Junjo AI Studio Docker Compose stack
-        port="26155",      # Host-side OTLP gRPC port
+        host="ingestion",  # The Junjo AI Studio container name on the same docker network
+        port="26155",
         api_key=junjo_api_key,
         insecure=True      # Use False in production with TLS
     )
@@ -404,10 +408,10 @@ Here's a complete OpenTelemetry setup for Junjo:
         # Set up tracer provider
         tracer_provider = TracerProvider(resource=resource)
         
-        # Configure Junjo AI Studio exporter
+        # Configure Junjo AI Studio exporter.
         junjo_exporter = JunjoOtelExporter(
-            host="localhost",  # Local Junjo AI Studio Docker Compose stack
-            port="26155",      # Host-side OTLP gRPC port
+            host="ingestion",  # The Junjo AI Studio container name on the same docker network
+            port="26155",
             api_key=api_key,
             insecure=not is_production  # True for local dev, False for production
         )

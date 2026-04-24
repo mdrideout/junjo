@@ -59,7 +59,7 @@ Environment variables live in `backend/.env.example` (copy to `backend/.env` and
 
 Have the [junjo-ai-studio](https://github.com/mdrideout/junjo-ai-studio) running on your machine to see the telemetry and graph visualizations.
 
-For a local Docker Compose AI Studio stack, the default host-side ports are:
+For a local Docker Compose AI Studio stack, the default local ports are:
 
 - UI: `http://localhost:26151`
 - API: `localhost:26154`

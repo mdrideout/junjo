@@ -322,8 +322,14 @@ These ports need to be accessible:
 
 - Frontend: ``http://localhost:26151`` for local source-development builds, or ``http://localhost:26153`` for local production-build frontends
 - Backend API: ``localhost:26154`` (Optional, usually only accessed by frontend)
-- Ingestion: ``localhost:26155`` (Applications running on the host machine connect here)
+- Ingestion: ``localhost:26155`` (Applications running on the local machine connect here)
 - Same-network container ingestion: ``ingestion:26155``
+
+If your Junjo application runs in Docker, it only needs to be on the same Docker
+network as the Junjo AI Studio ingestion service. Use ``host="ingestion"`` and
+``port="26155"`` when the ingestion service container is named ``ingestion``.
+Use ``localhost:26155`` only when the application runs directly on the local
+machine.
 
 **Production (with reverse proxy):**
 
@@ -358,6 +364,21 @@ All services should run on the same Docker network for internal communication:
       junjo-network:
         name: junjo_network
         driver: bridge
+
+Applications in separate Docker Compose projects can join the same network:
+
+.. code-block:: yaml
+
+    services:
+      app:
+        build: .
+        networks:
+          - junjo-network
+
+    networks:
+      junjo-network:
+        external: true
+        name: junjo_network
 
 Production Deployment
 ---------------------
@@ -435,7 +456,7 @@ Common issues:
 - Missing environment variables in ``.env``
 - Port conflicts (check with ``netstat -tlnp``)
 - Permission issues with volume mounts
-- Network not created (``docker network create junjo-network``)
+- Network not created (``docker network create junjo_network``)
 
 API Errors
 ~~~~~~~~~~

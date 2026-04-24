@@ -32,9 +32,8 @@ def init_otel(service_name: str):
     telemetry = Telemetry(provider=tracer_provider)
     telemetry.setup_otlp_exporter()
 
-    # Construct a Junjo exporter for a local Junjo AI Studio Docker Compose stack
     junjo_ai_studio_exporter = JunjoOtelExporter(
-        host="localhost",
+        host="ingestion",  # The Junjo AI Studio container name on the same docker network
         port="26155",
         api_key=junjo_api_key,
         insecure=True,

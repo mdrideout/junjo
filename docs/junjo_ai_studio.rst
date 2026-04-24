@@ -133,6 +133,7 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
 
     networks:
       junjo-network:
+        name: junjo_network
         driver: bridge
 
 **Start the services:**
@@ -179,6 +180,13 @@ Install the required OpenTelemetry packages:
 
     pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc
 
+Choose the endpoint based on where your application runs:
+
+- Application containers on the same Docker network as Junjo AI Studio use ``ingestion:26155``.
+- Applications running directly on the local machine use ``localhost:26155``.
+- Do not use ``localhost`` from an application container. It resolves to that
+  container, not to the Junjo AI Studio ingestion service.
+
 Create an OpenTelemetry configuration file:
 
 .. code-block:: python
@@ -206,10 +214,9 @@ Create an OpenTelemetry configuration file:
         # Set up tracer provider
         tracer_provider = TracerProvider(resource=resource)
         
-        # Configure Junjo AI Studio exporter
         junjo_exporter = JunjoOtelExporter(
-            host="localhost",  # Local Junjo AI Studio Docker Compose stack
-            port="26155",      # Host-side OTLP gRPC port
+            host="ingestion",  # The Junjo AI Studio container name on the same docker network
+            port="26155",
             api_key=api_key,
             insecure=True  # Use False in production with TLS
         )
@@ -226,6 +233,25 @@ Create an OpenTelemetry configuration file:
         metrics.set_meter_provider(meter_provider)
 
         return tracer_provider, meter_provider
+
+If your Junjo application runs in Docker, it only needs to be on the same Docker
+network as the Junjo AI Studio ingestion service:
+
+.. code-block:: yaml
+    :caption: application docker-compose.yml
+
+    services:
+      app:
+        build: .
+        environment:
+          - JUNJO_AI_STUDIO_API_KEY=${JUNJO_AI_STUDIO_API_KEY}
+        networks:
+          - junjo-network
+
+    networks:
+      junjo-network:
+        external: true
+        name: junjo_network
 
 Step 3: Initialize Telemetry in Your Application
 -------------------------------------------------
@@ -430,7 +456,7 @@ You can use Junjo AI Studio alongside other platforms:
     
     # Junjo AI Studio
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",
+        host="ingestion",  # The Junjo AI Studio container name on the same docker network
         port="26155",
         api_key=api_key,
         insecure=True
@@ -504,7 +530,7 @@ Performance issues
 Docker Compose not starting
 ----------------------------
 
-- Ensure Docker network exists: ``docker network create junjo-network``
+- Ensure Docker network exists: ``docker network create junjo_network``
 - Check environment variables are set in ``.env``
 - View logs: ``docker compose logs``
 - Try: ``docker compose down -v && docker compose up --build``

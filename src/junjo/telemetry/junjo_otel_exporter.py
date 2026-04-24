@@ -49,7 +49,7 @@ class JunjoOtelExporter:
         # Retrieve API key from environment
         JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
 
-        # Option 1: Using localhost from a host-side application
+        # Option 1: Application running directly on the local machine
         junjo_exporter_local = JunjoOtelExporter(
             host="localhost",
             port="26155",
@@ -57,9 +57,10 @@ class JunjoOtelExporter:
             insecure=True,
         )
 
-        # Option 2: Running in the same Junjo AI Studio Compose network
+        # Option 2: Application container on the same Docker network
+        # Do not use localhost from an app container; it resolves to that container.
         junjo_exporter_docker = JunjoOtelExporter(
-            host="ingestion",
+            host="ingestion",  # The Junjo AI Studio container name on the same docker network
             port="26155",
             api_key=JUNJO_AI_STUDIO_API_KEY,
             insecure=True,
