@@ -4,9 +4,8 @@ export const extractGraphNodeIdFromMermaidElementId = (
 ): string | null => {
   if (!svgId) return null
   const prefix = 'flowchart-'
-  if (!svgId.startsWith(prefix)) return null
 
-  let nodeId = svgId.substring(prefix.length)
+  let nodeId = svgId.startsWith(prefix) ? svgId.substring(prefix.length) : svgId
   nodeId = nodeId.replace(/-\d+$/, '')
   return nodeId
 }

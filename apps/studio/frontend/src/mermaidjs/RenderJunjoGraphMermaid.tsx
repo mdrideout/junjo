@@ -91,21 +91,21 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
    */
   const attachListenersAndAnnotate = useCallback(
     (container: HTMLDivElement) => {
-      const existing = container.querySelectorAll('.node')
-      existing.forEach((node) => {
-        const graphNodeId = extractGraphNodeIdFromMermaidElementId(node.id)
+      const renderedGraphElements = container.querySelectorAll('.node, .cluster')
+      renderedGraphElements.forEach((graphElement) => {
+        const graphNodeId = extractGraphNodeIdFromMermaidElementId(graphElement.id)
         const utilizedNodeSpan = graphNodeId ? findSpanForGraphNodeId(graphNodeId) : undefined
         if (!utilizedNodeSpan) {
-          node.classList.add('graph-element-not-utilized')
+          graphElement.classList.add('graph-element-not-utilized')
         } else {
           if (wrapSpan(utilizedNodeSpan).isSubflow) {
-            node.classList.add('node-subflow')
+            graphElement.classList.add('node-subflow')
           }
-          node.addEventListener('click', handleGraphNodeClick as EventListener)
+          graphElement.addEventListener('click', handleGraphNodeClick as EventListener)
         }
 
         if (utilizedNodeSpan && wrapSpan(utilizedNodeSpan).hasFailureSignal) {
-          node.classList.add('node-has-exception')
+          graphElement.classList.add('node-has-exception')
         }
       })
     },
@@ -201,10 +201,14 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
       // Use querySelector with an attribute "starts with" selector [id^=...]
       // Query within the specific svgContainerRef.current for better scoping
       // Use CSS.escape for robustness with potential special characters in IDs
-      const activeNode = svgContainerRef.current.querySelector(`[id^="${CSS.escape(baseTargetId)}"]`)
+      const activeNode = svgContainerRef.current.querySelector(
+        `[id^="${CSS.escape(baseTargetId)}"], #${CSS.escape(graphNodeId)}`,
+      )
 
-      if (activeNode && activeNode.classList.contains('node')) {
-        // Extra check that it's a node group
+      if (
+        activeNode &&
+        (activeNode.classList.contains('node') || activeNode.classList.contains('cluster'))
+      ) {
         activeNode.classList.add('mermaid-node-active')
 
         // Scroll to the active node

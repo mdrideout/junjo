@@ -87,6 +87,10 @@ export class JunjoGraph {
         continue
       }
 
+      if (subflowInternalNodeIds.has(node.nodeRuntimeId)) {
+        continue
+      }
+
       lines.push('')
       lines.push(`  subgraph ${node.nodeRuntimeId} [${escapeMermaidLabel(node.nodeLabel)}]`)
       lines.push(`    direction ${subDirection}`)
@@ -111,6 +115,13 @@ export class JunjoGraph {
     lines.push('')
     for (const edge of this.graph.edges) {
       if (edge.edgeScope === 'subflow') {
+        continue
+      }
+
+      if (
+        subflowInternalNodeIds.has(edge.tailNodeRuntimeId) ||
+        subflowInternalNodeIds.has(edge.headNodeRuntimeId)
+      ) {
         continue
       }
 

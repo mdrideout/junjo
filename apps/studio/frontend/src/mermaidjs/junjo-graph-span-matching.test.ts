@@ -6,6 +6,7 @@ import {
   findRenderedGraphNodeIdForSpan,
   findSpanForRenderedGraphNodeId,
 } from './junjo-graph-span-matching'
+import { extractGraphNodeIdFromMermaidElementId } from './mermaid-render-utils'
 
 function loadFixtureSpans(caseName: string): OtelSpan[] {
   const fixture = loadJunjoTransportFixtureCase(caseName)
@@ -49,10 +50,15 @@ describe('Junjo graph span matching', () => {
     const spans = loadFixtureSpans('run_concurrent_success')
     const graph = loadWorkflowGraph(spans, '3333333333333331')
     const concurrentSpan = findSpan(spans, '3333333333333333')
+    const renderedClusterId = extractGraphNodeIdFromMermaidElementId('run.concurrent.fanout')
 
     expect(findSpanForRenderedGraphNodeId(graph, 'run.concurrent.fanout', spans)?.span_id).toBe(
       '3333333333333333',
     )
+    expect(renderedClusterId).toBe('run.concurrent.fanout')
+    expect(
+      renderedClusterId ? findSpanForRenderedGraphNodeId(graph, renderedClusterId, spans)?.span_id : null,
+    ).toBe('3333333333333333')
     expect(findRenderedGraphNodeIdForSpan(graph, concurrentSpan)).toBe('run.concurrent.fanout')
   })
 
