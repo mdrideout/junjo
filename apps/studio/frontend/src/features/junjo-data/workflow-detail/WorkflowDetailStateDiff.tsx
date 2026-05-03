@@ -192,12 +192,17 @@ export default function WorkflowDetailStateDiff(props: WorkflowDetailStateDiffPr
   useEffect(() => {
     if (activeSetStateEvent === null) {
       setActiveTab(DiffTabOptions.SPAN_DETAILS)
-    } else {
-      if (activeTab === DiffTabOptions.SPAN_DETAILS) {
-        setActiveTab(DiffTabOptions.AFTER)
-      }
+      return
     }
-  }, [activeSetStateEvent, activeTab])
+
+    setActiveTab((currentTab) => {
+      if (currentTab === DiffTabOptions.SPAN_DETAILS) {
+        return DiffTabOptions.AFTER
+      }
+
+      return currentTab
+    })
+  }, [activeSetStateEvent])
 
   /**
    * Ensure parent paths exist for array index operations.
