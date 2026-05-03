@@ -35,7 +35,6 @@ def find_free_port() -> int:
         return s.getsockname()[1]
 
 
-
 def wait_for_port(port: int, timeout: float = 60.0) -> bool:
     """Wait for a port to become available."""
     start = time.time()
@@ -115,7 +114,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
 
     This fixture:
     1. Uses pre-built binary from rust_ingestion_binary (session-scoped)
-    2. Kills any existing ingestion processes
+    2. Allocates ephemeral public/internal ports to avoid local conflicts
     3. Creates temp directories for WAL, Parquet, and snapshot
     4. Starts the ingestion service
     5. Waits for it to be ready

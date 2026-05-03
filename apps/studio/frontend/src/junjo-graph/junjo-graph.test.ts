@@ -155,4 +155,73 @@ describe('JunjoGraph', () => {
     expect(mermaid).not.toContain('parent.prepare --> child.concurrent')
     expect(mermaid).not.toContain('child.concurrent --> child.done')
   })
+
+  it('omits no-edge single-node subflow internals from parent workflow Mermaid output', () => {
+    const graph = JunjoGraph.fromJson({
+      v: 1,
+      graphStructuralId: 'graph-parent-with-single-node-subflow',
+      nodes: [
+        {
+          nodeRuntimeId: 'parent.prepare',
+          nodeStructuralId: 'struct-parent-prepare',
+          nodeType: 'Node',
+          nodeLabel: 'prepare',
+        },
+        {
+          nodeRuntimeId: 'parent.subflow',
+          nodeStructuralId: 'struct-parent-subflow',
+          nodeType: 'Workflow',
+          nodeLabel: 'single_node_subflow',
+          isSubflow: true,
+          subflowGraphStructuralId: 'graph-child-single-node',
+          subflowSourceNodeRuntimeId: 'child.only_node',
+          subflowSourceNodeStructuralId: 'struct-child-only',
+          subflowSinkNodeRuntimeIds: ['child.only_node'],
+          subflowSinkNodeStructuralIds: ['struct-child-only'],
+        },
+        {
+          nodeRuntimeId: 'parent.done',
+          nodeStructuralId: 'struct-parent-done',
+          nodeType: 'Node',
+          nodeLabel: 'done',
+        },
+        {
+          nodeRuntimeId: 'child.only_node',
+          nodeStructuralId: 'struct-child-only',
+          nodeType: 'Node',
+          nodeLabel: 'child_only_node',
+        },
+      ],
+      edges: [
+        {
+          edgeStructuralId: 'edge-parent-prepare-subflow',
+          tailNodeRuntimeId: 'parent.prepare',
+          tailNodeStructuralId: 'struct-parent-prepare',
+          headNodeRuntimeId: 'parent.subflow',
+          headNodeStructuralId: 'struct-parent-subflow',
+          edgeConditionLabel: null,
+          edgeScope: 'explicit',
+          parentSubflowRuntimeId: null,
+        },
+        {
+          edgeStructuralId: 'edge-parent-subflow-done',
+          tailNodeRuntimeId: 'parent.subflow',
+          tailNodeStructuralId: 'struct-parent-subflow',
+          headNodeRuntimeId: 'parent.done',
+          headNodeStructuralId: 'struct-parent-done',
+          edgeConditionLabel: null,
+          edgeScope: 'explicit',
+          parentSubflowRuntimeId: null,
+        },
+      ],
+    })
+
+    const mermaid = graph.toMermaid()
+
+    expect(mermaid).toContain('parent.prepare@{ shape: rect, label: "prepare" }')
+    expect(mermaid).toContain('parent.subflow@{ shape: st-rect, label: "single_node_subflow" }')
+    expect(mermaid).toContain('parent.subflow --> parent.done')
+    expect(mermaid).not.toContain('child.only_node')
+    expect(mermaid).not.toContain('child_only_node')
+  })
 })

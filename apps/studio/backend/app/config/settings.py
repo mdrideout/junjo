@@ -521,19 +521,19 @@ class AppSettings(BaseSettings):
         if not self.prod_frontend_url:
             raise ValueError(
                 "PROD_FRONTEND_URL is required when JUNJO_ENV=production. "
-                "See .env.example and docs/DEPLOYMENT.md for configuration details."
+                "See .env.example and README.md for deployment configuration details."
             )
 
         if not self.prod_backend_url:
             raise ValueError(
                 "PROD_BACKEND_URL is required when JUNJO_ENV=production. "
-                "See .env.example and docs/DEPLOYMENT.md for configuration details."
+                "See .env.example and README.md for deployment configuration details."
             )
 
         if not self.prod_ingestion_url:
             raise ValueError(
                 "PROD_INGESTION_URL is required when JUNJO_ENV=production. "
-                "See .env.example and docs/DEPLOYMENT.md for configuration details."
+                "See .env.example and README.md for deployment configuration details."
             )
 
         # Validate URL formats
@@ -572,7 +572,7 @@ class AppSettings(BaseSettings):
                     f"    ✅ app.example.com + api.example.com (same domain)\n"
                     f"    ✅ example.com + api.example.com (same domain)\n"
                     f"    ❌ app.example.com + service.run.app (different domains - WILL NOT WORK)\n"
-                    f"  See docs/DEPLOYMENT.md for deployment architecture requirements."
+                    f"  See README.md for deployment architecture requirements."
                 )
 
         # Auto-derive CORS origins from frontend URL in production

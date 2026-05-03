@@ -53,6 +53,16 @@ export class JunjoGraph {
           concurrentChildIds.add(childNodeRuntimeId)
         }
       }
+
+      if (node.isSubflow) {
+        if (node.subflowSourceNodeRuntimeId) {
+          subflowInternalNodeIds.add(node.subflowSourceNodeRuntimeId)
+        }
+
+        for (const sinkNodeRuntimeId of node.subflowSinkNodeRuntimeIds ?? []) {
+          subflowInternalNodeIds.add(sinkNodeRuntimeId)
+        }
+      }
     }
 
     for (const edge of this.graph.edges) {
