@@ -4,22 +4,28 @@
 
 - Be grug brained.
 - Everything here is greenfield. No fallbacks or backward compatibility are required.
-- Do thorough, complete work. Do not optimize for shortcutting the task.
-- Avoid abstractions unless repetition has become brittle.
-- Prefer straightforward, single-purpose code.
-- Prefer explicit control flow over clever code.
-- Code is the source of truth. Keep docs strategic and scoped.
+- Do thorough, complete work. Do not try to save time. Do not do bandaids. Do proper complete well architected work.
+- Do not use abstractions unless repetition has become brittle.
+- Use single responsibility principle and separation of concerns.
+- No clever code. Use principle of least astonishment. No misdirection. Write simple, explicit code.
+- Ground all plans, strategy, and analysis in the code. Do not make assumptions about what is in files.
+- Avoid scope creep - do not re-write or change code that is not within the scope of the task unless it is directly related.
 
 ## Runtime Rules
 
-- Never hand-edit Alembic migrations.
-- Never run migration generation yourself.
-- If a model change needs a migration, ask the user to generate it.
-- Do not preserve stale docs for convenience.
-- Do not introduce duplicate instruction surfaces when one owner is enough.
-- When implementation details and docs disagree, trust the code, then fix the docs.
+- Never hand-edit Alembic migrations. Migrations must be generated programmatically.
+- Never run migration generation yourself. Always check how this codebase runs migrations.
+- Check ADR documents before implementation, and raise concerns if we are changing or violating architectural principles. Do not simply change ADRs to match new implementation without explicit consideration and approval. Implementation should follow ADR guidance as the source of strategic truth. If we change strategy, ADRs are updated before implementation proceeds. 
+- When implementation details and docs disagree, trust the latest code implementation, then fix documentation drift. Raise alarms if code implementation has significant mismatch from ADRs or docs.
 
-## Repo Layout
+## Codebase Complexity
+
+- This is a complex data ingestion + data exploration user interface repository. Changes are very likely to impact several systems.
+- When planning and making changes, always investigate the end-to-end impact and downstream effects.
+
+### Repository Domain Organization
+
+Careful consideration is needed for code in every domain. We separate code by responsibility, however, each of these areas has contracts and interactions with each other.
 
 - `backend/`: FastAPI backend, SQLite user DB, metadata DB, DataFusion query layer, backend tests and migrations.
 - `ingestion/`: Rust OTLP ingestion service, WAL, Parquet flush, hot snapshot, ingestion ADRs and tests.
@@ -28,7 +34,7 @@
 - `docs/adr/`: Repo-wide strategic decisions and cross-service contracts only.
 - `scripts/`: Root helper scripts.
 
-## Commands That Matter
+## Important Commands
 
 Run from repo root unless a command says otherwise.
 
@@ -52,34 +58,27 @@ Ingestion:
 
 - Ingestion tests: `cd ingestion && cargo test --locked`
 
-## Done Means
+## Documentation Rules
 
-- The requested change is fully implemented end-to-end.
-- The smallest relevant verification commands were run.
-- Generated artifacts were updated only through the owning command or script.
-- Docs were updated only in the owning document when behavior or decisions changed.
-- No duplicated or stale guidance was introduced.
-
-## Documentation Ownership
+Do not create duplicate sources of truth in documentation. Make sure documentation has a proper owner. You can reference other docs from a document, but never have duplication of content. 
 
 - `AGENTS.md`: Repo runtime guidance for Codex. Keep it short and practical.
 - `.agents/skills/`: Detailed subsystem or workflow instructions for repeated tasks.
 - `README.md`: Human onboarding and product/developer overview.
-- `docs/adr/`: Decision records only. No implementation tutorials.
+- `docs/adr/`: Global level ADRs (individual features may have their own ADR docs)
 - `ingestion/adr/`: Ingestion-owned design decisions only.
 - `TESTING.md`: Human testing guide.
 - `backend/app/db_sqlite/README.md`: Backend DB subsystem guidance.
 
-When updating docs:
+ADRs are for decisions made, architecture, strategy, reasoning, alternatives evaluated, and providing context for why things are the way they are. They make it clear what the latest implementation is, and briefly mention past implementations or declined implementations. These help humans and LLMs avoid re-introducing faulty logic or making changes inconsiderate of important decisions.
 
-- Put implementation detail in code, tests, or near-code docs.
-- Put decisions in ADRs.
-- Do not mirror the same design across multiple ADRs.
-- Do not add file inventories or config snapshots that will drift.
+- When working in a directory, always check it for ADR docs.
+- Implementation belongs in code and tests. We do not duplicate implementation details in docs.
+- Do not write code in docs. Docs are higher level, strategic, or pseudo-code.
 
-## Skills Dispatch
+## Skills
 
-Use repo-local skills instead of expanding this file.
+Utilize skills during implementation and plannning. AGENTS.md is for context that should be in EVERY runtime agent process. Skills are domain or task specific.
 
 - `ingestion-flow`: WAL, flush, snapshot, recent-cold bridging, OTLP ingestion, ingestion-related proto work.
 - `backend-python`: FastAPI, backend repositories/services, SQLite patterns, DataFusion orchestration, backend tests.
@@ -101,5 +100,4 @@ Use repo-local skills instead of expanding this file.
 
 - Check the worktree before destructive edits.
 - Do not revert unrelated user changes.
-- Prefer small, high-signal docs over long explanatory documents.
-- If Codex makes the same repo-specific mistake twice, update the correct skill or this file.
+- During procedural tasks, keep track of mistakes made (CLI misuse, etc.) and document what the correct implementation was to help future task runners avoid the same issue.
