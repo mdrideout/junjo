@@ -27,19 +27,23 @@ APP_NAME = "Junjo Chat Example"
 setup_logging()
 
 # Setup OpenTelemetry before anything else happens
-init_otel(service_name=APP_NAME)
+tracer_provider, meter_provider = init_otel(service_name=APP_NAME)
 
 
 # Dependency to manage the lifespan of the application
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize the database (OTEL instrumented in db_config.py)
-    await init_db()
-    yield
+    try:
+        # Initialize the database (OTEL instrumented in db_config.py)
+        await init_db()
+        yield
+    finally:
+        # Close the database connection before shutting down telemetry so
+        # database cleanup spans can still be exported.
+        await engine.dispose()
 
-    # Shutdown
-    # Close the database connection
-    await engine.dispose()
+        tracer_provider.shutdown()
+        meter_provider.shutdown()
 
 
 # Create the FastAPI app

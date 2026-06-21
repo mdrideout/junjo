@@ -59,6 +59,8 @@ Environment variables live in `backend/.env.example` (copy to `backend/.env` and
 
 Have the [junjo-ai-studio](https://github.com/mdrideout/junjo-ai-studio) running on your machine to see the telemetry and graph visualizations.
 
+AI Chat runs directly on your local machine with `uv run`. It sends Junjo telemetry to the local Junjo AI Studio ingestion endpoint on `localhost:26155`.
+
 For a local Docker Compose AI Studio stack, the default local ports are:
 
 - UI: `http://localhost:26151`
