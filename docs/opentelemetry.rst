@@ -270,6 +270,11 @@ This means your state model controls what appears in OpenTelemetry state
 payloads. If you want to exclude, redact, or truncate fields for telemetry,
 shape that behavior in your state model serialization.
 
+Junjo applies those serialization choices only when producing telemetry
+payloads. Runtime state transitions still use the state object's field values,
+so excluded or serialized fields are not removed or rewritten by later
+``set_state`` calls.
+
 This does **not** apply to ``junjo.workflow.execution_graph_snapshot``, which
 is generated from the compiled graph rather than from state serialization.
 

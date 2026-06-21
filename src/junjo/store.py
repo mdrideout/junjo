@@ -101,6 +101,21 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         """Attach internal lifecycle dispatch context for this execution."""
         self._lifecycle_context = context
 
+    def _current_runtime_state_data(self) -> dict[str, object]:
+        """
+        Return current state field values for runtime state transitions.
+
+        This intentionally avoids ``model_dump()`` because Pydantic
+        serialization controls such as ``Field(exclude=True)`` and
+        ``field_serializer`` are telemetry-facing concerns, not live state
+        transition mechanics.
+        """
+        state_snapshot = self._state.model_copy(deep=True)
+        return {
+            field_name: getattr(state_snapshot, field_name)
+            for field_name in type(state_snapshot).model_fields
+        }
+
     async def set_state(self, update: dict) -> None:
         """
         Update the store's state with a dictionary of changes.
@@ -133,6 +148,13 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
         .. note::
 
+            State transitions use runtime field values, not serialized state
+            dumps. Pydantic serialization controls such as
+            ``Field(exclude=True)`` and ``field_serializer`` affect telemetry
+            payloads but do not remove or rewrite live runtime state.
+
+        .. note::
+
             If the resulting state is unchanged, the store remains untouched
             and an empty patch is recorded in telemetry.
         """
@@ -148,8 +170,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         state_changed_payload: dict | None = None
         async with self._lock:
             try:
-                new_state = self._state.__class__.model_validate(
-                    {**self._state.model_dump(), **update}
+                new_state = type(self._state).model_validate(
+                    {**self._current_runtime_state_data(), **update}
                 )
             except ValidationError as e:
                 raise ValueError(

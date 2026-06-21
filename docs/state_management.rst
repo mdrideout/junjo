@@ -62,6 +62,10 @@ In this example:
 - ``prompt`` stays complete in runtime state but is truncated in serialized
   telemetry state
 
+Junjo uses runtime field values for state transitions. Pydantic serialization
+configuration controls telemetry payloads, but it does not remove or rewrite
+live state when later store actions call ``set_state``.
+
 BaseStore: Managing Your State
 ==============================
 
@@ -91,6 +95,7 @@ The `set_state` method is the **only** way to update the state in the store. It 
 - **Immutable Updates:** `set_state` creates a *copy* of the state with the updates applied. It does not mutate the original state object. This is crucial for preventing side effects and ensuring predictable state transitions.
 - **Concurrency-Safe:** All calls to `set_state` are protected by an `asyncio.Lock`, so you can safely call actions from multiple concurrent nodes without worrying about race conditions.
 - **Validation:** Before applying the update, `set_state` validates the new state against your Pydantic model. If the update is invalid, it will raise a `ValueError`.
+- **Runtime State Semantics:** `set_state` merges updates with runtime field values, not serialized state dumps. Serialization choices such as ``Field(exclude=True)`` and ``field_serializer`` are respected by telemetry output without changing live state.
 
 Using the Store in a Node
 =========================
