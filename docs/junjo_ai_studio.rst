@@ -293,7 +293,7 @@ Key Features Deep Dive
 Click on any node in the execution graph to:
 
 - See the exact state when that node executed
-- View state patches applied by that node
+- View state changes made while that node executed
 - Drill down into subflows
 - Explore concurrent execution branches
 
@@ -412,26 +412,95 @@ Subflow Spans
 - ``junjo.parent_executable_definition_id``: Parent workflow or concurrent definition ID
 - ``junjo.workflow.parent_store.id``: Parent store ID
 
-Graph Node To Span Mapping
---------------------------
+AI Studio Identity Contract
+---------------------------
 
-When Junjo AI Studio maps graph nodes back to spans, it should use the explicit
-runtime and structural identity fields from the execution graph snapshot rather
-than the older generic ``junjo.id`` model.
+Junjo AI Studio uses explicit executable identities from spans and the
+execution graph snapshot to connect trace data back to workflow graph
+structure.
 
-Recommended mapping rules:
+The identity fields have distinct meanings:
 
-- For normal nodes and ``RunConcurrent`` executables:
-  ``nodeRuntimeId`` in the execution graph snapshot maps to
-  ``junjo.executable_runtime_id`` on the emitted span.
-- For subflow nodes rendered inside a parent graph:
-  ``subflowGraphStructuralId`` maps cleanly to the child subflow span's
-  ``junjo.executable_structural_id``.
-- For definition-level matching of subflow nodes:
-  the parent graph's subflow ``nodeRuntimeId`` still corresponds to the
-  subflow executable definition id.
+- ``junjo.executable_definition_id`` identifies the reusable workflow, subflow,
+  node, or concurrent executable definition.
+- ``junjo.executable_runtime_id`` identifies the executable instance for one
+  execution.
+- ``junjo.executable_structural_id`` identifies the stable graph-shape position
+  for cross-run correlation.
+- ``junjo.enclosing_graph_structural_id`` identifies the compiled graph that
+  contains the executable.
 
-These attributes power Junjo AI Studio's specialized visualization and debugging features.
+OpenTelemetry parent span relationships remain the source of truth for the
+trace tree. Junjo parent executable fields add workflow graph semantics for
+features that need to understand the parent workflow, subflow, or concurrent
+execution boundary:
+
+- ``junjo.parent_executable_definition_id``
+- ``junjo.parent_executable_runtime_id``
+- ``junjo.parent_executable_structural_id``
+
+Execution Graph Snapshot Contract
+---------------------------------
+
+Workflow and subflow spans include
+``junjo.workflow.execution_graph_snapshot``. This is an execution-scoped
+compiled graph snapshot with runtime and structural identities for graph
+visualization and span matching.
+
+Top-level graph fields:
+
+- ``v``: graph snapshot schema version
+- ``graphStructuralId``: stable structural id for the compiled graph
+- ``nodes``: graph node records
+- ``edges``: graph edge records
+
+Every node record includes:
+
+- ``nodeRuntimeId``
+- ``nodeStructuralId``
+- ``nodeType``
+- ``nodeLabel``
+
+``RunConcurrent`` node records also include:
+
+- ``isConcurrentSubgraph``
+- ``childNodeRuntimeIds``
+
+Subflow node records also include:
+
+- ``isSubflow``
+- ``subflowGraphStructuralId``
+- ``subflowSourceNodeRuntimeId``
+- ``subflowSourceNodeStructuralId``
+- ``subflowSinkNodeRuntimeIds``
+- ``subflowSinkNodeStructuralIds``
+
+Every edge record includes:
+
+- ``edgeStructuralId``
+- ``tailNodeRuntimeId``
+- ``tailNodeStructuralId``
+- ``headNodeRuntimeId``
+- ``headNodeStructuralId``
+- ``edgeConditionLabel``
+- ``edgeScope``
+- ``parentSubflowRuntimeId``
+
+Graph Node To Span Matching
+---------------------------
+
+Junjo AI Studio uses these matching rules:
+
+- For normal nodes and ``RunConcurrent`` executables,
+  ``nodeRuntimeId`` maps to the span's ``junjo.executable_runtime_id``.
+- For a subflow execution span, ``subflowGraphStructuralId`` maps to the
+  subflow span's ``junjo.executable_structural_id``.
+- For definition-level matching of a subflow container node in the parent
+  graph, the parent graph's ``nodeRuntimeId`` maps to the subflow span's
+  ``junjo.executable_definition_id``.
+
+These fields power Junjo AI Studio's specialized workflow visualization,
+state-change timeline, and cross-run graph correlation features.
 
 Complete Example
 ================

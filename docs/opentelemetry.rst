@@ -277,6 +277,8 @@ so excluded or serialized fields are not removed or rewritten by later
 
 This does **not** apply to ``junjo.workflow.execution_graph_snapshot``, which
 is generated from the compiled graph rather than from state serialization.
+See :doc:`junjo_ai_studio` for the AI Studio identity and execution graph
+snapshot contract.
 
 Controlling Telemetry State Payloads
 ------------------------------------
