@@ -1,34 +1,29 @@
-# Junjo Agent Guide
+# Junjo SDK Library AGENTS.md
 
-This file is for code-writing agents working in the Junjo repo.
+Note: Junjo is a python Graph Based LLM workflow library. This is the junjo sdk library which has a companion `../junjo-ai-studio` telemetry library.
 
-Do not treat this as the main source of API truth. Public behavior, examples,
-and conceptual explanations should live in:
+Public behavior, examples, and conceptual explanations live in:
 
 - public class and function docstrings
 - Sphinx docs under `/Users/matt/repos/junjo/docs`
 - runnable examples under `/Users/matt/repos/junjo/examples`
 
-Use this file for repo-specific implementation guidance and authoring rules.
+## Developer Philosophy
 
-## Code Opinions
+- Be grug brained.
+- Everything here is greenfield. No fallbacks, deprecations, or backward compatibility are required. Do not carry through baggage when we are refactoring.
+  - Breaking changes are okay, but you need to document when they are made so we can ensure the junjo-ai-studio library remains compatible.
+- Do thorough, complete work. Do not try to save time. Do not do bandaids. Do proper complete well architected work.
+- Do not use abstractions unless repetition has become brittle.
+- Use single responsibility principle and separation of concerns.
+- No clever code. Use principle of least astonishment. No misdirection. Write simple, explicit code.
+- Ground all plans, strategy, and analysis in the code. Do not make assumptions about what is in files.
+- Avoid scope creep - do not re-write or change code that is not within the scope of the task unless it is directly related.
 
-- Be grug brained in approaches
-- Use clear separation of concerns
-- Do not create abstractions for single-use cases where inline is easier to understand
-- Do not build complex multi-line ternaries when clear if / else is more readable. Ternaries for very simple only.
-- Prefer more verbose, single purpose clear separation code over combined concepts or dual / multi-purpose functions.
-- Treat everything as greenfield: no fallbacks, deprecations, backward compatibility, or baggage should be carried through to new ideas.
-  - Keep track of all breaking changes to incorporate into release notes, but do not worry about causing breaking changes.
-  - These can go inside a "FUTURE RELESE" section of the changelog
-  - Document major changes and breaking changes in the CHANELOG.md as we go (not implementation details in the weeds)
-  - CHANGELOG.md should have the newest changes at the top
+## Repository Overview
 
-## Repo Truths
-
-- Junjo is a Python library for Python application developers.
-- Junjo is for building Graph-Based AI workflows where the workflow is conditionally traversed according to state.
-- Public APIs and docstrings are part of the product, not incidental comments.
+- Junjo is Python library for Python Application Developers who are building Graph-Based AI workflows where the workflow graph is conditionally traversed according to application state.
+- Public APIs and docstrings are part of the product, not incidental comments. Maintain them properly for public doc consumption.
 - OpenTelemetry is a first-class runtime concern.
 - Hooks are optional observers, not the control plane for telemetry.
 - Workflow execution is isolated per run. A `Workflow` or `Subflow` object is a reusable definition, not a live mutable run container.
@@ -38,10 +33,12 @@ Use this file for repo-specific implementation guidance and authoring rules.
 
 ## What AGENTS Should Optimize For
 
-- Prefer the least surprising design over the most abstract one.
-- Optimize for readability by a Python application developer, not framework cleverness.
+- Check ADR documents before implementation, and raise concerns if we are changing or violating architectural principles. Do not simply change ADRs to match new implementation without explicit consideration and approval. Implementation should follow ADR guidance as the source of strategic truth. If we change strategy, ADRs are updated before implementation proceeds. 
+- When implementation details and docs disagree, trust the latest code implementation, then fix documentation drift. Raise alarms if code implementation has significant mismatch from ADRs or docs.
+- Optimize for readability and clear, transparent consumption by a Python application developer. Do not be clever. We are not creating black box abstractions for the developer. We prefer obvious, verbose implementation patterns, not low-code convenience.
 - Keep separation of concerns obvious in both runtime code and examples.
 - Preserve or improve the teaching surface of the library when changing code.
+- Code implementation and code comments need to provide clear context and usage instructions to LLMs implementing the code.
 
 ## Public Docs Rules
 
@@ -69,28 +66,28 @@ Use this file for repo-specific implementation guidance and authoring rules.
 - We intentionally clearly separate Workflow / Graph / State / and Execution layers cleanly.
 - Telemetry must not depend on public hooks.
 - Prefer an internal lifecycle layer over constructing public hook events directly inside runtime modules.
-- Avoid coupling workflow execution files to example-only or logging-only concerns.
-- Avoid introducing compatibility scaffolding in greenfield work unless explicitly requested.
+- Do not couple workflow execution files to example-only or logging-only concerns.
 
 ## Store And State Rules
 
 - Keep the public store API patch-oriented and simple.
 - The library owns correct state transition mechanics.
 - Consumers own domain invariants and action boundaries.
-- Do not reintroduce stale validate-then-apply behavior.
 - Do not expose live mutable store internals through public result or hook APIs unless explicitly required.
+- State and store are inspired by Redux and the Elm Pattern. Follow our exposed interaction patterns cleanly.
 
 ## When Editing Public Surfaces
 
 Whenever behavior or public APIs change, update all of the following together:
 
-1. runtime code
-2. tests
-3. public docstrings
-4. Sphinx docs
-5. examples
+1. ADRs / strategic documentation (if new decisions made)
+2. runtime code
+3. tests
+4. public docstrings
+5. Sphinx docs
+6. examples
 
-Do not stop after tests pass if the docs/examples are now misleading.
+Be comprehensive so that we avoid documentation drift, or potential LLM context poison from outdated materials.
 
 ## Validation Checklist
 
@@ -102,7 +99,7 @@ For meaningful public-surface changes, run:
 - `uv run sphinx-build -b html docs docs/_build/html`
 
 If Sphinx warnings appear, do not ignore them by default. Check whether they
-were pre-existing or introduced by the change.
+were pre-existing or introduced by the change. Suggest the fixes.
 
 ## File Map
 
@@ -132,8 +129,7 @@ were pre-existing or introduced by the change.
 
 ## Anti-Patterns To Avoid
 
-- Rewriting or shrinking helpful public docstrings without replacing the lost guidance.
-- Mixing hook wiring or app bootstrapping into workflow definition modules when a separate entrypoint is clearer.
-- Adding abstraction layers that make examples or public APIs harder to understand.
-- Treating AGENTS.md as a duplicate of the public docs.
-- Letting tests pass while docs or examples drift out of date.
+- Do not rewrite or shrink helpful public docstrings without maintaining full guidance and context.
+- Do not mixing hook wiring or app bootstrapping into workflow definition modules when a separate entrypoint is clearer.
+- Do not add abstraction layers that make examples or public APIs harder to understand.
+- Do not treat AGENTS.md as a duplicate of the public docs. AGENTS.md is for runtime guidance and context needed for every Agent run.
