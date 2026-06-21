@@ -1,9 +1,12 @@
 # Junjo AI Studio AGENTS.md
 
-## Repository Expectations
+Note: Junjo is a python Graph Based LLM workflow library. This repository is the junjo-ai-studio library which pairs with `../junjo` SDK library.
+
+## Developer Philosophy
 
 - Be grug brained.
-- Everything here is greenfield. No fallbacks or backward compatibility are required.
+- Everything here is greenfield. No fallbacks, deprecations, or backward compatibility are required. Do not carry through baggage when we are refactoring.
+  - Breaking changes are okay, but you need to document when they are made so we can ensure the junjo sdk library remains compatible.
 - Do thorough, complete work. Do not try to save time. Do not do bandaids. Do proper complete well architected work.
 - Do not use abstractions unless repetition has become brittle.
 - Use single responsibility principle and separation of concerns.
