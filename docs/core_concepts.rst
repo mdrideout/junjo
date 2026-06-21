@@ -119,7 +119,7 @@ A `Graph` is a collection of nodes and edges that defines the complete structure
 - **Source and Sinks:** A graph has a single entry point (``source``) and one or more explicit terminal nodes (``sinks``).
 - **Defines the Workflow Structure:** The graph is a complete representation of all possible paths of execution in your workflow.
 - **Compiles To A Structural Snapshot:** ``Graph.compile()`` returns a canonical compiled view that Junjo uses for validation, serialization, and rendering-oriented graph operations.
-- **Immutable Definition Object:** After construction, Junjo treats the graph shape as immutable so compile-time caching, validation, traversal, and rendering all stay aligned with the same graph definition.
+- **Immutable Definition Object:** After construction, Junjo makes the graph shape immutable so compile-time caching, validation, traversal, telemetry, and rendering all stay aligned with the same graph definition. Graph ``source``, ``sinks``, ``edges``, edge endpoints, edge conditions, and ``RunConcurrent`` child membership cannot be reassigned through Junjo's public graph APIs. Create a new ``Graph`` when the workflow shape needs to change.
 
 .. code-block:: python
 

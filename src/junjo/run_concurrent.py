@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from opentelemetry import trace
@@ -36,15 +37,21 @@ class RunConcurrent(Node):
     the original failure. Cancelled siblings are marked as cancelled in
     telemetry rather than as errors so traces tell the full story of the
     failure boundary.
+
+    The child membership is immutable after construction. Junjo stores
+    ``items`` as a tuple so compiled graph snapshots, traversal, telemetry, and
+    visualization stay aligned with the same graph shape.
     """
 
-    def __init__(self, name: str, items: list[Node | Subflow]):
+    def __init__(self, name: str, items: Sequence[Node | Subflow]):
         """
         :param name: The name of this collection of concurrently executed
             nodes.
         :type name: str
-        :param items: A list of nodes or subflows to execute concurrently.
-        :type items: list[Node | Subflow]
+        :param items: A sequence of nodes or subflows to execute concurrently.
+            Junjo copies this sequence into an immutable tuple during
+            construction.
+        :type items: Sequence[Node | Subflow]
 
         .. code-block:: python
 
@@ -58,7 +65,7 @@ class RunConcurrent(Node):
             )
         """
         super().__init__()
-        self.items = items
+        self._items = tuple(items)
         self._id = generate_safe_id()
         self._name = name
 
@@ -75,6 +82,11 @@ class RunConcurrent(Node):
     def name(self) -> str:
         """Returns the configured name of this concurrent execution group."""
         return self._name
+
+    @property
+    def items(self) -> tuple[Node | Subflow, ...]:
+        """Return the immutable child executables for this concurrent group."""
+        return self._items
 
     async def _cancel_pending_tasks(
         self,

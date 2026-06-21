@@ -92,6 +92,67 @@ def test_graph_edges_are_immutable_after_construction() -> None:
         graph.edges.append(Edge(tail=start, head=end))
 
 
+def test_graph_source_and_sinks_are_immutable_after_construction() -> None:
+    start = StartNode()
+    end = EndNode()
+    alternate_end = EndNode()
+    graph = Graph(
+        source=start,
+        sinks=[end],
+        edges=[Edge(tail=start, head=end)],
+    )
+
+    assert graph.source is start
+    assert graph.sinks == (end,)
+
+    with pytest.raises(AttributeError):
+        graph.source = alternate_end
+
+    with pytest.raises(AttributeError):
+        graph.sinks = (alternate_end,)
+
+    with pytest.raises(AttributeError):
+        graph.sinks.append(alternate_end)
+
+
+def test_edge_shape_is_immutable_after_construction() -> None:
+    start = StartNode()
+    end = EndNode()
+    alternate_end = EndNode()
+    edge = Edge(tail=start, head=end)
+
+    with pytest.raises(AttributeError):
+        edge.tail = alternate_end
+
+    with pytest.raises(AttributeError):
+        edge.head = alternate_end
+
+    with pytest.raises(AttributeError):
+        edge.condition = None
+
+    assert edge.tail is start
+    assert edge.head is end
+    assert edge.condition is None
+
+
+def test_run_concurrent_items_are_immutable_after_construction() -> None:
+    child_one = StartNode()
+    child_two = EndNode()
+    child_three = MiddleNode()
+    items = [child_one, child_two]
+    concurrent = RunConcurrent(name="fan-out", items=items)
+
+    items.append(child_three)
+
+    assert concurrent.items == (child_one, child_two)
+
+    with pytest.raises(AttributeError):
+        concurrent.items.append(child_three)
+
+    with pytest.raises(AttributeError):
+        concurrent.items = (child_one, child_two, child_three)
+
+
 def test_compile_cache_is_safe_because_graph_shape_cannot_mutate() -> None:
     start = StartNode()
     end = EndNode()
@@ -108,6 +169,37 @@ def test_compile_cache_is_safe_because_graph_shape_cannot_mutate() -> None:
 
     assert graph.compile() is compiled
     assert len(graph.compile().compiled_edges) == 1
+
+
+def test_compile_cache_is_safe_from_edge_and_concurrent_item_mutation_attempts() -> None:
+    child_one = StartNode()
+    child_two = EndNode()
+    child_three = MiddleNode()
+    concurrent_items = [child_one, child_two]
+    concurrent = RunConcurrent(name="fan-out", items=concurrent_items)
+    end = EndNode()
+    edge = Edge(tail=concurrent, head=end)
+    graph = Graph(
+        source=concurrent,
+        sinks=[end],
+        edges=[edge],
+    )
+
+    compiled = graph.compile()
+
+    with pytest.raises(AttributeError):
+        edge.head = child_three
+
+    with pytest.raises(AttributeError):
+        concurrent.items = (child_one, child_two, child_three)
+
+    concurrent_items.append(child_three)
+
+    assert graph.compile() is compiled
+    assert len(graph.compile().compiled_edges) == 1
+    concurrent_node = compiled.compiled_nodes_by_runtime_id[concurrent.id]
+    assert concurrent_node.child_node_runtime_ids == (child_one.id, child_two.id)
+    assert child_three.id not in compiled.compiled_nodes_by_runtime_id
 
 
 def test_compile_collects_source_sinks_nodes_and_edges() -> None:

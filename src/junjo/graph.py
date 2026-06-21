@@ -166,8 +166,9 @@ class Graph:
     the nodes.
 
     Graph definitions are immutable after construction. Junjo stores the
-    source, sinks, and edges as read-only graph-shape metadata so the cached
-    compiled snapshot cannot silently drift away from the graph definition.
+    source, sinks, edges, edge endpoints, edge conditions, and concurrent child
+    membership as read-only graph-shape metadata so the cached compiled
+    snapshot cannot silently drift away from the graph definition.
 
     :param source: The starting node or subflow of the graph. Execution of the workflow begins here.
     :type source: Node | _NestableWorkflow

@@ -1,5 +1,5 @@
-
-
+from dataclasses import dataclass
+from typing import Generic
 
 from .condition import Condition
 from .node import Node
@@ -7,13 +7,22 @@ from .store import BaseStore, StateT
 from .workflow import _NestableWorkflow
 
 
-class Edge:
+@dataclass(frozen=True, slots=True, init=False, eq=False)
+class Edge(Generic[StateT]):
     """
     Represents a directed edge in the workflow graph.
 
     An edge connects a tail node to a head node, optionally with a condition
     that determines whether the transition from tail to head should occur.
+
+    Edges are immutable graph-shape objects. Once constructed, ``tail``,
+    ``head``, and ``condition`` cannot be reassigned. Create a new ``Edge`` and
+    a new ``Graph`` when the workflow shape needs to change.
     """
+
+    tail: Node | _NestableWorkflow
+    head: Node | _NestableWorkflow
+    condition: Condition[StateT] | None
 
     def __init__(
         self,
@@ -34,11 +43,11 @@ class Edge:
         :type condition: Condition[StateT] | None
         """
 
-        self.tail = tail
-        self.head = head
-        self.condition = condition
+        object.__setattr__(self, "tail", tail)
+        object.__setattr__(self, "head", head)
+        object.__setattr__(self, "condition", condition)
 
-    async def next_node(self, store: BaseStore) -> Node | _NestableWorkflow | None:
+    async def next_node(self, store: BaseStore[StateT]) -> Node | _NestableWorkflow | None:
         """
         Determine the next node in the workflow based on this edge's
         condition.
