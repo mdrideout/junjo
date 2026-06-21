@@ -22,7 +22,7 @@ export default function SidebarMenu() {
     <Sidebar>
       <SidebarBody>
         <div className="mb-2 flex">
-          <Link href="#" aria-label="Home">
+          <Link href="/" aria-label="Home">
             <div className="flex items-center gap-x-3 mb-2">
               <img
                 src={junjoLogo}
