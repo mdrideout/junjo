@@ -57,10 +57,11 @@ EDD accelerates complex workflow development by allowing one to iterate on their
 
 **Example:** Open `src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
 
-- The eval system is powered by **pytest**'
+- The eval system is powered by **pytest**
   - No third party tools or platforms are required - everything happens directly in your codebase
 - It uses a combination of asserts and live LLM evaluations
 - This example uses Gemini to evaluate the results of the `create_joke_node` against several test inputs inside `test_cases.py`
+- Live eval execution requires `GEMINI_API_KEY` in your `.env` or shell environment
 - The eval has a prompt inside `test_prompt.py`
 - `test_node.py` executes the pytest test
 - The live `node.py` LLM call is executed to generate the result and state update for evaluation
@@ -79,5 +80,5 @@ This eval is strict and likely to fail all cases. This is to demonstrate the inf
 ```bash
 # Run the pytest command from this directory.
 # Ensure you have setup the appropriate environment from the above "Run the example" instructions
-$ python -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
+$ uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
 ```

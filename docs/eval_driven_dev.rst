@@ -31,16 +31,23 @@ Pytest executions can initialize an input state for the node, and analyze the re
 Library Example
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Check out :code:`src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
+Check out :code:`examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
 
 - `Github link to test example <https://github.com/mdrideout/junjo/tree/master/examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test>`_
 
 - It uses a combination of asserts and live LLM evaluations
 - This example uses Gemini to evaluate the results of the `create_joke_node` against several test inputs inside `test_cases.py`
+- Live eval execution requires ``GEMINI_API_KEY`` in the environment used to run pytest
 - The eval has a prompt inside `test_prompt.py`
 - `test_node.py` executes the pytest test
 - The live `node.py` LLM call is executed to generate the result and state update for evaluation
 - Test failures include reasons why the prompt failed to generate output that passed the evaluation. See the `test_schema.py`.
+
+Run the sample eval from ``examples/base``:
+
+.. code-block:: bash
+
+    uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
 
 On mission critical workflows, this setup can be used to orchestrate hundreds or thousands of test inputs against a prompt to ensure it covers all use cases well.
 

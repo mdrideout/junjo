@@ -68,19 +68,30 @@ Generating Assets
 The ``Graph`` object in Junjo provides an ``export_graphviz_assets()`` method. This function will:
 
 * Generate ``.dot`` notation files for your main graph and each subflow.
-* Render these ``.dot`` files into image files (SVG).
+* Render these ``.dot`` files into image files. The default image format is SVG.
 * Create an HTML page (``index.html``) that displays all generated diagrams with appropriate headings.
 
 Junjo's Graphviz renderer works directly from the compiled graph snapshot
 produced by ``Graph.compile()``. That keeps diagram generation aligned with
 the same graph structure Junjo uses for validation and traversal.
 
+``export_graphviz_assets()`` accepts a few practical options:
+
+* ``out_dir``: where generated files are written. Defaults to ``graphviz_out``.
+* ``fmt``: the Graphviz output format. Defaults to ``svg``.
+* ``dot_cmd``: the Graphviz executable. Defaults to ``dot``.
+* ``open_html``: when ``True``, opens the generated ``index.html`` in your default browser.
+* ``clean``: when ``True``, removes old ``.dot`` files and old rendered files matching ``fmt`` from the output directory before writing new assets.
+
+If Graphviz is not installed, or if the ``dot`` command fails, Junjo raises
+``GraphRenderError`` with the failing asset name and command failure details.
+
 Example Usage
 ~~~~~~~~~~~~~
 
 Let's assume you have a workflow graph factory defined, for instance, ``create_sample_workflow_graph`` from one of the Junjo examples.
 
-In this example, we create an execute a visualize.py script to generate the Graphviz rendered assets.
+In this example, we create and execute a ``visualize.py`` script to generate the Graphviz rendered assets.
 
 .. code-block:: python
   :caption: visualize.py
@@ -89,14 +100,16 @@ In this example, we create an execute a visualize.py script to generate the Grap
   from base.sample_workflow.graph import create_sample_workflow_graph
 
   def main():
-      # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
-      # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
-      create_sample_workflow_graph().export_graphviz_assets()
+      # Generate .dot files, rendered SVG files, and graphviz_out/index.html.
+      create_sample_workflow_graph().export_graphviz_assets(open_html=True)
 
   if __name__ == "__main__":
       main()
 
-Running the script (e.g., ``python visualize.py``) will create a directory ``graphviz_out`` containing the rendered assets.
+Running the script (for example, ``python visualize.py``) will create a
+directory named ``graphviz_out`` containing the rendered assets. With
+``open_html=True``, Junjo also opens ``graphviz_out/index.html`` in your
+default browser.
 
 Visual Elements:
 
