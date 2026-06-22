@@ -610,4 +610,4 @@ Next Steps
 - Explore :doc:`opentelemetry` for general OpenTelemetry configuration
 - Learn about :doc:`visualizing_workflows` for static Graphviz diagrams
 - See :doc:`eval_driven_dev` for testing workflows
-- Review :doc:`concurrency` for understanding parallel execution traces
+- Review :doc:`concurrency` for understanding concurrent execution traces

@@ -5,14 +5,14 @@ Concurrency
 ##############################################################
 
 .. meta::
-   :description: Explore Junjo's powerful asyncio-native concurrency model for building high-performance Python workflows. Learn about immutable state and RunConcurrent for parallel task execution.
-   :keywords: junjo, python, asyncio, concurrency, workflow execution, parallel processing, immutable state
+   :description: Explore Junjo's powerful asyncio-native concurrency model for building high-performance Python workflows. Learn about immutable state and RunConcurrent for concurrent task execution.
+   :keywords: junjo, python, asyncio, concurrency, workflow execution, concurrent execution, immutable state
 
 Concurrency is key to fast and efficient execution of LLM powered AI workflows. 
 
-Whether it's making several network API or LLM requests, processing data in parallel, or managing various I/O-bound operations. Junjo embraces concurrency as a core principle of workflow execution.
+Whether it's making several network API or LLM requests, processing independent data concurrently, or managing various I/O-bound operations. Junjo embraces concurrency as a core principle of workflow execution.
 
-Junjo is designed from the ground up to leverage the power of Python's ``asyncio`` library, enabling you to build highly concurrent and efficient workflows. This page delves into how Junjo handles concurrency, its immutable state management, and the ``RunConcurrent`` utility for parallel task execution.
+Junjo is designed from the ground up to leverage the power of Python's ``asyncio`` library, enabling you to build highly concurrent and efficient workflows. This page delves into how Junjo handles concurrency, its immutable state management, and the ``RunConcurrent`` utility for concurrent task execution.
 
 Asyncio Native: The Core of Junjo's Performance
 ================================================
@@ -63,9 +63,12 @@ Example execution visualization:
    :align: center
    :width: 600px
 
-This example demonstrates how `RunConcurrent` can be utilized to execute nodes in parallel. You can also execute entire `Subflow` instances in parallel.
+This example demonstrates how `RunConcurrent` can be utilized to execute nodes concurrently. You can also execute entire `Subflow` instances concurrently.
 
-All state updates made by these nodes are concurrency safe due to the immutable nature of state updates. **Junjo AI Studio** allows you to step through state updates incrementally to see which nodes update state and when, even during high concurrency.
+State commits made by these nodes flow through ``set_state()``, which validates
+and applies each committed update under the store lock. **Junjo AI Studio**
+allows you to step through state updates incrementally to see which nodes
+update state and when, even during high concurrency.
 
 Immutable State: Ensuring Concurrency Safety
 ============================================
@@ -74,8 +77,8 @@ One of the challenges in concurrent programming is managing shared state. When m
 
 Junjo addresses this by promoting **immutable state updates** via a **store** layer.
 
-1.  **Stores define state update functions**: The store is responsible for managing the instance of state. Functions defined in the store safely act upon state, even in highly concurrent scenarios.
-2.  **Nodes execute state update functions**: Nodes receive access to the store, and can get and set state.
+1.  **Stores define state update functions**: The store is responsible for managing the instance of state. Functions defined in the store call ``set_state()`` to validate and commit explicit state updates safely.
+2.  **Nodes execute state update functions**: Nodes receive access to the store, and can inspect state snapshots and call store actions.
 
 The following state and store example demonstrates Junjo's redux-inspired state update pattern.
 
@@ -124,18 +127,22 @@ The following state and store example demonstrates Junjo's redux-inspired state 
         await store.decrement()
         return
 
-The above nodes could be executed concurrently using `RunConcurrent`. Even when operating on the same state parameter, all set_state functions are concurrency safe.
+The above nodes could be executed concurrently using `RunConcurrent`. Each
+committed ``set_state()`` call is validated and applied safely by the store.
 
-This approach significantly simplifies reasoning about concurrent execution, as you don't have to worry about locks or other synchronization primitives for state access within your node logic. `get_state()` returns a detached snapshot for reads, and all real state changes still flow through store actions that call `set_state()`.
+This approach significantly simplifies reasoning about concurrent execution, as
+you don't have to manage locks around individual state commits. ``get_state()``
+returns a detached snapshot for reads, and all real state changes still flow
+through store actions that call ``set_state()``.
 
 Benefits of Junjo's Approach to Concurrency
 ===========================================
 
 Junjo's concurrency model, combining asyncio-native design with immutable state and utilities like ``RunConcurrent``, offers several key benefits:
 
-*   **Improved Performance and Throughput**: Efficiently handles I/O-bound tasks and allows for true parallelism, leading to faster workflow completion.
+*   **Improved Performance and Throughput**: Efficiently handles I/O-bound tasks and concurrent execution, leading to faster workflow completion.
 *   **Simplified Development**: Writing asynchronous code is natural with ``async/await``. Immutable state reduces the mental overhead of managing concurrent data access.
-*   **Enhanced Reliability and Stability**: The risk of race conditions and state corruption is minimized, leading to more robust applications.
+*   **Enhanced Reliability and Stability**: Store commits are validated and applied under a lock, reducing the risk of state corruption and making workflow behavior easier to inspect.
 *   **Scalability**: Well-suited for building applications that need to handle a large number of concurrent operations or scale with increasing load.
 
 Best Practices for Designing Concurrent Junjo Workflows

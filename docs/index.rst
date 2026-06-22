@@ -51,7 +51,7 @@ Junjo Python SDK - API Reference
 
 Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
 
-Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
+Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and concurrent execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
 
 .. image:: _static/junjo-screenshot.png
    :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo AI Studio

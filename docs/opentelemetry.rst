@@ -18,7 +18,7 @@ How Junjo Uses OpenTelemetry
 - Workflow execution (start state, end state, graph structure)
 - Individual node execution
 - Subflow execution with parent relationships
-- RunConcurrent parallel execution
+- RunConcurrent concurrent execution
 - State machine updates
 
 **No Manual Instrumentation Required:**
@@ -557,5 +557,5 @@ Next Steps
 
 - Set up :doc:`junjo_ai_studio` for AI workflow-specific debugging
 - Explore :doc:`visualizing_workflows` for static diagrams
-- Learn about :doc:`concurrency` to understand parallel execution traces
+- Learn about :doc:`concurrency` to understand concurrent execution traces
 - Review :doc:`eval_driven_dev` for testing workflows

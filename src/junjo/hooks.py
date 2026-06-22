@@ -216,6 +216,9 @@ class Hooks:
     To use them, register one or more callbacks and pass the registry to a
     workflow or subflow.
 
+    Every ``on_*`` registration method returns an unsubscribe callback. Call
+    the returned function when the callback should no longer receive events.
+
     .. rubric:: Example
 
     .. code-block:: python
@@ -228,9 +231,12 @@ class Hooks:
         def log_completed(event: WorkflowCompletedEvent[MyState]) -> None:
             logger.info("%s %s", event.hook_name, event.result.state.model_dump())
 
-        hooks.on_workflow_completed(log_completed)
+        unsubscribe = hooks.on_workflow_completed(log_completed)
 
         workflow = Workflow(..., hooks=hooks)
+
+        # Later, if this callback should no longer run:
+        unsubscribe()
     """
 
     def __init__(self) -> None:
