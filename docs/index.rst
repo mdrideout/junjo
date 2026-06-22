@@ -42,7 +42,7 @@
    Base Example <https://github.com/mdrideout/junjo/tree/master/examples/base>
    AI Chat <https://github.com/mdrideout/junjo/tree/master/examples/ai_chat>
 
-Junjo Python SDK - API Reference
+Junjo Python SDK Documentation
 ==================================
 
 `Junjo on PyPI <https://pypi.org/project/junjo/>`_

@@ -33,7 +33,7 @@ Public behavior, examples, and conceptual explanations live in:
 
 ## What AGENTS Should Optimize For
 
-- Check ADR documents before implementation, and raise concerns if we are changing or violating architectural principles. Do not simply change ADRs to match new implementation without explicit consideration and approval. Implementation should follow ADR guidance as the source of strategic truth. If we change strategy, ADRs are updated before implementation proceeds. 
+- Check ADR documents before implementation if ADRs exist for the touched area, and raise concerns if we are changing or violating architectural principles. Do not simply change ADRs to match new implementation without explicit consideration and approval. Implementation should follow ADR guidance as the source of strategic truth. If we change strategy, ADRs are updated before implementation proceeds.
 - When implementation details and docs disagree, trust the latest code implementation, then fix documentation drift. Raise alarms if code implementation has significant mismatch from ADRs or docs.
 - Optimize for readability and clear, transparent consumption by a Python application developer. Do not be clever. We are not creating black box abstractions for the developer. We prefer obvious, verbose implementation patterns, not low-code convenience.
 - Keep separation of concerns obvious in both runtime code and examples.

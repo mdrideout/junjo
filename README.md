@@ -8,7 +8,7 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 
 #### Docs
 
-- [Python API Docs](https://python-api.junjo.ai/)
+- [Python SDK Docs](https://python-api.junjo.ai/)
 - [PyPI](https://pypi.org/project/junjo/)
 
 #### Benefits:
