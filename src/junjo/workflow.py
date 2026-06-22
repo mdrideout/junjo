@@ -84,11 +84,12 @@ class _ExecutionContext(Generic[StoreT]):
 @dataclass(frozen=True, slots=True)
 class ExecutionResult(Generic[StateT]):
     """
-    Immutable snapshot of a completed workflow or subflow execution.
+    Frozen result wrapper for a completed workflow or subflow execution.
 
     ``ExecutionResult`` is the public post-run API for accessing final state and
     execution metadata without exposing live runtime objects like the internal
-    store or graph.
+    store or graph. The wrapper is immutable; ``state`` is a detached final
+    state snapshot copied out of the run-local store.
 
     The result includes:
 
@@ -558,8 +559,11 @@ class Workflow(_NestableWorkflow[StateT, StoreT, NoneType, NoneType]):
             ensure a fresh store for that execution.
         :type store_factory: StoreFactory[StoreT]
         :param max_iterations: The maximum number of times any single node or
-            executable may run within one workflow execution. This helps detect
-            accidental loops. Defaults to 100.
+            subflow may run within one workflow execution. For
+            :class:`~junjo.run_concurrent.RunConcurrent`, Junjo counts each
+            child item in the concurrent group rather than the
+            ``RunConcurrent`` wrapper itself. This helps detect accidental
+            loops. Defaults to 100.
         :type max_iterations: int, optional
         :param hooks: An optional :class:`~junjo.hooks.Hooks` registry for
             observing workflow lifecycle events. Hooks are optional observers;
@@ -672,7 +676,10 @@ class Subflow(_NestableWorkflow[StateT, StoreT, ParentStateT, ParentStoreT], ABC
             ensure a fresh store for that execution.
         :type store_factory: StoreFactory[StoreT]
         :param max_iterations: The maximum number of times any single node or
-            executable may run within one subflow execution. Defaults to 100.
+            nested subflow may run within one subflow execution. For
+            :class:`~junjo.run_concurrent.RunConcurrent`, Junjo counts each
+            child item in the concurrent group rather than the
+            ``RunConcurrent`` wrapper itself. Defaults to 100.
         :type max_iterations: int, optional
         :param hooks: An optional :class:`~junjo.hooks.Hooks` registry for
             observing lifecycle events emitted by this subflow.

@@ -762,8 +762,10 @@ class Graph:
         - the first edge whose condition resolves to a next executable wins
         - later edges are not evaluated once a match is found
 
-        If no outgoing edge resolves and the current executable is not already
-        a declared sink, this method raises ``GraphValidationError``.
+        Workflow execution checks declared sinks before calling this method.
+        Direct callers should do the same. If this method is called for an
+        executable with no resolving outgoing edge, including a declared sink,
+        it raises ``GraphValidationError``.
 
         :param store: The store instance to use for resolving the next
             executable.

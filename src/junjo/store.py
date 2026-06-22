@@ -120,10 +120,13 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         """
         Update the store's state with a dictionary of changes.
 
-        The update is merged with the current locked state, validated against
-        the store's Pydantic model, and committed atomically if it changes the
-        state. This method also emits OpenTelemetry ``set_state`` events and
-        lifecycle state-changed hooks when a commit occurs.
+        The update is shallow-merged with the current locked state at the
+        top-level field boundary, validated against the store's Pydantic model,
+        and committed atomically if it changes the state. Nested mappings or
+        nested models are replaced as field values; Junjo does not recursively
+        deep-merge nested structures. This method also emits OpenTelemetry
+        ``set_state`` events and lifecycle state-changed hooks when a commit
+        occurs.
 
         :param update: A dictionary of updates to apply to the state.
         :type update: dict
@@ -145,6 +148,12 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
             Validation happens while the store lock is held, so every committed
             update is validated against the exact state version it will be
             applied to.
+
+        .. note::
+
+            Updates are top-level field patches. To update part of a nested
+            structure, build the replacement nested value in your store action
+            and pass that complete value to ``set_state``.
 
         .. note::
 

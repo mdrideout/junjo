@@ -28,6 +28,15 @@ def get_error_type(exc: BaseException) -> str:
 
 
 def get_span_identifiers(span: Span) -> tuple[str, str]:
+    """
+    Return lowercase hexadecimal OpenTelemetry trace and span identifiers.
+
+    :param span: The span whose context should be formatted.
+    :type span: Span
+    :returns: ``(trace_id, span_id)`` formatted for logs, hooks, and telemetry
+              payloads.
+    :rtype: tuple[str, str]
+    """
     context = span.get_span_context()
     return (
         format(context.trace_id, "032x"),
@@ -36,4 +45,10 @@ def get_span_identifiers(span: Span) -> tuple[str, str]:
 
 
 def get_current_span_identifiers() -> tuple[str, str]:
+    """
+    Return formatted identifiers for the currently active OpenTelemetry span.
+
+    :returns: ``(trace_id, span_id)`` for the current span.
+    :rtype: tuple[str, str]
+    """
     return get_span_identifiers(trace.get_current_span())
