@@ -148,7 +148,21 @@ only for applications running directly on the local machine.
         host="ingestion",  # The Junjo AI Studio container name on the same docker network
         port="26155",
         api_key=api_key,
-        insecure=True      # Use False in production with TLS
+        insecure=True
+    )
+    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+
+For production, use the public Junjo AI Studio ingestion host and TLS:
+
+.. code-block:: python
+
+    from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+
+    junjo_exporter = JunjoOtelExporter(
+        host="ingestion.example.com",
+        port="443",
+        api_key=api_key,
+        insecure=False
     )
     tracer_provider.add_span_processor(junjo_exporter.span_processor)
 
@@ -176,6 +190,7 @@ Metrics + traces in one platform, good for production monitoring.
 .. code-block:: python
 
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
     
     tempo_exporter = OTLPSpanExporter(
         endpoint="http://tempo:4318/v1/traces",
@@ -192,6 +207,7 @@ Enterprise observability platforms with full-featured APM.
 
     # Example: Honeycomb
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
     
     honeycomb_exporter = OTLPSpanExporter(
         endpoint="https://api.honeycomb.io/v1/traces",
@@ -224,7 +240,7 @@ You can send telemetry to multiple platforms simultaneously:
         host="ingestion",  # The Junjo AI Studio container name on the same docker network
         port="26155",
         api_key=junjo_api_key,
-        insecure=True      # Use False in production with TLS
+        insecure=True
     )
     tracer_provider.add_span_processor(junjo_exporter.span_processor)
     
@@ -248,6 +264,12 @@ below:
 - span status is set to ``Error``.
 - the standard ``exception`` span event is recorded via OpenTelemetry's
   exception recording support.
+
+Cancelled spans use Junjo-specific cancellation attributes instead of the
+standard error fields:
+
+- ``junjo.cancelled`` is set to ``true``.
+- ``junjo.cancelled_reason`` describes why the operation was cancelled.
 
 Cancelled spans do not set ``error.type`` and are not marked with ``Error``
 status unless they actually fail.
@@ -373,6 +395,22 @@ Node Span Attributes
         "junjo.enclosing_graph_structural_id": "<graph-structural-id>"
     }
 
+RunConcurrent Span Attributes
+-----------------------------
+
+.. code-block:: python
+
+    {
+        "junjo.span_type": "run_concurrent",
+        "junjo.executable_definition_id": "<run-concurrent-definition-id>",
+        "junjo.parent_executable_definition_id": "<parent-workflow-or-subflow-definition-id>",
+        "junjo.executable_runtime_id": "<run-concurrent-runtime-id>",
+        "junjo.executable_structural_id": "<run-concurrent-structural-id>",
+        "junjo.parent_executable_runtime_id": "<parent-executable-runtime-id>",
+        "junjo.parent_executable_structural_id": "<parent-executable-structural-id>",
+        "junjo.enclosing_graph_structural_id": "<graph-structural-id>"
+    }
+
 These attributes enable:
 
 - Filtering spans by workflow or node type
@@ -398,12 +436,10 @@ Here's a complete OpenTelemetry setup for Junjo:
     def init_telemetry(service_name: str):
         """Configure OpenTelemetry with Junjo AI Studio."""
         
-        # Get API key and determine environment
+        # Get API key
         api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
         if not api_key:
             raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable not set")
-        
-        is_production = os.getenv("ENV", "development") == "production"
         
         # Create resource
         resource = Resource.create({
@@ -420,7 +456,7 @@ Here's a complete OpenTelemetry setup for Junjo:
             host="ingestion",  # The Junjo AI Studio container name on the same docker network
             port="26155",
             api_key=api_key,
-            insecure=not is_production  # True for local dev, False for production
+            insecure=True
         )
         
         # Add span processor
@@ -452,6 +488,21 @@ Use in your application:
     finally:
         tracer_provider.shutdown()
         meter_provider.shutdown()
+
+Production Junjo AI Studio Exporter
+===================================
+
+For production, configure ``JunjoOtelExporter`` with the public ingestion host
+and TLS:
+
+.. code-block:: python
+
+    junjo_exporter = JunjoOtelExporter(
+        host="ingestion.example.com",
+        port="443",
+        api_key=api_key,
+        insecure=False
+    )
 
 Advanced Configuration
 ======================
