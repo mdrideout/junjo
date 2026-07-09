@@ -40,14 +40,12 @@ echo
 echo "=== gRPC Integration Tests ==="
 
 # Check if required ports are available
-PORT_1323_PID=$(lsof -ti :1323 2>/dev/null || true)
 PORT_50053_PID=$(lsof -ti :50053 2>/dev/null || true)
 
-if [ -n "$PORT_1323_PID" ] || [ -n "$PORT_50053_PID" ]; then
+if [ -n "$PORT_50053_PID" ]; then
     echo ""
     echo "⚠️  Required ports are in use (needed for gRPC integration tests)"
     echo ""
-    [ -n "$PORT_1323_PID" ] && echo "   Port 1323 (HTTP):  PID $PORT_1323_PID"
     [ -n "$PORT_50053_PID" ] && echo "   Port 50053 (gRPC): PID $PORT_50053_PID"
     echo ""
     echo "Options:"
@@ -59,7 +57,6 @@ if [ -n "$PORT_1323_PID" ] || [ -n "$PORT_50053_PID" ]; then
     case "$choice" in
         k|K)
             echo "Killing processes..."
-            [ -n "$PORT_1323_PID" ] && kill -9 $PORT_1323_PID 2>/dev/null || true
             [ -n "$PORT_50053_PID" ] && kill -9 $PORT_50053_PID 2>/dev/null || true
             sleep 1  # Give OS time to release ports
             ;;

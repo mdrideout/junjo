@@ -1,7 +1,7 @@
 # Junjo OTLP Exporter Configuration
 exporter:
   host: "localhost"
-  port: "50051"
+  port: "26155"
   api_key: "your_api_key_here"
   service_name: "default-service"  # Overridden by CLI
   insecure: true  # Set false for production with TLS

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { server } from '../../auth/test-utils/mock-server'
+import { API_BASE, server } from '../../auth/test-utils/mock-server'
 import { deleteUser } from '../../features/users/fetch/delete-user'
 import { deleteApiKey } from '../../features/api-keys/fetch/delete-api-key'
 import { flushWal } from '../../features/settings/fetch/flush-wal'
@@ -12,7 +12,7 @@ describe('API Request Validation: Mutation Operations', () => {
 
       // Intercept the request and capture the parameter
       server.use(
-        http.delete('http://localhost:1323/users/:user_id', ({ params }) => {
+        http.delete(`${API_BASE}/users/:user_id`, ({ params }) => {
           capturedUserId = params.user_id as string
           return HttpResponse.json({ message: 'User deleted successfully' })
         }),
@@ -31,7 +31,7 @@ describe('API Request Validation: Mutation Operations', () => {
       let capturedUserId: string | undefined
 
       server.use(
-        http.delete('http://localhost:1323/users/:user_id', ({ params }) => {
+        http.delete(`${API_BASE}/users/:user_id`, ({ params }) => {
           capturedUserId = params.user_id as string
           return HttpResponse.json({ message: 'User deleted successfully' })
         }),
@@ -51,7 +51,7 @@ describe('API Request Validation: Mutation Operations', () => {
       let capturedId: string | undefined
 
       server.use(
-        http.delete('http://localhost:1323/api_keys/:id', ({ params }) => {
+        http.delete(`${API_BASE}/api_keys/:id`, ({ params }) => {
           capturedId = params.id as string
           return new HttpResponse(null, { status: 204 })
         }),
@@ -70,7 +70,7 @@ describe('API Request Validation: Mutation Operations', () => {
       let capturedId: string | undefined
 
       server.use(
-        http.delete('http://localhost:1323/api_keys/:id', ({ params }) => {
+        http.delete(`${API_BASE}/api_keys/:id`, ({ params }) => {
           capturedId = params.id as string
           return new HttpResponse(null, { status: 204 })
         }),
@@ -91,7 +91,7 @@ describe('API Request Validation: Mutation Operations', () => {
       let requestMethod: string | undefined
 
       server.use(
-        http.post('http://localhost:1323/api/admin/flush-wal', ({ request }) => {
+        http.post(`${API_BASE}/api/admin/flush-wal`, ({ request }) => {
           requestReceived = true
           requestMethod = request.method
           return HttpResponse.json({
@@ -111,7 +111,7 @@ describe('API Request Validation: Mutation Operations', () => {
 
     it('POST /api/admin/flush-wal handles failure response', async () => {
       server.use(
-        http.post('http://localhost:1323/api/admin/flush-wal', () => {
+        http.post(`${API_BASE}/api/admin/flush-wal`, () => {
           return HttpResponse.json(
             { detail: 'WAL flush failed' },
             { status: 500 },
@@ -128,7 +128,7 @@ describe('API Request Validation: Mutation Operations', () => {
       let capturedBody: any
 
       server.use(
-        http.post('http://localhost:1323/api_keys', async ({ request }) => {
+        http.post(`${API_BASE}/api_keys`, async ({ request }) => {
           capturedBody = await request.json()
           return HttpResponse.json({
             id: 'key_123',
@@ -141,7 +141,7 @@ describe('API Request Validation: Mutation Operations', () => {
 
       // Make request via fetch (simulating what CreateApiKeyDialog does)
       const testName = 'Test API Key'
-      await fetch('http://localhost:1323/api_keys', {
+      await fetch(`${API_BASE}/api_keys`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -163,7 +163,7 @@ describe('API Request Validation: Mutation Operations', () => {
       let capturedBody: any
 
       server.use(
-        http.post('http://localhost:1323/users', async ({ request }) => {
+        http.post(`${API_BASE}/users`, async ({ request }) => {
           capturedBody = await request.json()
           return HttpResponse.json({ message: 'User created successfully' })
         }),
@@ -173,7 +173,7 @@ describe('API Request Validation: Mutation Operations', () => {
       const testEmail = 'newuser@example.com'
       const testPassword = 'securePassword123'
 
-      await fetch('http://localhost:1323/users', {
+      await fetch(`${API_BASE}/users`, {
         method: 'POST',
         credentials: 'include',
         headers: {

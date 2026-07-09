@@ -8,7 +8,7 @@
 
 # === Runtime Configuration ==========================================================
 # API_HOST: Backend API URL
-# - Development default: http://localhost:1323
+# - Development default: http://localhost:26154
 # - Production: Use JUNJO_PROD_BACKEND_URL environment variable
 
 # Validate JUNJO_ENV is set
@@ -44,9 +44,9 @@ if [ "$JUNJO_ENV" = "production" ]; then
   INGESTION_URL="$JUNJO_PROD_INGESTION_URL"
 else
   # Development defaults
-  API_HOST="http://localhost:1323"
-  FRONTEND_URL="http://localhost:5153"
-  INGESTION_URL="grpc://localhost:50051"
+  API_HOST="http://localhost:26154"
+  FRONTEND_URL="http://localhost:26153"
+  INGESTION_URL="grpc://localhost:26155"
 fi
 
 # Create the config file in the nginx web root

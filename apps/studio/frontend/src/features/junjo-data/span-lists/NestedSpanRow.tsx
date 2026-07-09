@@ -26,10 +26,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   const end_time = span.end_time
   const spanDuration = getSpanDurationString(start_time, end_time)
 
-  // Exceptions
-  const hasExceptions = span.events_json.some((event) => {
-    return event.attributes && event.attributes['exception.type'] !== undefined
-  })
+  const hasFailures = wrapSpan(span).hasFailureSignal
 
   // Create the name
   const name = spanNameConstructor(span)
@@ -78,7 +75,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
               </button>
             )}
 
-            {hasExceptions && (
+            {hasFailures && (
               // <ExclamationTriangleIcon className={'mt-1 size-4 text-red-700 dark:text-red-300'} />
               <button
                 className={
@@ -95,11 +92,10 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                     replace: true,
                   })
 
-                  // Set this exception as the active
-                  dispatch(WorkflowDetailStateActions.setOpenExceptionsTrigger())
+                  dispatch(WorkflowDetailStateActions.setOpenFailuresTrigger())
                 }}
               >
-                exceptions
+                failures
               </button>
             )}
           </div>

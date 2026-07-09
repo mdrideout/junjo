@@ -4,7 +4,7 @@
 
 **Junjo AI Studio** is an open source, self-hostable AI Agent and Workflow debugging and eval platform for any OpenTelemetry instrumented AI application. 
 
-The [Junjo Python Library](https://github.com/mdrideout/junjo) is a framework for structuring AI logic and enhancing Otel span data to improve observability and developer velocity. Junjo remains decoupled from your LLM implemetations and business logic, proving a layer of orgnization, execution, and telemetry to your existing application.
+The [Junjo Python Library](https://github.com/mdrideout/junjo) is a framework for structuring AI logic and enhancing Otel span data to improve observability and developer velocity. Junjo remains decoupled from your LLM implementations and business logic, providing a layer of organization, execution, and telemetry to your existing application.
 
 Gain complete visibility to the state of the application, and every change LLMs make to the application state. Complex, mission critical AI workflows are made transparent and understandable with Junjo.
 
@@ -18,16 +18,17 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 - 🔀 **Transparent Concurrency** - Debug state changes from concurrently executed AI workflow steps
 - 📊 **OpenTelemetry Native** - Standards-based telemetry ingestion via gRPC
 - 🎯 **Workflow Debugging Interface** - Visual step-by-step debugging of AI graph workflows
-- 🪶 **Prompt Playground** - Expirement with different models and prompt tweaks while you debug
+- 🪶 **Prompt Playground** - Experiment with different models and prompt tweaks while you debug
 - 🔒 **Production-Ready Security** - Authentication, user accounts, and encrypted sessions
 - 🚀 **Low Resource, High-Performance Ingestion** - Designed for high-throughput in low resource environments
-- 💾 **Shared vCPU, 1GB Ram** - Production grade telemetry on a $5 / month virutal machine
+- 💾 **Shared vCPU, 1GB RAM** - Production grade telemetry on a $5 / month virtual machine
 
 ---
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+- [Source Development](#source-development)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
@@ -42,7 +43,7 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 
 ## Quick Start
 
-Get Junjo AI Studio running on your local machine in 5 minutes using the **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** repository. This repository provides a minimal, standalone setup using pre-built Docker images from Docker Hub, perfect for both quick testing and production deployments of Junjo AI Studio.
+If you want to use Junjo AI Studio rather than modify its source code, start with the **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** repository.
 
 ### Steps
 
@@ -54,66 +55,52 @@ Get Junjo AI Studio running on your local machine in 5 minutes using the **[Junj
 
 2. **Choose setup mode**
 
-   **Option A: Guided setup script (recommended)**
+   Recommended:
    ```bash
    ./scripts/junjo setup
    ```
 
-   The setup wizard creates/updates `.env`, applies a VM memory profile, and auto-generates required secrets.
-
-   **Option B: Manual setup**
+   Manual:
    ```bash
    cp .env.example .env
    ```
 
    Then generate and set secrets:
    ```bash
-   # Generate session secret (copy this output)
    openssl rand -base64 32
 
-   # Generate secure cookie key (copy this output)
    openssl rand -base64 32
    ```
 
-   Open `.env` in a text editor and replace the placeholder values:
+   Open `.env` and replace the placeholder values:
    - Replace `your_base64_secret_here` in `JUNJO_SESSION_SECRET` with the first generated value
    - Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with the second generated value
 
-   **For production deployments**, also configure:
+   For production deployments, also configure:
    ```bash
    JUNJO_ENV=production
    JUNJO_PROD_FRONTEND_URL=https://app.example.com
    JUNJO_PROD_BACKEND_URL=https://api.example.com
    JUNJO_PROD_INGESTION_URL=https://ingestion.example.com
    ```
-   See `.env.example` for complete production configuration options.
 
-   _See the [Minimal Build template repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/README.md) for in-depth configuration instructions._
-
-3. **Create the Docker network** (first time only)
+3. **Start all services**
    ```bash
-   docker network create junjo-network
+   docker compose up
    ```
 
-4. **Start all services**
-   ```bash
-   docker compose up -d
-   ```
+4. **Access Junjo AI Studio**
+   - Follow the exact URL and port guidance in the [minimal build README](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/README.md).
 
-5. **Access Junjo AI Studio**
-   - **Frontend**: http://localhost:5153
-   - **Backend API**: http://localhost:1323
-   - **OTLP Ingestion Endpoint**: grpc://localhost:50051
-
-6. **Create your first user**
-   - Navigate to http://localhost:5153
+5. **Create your first user**
+   - Navigate to your frontend URL
    - Follow the setup wizard to create your admin account
 
-7. **Create an API key** (for sending telemetry from your Junjo app)
+6. **Create an API key** (for sending telemetry from your Junjo app)
    - Sign in to the web UI
-   - Navigate to **Settings → API Keys**
+   - Open the **API Keys** page from the sidebar
    - Click **Create API Key**
-   - Copy the 64-character key (shown only once)
+   - Copy the 64-character key from the API Keys page (use the copy button)
    - Use this key in your Junjo Python Library application
 
 ### Useful Docker Compose Commands
@@ -123,15 +110,15 @@ Get Junjo AI Studio running on your local machine in 5 minutes using the **[Junj
 docker compose logs -f
 
 # View logs from specific service
-docker compose logs -f junjo-ai-studio-backend
-docker compose logs -f junjo-ai-studio-ingestion
-docker compose logs -f junjo-ai-studio-frontend
+docker compose logs -f backend
+docker compose logs -f ingestion
+docker compose logs -f frontend
 
 # Stop services (keeps data)
 docker compose down
 
 # Restart a specific service
-docker compose restart junjo-ai-studio-backend
+docker compose restart backend
 
 # View running containers and their status
 docker compose ps
@@ -142,9 +129,36 @@ docker compose down -v
 
 ### Next Steps
 
-Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) application to send telemetry to `grpc://localhost:50051` using the API key you created.
+Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) application using the setup and endpoint guidance from the minimal build repository.
 
-**For source code development**: If you want to modify Junjo AI Studio's source code (not just use it), see the development guides in `backend/README.md`, `frontend/README.md`, and `ingestion/README.md` in the main [junjo-ai-studio repository](https://github.com/mdrideout/junjo-ai-studio).
+**Version compatibility:** Junjo AI Studio and the Junjo Python Library must run releases that share the same telemetry contract. Mismatched pairings can still ingest spans, but Junjo AI Studio will not be able to render workflow graphs or match spans to their nodes. When upgrading one, upgrade the other to a matching release.
+
+This repository contains the complete open source Junjo AI Studio codebase. If you want to run or modify the source code in this repository, see [Source Development](#source-development) below.
+
+This source repository is not the hosted deployment template. For operator-managed deployment behind your own reverse proxy, use the [minimal build repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build) or the [deployment example repository](https://github.com/mdrideout/junjo-ai-studio-deployment-example), and provide explicit `JUNJO_PROD_*` public URLs.
+
+---
+
+## Source Development
+
+This repository contains the complete open source Junjo AI Studio codebase.
+
+Use the default hot-reload local stack when you want to develop or modify Junjo AI Studio itself:
+
+```bash
+./scripts/junjo setup
+docker compose up --build
+```
+
+Local URLs use the same port numbers inside Docker and on localhost:
+- `JUNJO_BUILD_TARGET=development`: frontend `http://localhost:26151`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
+- `JUNJO_BUILD_TARGET=production`: frontend `http://localhost:26153`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
+
+The port numbers stay the same for same-network containers. Only the hostname changes: use `backend:26154` for the backend API and `ingestion:26155` for OTLP from another container on this Compose network.
+
+After changing `JUNJO_BUILD_TARGET`, rerun `docker compose up --build` so Docker rebuilds the matching image targets. Use `-d` only when you intentionally want detached containers.
+
+For service-specific development notes, see [backend/README.md](./backend/README.md), [frontend/README.md](./frontend/README.md), and [ingestion/README.md](./ingestion/README.md).
 
 ---
 
@@ -179,7 +193,7 @@ Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) applic
 
 The Junjo AI Studio is composed of three primary services:
 
-### 1. Backend (`junjo-ai-studio-backend`)
+### 1. Backend (`backend`)
 - **Tech Stack**: FastAPI (Python), SQLite, DataFusion
 - **Responsibilities**:
   - HTTP REST API
@@ -187,16 +201,16 @@ The Junjo AI Studio is composed of three primary services:
   - LLM playground
   - Span querying & analytics
 
-### 2. Ingestion Service (`junjo-ai-studio-ingestion`)
+### 2. Ingestion Service (`ingestion`)
 - **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
 - **Responsibilities**:
-  - OpenTelemetry OTLP/gRPC endpoint (port 50051)
+  - OpenTelemetry OTLP/gRPC endpoint
   - High-throughput span ingestion with backpressure
   - Write-Ahead Log using Arrow IPC segments
   - Flush WAL to date-partitioned Parquet files (cold storage)
   - Prepare hot snapshots for real-time queries
 
-### 3. Frontend (`junjo-ai-studio-frontend`)
+### 3. Frontend (`frontend`)
 - **Tech Stack**: React, TypeScript
 - **Responsibilities**:
   - Web UI for workflow visualization
@@ -234,7 +248,7 @@ Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
 ## Prerequisites 
 
 ### Required
-- **Docker** and **Docker Compose** (for both development and production)
+- **Docker** and **Docker Compose** (for contributor development and local smoke tests)
 
 ### Optional (Development)
 - **Rust toolchain** (for ingestion service development)
@@ -243,7 +257,7 @@ Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
 
 ### For Production Deployment
 - A domain or subdomain for hosting (see [Deployment Requirements](#deployment-requirements))
-- SSL certificates (automatic with Caddy, Let's Encrypt, etc.)
+- TLS termination in your chosen reverse proxy or ingress layer
 
 ---
 
@@ -277,23 +291,18 @@ JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
 
 # === CORS ==========================================================
 # IMPORTANT: Cannot use "*" with session cookies (credentials=True)
-# Default: http://localhost:5151,http://localhost:5153 (dev/prod build ports)
+# Default: http://localhost:26151,http://localhost:26153
 # Production: Auto-derived from JUNJO_PROD_FRONTEND_URL if not set
 # Explicitly set for multiple frontends:
 # JUNJO_ALLOW_ORIGINS=https://app.example.com,https://admin.example.com
-
-# === Ports =========================================================
-PORT=1323                   # Backend HTTP port
-INGESTION_PORT=50051        # OTLP ingestion gRPC port (public)
-GRPC_PORT=50053             # Backend internal gRPC port
 
 # === Database Storage ==============================================
 # Where database files are stored on your host machine/VM
 JUNJO_HOST_DB_DATA_PATH=./.dbdata
 
 # === Logging =======================================================
-LOG_LEVEL=info              # debug | info | warn | error
-LOG_FORMAT=text             # json | text
+JUNJO_LOG_LEVEL=info        # debug | info | warn | error
+JUNJO_LOG_FORMAT=json       # json | text
 
 # === LLM API Keys (optional) =======================================
 OPENAI_API_KEY=sk-...
@@ -317,7 +326,7 @@ JUNJO_HOST_DB_DATA_PATH=./.dbdata
 JUNJO_BUILD_TARGET=development
 ```
 
-This stores databases in `./.dbdata` directory next to your `docker-compose.yml`. Docker creates this directory automatically.
+This stores databases in `./.dbdata` directory next to your `compose.yaml`. Docker creates this directory automatically.
 
 **Benefits:**
 - Easy to reset by deleting the directory
@@ -348,7 +357,7 @@ JUNJO_BUILD_TARGET=production
 
 **3. Start services:**
 ```bash
-docker compose up -d
+docker compose up --build
 ```
 
 **Benefits:**
@@ -360,9 +369,9 @@ docker compose up -d
 #### Important Notes
 
 - The `JUNJO_HOST_DB_DATA_PATH` variable is the ONLY path you need to configure
-- Container-internal paths are set automatically in `docker-compose.yml`
+- Container-internal paths are set automatically in `compose.yaml`
 - If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
-- All three services (backend, ingestion, frontend) share the same storage location
+- The backend and ingestion services share the same storage location (the frontend is stateless and mounts no storage)
 
 #### Database & Storage Types
 
@@ -380,15 +389,23 @@ All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend
 ### Creating API Keys
 
 After starting Junjo AI Studio:
-1. Sign in to the web UI (http://localhost:5153)
-2. Navigate to **Settings → API Keys**
+1. Sign in to the web UI exposed by your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
+2. Open the **API Keys** page from the sidebar
 3. Click **Create API Key**
-4. Copy the 64-character key (shown only once)
+4. Copy the 64-character key from the API Keys page (use the copy button)
 5. Use this key in your Junjo Python Library application
 
 ---
 
 ## Production Deployment
+
+This source repository does not define a complete hosted deployment topology. It defines the production runtime contract:
+- explicit public URLs via `JUNJO_PROD_FRONTEND_URL`, `JUNJO_PROD_BACKEND_URL`, and `JUNJO_PROD_INGESTION_URL`
+- the frontend/backend same-domain requirement for session cookies
+
+Bring your own reverse proxy, ingress, or load balancer. For a production `compose.yaml` example, see the [minimal build repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build).
+
+If you route directly to this source repository's Compose services, target `frontend:26153`, `backend:26154`, and `ingestion:26155`.
 
 ### Deployment Requirements
 
@@ -402,12 +419,6 @@ After starting Junjo AI Studio:
 
 **Why?** Junjo AI Studio uses session cookies with `SameSite=Strict` for security (CSRF protection). Cross-domain deployments will cause authentication to fail.
 
-**📖 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide**, including:
-- Platform-specific examples (Google Cloud Run, AWS, Docker Compose)
-- Environment configuration for production
-- Security features and best practices
-- Troubleshooting guide
-
 ### Turn-Key Example Repositories
 
 #### Junjo AI Studio Minimal Build
@@ -417,7 +428,7 @@ A minimal, standalone repository with just the core Junjo AI Studio components u
 
 **Best for:**
 - Quick testing of Junjo AI Studio
-- Simple production deployments
+- Simple production deployments with explicit public URLs
 - Integration into existing infrastructure
 
 #### Junjo AI Studio Deployment Example
@@ -429,7 +440,7 @@ A complete, production-ready example that includes a Junjo Python Library applic
 - End-to-end deployment examples
 - Learning how to configure your Junjo app with the server
 - VM deployment guide (Digital Ocean Droplet, AWS EC2, etc.)
-- Caddy reverse proxy setup for SSL
+- One complete reverse-proxy/TLS example
 
 The [README](https://github.com/mdrideout/junjo-ai-studio-deployment-example/blob/master/README.md) provides step-by-step deployment instructions.
 
@@ -441,81 +452,9 @@ Junjo AI Studio is built and deployed to **Docker Hub** with each GitHub release
 - **Ingestion Service**: [mdrideout/junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)
 - **Frontend**: [mdrideout/junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)
 
-**Example docker-compose.yml:**
+**Example compose.yaml:** [junjo-ai-studio-minimal-build/compose.yaml](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/compose.yaml)
 
-```yaml
-services:
-  junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:latest
-    container_name: junjo-ai-studio-backend
-    restart: unless-stopped
-    volumes:
-      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
-    ports:
-      - "1323:1323"   # HTTP API (public)
-      # Port 50053 (internal gRPC for API key validation) is NOT exposed - only accessible via Docker network
-    networks:
-      - junjo-network
-    env_file:
-      - .env
-    environment:
-      - INGESTION_HOST=junjo-ai-studio-ingestion
-      - INGESTION_PORT=50052
-      - RUN_MIGRATIONS=true
-      - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
-      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
-
-  junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:latest
-    container_name: junjo-ai-studio-ingestion
-    restart: unless-stopped
-    volumes:
-      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
-    ports:
-      - "50051:50051"  # Public OTLP endpoint (authenticated via API key)
-      # Port 50052 (internal gRPC for PrepareHotSnapshot/FlushWAL) is NOT exposed - only accessible via Docker network
-    networks:
-      - junjo-network
-    env_file:
-      - .env
-    environment:
-      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
-      - BACKEND_GRPC_PORT=50053
-      - WAL_DIR=/app/.dbdata/spans/wal
-      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
-      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
-    depends_on:
-      junjo-ai-studio-backend:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
-
-  junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:latest
-    container_name: junjo-ai-studio-frontend
-    restart: unless-stopped
-    ports:
-      - "5153:80"
-    env_file:
-      - .env
-    networks:
-      - junjo-network
-    depends_on:
-      junjo-ai-studio-backend:
-        condition: service_started
-
-networks:
-  junjo-network:
-    name: junjo_network
-    driver: bridge
-```
-
-For a more complete example with reverse proxy, see the [Junjo AI Studio Deployment Example Repository](https://github.com/mdrideout/junjo-ai-studio-deployment-example/blob/master/docker-compose.yml).
+Use these images in the deployment stack you own. For complete working examples, start from the minimal-build or deployment-example repositories.
 
 ### VM Resource Requirements
 
@@ -592,7 +531,7 @@ This script runs:
 
 **Frontend-specific:**
 - `cd frontend && npm run test:run` - All frontend tests (exits after completion)
-- `cd frontend && npm test` - All frontend tests (watch mode)
+- `cd frontend && npm test` - Frontend tests in watch mode
 - `cd frontend && npm run test:contracts` - Contract tests only
 
 **Individual services:**
@@ -648,7 +587,7 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 cd backend && uv run ruff check app/          # Linting
 ./backend/scripts/run-backend-tests.sh        # Backend tests
 cd ingestion && cargo test                    # Ingestion tests
-cd frontend && npm test                       # Frontend tests
+cd frontend && npm run test:run              # Frontend tests
 ./backend/scripts/validate_rest_api_contracts.sh  # Contracts
 ```
 
@@ -727,7 +666,7 @@ Tests run automatically on all PRs via GitHub Actions:
    - Frontend URL not in `JUNJO_ALLOW_ORIGINS`
    - **Fix**: Add your frontend URL to the CORS origins list
 
-**See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting) for detailed troubleshooting guide.**
+Hosted deployment troubleshooting lives with the deployment stack you choose. For working examples, start from the minimal-build or deployment-example repositories.
 
 ### Port Conflicts
 
@@ -736,13 +675,10 @@ Tests run automatically on all PRs via GitHub Actions:
 **Solution:**
 ```bash
 # Find process using the port
-lsof -i :1323  # or :50051, :5153, etc.
+lsof -i :26151  # or :26153, :26154, :26155, etc.
 
 # Kill the process
 kill -9 <PID>
-
-# Or change the port in .env
-PORT=1324
 ```
 
 ### Container Startup Issues
@@ -758,18 +694,13 @@ PORT=1324
    docker compose logs frontend
    ```
 
-2. **Ensure network exists**
-   ```bash
-   docker network create junjo-network
-   ```
-
-3. **Clear volumes and rebuild**
+2. **Clear volumes and rebuild**
    ```bash
    docker compose down -v
    docker compose up --build
    ```
 
-4. **Check .env file**
+3. **Check .env file**
    - Ensure all required variables are set
    - Secrets must be base64-encoded 32-byte values
 
@@ -786,7 +717,7 @@ docker compose down
 mv .dbdata .dbdata.backup
 
 # Restart (will create fresh databases)
-docker compose up
+docker compose up --build
 ```
 
 ---
@@ -794,12 +725,11 @@ docker compose up
 ## Resources
 
 ### Documentation
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete production deployment instructions
 - **[Junjo Python Library](https://github.com/mdrideout/junjo)** - AI Graph Workflow framework
 
 ### Example Repositories
 - **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Minimal setup with pre-built images
-- **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - Complete production deployment with Caddy
+- **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - Complete VM deployment example with one reverse-proxy implementation
 
 ### Docker Hub Images
 - **[junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)** - FastAPI backend

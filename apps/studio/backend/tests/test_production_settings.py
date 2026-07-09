@@ -129,6 +129,18 @@ class TestIngestionURLConfiguration:
         )
         assert settings.otlp_endpoint == "https://ingestion.example.com"
 
+    def test_production_derives_cors_from_frontend_url(self):
+        """Test production CORS defaults to the configured frontend URL."""
+        settings = create_test_settings(
+            JUNJO_ENV="production",
+            JUNJO_SECURE_COOKIE_KEY=TEST_COOKIE_KEY,
+            JUNJO_SESSION_SECRET=TEST_SESSION_SECRET,
+            JUNJO_PROD_FRONTEND_URL="https://app.example.com",
+            JUNJO_PROD_BACKEND_URL="https://api.example.com",
+            JUNJO_PROD_INGESTION_URL="https://ingestion.example.com",
+        )
+        assert settings.cors_origins == ["https://app.example.com"]
+
     def test_development_uses_localhost_default(self):
         """Test that development mode uses localhost default."""
         settings = create_test_settings(
@@ -136,7 +148,7 @@ class TestIngestionURLConfiguration:
             JUNJO_SECURE_COOKIE_KEY=TEST_COOKIE_KEY,
             JUNJO_SESSION_SECRET=TEST_SESSION_SECRET,
         )
-        assert settings.otlp_endpoint == "grpc://localhost:50051"
+        assert settings.otlp_endpoint == "grpc://localhost:26155"
 
 
 class TestSameDomainValidation:

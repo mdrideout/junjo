@@ -1,33 +1,36 @@
 import { z } from 'zod'
 
 export const JNodeSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  label: z.string(),
-  // For RunConcurrent nodes
-  isSubgraph: z.boolean().optional(),
-  children: z.array(z.string()).optional(),
-  // New properties for Subflow nodes
+  nodeRuntimeId: z.string(),
+  nodeStructuralId: z.string(),
+  nodeType: z.string(),
+  nodeLabel: z.string(),
+  isConcurrentSubgraph: z.boolean().optional(),
+  childNodeRuntimeIds: z.array(z.string()).optional(),
   isSubflow: z.boolean().optional(),
-  subflowSourceId: z.string().optional(),
-  subflowSinkId: z.string().optional(),
+  subflowGraphStructuralId: z.string().optional(),
+  subflowSourceNodeRuntimeId: z.string().optional(),
+  subflowSourceNodeStructuralId: z.string().optional(),
+  subflowSinkNodeRuntimeIds: z.array(z.string()).optional(),
+  subflowSinkNodeStructuralIds: z.array(z.string()).optional(),
 })
 export type JNode = z.infer<typeof JNodeSchema>
 
 export const JEdgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  condition: z.string().nullable(),
-  // Updated to support edge types
-  type: z.enum(['explicit', 'subflow']).optional().default('explicit'),
-  // New property for Subflow edges
-  subflowId: z.string().nullable().optional(),
+  edgeStructuralId: z.string(),
+  tailNodeRuntimeId: z.string(),
+  tailNodeStructuralId: z.string(),
+  headNodeRuntimeId: z.string(),
+  headNodeStructuralId: z.string(),
+  edgeConditionLabel: z.string().nullable(),
+  edgeScope: z.enum(['explicit', 'subflow']),
+  parentSubflowRuntimeId: z.string().nullable(),
 })
 export type JEdge = z.infer<typeof JEdgeSchema>
 
 export const JGraphSchema = z.object({
   v: z.number(),
+  graphStructuralId: z.string(),
   nodes: z.array(JNodeSchema),
   edges: z.array(JEdgeSchema),
 })

@@ -9,7 +9,9 @@
 
 import '@testing-library/jest-dom'
 import { beforeAll, afterEach, afterAll } from 'vitest'
-import { server } from './mock-server'
+import { API_BASE, server } from './mock-server'
+
+window.runtimeConfig = { API_HOST: API_BASE }
 
 // Start MSW server before all tests
 beforeAll(() => {

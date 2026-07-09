@@ -18,8 +18,9 @@ Simple Junjo application for E2E testing of Junjo AI Studio. Based on the gettin
 3. **Edit `config.yaml` with your API key:**
    ```yaml
    exporter:
-     api_key: "your_actual_api_key_here"  # Get from Junjo AI Studio Settings → API Keys
-     endpoint: "grpc://localhost:50051"
+     host: "localhost"
+     port: "26155"
+     api_key: "your_actual_api_key_here"  # Get from the Junjo AI Studio API Keys page
      service_name: "default-service"
      insecure: true
 
@@ -83,7 +84,7 @@ The test app uses the getting_started workflow structure:
 
 After running, verify telemetry in Junjo AI Studio:
 
-1. Open Junjo AI Studio web UI (http://localhost:5153)
+1. Open the Junjo AI Studio web UI for your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
 2. Navigate to the service you specified
 3. Check that workflows appear with correct service name
 4. Inspect workflow graph structure and state transitions
@@ -105,11 +106,11 @@ uv run python main.py --service-name "test-service"
 
 **"Connection refused" error:**
 - Ensure Junjo AI Studio is running: `docker compose ps`
-- Check ingestion service is up: `docker compose logs junjo-ai-studio-ingestion`
+- Check ingestion service is up: `docker compose logs ingestion`
 
 **No data appearing in UI:**
 - Verify API key is correct in `config.yaml`
-- Check backend logs: `docker compose logs junjo-ai-studio-backend`
+- Check backend logs: `docker compose logs backend`
 - Wait a few seconds for backend to process spans
 
 **Import errors:**

@@ -11,8 +11,8 @@
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
 
-// Base URL for API requests (matches development environment)
-const API_BASE = 'http://localhost:1323'
+// Base URL for API requests (matches the compose-published backend port)
+export const API_BASE = 'http://localhost:26154'
 
 /**
  * Default request handlers for common API endpoints.

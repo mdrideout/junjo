@@ -2,10 +2,9 @@ import { Link } from 'react-router'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import { OtelSpan } from '../../traces/schemas/schemas'
-import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { RootState } from '../../../root-store/store'
+import { useAppDispatch } from '../../../root-store/hooks'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
-import { selectTraceExceptionSpans } from '../../traces/store/selectors'
+import { wrapSpan } from '../../traces/utils/span-accessor'
 
 // Define the shape of one span; replace `any` with your real type if you have one
 interface Props {
@@ -19,12 +18,7 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
   const startString = new Date(workflowSpan.start_time).toLocaleString()
   const durationString = getSpanDurationString(workflowSpan.start_time, workflowSpan.end_time)
 
-  const exceptionSpans = useAppSelector((state: RootState) =>
-    selectTraceExceptionSpans(state, {
-      traceId: workflowSpan.trace_id,
-    }),
-  )
-  const hasExceptions = exceptionSpans.length > 0
+  const hasFailures = wrapSpan(workflowSpan).hasFailureSignal
 
   const destination = `/workflows/${workflowSpan.service_name}/${workflowSpan.trace_id}/${workflowSpan.span_id}`
 
@@ -81,8 +75,11 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
       </td>
       <td className="p-0">
         <Link to={destination} onClick={handleLinkClick} className="block px-4 py-1.5 h-full">
-          {hasExceptions && (
-            <ExclamationTriangleIcon className="size-4 m-auto text-red-700 dark:text-red-300" />
+          {hasFailures && (
+            <ExclamationTriangleIcon
+              aria-label="Workflow execution failed"
+              className="size-4 m-auto text-red-700 dark:text-red-300"
+            />
           )}
         </Link>
       </td>

@@ -14,13 +14,11 @@ export default defineConfig({
     process.env.ANALYZE ? analyzer() : undefined,
   ].filter(Boolean),
   server: {
-    port: 5151,
+    port: 26151,
     host: true,
+    strictPort: true,
     watch: {
       usePolling: true,
-    },
-    hmr: {
-      clientPort: 5152, // must be mapped in docker compose to 5151
     },
   },
   build: {

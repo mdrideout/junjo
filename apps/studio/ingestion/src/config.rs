@@ -38,6 +38,41 @@ pub struct Config {
     pub prepare_hot_snapshot_cache_ttl_ms: u64,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::Config;
+    use std::env;
+
+    #[test]
+    fn defaults_use_junjo_local_port_model() {
+        let old_grpc_port = env::var("GRPC_PORT").ok();
+        let old_internal_grpc_port = env::var("INTERNAL_GRPC_PORT").ok();
+        let old_backend_grpc_port = env::var("BACKEND_GRPC_PORT").ok();
+
+        env::remove_var("GRPC_PORT");
+        env::remove_var("INTERNAL_GRPC_PORT");
+        env::remove_var("BACKEND_GRPC_PORT");
+
+        let config = Config::from_env();
+        assert_eq!(config.grpc_port, 26155);
+        assert_eq!(config.internal_grpc_port, 50052);
+        assert_eq!(config.backend_port, 50053);
+
+        match old_grpc_port {
+            Some(value) => env::set_var("GRPC_PORT", value),
+            None => env::remove_var("GRPC_PORT"),
+        }
+        match old_internal_grpc_port {
+            Some(value) => env::set_var("INTERNAL_GRPC_PORT", value),
+            None => env::remove_var("INTERNAL_GRPC_PORT"),
+        }
+        match old_backend_grpc_port {
+            Some(value) => env::set_var("BACKEND_GRPC_PORT", value),
+            None => env::remove_var("BACKEND_GRPC_PORT"),
+        }
+    }
+}
+
 impl Config {
     /// Load configuration from environment variables with defaults.
     pub fn from_env() -> Self {
@@ -56,7 +91,7 @@ impl Config {
             grpc_port: env::var("GRPC_PORT")
                 .ok()
                 .and_then(|s| s.parse().ok())
-                .unwrap_or(50051),
+                .unwrap_or(26155),
 
             internal_grpc_port: env::var("INTERNAL_GRPC_PORT")
                 .ok()

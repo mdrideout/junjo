@@ -24,7 +24,7 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
   return workflowChain.map((workflowSpan) => {
     const uniqueMermaidId = `mer-unique-${workflowSpan.span_id}`
     const accessor = wrapSpan(workflowSpan)
-    const graphStructure = accessor.workflowGraphStructure
+    const graphStructure = accessor.workflowExecutionGraphSnapshot
 
     // Check if the workflow has valid graph structure data
     if (!graphStructure) {
@@ -45,6 +45,7 @@ export default function RenderJunjoGraphList(props: RenderJunjoGraphListProps) {
       <div key={`key-${uniqueMermaidId}`} className={'mb-5'}>
         <div className={'font-bold text-sm'}>{workflowSpan.name}</div>
         <RenderJunjoGraphMermaid
+          graphSnapshot={graphStructure}
           traceId={traceId}
           workflowChain={workflowChain}
           mermaidFlowString={mermaidFlowString}

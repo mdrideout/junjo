@@ -56,18 +56,18 @@ describe('SetupForm', () => {
     const user = userEvent.setup()
 
     // Override the mock to return an error
-    const { server } = await import('../test-utils/mock-server')
+    const { API_BASE, server } = await import('../test-utils/mock-server')
     const { http, HttpResponse } = await import('msw')
 
     server.use(
-      http.post('http://localhost:1323/users/create-first-user', () => {
+      http.post(`${API_BASE}/users/create-first-user`, () => {
         return HttpResponse.json(
           { detail: 'User already exists' },
           { status: 409 }
         )
       }),
       // Also mock auth-test to return unauthorized (user not created, so not authenticated)
-      http.get('http://localhost:1323/auth-test', () => {
+      http.get(`${API_BASE}/auth-test`, () => {
         return HttpResponse.json(
           { detail: 'Unauthorized' },
           { status: 401 }

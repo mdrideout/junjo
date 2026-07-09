@@ -54,14 +54,6 @@ mod wal_tests {
 
 /// Test module for configuration
 mod config_tests {
-    /// Test that default config values are reasonable
-    #[test]
-    fn test_default_ports() {
-        // gRPC port defaults
-        assert!(50051 > 0 && 50051 < 65536);
-        assert!(50052 > 0 && 50052 < 65536);
-    }
-
     /// Test environment variable parsing
     #[test]
     fn test_env_var_parsing() {

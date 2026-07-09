@@ -17,10 +17,7 @@ export default function SpanRow(props: SpanRowProps) {
   const end_time = span.end_time
   const spanDuration = getSpanDurationString(start_time, end_time)
 
-  // Exceptions
-  const hasExceptions = span.events_json.some((event) => {
-    return event.attributes && event.attributes['exception.type'] !== undefined
-  })
+  const hasFailures = wrapSpan(span).hasFailureSignal
 
   // Is Junjo Workflow Span
   const isJunjoWorkflowSpan = wrapSpan(span).isWorkflow
@@ -45,13 +42,13 @@ export default function SpanRow(props: SpanRowProps) {
                 Workflow Explorer &rarr;
               </Link>
             )}
-            {hasExceptions && (
+            {hasFailures && (
               <button
                 className={
                   'mt-[1px] cursor-pointer text-white bg-red-700 hover:bg-red-600 rounded-lg px-1.5 text-xs'
                 }
               >
-                exceptions
+                failures
               </button>
             )}
           </div>

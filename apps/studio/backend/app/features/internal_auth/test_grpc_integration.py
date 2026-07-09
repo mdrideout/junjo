@@ -121,5 +121,6 @@ async def test_grpc_server_connectivity(grpc_server_for_tests):
 
     except grpc.aio.AioRpcError as e:
         pytest.fail(
-            f"gRPC server is not accessible on port {settings.GRPC_PORT}: {e.code()} - {e.details()}"
+            f"gRPC server is not accessible on port {settings.GRPC_PORT}: "
+            f"{e.code()} - {e.details()}"
         )

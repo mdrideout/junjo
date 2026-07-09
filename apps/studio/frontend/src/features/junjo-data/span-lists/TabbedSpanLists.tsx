@@ -2,15 +2,15 @@ import { useState } from 'react'
 import NestedWorkflowSpans from './NestedWorkflowSpans'
 import FlatStateEventsList from './FlatStateEventsList'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid'
-import { selectTraceExceptionSpans } from '../../traces/store/selectors'
+import { selectTraceFailureSpans } from '../../traces/store/selectors'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import SpanExceptionsList from '../workflow-detail/SpanExceptionsList'
+import SpanFailuresList from '../workflow-detail/SpanFailuresList'
 
 enum TabOptions {
   NESTED = 'Workflow Spans',
   FLAT = 'State Updates',
-  EXCEPTIONS = 'Workflow Exceptions',
+  FAILURES = 'Workflow Failures',
 }
 
 interface TabbedSpanListsProps {
@@ -36,7 +36,7 @@ const TabButton = ({
       onClick={() => tabChangeHandler(tab)}
     >
       <div className={'flex items-center gap-x-1'}>
-        {tab === TabOptions.EXCEPTIONS && <ExclamationTriangleIcon className={'size-4 text-red-700'} />}
+        {tab === TabOptions.FAILURES && <ExclamationTriangleIcon className={'size-4 text-red-700'} />}
         <div>{tab}</div>
       </div>
     </button>
@@ -47,20 +47,20 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
   const { traceId, workflowSpanId } = props
   const [activeTab, setActiveTab] = useState<TabOptions>(TabOptions.NESTED)
 
-  const exceptionSpans = useAppSelector((state: RootState) =>
-    selectTraceExceptionSpans(state, {
+  const failureSpans = useAppSelector((state: RootState) =>
+    selectTraceFailureSpans(state, {
       traceId,
     }),
   )
-  const hasExceptions = exceptionSpans.length > 0
+  const hasFailures = failureSpans.length > 0
 
   return (
     <div className={'flex flex-1/2 flex-col'}>
       <div className={'flex gap-x-2'}>
         <TabButton tab={TabOptions.NESTED} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         <TabButton tab={TabOptions.FLAT} activeTab={activeTab} tabChangeHandler={setActiveTab} />
-        {hasExceptions && (
-          <TabButton tab={TabOptions.EXCEPTIONS} activeTab={activeTab} tabChangeHandler={setActiveTab} />
+        {hasFailures && (
+          <TabButton tab={TabOptions.FAILURES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
       </div>
       <div className={'overflow-y-scroll pr-2.5 border-t border-zinc-200 dark:border-zinc-700'}>
@@ -70,7 +70,7 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
         {activeTab === TabOptions.FLAT && (
           <FlatStateEventsList traceId={traceId} workflowSpanId={workflowSpanId} />
         )}
-        {activeTab === TabOptions.EXCEPTIONS && <SpanExceptionsList spans={exceptionSpans} />}
+        {activeTab === TabOptions.FAILURES && <SpanFailuresList spans={failureSpans} />}
       </div>
     </div>
   )

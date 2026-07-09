@@ -132,7 +132,29 @@ fn serialize_events(events: &[opentelemetry_proto::tonic::trace::v1::span::Event
 #[cfg(test)]
 mod tests {
     use super::*;
+    use opentelemetry_proto::tonic::common::v1::{any_value, AnyValue, KeyValue};
+    use opentelemetry_proto::tonic::resource::v1::Resource;
     use opentelemetry_proto::tonic::trace::v1::span::Event;
+    use opentelemetry_proto::tonic::trace::v1::{Span, Status};
+
+    fn string_value(value: &str) -> AnyValue {
+        AnyValue {
+            value: Some(any_value::Value::StringValue(value.to_string())),
+        }
+    }
+
+    fn bool_value(value: bool) -> AnyValue {
+        AnyValue {
+            value: Some(any_value::Value::BoolValue(value)),
+        }
+    }
+
+    fn key_value(key: &str, value: AnyValue) -> KeyValue {
+        KeyValue {
+            key: key.to_string(),
+            value: Some(value),
+        }
+    }
 
     #[test]
     fn test_serialize_events_uses_time_unix_nano_camel_case() {
@@ -155,6 +177,151 @@ mod tests {
             .unwrap();
         assert!(event_obj.contains_key("timeUnixNano"));
         assert!(!event_obj.contains_key("time_unix_nano"));
+    }
+
+    #[test]
+    fn test_from_otlp_preserves_current_junjo_attributes_and_resource_service_name() {
+        let span = Span {
+            trace_id: vec![0x11; 16],
+            span_id: vec![0x22; 8],
+            parent_span_id: vec![],
+            name: "workflow".to_string(),
+            kind: 0,
+            start_time_unix_nano: 100,
+            end_time_unix_nano: 200,
+            attributes: vec![
+                key_value(
+                    "junjo.workflow.execution_graph_snapshot",
+                    string_value("{\"v\":2,\"graphStructuralId\":\"graph-basic-01\"}"),
+                ),
+                key_value(
+                    "junjo.executable_runtime_id",
+                    string_value("run-basic-01"),
+                ),
+                key_value(
+                    "junjo.executable_structural_id",
+                    string_value("graph-basic-01"),
+                ),
+                key_value("error.type", string_value("ValueError")),
+                key_value("junjo.cancelled", bool_value(true)),
+            ],
+            events: vec![],
+            links: vec![],
+            status: Some(Status {
+                code: 2,
+                message: "failed".to_string(),
+            }),
+            ..Default::default()
+        };
+        let resource = Resource {
+            attributes: vec![key_value("service.name", string_value("svc-phase0"))],
+            dropped_attributes_count: 0,
+            entity_refs: vec![],
+        };
+
+        let record = SpanRecord::from_otlp(&span, Some(&resource));
+        let attributes: serde_json::Value = serde_json::from_str(&record.attributes).unwrap();
+        let resource_attributes: serde_json::Value =
+            serde_json::from_str(&record.resource_attributes).unwrap();
+
+        assert_eq!(record.service_name, "svc-phase0");
+        assert_eq!(
+            attributes["junjo.workflow.execution_graph_snapshot"],
+            "{\"v\":2,\"graphStructuralId\":\"graph-basic-01\"}"
+        );
+        assert_eq!(attributes["junjo.executable_runtime_id"], "run-basic-01");
+        assert_eq!(attributes["junjo.executable_structural_id"], "graph-basic-01");
+        assert_eq!(attributes["error.type"], "ValueError");
+        assert_eq!(attributes["junjo.cancelled"], true);
+        assert_eq!(resource_attributes["service.name"], "svc-phase0");
+    }
+
+    #[test]
+    fn test_from_otlp_preserves_hook_error_and_set_state_events() {
+        let span = Span {
+            trace_id: vec![0x33; 16],
+            span_id: vec![0x44; 8],
+            parent_span_id: vec![],
+            name: "node".to_string(),
+            kind: 0,
+            start_time_unix_nano: 300,
+            end_time_unix_nano: 500,
+            attributes: vec![],
+            events: vec![
+                Event {
+                    time_unix_nano: 400,
+                    name: "set_state".to_string(),
+                    attributes: vec![
+                        key_value("id", string_value("state-event-01")),
+                        key_value("junjo.store.id", string_value("store-01")),
+                        key_value("junjo.store.name", string_value("WorkflowState")),
+                        key_value("junjo.store.action", string_value("set_value")),
+                        key_value(
+                            "junjo.state_json_patch",
+                            string_value("[{\"op\":\"replace\",\"path\":\"/value\",\"value\":1}]"),
+                        ),
+                    ],
+                    dropped_attributes_count: 0,
+                },
+                Event {
+                    time_unix_nano: 450,
+                    name: "junjo.hook_error".to_string(),
+                    attributes: vec![
+                        key_value(
+                            "junjo.hook.event",
+                            string_value("after_node_execution"),
+                        ),
+                        key_value(
+                            "junjo.hook.callback",
+                            string_value("tests.fixtures.HookFailureCallback"),
+                        ),
+                        key_value(
+                            "junjo.hook.error.type",
+                            string_value("RuntimeError"),
+                        ),
+                        key_value(
+                            "junjo.hook.error.message",
+                            string_value("hook exploded"),
+                        ),
+                        key_value("exception.type", string_value("RuntimeError")),
+                        key_value("exception.message", string_value("hook exploded")),
+                        key_value(
+                            "exception.stacktrace",
+                            string_value("Traceback (most recent call last)"),
+                        ),
+                    ],
+                    dropped_attributes_count: 0,
+                },
+            ],
+            links: vec![],
+            status: Some(Status {
+                code: 0,
+                message: String::new(),
+            }),
+            ..Default::default()
+        };
+
+        let record = SpanRecord::from_otlp(&span, None);
+        let events: serde_json::Value = serde_json::from_str(&record.events).unwrap();
+        let event_list = events.as_array().unwrap();
+
+        assert_eq!(event_list.len(), 2);
+        assert_eq!(event_list[0]["name"], "set_state");
+        assert_eq!(event_list[0]["timeUnixNano"], 400);
+        assert_eq!(
+            event_list[0]["attributes"]["junjo.store.id"],
+            "store-01"
+        );
+        assert_eq!(event_list[1]["name"], "junjo.hook_error");
+        assert_eq!(event_list[1]["timeUnixNano"], 450);
+        assert_eq!(
+            event_list[1]["attributes"]["junjo.hook.error.message"],
+            "hook exploded"
+        );
+        assert_eq!(
+            event_list[1]["attributes"]["exception.type"],
+            "RuntimeError"
+        );
     }
 }
 

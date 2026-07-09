@@ -23,7 +23,7 @@ COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 # Copy the startup script and make it executable
 COPY frontend/prod-startup.sh /docker-entrypoint.d/40-startup-message.sh
 RUN chmod +x /docker-entrypoint.d/40-startup-message.sh
-EXPOSE 80
+EXPOSE 26153
 CMD ["nginx", "-g", "daemon off;"]
 
 # ---- Development Stage ----
@@ -31,9 +31,6 @@ CMD ["nginx", "-g", "daemon off;"]
 FROM base AS development
 WORKDIR /app
 COPY frontend/ .
-# Environment variables for Vite HMR with Docker
 ENV CHOKIDAR_USEPOLLING=true
-ENV WDS_SOCKET_HOST=0.0.0.0
-ENV WDS_SOCKET_PORT=4951
-EXPOSE 4951
+EXPOSE 26151
 CMD ["npm", "run", "dev"]

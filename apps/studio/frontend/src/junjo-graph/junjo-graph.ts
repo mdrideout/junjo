@@ -9,37 +9,14 @@ export class JunjoGraph {
     this.graph = graph
   }
 
-  /**
-   * Factory Constructor: From Base64 JSON
-   *
-   * The Junjo server stores graph structures as JSONB in the SQLite database.
-   * It is returned to the frontend as a Base64 encoded JSON string by default.
-   *
-   * This constructor creates an instance of JunjoGraph by
-   * - Decoding the Base64 string
-   * - Parsing the JSON
-   * - Parsing the JGraph schema
-   *
-   * @param base64String is the raw Base64 encoded JSON string of the graph
-   * @throws if there are any issues parsing the data
-   * @returns an instance of JunjoGraph
-   */
-  static fromJson(json: Record<string, any>): JunjoGraph {
-    try {
-      const parsedData = JGraphSchema.safeParse(json)
-
-      if (!parsedData.success) {
-        const errorMessage = `Invalid JSON data or data structure: ${JSON.stringify(parsedData.error.issues)}.`
-        console.error('Error parsing base64 encoded JSON:', errorMessage)
-        throw new JunjoGraphError(errorMessage)
-      }
-
-      return new JunjoGraph(parsedData.data)
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      console.error('Error creating JunjoGraph:', message)
-      throw new JunjoGraphError(`Failed to create JunjoGraph from base64 data: ${message}`)
+  static fromJson(json: unknown): JunjoGraph {
+    const parsed = JGraphSchema.safeParse(json)
+    if (!parsed.success) {
+      const errorMessage = `Invalid execution graph snapshot: ${JSON.stringify(parsed.error.issues)}`
+      throw new JunjoGraphError(errorMessage)
     }
+
+    return new JunjoGraph(parsed.data)
   }
 
   get nodes(): JNode[] {
@@ -54,99 +31,121 @@ export class JunjoGraph {
     return this.graph.v
   }
 
-  /**
-   * Convert the graph to a Mermaid flow‑chart definition.
-   * @param showEdgeLabels – include edge conditions when true.
-   * @param direction – overall graph direction, defaults to LR.
-   * @param subDirection – direction to use inside RunConcurrent sub‑graphs, defaults to LR.
-   */
+  get graphStructuralId(): string {
+    return this.graph.graphStructuralId
+  }
+
   toMermaid(
     showEdgeLabels: boolean = false,
     direction: MermaidGraphDirection = 'LR',
     subDirection: MermaidGraphDirection = 'LR',
   ): string {
     const lines: string[] = []
-
-    // ---------- 0. Prepared lookup sets ----------
-    const nodeMap = new Map<string, JNode>(this.graph.nodes.map((n) => [n.id, n]))
-    const childrenNodeIds = new Set<string>()
-    const subgraphContainerIds = new Set<string>()
-    const subflowNodeIds = new Set<string>()
+    const nodeMap = new Map<string, JNode>(this.graph.nodes.map((node) => [node.nodeRuntimeId, node]))
+    const concurrentChildIds = new Set<string>()
+    const concurrentContainerIds = new Set<string>()
     const subflowInternalNodeIds = new Set<string>()
 
-    // ---------- 1. Pass: classify nodes ----------
     for (const node of this.graph.nodes) {
-      if (node.isSubgraph && node.children?.length) {
-        subgraphContainerIds.add(node.id)
-        for (const ch of node.children) {
-          childrenNodeIds.add(ch)
+      if (node.isConcurrentSubgraph) {
+        concurrentContainerIds.add(node.nodeRuntimeId)
+        for (const childNodeRuntimeId of node.childNodeRuntimeIds ?? []) {
+          concurrentChildIds.add(childNodeRuntimeId)
         }
-      } else if (node.isSubflow) {
-        subflowNodeIds.add(node.id)
-        for (const e of this.graph.edges.filter((e) => e.subflowId === node.id)) {
-          subflowInternalNodeIds.add(e.source)
-          subflowInternalNodeIds.add(e.target)
+      }
+
+      if (node.isSubflow) {
+        if (node.subflowSourceNodeRuntimeId) {
+          subflowInternalNodeIds.add(node.subflowSourceNodeRuntimeId)
+        }
+
+        for (const sinkNodeRuntimeId of node.subflowSinkNodeRuntimeIds ?? []) {
+          subflowInternalNodeIds.add(sinkNodeRuntimeId)
         }
       }
     }
 
-    // ---------- 2. Start diagram ----------
+    for (const edge of this.graph.edges) {
+      if (edge.edgeScope !== 'subflow') {
+        continue
+      }
+      subflowInternalNodeIds.add(edge.tailNodeRuntimeId)
+      subflowInternalNodeIds.add(edge.headNodeRuntimeId)
+    }
+
     lines.push(`graph ${direction}`)
 
-    // ---------- 3. Top‑level nodes ----------
     for (const node of this.graph.nodes) {
-      if (subflowInternalNodeIds.has(node.id)) continue // internal to a sub‑flow
-      if (childrenNodeIds.has(node.id)) continue // rendered in subgraph
-      if (subgraphContainerIds.has(node.id)) continue // container itself handled below
+      const isConcurrentChild = concurrentChildIds.has(node.nodeRuntimeId)
+      const isSubflowInternal = subflowInternalNodeIds.has(node.nodeRuntimeId)
+      const isConcurrentContainer = concurrentContainerIds.has(node.nodeRuntimeId)
 
-      const label = escapeMermaidLabel(node.label)
-      if (subflowNodeIds.has(node.id)) {
-        lines.push(`  ${node.id}@{ shape: st-rect, label: ${label} }`)
+      if (isConcurrentChild || isSubflowInternal || isConcurrentContainer) {
+        continue
+      }
+
+      const label = escapeMermaidLabel(node.nodeLabel)
+      if (node.isSubflow) {
+        lines.push(`  ${node.nodeRuntimeId}@{ shape: st-rect, label: ${label} }`)
       } else {
-        lines.push(`  ${node.id}@{ shape: rect, label: ${label} }`)
+        lines.push(`  ${node.nodeRuntimeId}@{ shape: rect, label: ${label} }`)
       }
     }
 
-    // ---------- 4. RunConcurrent sub‑graphs ----------
     for (const node of this.graph.nodes) {
-      if (!subgraphContainerIds.has(node.id)) continue
-      if (subflowInternalNodeIds.has(node.id)) continue // NEW ➜ skip if this gather lives inside a sub‑flow
+      if (!node.isConcurrentSubgraph) {
+        continue
+      }
+
+      if (subflowInternalNodeIds.has(node.nodeRuntimeId)) {
+        continue
+      }
 
       lines.push('')
-      lines.push(`  subgraph ${node.id} [${escapeMermaidLabel(node.label)}]`)
+      lines.push(`  subgraph ${node.nodeRuntimeId} [${escapeMermaidLabel(node.nodeLabel)}]`)
       lines.push(`    direction ${subDirection}`)
 
-      for (const childId of node.children || []) {
-        if (subflowInternalNodeIds.has(childId)) continue // child also internal
-        const child = nodeMap.get(childId)
-        if (!child) continue
-        const lbl = escapeMermaidLabel(child.label)
-        if (subflowNodeIds.has(child.id)) {
-          lines.push(`    ${child.id}@{ shape: st-rect, label: ${lbl} }`)
+      for (const childNodeRuntimeId of node.childNodeRuntimeIds ?? []) {
+        const childNode = nodeMap.get(childNodeRuntimeId)
+        if (!childNode || subflowInternalNodeIds.has(childNodeRuntimeId)) {
+          continue
+        }
+
+        const childLabel = escapeMermaidLabel(childNode.nodeLabel)
+        if (childNode.isSubflow) {
+          lines.push(`    ${childNode.nodeRuntimeId}@{ shape: st-rect, label: ${childLabel} }`)
         } else {
-          lines.push(`    ${child.id}[${lbl}]`)
+          lines.push(`    ${childNode.nodeRuntimeId}@{ shape: rect, label: ${childLabel} }`)
         }
       }
 
       lines.push('  end')
     }
 
-    // ---------- 5. Edges ----------
     lines.push('')
     for (const edge of this.graph.edges) {
-      if (edge.type === 'subflow') continue // hide internal edges
-      if (subflowInternalNodeIds.has(edge.source) || subflowInternalNodeIds.has(edge.target)) continue
-      if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) continue
+      if (edge.edgeScope === 'subflow') {
+        continue
+      }
 
-      const src = edge.source
-      const tgt = edge.target
-      const cond = edge.condition ? escapeMermaidLabel(edge.condition) : null
-      if (cond && showEdgeLabels) {
-        lines.push(`  ${src} -.${cond}.-> ${tgt}`)
-      } else if (cond) {
-        lines.push(`  ${src} -.-> ${tgt}`)
+      if (
+        subflowInternalNodeIds.has(edge.tailNodeRuntimeId) ||
+        subflowInternalNodeIds.has(edge.headNodeRuntimeId)
+      ) {
+        continue
+      }
+
+      if (!nodeMap.has(edge.tailNodeRuntimeId) || !nodeMap.has(edge.headNodeRuntimeId)) {
+        continue
+      }
+
+      const condition = edge.edgeConditionLabel ? escapeMermaidLabel(edge.edgeConditionLabel) : null
+      if (condition && showEdgeLabels) {
+        lines.push(`  ${edge.tailNodeRuntimeId} -.${condition}.-> ${edge.headNodeRuntimeId}`)
+      } else if (condition) {
+        lines.push(`  ${edge.tailNodeRuntimeId} -.-> ${edge.headNodeRuntimeId}`)
       } else {
-        lines.push(`  ${src} --> ${tgt}`)
+        lines.push(`  ${edge.tailNodeRuntimeId} --> ${edge.headNodeRuntimeId}`)
       }
     }
 

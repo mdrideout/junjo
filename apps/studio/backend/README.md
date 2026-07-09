@@ -17,31 +17,31 @@ The backend service provides:
 
 ## Running the Backend
 
-### Primary Method: Docker Compose (Recommended)
+### Primary Method: Docker Compose
 
-**For running the full Junjo AI Studio stack**, see the [root README.md](../README.md) Quick Start guide. The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
+For running the full Junjo AI Studio stack from this repository, see the [root README.md](../README.md#source-development). The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
 
 ```bash
 # From repository root
-docker compose up -d
+docker compose up --build
 
-# View backend logs
-docker compose logs -f junjo-ai-studio-backend
+# Restart backend only, after the stack is running
+docker compose restart backend
 
-# Restart backend only
-docker compose restart junjo-ai-studio-backend
+# View backend logs from another terminal
+docker compose logs -f backend
 ```
 
 The backend will be available at:
-- **API**: http://localhost:1323
-- **Health Check**: http://localhost:1323/health
-- **gRPC (internal)**: localhost:50053
+- **API**: http://localhost:26154
+- **Health Check**: http://localhost:26154/health
+- **gRPC (internal)**: `50053` on the Compose network only
 
 ---
 
-### Secondary Method: Direct Execution with uv (Development)
+### Secondary Method: Direct Execution with uv (Testing/Debugging)
 
-Run the backend directly for development, testing, or debugging. This is useful when:
+Run the backend directly only for backend-focused testing or debugging. The supported full-stack workflow for this repository is Docker Compose. Direct execution is useful when:
 - Working on backend-specific features
 - Running integration tests locally
 - Debugging without Docker overhead
@@ -71,19 +71,19 @@ uv sync
 
 ```bash
 # Option 1: Using uv run (recommended)
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 1323
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 26154
 
 # Option 2: Via main module
 uv run python -m app.main
 
 # Option 3: With activated virtual environment
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 1323
+uvicorn app.main:app --reload --host 0.0.0.0 --port 26154
 ```
 
 The backend will be available at:
-- **API**: http://localhost:1323
-- **Health Check**: http://localhost:1323/health
+- **API**: http://localhost:26154
+- **Health Check**: http://localhost:26154/health
 
 **Important**: The backend automatically starts its internal gRPC server on port 50053 via the FastAPI lifespan manager. No additional steps needed.
 
@@ -91,10 +91,10 @@ The backend will be available at:
 
 ```bash
 # Test health endpoint
-curl http://localhost:1323/health
+curl http://localhost:26154/health
 
 # Test ping endpoint
-curl http://localhost:1323/ping
+curl http://localhost:26154/ping
 ```
 
 ---
@@ -176,32 +176,16 @@ uv run pytest tests/test_main.py -v
 uv run pytest -m "not integration" --cov=app --cov-report=term-missing
 ```
 
-#### Integration Tests (Requires Backend Running)
+#### Integration Tests
 
-Integration tests require the backend service to be running (gRPC server on port 50053).
-
-**Option 1: Run Backend Service Directly** (Recommended for local development)
+Most integration tests use in-process test fixtures. The `requires_grpc_server` tests start an isolated gRPC server on port 50053.
 
 ```bash
-# Terminal 1: Start backend
-cd backend
-uv run uvicorn app.main:app --host 0.0.0.0 --port 1323
-
-# Terminal 2: Run integration tests
 cd backend
 uv run pytest -m "integration" -v
 ```
 
-**Option 2: Use Docker Compose** (Matches CI environment)
-
-```bash
-# Terminal 1: Start all services
-docker compose up --build
-
-# Terminal 2: Run integration tests
-cd backend
-uv run pytest -m "integration" -v
-```
+Do not start `uvicorn` or `docker compose up` just to run these tests; the gRPC tests need to bind their own isolated test server.
 
 #### LLM Playground Tests (Requires API Keys)
 
@@ -392,12 +376,12 @@ The backend reads configuration from environment variables (`.env` file at repos
 
 ```bash
 # Ports
-JUNJO_BACKEND_PORT=1323         # Backend HTTP port
-GRPC_PORT=50053                 # Internal gRPC port
+# Backend HTTP uses port 26154 in Docker Compose and direct debug runs.
+# Internal auth gRPC remains on port 50053.
 
 # Database storage (where files are stored on host machine)
 JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
-# Note: Container paths are set automatically in docker-compose.yml
+# Note: Container paths are set automatically in compose.yaml
 
 # Logging
 JUNJO_LOG_LEVEL=info            # debug | info | warn | error
@@ -421,14 +405,14 @@ Configuration is loaded using **Pydantic Settings** with precedence:
 ### Port Already in Use
 
 ```bash
-# Check what's using port 1323
-lsof -i :1323
+# Compose workflow: check what's using the published backend port
+lsof -i :26154
 
 # Kill the process
 kill -9 <PID>
 
-# Or change the port in .env
-JUNJO_BACKEND_PORT=1324
+# Direct uvicorn runs can use a different port explicitly
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 1324
 ```
 
 ### Module Import Errors
@@ -457,19 +441,13 @@ uv sync --all-extras
 
 ### Integration Test Failures
 
-**Symptom**: `pytest -m "integration"` fails with connection errors
+**Symptom**: `pytest -m "requires_grpc_server"` fails with connection errors
 
-**Solution**: Ensure backend is running on port 1323 with gRPC server on port 50053
+**Solution**: Ensure port 50053 is free so the isolated test gRPC server can bind.
 
 ```bash
-# Terminal 1: Start backend
-uv run uvicorn app.main:app --host 0.0.0.0 --port 1323
-
-# Terminal 2: Verify gRPC server is running
+# Check for a conflicting process
 lsof -i :50053
-
-# Terminal 2: Run tests
-uv run pytest -m "integration" -v
 ```
 
 ---
@@ -477,5 +455,6 @@ uv run pytest -m "integration" -v
 ## Additional Resources
 
 - **[Root README](../README.md)** - Full Junjo AI Studio documentation
-- **[Deployment Guide](../docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Image-based deployment starting point
+- **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - End-to-end deployment example
 - **[Junjo Python Library](https://github.com/mdrideout/junjo)** - AI graph workflow framework

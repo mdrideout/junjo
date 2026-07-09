@@ -5,7 +5,6 @@ Provides shared fixtures for tests that require the Rust ingestion service.
 
 import os
 import shutil
-import signal
 import socket
 import subprocess
 import tempfile
@@ -21,8 +20,6 @@ from app.proto_gen import auth_pb2, auth_pb2_grpc
 
 # Path to ingestion service
 INGESTION_DIR = Path(__file__).parent.parent.parent / "ingestion"
-INGESTION_INTERNAL_PORT = 50052  # Internal gRPC port for WAL reads
-INGESTION_PUBLIC_PORT = 50051  # Public port for span ingestion
 
 
 def is_port_in_use(port: int) -> bool:
@@ -31,27 +28,11 @@ def is_port_in_use(port: int) -> bool:
         return s.connect_ex(("localhost", port)) == 0
 
 
-def kill_existing_ingestion_processes():
-    """Kill any existing ingestion service processes on the gRPC ports."""
-    for port in [INGESTION_INTERNAL_PORT, INGESTION_PUBLIC_PORT]:
-        try:
-            result = subprocess.run(
-                ["lsof", "-ti", f":{port}"],
-                capture_output=True,
-                text=True,
-            )
-            if result.stdout.strip():
-                pids = result.stdout.strip().split("\n")
-                for pid in pids:
-                    try:
-                        os.kill(int(pid), signal.SIGKILL)
-                        logger.info(f"Killed existing process on port {port}: PID {pid}")
-                    except (ProcessLookupError, ValueError):
-                        pass
-        except FileNotFoundError:
-            subprocess.run(["pkill", "-9", "-f", "ingestion"], capture_output=True)
-            break
-    time.sleep(0.5)
+def find_free_port() -> int:
+    """Reserve an available localhost TCP port for a spawned test service."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
 
 def wait_for_port(port: int, timeout: float = 60.0) -> bool:
@@ -133,7 +114,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
 
     This fixture:
     1. Uses pre-built binary from rust_ingestion_binary (session-scoped)
-    2. Kills any existing ingestion processes
+    2. Allocates ephemeral public/internal ports to avoid local conflicts
     3. Creates temp directories for WAL, Parquet, and snapshot
     4. Starts the ingestion service
     5. Waits for it to be ready
@@ -145,13 +126,8 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
             # rust_ingestion_service contains service info
             pass
     """
-    # Kill existing processes
-    kill_existing_ingestion_processes()
-
-    # Ensure ports are free
-    for port in [INGESTION_INTERNAL_PORT, INGESTION_PUBLIC_PORT]:
-        if is_port_in_use(port):
-            pytest.skip(f"Port {port} still in use after killing processes")
+    ingestion_internal_port = find_free_port()
+    ingestion_public_port = find_free_port()
 
     # Create temp directories
     temp_dir = tempfile.mkdtemp(prefix="rust_ingestion_test_")
@@ -169,8 +145,11 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         "WAL_DIR": wal_dir,
         "SNAPSHOT_PATH": snapshot_path,
         "PARQUET_OUTPUT_DIR": parquet_dir,
-        "GRPC_PORT": str(INGESTION_PUBLIC_PORT),
-        "INTERNAL_GRPC_PORT": str(INGESTION_INTERNAL_PORT),
+        "GRPC_PORT": str(ingestion_public_port),
+        "INTERNAL_GRPC_PORT": str(ingestion_internal_port),
+        # Integration tests need fresh snapshots on each request; cache reuse can hide
+        # just-ingested spans across parametrized cases.
+        "PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS": "0",
         # Provide a tiny in-process backend auth gRPC so OTLP ingest can validate API keys.
         "BACKEND_GRPC_HOST": mock_backend_auth_server["host"],
         "BACKEND_GRPC_PORT": str(mock_backend_auth_server["port"]),
@@ -187,7 +166,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
     )
 
     # Wait for internal service to be ready (should be fast since binary is pre-built)
-    if not wait_for_port(INGESTION_INTERNAL_PORT, timeout=10.0):
+    if not wait_for_port(ingestion_internal_port, timeout=10.0):
         try:
             stdout, stderr = process.communicate(timeout=5)
             error_msg = f"stdout: {stdout.decode()}\nstderr: {stderr.decode()}"
@@ -197,7 +176,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         pytest.fail(f"Rust ingestion service failed to start within 10s.\n{error_msg}")
 
     # Also ensure the public OTLP port is ready (some tests ingest spans).
-    if not wait_for_port(INGESTION_PUBLIC_PORT, timeout=10.0):
+    if not wait_for_port(ingestion_public_port, timeout=10.0):
         try:
             stdout, stderr = process.communicate(timeout=5)
             error_msg = f"stdout: {stdout.decode()}\nstderr: {stderr.decode()}"
@@ -208,7 +187,10 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
             f"Rust ingestion service OTLP port failed to start within 10s.\n{error_msg}"
         )
 
-    logger.info(f"Rust ingestion service started (internal port: {INGESTION_INTERNAL_PORT})")
+    logger.info(
+        "Rust ingestion service started "
+        f"(internal port: {ingestion_internal_port}, public port: {ingestion_public_port})"
+    )
 
     yield {
         "process": process,
@@ -216,8 +198,8 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         "wal_dir": wal_dir,
         "parquet_dir": parquet_dir,
         "snapshot_path": snapshot_path,
-        "internal_port": INGESTION_INTERNAL_PORT,
-        "public_port": INGESTION_PUBLIC_PORT,
+        "internal_port": ingestion_internal_port,
+        "public_port": ingestion_public_port,
     }
 
     # Cleanup

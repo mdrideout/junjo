@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { server } from './test-utils/mock-server'
+import { API_BASE, server } from './test-utils/mock-server'
 import { getPostSignInDestination } from './navigation-helpers'
 
 describe('getPostSignInDestination', () => {
@@ -27,7 +27,7 @@ describe('getPostSignInDestination', () => {
   it('should return / (home) when user has API keys', async () => {
     // Override the default handler to return a list with one API key
     server.use(
-      http.get('http://localhost:1323/api_keys', () => {
+      http.get(`${API_BASE}/api_keys`, () => {
         return HttpResponse.json([
           {
             id: 'test-key-id',
@@ -47,7 +47,7 @@ describe('getPostSignInDestination', () => {
   it('should return / (home) when API fetch fails', async () => {
     // Override the default handler to return an error
     server.use(
-      http.get('http://localhost:1323/api_keys', () => {
+      http.get(`${API_BASE}/api_keys`, () => {
         return HttpResponse.json(
           { detail: 'Unauthorized' },
           { status: 401 }
@@ -63,7 +63,7 @@ describe('getPostSignInDestination', () => {
   it('should return / (home) when network error occurs', async () => {
     // Override the default handler to simulate network error
     server.use(
-      http.get('http://localhost:1323/api_keys', () => {
+      http.get(`${API_BASE}/api_keys`, () => {
         return HttpResponse.error()
       })
     )
