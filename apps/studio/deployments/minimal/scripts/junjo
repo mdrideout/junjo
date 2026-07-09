@@ -340,9 +340,9 @@ def run_setup(args: argparse.Namespace) -> int:
         updates["JUNJO_PROD_BACKEND_URL"] = backend_url
         updates["JUNJO_PROD_INGESTION_URL"] = ingestion_url
     else:
-        frontend_url = "http://localhost:5153"
-        backend_url = "http://localhost:1323"
-        ingestion_url = "grpc://localhost:50051"
+        frontend_url = "http://localhost:26153"
+        backend_url = "http://localhost:26154"
+        ingestion_url = "grpc://localhost:26155"
 
     # Security secrets
     for secret_key in ("JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY"):

@@ -5,9 +5,9 @@
 # services.
 #
 # Service Routing:
-#   - Frontend:   junjo-ai-studio-frontend:80         https://junjo.example.com
-#   - Backend:    junjo-ai-studio-backend:1323        https://api.junjo.example.com
-#   - Ingestion:  junjo-ai-studio-ingestion:50051     https://ingestion.junjo.example.com
+#   - Frontend:   junjo-ai-studio-frontend:26153      https://junjo.example.com
+#   - Backend:    junjo-ai-studio-backend:26154       https://api.junjo.example.com
+#   - Ingestion:  junjo-ai-studio-ingestion:26155     https://ingestion.junjo.example.com
 #
 # See Caddy docs: https://caddyserver.com/docs/quick-starts/https
 # ========================================================================================
@@ -33,17 +33,17 @@ junjo.example.com, *.junjo.example.com {
 	# backend: api.junjo.example.com
 	@api host api.junjo.example.com
 	handle @api {
-		reverse_proxy junjo-ai-studio-backend:1323
+		reverse_proxy junjo-ai-studio-backend:26154
 	}
 
 	# ingestion: ingestion.junjo.example.com
 	@ingestion host ingestion.junjo.example.com
 	handle @ingestion {
-		reverse_proxy h2c://junjo-ai-studio-ingestion:50051
+		reverse_proxy h2c://junjo-ai-studio-ingestion:26155
 	}
 
 	# frontend: Fallback for the root domain
 	handle {
-		reverse_proxy junjo-ai-studio-frontend:80
+		reverse_proxy junjo-ai-studio-frontend:26153
 	}
 }

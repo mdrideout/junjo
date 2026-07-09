@@ -2,6 +2,8 @@
 
 A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
 
+This template pins Junjo AI Studio `0.81.1`. Applications that emit Junjo workflow telemetry should use Junjo `0.63.0`.
+
 A Junjo AI Studio instance can be used for an unlimited number of projects that use the [Junjo](https://github.com/mdrideout/junjo) python AI graph workflow framework. Any Junjo Application can send telemetry to this Junjo AI Studio instance, assuming it has valid API Key credentials.
 
 > #### Full E2E Junjo Application Example:
@@ -65,12 +67,12 @@ This is a **minimal build** template containing only the three essential Junjo A
 Junjo AI Studio consists of three Docker services:
 
 - **junjo-ai-studio-frontend**
-  - **Public Port:** 80 (mapped to 5153 on host)
+  - **Web UI Port:** 26153
   - Web UI for viewing and debugging workflows
   - Served at the root domain (e.g., `https://junjo.example.com`)
 
 - **junjo-ai-studio-backend**
-  - **Public Port:** 1323 (HTTP API server)
+  - **HTTP API Port:** 26154
   - **Internal Port:** 50053 (gRPC for API key validation - Docker network only)
   - HTTP API server for authentication and data queries
   - Uses SQLite for application data and metadata indexing
@@ -78,7 +80,7 @@ Junjo AI Studio consists of three Docker services:
   - Served at the API subdomain (e.g., `https://api.junjo.example.com`)
 
 - **junjo-ai-studio-ingestion**
-  - **Public Port:** 50051 (gRPC OTLP endpoint for telemetry)
+  - **OTLP gRPC Port:** 26155
   - **Internal Port:** 50052 (gRPC for span reading - Docker network only)
   - High-throughput gRPC service for receiving OpenTelemetry data
   - Uses Arrow IPC WAL segments and flushes to Parquet for durable cold storage
@@ -89,7 +91,7 @@ Junjo AI Studio consists of three Docker services:
 
 ### Data Flow
 
-1. Python applications → **Ingestion Service** (gRPC on port 50051)
+1. Python applications → **Ingestion Service** (OTLP gRPC on port 26155)
 2. Ingestion Service → Arrow IPC WAL segments → flushes to Parquet
 3. Backend → Calls ingestion internal gRPC (port 50052) for hot snapshots
 4. Backend → Uses SQLite metadata index + Parquet files for trace queries
@@ -139,19 +141,20 @@ Junjo AI Studio consists of three Docker services:
    > Note: Do not run `docker network create junjo_network` manually. Docker Compose creates and labels this network automatically.
 
 4. Access the frontend:
-   - **Frontend UI:** `http://localhost:5153`
+   - **Frontend UI:** `http://localhost:26153`
      - _Troubleshooting: Try clearing your cookies if you encounter issues._
    - Create your first API key in the UI
 
 5. Configure your Junjo Python application's exporter:
    ```python
-	 	# Local example
-		junjo_server_exporter = JunjoServerOtelExporter(
-        host="localhost", # (could also be your docker network container name 'junjo-ai-studio-ingestion')
-        port="50051",
-        api_key=JUNJO_SERVER_API_KEY,
-        insecure=True, # (would be False in production)
-  	)
+   from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+
+   junjo_exporter = JunjoOtelExporter(
+       host="localhost",
+       port="26155",
+       api_key=JUNJO_AI_STUDIO_API_KEY,
+       insecure=True,
+   )
    ```
 
 **Note:** This repository always uses pre-built production Docker images from Docker Hub and does not use a `JUNJO_BUILD_TARGET` variable. For production runtime routing with a reverse proxy, set `JUNJO_ENV="production"` and provide production hostnames (the setup script can do this automatically).
@@ -176,15 +179,15 @@ Choose the deployment scenario that matches your infrastructure:
 - No SSL/TLS overhead
 
 **Access:**
-- Frontend: `http://localhost:5153` (or VM's IP address)
-- Your application connects directly to `junjo-ai-studio-ingestion:50051` on the Docker network
+- Frontend: `http://localhost:26153` (or the VM's IP address)
+- Your application connects directly to `junjo-ai-studio-ingestion:26155` on the Docker network
 
 **Python Configuration:**
 ```python
-junjo_server_exporter = JunjoServerOtelExporter(
+junjo_exporter = JunjoOtelExporter(
     host="junjo-ai-studio-ingestion",  # Docker service name
-    port="50051",                       # gRPC port
-    api_key=JUNJO_SERVER_API_KEY,
+    port="26155",                       # OTLP gRPC port
+    api_key=JUNJO_AI_STUDIO_API_KEY,
     insecure=True,                      # No TLS needed on internal network
 )
 ```
@@ -214,10 +217,10 @@ junjo_server_exporter = JunjoServerOtelExporter(
 
 **Python Configuration:**
 ```python
-junjo_server_exporter = JunjoServerOtelExporter(
+junjo_exporter = JunjoOtelExporter(
     host="ingestion.junjo.example.com",   # Your domain
     port="443",                       		# HTTPS port
-    api_key=JUNJO_SERVER_API_KEY,
+    api_key=JUNJO_AI_STUDIO_API_KEY,
     insecure=False,                   		# TLS enabled
 )
 ```
@@ -248,9 +251,9 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 
 **Deployment Approach:**
 - Create 3 separate "Web Services" from the Docker images:
-  - `mdrideout/junjo-ai-studio-backend:latest`
-  - `mdrideout/junjo-ai-studio-ingestion:latest`
-  - `mdrideout/junjo-ai-studio-frontend:latest`
+  - `mdrideout/junjo-ai-studio-backend:0.81.1`
+  - `mdrideout/junjo-ai-studio-ingestion:0.81.1`
+  - `mdrideout/junjo-ai-studio-frontend:0.81.1`
 - Add persistent disks for data volumes
 
 **Volume Configuration:**
@@ -265,8 +268,8 @@ Ingestion Service:
 
 **Internal Networking:**
 - Services communicate via Render's internal network
-- Backend connects to ingestion via: `http://junjo-ai-studio-ingestion:50052`
-- Frontend connects to backend via: `http://junjo-ai-studio-backend:1323`
+- Backend connects to ingestion via the private `junjo-ai-studio-ingestion:50052` RPC
+- Frontend connects to backend via: `http://junjo-ai-studio-backend:26154`
 
 **Environment Setup:**
 ```bash
@@ -303,24 +306,24 @@ JUNJO_SECURE_COOKIE_KEY=<generated-secret>
 ```
 Services to Deploy:
 1. junjo-backend
-   - Image: mdrideout/junjo-ai-studio-backend:latest
-   - Port: 1323
+   - Image: mdrideout/junjo-ai-studio-backend:0.81.1
+   - Port: 26154
    - Volume: /app/.dbdata
 
 2. junjo-ingestion
-   - Image: mdrideout/junjo-ai-studio-ingestion:latest
-   - Port: 50051
+   - Image: mdrideout/junjo-ai-studio-ingestion:0.81.1
+   - Port: 26155
    - Volume: /app/.dbdata
 
 3. junjo-frontend
-   - Image: mdrideout/junjo-ai-studio-frontend:latest
-   - Port: 80
+   - Image: mdrideout/junjo-ai-studio-frontend:0.81.1
+   - Port: 26153
 ```
 
 **Internal Networking:**
 - Railway provides internal DNS automatically
-- Backend → Ingestion: `http://junjo-ingestion.railway.internal:50052`
-- Frontend → Backend: `http://junjo-backend.railway.internal:1323`
+- Backend → Ingestion: private RPC at `junjo-ingestion.railway.internal:50052`
+- Frontend → Backend: `http://junjo-backend.railway.internal:26154`
 - Use Railway's service name for internal communication
 
 **Environment Variables:**
@@ -364,17 +367,17 @@ JUNJO_ALLOW_ORIGINS=https://app.your-app.up.railway.app
 If you're using Scenario 2, you'll need to configure a reverse proxy to route traffic to the three services.
 
 **Required routing:**
-- Root domain → Frontend (port 80)
-- `api.` subdomain → Backend (port 1323)
-- `grpc.` subdomain → Ingestion (port 50051)
+- Root domain → Frontend (port 26153)
+- `api.` subdomain → Backend (port 26154)
+- `ingestion.` subdomain → Ingestion (port 26155)
 
 **Example routing table:**
 
 | Service   | Docker Container & Internal Port        | Example Production URL         |
 |-----------|----------------------------------------|--------------------------------|
-| Frontend  | junjo-ai-studio-frontend:80            | https://junjo.example.com      |
-| Backend   | junjo-ai-studio-backend:1323           | https://api.junjo.example.com  |
-| Ingestion | junjo-ai-studio-ingestion:50051        | https://grpc.junjo.example.com |
+| Frontend  | junjo-ai-studio-frontend:26153         | https://junjo.example.com           |
+| Backend   | junjo-ai-studio-backend:26154          | https://api.junjo.example.com       |
+| Ingestion | junjo-ai-studio-ingestion:26155        | https://ingestion.junjo.example.com |
 
 See the `/examples` directory for reference configurations for popular reverse proxies:
 - **Caddy Server** - `/examples/caddy/Caddyfile`
@@ -392,58 +395,44 @@ The configuration differs based on your [deployment scenario](#deployment-scenar
 ```python
 import os
 
-from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
-
-from opentelemetry import trace
+from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+from opentelemetry import metrics, trace
+from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
+
 def setup_telemetry():
-	"""
-	Sets up the OpenTelemetry tracer and exporter.
-	"""
+    """Set up OpenTelemetry providers for the application."""
+    api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+    if api_key is None:
+        raise RuntimeError("JUNJO_AI_STUDIO_API_KEY is not set")
 
-	# Load the JUNJO_SERVER_API_KEY from the environment variable
-	JUNJO_SERVER_API_KEY = os.getenv("JUNJO_SERVER_API_KEY")
-	if JUNJO_SERVER_API_KEY is None:
-		print(
-			"JUNJO_SERVER_API_KEY environment variable is not set. "
-			"Generate a new API key in the Junjo AI Studio UI."
-		)
-		return
+    resource = Resource.create({"service.name": "My Junjo Application"})
 
-	# Configure OpenTelemetry for this application
-	resource = Resource.create({"service.name": "My Junjo Application"})
-	tracer_provider = TracerProvider(resource=resource)
+    # The Junjo AI Studio container name on the same docker network
+    junjo_exporter = JunjoOtelExporter(
+        host="junjo-ai-studio-ingestion",  # Junjo AI Studio ingestion on the shared Docker network
+        port="26155",
+        api_key=api_key,
+        insecure=True,
+    )
 
-	# ============================================================================
-	# Choose your deployment scenario:
-	# ============================================================================
+    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+    trace.set_tracer_provider(tracer_provider)
 
-	# SCENARIO 1: Same VM/Network (No Reverse Proxy)
-	# Use this when your app and Junjo AI Studio share a Docker network or VPC
-	junjo_server_exporter = JunjoServerOtelExporter(
-		host="junjo-ai-studio-ingestion",  # Docker service name
-		port="50051",                       # Direct gRPC port
-		api_key=JUNJO_SERVER_API_KEY,
-		insecure=True,                      # No TLS on internal network
-	)
+    meter_provider = MeterProvider(
+        resource=resource,
+        metric_readers=[junjo_exporter.metric_reader],
+    )
+    metrics.set_meter_provider(meter_provider)
 
-	# SCENARIO 2: External Access (Reverse Proxy)
-	# Use this when your app is on a different server/network
-	# junjo_server_exporter = JunjoServerOtelExporter(
-	# 	host="grpc.junjo.example.com",   # Your public domain
-	# 	port="443",                       # HTTPS port
-	# 	api_key=JUNJO_SERVER_API_KEY,
-	# 	insecure=False,                   # TLS enabled
-	# )
-
-	# Add the Junjo span processor
-	tracer_provider.add_span_processor(junjo_server_exporter.span_processor)
-	trace.set_tracer_provider(tracer_provider)
-
-	return
+    return tracer_provider, meter_provider
 ```
+
+Keep the returned providers for the application's lifetime, then call
+`tracer_provider.shutdown()` and `meter_provider.shutdown()` during application shutdown.
 
 For a complete end-to-end example, see the [Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example).
 
@@ -453,7 +442,7 @@ For a complete end-to-end example, see the [Junjo AI Studio Deployment Example](
 If you see "failed to get session" errors, clear your browser cookies for the domain and restart services.
 
 ### Port Conflicts
-If ports 1323, 50051, or 5153 are already in use, find and kill the processes using those ports.
+If ports 26153, 26154, or 26155 are already in use, find and stop the processes using those ports.
 
 **Note:** Ports 50052 and 50053 are internal-only (not exposed to host) and used for service-to-service communication within the Docker network.
 
