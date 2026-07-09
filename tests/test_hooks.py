@@ -80,6 +80,13 @@ def _create_single_node_graph() -> Graph:
     return Graph(source=node, sinks=[node], edges=[])
 
 
+def test_node_does_not_expose_stale_state_patch_api() -> None:
+    node = HookNode()
+
+    assert not hasattr(node, "patches")
+    assert not hasattr(node, "add_patch")
+
+
 @pytest.mark.asyncio
 async def test_hooks_dispatch_in_order_and_unsubscribe() -> None:
     hooks = Hooks()

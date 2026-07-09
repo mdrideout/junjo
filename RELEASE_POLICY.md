@@ -46,3 +46,13 @@ When public behavior changes, keep these surfaces aligned:
 5. examples
 
 Release-ready code should not leave public docs or examples teaching stale behavior.
+
+## Cross-Repo Release Sequencing
+
+Junjo SDK and Junjo AI Studio releases pair around a shared telemetry contract. Release in this order:
+
+1. Cut the `junjo` SDK version and finalize `CHANGELOG.md`.
+2. Release Junjo AI Studio (version bump + Docker Hub images) with the matching contract.
+3. Update the `junjo-ai-studio-minimal-build` and `junjo-ai-studio-deployment-example` template repositories.
+4. Publish `junjo` to PyPI via GitHub release publication.
+5. Deploy the docs site last. Docs describe the paired releases, and the docs deploy is not wired to the release workflow.

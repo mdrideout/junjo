@@ -1,9 +1,9 @@
 
 
 # Running this test:
-# pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py
+# uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py
 #
-# This test is intentially tough to fail at least a few times for demonstration.
+# This test is intentionally tough to fail at least a few times for demonstration.
 
 import pytest
 
@@ -48,4 +48,3 @@ class TestCreateJokeNode:
 
         # Assert that the evaluation result is True
         assert eval_result.passed, f"Joke evaluation failed: {eval_result.reason}"
-

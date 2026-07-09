@@ -41,9 +41,9 @@ To create a Subflow, you'll define a class that inherits from `junjo.Subflow`. T
 
 Key Components:
 ---------------
-*   **`Subflow[SubflowStateT, SubflowStoreT, ParentStateT, ParentStoreT]`**: The base class with generic type hints. These improve the developer experience when interacting with the subflow's store, and the parent store.
-*   **`pre_run_actions(self, parent_store: ParentStoreT, subflow_store: SubflowStoreT)`**: Executed before the Subflow's internal graph starts. Use this to fetch necessary data from the parent workflow's store and initialize the current subflow run's store.
-*   **`post_run_actions(self, parent_store: ParentStoreT, subflow_store: SubflowStoreT)`**: Executed after the Subflow's internal graph completes. Use this to pass results or updated data from the current subflow run's store back to the parent workflow's store.
+*   `Subflow[SubflowStateT, SubflowStoreT, ParentStateT, ParentStoreT]`: The base class with generic type hints. These improve the developer experience when interacting with the subflow's store, and the parent store.
+*   `pre_run_actions(self, parent_store: ParentStoreT, subflow_store: SubflowStoreT)`: Executed before the Subflow's internal graph starts. Use this to fetch necessary data from the parent workflow's store and initialize the current subflow run's store.
+*   `post_run_actions(self, parent_store: ParentStoreT, subflow_store: SubflowStoreT)`: Executed after the Subflow's internal graph completes. Use this to pass results or updated data from the current subflow run's store back to the parent workflow's store.
 
 Example Subflow Definition:
 ---------------------------
@@ -90,7 +90,7 @@ Now, implement the `SampleSubflow`:
 .. code-block:: python
 
   # sample_subflow.py
-  from junjo import Subflow, Graph # Assuming Node, Edge are also imported
+  from junjo import Edge, Graph, Subflow
   from .subflow_store import SampleSubflowState, SampleSubflowStore
   from ..store import SampleWorkflowState, SampleWorkflowStore # Parent's store
 
@@ -217,7 +217,7 @@ Junjo's graph visualization capabilities, such as `graph.export_graphviz_assets(
 
 - In the **overview graph** of the parent workflow, a Subflow is rendered as a "component" node, abstracting away its internal complexity.
 - Separate **detailed graphs** are generated for each Subflow, showing its internal structure of nodes and edges.
-- These Graphviz and Mermaid views are now rendered directly from Junjo's
+- These Graphviz and Mermaid views are rendered directly from Junjo's
   compiled graph snapshot, so subflow diagrams stay aligned with the same
   structural model used for validation, traversal, and serialization.
 

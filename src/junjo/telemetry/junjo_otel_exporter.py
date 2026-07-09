@@ -43,32 +43,46 @@ class JunjoOtelExporter:
 
         import os
         from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+        from opentelemetry import metrics, trace
+        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry import trace
 
         # Retrieve API key from environment
         JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+        resource = Resource.create({"service.name": "my-ai-workflow"})
 
-        # Option 1: Using localhost
+        # Option 1: Application running directly on the local machine
         junjo_exporter_local = JunjoOtelExporter(
             host="localhost",
-            port="50051",
+            port="26155",
             api_key=JUNJO_AI_STUDIO_API_KEY,
             insecure=True,
         )
 
-        # Option 2: Using Docker service name (if running in same Docker network)
+        # Option 2: Application container on the same Docker network
+        # Do not use localhost from an app container; it resolves to that container.
         junjo_exporter_docker = JunjoOtelExporter(
-            host="junjo-ai-studio-ingestion",  # Docker service name
-            port="50051",
+            host="ingestion",  # The Junjo AI Studio container name on the same docker network
+            port="26155",
             api_key=JUNJO_AI_STUDIO_API_KEY,
             insecure=True,
         )
 
-        # Add to your tracer provider
-        provider = TracerProvider()
-        provider.add_span_processor(junjo_exporter_local.span_processor)
-        trace.set_tracer_provider(provider)
+        # Add traces and metrics to your OpenTelemetry providers
+        tracer_provider = TracerProvider(resource=resource)
+        tracer_provider.add_span_processor(junjo_exporter_local.span_processor)
+        trace.set_tracer_provider(tracer_provider)
+
+        meter_provider = MeterProvider(
+            resource=resource,
+            metric_readers=[junjo_exporter_local.metric_reader],
+        )
+        metrics.set_meter_provider(meter_provider)
+
+        # On application shutdown:
+        tracer_provider.shutdown()
+        meter_provider.shutdown()
 
     .. rubric:: Production Deployment
 
@@ -79,11 +93,14 @@ class JunjoOtelExporter:
 
         import os
         from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+        from opentelemetry import metrics, trace
+        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry import trace
 
         # Retrieve API key from environment
         JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+        resource = Resource.create({"service.name": "my-ai-workflow"})
 
         junjo_exporter_prod = JunjoOtelExporter(
             host="ingestion.junjo.example.com",  # Your domain
@@ -92,10 +109,20 @@ class JunjoOtelExporter:
             insecure=False,  # TLS enabled
         )
 
-        # Add to your tracer provider
-        provider = TracerProvider()
-        provider.add_span_processor(junjo_exporter_prod.span_processor)
-        trace.set_tracer_provider(provider)
+        # Add traces and metrics to your OpenTelemetry providers
+        tracer_provider = TracerProvider(resource=resource)
+        tracer_provider.add_span_processor(junjo_exporter_prod.span_processor)
+        trace.set_tracer_provider(tracer_provider)
+
+        meter_provider = MeterProvider(
+            resource=resource,
+            metric_readers=[junjo_exporter_prod.metric_reader],
+        )
+        metrics.set_meter_provider(meter_provider)
+
+        # On application shutdown:
+        tracer_provider.shutdown()
+        meter_provider.shutdown()
     """
 
     def __init__(

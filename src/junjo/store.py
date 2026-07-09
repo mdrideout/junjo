@@ -101,14 +101,32 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         """Attach internal lifecycle dispatch context for this execution."""
         self._lifecycle_context = context
 
+    def _current_runtime_state_data(self) -> dict[str, object]:
+        """
+        Return current state field values for runtime state transitions.
+
+        This intentionally avoids ``model_dump()`` because Pydantic
+        serialization controls such as ``Field(exclude=True)`` and
+        ``field_serializer`` are telemetry-facing concerns, not live state
+        transition mechanics.
+        """
+        state_snapshot = self._state.model_copy(deep=True)
+        return {
+            field_name: getattr(state_snapshot, field_name)
+            for field_name in type(state_snapshot).model_fields
+        }
+
     async def set_state(self, update: dict) -> None:
         """
         Update the store's state with a dictionary of changes.
 
-        The update is merged with the current locked state, validated against
-        the store's Pydantic model, and committed atomically if it changes the
-        state. This method also emits OpenTelemetry ``set_state`` events and
-        lifecycle state-changed hooks when a commit occurs.
+        The update is shallow-merged with the current locked state at the
+        top-level field boundary, validated against the store's Pydantic model,
+        and committed atomically if it changes the state. Nested mappings or
+        nested models are replaced as field values; Junjo does not recursively
+        deep-merge nested structures. This method also emits OpenTelemetry
+        ``set_state`` events and lifecycle state-changed hooks when a commit
+        occurs.
 
         :param update: A dictionary of updates to apply to the state.
         :type update: dict
@@ -133,6 +151,19 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
 
         .. note::
 
+            Updates are top-level field patches. To update part of a nested
+            structure, build the replacement nested value in your store action
+            and pass that complete value to ``set_state``.
+
+        .. note::
+
+            State transitions use runtime field values, not serialized state
+            dumps. Pydantic serialization controls such as
+            ``Field(exclude=True)`` and ``field_serializer`` affect telemetry
+            payloads but do not remove or rewrite live runtime state.
+
+        .. note::
+
             If the resulting state is unchanged, the store remains untouched
             and an empty patch is recorded in telemetry.
         """
@@ -148,8 +179,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         state_changed_payload: dict | None = None
         async with self._lock:
             try:
-                new_state = self._state.__class__.model_validate(
-                    {**self._state.model_dump(), **update}
+                new_state = type(self._state).model_validate(
+                    {**self._current_runtime_state_data(), **update}
                 )
             except ValidationError as e:
                 raise ValueError(

@@ -9,6 +9,10 @@ This is the example Junjo workflow from the Junjo Python API docs.
 # This repo is a `uv` workspace. The virtual environment lives at the repo root
 # (`../../.venv` from here), not inside this example directory.
 #
+# Note: workspace syncs are exact — syncing one example package removes the
+# other examples' packages from the shared root venv, so re-run the sync
+# below when switching between examples.
+#
 # Ensure all packages are installed (Python 3.11)
 $ uv sync --python 3.11 --package getting-started
 

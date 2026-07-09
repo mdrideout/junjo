@@ -3,7 +3,6 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Generic
 
-from jsonpatch import JsonPatch
 from opentelemetry import trace
 
 from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, get_active_executable_identity
@@ -58,7 +57,6 @@ class Node(Generic[StoreT], ABC):
     def __init__(self):
         super().__init__()
         self._id = generate_safe_id()
-        self._patches: list[JsonPatch] = []
 
     def __repr__(self):
         """Returns a string representation of the node."""
@@ -73,15 +71,6 @@ class Node(Generic[StoreT], ABC):
     def name(self) -> str:
         """Returns the name of the node class instance."""
         return self.__class__.__name__
-
-    @property
-    def patches(self) -> list[JsonPatch]:
-        """Returns the list of state patches that have been applied by this node."""
-        return self._patches
-
-    def add_patch(self, patch: JsonPatch) -> None:
-        """Adds a patch to the list of patches."""
-        self._patches.append(patch)
 
     @abstractmethod
     async def service(self, store: StoreT) -> None:

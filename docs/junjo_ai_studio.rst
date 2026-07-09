@@ -49,6 +49,14 @@ Junjo AI Studio is composed of three Docker services that work together:
 2. **Ingestion Service**: High-throughput OTLP receiver (Rust) with segmented Arrow IPC WAL → Parquet (cold), and on-demand hot snapshots for real-time queries
 3. **Frontend**: Web UI for visualization and debugging
 
+.. note::
+
+    **Version Compatibility:** Junjo SDK and Junjo AI Studio releases are
+    paired around a shared telemetry contract. When versions are mixed across
+    a contract change, ingestion and workflow listing still work, but graph
+    rendering and span matching degrade ("Graph structure not available").
+    Upgrade the SDK and AI Studio together.
+
 Quick Start Options
 -------------------
 
@@ -71,7 +79,7 @@ The easiest way to get started is with the `Junjo AI Studio Minimal Build Templa
     docker compose up -d
 
     # Access UI
-    open http://localhost:5153
+    open http://localhost:26153
 
 This template provides a minimal, flexible foundation you can customize for your needs. See :doc:`deployment` for more details.
 
@@ -84,16 +92,17 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
     :caption: docker-compose.yml
 
     services:
-      junjo-ai-studio-backend:
+      backend:
         image: mdrideout/junjo-ai-studio-backend:latest
         ports:
-          - "1323:1323"   # HTTP API
+          - "26154:26154" # Local backend API
         volumes:
           - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         env_file: .env
         environment:
-          - INGESTION_HOST=junjo-ai-studio-ingestion
-          - INGESTION_PORT=50052
+          - INGESTION_HOST=ingestion
+          - INGESTION_PORT=50052  # Private backend-to-ingestion RPC; not an OTLP endpoint
+          - GRPC_PORT=50053  # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the auth RPC listener
           - RUN_MIGRATIONS=true
           - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
           - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
@@ -101,51 +110,77 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
         networks:
           - junjo-network
 
-      junjo-ai-studio-ingestion:
+      ingestion:
         image: mdrideout/junjo-ai-studio-ingestion:latest
         ports:
-          - "50051:50051" # OTel data ingestion (your app connects here)
+          - "26155:26155" # Local OTLP ingestion
         volumes:
           - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
         env_file: .env
         environment:
-          - BACKEND_GRPC_HOST=junjo-ai-studio-backend
-          - BACKEND_GRPC_PORT=50053
+          - BACKEND_GRPC_HOST=backend
+          - BACKEND_GRPC_PORT=50053  # Private ingestion-to-backend auth RPC
+          - GRPC_PORT=26155  # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the OTLP listener
+          - INTERNAL_GRPC_PORT=50052  # Pinned backend-facing RPC listener
           - WAL_DIR=/app/.dbdata/spans/wal
           - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
           - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
         networks:
           - junjo-network
         depends_on:
-          - junjo-ai-studio-backend
+          - backend
 
-      junjo-ai-studio-frontend:
+      frontend:
         image: mdrideout/junjo-ai-studio-frontend:latest
         ports:
-          - "5153:80" # Web UI
+          - "26153:26153" # Production-build web UI
         env_file: .env
         networks:
           - junjo-network
         depends_on:
-          - junjo-ai-studio-backend
-          - junjo-ai-studio-ingestion
+          - backend
+          - ingestion
 
     networks:
       junjo-network:
+        name: junjo_network
         driver: bridge
+
+**Create a .env file** next to your ``docker-compose.yml``. The backend requires
+``JUNJO_SESSION_SECRET`` and ``JUNJO_SECURE_COOKIE_KEY`` (they have no defaults),
+and the prebuilt frontend container requires ``JUNJO_ENV``:
+
+.. code-block:: bash
+    :caption: .env
+
+    JUNJO_ENV=development
+
+    # Generate each value with: openssl rand -base64 32
+    # (JUNJO_SECURE_COOKIE_KEY must decode to exactly 32 bytes)
+    JUNJO_SESSION_SECRET=<generated value>
+    JUNJO_SECURE_COOKIE_KEY=<generated value>
+
+    # Optional: host path for database storage (defaults to ./.dbdata)
+    # JUNJO_HOST_DB_DATA_PATH=./.dbdata
+
+See :doc:`docker_reference` for the full environment variable reference.
+
+.. warning::
+
+    The shared ``.env`` file is loaded by every service — do not set generic
+    variables like ``GRPC_PORT`` or ``PORT`` in it. ``GRPC_PORT`` is read by
+    both the backend and ingestion services with different expected values,
+    and ``PORT`` misconfigures the backend's settings.
 
 **Start the services:**
 
 .. code-block:: bash
 
-    # Create .env file (see Configuration section below)
-    cp .env.example .env
-    
     # Start all services
     docker compose up -d
     
     # Access the UI
-    open http://localhost:5153
+    open http://localhost:26153
 
 Resource Requirements
 ---------------------
@@ -164,19 +199,25 @@ Configuration
 Step 1: Generate an API Key
 ----------------------------
 
-1. Open Junjo AI Studio UI at http://localhost:5153
-2. Navigate to Settings → API Keys
+1. Open the Junjo AI Studio UI exposed by your stack. With the prebuilt Docker images, the UI is served at http://localhost:26153; http://localhost:26151 applies only when running the junjo-ai-studio source repository's development stack.
+2. Open the **API Keys** page from the sidebar
 3. Create a new API key
 4. Set the key in your application's environment as ``JUNJO_AI_STUDIO_API_KEY``
 
 Step 2: Configure OpenTelemetry in Your Application
 ----------------------------------------------------
 
-Install the required OpenTelemetry packages:
+The required OpenTelemetry packages (``opentelemetry-sdk`` and
+``opentelemetry-exporter-otlp-proto-grpc``) are runtime dependencies of
+``junjo`` and install automatically with it — no separate install step is
+needed for Junjo users.
 
-.. code-block:: bash
+Choose the endpoint based on where your application runs:
 
-    pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc
+- Application containers on the same Docker network as Junjo AI Studio use ``ingestion:26155``.
+- Applications running directly on the local machine use ``localhost:26155``.
+- Do not use ``localhost`` from an application container. It resolves to that
+  container, not to the Junjo AI Studio ingestion service.
 
 Create an OpenTelemetry configuration file:
 
@@ -205,10 +246,9 @@ Create an OpenTelemetry configuration file:
         # Set up tracer provider
         tracer_provider = TracerProvider(resource=resource)
         
-        # Configure Junjo AI Studio exporter
         junjo_exporter = JunjoOtelExporter(
-            host="localhost",  # Junjo AI Studio ingestion service host
-            port="50051",      # Port 50051 receives OpenTelemetry data
+            host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
+            port="26155",
             api_key=api_key,
             insecure=True  # Use False in production with TLS
         )
@@ -225,6 +265,25 @@ Create an OpenTelemetry configuration file:
         metrics.set_meter_provider(meter_provider)
 
         return tracer_provider, meter_provider
+
+If your Junjo application runs in Docker, it only needs to be on the same Docker
+network as the Junjo AI Studio ingestion service:
+
+.. code-block:: yaml
+    :caption: application docker-compose.yml
+
+    services:
+      app:
+        build: .
+        environment:
+          - JUNJO_AI_STUDIO_API_KEY=${JUNJO_AI_STUDIO_API_KEY}
+        networks:
+          - junjo-network
+
+    networks:
+      junjo-network:
+        external: true
+        name: junjo_network
 
 Step 3: Initialize Telemetry in Your Application
 -------------------------------------------------
@@ -266,7 +325,7 @@ Key Features Deep Dive
 Click on any node in the execution graph to:
 
 - See the exact state when that node executed
-- View state patches applied by that node
+- View state changes made while that node executed
 - Drill down into subflows
 - Explore concurrent execution branches
 
@@ -385,26 +444,95 @@ Subflow Spans
 - ``junjo.parent_executable_definition_id``: Parent workflow or concurrent definition ID
 - ``junjo.workflow.parent_store.id``: Parent store ID
 
-Graph Node To Span Mapping
---------------------------
+AI Studio Identity Contract
+---------------------------
 
-When Junjo AI Studio maps graph nodes back to spans, it should use the explicit
-runtime and structural identity fields from the execution graph snapshot rather
-than the older generic ``junjo.id`` model.
+Junjo AI Studio uses explicit executable identities from spans and the
+execution graph snapshot to connect trace data back to workflow graph
+structure.
 
-Recommended mapping rules:
+The identity fields have distinct meanings:
 
-- For normal nodes and ``RunConcurrent`` executables:
-  ``nodeRuntimeId`` in the execution graph snapshot maps to
-  ``junjo.executable_runtime_id`` on the emitted span.
-- For subflow nodes rendered inside a parent graph:
-  ``subflowGraphStructuralId`` maps cleanly to the child subflow span's
-  ``junjo.executable_structural_id``.
-- For definition-level matching of subflow nodes:
-  the parent graph's subflow ``nodeRuntimeId`` still corresponds to the
-  subflow executable definition id.
+- ``junjo.executable_definition_id`` identifies the reusable workflow, subflow,
+  node, or concurrent executable definition.
+- ``junjo.executable_runtime_id`` identifies the executable instance for one
+  execution.
+- ``junjo.executable_structural_id`` identifies the stable graph-shape position
+  for cross-run correlation.
+- ``junjo.enclosing_graph_structural_id`` identifies the compiled graph that
+  contains the executable.
 
-These attributes power Junjo AI Studio's specialized visualization and debugging features.
+OpenTelemetry parent span relationships remain the source of truth for the
+trace tree. Junjo parent executable fields add workflow graph semantics for
+features that need to understand the parent workflow, subflow, or concurrent
+execution boundary:
+
+- ``junjo.parent_executable_definition_id``
+- ``junjo.parent_executable_runtime_id``
+- ``junjo.parent_executable_structural_id``
+
+Execution Graph Snapshot Contract
+---------------------------------
+
+Workflow and subflow spans include
+``junjo.workflow.execution_graph_snapshot``. This is an execution-scoped
+compiled graph snapshot with runtime and structural identities for graph
+visualization and span matching.
+
+Top-level graph fields:
+
+- ``v``: graph snapshot schema version (currently ``2``)
+- ``graphStructuralId``: stable structural id for the compiled graph
+- ``nodes``: graph node records
+- ``edges``: graph edge records
+
+Every node record includes:
+
+- ``nodeRuntimeId``
+- ``nodeStructuralId``
+- ``nodeType``
+- ``nodeLabel``
+
+``RunConcurrent`` node records also include:
+
+- ``isConcurrentSubgraph``
+- ``childNodeRuntimeIds``
+
+Subflow node records also include:
+
+- ``isSubflow``
+- ``subflowGraphStructuralId``
+- ``subflowSourceNodeRuntimeId``
+- ``subflowSourceNodeStructuralId``
+- ``subflowSinkNodeRuntimeIds``
+- ``subflowSinkNodeStructuralIds``
+
+Every edge record includes:
+
+- ``edgeStructuralId``
+- ``tailNodeRuntimeId``
+- ``tailNodeStructuralId``
+- ``headNodeRuntimeId``
+- ``headNodeStructuralId``
+- ``edgeConditionLabel``
+- ``edgeScope``
+- ``parentSubflowRuntimeId``
+
+Graph Node To Span Matching
+---------------------------
+
+Junjo AI Studio uses these matching rules:
+
+- For normal nodes and ``RunConcurrent`` executables,
+  ``nodeRuntimeId`` maps to the span's ``junjo.executable_runtime_id``.
+- For a subflow execution span, ``subflowGraphStructuralId`` maps to the
+  subflow span's ``junjo.executable_structural_id``.
+- For definition-level matching of a subflow container node in the parent
+  graph, the parent graph's ``nodeRuntimeId`` maps to the subflow span's
+  ``junjo.executable_definition_id``.
+
+These fields power Junjo AI Studio's specialized workflow visualization,
+state-change timeline, and cross-run graph correlation features.
 
 Complete Example
 ================
@@ -429,8 +557,8 @@ You can use Junjo AI Studio alongside other platforms:
     
     # Junjo AI Studio
     junjo_exporter = JunjoOtelExporter(
-        host="localhost",
-        port="50051",
+        host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
+        port="26155",
         api_key=api_key,
         insecure=True
     )
@@ -445,28 +573,33 @@ Platforms like Jaeger, Grafana, Honeycomb, etc. will receive all Junjo spans wit
 Architecture Details
 ====================
 
-Junjo AI Studio uses a three-service architecture for scalability and reliability:
+Junjo AI Studio uses a three-service architecture for scalability and reliability.
+Developer-facing service ports use the same numbers on localhost and inside the
+same Docker Compose network. Only the hostname changes:
 
 .. code-block:: text
 
-    Your Application (Junjo Python Library)
-           ↓ (sends OTel spans via gRPC + x-junjo-api-key)
-    Ingestion Service :50051
-           ↓ (writes segmented Arrow IPC WAL, flushes to Parquet)
-           ↓ (backend calls internal gRPC :50052 for hot snapshot + recent cold paths)
-    Backend Service :1323
-           ↓ (indexes cold Parquet metadata into SQLite, queries Parquet via DataFusion)
-           ↓ (serves HTTP API)
-    Frontend :5153
-           (web UI)
+    Host machine application
+
+    Junjo application -> localhost:26155 -> OTLP gRPC ingest
+    Browser           -> localhost:26151 -> development frontend (source-repo dev stack only)
+    Browser           -> localhost:26153 -> production-build frontend
+    Frontend          -> localhost:26154 -> backend HTTP API
+
+    Container on the same Compose network
+
+    Junjo application -> ingestion:26155 -> OTLP gRPC ingest
+    Frontend          -> backend:26154 -> backend HTTP API
 
 **Port Reference:**
 
-- **50051**: Public gRPC - Your application sends telemetry here
-- **50052**: Internal gRPC - Backend calls ingestion (PrepareHotSnapshot / FlushWAL)
-- **50053**: Internal gRPC - Ingestion calls backend (ValidateApiKey)
-- **1323**: Public HTTP - API server
-- **5153**: Public HTTP - Web UI
+- **26151**: Local host HTTP - Development web UI (available only in the junjo-ai-studio source repository's development stack)
+- **26153**: Local host HTTP - Production-build web UI
+- **26154**: Local host HTTP - Backend API
+- **26155**: Local host gRPC - OTLP ingestion endpoint
+
+Private service-to-service RPC ports also exist inside Junjo AI Studio, but they
+are not telemetry endpoints and are not used by Junjo library applications.
 
 Troubleshooting
 ===============
@@ -476,9 +609,9 @@ No data appearing in Junjo AI Studio
 
 - Verify API key is set correctly: ``echo $JUNJO_AI_STUDIO_API_KEY``
 - Check services are running: ``docker compose ps``
-- Ensure ingestion service is accessible on port 50051
+- Ensure your local AI Studio ingestion endpoint is accessible on port 26155
 - Look for connection errors in your application logs
-- Check ingestion service logs: ``docker compose logs junjo-ai-studio-ingestion``
+- Check ingestion service logs: ``docker compose logs ingestion``
 
 Missing LLM data
 ----------------
@@ -498,7 +631,10 @@ Performance issues
 Docker Compose not starting
 ----------------------------
 
-- Ensure Docker network exists: ``docker network create junjo-network``
+- Do not pre-create ``junjo_network`` with ``docker network create`` — Docker
+  Compose creates and labels the network itself and errors on a pre-created
+  unlabeled network. Start the AI Studio stack first; application compose
+  projects that declare the network ``external`` can then attach.
 - Check environment variables are set in ``.env``
 - View logs: ``docker compose logs``
 - Try: ``docker compose down -v && docker compose up --build``
@@ -509,4 +645,4 @@ Next Steps
 - Explore :doc:`opentelemetry` for general OpenTelemetry configuration
 - Learn about :doc:`visualizing_workflows` for static Graphviz diagrams
 - See :doc:`eval_driven_dev` for testing workflows
-- Review :doc:`concurrency` for understanding parallel execution traces
+- Review :doc:`concurrency` for understanding concurrent execution traces

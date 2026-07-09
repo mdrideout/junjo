@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import webbrowser
 from pathlib import Path
 
 import pytest
@@ -141,6 +142,31 @@ def test_export_graphviz_assets_does_not_depend_on_serialized_graph_payload(
     html = (tmp_path / "graphviz" / "index.html").read_text(encoding="utf-8")
     assert "Overview" in html
     assert "Approval Subflow" in html
+
+
+def test_export_graphviz_assets_open_html_supports_relative_output_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    graph = create_render_graph(subflow_name="Approval Subflow")
+    opened_urls: list[str] = []
+
+    def fake_run(args: list[str], check: bool) -> subprocess.CompletedProcess[None]:
+        return subprocess.CompletedProcess(args=args, returncode=0)
+
+    def fake_open(url: str) -> bool:
+        opened_urls.append(url)
+        return True
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(webbrowser, "open", fake_open)
+
+    graph.export_graphviz_assets(out_dir="graphviz", open_html=True)
+
+    assert opened_urls
+    assert opened_urls[0].startswith("file://")
+    assert opened_urls[0].endswith("/graphviz/index.html")
 
 
 def test_export_graphviz_assets_renders_real_svg_when_dot_is_installed(

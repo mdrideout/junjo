@@ -1,9 +1,15 @@
+.. _hooks:
+
 Hooks
 =====
 
-Junjo hooks let you observe workflow lifecycle events with ordinary Python callbacks.
-Hooks are optional and do not control workflow execution. OpenTelemetry remains a
-built-in runtime concern even when you use hooks.
+.. meta::
+   :description: Observe Junjo workflow lifecycle events with optional in-process Python hook callbacks for workflows, subflows, nodes, and state changes.
+   :keywords: junjo, python, hooks, lifecycle events, callbacks, workflow observability, state changes
+
+Junjo hooks are optional, in-process Python callbacks for observing workflow
+lifecycle events. Hooks do not control workflow execution, and they are separate
+from OpenTelemetry, which stays active whether or not you register hooks.
 
 Simple completion logging
 -------------------------
@@ -61,12 +67,17 @@ Simple completion logging
         hooks=hooks,
     )
 
-    result = await workflow.execute()
+    async def main() -> None:
+        await workflow.execute()
 
-Common hook payloads
---------------------
+    if __name__ == "__main__":
+        import asyncio
+        asyncio.run(main())
 
-Hook callbacks receive one immutable event object. Useful fields include:
+Shared hook fields
+------------------
+
+Hook callbacks receive one immutable event object. Every hook event includes:
 
 * ``event.run_id``: the unique execution id for this run
 * ``event.executable_definition_id``: the stable id of the workflow, subflow, or node definition
@@ -74,14 +85,35 @@ Hook callbacks receive one immutable event object. Useful fields include:
 * ``event.executable_runtime_id``: the runtime id of the executable that fired the hook
 * ``event.executable_structural_id``: the stable structural id of the executable that fired the hook
 * ``event.enclosing_graph_structural_id``: the stable structural id of the graph enclosing the executable
-* ``event.parent_executable_definition_id``: the stable definition id of the parent workflow, subflow, or concurrent executable when the hook fires inside a nested execution scope
 * ``event.parent_executable_runtime_id`` / ``event.parent_executable_structural_id``: parent executable identities when the hook fires inside a nested execution scope
+* ``event.span_type``: the Junjo span type of the executable that fired the hook
 * ``event.trace_id`` / ``event.span_id``: OpenTelemetry correlation ids
-* ``event.result.state``: final state on completion hooks
-* ``event.state``: detached state snapshot on failure, cancellation, and state-changed hooks
-* ``event.patch``: JSON patch string on ``on_state_changed``
-* ``event.error``: original exception on failure hooks
-* ``event.reason``: cancellation reason on cancellation hooks
+
+Additional hook fields
+----------------------
+
+Different lifecycle events carry additional fields for the specific event type:
+
+* Workflow and subflow start events include ``event.store_id`` and ``event.graph_json``.
+* Workflow and subflow completion events include ``event.store_id`` and ``event.result``. Use ``event.result.state`` to inspect the final state snapshot.
+* Failure events include ``event.error``. Workflow and subflow failure events also include ``event.state``.
+* Cancellation events include ``event.reason``. Workflow and subflow cancellation events also include ``event.state``.
+* Node and run-concurrent lifecycle events include ``event.store_id`` and ``event.parent_executable_definition_id``. They do not include final state snapshots.
+* State-change events include ``event.store_id``, ``event.store_name``, ``event.action_name``, ``event.patch``, ``event.state``, and ``event.parent_executable_definition_id``.
+
+Registering and unsubscribing
+-----------------------------
+
+Every ``hooks.on_*()`` registration method returns an unsubscribe callback.
+Call that returned function when you want to remove the callback from the
+registry.
+
+.. code-block:: python
+
+    unsubscribe = hooks.on_workflow_completed(log_completed)
+
+    # Later, if the callback should no longer run:
+    unsubscribe()
 
 Hook event state payloads are Python-side lifecycle data, not serialized
 OpenTelemetry payloads. ``event.state`` is a detached copied state object for

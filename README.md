@@ -4,11 +4,11 @@
 
 Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
 
-Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
+Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and concurrent execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
 
 #### Docs
 
-- [Python API Docs](https://python-api.junjo.ai/)
+- [Python SDK Docs](https://python-api.junjo.ai/)
 - [PyPI](https://pypi.org/project/junjo/)
 
 #### Benefits:
@@ -209,11 +209,17 @@ A directed graph gives one the building blocks to create any sort of agentic app
 **Quick Start:**
 
 ```bash
-# Create docker-compose.yml (see docs for full example)
+# Start from the Junjo AI Studio - Minimal Build template repository
+git clone https://github.com/mdrideout/junjo-ai-studio-minimal-build.git
+cd junjo-ai-studio-minimal-build
+
+# Configure environment
+cp .env.example .env
+
 # Start services
 docker compose up -d
 
-# Access UI at http://localhost:5153
+# Access the UI at http://localhost:26153
 ```
 
 **Features:**
@@ -250,7 +256,7 @@ from base.sample_workflow.graph import create_sample_workflow_graph
 
 def main():
     # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
-    # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
+    # Creates .svg renderings, .dot notation files, and an index.html gallery page that displays the rendered graphs
     create_sample_workflow_graph().export_graphviz_assets()
 
 if __name__ == "__main__":

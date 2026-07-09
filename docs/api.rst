@@ -11,15 +11,19 @@ Core API
    :undoc-members:
    :show-inheritance:
 
+Hooks API
+---------
+
+.. automodule:: junjo.hooks
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members: Hooks
+
 Telemetry API
 -------------
 
 .. automodule:: junjo.telemetry.junjo_otel_exporter
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: junjo.workflow._NestableWorkflow
    :members:
    :undoc-members:
    :show-inheritance:

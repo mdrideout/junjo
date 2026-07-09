@@ -42,7 +42,7 @@
    Base Example <https://github.com/mdrideout/junjo/tree/master/examples/base>
    AI Chat <https://github.com/mdrideout/junjo/tree/master/examples/ai_chat>
 
-Junjo Python SDK - API Reference
+Junjo Python SDK Documentation
 ==================================
 
 `Junjo on PyPI <https://pypi.org/project/junjo/>`_
@@ -51,7 +51,7 @@ Junjo Python SDK - API Reference
 
 Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
 
-Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and parallel execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
+Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and concurrent execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
 
 .. image:: _static/junjo-screenshot.png
    :alt: A screenshot of a Junjo workflow graph's telemetry on Junjo AI Studio
@@ -75,7 +75,7 @@ Benefits
    * Rapidly iterate on your AI capabilities and avoid regressions
 * 🔭 OpenTelemetry native
    * Provides organized, structured traces to any OpenTelemetry provider
-   * Companion open source **`Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_** enhances debugging and evaluation of production data
+   * Companion open source `Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_ enhances debugging and evaluation of production data
 
 
 Junjo's Philosophy

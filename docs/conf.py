@@ -8,6 +8,16 @@ project = "junjo"
 copyright = "2025, Matthew Rideout"
 author = "Matthew Rideout"
 
+# Derive the documented version from the installed package metadata so the
+# published docs can be correlated to the PyPI release.
+try:
+    from importlib.metadata import version as _junjo_version
+
+    release = _junjo_version("junjo")
+    version = ".".join(release.split(".")[:2])
+except Exception:
+    release = version = ""
+
 # -- General configuration ---------------------------------------------------
 
 extensions = [

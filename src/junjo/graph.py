@@ -55,10 +55,11 @@ class GraphSerializationError(GraphError):
 
 class GraphRenderError(GraphError):
     """
-    Raised when a graph cannot be rendered into an output format.
+    Raised when Graphviz cannot render graph assets.
 
-    This includes Graphviz command failures and failures while producing
-    Mermaid or DOT output from the compiled graph snapshot.
+    Junjo raises this when the configured Graphviz command cannot be found or
+    when Graphviz returns a non-zero exit code while rendering ``.dot`` files
+    into image assets.
     """
 
 
@@ -166,8 +167,9 @@ class Graph:
     the nodes.
 
     Graph definitions are immutable after construction. Junjo stores the
-    source, sinks, and edges as read-only graph-shape metadata so the cached
-    compiled snapshot cannot silently drift away from the graph definition.
+    source, sinks, edges, edge endpoints, edge conditions, and concurrent child
+    membership as read-only graph-shape metadata so the cached compiled
+    snapshot cannot silently drift away from the graph definition.
 
     :param source: The starting node or subflow of the graph. Execution of the workflow begins here.
     :type source: Node | _NestableWorkflow
@@ -761,8 +763,10 @@ class Graph:
         - the first edge whose condition resolves to a next executable wins
         - later edges are not evaluated once a match is found
 
-        If no outgoing edge resolves and the current executable is not already
-        a declared sink, this method raises ``GraphValidationError``.
+        Workflow execution checks declared sinks before calling this method.
+        Direct callers should do the same. If this method is called for an
+        executable with no resolving outgoing edge, including a declared sink,
+        it raises ``GraphValidationError``.
 
         :param store: The store instance to use for resolving the next
             executable.
@@ -866,7 +870,7 @@ class Graph:
 
         # Final graph dictionary structure
         graph_dict = {
-            "v": 1, # Schema version
+            "v": 2, # Schema version
             "graphStructuralId": compiled.graph_structural_id,
             "nodes": nodes_json,
             "edges": edges_json
@@ -1425,18 +1429,47 @@ class Graph:
         clean: bool = True,
     ) -> dict[str, Path]:
         """
-        Render every digraph produced by :meth:`to_dot_notation` and build a gallery
-        HTML page whose headings use the *human* labels (e.g. “SampleSubflow”)
-        instead of raw digraph identifiers.
+        Render Graphviz assets for the graph and its nested subflows.
+
+        This method renders every digraph produced by :meth:`to_dot_notation`
+        and builds a gallery HTML page whose headings use the *human* labels
+        (for example, ``SampleSubflow``) instead of raw digraph identifiers.
 
         Graphviz export renders directly from the compiled graph snapshot. It
         does not depend on the serialized graph JSON payload, which keeps the
         rendering path aligned with the same canonical structure used for
         validation and traversal.
 
+        The output directory contains:
+
+        - one ``.dot`` file for the overview graph and each nested subflow
+        - one rendered image file per digraph, using the configured ``fmt``
+        - ``index.html``, a simple gallery page that references the rendered
+          image files
+
+        :param out_dir: Directory where generated ``.dot`` files, image files,
+            and ``index.html`` should be written. Defaults to
+            ``"graphviz_out"``.
+        :type out_dir: str | Path
+        :param fmt: Graphviz output format to pass to ``dot`` via ``-T``.
+            Defaults to ``"svg"``.
+        :type fmt: str
+        :param dot_cmd: Graphviz command to execute. Defaults to ``"dot"``.
+        :type dot_cmd: str
+        :param open_html: When ``True``, open the generated ``index.html`` in
+            the default browser after assets are written. Defaults to
+            ``False``.
+        :type open_html: bool
+        :param clean: When ``True``, remove existing ``.dot`` files and files
+            matching the selected ``fmt`` from ``out_dir`` before writing new
+            assets. Defaults to ``True``. ``index.html`` is overwritten on
+            every run.
+        :type clean: bool
         :returns: An ordered mapping of digraph name to rendered file path, in
             encounter order.
         :rtype: dict[str, Path]
+        :raises GraphRenderError: If the Graphviz command is missing or fails
+            while rendering an asset.
         """
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -1460,7 +1493,7 @@ class Graph:
         if open_html:
             import webbrowser
 
-            webbrowser.open(html_path.as_uri())
+            webbrowser.open(html_path.resolve().as_uri())
 
         return digraph_files
 

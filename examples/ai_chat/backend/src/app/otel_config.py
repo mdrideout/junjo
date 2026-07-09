@@ -6,10 +6,9 @@ from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from xai_sdk.telemetry import Telemetry
 
 
-def init_otel(service_name: str):
+def init_otel(service_name: str) -> tuple[TracerProvider, MeterProvider]:
     """Configure OpenTelemetry for this application."""
 
     # Load the Junjo API key from the environment variable.
@@ -27,15 +26,11 @@ def init_otel(service_name: str):
     # Instrument Google GenAI
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
-    # Instrument xAI
-    # https://github.com/xai-org/xai-sdk-python?tab=readme-ov-file#advanced-configuration
-    telemetry = Telemetry(provider=tracer_provider)
-    telemetry.setup_otlp_exporter()
-
-    # Construct a Junjo exporter for Junjo AI Studio
     junjo_ai_studio_exporter = JunjoOtelExporter(
+        # AI Chat runs directly on your local machine. Junjo AI Studio ingestion
+        # is exposed by its Docker Compose stack on localhost:26155.
         host="localhost",
-        port="50051",
+        port="26155",
         api_key=junjo_api_key,
         insecure=True,
     )
@@ -52,3 +47,5 @@ def init_otel(service_name: str):
     junjo_metric_reader = junjo_ai_studio_exporter.metric_reader
     meter_provider = MeterProvider(resource=resource, metric_readers=[junjo_metric_reader])
     metrics.set_meter_provider(meter_provider)
+
+    return tracer_provider, meter_provider

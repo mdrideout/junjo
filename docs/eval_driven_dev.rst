@@ -28,10 +28,17 @@ Powered by pytest
 
 Pytest executions can initialize an input state for the node, and analyze the results after the node executes its set_state updates.
 
+Prerequisites
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- The worked example below lives in the junjo repository's ``examples/base`` app, so clone the `junjo repository <https://github.com/mdrideout/junjo>`_ to run it
+- Install ``pytest`` and ``pytest-asyncio`` in the environment used to run the evals (the example's async tests use ``@pytest.mark.asyncio``)
+- Live eval execution requires ``GEMINI_API_KEY`` in the environment used to run pytest
+
 Library Example
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Check out :code:`src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
+Check out :code:`examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test` to see an example eval system, setup to evaluate the joke created. 
 
 - `Github link to test example <https://github.com/mdrideout/junjo/tree/master/examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test>`_
 
@@ -41,6 +48,44 @@ Check out :code:`src/base/sample_workflow/sample_subflow/nodes/create_joke_node/
 - `test_node.py` executes the pytest test
 - The live `node.py` LLM call is executed to generate the result and state update for evaluation
 - Test failures include reasons why the prompt failed to generate output that passed the evaluation. See the `test_schema.py`.
+
+The following is a condensed version of the eval test in `test_node.py`. Each test case in `test_cases.py` is a dictionary containing only the state fields the node requires, making it easy to build large eval sets by mocking node input state.
+
+.. code-block:: python
+
+    import pytest
+
+    from base.sample_workflow.sample_subflow.nodes.create_joke_node.node import CreateJokeNode
+    from base.sample_workflow.sample_subflow.nodes.create_joke_node.test.test_cases import test_cases
+    from base.sample_workflow.sample_subflow.nodes.create_joke_node.test.test_service import eval_create_joke_node
+    from base.sample_workflow.sample_subflow.store import SampleSubflowState, SampleSubflowStore
+
+
+    @pytest.mark.asyncio(loop_scope="session")
+    @pytest.mark.parametrize("test_case", test_cases)  # e.g. {"items": ["cat", "lasers", "space"]}
+    async def test_create_joke_node(test_case: dict):
+        # Initialize the node's input state from the test case
+        initial_state = SampleSubflowState.model_validate(test_case)
+        assert initial_state.items is not None
+        store = SampleSubflowStore(initial_state=initial_state)
+
+        # Execute the node service
+        node = CreateJokeNode()
+        await node.service(store)
+
+        # Assert against the resulting state
+        state_result = await store.get_state()
+        assert state_result.joke
+
+        # Evaluate the joke - run the LLM evaluator service
+        eval_result = await eval_create_joke_node(state_result.joke, initial_state.items)
+        assert eval_result.passed, f"Joke evaluation failed: {eval_result.reason}"
+
+Run the sample eval from ``examples/base``:
+
+.. code-block:: bash
+
+    uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
 
 On mission critical workflows, this setup can be used to orchestrate hundreds or thousands of test inputs against a prompt to ensure it covers all use cases well.
 
