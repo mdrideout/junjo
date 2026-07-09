@@ -1,23 +1,13 @@
 import asyncio
-import os
+
 from dotenv import load_dotenv
-from loguru import logger
 from junjo import BaseState, BaseStore, Edge, Graph, Node, Workflow
+from loguru import logger
+
 from otel_config import setup_telemetry
 
 # Load environment variables from .env file
 load_dotenv()
-
-# Setup telemetry
-if not setup_telemetry():
-    # If telemetry setup failed (missing API key), do not run the app.
-    # Instead, keep the container alive but dormant to avoid restart loops.
-    # Re-check/re-log every 60 seconds.
-    while True:
-        import time
-
-        time.sleep(30)
-        setup_telemetry()
 
 # --- Junjo Workflow Definition ---
 
@@ -30,7 +20,8 @@ class AppState(BaseState):
 # 2. Define the Store
 class AppStore(BaseStore[AppState]):
     async def increment_counter(self):
-        await self.set_state({"counter": self._state.counter + 1})
+        state = await self.get_state()
+        await self.set_state({"counter": state.counter + 1})
 
 
 # 3. Define the Nodes
@@ -65,7 +56,7 @@ def create_app_graph():
     # Create and return the Graph
     return Graph(
         source=start_node,
-        sink=end_node,
+        sinks=[end_node],
         edges=[
             Edge(tail=start_node, head=increment_node),
             Edge(tail=increment_node, head=end_node),
@@ -86,14 +77,24 @@ def create_app_workflow():
 # --- Main Execution Loop ---
 async def main():
     """Runs the workflow in a loop to continuously generate telemetry."""
-    logger.info("Starting Junjo application...")
-    while True:
-        logger.info("Executing workflow...")
-        workflow = create_app_workflow()
-        await workflow.execute()
-        final_state = await workflow.get_state_json()
-        logger.success(f"Final state: {final_state}")
-        await asyncio.sleep(5)
+    telemetry_providers = setup_telemetry()
+    while telemetry_providers is None:
+        await asyncio.sleep(30)
+        telemetry_providers = setup_telemetry()
+
+    tracer_provider, meter_provider = telemetry_providers
+
+    try:
+        logger.info("Starting Junjo application...")
+        while True:
+            logger.info("Executing workflow...")
+            workflow = create_app_workflow()
+            result = await workflow.execute()
+            logger.success(f"Final state: {result.state.model_dump_json()}")
+            await asyncio.sleep(5)
+    finally:
+        tracer_provider.shutdown()
+        meter_provider.shutdown()
 
 
 if __name__ == "__main__":

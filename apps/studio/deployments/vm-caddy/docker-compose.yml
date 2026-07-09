@@ -1,5 +1,5 @@
 # ============================================================================
-# JUNJO SERVER - PRODUCTION VM DEPLOYMENT
+# JUNJO AI STUDIO - PRODUCTION VM DEPLOYMENT
 # ============================================================================
 # This docker-compose configuration includes all required Junjo service
 # containers, as well as a Caddy reverse proxy container to route
@@ -21,7 +21,7 @@ services:
 
   # Junjo AI Studio Services
   junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:0.81.0
+    image: mdrideout/junjo-ai-studio-backend:0.81.1
     container_name: junjo-ai-studio-backend
     restart: unless-stopped
     # Memory guardrails (tuned for small VMs; override in .env as needed)
@@ -33,7 +33,7 @@ services:
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "1323:1323" # HTTP API (public)
+      - "26154:26154" # Backend HTTP API
     networks:
       - junjo-network
     env_file:
@@ -42,6 +42,8 @@ services:
       # Override host/port for Docker network communication
       - INGESTION_HOST=junjo-ai-studio-ingestion
       - INGESTION_PORT=50052
+      # Private ingestion authentication RPC listener
+      - GRPC_PORT=50053
       # Enable migrations on startup
       - RUN_MIGRATIONS=true
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
@@ -61,14 +63,14 @@ services:
       - JUNJO_DF_SPILL_PATH=${JUNJO_DF_SPILL_PATH:-/tmp/junjo-datafusion-spill}
 
   junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:0.81.0
+    image: mdrideout/junjo-ai-studio-ingestion:0.81.1
     container_name: junjo-ai-studio-ingestion
     restart: unless-stopped
     volumes:
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "50051:50051" # Public OTLP endpoint (authenticated via API key)
+      - "26155:26155" # OTLP gRPC ingestion endpoint
     networks:
       - junjo-network
     env_file:
@@ -76,6 +78,8 @@ services:
     environment:
       - BACKEND_GRPC_HOST=junjo-ai-studio-backend
       - BACKEND_GRPC_PORT=50053
+      - GRPC_PORT=26155
+      - INTERNAL_GRPC_PORT=50052
       # Data paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - WAL_DIR=/app/.dbdata/spans/wal
       - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
@@ -84,23 +88,18 @@ services:
       junjo-ai-studio-backend:
         condition: service_started
     healthcheck:
-      # gRPC health protocol is not exposed by the ingestion service; verify internal gRPC port is listening.
-      test:
-        [
-          "CMD-SHELL",
-          "awk 'NR>1 && $2 ~ /:C384$/ && $4 == \"0A\" {found=1} END {exit found?0:1}' /proc/net/tcp /proc/net/tcp6",
-        ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 30s
 
   junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:0.81.0
+    image: mdrideout/junjo-ai-studio-frontend:0.81.1
     container_name: junjo-ai-studio-frontend
     restart: unless-stopped
     ports:
-      - "5153:80" # Public frontend (production build - nginx serving static files on port 80)
+      - "26153:26153" # Production web UI
     env_file:
       - .env
     networks:

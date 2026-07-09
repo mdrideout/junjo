@@ -2,6 +2,8 @@
 
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
+This deployment pins Junjo AI Studio `0.81.1` and Junjo `0.63.0` as a compatible release pair.
+
 Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
 
 - ⚙️ Setup and configure a new Virtual Machine
@@ -123,7 +125,7 @@ Docker Compose creates and labels `junjo_network` automatically for this stack. 
 
 Once all the services are running, you can access them in your browser:
 
-*   **Junjo AI Studio UI**: [http://localhost:5153](http://localhost:5153)
+*   **Junjo AI Studio UI**: [http://localhost:26153](http://localhost:26153)
 
 #### 🚨 Demo App Requires Initial Setup
 
@@ -136,8 +138,8 @@ The **demo application (`junjo-app`) automatically starts**. When configured wit
 
 #### 🔑 App API Key Setup Steps:
 
-1.  Navigate to [http://localhost:5153](http://localhost:5153) and create your user account, then sign in.
-2.  Create an [API key](http://localhost:5153/api-keys) in the Junjo AI Studio UI.
+1.  Navigate to [http://localhost:26153](http://localhost:26153) and create your user account, then sign in.
+2.  Create an [API key](http://localhost:26153/api-keys) in the Junjo AI Studio UI.
 3.  Set this key as the `JUNJO_AI_STUDIO_API_KEY` environment variable in your `.env` file.
 4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
     ```bash
@@ -228,9 +230,9 @@ Using `junjo.example.com` as an example, your deployment will be accessible at:
 Configure your Python applications to send OpenTelemetry data to the ingestion endpoint:
 
 ```python
-from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 
-junjo_exporter = JunjoServerOtelExporter(
+junjo_exporter = JunjoOtelExporter(
     host="ingestion.junjo.example.com",  # Your production ingestion domain
     port="443",                            # HTTPS port (Caddy handles SSL)
     api_key="your_api_key",               # Created in Junjo AI Studio UI
@@ -475,20 +477,20 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.0`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.1`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
-*   **Details**: Rust service that receives telemetry via gRPC (port 50051), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
+*   **Details**: Rust service that receives telemetry via OTLP gRPC (port 26155), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
 *   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
 #### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.0`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.1`
 *   **Purpose**: API server, authentication, and data processing
-*   **Details**: Python FastAPI application that handles HTTP API requests (port 1323), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
+*   **Details**: Python FastAPI application that handles HTTP API requests (port 26154), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 #### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.0`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.1`
 *   **Purpose**: Web-based debugging interface
-*   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 80 (internally), proxied through Caddy.
+*   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 26153, proxied through Caddy.
 
 ### Infrastructure Services
 
@@ -508,7 +510,7 @@ This deployment includes several interconnected services. The **core Junjo AI St
 - Executes a workflow that increments a counter
 - Sends complete trace data to `junjo-ai-studio-ingestion` via gRPC
 - Creates visible workflow runs in the Junjo AI Studio UI every 5 seconds
-- Shows how to configure `JunjoServerOtelExporter` in your own applications
+- Shows how to configure `JunjoOtelExporter` in your own applications
 - Watch it running: `docker logs -f junjo-app`
 
 **For Production:**

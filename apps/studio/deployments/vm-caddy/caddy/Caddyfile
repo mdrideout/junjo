@@ -9,32 +9,32 @@ http://localhost {
 	log
 
 	handle {
-		reverse_proxy junjo-ai-studio-frontend:80
+		reverse_proxy junjo-ai-studio-frontend:26153
 	}
 }
 
-http://localhost:1323 {
+http://localhost:26154 {
 	log
 
 	handle {
-		reverse_proxy junjo-ai-studio-backend:1323
+		reverse_proxy junjo-ai-studio-backend:26154
 	}
 }
 
-http://localhost:50051 {
+http://localhost:26155 {
 	log
 
 	handle {
-		reverse_proxy junjo-ai-studio-ingestion:50051
+		reverse_proxy h2c://junjo-ai-studio-ingestion:26155
 	}
 }
 
 # ----------------------------------------------------------------------------------------
 # Production Domain & Subdomains
 #   Name        Container Name & Port              Access URL
-# - Frontend:   junjo-ai-studio-frontend:80        https://junjo.your-domain.com
-# - Backend:    junjo-ai-studio-backend:1323       https://api.junjo.your-domain.com
-# - Ingestion:  junjo-ai-studio-ingestion:50051    https://ingestion.junjo.your-domain.com
+# - Frontend:   junjo-ai-studio-frontend:26153     https://junjo.your-domain.com
+# - Backend:    junjo-ai-studio-backend:26154      https://api.junjo.your-domain.com
+# - Ingestion:  junjo-ai-studio-ingestion:26155    https://ingestion.junjo.your-domain.com
 #
 # IMPORTANT: Manually edit the domains below to match your production setup.
 #            Replace 'junjo.your-domain.com' with your actual subdomain.
@@ -72,17 +72,17 @@ http://localhost:50051 {
 # 	# backend
 # 	@api host api.junjo.your-domain.com
 # 	handle @api {
-# 		reverse_proxy junjo-ai-studio-backend:1323
+# 		reverse_proxy junjo-ai-studio-backend:26154
 # 	}
 
 # 	# ingestion
 # 	@ingestion host ingestion.junjo.your-domain.com
 # 	handle @ingestion {
-# 		reverse_proxy h2c://junjo-ai-studio-ingestion:50051
+# 		reverse_proxy h2c://junjo-ai-studio-ingestion:26155
 # 	}
 
 # 	# frontend: fallback for the root domain
 # 	handle {
-# 		reverse_proxy junjo-ai-studio-frontend:80
+# 		reverse_proxy junjo-ai-studio-frontend:26153
 # 	}
 # }
