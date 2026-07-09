@@ -150,8 +150,8 @@ ordered traversal lookups, serialization, and rendering-oriented tooling.
 
 **Why it exists**
 
-- **One Structural Source of Truth:** Junjo no longer walks raw runtime graph
-  objects differently for validation, serialization, and traversal.
+- **One Structural Source of Truth:** Junjo uses one compiled structural view
+  for validation, serialization, and traversal.
 - **Stable Graph Identity:** The compiled snapshot assigns deterministic
   `graph_structural_id`, `node_structural_id`, and `edge_structural_id`
   values so identical graph shapes can be correlated across runs.
@@ -190,7 +190,7 @@ ordered traversal lookups, serialization, and rendering-oriented tooling.
 Runtime Identity vs Structural Identity
 ---------------------------------------
 
-Junjo now exposes two different identity layers for graph executables:
+Junjo exposes two different identity layers for graph executables:
 
 - **Runtime identity:** identifies the exact executable instance used in one
   execution. This is what lets telemetry and hooks talk about the specific node,

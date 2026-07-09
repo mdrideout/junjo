@@ -14,7 +14,7 @@ The Core Principles
 ===================
 
 1.  **Single Source of Truth:** The state of your entire workflow is stored in a single object tree within a single **Store**.
-2.  **State is Read-Only:** The only way to change the state is to emit an "action," an object describing what happened. This prevents nodes from directly modifying the state, which could lead to unpredictable behavior.
+2.  **State is Read-Only:** The only way to change the state is to call a store action method, which commits the change through `set_state` with a partial update. This prevents nodes from directly modifying the state, which could lead to unpredictable behavior.
 3.  **Changes are Made with Store Methods:** State modifications are encapsulated within methods in your **Store**. Similar to "reducers" in Redux, these methods are the only place where `set_state` should be called, ensuring that all state changes are predictable and centralized.
 
 BaseState: Defining Your State's Shape
@@ -87,7 +87,10 @@ The `BaseStore` is the heart of Junjo's state management. It holds the state and
         async def set_error(self, error: str) -> None:
             await self.set_state({"error_message": error})
 
-### The `set_state` Method
+Inside a store action like `add_message`, reading `self._state` directly to derive the next update is acceptable because actions run on the store and each `set_state` commit is validated and applied against the locked current state; outside of store actions, always read state with `await store.get_state()`.
+
+The `set_state` Method
+----------------------
 
 The `set_state` method is the **only** way to update the state in the store. It takes a dictionary of the fields you want to update and their new values.
 

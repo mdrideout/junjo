@@ -209,12 +209,17 @@ A directed graph gives one the building blocks to create any sort of agentic app
 **Quick Start:**
 
 ```bash
-# Create docker-compose.yml (see docs for full example)
+# Start from the Junjo AI Studio - Minimal Build template repository
+git clone https://github.com/mdrideout/junjo-ai-studio-minimal-build.git
+cd junjo-ai-studio-minimal-build
+
+# Configure environment
+cp .env.example .env
+
 # Start services
 docker compose up -d
 
-# Access the local source-development UI at http://localhost:26151
-# Local production-build UI is usually available at http://localhost:26153
+# Access the UI at http://localhost:26153
 ```
 
 **Features:**
@@ -251,7 +256,7 @@ from base.sample_workflow.graph import create_sample_workflow_graph
 
 def main():
     # Every graph can execute .export_graphviz_assets() to generate all graphs and subflow graphs in a workflow
-    # Creates .svg renderings, .dot notation files, and an HTML template to render the graphs
+    # Creates .svg renderings, .dot notation files, and an index.html gallery page that displays the rendered graphs
     create_sample_workflow_graph().export_graphviz_assets()
 
 if __name__ == "__main__":

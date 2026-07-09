@@ -49,6 +49,14 @@ Junjo AI Studio is composed of three Docker services that work together:
 2. **Ingestion Service**: High-throughput OTLP receiver (Rust) with segmented Arrow IPC WAL → Parquet (cold), and on-demand hot snapshots for real-time queries
 3. **Frontend**: Web UI for visualization and debugging
 
+.. note::
+
+    **Version Compatibility:** Junjo SDK and Junjo AI Studio releases are
+    paired around a shared telemetry contract. When versions are mixed across
+    a contract change, ingestion and workflow listing still work, but graph
+    rendering and span matching degrade ("Graph structure not available").
+    Upgrade the SDK and AI Studio together.
+
 Quick Start Options
 -------------------
 
@@ -71,7 +79,7 @@ The easiest way to get started is with the `Junjo AI Studio Minimal Build Templa
     docker compose up -d
 
     # Access UI
-    open http://localhost:26151
+    open http://localhost:26153
 
 This template provides a minimal, flexible foundation you can customize for your needs. See :doc:`deployment` for more details.
 
@@ -94,6 +102,7 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
         environment:
           - INGESTION_HOST=ingestion
           - INGESTION_PORT=50052  # Private backend-to-ingestion RPC; not an OTLP endpoint
+          - GRPC_PORT=50053  # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the auth RPC listener
           - RUN_MIGRATIONS=true
           - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
           - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
@@ -111,6 +120,8 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
         environment:
           - BACKEND_GRPC_HOST=backend
           - BACKEND_GRPC_PORT=50053  # Private ingestion-to-backend auth RPC
+          - GRPC_PORT=26155  # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the OTLP listener
+          - INTERNAL_GRPC_PORT=50052  # Pinned backend-facing RPC listener
           - WAL_DIR=/app/.dbdata/spans/wal
           - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
           - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
@@ -122,8 +133,7 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
       frontend:
         image: mdrideout/junjo-ai-studio-frontend:latest
         ports:
-          - "26151:26151" # Local development web UI
-          - "26153:26153" # Local production-build web UI
+          - "26153:26153" # Production-build web UI
         env_file: .env
         networks:
           - junjo-network
@@ -136,13 +146,36 @@ If you prefer to integrate Junjo AI Studio into an existing project, here's a mi
         name: junjo_network
         driver: bridge
 
+**Create a .env file** next to your ``docker-compose.yml``. The backend requires
+``JUNJO_SESSION_SECRET`` and ``JUNJO_SECURE_COOKIE_KEY`` (they have no defaults),
+and the prebuilt frontend container requires ``JUNJO_ENV``:
+
+.. code-block:: bash
+    :caption: .env
+
+    JUNJO_ENV=development
+
+    # Generate each value with: openssl rand -base64 32
+    # (JUNJO_SECURE_COOKIE_KEY must decode to exactly 32 bytes)
+    JUNJO_SESSION_SECRET=<generated value>
+    JUNJO_SECURE_COOKIE_KEY=<generated value>
+
+    # Optional: host path for database storage (defaults to ./.dbdata)
+    # JUNJO_HOST_DB_DATA_PATH=./.dbdata
+
+See :doc:`docker_reference` for the full environment variable reference.
+
+.. warning::
+
+    The shared ``.env`` file is loaded by every service — do not set generic
+    variables like ``GRPC_PORT`` or ``PORT`` in it. ``GRPC_PORT`` is read by
+    both the backend and ingestion services with different expected values,
+    and ``PORT`` misconfigures the backend's settings.
+
 **Start the services:**
 
 .. code-block:: bash
 
-    # Create .env file (see Configuration section below)
-    cp .env.example .env
-    
     # Start all services
     docker compose up -d
     
@@ -166,19 +199,18 @@ Configuration
 Step 1: Generate an API Key
 ----------------------------
 
-1. Open the Junjo AI Studio UI exposed by your stack. The local source-development frontend is usually http://localhost:26151, and the local production-build frontend is usually http://localhost:26153.
-2. Navigate to Settings → API Keys
+1. Open the Junjo AI Studio UI exposed by your stack. With the prebuilt Docker images, the UI is served at http://localhost:26153; http://localhost:26151 applies only when running the junjo-ai-studio source repository's development stack.
+2. Open the **API Keys** page from the sidebar
 3. Create a new API key
 4. Set the key in your application's environment as ``JUNJO_AI_STUDIO_API_KEY``
 
 Step 2: Configure OpenTelemetry in Your Application
 ----------------------------------------------------
 
-Install the required OpenTelemetry packages:
-
-.. code-block:: bash
-
-    pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc
+The required OpenTelemetry packages (``opentelemetry-sdk`` and
+``opentelemetry-exporter-otlp-proto-grpc``) are runtime dependencies of
+``junjo`` and install automatically with it — no separate install step is
+needed for Junjo users.
 
 Choose the endpoint based on where your application runs:
 
@@ -215,7 +247,7 @@ Create an OpenTelemetry configuration file:
         tracer_provider = TracerProvider(resource=resource)
         
         junjo_exporter = JunjoOtelExporter(
-            host="ingestion",  # The Junjo AI Studio container name on the same docker network
+            host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
             port="26155",
             api_key=api_key,
             insecure=True  # Use False in production with TLS
@@ -449,7 +481,7 @@ visualization and span matching.
 
 Top-level graph fields:
 
-- ``v``: graph snapshot schema version
+- ``v``: graph snapshot schema version (currently ``2``)
 - ``graphStructuralId``: stable structural id for the compiled graph
 - ``nodes``: graph node records
 - ``edges``: graph edge records
@@ -525,7 +557,7 @@ You can use Junjo AI Studio alongside other platforms:
     
     # Junjo AI Studio
     junjo_exporter = JunjoOtelExporter(
-        host="ingestion",  # The Junjo AI Studio container name on the same docker network
+        host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
         port="26155",
         api_key=api_key,
         insecure=True
@@ -550,7 +582,7 @@ same Docker Compose network. Only the hostname changes:
     Host machine application
 
     Junjo application -> localhost:26155 -> OTLP gRPC ingest
-    Browser           -> localhost:26151 -> development frontend
+    Browser           -> localhost:26151 -> development frontend (source-repo dev stack only)
     Browser           -> localhost:26153 -> production-build frontend
     Frontend          -> localhost:26154 -> backend HTTP API
 
@@ -561,7 +593,7 @@ same Docker Compose network. Only the hostname changes:
 
 **Port Reference:**
 
-- **26151**: Local host HTTP - Development web UI
+- **26151**: Local host HTTP - Development web UI (available only in the junjo-ai-studio source repository's development stack)
 - **26153**: Local host HTTP - Production-build web UI
 - **26154**: Local host HTTP - Backend API
 - **26155**: Local host gRPC - OTLP ingestion endpoint
@@ -599,7 +631,10 @@ Performance issues
 Docker Compose not starting
 ----------------------------
 
-- Ensure Docker network exists: ``docker network create junjo_network``
+- Do not pre-create ``junjo_network`` with ``docker network create`` — Docker
+  Compose creates and labels the network itself and errors on a pre-created
+  unlabeled network. Start the AI Studio stack first; application compose
+  projects that declare the network ``external`` can then attach.
 - Check environment variables are set in ``.env``
 - View logs: ``docker compose logs``
 - Try: ``docker compose down -v && docker compose up --build``

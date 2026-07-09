@@ -894,14 +894,18 @@ version = "0.1.0"
 source = { virtual = "examples/getting_started" }
 dependencies = [
     { name = "junjo" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "ruff" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "junjo", editable = "." },
-    { name = "ruff", specifier = ">=0.15.0" },
-]
+requires-dist = [{ name = "junjo", editable = "." }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.15.0" }]
 
 [[package]]
 name = "google-auth"
@@ -1262,7 +1266,7 @@ wheels = [
 
 [[package]]
 name = "junjo"
-version = "0.62.1"
+version = "0.63.0"
 source = { editable = "." }
 dependencies = [
     { name = "grpcio" },

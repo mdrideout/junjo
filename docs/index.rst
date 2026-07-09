@@ -75,7 +75,7 @@ Benefits
    * Rapidly iterate on your AI capabilities and avoid regressions
 * 🔭 OpenTelemetry native
    * Provides organized, structured traces to any OpenTelemetry provider
-   * Companion open source **`Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_** enhances debugging and evaluation of production data
+   * Companion open source `Junjo AI Studio <https://github.com/mdrideout/junjo-ai-studio>`_ enhances debugging and evaluation of production data
 
 
 Junjo's Philosophy

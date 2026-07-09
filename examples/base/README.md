@@ -18,7 +18,7 @@ Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideou
 
 For a local Docker Compose AI Studio stack, the default local ports are:
 
-- UI: `http://localhost:26151`
+- UI: `http://localhost:26153`
 - API: `localhost:26154`
 - OTLP gRPC ingestion: `localhost:26155`
 
@@ -29,6 +29,8 @@ For a local Docker Compose AI Studio stack, the default local ports are:
 - The graph workflow will run, logging node executions and state changes to your console
 - If [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio-minimal-build) is running, it will receive telemetry.
   - Requires you to generate an API key inside the Junjo AI Studio interface, and add it as a `.env` variable here.
+- `GEMINI_API_KEY` is required for `base.main` and the eval tests (copy `.env.example` to `.env` and set it) — without it the workflow fails partway through, in the subflow's LLM nodes.
+- The `base.visualize` command requires Graphviz on your host (`brew install graphviz` or `apt-get install graphviz`) — without it the command fails with a `GraphRenderError`.
 
 ```bash
 # (use uv package manager https://docs.astral.sh/uv/)
@@ -38,15 +40,24 @@ For a local Docker Compose AI Studio stack, the default local ports are:
 # This repo is a `uv` workspace. The virtual environment lives at the repo root
 # (`../../.venv` from here), not inside this example directory.
 #
+# Note: workspace syncs are exact — syncing one example package removes the other
+# examples' packages from the shared root venv. Re-run the sync shown in an
+# example's README when switching between examples.
+#
 # Recommended (run from this directory):
 $ uv sync --python 3.11 --package base --all-extras
 $ uv run --package base -m base.main
 $ uv run --package base -m base.visualize
 
 # Standalone (if you copied this example out of the workspace):
+# Remove the `[tool.uv.sources]` section from this example's pyproject.toml so
+# `junjo` resolves from PyPI instead of the (now missing) workspace, then:
 # $ uv sync --all-extras
 # $ uv run -m base.main
 # $ uv run -m base.visualize
+#
+# Caveat: the in-repo examples track the in-repo junjo, so standalone use
+# requires a published junjo release on PyPI that matches these examples' API.
 ```
 
 ## Eval Driven Development

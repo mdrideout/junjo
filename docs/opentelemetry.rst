@@ -145,7 +145,7 @@ only for applications running directly on the local machine.
     from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
     
     junjo_exporter = JunjoOtelExporter(
-        host="ingestion",  # The Junjo AI Studio container name on the same docker network
+        host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
         port="26155",
         api_key=api_key,
         insecure=True
@@ -237,7 +237,7 @@ You can send telemetry to multiple platforms simultaneously:
     
     # Add Junjo AI Studio exporter
     junjo_exporter = JunjoOtelExporter(
-        host="ingestion",  # The Junjo AI Studio container name on the same docker network
+        host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
         port="26155",
         api_key=junjo_api_key,
         insecure=True
@@ -453,7 +453,7 @@ Here's a complete OpenTelemetry setup for Junjo:
         
         # Configure Junjo AI Studio exporter.
         junjo_exporter = JunjoOtelExporter(
-            host="ingestion",  # The Junjo AI Studio container name on the same docker network
+            host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
             port="26155",
             api_key=api_key,
             insecure=True

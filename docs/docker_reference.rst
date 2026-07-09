@@ -55,8 +55,8 @@ The frontend service provides the interactive web UI for visualizing and debuggi
 
 **Ports:**
 
-- ``26151`` - Development web UI HTTP server
-- ``26153`` - Production-build web UI HTTP server
+- ``26153`` - Production-build web UI HTTP server (the port served by the prebuilt image)
+- ``26151`` - Development web UI HTTP server (available only in the junjo-ai-studio source repository's development stack)
 
 **Notes:**
 
@@ -96,6 +96,8 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           # Private backend-to-ingestion RPC; not an OTLP endpoint
           - INGESTION_HOST=ingestion
           - INGESTION_PORT=50052
+          # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the auth RPC listener
+          - GRPC_PORT=50053
           # Enable migrations on startup
           - RUN_MIGRATIONS=true
           # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
@@ -119,6 +121,9 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           # Private ingestion-to-backend auth RPC
           - BACKEND_GRPC_HOST=backend
           - BACKEND_GRPC_PORT=50053
+          # Pinned so stray GRPC_PORT / INTERNAL_GRPC_PORT values in the shared .env cannot rewire these listeners
+          - GRPC_PORT=26155
+          - INTERNAL_GRPC_PORT=50052
           # Arrow IPC WAL directory
           - WAL_DIR=/app/.dbdata/spans/wal
           # Hot snapshot path (backend reads this file directly)
@@ -129,7 +134,7 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
           backend:
             condition: service_started
         healthcheck:
-          test: ["CMD", "grpc_health_probe", "-addr=localhost:50052"]
+          test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
           interval: 5s
           timeout: 3s
           retries: 5
@@ -139,8 +144,7 @@ This is the standard configuration for running Junjo AI Studio, suitable for bot
         image: mdrideout/junjo-ai-studio-frontend:latest
         restart: unless-stopped
         ports:
-          - "26151:26151" # Local development frontend
-          - "26153:26153" # Local production-build frontend
+          - "26153:26153" # Production-build web UI
         env_file:
           - .env
         networks:
@@ -174,7 +178,7 @@ Common Configuration
 ~~~~~~~~~~~~~~~~~~~~
 
 ``JUNJO_ENV``
-    **Required.** Environment mode.
+    **Optional** for the backend (defaults to ``development``), but the prebuilt frontend container requires it to be set explicitly. Environment mode.
 
     - ``development`` (default): Uses localhost and standard ports.
     - ``production``: Expects production hostname and subdomains.
@@ -204,7 +208,7 @@ Database Storage
 ~~~~~~~~~~~~~~~~
 
 ``JUNJO_HOST_DB_DATA_PATH``
-    **Required.** Path on the host machine where database files are stored.
+    **Optional.** Path on the host machine where database files are stored. Consumed by Docker Compose interpolation, which defaults it to ``./.dbdata``.
 
     - **Development Default:** ``./.dbdata`` (local directory)
     - **Production:** Use a mounted block storage path (e.g., ``/mnt/junjo-data``).
@@ -249,7 +253,7 @@ API keys for LLM features in the prompt playground.
 Volume Mounts
 -------------
 
-All three services require persistent storage for their databases. The recommended approach is to use either local directories or block storage volumes.
+The backend and ingestion services require persistent storage for their databases; the frontend is stateless. The recommended approach is to use either local directories or block storage volumes.
 
 Local Directory Structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -320,7 +324,7 @@ These ports need to be accessible:
 
 **Development:**
 
-- Frontend: ``http://localhost:26151`` for local source-development builds, or ``http://localhost:26153`` for local production-build frontends
+- Frontend: ``http://localhost:26153`` (production-build web UI served by the prebuilt image; ``http://localhost:26151`` applies only to the junjo-ai-studio source repository's development stack)
 - Backend API: ``localhost:26154`` (Optional, usually only accessed by frontend)
 - Ingestion: ``localhost:26155`` (Applications running on the local machine connect here)
 - Same-network container ingestion: ``ingestion:26155``
@@ -422,6 +426,8 @@ Example Caddyfile:
       }
     }
 
+The ``dns cloudflare`` directive requires a Caddy build that includes the Cloudflare DNS module (as used in the deployment-example repository); with stock Caddy and a public DNS A record, the ``tls``/``dns`` block can be omitted for standard certificate issuance.
+
 See the `Junjo AI Studio Deployment Example <https://github.com/mdrideout/junjo-ai-studio-deployment-example>`_ for a complete production setup.
 
 Scaling Considerations
@@ -456,7 +462,7 @@ Common issues:
 - Missing environment variables in ``.env``
 - Port conflicts (check with ``netstat -tlnp``)
 - Permission issues with volume mounts
-- Network not created (``docker network create junjo_network``)
+- ``junjo_network`` was pre-created manually — do not run ``docker network create``; start the AI Studio stack first so Docker Compose creates and labels the network, then application compose projects that declare it ``external`` can attach
 
 API Errors
 ~~~~~~~~~~

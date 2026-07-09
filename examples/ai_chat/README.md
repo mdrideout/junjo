@@ -52,7 +52,11 @@ $ uv run --package app fastapi dev src/app/main.py
 $ uv run --package app -m app.visualize
 ```
 
-Environment variables live in `backend/.env.example` (copy to `backend/.env` and fill in the keys you want to use).
+Environment variables live in `backend/.env.example` (copy to `backend/.env`). Which keys you need:
+
+- `JUNJO_AI_STUDIO_API_KEY` — **required** for the backend to start (telemetry initialization raises on import without it). Generate one inside the Junjo AI Studio interface.
+- `GEMINI_API_KEY` — required for the chat workflows; all nodes are currently wired to `GeminiTool`.
+- `XAI_API_KEY` — optional; only needed if you switch nodes to `GrokTool`.
 
 
 ### Telemetry
@@ -63,7 +67,7 @@ AI Chat runs directly on your local machine with `uv run`. It sends Junjo teleme
 
 For a local Docker Compose AI Studio stack, the default local ports are:
 
-- UI: `http://localhost:26151`
+- UI: `http://localhost:26153`
 - API: `localhost:26154`
 - OTLP gRPC ingestion: `localhost:26155`
 

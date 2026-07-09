@@ -2,7 +2,7 @@
 
 All notable changes to Junjo will be documented in this file.
 
-## FUTURE RELEASE
+## 0.63.0 - 2026-07-09
 
 This release is a runtime hardening and API cleanup pass across workflow
 execution, state management, and lifecycle observation.
@@ -47,6 +47,8 @@ execution, state management, and lifecycle observation.
 - Removed the unused `junjo.graphviz` helper module and the unnecessary Python `graphviz` package dependency from the main library surface.
 
 ### Telemetry
+
+This release changes the telemetry contract: span attribute identity fields are renamed and the execution graph snapshot schema version is now 2. It pairs with the Junjo AI Studio release that ships the matching contract. Mixing this SDK with an older AI Studio (or vice versa) still ingests spans, but AI Studio cannot render workflow graphs or match spans to nodes — upgrade both together.
 
 - OpenTelemetry span attributes now use explicit identity names such as `junjo.executable_runtime_id`, `junjo.executable_structural_id`, and `junjo.enclosing_graph_structural_id` instead of the old generic `junjo.id` and `junjo.parent_id` keys.
 - OpenTelemetry and hook payloads now use `executable_definition_id` and `parent_executable_definition_id` instead of the older generic `definition_id` naming on those surfaces.

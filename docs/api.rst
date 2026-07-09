@@ -11,6 +11,15 @@ Core API
    :undoc-members:
    :show-inheritance:
 
+Hooks API
+---------
+
+.. automodule:: junjo.hooks
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members: Hooks
+
 Telemetry API
 -------------
 

@@ -39,7 +39,7 @@ This GitHub template repository provides:
     docker compose up -d
 
     # Access UI
-    open http://localhost:26151
+    open http://localhost:26153
 
 Digital Ocean VM Deployment Example
 ------------------------------------

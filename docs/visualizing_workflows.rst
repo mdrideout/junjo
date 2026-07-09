@@ -61,7 +61,11 @@ Prerequisites
 
     .. code-block:: bash
 
-        uv pip install -e ".[dev]"
+        # With pip
+        pip install junjo
+
+        # With uv
+        uv add junjo
 
 Generating Assets
 ~~~~~~~~~~~~~~~~~
@@ -124,7 +128,7 @@ Generating Mermaid Flowcharts
 Junjo also supports Mermaid flowchart generation directly from the compiled
 graph snapshot produced by ``Graph.compile()``.
 
-Like the Graphviz renderer, Mermaid rendering now uses the same canonical
+Like the Graphviz renderer, Mermaid rendering uses the same canonical
 structural representation as validation and traversal rather than routing
 through the serialized execution graph snapshot. That keeps Mermaid output
 stable across repeated fresh graph builds with the same topology.
@@ -184,8 +188,6 @@ By combining static Graphviz or Mermaid diagrams for architectural
 understanding with dynamic Junjo AI Studio telemetry for execution analysis,
 developers can build, test, and maintain complex AI workflows with greater
 confidence and clarity.
-
----
 
 Next Steps:
   - Explore the :doc:`getting_started` guide for installation and basic usage.

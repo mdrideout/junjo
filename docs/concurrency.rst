@@ -30,30 +30,45 @@ When defining your workflow's graph or subflow, you can easily execute nodes and
 
 .. code-block:: python
 
-  # Instantiate nodes
-  count_activities = CountActivitiesNode()
-  determine_when = DetermineWhenNode()
-  activity_query_splitter = ActivityQuerySplitterNode()
-  final_node = FinalNode()
+  def create_record_workout_activity_graph() -> Graph:
+    """
+    Factory function to create a new instance of the workflow graph,
+    so each workflow execution gets a fresh, isolated graph.
+    """
+    # Instantiate nodes
+    count_activities = CountActivitiesNode()
+    determine_when = DetermineWhenNode()
+    activity_query_splitter = ActivityQuerySplitterNode()
+    final_node = FinalNode()
 
-  # Create a RunConcurrent instance, and specify the nodes to execute
-  initial_analysis_node = RunConcurrent(
-    name="Initial Analysis",
-    items=[count_activities, determine_when]
-  )
+    # Create a RunConcurrent instance, and specify the nodes to execute
+    initial_analysis_node = RunConcurrent(
+      name="Initial Analysis",
+      items=[count_activities, determine_when]
+    )
 
-  # Define the graph structure
-  record_workout_activity_graph = Graph(
-    source=initial_analysis_node,
-    sinks=[final_node],
-    edges=[
-        # Specify the RunConcurrent instance like any other Graph node
-        Edge(tail=initial_analysis_node, head=activity_query_splitter, condition=IsMultipleActivities()),
+    # Define the graph structure
+    return Graph(
+      source=initial_analysis_node,
+      sinks=[final_node],
+      edges=[
+          # Specify the RunConcurrent instance like any other Graph node
+          Edge(tail=initial_analysis_node, head=activity_query_splitter, condition=IsMultipleActivities()),
 
-        # Final transitions
-        Edge(tail=activity_query_splitter, head=final_node),
-        Edge(tail=initial_analysis_node, head=final_node),
-    ]
+          # Final transitions
+          Edge(tail=activity_query_splitter, head=final_node),
+          Edge(tail=initial_analysis_node, head=final_node),
+      ]
+    )
+
+  # Construct the workflow with factories so each execution
+  # creates a fresh, isolated graph and store
+  record_workout_activity_workflow = Workflow[RecordWorkoutActivityState, RecordWorkoutActivityStore](
+    name="Record Workout Activity",
+    graph_factory=create_record_workout_activity_graph,
+    store_factory=lambda: RecordWorkoutActivityStore(
+      initial_state=RecordWorkoutActivityState()
+    )
   )
 
 Example execution visualization:
@@ -129,6 +144,11 @@ The following state and store example demonstrates Junjo's redux-inspired state 
 
 The above nodes could be executed concurrently using `RunConcurrent`. Each
 committed ``set_state()`` call is validated and applied safely by the store.
+Inside a store action like ``increment``, reading ``self._state`` directly to
+derive the next update is acceptable because actions run on the store and each
+``set_state()`` commit is validated and applied against the locked current
+state; outside of store actions, always read state with
+``await store.get_state()``.
 
 This approach significantly simplifies reasoning about concurrent execution, as
 you don't have to manage locks around individual state commits. ``get_state()``

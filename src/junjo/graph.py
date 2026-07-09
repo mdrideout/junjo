@@ -870,7 +870,7 @@ class Graph:
 
         # Final graph dictionary structure
         graph_dict = {
-            "v": 1, # Schema version
+            "v": 2, # Schema version
             "graphStructuralId": compiled.graph_structural_id,
             "nodes": nodes_json,
             "edges": edges_json

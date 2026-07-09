@@ -1,9 +1,15 @@
+.. _hooks:
+
 Hooks
 =====
 
-Junjo hooks let you observe workflow lifecycle events with ordinary Python callbacks.
-Hooks are optional and do not control workflow execution. OpenTelemetry remains a
-built-in runtime concern even when you use hooks.
+.. meta::
+   :description: Observe Junjo workflow lifecycle events with optional in-process Python hook callbacks for workflows, subflows, nodes, and state changes.
+   :keywords: junjo, python, hooks, lifecycle events, callbacks, workflow observability, state changes
+
+Junjo hooks are optional, in-process Python callbacks for observing workflow
+lifecycle events. Hooks do not control workflow execution, and they are separate
+from OpenTelemetry, which stays active whether or not you register hooks.
 
 Simple completion logging
 -------------------------
@@ -61,7 +67,12 @@ Simple completion logging
         hooks=hooks,
     )
 
-    result = await workflow.execute()
+    async def main() -> None:
+        await workflow.execute()
+
+    if __name__ == "__main__":
+        import asyncio
+        asyncio.run(main())
 
 Shared hook fields
 ------------------
@@ -74,8 +85,8 @@ Hook callbacks receive one immutable event object. Every hook event includes:
 * ``event.executable_runtime_id``: the runtime id of the executable that fired the hook
 * ``event.executable_structural_id``: the stable structural id of the executable that fired the hook
 * ``event.enclosing_graph_structural_id``: the stable structural id of the graph enclosing the executable
-* ``event.parent_executable_definition_id``: the stable definition id of the parent workflow, subflow, or concurrent executable when the hook fires inside a nested execution scope
 * ``event.parent_executable_runtime_id`` / ``event.parent_executable_structural_id``: parent executable identities when the hook fires inside a nested execution scope
+* ``event.span_type``: the Junjo span type of the executable that fired the hook
 * ``event.trace_id`` / ``event.span_id``: OpenTelemetry correlation ids
 
 Additional hook fields
