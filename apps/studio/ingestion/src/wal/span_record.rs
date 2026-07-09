@@ -192,7 +192,7 @@ mod tests {
             attributes: vec![
                 key_value(
                     "junjo.workflow.execution_graph_snapshot",
-                    string_value("{\"v\":1,\"graphStructuralId\":\"graph-basic-01\"}"),
+                    string_value("{\"v\":2,\"graphStructuralId\":\"graph-basic-01\"}"),
                 ),
                 key_value(
                     "junjo.executable_runtime_id",
@@ -227,7 +227,7 @@ mod tests {
         assert_eq!(record.service_name, "svc-phase0");
         assert_eq!(
             attributes["junjo.workflow.execution_graph_snapshot"],
-            "{\"v\":1,\"graphStructuralId\":\"graph-basic-01\"}"
+            "{\"v\":2,\"graphStructuralId\":\"graph-basic-01\"}"
         );
         assert_eq!(attributes["junjo.executable_runtime_id"], "run-basic-01");
         assert_eq!(attributes["junjo.executable_structural_id"], "graph-basic-01");

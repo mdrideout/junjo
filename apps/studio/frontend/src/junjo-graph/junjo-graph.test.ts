@@ -50,7 +50,7 @@ describe('JunjoGraph', () => {
 
   it('omits subflow-internal concurrent clusters and defensive internal endpoint edges', () => {
     const graph = JunjoGraph.fromJson({
-      v: 1,
+      v: 2,
       graphStructuralId: 'graph-parent-with-concurrent-subflow',
       nodes: [
         {
@@ -158,7 +158,7 @@ describe('JunjoGraph', () => {
 
   it('omits no-edge single-node subflow internals from parent workflow Mermaid output', () => {
     const graph = JunjoGraph.fromJson({
-      v: 1,
+      v: 2,
       graphStructuralId: 'graph-parent-with-single-node-subflow',
       nodes: [
         {

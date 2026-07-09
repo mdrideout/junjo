@@ -4,7 +4,7 @@
 
 **Junjo AI Studio** is an open source, self-hostable AI Agent and Workflow debugging and eval platform for any OpenTelemetry instrumented AI application. 
 
-The [Junjo Python Library](https://github.com/mdrideout/junjo) is a framework for structuring AI logic and enhancing Otel span data to improve observability and developer velocity. Junjo remains decoupled from your LLM implemetations and business logic, proving a layer of orgnization, execution, and telemetry to your existing application.
+The [Junjo Python Library](https://github.com/mdrideout/junjo) is a framework for structuring AI logic and enhancing Otel span data to improve observability and developer velocity. Junjo remains decoupled from your LLM implementations and business logic, providing a layer of organization, execution, and telemetry to your existing application.
 
 Gain complete visibility to the state of the application, and every change LLMs make to the application state. Complex, mission critical AI workflows are made transparent and understandable with Junjo.
 
@@ -18,10 +18,10 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 - 🔀 **Transparent Concurrency** - Debug state changes from concurrently executed AI workflow steps
 - 📊 **OpenTelemetry Native** - Standards-based telemetry ingestion via gRPC
 - 🎯 **Workflow Debugging Interface** - Visual step-by-step debugging of AI graph workflows
-- 🪶 **Prompt Playground** - Expirement with different models and prompt tweaks while you debug
+- 🪶 **Prompt Playground** - Experiment with different models and prompt tweaks while you debug
 - 🔒 **Production-Ready Security** - Authentication, user accounts, and encrypted sessions
 - 🚀 **Low Resource, High-Performance Ingestion** - Designed for high-throughput in low resource environments
-- 💾 **Shared vCPU, 1GB Ram** - Production grade telemetry on a $5 / month virutal machine
+- 💾 **Shared vCPU, 1GB RAM** - Production grade telemetry on a $5 / month virtual machine
 
 ---
 
@@ -98,9 +98,9 @@ If you want to use Junjo AI Studio rather than modify its source code, start wit
 
 6. **Create an API key** (for sending telemetry from your Junjo app)
    - Sign in to the web UI
-   - Navigate to **Settings → API Keys**
+   - Open the **API Keys** page from the sidebar
    - Click **Create API Key**
-   - Copy the 64-character key (shown only once)
+   - Copy the 64-character key from the API Keys page (use the copy button)
    - Use this key in your Junjo Python Library application
 
 ### Useful Docker Compose Commands
@@ -130,6 +130,8 @@ docker compose down -v
 ### Next Steps
 
 Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) application using the setup and endpoint guidance from the minimal build repository.
+
+**Version compatibility:** Junjo AI Studio and the Junjo Python Library must run releases that share the same telemetry contract. Mismatched pairings can still ingest spans, but Junjo AI Studio will not be able to render workflow graphs or match spans to their nodes. When upgrading one, upgrade the other to a matching release.
 
 This repository contains the complete open source Junjo AI Studio codebase. If you want to run or modify the source code in this repository, see [Source Development](#source-development) below.
 
@@ -299,8 +301,8 @@ JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
 JUNJO_HOST_DB_DATA_PATH=./.dbdata
 
 # === Logging =======================================================
-LOG_LEVEL=info              # debug | info | warn | error
-LOG_FORMAT=text             # json | text
+JUNJO_LOG_LEVEL=info        # debug | info | warn | error
+JUNJO_LOG_FORMAT=json       # json | text
 
 # === LLM API Keys (optional) =======================================
 OPENAI_API_KEY=sk-...
@@ -369,7 +371,7 @@ docker compose up --build
 - The `JUNJO_HOST_DB_DATA_PATH` variable is the ONLY path you need to configure
 - Container-internal paths are set automatically in `compose.yaml`
 - If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
-- All three services (backend, ingestion, frontend) share the same storage location
+- The backend and ingestion services share the same storage location (the frontend is stateless and mounts no storage)
 
 #### Database & Storage Types
 
@@ -388,9 +390,9 @@ All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend
 
 After starting Junjo AI Studio:
 1. Sign in to the web UI exposed by your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
-2. Navigate to **Settings → API Keys**
+2. Open the **API Keys** page from the sidebar
 3. Click **Create API Key**
-4. Copy the 64-character key (shown only once)
+4. Copy the 64-character key from the API Keys page (use the copy button)
 5. Use this key in your Junjo Python Library application
 
 ---
@@ -698,7 +700,7 @@ kill -9 <PID>
    docker compose up --build
    ```
 
-4. **Check .env file**
+3. **Check .env file**
    - Ensure all required variables are set
    - Secrets must be base64-encoded 32-byte values
 

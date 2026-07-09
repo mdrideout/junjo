@@ -383,7 +383,7 @@ def run_setup(args: argparse.Namespace) -> int:
         print("\nDry run mode: no files written.")
     else:
         if env_path.exists():
-            backup_path = env_path.with_suffix(".env.bak")
+            backup_path = env_path.with_name(env_path.name + ".bak")
             shutil.copy2(env_path, backup_path)
             print(f"Backup written to {backup_path}")
         env_path.write_text(new_text, encoding="utf-8")

@@ -16,7 +16,7 @@
       "status_message": "",
       "attributes_json": {
         "junjo.workflow.state.start": "{\"hook_state\":\"starting\"}",
-        "junjo.workflow.execution_graph_snapshot": "{\"v\":1,\"graphStructuralId\":\"graph-hook-failure-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.hook.failure\",\"nodeStructuralId\":\"struct-hook-failure\",\"nodeType\":\"Node\",\"nodeLabel\":\"hook_target\"}],\"edges\":[]}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-hook-failure-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.hook.failure\",\"nodeStructuralId\":\"struct-hook-failure\",\"nodeType\":\"Node\",\"nodeLabel\":\"hook_target\"}],\"edges\":[]}",
         "junjo.workflow.store.id": "store-hook-failure-01",
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.hook_failure",

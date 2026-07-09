@@ -21,6 +21,8 @@ services:
     environment:
       INGESTION_HOST: ingestion
       INGESTION_PORT: 50052
+      # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the backend's internal RPC listener
+      GRPC_PORT: 50053
       RUN_MIGRATIONS: "true"
       JUNJO_SQLITE_PATH: /app/.dbdata/sqlite/junjo.db
       JUNJO_METADATA_DB_PATH: /app/.dbdata/sqlite/metadata.db
@@ -58,6 +60,10 @@ services:
     environment:
       BACKEND_GRPC_HOST: backend
       BACKEND_GRPC_PORT: 50053
+      # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the OTLP ingestion listener
+      GRPC_PORT: 26155
+      # Pinned so a stray INTERNAL_GRPC_PORT in the shared .env cannot move the backend-facing RPC listener
+      INTERNAL_GRPC_PORT: 50052
       WAL_DIR: /app/.dbdata/spans/wal
       SNAPSHOT_PATH: /app/.dbdata/spans/hot_snapshot.parquet
       PARQUET_OUTPUT_DIR: /app/.dbdata/spans/parquet

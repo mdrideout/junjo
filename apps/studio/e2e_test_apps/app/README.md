@@ -18,8 +18,9 @@ Simple Junjo application for E2E testing of Junjo AI Studio. Based on the gettin
 3. **Edit `config.yaml` with your API key:**
    ```yaml
    exporter:
-     api_key: "your_actual_api_key_here"  # Get from Junjo AI Studio Settings → API Keys
-     endpoint: "grpc://localhost:26155"
+     host: "localhost"
+     port: "26155"
+     api_key: "your_actual_api_key_here"  # Get from the Junjo AI Studio API Keys page
      service_name: "default-service"
      insecure: true
 
