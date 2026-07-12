@@ -1,0 +1,31 @@
+# Git
+.git/
+.gitignore
+
+# Rust build artifacts
+ingestion/target/
+
+# Python virtual environments
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+
+# Node modules
+frontend/node_modules/
+
+# Database files
+.dbdata/
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation
+*.md
+docs/
+
+# Test artifacts
+*.log
+coverage/
+.pytest_cache/

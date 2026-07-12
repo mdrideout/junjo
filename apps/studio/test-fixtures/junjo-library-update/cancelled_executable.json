@@ -1,0 +1,61 @@
+{
+  "scenario": "cancelled_executable",
+  "trace_id": "55555555555555555555555555555555",
+  "service_name": "svc-junjo-phase0-cancelled",
+  "spans": [
+    {
+      "trace_id": "55555555555555555555555555555555",
+      "span_id": "5555555555555551",
+      "parent_span_id": null,
+      "service_name": "svc-junjo-phase0-cancelled",
+      "name": "cancelled_workflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:20:00.000000+00:00",
+      "end_time": "2026-04-05T12:20:00.260000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.workflow.state.start": "{\"cancelled\":false}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-cancelled-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.cancelled.primary\",\"nodeStructuralId\":\"struct-cancelled-primary\",\"nodeType\":\"Node\",\"nodeLabel\":\"primary\"}],\"edges\":[]}",
+        "junjo.workflow.store.id": "store-cancelled-01",
+        "junjo.span_type": "workflow",
+        "junjo.executable_definition_id": "workflow.cancelled",
+        "junjo.executable_runtime_id": "run-cancelled-01",
+        "junjo.executable_structural_id": "graph-cancelled-01",
+        "junjo.enclosing_graph_structural_id": "graph-cancelled-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "55555555555555555555555555555555",
+      "span_id": "5555555555555552",
+      "parent_span_id": "5555555555555551",
+      "service_name": "svc-junjo-phase0-cancelled",
+      "name": "primary",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:20:00.050000+00:00",
+      "end_time": "2026-04-05T12:20:00.120000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.cancelled.primary",
+        "junjo.parent_executable_definition_id": "workflow.cancelled",
+        "junjo.executable_runtime_id": "node.cancelled.primary",
+        "junjo.executable_structural_id": "struct-cancelled-primary",
+        "junjo.enclosing_graph_structural_id": "graph-cancelled-01",
+        "junjo.parent_executable_runtime_id": "run-cancelled-01",
+        "junjo.parent_executable_structural_id": "graph-cancelled-01",
+        "junjo.cancelled": true,
+        "junjo.cancelled_reason": "sibling_failed"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    }
+  ]
+}

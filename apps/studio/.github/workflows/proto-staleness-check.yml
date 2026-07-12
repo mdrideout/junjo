@@ -1,0 +1,90 @@
+# This workflow validates that generated proto files match their source .proto files.
+# It regenerates proto files and fails if any changes are detected (staleness check).
+# This ensures developers cannot push stale or corrupted proto code.
+#
+# Proto generation by component:
+# - Python backend: Pre-generated via backend/scripts/generate_proto.sh, checked into repo
+# - Rust ingestion: Compile-time generation via build.rs (no checked-in files)
+
+name: Proto Staleness Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate-proto:
+    name: Validate Proto Files Are Up-to-Date
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install protoc
+        run: |
+          # Install protoc v30.2 (locked version for consistency)
+          PROTOC_VERSION=30.2
+          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+          sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local bin/protoc
+          sudo unzip -o protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local 'include/*'
+          rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
+
+          # Install Python grpcio-tools (--system flag for CI environment)
+          uv pip install --system grpcio-tools==1.76.0
+
+          # Verify installation
+          protoc --version
+
+      - name: Regenerate Python proto files
+        run: |
+          cd backend
+          ./scripts/generate_proto.sh
+          cd ..
+
+      - name: Validate Rust proto compilation
+        run: |
+          # Rust uses build.rs for compile-time proto generation
+          # This step validates that protos compile correctly without errors
+          cd ingestion
+          cargo check --message-format=short
+          cd ..
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet; then
+            echo "❌ ERROR: Proto files are out of date!"
+            echo ""
+            echo "The following files have uncommitted changes:"
+            git diff --name-only
+            echo ""
+            echo "📋 Full diff:"
+            git diff
+            echo ""
+            echo "🔧 To fix this issue:"
+            echo "  1. Run: ./scripts/install-git-hooks.sh (to install pre-commit hooks)"
+            echo "  2. Or regenerate manually:"
+            echo "     cd backend && ./scripts/generate_proto.sh"
+            echo "  3. Commit the updated proto files"
+            echo ""
+            exit 1
+          fi
+          echo "✅ Proto files are up-to-date"

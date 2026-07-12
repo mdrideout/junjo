@@ -1,0 +1,11 @@
+[project]
+name = "e2e-orchestration"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "coolname",
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp-proto-grpc",
+    "pyyaml",
+]

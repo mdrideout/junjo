@@ -1,0 +1,26 @@
+name: Gitleaks Secret Scan
+
+on:
+  push: # Run on pushes to any branch
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master # Or your default branch
+
+jobs:
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history so Gitleaks can scan the entire history
+
+      # Step 2: Run Gitleaks
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
