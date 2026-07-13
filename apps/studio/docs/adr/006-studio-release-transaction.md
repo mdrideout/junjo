@@ -32,8 +32,10 @@ transaction.
 ### Identity and admission
 
 - All production runs use the constant `studio-release` concurrency group and
-  do not cancel an in-progress run. Non-publishing rehearsals use run-scoped
-  concurrency and cannot queue ahead of or displace a production transaction.
+  do not cancel an in-progress run. Manual non-publishing rehearsals use
+  run-scoped concurrency and cannot queue ahead of or displace a production
+  transaction. Pull-request validation is read-only and needs no release
+  concurrency group.
 - The candidate is a stable semantic version greater than `0.81.1`, every
   completed Studio GitHub release, and every other canonical three-part
   `studio-v*` Git tag. The five exact imported two-part tags are enumerated in
