@@ -1,0 +1,327 @@
+import asyncio
+import logging
+from abc import ABC, abstractmethod
+from typing import Generic
+
+from opentelemetry import trace
+
+from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, get_active_executable_identity
+from .store import StoreT
+from .telemetry.otel_schema import (
+    JUNJO_OTEL_MODULE_NAME,
+    JUNJO_TELEMETRY_CONTRACT_VERSION,
+    JunjoOtelSpanTypes,
+)
+from .telemetry.span_lifecycle import (
+    get_span_identifiers,
+    mark_span_cancelled,
+    mark_span_failed,
+)
+from .util import generate_safe_id
+
+logger = logging.getLogger("junjo.node")
+
+
+class Node(Generic[StoreT], ABC):
+    """
+    Nodes are the building blocks of a workflow. They represent a single unit of
+    work that can be executed within the context of a workflow.
+
+    Place business logic to be executed by the node in :meth:`service`. Junjo
+    wraps that service method with OpenTelemetry tracing, error handling, and
+    lifecycle hook dispatch during :meth:`execute`.
+
+    The ``Node`` type is meant to remain decoupled from your application's
+    domain logic. While you can place business logic directly in the
+    :meth:`service` method, it is recommended that you call a service function
+    located in a separate module. This keeps nodes easy to test, easier to
+    understand, and focused on orchestration rather than implementation detail.
+
+    ``StoreT`` is the workflow store type that will be passed into this node
+    during execution.
+
+    Nodes have three main responsibilities:
+
+    - The workflow passes the run-local store to the node's
+      :meth:`execute` method.
+    - :meth:`execute` manages tracing, lifecycle hooks, and error handling.
+    - :meth:`service` performs the side effects for this unit of work.
+
+    .. rubric:: Example implementation
+
+    .. code-block:: python
+
+        class SaveMessageNode(Node[MessageWorkflowStore]):
+            async def service(self, store) -> None:
+                state = await store.get_state()
+                sentiment = await get_message_sentiment(state.message)
+                await store.set_message_sentiment(sentiment)
+    """
+
+    def __init__(self):
+        super().__init__()
+        self._id = generate_safe_id()
+
+    def __repr__(self):
+        """Returns a string representation of the node."""
+        return f"<{type(self).__name__} id={self.id}>"
+
+    @property
+    def id(self) -> str:
+        """Returns the unique identifier for the node."""
+        return self._id
+
+    @property
+    def name(self) -> str:
+        """Returns the name of the node class instance."""
+        return self.__class__.__name__
+
+    @abstractmethod
+    async def service(self, store: StoreT) -> None:
+        """
+        This is the main logic of the node.
+
+        The concrete implementation of this method should contain the side
+        effects that this node will perform. The method is called by
+        :meth:`execute`, which is responsible for tracing, lifecycle dispatch,
+        and error handling.
+
+        The :meth:`service` method should not be called directly. Instead, it
+        should be called by the :meth:`execute` method of the node.
+
+        DO NOT EXECUTE ``node.service()`` DIRECTLY!
+        Use ``node.execute()`` instead.
+
+        :param store: The run-local store passed to the node's service
+            function.
+        :type store: StoreT
+        """
+        raise NotImplementedError
+
+    async def execute(self, store: StoreT, parent_id: str) -> None:
+        """
+        Execute the node's :meth:`service` method with tracing and lifecycle
+        dispatch.
+
+        This method acquires a tracer, opens a node span, emits lifecycle
+        events, and then calls :meth:`service`. Terminal lifecycle hooks are
+        dispatched before the span closes so hook failure telemetry can stay
+        attached to the real node span.
+
+        :param store: The run-local store for the current workflow execution.
+        :type store: StoreT
+        :param parent_id: The identifier of the parent workflow or subflow.
+            This becomes the parent id recorded on the node span.
+        :type parent_id: str
+        """
+        lifecycle_context = store._lifecycle_context
+        prepared_terminal_event = None
+        failure: Exception | None = None
+        cancellation: asyncio.CancelledError | None = None
+        parent_active_identity = get_active_executable_identity()
+        run_id = lifecycle_context.run_id if lifecycle_context is not None else None
+        node_structural_id = (
+            lifecycle_context.compiled_node_structural_ids_by_runtime_id[self.id]
+            if lifecycle_context is not None
+            else None
+        )
+        if lifecycle_context is not None:
+            assert node_structural_id is not None
+        node_log_extra = {
+            "run_id": run_id,
+            "executable_definition_id": self.id,
+            "executable_runtime_id": self.id,
+            "span_type": "node",
+        }
+
+        tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
+        with tracer.start_as_current_span(self.name) as span:
+            try:
+                logger.debug(
+                    "Starting node %s (%s)",
+                    self.name,
+                    self.id,
+                    extra=node_log_extra,
+                )
+                span.set_attribute("junjo.telemetry.contract_version", JUNJO_TELEMETRY_CONTRACT_VERSION)
+                span.set_attribute("junjo.span_type", "node")
+                span.set_attribute("junjo.executable_definition_id", self.id)
+                span.set_attribute("junjo.parent_executable_definition_id", parent_id)
+                span.set_attribute("junjo.executable_runtime_id", self.id)
+                if node_structural_id is not None:
+                    span.set_attribute(
+                        "junjo.executable_structural_id",
+                        node_structural_id,
+                    )
+                if lifecycle_context is not None:
+                    span.set_attribute(
+                        "junjo.enclosing_graph_structural_id",
+                        lifecycle_context.enclosing_graph_structural_id,
+                    )
+                if parent_active_identity is not None:
+                    span.set_attribute(
+                        "junjo.parent_executable_runtime_id",
+                        parent_active_identity.executable_runtime_id,
+                    )
+                    span.set_attribute(
+                        "junjo.parent_executable_structural_id",
+                        parent_active_identity.executable_structural_id,
+                    )
+
+                if lifecycle_context is not None:
+                    assert node_structural_id is not None
+                    trace_id, span_id = get_span_identifiers(span)
+                    await lifecycle_context.dispatcher.node_started(
+                        run_id=lifecycle_context.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
+                        store_id=store.id,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=self.id,
+                        executable_structural_id=node_structural_id,
+                        enclosing_graph_structural_id=(
+                            lifecycle_context.enclosing_graph_structural_id
+                        ),
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
+
+                if node_structural_id is None:
+                    await self.service(store)
+                else:
+                    with active_executable_identity(
+                        ActiveExecutableIdentity(
+                            executable_definition_id=self.id,
+                            executable_name=self.name,
+                            span_type=JunjoOtelSpanTypes.NODE,
+                            executable_runtime_id=self.id,
+                            executable_structural_id=node_structural_id,
+                        )
+                    ):
+                        await self.service(store)
+
+                        if lifecycle_context is not None:
+                            trace_id, span_id = get_span_identifiers(span)
+                            prepared_terminal_event = lifecycle_context.dispatcher.node_completed(
+                                run_id=lifecycle_context.run_id,
+                                executable_definition_id=self.id,
+                                name=self.name,
+                                parent_executable_definition_id=(
+                                    lifecycle_context.executable_definition_id
+                                ),
+                                store_id=store.id,
+                                trace_id=trace_id,
+                                span_id=span_id,
+                                executable_runtime_id=self.id,
+                                executable_structural_id=node_structural_id,
+                                enclosing_graph_structural_id=(
+                                    lifecycle_context.enclosing_graph_structural_id
+                                ),
+                                parent_executable_runtime_id=(
+                                    parent_active_identity.executable_runtime_id
+                                    if parent_active_identity is not None
+                                    else None
+                                ),
+                                parent_executable_structural_id=(
+                                    parent_active_identity.executable_structural_id
+                                    if parent_active_identity is not None
+                                    else None
+                                ),
+                            )
+
+                logger.debug(
+                    "Completed node %s (%s)",
+                    self.name,
+                    self.id,
+                    extra=node_log_extra,
+                )
+
+            except asyncio.CancelledError as exc:
+                mark_span_cancelled(span, exc)
+                cancellation = exc
+                if lifecycle_context is not None:
+                    assert node_structural_id is not None
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.node_cancelled(
+                        run_id=lifecycle_context.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
+                        store_id=store.id,
+                        reason=str(exc.args[0]) if exc.args else "cancelled",
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=self.id,
+                        executable_structural_id=node_structural_id,
+                        enclosing_graph_structural_id=(
+                            lifecycle_context.enclosing_graph_structural_id
+                        ),
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
+
+            except Exception as exc:
+                if lifecycle_context is None:
+                    logger.exception(
+                        "Node execution failed for %s (%s)",
+                        self.name,
+                        self.id,
+                        extra=node_log_extra,
+                    )
+                mark_span_failed(span, exc)
+                span.record_exception(exc)
+                failure = exc
+                if lifecycle_context is not None:
+                    assert node_structural_id is not None
+                    trace_id, span_id = get_span_identifiers(span)
+                    prepared_terminal_event = lifecycle_context.dispatcher.node_failed(
+                        run_id=lifecycle_context.run_id,
+                        executable_definition_id=self.id,
+                        name=self.name,
+                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
+                        store_id=store.id,
+                        error=exc,
+                        trace_id=trace_id,
+                        span_id=span_id,
+                        executable_runtime_id=self.id,
+                        executable_structural_id=node_structural_id,
+                        enclosing_graph_structural_id=(
+                            lifecycle_context.enclosing_graph_structural_id
+                        ),
+                        parent_executable_runtime_id=(
+                            parent_active_identity.executable_runtime_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_structural_id=(
+                            parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                    )
+
+            if lifecycle_context is not None:
+                await lifecycle_context.dispatcher.dispatch(prepared_terminal_event)
+
+        if cancellation is not None:
+            raise cancellation
+        if failure is not None:
+            raise failure

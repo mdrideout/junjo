@@ -1,0 +1,132 @@
+name: Studio Deployments
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/VERSION"
+      - "apps/studio/LICENSE"
+      - "apps/studio/THIRD_PARTY_NOTICES.md"
+      - "apps/studio/licenses/**"
+      - "apps/studio/.dockerignore"
+      - "apps/studio/.env.example"
+      - "apps/studio/compose.yaml"
+      - "apps/studio/compose.monitoring.yaml"
+      - "apps/studio/scripts/junjo"
+      - "apps/studio/backend/Dockerfile"
+      - "apps/studio/frontend/Dockerfile"
+      - "apps/studio/ingestion/Dockerfile"
+      - "apps/studio/deployments/**"
+      - "apps/studio/e2e_test_apps/**"
+      - "tooling/scripts/build_studio_release_evidence.py"
+      - "tooling/scripts/detect_ci_changes.py"
+      - "tooling/scripts/export_studio_distribution.py"
+      - "tooling/scripts/publish_studio_distribution.py"
+      - "tooling/scripts/smoke_studio_distribution.py"
+      - "tooling/scripts/validate_studio_artifact_licenses.py"
+      - "tooling/scripts/validate_studio_deployments.py"
+      - "tooling/scripts/validate_studio_release_policy.py"
+      - "tooling/scripts/validate_studio_runtime.py"
+      - "tooling/studio_release_contract.json"
+      - "tooling/tests/test_ci_release_tools.py"
+      - "tooling/tests/test_ci_routing.py"
+      - "tooling/tests/test_studio_artifact_licenses.py"
+      - "tooling/tests/test_studio_deployment_tools.py"
+      - "tooling/tests/test_studio_release_evidence.py"
+      - "tooling/tests/test_studio_runtime.py"
+      - "tooling/tests/test_studio_setup_wizards.py"
+      - ".github/workflows/studio-deployments.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Run deployment tooling tests
+        run: python3 -m unittest discover -s tooling/tests -v
+      - name: Validate source runtime and monitoring contracts
+        run: python3 tooling/scripts/validate_studio_runtime.py
+      - name: Validate Compose and deployment contracts
+        run: python3 tooling/scripts/validate_studio_deployments.py
+      - name: Compile VM demo application
+        run: |
+          python3 -m py_compile \
+            apps/studio/deployments/vm-caddy/junjo_app/main.py \
+            apps/studio/deployments/vm-caddy/junjo_app/otel_config.py
+      - name: Validate active Caddy configuration
+        run: |
+          docker run --rm \
+            -v "$PWD/apps/studio/deployments/vm-caddy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Build deterministic distribution archives
+        env:
+          SOURCE_REPOSITORY: https://github.com/${{ github.repository }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          STUDIO_VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
+          SDK_VERSION="$(sed -n 's/^junjo==//p' apps/studio/deployments/vm-caddy/junjo_app/requirements.txt)"
+          mkdir -p /tmp/junjo-distributions
+          python3 tooling/scripts/export_studio_distribution.py \
+            --distribution minimal \
+            --source-repository "$SOURCE_REPOSITORY" \
+            --source-revision "$SOURCE_REVISION" \
+            --studio-version "$STUDIO_VERSION" \
+            --compatible-sdk-version "$SDK_VERSION" \
+            --output-directory /tmp/junjo-distributions/minimal \
+            --archive "/tmp/junjo-distributions/junjo-ai-studio-minimal-${STUDIO_VERSION}.tar.gz" \
+            > /tmp/junjo-distributions/minimal-report.json
+          python3 tooling/scripts/export_studio_distribution.py \
+            --distribution vm-caddy \
+            --source-repository "$SOURCE_REPOSITORY" \
+            --source-revision "$SOURCE_REVISION" \
+            --studio-version "$STUDIO_VERSION" \
+            --compatible-sdk-version "$SDK_VERSION" \
+            --output-directory /tmp/junjo-distributions/vm-caddy \
+            --archive "/tmp/junjo-distributions/junjo-ai-studio-vm-caddy-${STUDIO_VERSION}.tar.gz" \
+            > /tmp/junjo-distributions/vm-caddy-report.json
+      - name: Upload inspected distribution artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-deployment-distributions-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/junjo-distributions/*.tar.gz
+            /tmp/junjo-distributions/*-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+  local_images_and_telemetry:
+    name: Local images and telemetry smoke
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Build exact local images and prove example telemetry
+        run: |
+          STUDIO_VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
+          python3 tooling/scripts/smoke_studio_distribution.py \
+            --studio-version "$STUDIO_VERSION" \
+            --image-source local \
+            --platform linux/amd64

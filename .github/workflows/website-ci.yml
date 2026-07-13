@@ -1,0 +1,42 @@
+name: Website
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/website/**"
+      - ".github/workflows/website-ci.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.12"
+          cache: npm
+          cache-dependency-path: apps/website/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check content and TypeScript
+        run: npm run check
+      - name: Build production site
+        run: npm run build
+      - name: Validate internal links and canonical source terminology
+        run: npm run validate:build
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

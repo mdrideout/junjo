@@ -1,0 +1,49 @@
+# ========================================================================================
+# Junjo AI Studio - Example Caddy Reverse Proxy Configuration
+#
+# This is a reference configuration for Caddy Server to route traffic to Junjo AI Studio
+# services.
+#
+# Service Routing:
+#   - Frontend:   junjo-ai-studio-frontend:26153      https://junjo.example.com
+#   - Backend:    junjo-ai-studio-backend:26154       https://api.junjo.example.com
+#   - Ingestion:  junjo-ai-studio-ingestion:26155     https://ingestion.junjo.example.com
+#
+# See Caddy docs: https://caddyserver.com/docs/quick-starts/https
+# ========================================================================================
+
+# ========================================================================================
+# PRODUCTION CONFIGURATION EXAMPLE
+# ========================================================================================
+#
+# Requirements:
+#   - Domain name with wildcard DNS A records for:
+# 		- junjo.example.com
+# 		- *.junjo.example.com
+#   - Caddy with Cloudflare DNS plugin: https://github.com/caddy-dns/cloudflare
+#   - CloudFlare API token in CF_API_TOKEN environment variable
+
+# Junjo AI Studio routing block
+junjo.example.com, *.junjo.example.com {
+	tls your.email@gmail.com {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN} # Created inside CloudFlare and set in the .env file
+		resolvers 1.1.1.1 # Cloudflare DNS is recommended for this plugin	
+	}
+
+	# backend: api.junjo.example.com
+	@api host api.junjo.example.com
+	handle @api {
+		reverse_proxy junjo-ai-studio-backend:26154
+	}
+
+	# ingestion: ingestion.junjo.example.com
+	@ingestion host ingestion.junjo.example.com
+	handle @ingestion {
+		reverse_proxy h2c://junjo-ai-studio-ingestion:26155
+	}
+
+	# frontend: Fallback for the root domain
+	handle {
+		reverse_proxy junjo-ai-studio-frontend:26153
+	}
+}

@@ -1,0 +1,107 @@
+services:
+  backend:
+    restart: unless-stopped
+    mem_reservation: ${JUNJO_BACKEND_MEM_RESERVATION:-300m}
+    mem_limit: ${JUNJO_BACKEND_MEM_LIMIT:-450m}
+    memswap_limit: ${JUNJO_BACKEND_MEMSWAP_LIMIT:-900m}
+    pids_limit: ${JUNJO_BACKEND_PIDS_LIMIT:-128}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      - ./backend/app:/app/app
+    ports:
+      - "26154:26154"
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      INGESTION_HOST: ingestion
+      INGESTION_PORT: 50052
+      # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the backend's internal RPC listener
+      GRPC_PORT: 50053
+      RUN_MIGRATIONS: "true"
+      JUNJO_SQLITE_PATH: /app/.dbdata/sqlite/junjo.db
+      JUNJO_METADATA_DB_PATH: /app/.dbdata/sqlite/metadata.db
+      JUNJO_PARQUET_STORAGE_PATH: /app/.dbdata/spans/parquet
+      MALLOC_ARENA_MAX: ${JUNJO_MALLOC_ARENA_MAX:-2}
+      MALLOC_TRIM_THRESHOLD_: ${JUNJO_MALLOC_TRIM_THRESHOLD:-131072}
+      JUNJO_DF_TARGET_PARTITIONS: ${JUNJO_DF_TARGET_PARTITIONS:-1}
+      JUNJO_DF_BATCH_SIZE: ${JUNJO_DF_BATCH_SIZE:-4096}
+      JUNJO_DF_PARQUET_PRUNING: ${JUNJO_DF_PARQUET_PRUNING:-true}
+      JUNJO_DF_SPILL_ENABLED: ${JUNJO_DF_SPILL_ENABLED:-true}
+      JUNJO_DF_SPILL_POOL_MB: ${JUNJO_DF_SPILL_POOL_MB:-192}
+      JUNJO_DF_SPILL_PATH: ${JUNJO_DF_SPILL_PATH:-/tmp/junjo-datafusion-spill}
+
+  ingestion:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+      - ./ingestion/src:/app/src:ro
+      - ./proto:/proto:ro
+      - ./ingestion/Cargo.toml:/app/Cargo.toml:ro
+      - ./ingestion/Cargo.lock:/app/Cargo.lock
+      - ./ingestion/build.rs:/app/build.rs:ro
+      - ingestion-cargo-cache:/usr/local/cargo/registry
+      - ingestion-target-cache:/app/target
+    ports:
+      - "26155:26155"
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      BACKEND_GRPC_HOST: backend
+      BACKEND_GRPC_PORT: 50053
+      # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the OTLP ingestion listener
+      GRPC_PORT: 26155
+      # Pinned so a stray INTERNAL_GRPC_PORT in the shared .env cannot move the backend-facing RPC listener
+      INTERNAL_GRPC_PORT: 50052
+      WAL_DIR: /app/.dbdata/spans/wal
+      SNAPSHOT_PATH: /app/.dbdata/spans/hot_snapshot.parquet
+      PARQUET_OUTPUT_DIR: /app/.dbdata/spans/parquet
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: ${JUNJO_BUILD_TARGET:-production}
+    volumes:
+      - frontend-modules:/app/node_modules
+      - ./frontend:/app
+    ports:
+      - "26151:26151"
+      - "26153:26153"
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  frontend-modules:
+  ingestion-cargo-cache:
+  ingestion-target-cache:
+
+networks:
+  junjo-network:
+    driver: bridge

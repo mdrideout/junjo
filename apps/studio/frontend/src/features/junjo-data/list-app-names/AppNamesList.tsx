@@ -1,0 +1,72 @@
+import { useNavigate, Link } from 'react-router'
+import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
+import {
+  selectServiceNames,
+  selectServiceNamesError,
+  selectServiceNamesLoading,
+} from '../../traces/store/selectors'
+import { useEffect } from 'react'
+import { TracesStateActions } from '../../traces/store/slice'
+
+export default function AppNamesList() {
+  const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+
+  const loading = useAppSelector(selectServiceNamesLoading)
+  const error = useAppSelector(selectServiceNamesError)
+  const serviceNames = useAppSelector(selectServiceNames)
+
+  // Fetch the serviceNames
+  useEffect(() => {
+    dispatch(TracesStateActions.fetchServiceNames())
+  }, [dispatch])
+
+  if (loading) {
+    return null
+  }
+
+  if (error) {
+    return <div>Error fetching app names.</div> //Improved error display
+  }
+
+  if (serviceNames.length === 0) {
+    return (
+      <div className="text-sm text-zinc-600 dark:text-zinc-400">
+        No data received. See{' '}
+        <Link to="/api-keys" className="text-blue-600 dark:text-blue-400 hover:underline">
+          instructions on connecting your app with OpenTelemetry
+        </Link>
+        .
+      </div>
+    )
+  }
+
+  return (
+    <table className="text-left text-sm">
+      <thead>
+        <tr>
+          <th className={'px-4 py-1'}>Apps</th>
+        </tr>
+      </thead>
+      <tbody>
+        {serviceNames.map((item) => (
+          <tr key={item} className={'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600'}>
+            <td className={'px-4 py-1.5'}>{item}</td>
+            <td
+              className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer underline'}
+              onClick={() => navigate(`${item}`)}
+            >
+              Workflow Executions
+            </td>
+            <td
+              className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer underline'}
+              onClick={() => navigate(`/traces/${item}`)}
+            >
+              Traces
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}

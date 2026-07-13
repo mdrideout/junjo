@@ -1,0 +1,102 @@
+# Junjo AI Studio - Minimal Build (Production Images)
+#
+# This compose file uses pre-built production images from Docker Hub.
+# For the full source-based setup with development mode, see:
+# https://github.com/mdrideout/junjo/tree/master/apps/studio
+#
+# Production images:
+#   - mdrideout/junjo-ai-studio-backend:0.81.2
+#   - mdrideout/junjo-ai-studio-ingestion:0.81.2
+#   - mdrideout/junjo-ai-studio-frontend:0.81.2
+
+services:
+  junjo-ai-studio-backend:
+    image: mdrideout/junjo-ai-studio-backend:0.81.2
+    restart: unless-stopped
+    # Memory guardrails (tuned for small VMs; override in .env as needed)
+    mem_reservation: ${JUNJO_BACKEND_MEM_RESERVATION:-300m}
+    mem_limit: ${JUNJO_BACKEND_MEM_LIMIT:-450m}
+    memswap_limit: ${JUNJO_BACKEND_MEMSWAP_LIMIT:-900m}
+    pids_limit: ${JUNJO_BACKEND_PIDS_LIMIT:-128}
+    volumes:
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+    ports:
+      - "${JUNJO_BACKEND_HOST_PORT:-26154}:26154" # Backend HTTP API
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      # Override host/port for Docker network communication
+      - INGESTION_HOST=junjo-ai-studio-ingestion
+      - INGESTION_PORT=50052
+      # Private ingestion authentication RPC listener
+      - GRPC_PORT=50053
+      # Enable migrations on startup
+      - RUN_MIGRATIONS=true
+      # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
+      - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+      # Parquet file storage path (shared with ingestion service, indexer watches this)
+      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
+      # Allocator tuning for lower RSS fragmentation on glibc-based images
+      - MALLOC_ARENA_MAX=${JUNJO_MALLOC_ARENA_MAX:-2}
+      - MALLOC_TRIM_THRESHOLD_=${JUNJO_MALLOC_TRIM_THRESHOLD:-131072}
+      # DataFusion runtime tuning (bounded query memory pressure)
+      - JUNJO_DF_TARGET_PARTITIONS=${JUNJO_DF_TARGET_PARTITIONS:-1}
+      - JUNJO_DF_BATCH_SIZE=${JUNJO_DF_BATCH_SIZE:-4096}
+      - JUNJO_DF_PARQUET_PRUNING=${JUNJO_DF_PARQUET_PRUNING:-true}
+      - JUNJO_DF_SPILL_ENABLED=${JUNJO_DF_SPILL_ENABLED:-true}
+      - JUNJO_DF_SPILL_POOL_MB=${JUNJO_DF_SPILL_POOL_MB:-192}
+      - JUNJO_DF_SPILL_PATH=${JUNJO_DF_SPILL_PATH:-/tmp/junjo-datafusion-spill}
+
+  junjo-ai-studio-ingestion:
+    image: mdrideout/junjo-ai-studio-ingestion:0.81.2
+    restart: unless-stopped
+    volumes:
+      # Database storage (required for all modes)
+      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
+    ports:
+      - "${JUNJO_INGESTION_HOST_PORT:-26155}:26155" # OTLP gRPC ingestion endpoint
+    networks:
+      - junjo-network
+    env_file:
+      - .env
+    environment:
+      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_PORT=50053
+      - GRPC_PORT=26155
+      - INTERNAL_GRPC_PORT=50052
+      # Arrow IPC WAL directory
+      - WAL_DIR=/app/.dbdata/spans/wal
+      # Hot snapshot path (backend reads this file directly)
+      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
+      # Parquet file output path (backend indexer watches this directory)
+      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
+    depends_on:
+      junjo-ai-studio-backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  junjo-ai-studio-frontend:
+    image: mdrideout/junjo-ai-studio-frontend:0.81.2
+    restart: unless-stopped
+    ports:
+      - "${JUNJO_FRONTEND_HOST_PORT:-26153}:26153" # Production web UI
+    env_file:
+      - .env
+    networks:
+      - junjo-network
+    depends_on:
+      junjo-ai-studio-backend:
+        condition: service_started
+
+networks:
+  junjo-network:
+    driver: bridge

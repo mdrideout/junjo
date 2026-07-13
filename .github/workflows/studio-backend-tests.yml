@@ -1,0 +1,121 @@
+name: Studio Backend and Ingestion
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/LICENSE"
+      - "apps/studio/THIRD_PARTY_NOTICES.md"
+      - "apps/studio/licenses/**"
+      - "apps/studio/backend/**"
+      - "apps/studio/ingestion/**"
+      - "apps/studio/proto/**"
+      - "contracts/telemetry/**"
+      - "tooling/scripts/validate_studio_artifact_licenses.py"
+      - ".github/workflows/studio-backend-tests.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/backend/uv.lock"
+      - name: Install backend dependencies
+        working-directory: apps/studio/backend
+        run: uv sync --all-extras --locked
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
+        with:
+          toolchain: stable
+      - name: Run backend tests
+        working-directory: apps/studio
+        run: ./backend/scripts/run-backend-tests.sh 2>&1 | tee /tmp/backend-test.log
+        env:
+          PYTHONUNBUFFERED: "1"
+          JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-backend-test-logs
+          path: /tmp/backend-test.log
+          retention-days: 7
+
+  backend-lint:
+    name: Backend Lint and Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/studio/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/backend/uv.lock"
+      - name: Install backend dependencies
+        run: uv sync --all-extras --locked
+      - name: Ruff check
+        run: uv run ruff check app/ --output-format=github
+      - name: Ruff format check
+        run: uv run ruff format app/ --check
+
+  ingestion-tests:
+    name: Ingestion Rust Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/studio/ingestion
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
+        with:
+          toolchain: stable
+      - name: Run ingestion tests
+        run: cargo test --locked --message-format=short
+      - name: Validate production dependency license closure
+        run: |
+          python3 ../../../tooling/scripts/validate_studio_artifact_licenses.py \
+            check \
+            --with-cargo-metadata

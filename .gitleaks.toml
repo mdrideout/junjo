@@ -1,0 +1,12 @@
+# Gitleaks configuration for the Junjo platform repository
+# https://github.com/gitleaks/gitleaks
+
+title = "Junjo Platform Gitleaks Config"
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+# Do not add path or regular-expression allowlists here. Test and workflow
+# files are production attack surfaces. Unavoidable committed-history false
+# positives belong in .gitleaksignore as exact fingerprints.

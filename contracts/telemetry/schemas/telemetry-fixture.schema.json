@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/telemetry-fixture.v1.schema.json",
+  "title": "Junjo normalized telemetry fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "scenario", "trace_id", "service_name", "spans"],
+  "properties": {
+    "contract_version": {"const": 1},
+    "scenario": {"type": "string", "minLength": 1},
+    "trace_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "service_name": {"type": "string", "minLength": 1},
+    "spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/span"}
+    }
+  },
+  "$defs": {
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "span_id",
+        "parent_span_id",
+        "service_name",
+        "name",
+        "kind",
+        "start_time",
+        "end_time",
+        "status_code",
+        "status_message",
+        "attributes_json",
+        "events_json",
+        "links_json",
+        "trace_flags",
+        "trace_state"
+      ],
+      "properties": {
+        "trace_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+        "span_id": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+        "parent_span_id": {"type": ["string", "null"]},
+        "service_name": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"type": "string"},
+        "start_time": {"type": "string"},
+        "end_time": {"type": "string"},
+        "status_code": {"type": "string"},
+        "status_message": {"type": "string"},
+        "attributes_json": {"type": "object"},
+        "events_json": {"type": "array"},
+        "links_json": {"type": "array"},
+        "trace_flags": {"type": "integer"},
+        "trace_state": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

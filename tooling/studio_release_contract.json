@@ -1,0 +1,38 @@
+{
+  "completed_release_baseline": "0.81.1",
+  "dockerhub_immutable_tag_rules": [
+    "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+    "^[0-9a-f]{40}$"
+  ],
+  "distributions": {
+    "minimal": {
+      "canonical_source_path": "apps/studio/deployments/minimal",
+      "mirror_branch": "master",
+      "mirror_repository": "mdrideout/junjo-ai-studio-minimal-build"
+    },
+    "vm-caddy": {
+      "canonical_source_path": "apps/studio/deployments/vm-caddy",
+      "mirror_branch": "master",
+      "mirror_repository": "mdrideout/junjo-ai-studio-deployment-example"
+    }
+  },
+  "imported_two_part_studio_tags": [
+    "studio-v0.10",
+    "studio-v0.20",
+    "studio-v0.30",
+    "studio-v0.40",
+    "studio-v0.42"
+  ],
+  "images": {
+    "backend": {
+      "repository": "mdrideout/junjo-ai-studio-backend"
+    },
+    "frontend": {
+      "repository": "mdrideout/junjo-ai-studio-frontend"
+    },
+    "ingestion": {
+      "repository": "mdrideout/junjo-ai-studio-ingestion"
+    }
+  },
+  "schema_version": 1
+}

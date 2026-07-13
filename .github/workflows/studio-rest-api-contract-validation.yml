@@ -1,0 +1,61 @@
+name: Studio REST API Contract
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/backend/app/**/schemas.py"
+      - "apps/studio/backend/scripts/export_openapi_schema.py"
+      - "apps/studio/backend/scripts/validate_rest_api_contracts.sh"
+      - "apps/studio/frontend/src/**/*schema*.ts"
+      - "apps/studio/frontend/src/__tests__/contracts/**"
+      - ".github/workflows/studio-rest-api-contract-validation.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-rest-api-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/backend/uv.lock"
+      - name: Install backend dependencies
+        working-directory: apps/studio/backend
+        run: uv sync --all-extras --locked
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/studio/frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: apps/studio/frontend
+        run: npm ci
+      - name: Run schema validation pipeline
+        working-directory: apps/studio/backend
+        env:
+          JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+        run: ./scripts/validate_rest_api_contracts.sh
+      - name: Upload OpenAPI schema on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-openapi-schema
+          path: apps/studio/backend/openapi.json
+          retention-days: 7

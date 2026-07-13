@@ -1,0 +1,51 @@
+name: Studio Frontend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/LICENSE"
+      - "apps/studio/THIRD_PARTY_NOTICES.md"
+      - "apps/studio/licenses/**"
+      - "apps/studio/frontend/**"
+      - "contracts/telemetry/**"
+      - "tooling/scripts/validate_studio_artifact_licenses.py"
+      - ".github/workflows/studio-frontend-tests.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/studio/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/studio/frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Test
+        run: npm run test:run
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Validate production artifact license evidence
+        run: |
+          python3 ../../../tooling/scripts/validate_studio_artifact_licenses.py \
+            check \
+            --verify-installed-frontend \
+            --frontend-dist dist
