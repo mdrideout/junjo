@@ -1,0 +1,202 @@
+name: Platform Gate
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect affected components
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.changes.outputs.python }}
+      studio_backend: ${{ steps.changes.outputs.studio_backend }}
+      studio_frontend: ${{ steps.changes.outputs.studio_frontend }}
+      studio_proto: ${{ steps.changes.outputs.studio_proto }}
+      studio_rest: ${{ steps.changes.outputs.studio_rest }}
+      studio_version: ${{ steps.changes.outputs.studio_version }}
+      telemetry: ${{ steps.changes.outputs.telemetry }}
+      deployments: ${{ steps.changes.outputs.deployments }}
+      website: ${{ steps.changes.outputs.website }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Detect changed component ownership
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            python3 tooling/scripts/detect_ci_changes.py \
+              --all \
+              --github-output "$GITHUB_OUTPUT"
+          else
+            git diff --name-only "$BASE_SHA" "$HEAD_SHA" | \
+              python3 tooling/scripts/detect_ci_changes.py \
+                --github-output "$GITHUB_OUTPUT"
+          fi
+
+  platform:
+    name: Platform integrity
+    uses: ./.github/workflows/platform-integrity.yml
+
+  python:
+    name: Python SDK
+    needs: detect
+    if: needs.detect.outputs.python == 'true'
+    uses: ./.github/workflows/python-ci.yml
+
+  studio_backend:
+    name: Studio backend and ingestion
+    needs: detect
+    if: needs.detect.outputs.studio_backend == 'true'
+    uses: ./.github/workflows/studio-backend-tests.yml
+
+  studio_frontend:
+    name: Studio frontend
+    needs: detect
+    if: needs.detect.outputs.studio_frontend == 'true'
+    uses: ./.github/workflows/studio-frontend-tests.yml
+
+  studio_proto:
+    name: Studio protobufs
+    needs: detect
+    if: needs.detect.outputs.studio_proto == 'true'
+    uses: ./.github/workflows/studio-proto-staleness-check.yml
+
+  studio_rest:
+    name: Studio REST contract
+    needs: detect
+    if: needs.detect.outputs.studio_rest == 'true'
+    uses: ./.github/workflows/studio-rest-api-contract-validation.yml
+
+  studio_version:
+    name: Studio version
+    needs: detect
+    if: needs.detect.outputs.studio_version == 'true'
+    uses: ./.github/workflows/studio-version-sync-check.yml
+
+  telemetry:
+    name: Telemetry contract
+    needs: detect
+    if: needs.detect.outputs.telemetry == 'true'
+    uses: ./.github/workflows/telemetry-contract.yml
+
+  deployments:
+    name: Studio deployments
+    needs: detect
+    if: needs.detect.outputs.deployments == 'true'
+    uses: ./.github/workflows/studio-deployments.yml
+
+  website:
+    name: Website
+    needs: detect
+    if: needs.detect.outputs.website == 'true'
+    uses: ./.github/workflows/website-ci.yml
+
+  required:
+    name: required
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - detect
+      - platform
+      - python
+      - studio_backend
+      - studio_frontend
+      - studio_proto
+      - studio_rest
+      - studio_version
+      - telemetry
+      - deployments
+      - website
+    env:
+      DETECT_RESULT: ${{ needs.detect.result }}
+      PLATFORM_RESULT: ${{ needs.platform.result }}
+      PYTHON_REQUIRED: ${{ needs.detect.outputs.python }}
+      PYTHON_RESULT: ${{ needs.python.result }}
+      STUDIO_BACKEND_REQUIRED: ${{ needs.detect.outputs.studio_backend }}
+      STUDIO_BACKEND_RESULT: ${{ needs.studio_backend.result }}
+      STUDIO_FRONTEND_REQUIRED: ${{ needs.detect.outputs.studio_frontend }}
+      STUDIO_FRONTEND_RESULT: ${{ needs.studio_frontend.result }}
+      STUDIO_PROTO_REQUIRED: ${{ needs.detect.outputs.studio_proto }}
+      STUDIO_PROTO_RESULT: ${{ needs.studio_proto.result }}
+      STUDIO_REST_REQUIRED: ${{ needs.detect.outputs.studio_rest }}
+      STUDIO_REST_RESULT: ${{ needs.studio_rest.result }}
+      STUDIO_VERSION_REQUIRED: ${{ needs.detect.outputs.studio_version }}
+      STUDIO_VERSION_RESULT: ${{ needs.studio_version.result }}
+      TELEMETRY_REQUIRED: ${{ needs.detect.outputs.telemetry }}
+      TELEMETRY_RESULT: ${{ needs.telemetry.result }}
+      DEPLOYMENTS_REQUIRED: ${{ needs.detect.outputs.deployments }}
+      DEPLOYMENTS_RESULT: ${{ needs.deployments.result }}
+      WEBSITE_REQUIRED: ${{ needs.detect.outputs.website }}
+      WEBSITE_RESULT: ${{ needs.website.result }}
+    steps:
+      - name: Enforce affected component results
+        run: |
+          python3 - <<'PY'
+          import os
+
+          failures = []
+          always_required = {
+              "detect": os.environ["DETECT_RESULT"],
+              "platform": os.environ["PLATFORM_RESULT"],
+          }
+          for name, result in always_required.items():
+              if result != "success":
+                  failures.append(f"{name}={result}")
+
+          conditional = {
+              "python": (os.environ["PYTHON_REQUIRED"], os.environ["PYTHON_RESULT"]),
+              "studio-backend": (
+                  os.environ["STUDIO_BACKEND_REQUIRED"],
+                  os.environ["STUDIO_BACKEND_RESULT"],
+              ),
+              "studio-frontend": (
+                  os.environ["STUDIO_FRONTEND_REQUIRED"],
+                  os.environ["STUDIO_FRONTEND_RESULT"],
+              ),
+              "studio-proto": (
+                  os.environ["STUDIO_PROTO_REQUIRED"],
+                  os.environ["STUDIO_PROTO_RESULT"],
+              ),
+              "studio-rest": (
+                  os.environ["STUDIO_REST_REQUIRED"],
+                  os.environ["STUDIO_REST_RESULT"],
+              ),
+              "studio-version": (
+                  os.environ["STUDIO_VERSION_REQUIRED"],
+                  os.environ["STUDIO_VERSION_RESULT"],
+              ),
+              "telemetry": (
+                  os.environ["TELEMETRY_REQUIRED"],
+                  os.environ["TELEMETRY_RESULT"],
+              ),
+              "deployments": (
+                  os.environ["DEPLOYMENTS_REQUIRED"],
+                  os.environ["DEPLOYMENTS_RESULT"],
+              ),
+              "website": (
+                  os.environ["WEBSITE_REQUIRED"],
+                  os.environ["WEBSITE_RESULT"],
+              ),
+          }
+          for name, (required, result) in conditional.items():
+              if required == "true" and result != "success":
+                  failures.append(f"{name}={result}")
+              if required != "true" and result not in {"skipped", "success"}:
+                  failures.append(f"unexpected {name}={result}")
+
+          if failures:
+              raise SystemExit("Required platform checks failed: " + ", ".join(failures))
+          print("All affected platform checks passed.")
+          PY

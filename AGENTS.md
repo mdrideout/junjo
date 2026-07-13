@@ -24,7 +24,8 @@ the nearest scoped `AGENTS.md` before changing a component.
   distributions. Standalone deployment repositories are generated release
   mirrors and are never a second source of truth.
 - `apps/website`: Astro/Starlight product and documentation website. It keeps
-  its own JavaScript dependency lock, build, and deployment lifecycle.
+  its own JavaScript dependency lock, build, and deployment lifecycle. Follow
+  `apps/website/AGENTS.md`.
 - `contracts/telemetry`: language-independent schemas, versions, and fixtures.
 - `docs/adr`: cross-platform architectural decisions.
 - `docs/roadmaps`: cross-platform strategy and implementation roadmaps.

@@ -227,28 +227,33 @@ path-filtered component workflow a required branch-protection context.
 
 ## Studio Release DAG
 
-The current release workflow promotes floating Docker tags before deployment
-and mirror validation. Replace it with this ordering:
+The previous standalone release workflow promoted floating Docker tags before
+deployment and mirror validation. The monorepo implementation replaces it with
+this ordering:
 
 1. Validate `studio-v<version>` against `apps/studio/VERSION` and confirm the
    release commit is reachable from `master`.
 2. Run Studio component tests and all deployment validation without production
    credentials.
-3. Build and push architecture images using immutable version and source-SHA
-   tags.
-4. Create and verify the multi-platform exact-version manifests.
+3. Build and push each architecture by content digest, without assigning a
+   mutable architecture tag.
+4. Assemble candidate multi-platform manifests, preflight all version and
+   source-SHA tags across all three services, then publish exact tags only when
+   absent or already resolving to the identical digest.
 5. Run clean deployment smoke tests against the exact version.
 6. Build both self-contained archives and verify inventories, license files,
    generated-source metadata, and exclusion of `.env` and `.env.bak`.
-7. Attach archives to a draft GitHub release.
+7. Stage archives, hashes, image digests, and provenance as workflow artifacts.
 8. Mint a short-lived GitHub App installation token.
 9. Publish each deployment directory one way to its mirror.
 10. Verify each mirror tree and source metadata against the monorepo source SHA.
 11. Promote `major.minor` and `latest` image manifests only after distribution
     verification succeeds.
 12. Update Docker Hub descriptions.
-13. Publish/finalize the GitHub release and record image digests, archive hashes,
-    mirror commits, and workflow URL.
+13. Create the GitHub release last and attach image evidence, archives, export
+    reports, and a complete release-evidence document containing source SHA,
+    workflow URL, image digests, archive hashes, tree hashes, and mirror
+    commits.
 
 A distribution failure prevents floating-tag promotion and release finalization.
 Exact version/SHA images already pushed remain immutable evidence and may be
@@ -370,15 +375,15 @@ request commit.
 
 ### Gate A: Repository-complete
 
-- [ ] All three source histories imported and recorded.
-- [ ] Current Junjo-owned source and artifacts are Apache-2.0.
-- [ ] `.env.bak` is ignored and excluded everywhere it can be created.
-- [ ] Stable required gate implemented.
-- [ ] Website and deployment CI implemented.
+- [x] All three source histories imported and recorded.
+- [x] Current Junjo-owned source and artifacts are Apache-2.0.
+- [x] `.env.bak` is ignored and excluded everywhere it can be created.
+- [x] Stable required gate implemented.
+- [x] Website and deployment CI implemented.
 - [ ] Studio dry-run release and distribution export pass.
 - [ ] Python publish dry run passes.
-- [ ] Combined-history secret scan passes.
-- [ ] Root and scoped documentation match implementation.
+- [x] Combined-history secret scan passes.
+- [x] Root and scoped documentation match implementation.
 
 Agent implementation may resume after Gate A. External credentials and hosting
 do not block repository architecture work.

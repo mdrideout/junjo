@@ -1,45 +1,181 @@
-name: Publish Studio Docker Images
+name: Publish Studio Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "studio-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Studio version to validate without publishing
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   prepare:
-    if: startsWith(github.event.release.tag_name, 'studio-v')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release.outputs.version }}
       major_minor: ${{ steps.release.outputs.major_minor }}
       short_sha: ${{ steps.release.outputs.short_sha }}
+      production: ${{ steps.release.outputs.production }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
+          persist-credentials: false
           fetch-depth: 0
-      - name: Validate release tag and prepare image tags
+      - name: Validate release identity
         id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
           VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
-          EXPECTED_TAG="studio-v${VERSION}"
-          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
-            echo "Release tag must be $EXPECTED_TAG, received $RELEASE_TAG." >&2
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Studio VERSION must be a stable X.Y.Z version, received $VERSION." >&2
             exit 1
           fi
+          EXPECTED_TAG="studio-v${VERSION}"
           git fetch origin master
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
             echo "Release commit must be reachable from origin/master." >&2
             exit 1
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "major_minor=${VERSION%.*}" >> "$GITHUB_OUTPUT"
-          echo "short_sha=$(git rev-parse --short=7 "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "push" ]; then
+            if [ "$REF_NAME" != "$EXPECTED_TAG" ]; then
+              echo "Release tag must be $EXPECTED_TAG, received $REF_NAME." >&2
+              exit 1
+            fi
+            PRODUCTION=true
+          else
+            if [ "$REQUESTED_VERSION" != "$VERSION" ]; then
+              echo "Dry-run version must be $VERSION, received $REQUESTED_VERSION." >&2
+              exit 1
+            fi
+            PRODUCTION=false
+          fi
+          {
+            echo "version=$VERSION"
+            echo "major_minor=${VERSION%.*}"
+            echo "short_sha=$(git rev-parse --short=12 "$GITHUB_SHA")"
+            echo "production=$PRODUCTION"
+          } >> "$GITHUB_OUTPUT"
 
-  build:
-    if: startsWith(github.event.release.tag_name, 'studio-v')
+  studio_backend:
+    name: Studio backend and ingestion
     needs: prepare
+    uses: ./.github/workflows/studio-backend-tests.yml
+
+  studio_frontend:
+    name: Studio frontend
+    needs: prepare
+    uses: ./.github/workflows/studio-frontend-tests.yml
+
+  studio_proto:
+    name: Studio protobufs
+    needs: prepare
+    uses: ./.github/workflows/studio-proto-staleness-check.yml
+
+  studio_rest:
+    name: Studio REST contract
+    needs: prepare
+    uses: ./.github/workflows/studio-rest-api-contract-validation.yml
+
+  studio_version:
+    name: Studio version
+    needs: prepare
+    uses: ./.github/workflows/studio-version-sync-check.yml
+
+  telemetry:
+    name: Telemetry contract
+    needs: prepare
+    uses: ./.github/workflows/telemetry-contract.yml
+
+  deployments:
+    name: Studio deployment distributions
+    needs: prepare
+    uses: ./.github/workflows/studio-deployments.yml
+
+  dry_build:
+    if: needs.prepare.outputs.production == 'false'
+    needs:
+      - prepare
+      - studio_backend
+      - studio_frontend
+      - studio_proto
+      - studio_rest
+      - studio_version
+      - telemetry
+      - deployments
+    name: Dry build ${{ matrix.service }} for ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: backend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: frontend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: frontend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: ingestion
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: ingestion
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build without publishing
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./apps/studio
+          file: ./apps/studio/${{ matrix.service }}/Dockerfile
+          target: production
+          platforms: ${{ matrix.platform }}
+          push: false
+          cache-from: type=gha,scope=studio-dry-${{ matrix.service }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=studio-dry-${{ matrix.service }}-${{ matrix.arch }}
+
+  build_architecture_images:
+    if: needs.prepare.outputs.production == 'true'
+    needs:
+      - prepare
+      - studio_backend
+      - studio_frontend
+      - studio_proto
+      - studio_rest
+      - studio_version
+      - telemetry
+      - deployments
     name: Build ${{ matrix.service }} for ${{ matrix.arch }}
     strategy:
       fail-fast: false
@@ -70,81 +206,386 @@ jobs:
             arch: arm64
             runs-on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs-on }}
-    permissions:
-      contents: read
+    timeout-minutes: 45
+    environment: studio-dockerhub-production
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push architecture image
-        uses: docker/build-push-action@v6
+      - name: Build and push architecture image by digest
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./apps/studio
           file: ./apps/studio/${{ matrix.service }}/Dockerfile
           target: production
           platforms: ${{ matrix.platform }}
           push: true
-          tags: |
-            mdrideout/junjo-ai-studio-${{ matrix.service }}:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
-            mdrideout/junjo-ai-studio-${{ matrix.service }}:${{ needs.prepare.outputs.major_minor }}-${{ matrix.arch }}
-            mdrideout/junjo-ai-studio-${{ matrix.service }}:latest-${{ matrix.arch }}
-            mdrideout/junjo-ai-studio-${{ matrix.service }}:${{ needs.prepare.outputs.short_sha }}-${{ matrix.arch }}
+          outputs: type=image,name=mdrideout/junjo-ai-studio-${{ matrix.service }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=studio-${{ matrix.service }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=studio-${{ matrix.service }}-${{ matrix.arch }}
+      - name: Capture architecture digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          SERVICE: ${{ matrix.service }}
+        run: |
+          DIGEST_HEX="${IMAGE_DIGEST#sha256:}"
+          if [[ ! "$DIGEST_HEX" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "Build did not return a valid sha256 digest: $IMAGE_DIGEST" >&2
+            exit 1
+          fi
+          mkdir -p /tmp/studio-digests
+          touch "/tmp/studio-digests/${SERVICE}-${DIGEST_HEX}"
+      - name: Upload architecture digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-digest-${{ matrix.service }}-${{ matrix.arch }}
+          path: /tmp/studio-digests
+          if-no-files-found: error
+          retention-days: 7
 
-  merge-and-push:
-    if: startsWith(github.event.release.tag_name, 'studio-v')
-    needs: [prepare, build]
-    name: Publish ${{ matrix.service }} manifest
+  exact_manifests:
+    if: needs.prepare.outputs.production == 'true'
+    needs: [prepare, build_architecture_images]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [backend, frontend, ingestion]
+    timeout-minutes: 15
+    environment: studio-dockerhub-production
     steps:
+      - name: Download architecture digests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: studio-digest-*
+          path: /tmp/studio-digests
+          merge-multiple: true
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Create and push multi-platform manifests
+      - name: Create candidate multi-platform manifests
         env:
-          IMAGE: mdrideout/junjo-ai-studio-${{ matrix.service }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          MAJOR_MINOR: ${{ needs.prepare.outputs.major_minor }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
         run: |
-          for tag in "$VERSION" "$MAJOR_MINOR" latest "$SHORT_SHA"; do
-            docker buildx imagetools create \
-              -t "$IMAGE:$tag" \
-              "$IMAGE:$tag-amd64" \
-              "$IMAGE:$tag-arm64"
+          mkdir -p /tmp/image-evidence
+          for service in backend frontend ingestion; do
+            IMAGE="mdrideout/junjo-ai-studio-${service}"
+            CANDIDATE_TAG="candidate-${SHORT_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            mapfile -t DIGEST_FILES < <(
+              find /tmp/studio-digests -type f -name "${service}-*" | sort
+            )
+            if [ "${#DIGEST_FILES[@]}" -ne 2 ]; then
+              echo "Expected two architecture digests for $service, found ${#DIGEST_FILES[@]}." >&2
+              exit 1
+            fi
+            SOURCES=()
+            for digest_file in "${DIGEST_FILES[@]}"; do
+              digest_name="$(basename "$digest_file")"
+              SOURCES+=("$IMAGE@sha256:${digest_name#"${service}-"}")
+            done
+            docker buildx imagetools create -t "$IMAGE:$CANDIDATE_TAG" "${SOURCES[@]}"
+            CANDIDATE_DIGEST="$(
+              docker buildx imagetools inspect "$IMAGE:$CANDIDATE_TAG" |
+                sed -n 's/^Digest:[[:space:]]*//p'
+            )"
+            if [ -z "$CANDIDATE_DIGEST" ]; then
+              echo "Could not resolve candidate digest for $IMAGE." >&2
+              exit 1
+            fi
+            printf '%s\n' "$CANDIDATE_DIGEST" > "/tmp/image-evidence/${service}.candidate-digest"
+          done
+      - name: Preflight every immutable release tag
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+        run: |
+          for service in backend frontend ingestion; do
+            IMAGE="mdrideout/junjo-ai-studio-${service}"
+            CANDIDATE_DIGEST="$(cat "/tmp/image-evidence/${service}.candidate-digest")"
+            for tag in "$VERSION" "$SHORT_SHA"; do
+              if EXISTING_OUTPUT="$(docker buildx imagetools inspect "$IMAGE:$tag" 2>/dev/null)"; then
+                EXISTING_DIGEST="$(
+                  printf '%s\n' "$EXISTING_OUTPUT" |
+                    sed -n 's/^Digest:[[:space:]]*//p'
+                )"
+                if [ "$EXISTING_DIGEST" != "$CANDIDATE_DIGEST" ]; then
+                  echo "$IMAGE:$tag already points to a different digest; refusing to overwrite an immutable release tag." >&2
+                  exit 1
+                fi
+              fi
+            done
+          done
+      - name: Publish immutable release tags
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+        run: |
+          for service in backend frontend ingestion; do
+            IMAGE="mdrideout/junjo-ai-studio-${service}"
+            CANDIDATE_DIGEST="$(cat "/tmp/image-evidence/${service}.candidate-digest")"
+            for tag in "$VERSION" "$SHORT_SHA"; do
+              if ! docker buildx imagetools inspect "$IMAGE:$tag" >/dev/null 2>&1; then
+                docker buildx imagetools create \
+                  -t "$IMAGE:$tag" \
+                  "$IMAGE@$CANDIDATE_DIGEST"
+              fi
+            done
+            docker buildx imagetools inspect "$IMAGE:$VERSION" \
+              > "/tmp/image-evidence/${service}.txt"
+          done
+      - name: Upload exact image evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-image-evidence-${{ needs.prepare.outputs.version }}
+          path: /tmp/image-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  smoke_exact_release:
+    if: needs.prepare.outputs.production == 'true'
+    needs: [prepare, exact_manifests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Prepare isolated minimal deployment
+        run: |
+          cp -R apps/studio/deployments/minimal /tmp/junjo-studio-smoke
+          cd /tmp/junjo-studio-smoke
+          ./scripts/junjo setup --non-interactive --env development --profile 1g
+      - name: Start exact release images
+        working-directory: /tmp/junjo-studio-smoke
+        run: docker compose pull && docker compose up -d
+      - name: Verify frontend, backend, and ingestion
+        run: |
+          for _ in $(seq 1 60); do
+            BACKEND_OK=false
+            FRONTEND_OK=false
+            INGESTION_OK=false
+            curl --fail --silent http://localhost:26154/health >/dev/null && BACKEND_OK=true
+            curl --fail --silent http://localhost:26153/ >/dev/null && FRONTEND_OK=true
+            [ "$(docker inspect --format '{{.State.Health.Status}}' junjo-ai-studio-ingestion 2>/dev/null || true)" = "healthy" ] && INGESTION_OK=true
+            if $BACKEND_OK && $FRONTEND_OK && $INGESTION_OK; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Exact Studio release did not become healthy." >&2
+          exit 1
+      - name: Capture logs on failure
+        if: failure()
+        working-directory: /tmp/junjo-studio-smoke
+        run: docker compose logs --no-color
+      - name: Stop smoke deployment
+        if: always()
+        working-directory: /tmp/junjo-studio-smoke
+        run: docker compose down --volumes
+
+  publish_distributions:
+    if: needs.prepare.outputs.production == 'true'
+    needs: [prepare, deployments, smoke_exact_release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: studio-distributions-production
+    outputs:
+      minimal_commit: ${{ steps.evidence.outputs.minimal_commit }}
+      vm_caddy_commit: ${{ steps.evidence.outputs.vm_caddy_commit }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Create mirror installation token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.JUNJO_MIRROR_APP_ID }}
+          private-key: ${{ secrets.JUNJO_MIRROR_APP_PRIVATE_KEY }}
+          owner: mdrideout
+          permission-contents: write
+          repositories: |
+            junjo-ai-studio-minimal-build
+            junjo-ai-studio-deployment-example
+      - name: Export and publish distributions
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          MINIMAL_MIRROR: ${{ vars.JUNJO_MINIMAL_MIRROR }}
+          VM_CADDY_MIRROR: ${{ vars.JUNJO_VM_CADDY_MIRROR }}
+          SOURCE_REPOSITORY: https://github.com/${{ github.repository }}
+          SOURCE_REVISION: ${{ github.sha }}
+          STUDIO_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          SDK_VERSION="$(sed -n 's/^junjo==//p' apps/studio/deployments/vm-caddy/junjo_app/requirements.txt)"
+          mkdir -p /tmp/junjo-release
+          python3 tooling/scripts/export_studio_distribution.py \
+            --distribution minimal \
+            --source-repository "$SOURCE_REPOSITORY" \
+            --source-revision "$SOURCE_REVISION" \
+            --studio-version "$STUDIO_VERSION" \
+            --compatible-sdk-version "$SDK_VERSION" \
+            --output-directory /tmp/junjo-release/minimal \
+            --archive "/tmp/junjo-release/junjo-ai-studio-minimal-${STUDIO_VERSION}.tar.gz" \
+            > /tmp/junjo-release/minimal-export.json
+          python3 tooling/scripts/export_studio_distribution.py \
+            --distribution vm-caddy \
+            --source-repository "$SOURCE_REPOSITORY" \
+            --source-revision "$SOURCE_REVISION" \
+            --studio-version "$STUDIO_VERSION" \
+            --compatible-sdk-version "$SDK_VERSION" \
+            --output-directory /tmp/junjo-release/vm-caddy \
+            --archive "/tmp/junjo-release/junjo-ai-studio-vm-caddy-${STUDIO_VERSION}.tar.gz" \
+            > /tmp/junjo-release/vm-caddy-export.json
+          python3 tooling/scripts/publish_studio_distribution.py \
+            --export-directory /tmp/junjo-release/minimal \
+            --repository "$MINIMAL_MIRROR" \
+            --source-revision "$SOURCE_REVISION" \
+            > /tmp/junjo-release/minimal-mirror.json
+          python3 tooling/scripts/publish_studio_distribution.py \
+            --export-directory /tmp/junjo-release/vm-caddy \
+            --repository "$VM_CADDY_MIRROR" \
+            --source-revision "$SOURCE_REVISION" \
+            > /tmp/junjo-release/vm-caddy-mirror.json
+      - name: Capture mirror commits
+        id: evidence
+        run: |
+          echo "minimal_commit=$(python3 -c 'import json; print(json.load(open("/tmp/junjo-release/minimal-mirror.json"))["commit"])')" >> "$GITHUB_OUTPUT"
+          echo "vm_caddy_commit=$(python3 -c 'import json; print(json.load(open("/tmp/junjo-release/vm-caddy-mirror.json"))["commit"])')" >> "$GITHUB_OUTPUT"
+      - name: Upload release and mirror evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-distributions-${{ needs.prepare.outputs.version }}
+          path: |
+            /tmp/junjo-release/*.tar.gz
+            /tmp/junjo-release/*.json
+          if-no-files-found: error
+          retention-days: 30
+
+  promote_floating_tags:
+    if: needs.prepare.outputs.production == 'true'
+    needs: [prepare, publish_distributions]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: studio-dockerhub-production
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Promote major/minor and latest manifests
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          MAJOR_MINOR: ${{ needs.prepare.outputs.major_minor }}
+        run: |
+          for service in backend frontend ingestion; do
+            IMAGE="mdrideout/junjo-ai-studio-${service}"
+            for tag in "$MAJOR_MINOR" latest; do
+              docker buildx imagetools create \
+                -t "$IMAGE:$tag" \
+                "$IMAGE:$VERSION"
+            done
           done
 
-  update-hub-description:
-    if: startsWith(github.event.release.tag_name, 'studio-v')
-    needs: merge-and-push
+  update_descriptions:
+    if: needs.prepare.outputs.production == 'true'
+    needs: [prepare, promote_floating_tags]
     name: Update ${{ matrix.service }} Docker Hub description
     runs-on: ubuntu-latest
+    environment: studio-dockerhub-production
     strategy:
       fail-fast: false
       matrix:
         service: [backend, frontend, ingestion]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@432a30c9e07499fd01da9f8a49f0faf9e0ca5b77 # v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: mdrideout/junjo-ai-studio-${{ matrix.service }}
           readme-filepath: ./apps/studio/README.md
+
+  publish_release:
+    if: needs.prepare.outputs.production == 'true'
+    needs:
+      - prepare
+      - exact_manifests
+      - publish_distributions
+      - promote_floating_tags
+      - update_descriptions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Download distribution evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: studio-distributions-${{ needs.prepare.outputs.version }}
+          path: /tmp/studio-release/distributions
+      - name: Download image evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: studio-image-evidence-${{ needs.prepare.outputs.version }}
+          path: /tmp/studio-release/images
+      - name: Build complete release evidence
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          MINIMAL_COMMIT: ${{ needs.publish_distributions.outputs.minimal_commit }}
+          VM_CADDY_COMMIT: ${{ needs.publish_distributions.outputs.vm_caddy_commit }}
+          SOURCE_REVISION: ${{ github.sha }}
+          SOURCE_REPOSITORY: https://github.com/${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 tooling/scripts/build_studio_release_evidence.py \
+            --studio-version "$VERSION" \
+            --release-tag "$RELEASE_TAG" \
+            --source-repository "$SOURCE_REPOSITORY" \
+            --source-revision "$SOURCE_REVISION" \
+            --workflow-url "$WORKFLOW_URL" \
+            --image-directory /tmp/studio-release/images \
+            --distribution-directory /tmp/studio-release/distributions \
+            --minimal-mirror-commit "$MINIMAL_COMMIT" \
+            --vm-caddy-mirror-commit "$VM_CADDY_COMMIT" \
+            --evidence-output /tmp/studio-release/RELEASE_EVIDENCE.json \
+            --notes-output /tmp/studio-release/RELEASE_NOTES.md
+      - name: Publish GitHub release last
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            /tmp/studio-release/distributions/* \
+            /tmp/studio-release/images/* \
+            /tmp/studio-release/RELEASE_EVIDENCE.json \
+            --verify-tag \
+            --title "Junjo AI Studio ${VERSION}" \
+            --notes-file /tmp/studio-release/RELEASE_NOTES.md

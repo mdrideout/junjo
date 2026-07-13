@@ -2,24 +2,29 @@
 
 ## Status
 
-This record currently proves the completed Python SDK and Studio source
-consolidation. It does not claim that the approved website, deployment
-distribution, Apache-2.0 relicensing, mirror publication, or hosting cutover
-work has been implemented.
+This record proves the completed source consolidation for the Python SDK,
+Studio, website, minimal Studio distribution, and VM/Caddy distribution. It
+also records the repository implementation for Apache-2.0 licensing,
+deterministic distribution exports, path-owned CI, and the protected Studio
+release DAG.
+
+Production mirror publication, hosting cutover, environment credentials,
+trusted-publisher changes, branch-protection changes, and source-repository
+retirement remain operator cutover work. This record does not claim those
+external mutations have happened.
 
 GitHub Actions, environments, credentials, trusted publishing, Cloudflare,
 mirror, archival, verification, and rollback steps follow
 `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
-Append new source revisions, rewritten revisions, tree identities, import
-commands, scans, and validation results here as each remaining migration phase
-is executed. Do not convert planned work into recorded fact before it passes its
-validation gates.
+Append external settings evidence and production verification here as the
+operator cutover runs. Do not convert planned work into recorded fact before it
+passes its validation gates.
 
 ## Scope
 
 This record accompanies ADR 0001 and the migration plan. The evidence below
-records the initial local SDK and Studio source migration. GitHub issues,
+records the local source migrations and repository implementation. GitHub issues,
 repository archival, distribution-mirror settings, website hosting, secrets,
 environments, branch protection, and trusted-publisher configuration are
 operator cutover work and cannot be completed by repository commits.
@@ -36,6 +41,21 @@ operator cutover work and cannot be completed by repository commits.
 
 The source and imported tree identities match. `git log --follow` from an
 `apps/studio` file reaches its original Studio commits.
+
+### Expanded source revisions
+
+| Component | Prepared source revision | Rewritten import revision | Destination merge | Source/imported subtree | Tracked files | Reachable commits |
+| --- | --- | --- | --- | --- | ---: | ---: |
+| Minimal distribution | `631319feaa4c918e919460370ca51862e7774d87` | `981dcd327ae2b09fb31ed1598af76d651da3ba9b` | `dbef8621347f909d7acbb85a320c26fa8e05c18c` | `11b30f46f48a1315b0933c0d502a15a0432947a4` | 6 | 22 |
+| VM/Caddy distribution | `099e07f45d4b238f6aba63736a2bd8b1f37501e5` | `7baec1c12d07cfaf99367fc943ab16798ff397d6` | `c0ec2c34ffd6f374fe3a75d2a2adfd9f073410cd` | `58ef4217cd158c3a284769c96430a50a7dd653ea` | 16 | 58 |
+| Website | `9964091f3c77fdbe49b2bc0f4b13450b417b5cb2` | `49a87bc320b036e0723643a765380fdcf4f3bde6` | `df119c0aebaf212c35ef08538c29daf674e677e9` | `5133752d25b7292dbf3aa53201b2eed3d8fac5af` | 17 | 5 |
+
+Each prepared source tree is byte-identical to its corresponding imported
+destination subtree at the merge commit. Source preparation was committed and
+pushed on `codex/monorepo-source-prep` in each source repository before history
+rewriting. The website preparation commit intentionally included the existing
+website redesign; an unrelated untracked local `.agents` bundle was not
+imported.
 
 ## Rehearsed and executed history import
 
@@ -63,6 +83,20 @@ Unmerged historical branch tips (`multi-app-bug`, `nov-2025-improvements`, and
 `oct-2025-improvements`) remain in the archived source repository. The imported
 history includes historical binaries and produces an approximately 135 MiB Git
 pack; that provenance and repository-size cost is accepted.
+
+The three expanded imports used the same history-preserving pattern with these
+destination filters:
+
+```bash
+git filter-repo --to-subdirectory-filter apps/studio/deployments/minimal --force
+git filter-repo --to-subdirectory-filter apps/studio/deployments/vm-caddy --force
+git filter-repo --to-subdirectory-filter apps/website --force
+```
+
+Minimal historical tags were namespaced as `studio-minimal-v*`; VM/Caddy tags
+were namespaced as `studio-deployment-v*`. Four tags exist in each namespace.
+The website had no release-tag stream to import. New distribution versions are
+released only by `studio-v*`; the two imported namespaces are historical.
 
 ## Local data protection
 
@@ -99,21 +133,45 @@ The migrated tree passed the repository-owned validation gates on 2026-07-12:
   historical documentation false positives were fingerprint-scoped in
   `.gitleaksignore`.
 
-Non-blocking baseline observations: npm reports 28 dependency advisories, the
-frontend production build reports a large-chunk advisory, and backend tests
-report upstream HTTPX per-request-cookie deprecation warnings. None were
-introduced by the path migration; they remain explicit follow-up maintenance.
+The expanded repository implementation also passed these gates on 2026-07-12:
 
-## Remaining repository migration work
+- every Junjo-authored component and standalone distribution contains the same
+  complete Apache License 2.0 text;
+- `.env.bak` is explicitly ignored by Studio and both standalone distribution
+  roots, is untracked, and is rejected from exports;
+- website locked install, Astro checks, production build, and production npm
+  audit passed with zero audit findings;
+- 36 offline platform-tooling tests passed, including CI path routing,
+  exact Compose contracts, deterministic Git-revision exports, secret/runtime
+  exclusion, license equality, archive reproducibility, mirror authentication,
+  file content/mode verification, release-evidence reconstruction, and
+  publication idempotence;
+- both canonical deployment distributions passed full Compose and setup-wizard
+  validation for Studio 0.81.1;
+- Actionlint 1.7.12 passed every workflow;
+- Zizmor 1.26.1 reported no workflow security findings;
+- every external GitHub Action reference is pinned to an immutable commit;
+- the platform repository invariant and telemetry-contract validators passed.
 
-- [ ] Complete the expanded website and deployment source imports.
-- [ ] Replace all Junjo-owned AGPL declarations with Apache-2.0 and validate
+Non-blocking baseline observations: Studio npm reports 28 dependency
+advisories, including 11 production advisories; the frontend production build
+reports a large-chunk advisory; backend tests report 18 upstream HTTPX
+per-request-cookie deprecation warnings; Rustfmt reports existing formatting in
+`ingestion/src/wal/span_record.rs`; and Clippy reports six existing warnings.
+The repository's existing Studio CI does not gate Rustfmt or Clippy. None were
+introduced by the structural migration; they remain explicit follow-up
+maintenance.
+
+## Repository migration work
+
+- [x] Complete the expanded website and deployment source imports.
+- [x] Replace all Junjo-owned AGPL declarations with Apache-2.0 and validate
   every independently packaged or exported component.
-- [ ] Add and validate `.env.bak` ignores for Studio and both deployment
+- [x] Add and validate `.env.bak` ignores for Studio and both deployment
   distributions.
-- [ ] Add website, deployment, license, archive, and mirror validation in the
+- [x] Add website, deployment, license, archive, and mirror validation in the
   monorepo.
-- [ ] Append exact source revisions, import commands, tree identities, and
+- [x] Append exact source revisions, import commands, tree identities, and
   validation results to this record.
 
 ## Operator cutover checklist

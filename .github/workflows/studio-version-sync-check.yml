@@ -33,6 +33,10 @@ on:
       - "apps/studio/scripts/sync-version.sh"
       - ".github/workflows/studio-version-sync-check.yml"
   workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   check-version-sync:
@@ -40,7 +44,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Check synchronized Studio versions
         working-directory: apps/studio
         run: ./scripts/check-version-sync.sh

@@ -2,7 +2,7 @@
 #
 # This compose file uses pre-built production images from Docker Hub.
 # For the full source-based setup with development mode, see:
-# https://github.com/mdrideout/junjo-ai-studio
+# https://github.com/mdrideout/junjo/tree/master/apps/studio
 #
 # Production images:
 #   - mdrideout/junjo-ai-studio-backend:0.81.1

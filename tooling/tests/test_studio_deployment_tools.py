@@ -1,0 +1,396 @@
+"""Offline tests for Studio deployment validation and export tooling."""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+import tarfile
+import tempfile
+import unittest
+from pathlib import Path
+from types import ModuleType
+from typing import Any
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_script_module(name: str, relative_path: str) -> ModuleType:
+    """Load a repository script as a module without making tooling a package."""
+    path = REPOSITORY_ROOT / relative_path
+    specification = importlib.util.spec_from_file_location(name, path)
+    if specification is None or specification.loader is None:
+        raise RuntimeError(f"could not load {path}")
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[name] = module
+    specification.loader.exec_module(module)
+    return module
+
+
+validator = load_script_module(
+    "validate_studio_deployments",
+    "tooling/scripts/validate_studio_deployments.py",
+)
+exporter = load_script_module(
+    "export_studio_distribution",
+    "tooling/scripts/export_studio_distribution.py",
+)
+
+
+def core_service(image: str, port: int) -> dict[str, object]:
+    """Build the common rendered Compose fields used by test fixtures."""
+    return {
+        "image": image,
+        "ports": [{"target": port, "published": str(port), "protocol": "tcp"}],
+        "networks": {"junjo-network": None},
+    }
+
+
+def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str, Any]:
+    """Build a valid rendered Compose fixture for one distribution contract."""
+    backend = core_service(f"mdrideout/junjo-ai-studio-backend:{version}", 26154)
+    backend["environment"] = {
+        "INGESTION_HOST": validator.INGESTION,
+        "INGESTION_PORT": "50052",
+        "GRPC_PORT": "50053",
+        "RUN_MIGRATIONS": "true",
+        "JUNJO_SQLITE_PATH": "/app/.dbdata/sqlite/junjo.db",
+        "JUNJO_METADATA_DB_PATH": "/app/.dbdata/sqlite/metadata.db",
+        "JUNJO_PARQUET_STORAGE_PATH": "/app/.dbdata/spans/parquet",
+    }
+    backend["volumes"] = [{"source": "/fixture/data", "target": "/app/.dbdata"}]
+
+    ingestion = core_service(f"mdrideout/junjo-ai-studio-ingestion:{version}", 26155)
+    ingestion["environment"] = {
+        "BACKEND_GRPC_HOST": validator.BACKEND,
+        "BACKEND_GRPC_PORT": "50053",
+        "GRPC_PORT": "26155",
+        "INTERNAL_GRPC_PORT": "50052",
+        "WAL_DIR": "/app/.dbdata/spans/wal",
+        "SNAPSHOT_PATH": "/app/.dbdata/spans/hot_snapshot.parquet",
+        "PARQUET_OUTPUT_DIR": "/app/.dbdata/spans/parquet",
+    }
+    ingestion["volumes"] = [{"source": "/fixture/data", "target": "/app/.dbdata"}]
+    ingestion["depends_on"] = {validator.BACKEND: {"condition": "service_started"}}
+    ingestion["healthcheck"] = {
+        "test": ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"],
+        "timeout": "3s",
+        "interval": "5s",
+        "retries": 5,
+        "start_period": "30s",
+    }
+
+    frontend = core_service(f"mdrideout/junjo-ai-studio-frontend:{version}", 26153)
+    frontend["depends_on"] = {validator.BACKEND: {"condition": "service_started"}}
+
+    services: dict[str, Any] = {
+        validator.BACKEND: backend,
+        validator.INGESTION: ingestion,
+        validator.FRONTEND: frontend,
+    }
+    rendered: dict[str, Any] = {
+        "services": services,
+        "networks": {
+            "junjo-network": {
+                "name": "junjo_network",
+                "driver": "bridge",
+                "ipam": {},
+            }
+        },
+    }
+
+    if distribution_name == "vm-caddy":
+        services["junjo-app"] = {
+            "build": {"context": "/fixture/junjo_app", "dockerfile": "Dockerfile"},
+            "depends_on": {validator.INGESTION: {"condition": "service_started"}},
+            "networks": {"junjo-network": None},
+        }
+        services["caddy"] = {
+            "build": {"context": "/fixture/caddy", "dockerfile": "Dockerfile"},
+            "depends_on": {
+                validator.BACKEND: {"condition": "service_started"},
+                validator.FRONTEND: {"condition": "service_started"},
+            },
+            "networks": {"junjo-network": None},
+            "ports": [
+                {"target": 80, "published": "80", "protocol": "tcp"},
+                {"target": 443, "published": "443", "protocol": "tcp"},
+                {"target": 443, "published": "443", "protocol": "udp"},
+            ],
+        }
+        rendered["volumes"] = {"caddy_data": {}}
+    return rendered
+
+
+class DeploymentComposeContractTests(unittest.TestCase):
+    """Exercise topology validation without running containers or pulling images."""
+
+    def test_minimal_contract_accepts_only_the_three_core_services(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        validator.validate_rendered_compose(
+            distribution, rendered_compose("minimal"), "1.2.3", Path("/fixture")
+        )
+
+    def test_vm_caddy_contract_requires_the_operator_services(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "vm-caddy"
+        )
+        validator.validate_rendered_compose(
+            distribution, rendered_compose("vm-caddy"), "1.2.3", Path("/fixture")
+        )
+
+    def test_image_pin_must_exactly_match_studio_version(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        rendered = rendered_compose("minimal")
+        rendered["services"][validator.BACKEND]["image"] = (
+            "mdrideout/junjo-ai-studio-backend:latest"
+        )
+        with self.assertRaisesRegex(RuntimeError, "image pins must exactly match"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
+
+    def test_ingestion_healthcheck_must_use_internal_listener(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        rendered = rendered_compose("minimal")
+        rendered["services"][validator.INGESTION]["healthcheck"] = {
+            "test": ["CMD", "probe", "localhost:26155"]
+        }
+        with self.assertRaisesRegex(RuntimeError, "healthcheck must be exactly"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
+
+    def test_internal_ports_must_not_be_published(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        rendered = rendered_compose("minimal")
+        rendered["services"][validator.BACKEND]["ports"].append(
+            {"target": 50053, "published": "50053", "protocol": "tcp"}
+        )
+        with self.assertRaisesRegex(RuntimeError, "ports must be exactly"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
+
+    def test_core_services_must_not_add_build_contexts(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        rendered = rendered_compose("minimal")
+        rendered["services"][validator.BACKEND]["build"] = {
+            "context": "/fixture/backend"
+        }
+        with self.assertRaisesRegex(RuntimeError, "must use only its pinned image"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
+
+
+class DistributionExportTests(unittest.TestCase):
+    """Exercise committed-file export, policy rejection, and reproducibility."""
+
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory(
+            prefix="junjo-export-test-"
+        )
+        self.repository = Path(self.temporary_directory.name) / "repository"
+        self.repository.mkdir()
+        self.git("init", "--quiet")
+        self.git("config", "user.name", "Junjo Test")
+        self.git("config", "user.email", "junjo-test@example.invalid")
+        license_text = "Apache License\nVersion 2.0, January 2004\n"
+        self.write("LICENSE", license_text)
+        self.write("apps/studio/VERSION", "1.2.3\n")
+        self.write("apps/studio/deployments/minimal/LICENSE", license_text)
+        self.write(
+            "apps/studio/deployments/minimal/README.md",
+            "# Minimal\n\nApplications that emit Junjo workflow telemetry should use Junjo `4.5.6`.\n",
+        )
+        compose = (
+            REPOSITORY_ROOT / "apps/studio/deployments/minimal/docker-compose.yml"
+        ).read_text(encoding="utf-8")
+        self.write(
+            "apps/studio/deployments/minimal/docker-compose.yml",
+            compose.replace("0.81.1", "1.2.3"),
+        )
+        env_example = (
+            REPOSITORY_ROOT / "apps/studio/deployments/minimal/.env.example"
+        ).read_text(encoding="utf-8")
+        self.write("apps/studio/deployments/minimal/.env.example", env_example)
+        self.write(
+            "apps/studio/deployments/minimal/scripts/junjo",
+            """#!/usr/bin/env python3
+import argparse
+parser = argparse.ArgumentParser()
+subparsers = parser.add_subparsers(dest="command", required=True)
+subparsers.add_parser("setup")
+parser.parse_args()
+""",
+            executable=True,
+        )
+        self.commit("initial fixture")
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def git(self, *arguments: str) -> str:
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=self.repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    def write(
+        self, relative_path: str, content: str, *, executable: bool = False
+    ) -> None:
+        path = self.repository / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        if executable:
+            path.chmod(0o755)
+
+    def commit(self, message: str) -> str:
+        self.git("add", ".")
+        self.git("commit", "--quiet", "-m", message)
+        return self.git("rev-parse", "HEAD")
+
+    def export(
+        self, name: str, revision: str = "HEAD"
+    ) -> tuple[dict[str, object], Path, Path]:
+        output = Path(self.temporary_directory.name) / f"{name}-directory"
+        archive = Path(self.temporary_directory.name) / f"{name}.tar.gz"
+        report = exporter.build_export(
+            repository_root=self.repository,
+            distribution=exporter.DISTRIBUTIONS["minimal"],
+            source_repository="https://github.com/mdrideout/junjo",
+            source_revision=revision,
+            studio_version="1.2.3",
+            compatible_sdk_version="4.5.6",
+            output_directory=output,
+            archive=archive,
+        )
+        return report, output, archive
+
+    def test_export_is_reproducible_and_contains_provenance_inventory(self) -> None:
+        first_report, first_output, first_archive = self.export("first")
+        second_report, _, second_archive = self.export("second")
+
+        self.assertEqual(first_archive.read_bytes(), second_archive.read_bytes())
+        self.assertEqual(
+            first_report["archive_sha256"], second_report["archive_sha256"]
+        )
+        self.assertEqual(
+            first_report["archive_sha256"],
+            hashlib.sha256(first_archive.read_bytes()).hexdigest(),
+        )
+        manifest = json.loads(
+            (first_output / exporter.MANIFEST).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            manifest["source"]["source_revision"], self.git("rev-parse", "HEAD")
+        )
+        self.assertEqual(
+            manifest["source"]["canonical_source_path"],
+            "apps/studio/deployments/minimal",
+        )
+        inventory_paths = {item["path"] for item in manifest["inventory"]}
+        self.assertIn("LICENSE", inventory_paths)
+        self.assertIn(exporter.GENERATED_NOTICE, inventory_paths)
+        self.assertNotIn(exporter.MANIFEST, inventory_paths)
+        self.assertNotIn(str(first_output), json.dumps(manifest))
+
+        with tarfile.open(first_archive, mode="r:gz") as archive_file:
+            members = archive_file.getmembers()
+        self.assertTrue(members)
+        self.assertTrue(all(member.mtime == 0 for member in members))
+        self.assertTrue(all(member.uid == 0 and member.gid == 0 for member in members))
+        executable = next(
+            member for member in members if member.name.endswith("scripts/junjo")
+        )
+        self.assertEqual(executable.mode, 0o755)
+
+    def test_export_rejects_a_tracked_secret_file(self) -> None:
+        self.write("apps/studio/deployments/minimal/.env", "SECRET=unsafe\n")
+        revision = self.commit("add forbidden secret")
+        with self.assertRaisesRegex(RuntimeError, "unsafe tracked export file .env"):
+            self.export("unsafe", revision)
+
+    def test_export_requires_apache_license_in_selected_revision(self) -> None:
+        (self.repository / "apps/studio/deployments/minimal/LICENSE").unlink()
+        revision = self.commit("remove license")
+        with self.assertRaisesRegex(RuntimeError, "tracked LICENSE"):
+            self.export("unlicensed", revision)
+
+    def test_export_requires_distribution_license_to_match_root(self) -> None:
+        self.write("apps/studio/deployments/minimal/LICENSE", "different license\n")
+        revision = self.commit("change distribution license")
+        with self.assertRaisesRegex(RuntimeError, "exactly match the root"):
+            self.export("wrong-license", revision)
+
+    def test_export_requires_declared_sdk_compatibility_metadata(self) -> None:
+        output = Path(self.temporary_directory.name) / "missing-sdk-directory"
+        archive = Path(self.temporary_directory.name) / "missing-sdk.tar.gz"
+        with self.assertRaisesRegex(RuntimeError, "requires --compatible-sdk-version"):
+            exporter.build_export(
+                repository_root=self.repository,
+                distribution=exporter.DISTRIBUTIONS["minimal"],
+                source_repository="https://github.com/mdrideout/junjo",
+                source_revision="HEAD",
+                studio_version="1.2.3",
+                compatible_sdk_version=None,
+                output_directory=output,
+                archive=archive,
+            )
+
+    def test_export_rejects_sdk_metadata_that_differs_from_source(self) -> None:
+        self.write(
+            "apps/studio/deployments/minimal/README.md",
+            "Applications that emit Junjo workflow telemetry should use Junjo `9.9.9`.\n",
+        )
+        revision = self.commit("change declared SDK version")
+        with self.assertRaisesRegex(RuntimeError, "does not match committed"):
+            self.export("wrong-sdk", revision)
+
+    def test_export_policy_rejects_secret_runtime_and_cache_paths(self) -> None:
+        unsafe_paths = (
+            ".env.bak",
+            ".env.production",
+            "production.env",
+            ".dbdata/spans/wal/data",
+            ".certs/staging.pem",
+            "private/server.key",
+            "scripts/__pycache__/setup.pyc",
+            "dist/release.zip",
+        )
+        for unsafe_path in unsafe_paths:
+            with self.subTest(path=unsafe_path):
+                self.assertIsNotNone(
+                    exporter.forbidden_reason(exporter.PurePosixPath(unsafe_path))
+                )
+
+    def test_inventory_uses_declared_modes_instead_of_host_stat(self) -> None:
+        root = Path(self.temporary_directory.name) / "mode-inventory"
+        root.mkdir()
+        script = root / "script"
+        script.write_text("fixture\n", encoding="utf-8")
+        script.chmod(0o600)
+        entries = exporter.inventory(root, {"script": 0o755})
+        self.assertEqual(entries[0]["mode"], "0755")
+
+
+if __name__ == "__main__":
+    unittest.main()

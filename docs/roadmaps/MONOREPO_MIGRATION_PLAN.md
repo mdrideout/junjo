@@ -2,21 +2,25 @@
 
 ## Status
 
-Approved and partially implemented.
+Repository implementation complete; external cutover pending.
 
 - The Python SDK and Junjo AI Studio source migration was completed on the
   `codex/platform-monorepo-migration` branch on 2026-07-12.
-- The expanded migration of the website and two Studio deployment
-  distributions is approved but not yet implemented.
-- The Apache-2.0 relicensing of all Junjo-owned components is approved but not
-  yet implemented.
-- The existing source migration evidence is recorded in
-  `MONOREPO_MIGRATION_RECORD.md`. That record must be extended with exact
-  revisions and validation results as the remaining components are imported.
+- The website and both Studio deployment distributions were imported with
+  their preserved histories on the same migration branch.
+- All Junjo-authored components and supported distributions now carry Apache
+  License 2.0.
+- Repository-owned CI, deterministic distribution exports, mirror publication,
+  and the Studio release DAG are implemented and validated.
+- Exact revisions, tree identities, and repository validation results are
+  recorded in `MONOREPO_MIGRATION_RECORD.md`.
+- GitHub environments, credentials, branch protection, Cloudflare, PyPI,
+  production mirrors, and repository retirement remain the external cutover
+  described by `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
-ADR 0001 defines the accepted end state. This plan defines how to move from the
-current partial monorepo to that end state without mixing runtime refactors into
-the structural work.
+ADR 0001 defines the accepted end state. This plan records how the repository
+was moved to that state without mixing runtime refactors into the structural
+work, and identifies the remaining external cutover boundary.
 
 The executable GitHub Actions, environments, credentials, publishing, hosting,
 external-repository, verification, and rollback procedure is defined in
@@ -159,10 +163,9 @@ ownership boundaries.
 and producer/consumer expectations. It contains no Studio or SDK business
 logic.
 
-## Source Baselines
+## Reviewed Pre-Import Source Baselines
 
-Before implementation, refresh and record the exact source tips. The baselines
-reviewed for this plan are:
+The baselines originally reviewed for planning were:
 
 | Component | Reviewed source tip | Important state |
 |---|---|---|
@@ -171,9 +174,10 @@ reviewed for this plan are:
 | Minimal deployment | `e135323140d880b783a12cd28690d7bbd04b9594` | clean; pins Studio 0.81.1 |
 | VM/Caddy deployment | `a6b6bade3dfdfc9ff5ce451df5136ba290562f74` | clean; pins Studio 0.81.1 and SDK 0.63.0 |
 
-Do not begin a history rewrite from a dirty source checkout. The website work
-must first be committed on an intentional source branch and pushed or otherwise
-backed up. Disposable clean clones are then created from recorded revisions.
+Before implementation, each source was preserved on
+`codex/monorepo-source-prep`, then imported from a disposable clean clone. The
+prepared revisions and rewritten import revisions superseding these reviewed
+baselines are recorded in `MONOREPO_MIGRATION_RECORD.md`.
 
 ## Licensing Plan
 
@@ -408,8 +412,9 @@ commits that make their statements true:
   generated status;
 - website README and hosting configuration: identify `apps/website` as source.
 
-Do not update current-state documentation ahead of implementation in a way that
-claims a move, license change, mirror, or deployment has already happened.
+Current-state documentation was updated only with repository changes that have
+passed the repository validation gate. External hosting, mirror, environment,
+and archival claims remain pending until their operator evidence is recorded.
 
 ## Migration Phases
 
