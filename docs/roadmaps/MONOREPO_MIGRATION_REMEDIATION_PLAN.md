@@ -14,9 +14,6 @@ commit and workflow evidence must be appended after publication.
 Pull request 12 and production cutover remain blocked until the remaining
 non-code gates are resolved:
 
-- verify that the applicable Tailwind Plus right permits continued
-  distribution of affected historical commits and tags, or separately approve
-  and execute the history rewrite required by ADR 0002;
 - obtain successful repository and Cloudflare checks from the final pushed
   pull-request revision;
 - complete the credential, trusted-publisher, hosting, first-release, and old
@@ -95,27 +92,26 @@ quick start](https://base-ui.com/react/overview/quick-start), [project and
 license description](https://base-ui.com/react/overview/about), and
 [accessibility contract](https://base-ui.com/react/overview/accessibility).
 
-### 2. Historical Catalyst source
+### 2. Historical Catalyst source — resolved
 
 Deleting Catalyst from `HEAD` fixes current source archives and future builds,
 but does not remove Catalyst blobs from imported commits and tags.
 
-Recommended decision:
+Accepted decision:
 
 - independently rewrite and remove Catalyst from the current tree;
-- confirm that the applicable Tailwind Plus license covers Junjo Studio's
-  historical use and public end-product repository;
+- record the license holder's confirmed Tailwind UI/Plus purchase and Studio
+  application end-product use;
 - retain historical commits without claiming their Catalyst material is
   Apache-2.0;
 - add an explicit third-party/provenance notice that applies to historical
   material;
 - preserve the license confirmation with the migration evidence.
 
-If the requirement is instead that no Catalyst source remain reachable in any
-public clone, the repository and imported tags must be rewritten. That option
-invalidates imported commit IDs, tag IDs, tree proofs, and the current migration
-record, and requires coordinated force-updates of already-pushed migration
-references. It must be approved as a separate migration operation.
+The license holder supplied that confirmation on 2026-07-13. Historical commits
+and tags are intentionally retained under their applicable licenses. No history
+rewrite is required, and the historical-source decision is not a remaining
+cutover gate.
 
 Changing Headless UI imports to Base UI while retaining Catalyst markup,
 Tailwind class recipes, component structure, or visual assets does **not** fix
@@ -399,10 +395,10 @@ The workstream is complete only when:
 | Base UI behavior can ship with Junjo | Yes, with MIT notice | Yes, but Catalyst-derived source remains |
 | Tailwind CSS can remain | Yes | Yes |
 | Future source archives omit Catalyst | Yes | No |
-| Historical Git blobs disappear | No; requires history rewrite | No |
+| Historical Git blobs disappear | No; intentionally retained under the confirmed license | No |
 
 The recommended rewrite fixes the current-tree and future-release problem. The
-separate historical-source decision remains mandatory.
+historical-source decision is resolved and recorded in ADR 0002.
 
 ## Workstream C: make Studio releases one explicit transaction
 
@@ -577,7 +573,7 @@ Extend `detect_ci_changes.py`, its tests, and workflow path ownership so:
 - Add and validate `apps/studio/THIRD_PARTY_NOTICES.md`; third-party libraries
   retain MIT or other applicable licenses.
 - Restore the platform-wide Apache completion claim only after the Catalyst
-  current-tree and historical-source decisions are implemented.
+  current-tree replacement and historical provenance decision are implemented.
 
 ### Workflow integrity
 
@@ -702,8 +698,8 @@ The monorepo migration is complete only when:
 
 - accepted ADRs match the implementation;
 - the current tree contains no Catalyst-derived implementation;
-- historical Catalyst treatment is explicit and legally supported, or history
-  has been deliberately rewritten and all provenance evidence recomputed;
+- historical Catalyst treatment and the license holder's purchase confirmation
+  are recorded while the imported history retains its applicable licenses;
 - current Junjo source and artifacts truthfully identify as Apache-2.0 and
   third-party notices remain intact;
 - every release target is fixed by the release contract and evidenced by exact

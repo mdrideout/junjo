@@ -504,7 +504,7 @@ request commit.
 - [x] All planned source histories imported and recorded.
 - [x] Current Junjo-owned source, package metadata, and OCI metadata declare
   Apache-2.0; Studio lock-bound artifact inventories and notices are present.
-- [ ] Complete and record an artifact-license review of the first built Studio
+- [x] Complete and record an artifact-license review of the first built Studio
   images, including copyright/license-text obligations for bundled frontend
   and statically linked Rust dependencies.
 - [x] `.env`, `.env.bak`, and interrupted private staging files are ignored and
@@ -516,17 +516,15 @@ request commit.
 - [x] Combined-history and current-tree secret scans pass after remediation.
 - [x] Root and scoped documentation are prepared and locally validated.
 - [ ] Record the final pushed revision and successful required workflow runs.
-- [ ] Verify the applicable Tailwind Plus distribution right for historical
-  Catalyst commits/tags, or approve and complete the ADR 0002 history rewrite.
+- [x] Record the license holder's confirmed Tailwind UI/Plus purchase and
+  historical Studio end-product use; retain the imported commits and tags under
+  their applicable historical licenses as decided by ADR 0002.
 - [ ] Create isolated Cloudflare preview projects with the monorepo roots and
   exact build commands above, then record successful previews from the PR head.
 
 Repository implementation produces the evidence required by Gate A. Production
 publishing, hosting cutover, and source-repository retirement do not begin until
 Gate A passes.
-
-The current-source license item does not waive the separate historical
-Catalyst checkbox above.
 
 ### Gate B: Configure production control plane
 

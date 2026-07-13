@@ -22,9 +22,10 @@ commit is pushed and the final pull-request checks provide immutable evidence.
   `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
 The implemented fixes and remaining completion gates are defined in
-`MONOREPO_MIGRATION_REMEDIATION_PLAN.md`. Historical Catalyst distribution
-rights, final pull-request/Cloudflare checks, credentials, publishing, hosting,
-and old-repository retirement remain explicit cutover gates.
+`MONOREPO_MIGRATION_REMEDIATION_PLAN.md`. Historical Catalyst use is resolved
+by the license holder's confirmed Tailwind UI/Plus purchase and application
+end-product use. Final pull-request/Cloudflare checks, credentials, publishing,
+hosting, and old-repository retirement remain explicit cutover gates.
 
 ADR 0001 defines the accepted end state. This plan records how the repository
 was moved to that state without mixing runtime refactors into the structural

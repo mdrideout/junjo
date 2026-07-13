@@ -15,9 +15,11 @@ license it under Apache-2.0.
 The imported Studio history includes source derived from Tailwind Plus
 Catalyst. Catalyst is distributed under the Tailwind Plus license, not
 Apache-2.0. Placing that source beneath Junjo's Apache license does not relicense
-it. Studio needs direct control over its visual language and future
-customization, so retaining Catalyst as the current component foundation is
-also the wrong product boundary.
+it. The license holder confirmed on 2026-07-13 that Tailwind UI/Plus was
+legitimately purchased for Studio and that the historical material was used as
+part of the Studio application end product. Studio still needs direct control
+over its visual language and future customization, so retaining Catalyst as
+the current component foundation is the wrong product boundary.
 
 Ordinary package dependencies present the same general distinction: Junjo may
 combine compatible third-party software with Apache-2.0 software, but must not
@@ -69,6 +71,14 @@ MIT-licensed interaction primitives. Tailwind CSS remains the styling engine.
 The replacement must be designed from Junjo's product requirements and must not
 copy or adapt Catalyst source, component APIs, class recipes, or visual assets.
 
+New shared UI interaction foundations must use native platform behavior or
+open-source primitives under a permissive license suitable for source and
+binary redistribution, such as MIT, BSD, or Apache-2.0. Base UI is the accepted
+default. Introducing a proprietary, commercial-source, source-available, or
+copyleft UI foundation requires a new architectural and artifact-license
+decision before adoption. Feature code continues to consume Junjo-owned
+semantic contracts rather than a third-party component API directly.
+
 The entire current `components/catalyst` tree is removed. No compatibility
 surface, deprecated component alias, or fallback implementation is retained.
 Future Studio releases contain the Junjo replacement and the applicable Base UI
@@ -76,11 +86,11 @@ MIT notice.
 
 Historical commits remain historical provenance. Their Catalyst-derived
 material remains governed by the Tailwind Plus terms that applied to that
-material; the repository Apache license does not relicense it. The source
-repository records that boundary explicitly. If Junjo cannot verify the right
-to continue distributing the historical material as part of the Studio end
-product, the affected history and tags must be rewritten and all migration
-tree, commit, and tag evidence recomputed before cutover.
+material; the repository Apache license does not relicense it. The confirmed
+Tailwind UI/Plus purchase and Studio end-product use resolve the historical
+distribution decision. The imported commits and tags are intentionally
+retained with their historical repository licenses. No history rewrite is
+required, and no current Junjo source or production image contains Catalyst.
 
 ## Component notice ownership
 
@@ -127,9 +137,10 @@ appearance and composition independently from its interaction primitives.
 
 The repository must maintain third-party notices and inventories as
 dependencies and build contents change. New license expressions cannot enter a
-production inventory without an explicit policy change and review. Historical
-Catalyst provenance and current artifact-license approval remain explicit
-cutover gates; neither is implied by a green mechanical inventory check.
+production inventory without an explicit policy change and review. The exact
+artifact evidence must be revalidated after dependency changes and against each
+release; it is not inferred from a green mechanical inventory check alone.
+Historical Catalyst rights are resolved and are not a cutover gate.
 
 ## Rejected alternatives
 
@@ -139,6 +150,9 @@ cutover gates; neither is implied by a green mechanical inventory check.
   markup, APIs, class recipes, and assets would remain Catalyst material.
 - Keep a compatibility copy under a Junjo directory: rejected because it
   preserves the same ownership and licensing problem.
+- Rewrite imported Studio history to remove Catalyst: rejected because the
+  license holder confirmed the applicable purchase and end-product use, while
+  preserving genuine release history has independent value.
 - Remove Tailwind CSS: rejected because Tailwind CSS is MIT-licensed styling
   machinery and is not the source-licensing problem.
 - Claim that the root Apache license covers every dependency: rejected because

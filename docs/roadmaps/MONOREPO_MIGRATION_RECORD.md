@@ -11,9 +11,10 @@ distribution. The fixes required by
 its commit and final workflow runs are recorded below.
 
 This does not claim that the migration has merged or that production cutover is
-complete. Historical Catalyst distribution rights, final pull-request and
-Cloudflare checks, credentials, trusted publishing, hosting cutover, first
-production releases, and old-repository retirement remain explicit gates.
+complete. Final pull-request and Cloudflare checks, credentials, trusted
+publishing, hosting cutover, first production releases, and old-repository
+retirement remain explicit gates. Historical Catalyst rights are resolved by
+the license holder confirmation recorded below.
 
 Production mirror publication, hosting cutover, environment credentials,
 trusted-publisher changes, action-SHA enforcement, the immutable release-tag
@@ -139,6 +140,21 @@ were namespaced as `studio-deployment-v*`. Four tags exist in each namespace.
 The website had no release-tag stream to import. New distribution versions are
 released only by `studio-v*`; the two imported namespaces are historical.
 
+## Historical Catalyst decision
+
+On 2026-07-13, the license holder confirmed that Tailwind UI/Plus was
+legitimately purchased and used for the Junjo AI Studio application end
+product. ADR 0002 therefore accepts preservation of the imported Studio commits
+and tags under the Tailwind Plus terms and the repository licenses present in
+their historical snapshots. The historical distribution-rights gate is closed;
+no history rewrite is required.
+
+The current Junjo UI implementation remains independently authored. Current
+source and artifacts contain no Catalyst component tree, compatibility layer,
+or fallback. New shared UI foundations must use Base UI, native platform
+behavior, or similarly permissively licensed open-source primitives behind
+Junjo-owned semantic component contracts.
+
 ## Local data protection
 
 Only Git-tracked files were moved or imported. Existing ignored SDK example
@@ -224,7 +240,7 @@ for the final pushed-revision checks:
   `@radix-ui/react-switch`, or `radix-ui` dependency. Studio's Junjo-owned
   action, modal, switch, link, and application-shell contracts encapsulate Base
   UI 1.6.0, and `THIRD_PARTY_NOTICES.md` records the Base UI and Tailwind CSS
-  MIT notices plus the historical Catalyst boundary.
+  MIT notices plus resolved historical Catalyst provenance.
 - A clean production build of pre-remediation revision `6341a60` contained
   20,896 KiB across 95 output files, with a 2,653,229-byte main JavaScript chunk
   and 99,137-byte main stylesheet. The final replacement build contains 4,648
@@ -238,13 +254,23 @@ for the final pushed-revision checks:
   exact Cargo-metadata regeneration, installed frontend override evidence, and
   production image copy contracts passed. All three images carry Junjo's
   license and Studio notice; the frontend/ingestion images carry their
-  inventories and the backend carries its production lock. These are review
-  inputs, not legal approval; the first-image artifact-license review remains
-  an external Gate A item. Inspection of the final local Linux/AMD64 images
-  found the common license at
+  inventories and the backend carries its production lock. The first-image
+  technical artifact-license review completed on 2026-07-13: every dependency
+  has an accepted expression, the sole frontend metadata override is bound to
+  the exact Khroma registry license file, and no unknown license remains. The
+  decision approves these dependency closures and notices for the first Studio
+  release; exact registry digests remain subject to Gate C verification. This
+  technical record is not legal advice. Inspection of the final local
+  Linux/ARM64 images found image IDs
+  `3deec967201f9928b3518f4a0920df1d56f054e348d9ab85616da61e3358db2d`
+  (backend),
+  `f6c128acbb491d786784bd4fdc268d8d2505342a64437993692e6015dd6f6a32`
+  (frontend), and
+  `2166260c41417edf6e2db0e9ec5c2d377e3032aa189723f1b3da1abac7067c82`
+  (ingestion). Their common license hash is
   `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`,
   the common notice at
-  `c64e3b1fc066da867f0a6f3f725b24e5e3b494c20dc3b35d3ba3eb933d5ef8b3`,
+  `e7879d9e3717ffa1f8699d93aaa4e9041da0003871af664a10e5810b2ee93462`,
   and component evidence hashes `095499e643cb88caee1ebef99e81e859b71cc77367357032e4d3fb1204d8912a`
   (backend), `f7145b5efff0ef63b18589f09d6438882541782577997d1dc44ff231e88abcdf`
   (frontend), and
@@ -294,7 +320,6 @@ for the final pushed-revision checks:
 
 No production authority was used by these validations. The no-credential
 Studio workflow dispatch, final pull-request checks, Cloudflare previews,
-historical Catalyst rights confirmation, artifact-license approval,
 protected-environment credentials, old-publisher disablement, live Docker Hub
 immutable-rule configuration, exclusive-authority confirmation, and first
 production releases remain cutover evidence and are not claimed here.

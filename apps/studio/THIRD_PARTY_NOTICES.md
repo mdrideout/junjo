@@ -127,9 +127,10 @@ replacement contain source derived from Tailwind Plus Catalyst. That material
 is governed by the Tailwind Plus license, not Apache-2.0:
 <https://tailwindcss.com/plus/license>.
 
-The current source tree and current frontend build do not contain that
-Catalyst-derived component tree. Continued distribution of affected historical
-revisions is conditional on verifying the applicable Tailwind Plus
-distribution rights before production cutover. If those rights cannot be
-verified, the affected history and tags must be rewritten as required by
-platform ADR 0002.
+The license holder confirmed on 2026-07-13 that Tailwind UI/Plus was
+legitimately purchased and used for the Studio application end product. The
+historical commits and tags are therefore intentionally retained under the
+applicable Tailwind Plus terms and their historical repository licenses. This
+is a provenance record, not a notice that Catalyst is incorporated into a
+current artifact: the current source tree and every current frontend build and
+production image contain no Catalyst-derived component tree.

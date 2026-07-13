@@ -52,13 +52,17 @@ are independently authored from Studio's requirements and do not copy or adapt
 Catalyst source, markup recipes, APIs, class recipes, or assets.
 
 Existing third-party primitives that are outside the replaced surface may
-remain until their owning feature is intentionally changed. They are not the
-default for new shared interaction behavior.
+remain when they are open source under a permissive license suitable for source
+and binary redistribution. They are not the default for new shared interaction
+behavior.
 
 ## Boundaries
 
 - Shared components expose product semantics, not a catalog of arbitrary
   colors or every underlying primitive option.
+- New shared interaction machinery uses Base UI, native browser behavior, or a
+  similarly permissively licensed open-source primitive. Proprietary,
+  commercial-source, and source-available component foundations are excluded.
 - Features own content and feature state; shared components own interaction
   behavior and shared presentation.
 - Buttons remain buttons and links remain links.
