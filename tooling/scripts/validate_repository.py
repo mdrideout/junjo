@@ -55,6 +55,7 @@ REQUIRED_PATHS = (
     ".github/workflows/platform-gate.yml",
     ".github/workflows/studio-deployments.yml",
     ".github/workflows/studio-docker-publish.yml",
+    ".github/workflows/studio-release-validation.yml",
     ".github/workflows/website-ci.yml",
     "tooling/scripts/detect_ci_changes.py",
     "tooling/scripts/build_studio_release_evidence.py",
@@ -364,6 +365,9 @@ def validate_release_routing() -> None:
     studio_publish = (workflow_root / "studio-docker-publish.yml").read_text(
         encoding="utf-8"
     )
+    studio_validation = (
+        workflow_root / "studio-release-validation.yml"
+    ).read_text(encoding="utf-8")
     distribution_publisher = (
         PLATFORM_ROOT / "tooling/scripts/publish_studio_distribution.py"
     ).read_text(encoding="utf-8")
@@ -390,7 +394,7 @@ def validate_release_routing() -> None:
     ).read_text(encoding="utf-8")
     require(
         'expected_tag = f"studio-v{studio_version}"' in release_policy
-        and "--release-tag" in studio_publish,
+        and "--release-tag" in studio_validation,
         "Studio publishing must validate the exact Studio version tag",
     )
     require(
@@ -407,19 +411,29 @@ def validate_release_routing() -> None:
         "Studio release transactions must never cancel an in-progress release",
     )
     require(
-        "python3 tooling/scripts/validate_studio_release_policy.py" in studio_publish
-        and "--existing-releases" in studio_publish
-        and "--existing-tags" in studio_publish
-        and 'gh release view "$GITHUB_REF_NAME"' in studio_publish
-        and "git tag --list 'studio-v*'" in studio_publish
-        and "git merge-base --is-ancestor" in studio_publish
+        "python3 tooling/scripts/validate_studio_release_policy.py"
+        in studio_validation
+        and "--existing-releases" in studio_validation
+        and "--existing-tags" in studio_validation
+        and 'gh release view "$GITHUB_REF_NAME"' in studio_validation
+        and "git tag --list 'studio-v*'" in studio_validation
+        and "git merge-base --is-ancestor" in studio_validation
         and "classify-images" in studio_publish,
         "Studio admission must validate GitHub releases and every fetched stable tag",
     )
     require(
-        studio_publish.index("validate_studio_release_policy.py")
-        < studio_publish.index("Build and push architecture image by digest"),
-        "Studio release admission must run before registry mutation",
+        "validation:\n    name: Studio release validation\n"
+        "    uses: ./.github/workflows/studio-release-validation.yml"
+        in studio_publish
+        and "needs: validation" in studio_publish,
+        "Studio publication must wait for shared read-only release validation",
+    )
+    require(
+        "workflow_call:" in studio_validation
+        and "contents: write" not in studio_validation
+        and "workflow_call:" not in studio_publish
+        and "permissions:\n      contents: write" in studio_publish,
+        "read-only release validation and write-capable publication must remain separate",
     )
     require(
         "environment: studio-dockerhub-production" in studio_publish,
@@ -434,11 +448,11 @@ def validate_release_routing() -> None:
         "final Studio GitHub release mutation must use its protected environment",
     )
     require(
-        "needs: [prepare, deployments, smoke_exact_release]" in studio_publish,
+        "needs: [validation, smoke_exact_release]" in studio_publish,
         "distribution publication must wait for deployment and exact-image smoke checks",
     )
     require(
-        "needs: [prepare, publish_distributions]" in studio_publish,
+        "needs: [validation, publish_distributions]" in studio_publish,
         "floating image tags must wait for successful distribution publication",
     )
     require(
@@ -466,10 +480,10 @@ def validate_release_routing() -> None:
         in studio_publish
         and studio_publish.count("overwrite: true") == 3
         and "run_attempt: ${{ steps.attempt.outputs.run_attempt }}"
-        in studio_publish
+        in studio_validation
         and studio_publish.count("Reject partial production rerun") == 8
         and studio_publish.count(
-            "ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}"
+            "ADMITTED_RUN_ATTEMPT: ${{ needs.validation.outputs.run_attempt }}"
         )
         == 8,
         "Studio release artifacts must be stable and partial reruns must fail closed",
@@ -531,11 +545,13 @@ def validate_release_routing() -> None:
         "the platform gate must expose one stable final required check",
     )
     require(
-        "workflow_call:" in studio_publish
-        and "studio_release_rehearsal:" in platform_gate
-        and "uses: ./.github/workflows/studio-docker-publish.yml" in platform_gate
+        "studio_release_rehearsal:" in platform_gate
+        and "uses: ./.github/workflows/studio-release-validation.yml"
+        in platform_gate
+        and "uses: ./.github/workflows/studio-docker-publish.yml"
+        not in platform_gate
         and "STUDIO_RELEASE_REHEARSAL_RESULT" in platform_gate,
-        "affected pull requests must run and gate the shared Studio release rehearsal",
+        "affected pull requests must gate only on read-only Studio release validation",
     )
     rehearsal_owned_components = (
         "studio_backend",
@@ -557,7 +573,7 @@ def validate_release_routing() -> None:
         "deployment changes must run only through the shared release rehearsal umbrella",
     )
     require(
-        'refs/tags/${REF_NAME}^{commit}' in studio_publish
+        'refs/tags/${REF_NAME}^{commit}' in studio_validation
         and 'refs/tags/${GITHUB_REF_NAME}^{commit}' in studio_publish
         and "Release tag $GITHUB_REF_NAME moved" in studio_publish,
         "Studio release admission and finalization must bind the live tag target",

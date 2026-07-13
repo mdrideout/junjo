@@ -153,6 +153,12 @@ release.
 
 ### Credential boundaries
 
+- `.github/workflows/studio-release-validation.yml` is the single reusable
+  admission, test, deployment, and dry-build layer. It has only
+  `contents: read` and is called by both the pull-request gate and publisher.
+- `.github/workflows/studio-docker-publish.yml` is not reusable. This prevents
+  its write-capable finalizer from entering a read-only pull-request workflow
+  graph.
 - Docker mutation uses `studio-dockerhub-production`.
 - `studio-dockerhub-production` must define
   `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` only after every old Studio
@@ -194,6 +200,7 @@ release.
 ## Related
 
 - `tooling/studio_release_contract.json`
+- `.github/workflows/studio-release-validation.yml`
 - `.github/workflows/studio-docker-publish.yml`
 - `tooling/scripts/validate_studio_release_policy.py`
 - `tooling/scripts/build_studio_release_evidence.py`

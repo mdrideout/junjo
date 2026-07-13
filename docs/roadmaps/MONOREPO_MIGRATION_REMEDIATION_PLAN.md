@@ -615,14 +615,16 @@ Run and record, in dependency order:
     previews from the pull request head without changing either production
     project.
 
-The production release workflow is reusable through `workflow_call`; the
-platform gate invokes it for affected pull requests. Production and
-pull-request dry-run therefore share the same repository-owned admission,
-validation, and build jobs without maintaining a weaker approximation. When
-deployment or release ownership is affected, this rehearsal is the umbrella:
-the gate skips its direct Studio, telemetry, and deployment calls so those
-checks execute once. Component-only changes continue to use the smaller direct
-jobs.
+The read-only release-validation workflow is reusable through `workflow_call`;
+both the top-level publisher and platform gate invoke it. Production and
+pull-request dry-runs therefore share the same repository-owned admission,
+validation, and build jobs without maintaining a weaker approximation. The
+publisher itself is not reusable because its finalizer has job-scoped
+`contents: write`; this keeps write capability out of the pull-request workflow
+graph. When deployment or release ownership is affected, validation is the
+umbrella: the gate skips its direct Studio, telemetry, and deployment calls so
+those checks execute once. Component-only changes continue to use the smaller
+direct jobs.
 
 ### Gate B: production control-plane configuration
 

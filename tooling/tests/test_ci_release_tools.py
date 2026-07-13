@@ -321,12 +321,24 @@ class StudioReleasePolicyTests(unittest.TestCase):
         release_workflow = (
             REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
         ).read_text(encoding="utf-8")
+        validation_workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-release-validation.yml"
+        ).read_text(encoding="utf-8")
         platform_gate = (
             REPOSITORY_ROOT / ".github/workflows/platform-gate.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("workflow_call:", release_workflow)
+        self.assertNotIn("workflow_call:", release_workflow)
+        self.assertIn("workflow_call:", validation_workflow)
+        self.assertNotIn("contents: write", validation_workflow)
+        self.assertIn(
+            "uses: ./.github/workflows/studio-release-validation.yml",
+            release_workflow,
+        )
         self.assertIn("studio_release_rehearsal:", platform_gate)
         self.assertIn(
+            "uses: ./.github/workflows/studio-release-validation.yml", platform_gate
+        )
+        self.assertNotIn(
             "uses: ./.github/workflows/studio-docker-publish.yml", platform_gate
         )
         self.assertIn("STUDIO_RELEASE_REHEARSAL_RESULT", platform_gate)
@@ -352,9 +364,13 @@ class StudioReleasePolicyTests(unittest.TestCase):
         workflow = (
             REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
         ).read_text(encoding="utf-8")
+        validation_workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-release-validation.yml"
+        ).read_text(encoding="utf-8")
         self.assertNotIn("${{ github.run_attempt }}", workflow)
         self.assertIn(
-            "run_attempt: ${{ steps.attempt.outputs.run_attempt }}", workflow
+            "run_attempt: ${{ steps.attempt.outputs.run_attempt }}",
+            validation_workflow,
         )
         self.assertIn(
             "candidate-${SOURCE_REVISION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}",
@@ -385,7 +401,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
             body = match.group("body") if match is not None else ""
             self.assertIn("Reject partial production rerun", body)
             self.assertIn(
-                "ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}",
+                "ADMITTED_RUN_ATTEMPT: ${{ needs.validation.outputs.run_attempt }}",
                 body,
             )
             self.assertIn(

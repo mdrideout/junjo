@@ -1,0 +1,222 @@
+name: Studio Release Validation
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Optional Studio version assertion for a no-credential rehearsal
+        required: false
+        type: string
+    outputs:
+      version:
+        description: Validated Studio version
+        value: ${{ jobs.prepare.outputs.version }}
+      major_minor:
+        description: Validated Studio major/minor version
+        value: ${{ jobs.prepare.outputs.major_minor }}
+      source_revision:
+        description: Validated full source revision
+        value: ${{ jobs.prepare.outputs.source_revision }}
+      production:
+        description: Whether the caller is a production Studio tag push
+        value: ${{ jobs.prepare.outputs.production }}
+      release_state:
+        description: Validated release transaction state
+        value: ${{ jobs.prepare.outputs.release_state }}
+      run_attempt:
+        description: Workflow attempt that performed admission
+        value: ${{ jobs.prepare.outputs.run_attempt }}
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      major_minor: ${{ steps.release.outputs.major_minor }}
+      source_revision: ${{ steps.release.outputs.source_revision }}
+      production: ${{ steps.release.outputs.production }}
+      release_state: ${{ steps.release.outputs.release_state }}
+      run_attempt: ${{ steps.attempt.outputs.run_attempt }}
+    steps:
+      - name: Record admitted workflow attempt
+        id: attempt
+        run: echo "run_attempt=$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Read existing GitHub releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCTION_EVENT: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/studio-v') }}
+        run: |
+          gh release list \
+            --repo "$GITHUB_REPOSITORY" \
+            --limit 1000 \
+            --json tagName,isDraft,isPrerelease \
+            > /tmp/studio-existing-releases.json
+          if [ "$PRODUCTION_EVENT" = "true" ] && \
+             gh release view "$GITHUB_REF_NAME" \
+               --repo "$GITHUB_REPOSITORY" \
+               --json tagName,isDraft,isPrerelease \
+               > /tmp/studio-candidate-release.json 2>/dev/null; then
+            python3 - <<'PY'
+          import json
+          import pathlib
+
+          releases_path = pathlib.Path("/tmp/studio-existing-releases.json")
+          releases = json.loads(releases_path.read_text(encoding="utf-8"))
+          candidate = json.loads(
+              pathlib.Path("/tmp/studio-candidate-release.json").read_text(encoding="utf-8")
+          )
+          if not any(release["tagName"] == candidate["tagName"] for release in releases):
+              releases.append(candidate)
+          releases_path.write_text(
+              json.dumps(releases, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+          fi
+      - name: Validate release admission policy
+        id: release
+        env:
+          PRODUCTION_EVENT: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/studio-v') }}
+          REF_NAME: ${{ github.ref_name }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
+          git fetch --no-tags origin master
+          git fetch --force --tags origin
+          git tag --list 'studio-v*' |
+            python3 -c 'import json,sys; json.dump([line.strip() for line in sys.stdin if line.strip()], sys.stdout)' \
+            > /tmp/studio-existing-tags.json
+          POLICY_ARGUMENTS=(
+            --studio-version "$VERSION"
+            --source-revision "$GITHUB_SHA"
+            --existing-releases /tmp/studio-existing-releases.json
+            --existing-tags /tmp/studio-existing-tags.json
+            --github-output "$GITHUB_OUTPUT"
+          )
+          if [ "$PRODUCTION_EVENT" = "true" ]; then
+            TAG_TARGET="$(git rev-parse --verify "refs/tags/${REF_NAME}^{commit}")"
+            if [ "$TAG_TARGET" != "$GITHUB_SHA" ]; then
+              echo "Fetched release tag $REF_NAME points to $TAG_TARGET, expected event revision $GITHUB_SHA." >&2
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+              echo "Release revision $GITHUB_SHA is not reachable from origin/master." >&2
+              exit 1
+            fi
+            POLICY_ARGUMENTS+=(
+              --mode production
+              --release-tag "$REF_NAME"
+              --source-is-on-master
+            )
+          else
+            if [ -n "$REQUESTED_VERSION" ] && [ "$REQUESTED_VERSION" != "$VERSION" ]; then
+              echo "Dry-run version must be $VERSION, received $REQUESTED_VERSION." >&2
+              exit 1
+            fi
+            POLICY_ARGUMENTS+=(--mode dry-run)
+          fi
+          python3 tooling/scripts/validate_studio_release_policy.py \
+            admit \
+            "${POLICY_ARGUMENTS[@]}"
+
+  studio_backend:
+    name: Studio backend and ingestion
+    needs: prepare
+    uses: ./.github/workflows/studio-backend-tests.yml
+
+  studio_frontend:
+    name: Studio frontend
+    needs: prepare
+    uses: ./.github/workflows/studio-frontend-tests.yml
+
+  studio_proto:
+    name: Studio protobufs
+    needs: prepare
+    uses: ./.github/workflows/studio-proto-staleness-check.yml
+
+  studio_rest:
+    name: Studio REST contract
+    needs: prepare
+    uses: ./.github/workflows/studio-rest-api-contract-validation.yml
+
+  studio_version:
+    name: Studio version
+    needs: prepare
+    uses: ./.github/workflows/studio-version-sync-check.yml
+
+  telemetry:
+    name: Telemetry contract
+    needs: prepare
+    uses: ./.github/workflows/telemetry-contract.yml
+
+  deployments:
+    name: Studio deployment distributions
+    needs: prepare
+    uses: ./.github/workflows/studio-deployments.yml
+
+  dry_build:
+    if: needs.prepare.outputs.production == 'false'
+    needs:
+      - prepare
+      - studio_backend
+      - studio_frontend
+      - studio_proto
+      - studio_rest
+      - studio_version
+      - telemetry
+      - deployments
+    name: Dry build ${{ matrix.service }} for ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: backend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: frontend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: frontend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: ingestion
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: ingestion
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build without publishing
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./apps/studio
+          file: ./apps/studio/${{ matrix.service }}/Dockerfile
+          target: production
+          platforms: ${{ matrix.platform }}
+          push: false
+          cache-from: type=gha,scope=studio-dry-${{ matrix.service }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=studio-dry-${{ matrix.service }}-${{ matrix.arch }}

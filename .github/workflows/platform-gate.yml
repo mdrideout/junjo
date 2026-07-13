@@ -95,7 +95,7 @@ jobs:
     name: Studio release rehearsal
     needs: detect
     if: needs.detect.outputs.deployments == 'true'
-    uses: ./.github/workflows/studio-docker-publish.yml
+    uses: ./.github/workflows/studio-release-validation.yml
 
   website:
     name: Website

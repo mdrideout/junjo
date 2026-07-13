@@ -246,9 +246,10 @@ path-filtered component workflow a required branch-protection context.
   workflows; component workflows retain path-filtered `push`, manual, and
   `workflow_call` triggers without duplicate direct pull-request triggers.
 - When deployment or release ownership is affected, the shared Studio release
-  rehearsal owns the Studio, telemetry, and deployment checks. The gate skips
-  the corresponding direct jobs; component-only changes still use direct
-  routing.
+  validation workflow owns admission, Studio, telemetry, deployment, and dry
+  build checks. The gate skips the corresponding direct jobs; component-only
+  changes still use direct routing. The write-capable publisher is not reusable
+  and is never part of the pull-request workflow graph.
 - No live model credentials.
 - Fixed non-production application test secrets only.
 - Explicit `permissions: contents: read`.
@@ -326,9 +327,11 @@ successful admission and live-control jobs would be stale. Use "Re-run all
 jobs" so admission, Docker Hub controls, and all producer evidence are refreshed.
 Evidence from another workflow run is never selected.
 
-The same workflow supports manual dry-run and pull-request `workflow_call`
-rehearsal modes. They perform validation and build inspected artifacts but do
-not push images, update mirrors, promote tags, or publish a release.
+The manual publisher and pull-request gate both call the same read-only
+`studio-release-validation.yml` workflow. It performs admission, component and
+deployment validation, and inspected dry builds without publishing credentials.
+`studio-docker-publish.yml` is a top-level tag/manual workflow only; its
+write-capable jobs cannot enter a pull-request reusable-workflow graph.
 
 ## Distribution Export Contract
 
