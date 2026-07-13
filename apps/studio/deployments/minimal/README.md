@@ -11,7 +11,7 @@
 
 A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
 
-This template pins Junjo AI Studio `0.81.3`. Applications that emit Junjo workflow telemetry should use Junjo `0.63.0`.
+This template pins Junjo AI Studio `0.81.4`. Applications that emit Junjo workflow telemetry should use Junjo `0.63.0`.
 
 A Junjo AI Studio instance can be used for an unlimited number of projects that use the [Junjo](https://github.com/mdrideout/junjo) python AI graph workflow framework. Any Junjo Application can send telemetry to this Junjo AI Studio instance, assuming it has valid API Key credentials.
 
@@ -261,9 +261,9 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 
 **Deployment Approach:**
 - Create 3 separate "Web Services" from the Docker images:
-  - `mdrideout/junjo-ai-studio-backend:0.81.3`
-  - `mdrideout/junjo-ai-studio-ingestion:0.81.3`
-  - `mdrideout/junjo-ai-studio-frontend:0.81.3`
+  - `mdrideout/junjo-ai-studio-backend:0.81.4`
+  - `mdrideout/junjo-ai-studio-ingestion:0.81.4`
+  - `mdrideout/junjo-ai-studio-frontend:0.81.4`
 - Add persistent disks for data volumes
 
 **Volume Configuration:**
@@ -316,17 +316,17 @@ JUNJO_SECURE_COOKIE_KEY=<generated-secret>
 ```
 Services to Deploy:
 1. junjo-backend
-   - Image: mdrideout/junjo-ai-studio-backend:0.81.3
+   - Image: mdrideout/junjo-ai-studio-backend:0.81.4
    - Port: 26154
    - Volume: /app/.dbdata
 
 2. junjo-ingestion
-   - Image: mdrideout/junjo-ai-studio-ingestion:0.81.3
+   - Image: mdrideout/junjo-ai-studio-ingestion:0.81.4
    - Port: 26155
    - Volume: /app/.dbdata
 
 3. junjo-frontend
-   - Image: mdrideout/junjo-ai-studio-frontend:0.81.3
+   - Image: mdrideout/junjo-ai-studio-frontend:0.81.4
    - Port: 26153
 ```
 
