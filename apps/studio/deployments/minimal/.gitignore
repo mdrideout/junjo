@@ -1,0 +1,9 @@
+# Environment files (contains secrets)
+.env
+.env.bak
+
+# Database data directories (contains user data)
+.dbdata/
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
