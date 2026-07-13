@@ -333,7 +333,8 @@ class StudioReleasePolicyTests(unittest.TestCase):
         self.assertIn(
             "uses: ./.github/workflows/platform-integrity.yml", platform_gate
         )
-        self.assertIn("PLATFORM_RESULT: ${{ needs.platform.result }}", platform_gate)
+        self.assertNotIn("name: required", platform_gate)
+        self.assertNotIn("PLATFORM_RESULT", platform_gate)
         self.assertNotIn("studio-release-validation.yml", platform_gate)
         self.assertNotIn("detect_ci_changes", platform_gate)
         for workflow in (

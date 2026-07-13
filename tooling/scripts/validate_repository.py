@@ -538,11 +538,10 @@ def validate_release_routing() -> None:
         "both mirror destinations must be validated before any mirror publication",
     )
     require(
-        "name: required" in platform_gate
-        and "if: always()" in platform_gate
-        and "uses: ./.github/workflows/platform-integrity.yml" in platform_gate
-        and "PLATFORM_RESULT: ${{ needs.platform.result }}" in platform_gate,
-        "the pull-request gate must expose one stable platform-integrity check",
+        "uses: ./.github/workflows/platform-integrity.yml" in platform_gate
+        and "name: required" not in platform_gate
+        and "PLATFORM_RESULT" not in platform_gate,
+        "pull requests must report platform integrity without a synthetic required gate",
     )
     forbidden_pr_workflows = (
         "python-ci.yml",

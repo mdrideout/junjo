@@ -12,19 +12,3 @@ jobs:
   platform:
     name: Platform integrity
     uses: ./.github/workflows/platform-integrity.yml
-
-  required:
-    name: required
-    runs-on: ubuntu-latest
-    if: always()
-    needs: platform
-    env:
-      PLATFORM_RESULT: ${{ needs.platform.result }}
-    steps:
-      - name: Enforce platform integrity result
-        run: |
-          if [ "$PLATFORM_RESULT" != "success" ]; then
-            echo "Platform integrity failed: $PLATFORM_RESULT" >&2
-            exit 1
-          fi
-          echo "Platform integrity passed."

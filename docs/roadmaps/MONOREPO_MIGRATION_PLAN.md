@@ -16,7 +16,7 @@ merged with history preserved at
 - Exact revisions, tree identities, and repository validation results are
   recorded in `MONOREPO_MIGRATION_RECORD.md`.
 - Tag-restricted GitHub environments and base branch protection are configured;
-  the required checks passed on the final revision. Credentials, action-SHA
+  repository validation passed on the final revision. Credentials, action-SHA
   enforcement, the immutable release-tag ruleset, Cloudflare, PyPI, production
   mirrors, and repository retirement remain the external cutover described by
   `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
@@ -24,7 +24,7 @@ merged with history preserved at
 The implemented fixes and remaining completion gates are defined in
 `MONOREPO_MIGRATION_REMEDIATION_PLAN.md`. Historical Catalyst use is resolved
 by the license holder's confirmed Tailwind UI/Plus purchase and application
-end-product use. Required pull-request checks are complete. Credentials,
+end-product use. Pull-request validation is complete. Credentials,
 publishing, hosting, and old-repository retirement remain explicit cutover
 work. The Python docs Cloudflare project is edited in place; the website Pages
 project is deleted/recreated because Cloudflare cannot change the repository of
@@ -602,7 +602,7 @@ state.
 
 Work:
 
-- configure destination branch protection and required checks;
+- configure destination branch protection and informational CI checks;
 - configure website hosting secrets and environment;
 - configure deployment mirror credentials;
 - publish and verify the website from `apps/website`;

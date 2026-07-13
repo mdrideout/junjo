@@ -58,7 +58,8 @@ Snapshot date: 2026-07-13.
 - all GitHub Actions allowed and no repository-level SHA-pin requirement;
 - strict `master` protection with administrator enforcement and conversation
   resolution;
-- required checks named `required` and `Gitleaks Scan`;
+- no required status checks; Actions report validation without blocking direct
+  pushes or merges;
 - no repository rulesets.
 
 The new monorepo workflows are active on `master` after merge commit
@@ -285,18 +286,19 @@ website deployment environments or Cloudflare API secrets for this cutover.
 
 ## Repository-Committable Workflow Work
 
-### Stable required checks
+### Informational pull-request checks
 
 The always-triggered pull-request gate runs only fast repository integrity
 validation. It does not call component suites, deployment smoke, image builds,
-or the Studio release rehearsal. A final `required` job uses `if: always()` and
-emits one stable status-check name.
+or the Studio release rehearsal.
 
-Target required checks:
+Reported checks:
 
-- `Platform Gate / required` in the pull-request UI (`required` as the branch
-  protection API context)
+- `Platform Gate / Platform integrity / repository-invariants`
 - `Gitleaks Scan`
+
+Neither check is required by `master` protection. This keeps validation visible
+without making Actions a prerequisite for direct pushes or merges.
 
 Component workflows remain path-scoped on pushes to `master` and available for
 manual execution. The complete Studio suite, deployment proof, dry builds, and
@@ -536,28 +538,12 @@ Before the next Python release:
 PyPI versions cannot be reused. Recovery from a publication problem is a new
 corrective package version.
 
-## Branch Protection Cutover
+## Branch Protection Policy
 
-Do not update required contexts before the new context has completed on a pull
-request commit.
-
-1. Open a migration pull request.
-2. Run every new workflow and resolve all failures.
-3. Confirm `Platform Gate / required` and `Gitleaks Scan` appear on the PR head.
-4. Snapshot existing branch protection.
-5. Replace `library-health` with the stable platform-gate context.
-6. Retain:
-   - strict up-to-date branch requirement;
-   - administrator enforcement;
-   - conversation resolution;
-   - force-push prohibition;
-   - branch-deletion prohibition.
-7. If review requirements are enabled, account for the solo-maintainer workflow;
-   do not configure an impossible self-approval policy.
-8. Verify an unaffected documentation PR can pass without a pending component
-   workflow.
-9. Verify Python, Studio, contract, deployment, and website test PRs each run
-   their owning checks.
+`master` does not require status checks or pull-request approval. Actions remain
+visible validation signals, while direct pushes and merges are allowed. Keep
+administrator enforcement, conversation resolution, force-push prohibition,
+and branch-deletion prohibition enabled.
 
 ## Repository Cutover Sequence
 
@@ -610,7 +596,8 @@ item links to the detailed purpose, location, action, and verification above.
 - [ ] [Reconfigure Cloudflare](#cloudflare-pages-cutover): edit Python docs in
   place, delete/recreate the website project from the monorepo, and verify both
   production domains.
-- [x] Required pull-request checks are exactly `required` and `Gitleaks Scan`.
+- [x] `master` has no required status checks; pull-request Actions are
+  informational.
 
 ### Gate C: Publish and verify
 

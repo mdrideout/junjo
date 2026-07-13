@@ -40,8 +40,8 @@ commits alone.
 
 Verified through the GitHub API on 2026-07-13:
 
-- `master` protection is strict, enforced for administrators, requires resolved
-  conversations, and requires `required` plus `Gitleaks Scan`;
+- `master` protection is enforced for administrators and requires resolved
+  conversations, but Actions status checks do not block pushes or merges;
 - `pypi` allows only `sdk-python-v*` tags;
 - `studio-dockerhub-production`, `studio-distributions-production`, and
   `studio-release-production` allow only `studio-v*` tags;
@@ -374,7 +374,8 @@ not claimed here.
   `apps/studio/deployments/vm-caddy`.
 - [ ] Cut website hosting over to `apps/website`, then archive the old website
   source repository with a destination notice.
-- [x] Configure required checks and branch protection in the destination.
+- [x] Configure informational Actions checks and branch protection in the
+  destination.
 - [x] Create tag-restricted publishing environments in the destination.
 - [ ] Recreate or rotate the approved Studio publishing credentials in their
   owning environments.

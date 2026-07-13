@@ -196,7 +196,8 @@ Do this first so subsequent work is not guided by false completion claims.
   `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md` to unchecked unless an exact run,
   settings snapshot, digest, commit, or deployment URL is recorded.
 - Record the current control-plane facts without implying completion:
-  - branch protection requires `required` and `Gitleaks Scan`;
+  - branch protection reports platform integrity and Gitleaks without requiring
+    either status for pushes or merges;
   - `pypi`, `studio-dockerhub-production`,
     `studio-distributions-production`, and `studio-release-production`
     environments exist;
