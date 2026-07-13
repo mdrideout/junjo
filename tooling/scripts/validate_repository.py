@@ -506,10 +506,9 @@ def validate_release_routing() -> None:
     require(
         "Validate live Docker Hub immutable-tag controls" in studio_publish
         and "validate-dockerhub" in studio_publish
-        and "STUDIO_RELEASE_AUTHORITY_CUTOVER" in studio_publish
         and studio_publish.index("Validate live Docker Hub immutable-tag controls")
         < studio_publish.index("Build and push architecture image by digest"),
-        "Studio registry mutation must wait for live immutability and authority controls",
+        "Studio registry mutation must wait for live immutability controls",
     )
     require(
         "JUNJO_MINIMAL_MIRROR" not in studio_publish

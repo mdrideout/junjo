@@ -76,10 +76,9 @@ The transaction advances in this order:
    target, prior releases, and the publication contract without production
    credentials.
 2. **Validated**: all Studio, telemetry, and distribution checks pass.
-3. **Registry controls proven**: the protected environment confirms this
-   monorepo is the exclusive release authority, and live Docker Hub settings
-   prove that stable `X.Y.Z` and full 40-character source-SHA tags are immutable
-   while floating tags remain mutable.
+3. **Registry controls proven**: live Docker Hub settings prove that stable
+   `X.Y.Z` and full 40-character source-SHA tags are immutable while floating
+   tags remain mutable.
 4. **Candidate images built**: architecture images are pushed by digest and
    combined into run-scoped candidate manifests.
 5. **Immutable images published**: every service's version and full source-SHA
@@ -162,11 +161,9 @@ release.
   its write-capable finalizer from entering a read-only pull-request workflow
   graph.
 - Docker mutation uses `studio-dockerhub-production`.
-- `studio-dockerhub-production` must define
-  `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` only after every old Studio
-  publisher and Docker Hub autobuild is disabled. The registry-control job
-  checks that assertion and live Docker Hub immutable-tag settings before the
-  first image mutation.
+- `studio-dockerhub-production` contains only the Docker Hub username and token.
+  The registry-control job checks live Docker Hub immutable-tag settings before
+  the first image mutation.
 - Mirror mutation uses `studio-distributions-production`.
 - Final GitHub release mutation uses `studio-release-production` with
   job-scoped `contents: write`.

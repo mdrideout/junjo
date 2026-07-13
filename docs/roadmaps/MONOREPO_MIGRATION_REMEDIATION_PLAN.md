@@ -126,8 +126,7 @@ Recommended decision:
 - Docker Hub itself enforces immutability for stable `X.Y.Z` and full
   40-character source-SHA tags, while `major.minor`, `latest`, and run-scoped
   candidate tags remain mutable;
-- the old Studio publisher is disabled before this monorepo is confirmed as
-  the exclusive release authority;
+- the old Studio publisher is disabled during the forward-only cutover;
 - exact mirrors and image repositories are repository-owned data, not mutable
   workflow input;
 - the GitHub release remains the final publication step and uses a dedicated
@@ -415,10 +414,8 @@ historical-source decision is resolved and recorded in ADR 0002.
 - After candidate image construction, classify an empty immutable-tag set as
   `new`, matching partial version/source-SHA tags as `resume`, and any digest
   conflict as `stale`. Only `new` and `resume` proceed.
-- Before any registry mutation, require the protected control-plane assertion
-  that this monorepo is the exclusive Studio publisher and validate the live
-  immutable-tag settings of all three Docker Hub repositories against the
-  release contract.
+- Before any registry mutation, validate the live immutable-tag settings of all
+  three Docker Hub repositories against the release contract.
 - Revalidate both source reachability and the live release-tag target before
   final GitHub release creation.
 - Keep manual and pull-request dry-runs capable of validating the checked-out
@@ -463,9 +460,6 @@ an interrupted same-version resume. Only the valid partial resume proceeds.
 - Add `studio-release-production`, with no secrets and only `studio-v*` tags
   allowed, to the final GitHub release job.
 - Keep Docker credentials only in `studio-dockerhub-production`.
-- Keep `STUDIO_RELEASE_AUTHORITY_CUTOVER` in that protected environment unset
-  until the old publisher and Docker Hub autobuilds are disabled; then set it
-  to the exact monorepo repository identity.
 - Keep mirror credentials only in `studio-distributions-production`.
 - Preserve ordering: immutable images, exact-image smoke, immutable mirrors,
   floating tags, Docker descriptions, final evidence, GitHub release.
@@ -620,10 +614,9 @@ direct jobs.
   environment before using it.
 - Populate least-privilege Docker Hub and GitHub App credentials in their
   owning environments.
-- Disable every old Studio release workflow and Docker Hub autobuild, configure
-  the contract-owned immutable-tag rules on all three image repositories, and
-  only then set `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in
-  `studio-dockerhub-production`.
+- Disable every old Studio release workflow and Docker Hub autobuild, then
+  configure the contract-owned immutable-tag rules on all three image
+  repositories.
 - Configure PyPI Trusted Publishing for the moved workflow.
 - Configure the accepted immutable release-tag ruleset.
 

@@ -417,7 +417,6 @@ class StudioReleasePolicyTests(unittest.TestCase):
             workflow.index("Validate live Docker Hub immutable-tag controls"),
             workflow.index("Build and push architecture image by digest"),
         )
-        self.assertIn("STUDIO_RELEASE_AUTHORITY_CUTOVER", workflow)
         mirror_preflight = workflow.index(
             "Validate all mirror destinations before minting mutation credentials"
         )
