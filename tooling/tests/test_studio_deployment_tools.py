@@ -270,16 +270,16 @@ class DistributionSmokeContractTests(unittest.TestCase):
                 rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES
             )
 
-    def test_registry_compose_override_binds_every_service_to_its_digest(self) -> None:
+    def test_registry_runtime_override_binds_digests_and_named_storage(self) -> None:
         digest = "sha256:" + ("c" * 64)
         expected_images = self.expected_registry_images(digest)
         runner = self.registry_runner(expected_images)
         with tempfile.TemporaryDirectory(prefix="junjo-exact-images-") as directory:
             runner.runtime_root = Path(directory)
-            runner.write_exact_image_override()
-            self.assertIsNotNone(runner.exact_image_override)
+            runner.write_runtime_override()
+            self.assertIsNotNone(runner.runtime_override)
             override = json.loads(
-                runner.exact_image_override.read_text(encoding="utf-8")
+                runner.runtime_override.read_text(encoding="utf-8")
             )
             for service, compose_service in zip(
                 smoke.CORE_SERVICES, smoke.COMPOSE_CORE_SERVICES, strict=True
@@ -289,9 +289,27 @@ class DistributionSmokeContractTests(unittest.TestCase):
                     override["services"][compose_service]["image"],
                     f"{expected.repository}@{expected.digest}",
                 )
+            smoke.assert_smoke_named_storage(override, runner.data_volume_name)
             command = runner.compose_command("up", "--detach")
             self.assertIn("docker-compose.yml", command)
-            self.assertIn(str(runner.exact_image_override), command)
+            self.assertIn(str(runner.runtime_override), command)
+
+    def test_local_runtime_override_uses_project_owned_named_storage(self) -> None:
+        runner = self.smoke_runner()
+        with tempfile.TemporaryDirectory(prefix="junjo-local-smoke-") as directory:
+            runner.runtime_root = Path(directory)
+            runner.write_runtime_override()
+            self.assertIsNotNone(runner.runtime_override)
+            override = json.loads(
+                runner.runtime_override.read_text(encoding="utf-8")
+            )
+            smoke.assert_smoke_named_storage(override, runner.data_volume_name)
+            self.assertTrue(
+                all(
+                    "image" not in override["services"][service]
+                    for service in smoke.COMPOSE_DATA_SERVICES
+                )
+            )
 
     def test_registry_pull_uses_evidence_digest_instead_of_version_tag(self) -> None:
         digest = "sha256:" + ("d" * 64)

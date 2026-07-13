@@ -250,7 +250,7 @@ for the final pushed-revision checks:
   (frontend), and
   `e4c5bcbddd6489f11d263660aa77136506d8500888d561f547a901fccf287341`
   (ingestion).
-- `python3 -m unittest discover -s tooling/tests -v` passed all 107 tests. The
+- `python3 -m unittest discover -s tooling/tests -v` passed all 108 tests. The
   suite covers CI routing, strict release admission and evidence, exact mirror
   identity and all-destination preflight, live Docker Hub control validation,
   failed-job artifact retries, archive/export behavior, all three setup wizards, secret

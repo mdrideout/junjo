@@ -31,7 +31,12 @@ COMPOSE_CORE_SERVICES = (
     "junjo-ai-studio-frontend",
     "junjo-ai-studio-ingestion",
 )
-EXACT_IMAGE_OVERRIDE = ".junjo-smoke-exact-images.json"
+COMPOSE_DATA_SERVICES = (
+    "junjo-ai-studio-backend",
+    "junjo-ai-studio-ingestion",
+)
+SMOKE_RUNTIME_OVERRIDE = ".junjo-smoke-runtime.json"
+SMOKE_DATA_VOLUME = "smoke-data"
 DEMO_SERVICE_NAME = "Junjo Deployment Example"
 DEMO_WORKFLOW_NAME = "Example Deployment Workflow"
 SENSITIVE_ENVIRONMENT_KEYS = {
@@ -286,6 +291,41 @@ def assert_compose_exact_images(
         )
 
 
+def assert_smoke_named_storage(
+    rendered: dict[str, Any], expected_volume_name: str
+) -> None:
+    """Prove smoke data uses one project-owned named volume, never host storage."""
+    services = rendered.get("services")
+    require(isinstance(services, dict), "Compose services must render as an object")
+    for compose_service in COMPOSE_DATA_SERVICES:
+        config = services.get(compose_service)
+        require(isinstance(config, dict), f"Compose service is missing: {compose_service}")
+        mounts = config.get("volumes")
+        require(isinstance(mounts, list), f"{compose_service} volumes must be a list")
+        data_mounts = [
+            mount
+            for mount in mounts
+            if isinstance(mount, dict) and mount.get("target") == "/app/.dbdata"
+        ]
+        require(
+            len(data_mounts) == 1,
+            f"{compose_service} must have exactly one smoke data mount",
+        )
+        require(
+            data_mounts[0].get("type") == "volume"
+            and data_mounts[0].get("source") == SMOKE_DATA_VOLUME,
+            f"{compose_service} smoke data must use named volume {SMOKE_DATA_VOLUME}",
+        )
+    volumes = rendered.get("volumes")
+    require(isinstance(volumes, dict), "Compose volumes must render as an object")
+    smoke_volume = volumes.get(SMOKE_DATA_VOLUME)
+    require(isinstance(smoke_volume, dict), "smoke data volume must be declared")
+    require(
+        smoke_volume.get("name") == expected_volume_name,
+        f"smoke data volume must be named {expected_volume_name}",
+    )
+
+
 class JsonClient:
     """Small JSON client that preserves the Studio authentication cookie."""
 
@@ -345,7 +385,8 @@ class StudioDistributionSmoke:
         self.timeout_seconds = timeout_seconds
         self.project_name = f"junjo-smoke-{secrets.token_hex(6)}"
         self.runtime_root: Path | None = None
-        self.exact_image_override: Path | None = None
+        self.runtime_override: Path | None = None
+        self.data_volume_name = f"{self.project_name}-data"
         self.sensitive_values: list[str] = []
         self.started = False
         (
@@ -356,38 +397,57 @@ class StudioDistributionSmoke:
 
     def compose_command(self, *arguments: str) -> list[str]:
         command = ["docker", "compose", "--project-name", self.project_name]
-        if self.exact_image_override is not None:
+        if self.runtime_override is not None:
             command.extend(
                 [
                     "--file",
                     "docker-compose.yml",
                     "--file",
-                    str(self.exact_image_override),
+                    str(self.runtime_override),
                 ]
             )
         return [*command, *arguments]
 
-    def write_exact_image_override(self) -> None:
-        """Bind the smoke runtime to the three evidence digests, never mutable tags."""
+    def write_runtime_override(self) -> None:
+        """Isolate smoke storage and bind registry runs to evidence digests."""
         require(self.runtime_root is not None, "runtime has not been prepared")
-        require(
-            set(self.expected_images) == set(CORE_SERVICES),
-            "registry smoke requires an exact image for every core service",
-        )
-        services = {}
-        for service, compose_service in zip(
-            CORE_SERVICES, COMPOSE_CORE_SERVICES, strict=True
-        ):
-            expected = self.expected_images[service]
-            services[compose_service] = {
-                "image": f"{expected.repository}@{expected.digest}"
-            }
-        override = self.runtime_root / EXACT_IMAGE_OVERRIDE
+        data_mount = {
+            "type": "volume",
+            "source": SMOKE_DATA_VOLUME,
+            "target": "/app/.dbdata",
+        }
+        services: dict[str, dict[str, object]] = {
+            compose_service: {"volumes": [data_mount]}
+            for compose_service in COMPOSE_DATA_SERVICES
+        }
+        if self.image_source == "registry":
+            require(
+                set(self.expected_images) == set(CORE_SERVICES),
+                "registry smoke requires an exact image for every core service",
+            )
+            for service, compose_service in zip(
+                CORE_SERVICES, COMPOSE_CORE_SERVICES, strict=True
+            ):
+                expected = self.expected_images[service]
+                services.setdefault(compose_service, {})["image"] = (
+                    f"{expected.repository}@{expected.digest}"
+                )
+        override = self.runtime_root / SMOKE_RUNTIME_OVERRIDE
         override.write_text(
-            json.dumps({"services": services}, indent=2, sort_keys=True) + "\n",
+            json.dumps(
+                {
+                    "services": services,
+                    "volumes": {
+                        SMOKE_DATA_VOLUME: {"name": self.data_volume_name}
+                    },
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
             encoding="utf-8",
         )
-        self.exact_image_override = override
+        self.runtime_override = override
 
     def prepare_runtime(self, temporary_root: Path) -> None:
         self.runtime_root = temporary_root / "vm-caddy"
@@ -430,18 +490,19 @@ class StudioDistributionSmoke:
         except json.JSONDecodeError as error:
             raise SmokeError("Docker Compose returned invalid JSON") from error
         assert_compose_images(rendered, self.studio_version, self.image_repositories)
+        self.write_runtime_override()
+        effective_result = run_command(
+            self.compose_command("config", "--format", "json"),
+            cwd=self.runtime_root,
+            sensitive_values=self.sensitive_values,
+        )
+        try:
+            effective_rendered = json.loads(effective_result.stdout)
+        except json.JSONDecodeError as error:
+            raise SmokeError("Docker Compose returned invalid JSON") from error
+        assert_smoke_named_storage(effective_rendered, self.data_volume_name)
         if self.image_source == "registry":
-            self.write_exact_image_override()
-            exact_result = run_command(
-                self.compose_command("config", "--format", "json"),
-                cwd=self.runtime_root,
-                sensitive_values=self.sensitive_values,
-            )
-            try:
-                exact_rendered = json.loads(exact_result.stdout)
-            except json.JSONDecodeError as error:
-                raise SmokeError("Docker Compose returned invalid JSON") from error
-            assert_compose_exact_images(exact_rendered, self.expected_images)
+            assert_compose_exact_images(effective_rendered, self.expected_images)
 
     def build_local_images(self) -> None:
         for service in CORE_SERVICES:
