@@ -287,19 +287,10 @@ website deployment environments or Cloudflare API secrets for this cutover.
 
 ### Stable required checks
 
-Do not require a workflow that can be skipped entirely by top-level path
-filters. GitHub leaves a required but skipped workflow pending.
-
-Implement an always-triggered pull-request gate:
-
-1. A path-detection job determines whether Python, Studio, telemetry,
-   deployments, website, licensing, or platform files changed.
-2. Affected validation jobs run or call reusable component workflows.
-3. Unaffected expensive jobs skip at job level rather than skipping the entire
-   workflow.
-4. A final `required` job uses `if: always()` and fails if any required affected
-   job failed or was cancelled.
-5. The final job always emits the same status-check name.
+The always-triggered pull-request gate runs only fast repository integrity
+validation. It does not call component suites, deployment smoke, image builds,
+or the Studio release rehearsal. A final `required` job uses `if: always()` and
+emits one stable status-check name.
 
 Target required checks:
 
@@ -307,30 +298,19 @@ Target required checks:
   protection API context)
 - `Gitleaks Scan`
 
-Keep component job names visible for diagnostics, but do not make a
-path-filtered component workflow a required branch-protection context.
+Component workflows remain path-scoped on pushes to `master` and available for
+manual execution. The complete Studio suite, deployment proof, dry builds, and
+publication checks run as part of a `studio-v*` production release.
 
 ### Pull-request workflow rules
 
 - No publishing credentials.
-- The platform gate is the sole pull-request caller for reusable component
-  workflows; component workflows retain path-filtered `push`, manual, and
-  `workflow_call` triggers without duplicate direct pull-request triggers.
-- When deployment or release ownership is affected, the shared Studio release
-  validation workflow owns admission, Studio, telemetry, deployment, and dry
-  build checks. The gate skips the corresponding direct jobs; component-only
-  changes still use direct routing. The write-capable publisher is not reusable
-  and is never part of the pull-request workflow graph.
+- Pull requests run repository invariants, tooling unit tests, actionlint,
+  Zizmor, and Gitleaks only.
+- Component and release-validation workflows are never called from the
+  pull-request workflow graph.
 - No live model credentials.
-- Fixed non-production application test secrets only.
 - Explicit `permissions: contents: read`.
-- Timeouts on every expensive job.
-- Path detection includes workflow files and validation tooling that can change
-  the meaning of a check.
-- Deployment validation covers Compose, setup wizards, `.env`/`.env.bak`
-  exclusion, version pins, Caddy, archives, and demo telemetry.
-- Website validation covers locked install, static checks, build, links, and
-  obsolete Junjo terminology.
 
 ### Production workflow rules
 
@@ -396,11 +376,11 @@ successful admission and live-control jobs would be stale. Use "Re-run all
 jobs" so admission, Docker Hub controls, and all producer evidence are refreshed.
 Evidence from another workflow run is never selected.
 
-The manual publisher and pull-request gate both call the same read-only
-`studio-release-validation.yml` workflow. It performs admission, component and
-deployment validation, and inspected dry builds without publishing credentials.
-`studio-docker-publish.yml` is a top-level tag/manual workflow only; its
-write-capable jobs cannot enter a pull-request reusable-workflow graph.
+The publisher calls the read-only `studio-release-validation.yml` workflow. It
+performs admission, component and deployment validation, and inspected dry
+builds before any publishing credential is used. `studio-docker-publish.yml` is
+a top-level tag/manual workflow only; its write-capable jobs cannot enter the
+pull-request workflow graph.
 
 ## Distribution Export Contract
 

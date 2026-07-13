@@ -530,16 +530,13 @@ digests in production.
 
 ## Workstream E: close CI, security, and metadata gaps
 
-### Path routing
+### CI execution boundaries
 
-Extend `detect_ci_changes.py`, its tests, and workflow path ownership so:
-
-- `apps/studio/.dockerignore` routes backend, frontend, and deployment builds;
-- `apps/studio/compose.yaml`, `compose.monitoring.yaml`, `.env.example`, and the
-  root setup script route deployments and the affected Studio owners;
-- `apps/studio/e2e_test_apps/**` routes deployments and telemetry;
-- any unmapped Studio product path fails the routing invariant rather than
-  silently skipping validation.
+- Pull requests run only fast platform integrity and secret scanning.
+- Component workflows use their own path filters after merge to `master` and
+  remain manually runnable.
+- `studio-v*` publication runs the complete Studio, telemetry, deployment,
+  image, mirror, and release validation transaction.
 
 ### Secret scanning
 
@@ -577,7 +574,7 @@ Extend `detect_ci_changes.py`, its tests, and workflow path ownership so:
 
 ## Workstream F: final validation and cutover
 
-### Gate A: pull request evidence
+### Gate A: one-time migration evidence
 
 Run and record, in dependency order:
 
@@ -596,16 +593,12 @@ Run and record, in dependency order:
 13. merge the exact validated revision with a merge commit so imported history
     remains in `master` ancestry.
 
-The read-only release-validation workflow is reusable through `workflow_call`;
-both the top-level publisher and platform gate invoke it. Production and
-pull-request dry-runs therefore share the same repository-owned admission,
-validation, and build jobs without maintaining a weaker approximation. The
-publisher itself is not reusable because its finalizer has job-scoped
-`contents: write`; this keeps write capability out of the pull-request workflow
-graph. When deployment or release ownership is affected, validation is the
-umbrella: the gate skips its direct Studio, telemetry, and deployment calls so
-those checks execute once. Component-only changes continue to use the smaller
-direct jobs.
+This was one-time migration evidence, not the ongoing pull-request policy. The
+ongoing pull-request gate runs only platform integrity and Gitleaks. The
+read-only release-validation workflow is reusable through `workflow_call` and
+is invoked by the top-level publisher. The publisher itself is not reusable
+because its finalizer has job-scoped `contents: write`; this keeps write
+capability out of the pull-request workflow graph.
 
 ### Gate B: post-merge production control-plane configuration
 
