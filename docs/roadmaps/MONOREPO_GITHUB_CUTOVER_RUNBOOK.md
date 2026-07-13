@@ -358,8 +358,7 @@ this ordering:
     stable same-run workflow artifacts.
 13. Promote `major.minor` and `latest` image manifests only after distribution
     verification succeeds.
-14. Update Docker Hub descriptions.
-15. Revalidate source reachability and the live tag target, then create the
+14. Revalidate source reachability and the live tag target, then create the
     GitHub release last and attach image evidence, archives, export reports, and
     a complete release-evidence document containing source SHA, workflow URL,
     image digests, archive hashes, tree hashes, and mirror commits.

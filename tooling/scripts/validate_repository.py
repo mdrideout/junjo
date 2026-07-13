@@ -479,11 +479,11 @@ def validate_release_routing() -> None:
         and studio_publish.count("overwrite: true") == 3
         and "run_attempt: ${{ steps.attempt.outputs.run_attempt }}"
         in studio_validation
-        and studio_publish.count("Reject partial production rerun") == 8
+        and studio_publish.count("Reject partial production rerun") == 7
         and studio_publish.count(
             "ADMITTED_RUN_ATTEMPT: ${{ needs.validation.outputs.run_attempt }}"
         )
-        == 8,
+        == 7,
         "Studio release artifacts must be stable and partial reruns must fail closed",
     )
     require(

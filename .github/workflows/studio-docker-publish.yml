@@ -588,54 +588,6 @@ jobs:
             done
           done
 
-  update_descriptions:
-    if: needs.validation.outputs.production == 'true'
-    needs: [validation, promote_floating_tags]
-    name: Update ${{ matrix.service }} Docker Hub description
-    runs-on: ubuntu-latest
-    environment: studio-dockerhub-production
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [backend, frontend, ingestion]
-    steps:
-      - name: Reject partial production rerun
-        env:
-          ADMITTED_RUN_ATTEMPT: ${{ needs.validation.outputs.run_attempt }}
-        run: |
-          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
-            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
-            exit 1
-          fi
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          persist-credentials: false
-      - name: Resolve image repository from the release contract
-        id: image
-        env:
-          SERVICE: ${{ matrix.service }}
-        run: |
-          python3 - "$SERVICE" "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import pathlib
-          import sys
-
-          contract = json.loads(
-              pathlib.Path("tooling/studio_release_contract.json").read_text()
-          )
-          repository = contract["images"][sys.argv[1]]["repository"]
-          with pathlib.Path(sys.argv[2]).open("a", encoding="utf-8") as output:
-              output.write(f"repository={repository}\n")
-          PY
-      - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@432a30c9e07499fd01da9f8a49f0faf9e0ca5b77 # v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ steps.image.outputs.repository }}
-          readme-filepath: ./apps/studio/README.md
-
   publish_release:
     if: needs.validation.outputs.production == 'true'
     needs:
@@ -643,7 +595,6 @@ jobs:
       - exact_manifests
       - publish_distributions
       - promote_floating_tags
-      - update_descriptions
     runs-on: ubuntu-latest
     environment: studio-release-production
     permissions:

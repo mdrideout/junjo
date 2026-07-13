@@ -377,7 +377,6 @@ class StudioReleasePolicyTests(unittest.TestCase):
             "smoke_exact_release",
             "publish_distributions",
             "promote_floating_tags",
-            "update_descriptions",
             "publish_release",
         )
         for job in production_jobs:
