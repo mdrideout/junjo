@@ -1,5 +1,12 @@
 # Junjo AI Studio - Production VM Deployment Example
 
+> **Source and distribution:** The canonical source for this distribution is
+> [`apps/studio/deployments/vm-caddy`](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/vm-caddy)
+> in the Junjo platform monorepo. The standalone
+> [`junjo-ai-studio-deployment-example`](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
+> repository is a generated release mirror for convenient cloning. Submit
+> changes to the canonical source; direct mirror changes will be overwritten.
+
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
 This deployment pins Junjo AI Studio `0.81.1` and Junjo `0.63.0` as a compatible release pair.
@@ -29,6 +36,7 @@ Learn how to go from a fresh virtual machine to a production deployment that sup
   - [5. Services Architecture](#5-services-architecture)
 - [Miscellaneous](#miscellaneous)
   - [SSL Testing with Let's Encrypt Staging](#ssl-testing-with-lets-encrypt-staging)
+- [License](#license)
 
 ## Overview
 
@@ -557,3 +565,8 @@ To test your setup without browser warnings, add the staging certificate to your
 4. Select "Always Trust" for both certificates
 
 5. Restart your browser (Chrome or Safari)
+
+## License
+
+This distribution is licensed under the Apache License 2.0. See
+[`LICENSE`](LICENSE).

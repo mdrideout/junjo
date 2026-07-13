@@ -43,7 +43,15 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 
 ## Quick Start
 
-If you want to use Junjo AI Studio rather than modify its source code, start with the **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** repository.
+Canonical deployment source lives under [`deployments/`](deployments/) in this
+monorepo. Standalone deployment repositories are generated, one-way release
+mirrors so operators can clone a small focused repository. Deployment changes
+must be contributed to the canonical directories here; direct mirror changes
+will be overwritten by the next publication.
+
+If you want to use Junjo AI Studio rather than modify its source code, start
+with the generated **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)**
+distribution mirror.
 
 ### Steps
 
@@ -135,7 +143,11 @@ Configure your [Junjo Python Library](https://github.com/mdrideout/junjo/tree/ma
 
 This repository contains the complete open source Junjo AI Studio codebase. If you want to run or modify the source code in this repository, see [Source Development](#source-development) below.
 
-This source repository is not the hosted deployment template. For operator-managed deployment behind your own reverse proxy, use the [minimal build repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build) or the [deployment example repository](https://github.com/mdrideout/junjo-ai-studio-deployment-example), and provide explicit `JUNJO_PROD_*` public URLs.
+For operator-managed deployment behind your own reverse proxy, use the
+[minimal distribution](deployments/minimal) or the
+[VM/Caddy distribution](deployments/vm-caddy), and provide explicit
+`JUNJO_PROD_*` public URLs. Their standalone repositories are generated release
+mirrors of these canonical directories.
 
 ---
 
@@ -405,11 +417,14 @@ After starting Junjo AI Studio:
 
 ## Production Deployment
 
-This source repository does not define a complete hosted deployment topology. It defines the production runtime contract:
+The Studio runtime root defines the production runtime contract:
 - explicit public URLs via `JUNJO_PROD_FRONTEND_URL`, `JUNJO_PROD_BACKEND_URL`, and `JUNJO_PROD_INGESTION_URL`
 - the frontend/backend same-domain requirement for session cookies
 
-Bring your own reverse proxy, ingress, or load balancer. For a production `compose.yaml` example, see the [minimal build repository](https://github.com/mdrideout/junjo-ai-studio-minimal-build).
+Supported deployment topology source is owned separately under
+[`deployments/`](deployments/). Bring your own reverse proxy, ingress, or load
+balancer around the [minimal distribution](deployments/minimal), or use the
+[VM/Caddy distribution](deployments/vm-caddy) as a complete example.
 
 If you route directly to this source repository's Compose services, target `frontend:26153`, `backend:26154`, and `ingestion:26155`.
 
@@ -425,10 +440,15 @@ If you route directly to this source repository's Compose services, target `fron
 
 **Why?** Junjo AI Studio uses session cookies with `SameSite=Strict` for security (CSRF protection). Cross-domain deployments will cause authentication to fail.
 
-### Turn-Key Example Repositories
+### Supported Deployment Distributions
+
+The paths below are canonical. The linked standalone repositories are
+generated release mirrors for operator use, not contribution targets.
 
 #### Junjo AI Studio Minimal Build
-**[https://github.com/mdrideout/junjo-ai-studio-minimal-build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)**
+
+- **Canonical source:** [`deployments/minimal`](deployments/minimal)
+- **Generated mirror:** [mdrideout/junjo-ai-studio-minimal-build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
 
 A minimal, standalone repository with just the core Junjo AI Studio components using pre-built Docker images.
 
@@ -438,7 +458,9 @@ A minimal, standalone repository with just the core Junjo AI Studio components u
 - Integration into existing infrastructure
 
 #### Junjo AI Studio Deployment Example
-**[https://github.com/mdrideout/junjo-ai-studio-deployment-example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)**
+
+- **Canonical source:** [`deployments/vm-caddy`](deployments/vm-caddy)
+- **Generated mirror:** [mdrideout/junjo-ai-studio-deployment-example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
 
 A complete, production-ready example that includes a Junjo Python Library application alongside the server infrastructure.
 
@@ -448,7 +470,8 @@ A complete, production-ready example that includes a Junjo Python Library applic
 - VM deployment guide (Digital Ocean Droplet, AWS EC2, etc.)
 - One complete reverse-proxy/TLS example
 
-The [README](https://github.com/mdrideout/junjo-ai-studio-deployment-example/blob/master/README.md) provides step-by-step deployment instructions.
+The canonical [VM/Caddy README](deployments/vm-caddy/README.md) provides
+step-by-step deployment instructions.
 
 ### Docker Compose - Production Images
 
@@ -458,7 +481,7 @@ Junjo AI Studio is built and deployed to **Docker Hub** with each GitHub release
 - **Ingestion Service**: [mdrideout/junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)
 - **Frontend**: [mdrideout/junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)
 
-**Example compose.yaml:** [junjo-ai-studio-minimal-build/compose.yaml](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/compose.yaml)
+**Example Compose file:** [`deployments/minimal/docker-compose.yml`](deployments/minimal/docker-compose.yml)
 
 Use these images in the deployment stack you own. For complete working examples, start from the minimal-build or deployment-example repositories.
 
@@ -733,9 +756,14 @@ docker compose up --build
 ### Documentation
 - **[Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python)** - AI Graph Workflow framework
 
-### Example Repositories
-- **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Minimal setup with pre-built images
-- **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - Complete VM deployment example with one reverse-proxy implementation
+### Deployment Distributions
+
+- **[Canonical minimal source](deployments/minimal)** — minimal setup with
+  pre-built images; also published as the
+  [minimal-build mirror](https://github.com/mdrideout/junjo-ai-studio-minimal-build).
+- **[Canonical VM/Caddy source](deployments/vm-caddy)** — complete VM example
+  with one reverse-proxy implementation; also published as the
+  [deployment-example mirror](https://github.com/mdrideout/junjo-ai-studio-deployment-example).
 
 ### Docker Hub Images
 - **[junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)** - FastAPI backend
@@ -752,7 +780,4 @@ docker compose up --build
 
 Copyright (C) 2025 Matthew Rideout
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
+Licensed under the Apache License, Version 2.0. See [`LICENSE`](LICENSE).

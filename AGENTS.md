@@ -20,6 +20,11 @@ the nearest scoped `AGENTS.md` before changing a component.
   `sdks/python/AGENTS.md`.
 - `apps/studio`: Studio backend, frontend, ingestion, deployment, and internal
   contracts. Follow `apps/studio/AGENTS.md`.
+- `apps/studio/deployments`: canonical source for supported Studio deployment
+  distributions. Standalone deployment repositories are generated release
+  mirrors and are never a second source of truth.
+- `apps/website`: Astro/Starlight product and documentation website. It keeps
+  its own JavaScript dependency lock, build, and deployment lifecycle.
 - `contracts/telemetry`: language-independent schemas, versions, and fixtures.
 - `docs/adr`: cross-platform architectural decisions.
 - `docs/roadmaps`: cross-platform strategy and implementation roadmaps.
@@ -63,6 +68,10 @@ Run the full validation owned by every changed area. At minimum:
   `sdks/python`.
 - Studio: `apps/studio/run-all-tests.sh`, plus Compose and Docker validation
   when deployment inputs change.
+- Studio deployment distributions: validate Compose rendering, setup scripts,
+  archive contents, and generated-mirror equivalence for every changed
+  distribution.
+- Website: `npm ci` and `npm run build` from `apps/website`.
 - Shared contracts: `python3
   contracts/telemetry/compatibility/validate_contract.py`, plus producer and
   consumer conformance tests.

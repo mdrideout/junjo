@@ -182,7 +182,7 @@ and deployment distributions are licensed under Apache License 2.0.
 
 Implementation of this decision includes:
 
-- replacing the Studio AGPL-3.0 license and notices with Apache-2.0;
+- applying the Apache-2.0 license and notices to Studio;
 - keeping or adding an Apache-2.0 `LICENSE` in every independently packaged or
   exported component;
 - including Apache-2.0 in both standalone deployment distributions;
@@ -190,8 +190,8 @@ Implementation of this decision includes:
   container metadata, and website notices where applicable;
 - preserving third-party license and notice obligations.
 
-There is no mixed Junjo-owned Apache/AGPL component policy after the relicensing
-work is complete.
+There is no mixed Junjo-owned component license policy: Apache-2.0 applies
+across the current platform.
 
 ## Secrets and local data
 

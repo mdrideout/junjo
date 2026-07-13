@@ -1,6 +1,13 @@
 # Junjo AI Studio - Minimal Build
 
-A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
+> **Source and distribution:** The canonical source for this distribution is
+> [`apps/studio/deployments/minimal`](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/minimal)
+> in the Junjo platform monorepo. The standalone
+> [`junjo-ai-studio-minimal-build`](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
+> repository is a generated release mirror for convenient cloning. Submit
+> changes to the canonical source; direct mirror changes will be overwritten.
+
+A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
 
 This template pins Junjo AI Studio `0.81.1`. Applications that emit Junjo workflow telemetry should use Junjo `0.63.0`.
 
@@ -61,6 +68,7 @@ This is a **minimal build** template containing only the three essential Junjo A
 		- [Session Cookie Issues](#session-cookie-issues)
 		- [Port Conflicts](#port-conflicts)
 		- [Checking Logs](#checking-logs)
+	- [License](#license)
 
 ## Architecture
 
@@ -454,3 +462,8 @@ docker compose logs -f junjo-ai-studio-backend
 docker compose logs -f junjo-ai-studio-ingestion
 docker compose logs -f junjo-ai-studio-frontend
 ```
+
+## License
+
+This distribution is licensed under the Apache License 2.0. See
+[`LICENSE`](LICENSE).

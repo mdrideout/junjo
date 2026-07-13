@@ -51,10 +51,15 @@ Release-ready code should not leave public docs or examples teaching stale behav
 ## Cross-Component Release Sequencing
 
 Junjo SDK and Junjo AI Studio releases pair around the explicit contract under
-`contracts/telemetry`. Release in this order:
+`contracts/telemetry`. The deployment sources under `apps/studio/deployments`
+are the canonical record of the supported SDK and Studio pair. The standalone
+deployment repositories are generated mirrors and must not be updated
+manually. Release in this order:
 
 1. Cut the `junjo` SDK version and finalize `CHANGELOG.md`.
 2. Release Junjo AI Studio (version bump + Docker Hub images) with the matching contract.
-3. Update the `junjo-ai-studio-minimal-build` and `junjo-ai-studio-deployment-example` template repositories.
+3. Validate the canonical minimal and VM/Caddy distributions against the exact
+   release pair, then publish their one-way generated mirrors as part of the
+   Studio release.
 4. Publish `junjo` to PyPI via GitHub release publication.
 5. Deploy the docs site last. Docs describe the paired releases, and the docs deploy is not wired to the release workflow.

@@ -4,6 +4,7 @@ tmp
 
 # Environment variables
 .env
+.env.bak
 
 # E2E test app config (users should copy from config.yaml.example)
 e2e_test_apps/app/config.yaml

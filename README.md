@@ -10,7 +10,11 @@ components:
 - [`sdks/python`](sdks/python) — the `junjo` Python SDK and its examples and
   public Sphinx documentation.
 - [`apps/studio`](apps/studio) — Junjo AI Studio's backend, frontend, ingestion
-  service, deployment configuration, and service documentation.
+  service, canonical deployment distributions, and service documentation.
+- [`apps/website`](apps/website) — the Junjo product and documentation website.
+- [`apps/studio/deployments`](apps/studio/deployments) — canonical source for
+  the minimal and VM/Caddy Studio distributions. Their standalone GitHub
+  repositories are generated release mirrors, not separate sources of truth.
 - [`contracts/telemetry`](contracts/telemetry) — language-independent telemetry
   schemas and conformance fixtures shared by SDK emitters and Studio consumers.
 - [`docs/roadmaps`](docs/roadmaps) — cross-platform product and implementation
@@ -64,11 +68,13 @@ Components are versioned independently. New release tags are namespaced:
 
 ## Licensing
 
-Licensing is component-scoped:
+All Junjo-authored source, applications, documentation, contracts, examples,
+and deployment distributions are licensed under the Apache License 2.0. See
+the root [`LICENSE`](LICENSE) and the license copies shipped with independently
+packaged components, including the [Python SDK](sdks/python/LICENSE),
+[Studio](apps/studio/LICENSE), [website](apps/website/LICENSE),
+[minimal deployment](apps/studio/deployments/minimal/LICENSE), and
+[VM/Caddy deployment](apps/studio/deployments/vm-caddy/LICENSE).
 
-- the Python SDK and root interoperability artifacts are Apache-2.0; see
-  [`LICENSE`](LICENSE) and [`sdks/python/LICENSE`](sdks/python/LICENSE).
-- Junjo AI Studio is AGPL-3.0; see
-  [`apps/studio/LICENSE`](apps/studio/LICENSE).
-
-The root license does not replace or override a component license.
+Third-party dependencies and bundled notices remain subject to their own
+licenses.

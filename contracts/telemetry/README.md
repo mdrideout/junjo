@@ -42,5 +42,7 @@ Run the standalone validation from the repository root:
 python3 contracts/telemetry/compatibility/validate_contract.py
 ```
 
-These root interoperability artifacts are licensed under Apache-2.0. Studio's
-runtime remains separately licensed under `apps/studio/LICENSE`.
+These interoperability artifacts and the other Junjo-authored platform
+components are licensed under the Apache License 2.0. See the repository root
+`LICENSE` and the license copies included with independently packaged
+components.

@@ -37,8 +37,16 @@ Careful consideration is needed for code in every domain. We separate code by re
 - `ingestion/`: Rust OTLP ingestion service, WAL, Parquet flush, hot snapshot, ingestion ADRs and tests.
 - `frontend/`: React app, Redux Toolkit state, Zod schemas, Vitest/MSW tests.
 - `proto/`: Shared protobuf contracts for backend and ingestion.
+- `deployments/minimal/`: Canonical source for the minimal Studio distribution
+  published to `mdrideout/junjo-ai-studio-minimal-build`.
+- `deployments/vm-caddy/`: Canonical source for the VM/Caddy distribution
+  published to `mdrideout/junjo-ai-studio-deployment-example`.
 - `docs/adr/`: Repo-wide strategic decisions and cross-service contracts only.
 - `scripts/`: Root helper scripts.
+
+The two standalone deployment repositories are generated, one-way release
+mirrors. Change and review deployment source here; direct mirror changes will
+be overwritten by the next publication.
 
 ## Important Commands
 
@@ -63,6 +71,13 @@ Frontend:
 Ingestion:
 
 - Ingestion tests: `cd ingestion && cargo test --locked`
+
+Deployments:
+
+- Validate the Compose configuration and setup-script dry runs from each
+  changed directory under `deployments/`.
+- Validate generated archives and mirror equivalence before publishing a
+  Studio release.
 
 ## Documentation Rules
 
