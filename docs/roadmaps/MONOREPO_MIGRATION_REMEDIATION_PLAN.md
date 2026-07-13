@@ -2,17 +2,16 @@
 
 ## Status
 
-Repository remediation is implemented, pushed, and validated on
-`codex/platform-monorepo-migration` as of 2026-07-13. The accepted ADRs,
+Repository remediation was implemented, validated, and merged by pull request
+12 at `02f34073ceb40963e716498cf2caaaddafa2db28` on 2026-07-13. The accepted ADRs,
 Junjo-owned Base UI foundation, release transaction, deployment proof, CI
 routing, secret scanning, license metadata, repository-owned validation, and
 immutable workflow evidence are recorded in `MONOREPO_MIGRATION_RECORD.md`.
 
-Pull request 12 is repository-complete at revision `afc5db6`: Platform Gate and
-Gitleaks passed. The legacy Cloudflare check uses obsolete project settings and
-is explicitly not a merge gate. Merge is the next action; credentials, trusted
-publishing, direct hosting reconfiguration, first releases, and old repository
-retirement follow from `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
+The final pull-request revision `3f8e5b3` passed Platform Gate and Gitleaks.
+Credentials, trusted publishing, direct hosting reconfiguration, first
+releases, and old repository retirement are the remaining operator work in
+`MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
 No production tag, mirror publication, repository archival, or Cloudflare
 source cutover may occur before its corresponding cutover gate passes.
@@ -635,10 +634,13 @@ direct jobs.
   is present, then record the settings response.
 - Release the next Python version according to the Python release plan.
 - Prepare Studio `0.81.2` or later; never reuse `0.81.1`.
-- Apply the monorepo Cloudflare settings directly to the existing production
-  projects after merge:
-  - Python docs source `sdks/python`, output `docs/_build/html`;
-  - website source `apps/website`, output `dist`.
+- Apply the monorepo Cloudflare settings after merge:
+  - edit the existing Python docs project because it already uses
+    `mdrideout/junjo`, with source `sdks/python` and output
+    `docs/_build/html`;
+  - delete/recreate the website Pages project from `mdrideout/junjo` because
+    Cloudflare cannot change the connected repository on an existing
+    Git-integrated project, with source `apps/website` and output `dist`.
 - Verify exact image digests, source-SHA tags, distribution archives, mirror
   repository/branch/commit/tree, release evidence, and GitHub release assets.
 - Verify the deployed website and Python docs from their canonical monorepo

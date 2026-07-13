@@ -2,9 +2,9 @@
 
 ## Status
 
-Source consolidation and repository remediation are complete. The final branch
-revision is pushed, required pull-request checks passed, and pull request 12 is
-ready for a history-preserving merge commit.
+Source consolidation and repository remediation are complete. Pull request 12
+merged with history preserved at
+`02f34073ceb40963e716498cf2caaaddafa2db28` on 2026-07-13.
 
 - The Python SDK and Junjo AI Studio source migration was completed on the
   `codex/platform-monorepo-migration` branch on 2026-07-12.
@@ -26,8 +26,9 @@ The implemented fixes and remaining completion gates are defined in
 by the license holder's confirmed Tailwind UI/Plus purchase and application
 end-product use. Required pull-request checks are complete. Credentials,
 publishing, hosting, and old-repository retirement remain explicit cutover
-work. The legacy Cloudflare pull-request check is not a merge gate; Cloudflare
-is reconfigured directly after merge.
+work. The Python docs Cloudflare project is edited in place; the website Pages
+project is deleted/recreated because Cloudflare cannot change the repository of
+an existing Git-integrated project.
 
 ADR 0001 defines the accepted end state. This plan records how the repository
 was moved to that state without mixing runtime refactors into the structural

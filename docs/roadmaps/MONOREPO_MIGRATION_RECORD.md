@@ -6,15 +6,13 @@ This record proves the completed source imports and records local repository
 remediation evidence for
 the Python SDK, Studio, website, minimal Studio distribution, and VM/Caddy
 distribution. The fixes required by
-`MONOREPO_MIGRATION_REMEDIATION_PLAN.md` are implemented on
-`codex/platform-monorepo-migration`. Final pull-request evidence is recorded
-below; the branch is ready to merge.
+`MONOREPO_MIGRATION_REMEDIATION_PLAN.md` were merged by pull request 12 as merge
+commit `02f34073ceb40963e716498cf2caaaddafa2db28` on 2026-07-13.
 
-This does not claim that the migration has merged or that production cutover is
-complete. Merge, credentials, trusted publishing, direct hosting cutover, first
-production releases, and old-repository retirement remain operator work. The
-legacy Cloudflare pull-request failure is not a merge gate. Historical Catalyst
-rights are resolved by the license holder confirmation recorded below.
+Production cutover is not complete. Credentials, trusted publishing, direct
+hosting cutover, first production releases, and old-repository retirement
+remain operator work. Historical Catalyst rights are resolved by the license
+holder confirmation recorded below.
 
 Production mirror publication, hosting cutover, environment credentials,
 trusted-publisher changes, action-SHA enforcement, the immutable release-tag
@@ -65,22 +63,28 @@ all three Studio repositories on 2026-07-13. The implemented production
 workflow will fail before registry mutation until Gate B installs the two exact
 contract rules and records this monorepo as the exclusive publisher.
 
-## Final pull-request evidence
+## Final pull-request and merge evidence
 
-Pull request 12 is repository-complete and ready to merge:
+Pull request 12 merged with history preserved:
 
-- final reviewed head: `afc5db6df948e6197bad3231a498b9fdcd7a99c7`;
-- Platform Gate run
-  `https://github.com/mdrideout/junjo/actions/runs/29258647990` passed every
+- final pull-request head:
+  `3f8e5b32f52257e62044f178d197c359974407e8`;
+- final Platform Gate run
+  `https://github.com/mdrideout/junjo/actions/runs/29264365485` passed every
   routed component, both-architecture dry build, release rehearsal, and local
   telemetry smoke;
-- Gitleaks run
-  `https://github.com/mdrideout/junjo/actions/runs/29258647436` passed;
-- the branch is mergeable and synchronized with its remote;
+- final Gitleaks run
+  `https://github.com/mdrideout/junjo/actions/runs/29264364485` passed;
+- pull request 12 merged at
+  `02f34073ceb40963e716498cf2caaaddafa2db28` on 2026-07-13;
+- every component workflow triggered on that `master` merge commit completed
+  successfully, including deployment validation run
+  `https://github.com/mdrideout/junjo/actions/runs/29269170458` and Gitleaks run
+  `https://github.com/mdrideout/junjo/actions/runs/29269171102`;
 - the only non-green check is the legacy Cloudflare Pages integration using
   obsolete pre-monorepo build settings. Production downtime and preview
   continuity are not migration requirements, so that check is intentionally
-  non-blocking and Cloudflare is reconfigured directly after merge.
+  non-blocking and Cloudflare is reconfigured after merge.
 
 ## Source revisions
 
