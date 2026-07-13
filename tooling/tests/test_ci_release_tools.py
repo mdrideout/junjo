@@ -445,6 +445,23 @@ class StudioReleasePolicyTests(unittest.TestCase):
         )
         self.assertIn("sleep 2", workflow)
 
+    def test_immutable_tag_publication_retries_transient_registry_failures(
+        self,
+    ) -> None:
+        workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'Waiting for immutable tag $IMAGE:$tag to publish (attempt $attempt/15).',
+            workflow,
+        )
+        self.assertIn(
+            'Could not publish immutable tag $IMAGE:$tag after 15 attempts.', workflow
+        )
+        self.assertIn(
+            'if [ "$PUBLISHED_DIGEST" != "$CANDIDATE_DIGEST" ]; then', workflow
+        )
+
 
 class MirrorTreeTests(unittest.TestCase):
     """Prove publication compares the complete generated mirror tree."""

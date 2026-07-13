@@ -328,19 +328,40 @@ jobs:
             )"
             CANDIDATE_DIGEST="$(cat "/tmp/image-evidence/${service}.candidate-digest")"
             for tag in "$VERSION" "$SOURCE_REVISION"; do
-              if ! docker buildx imagetools inspect "$IMAGE:$tag" >/dev/null 2>&1; then
-                if ! docker buildx imagetools create \
-                    -t "$IMAGE:$tag" \
-                    "$IMAGE@$CANDIDATE_DIGEST"; then
-                  RACING_DIGEST="$(
-                    docker buildx imagetools inspect "$IMAGE:$tag" |
-                      sed -n 's/^Digest:[[:space:]]*//p'
-                  )"
-                  if [ "$RACING_DIGEST" != "$CANDIDATE_DIGEST" ]; then
-                    echo "Immutable tag $IMAGE:$tag was created concurrently with a different digest." >&2
+              PUBLISHED_DIGEST=""
+              for attempt in $(seq 1 15); do
+                INSPECT_OUTPUT="$(
+                  docker buildx imagetools inspect "$IMAGE:$tag" 2>/dev/null || true
+                )"
+                PUBLISHED_DIGEST="$(
+                  printf '%s\n' "$INSPECT_OUTPUT" |
+                    sed -n 's/^Digest:[[:space:]]*//p'
+                )"
+                if [ -n "$PUBLISHED_DIGEST" ]; then
+                  if [ "$PUBLISHED_DIGEST" != "$CANDIDATE_DIGEST" ]; then
+                    echo "Immutable tag $IMAGE:$tag exists with a different digest." >&2
                     exit 1
                   fi
+                  break
                 fi
+                docker buildx imagetools create \
+                  -t "$IMAGE:$tag" \
+                  "$IMAGE@$CANDIDATE_DIGEST" || true
+                if [ "$attempt" -lt 15 ]; then
+                  echo "Waiting for immutable tag $IMAGE:$tag to publish (attempt $attempt/15)."
+                  sleep 2
+                fi
+              done
+              if [ -z "$PUBLISHED_DIGEST" ]; then
+                sleep 2
+                PUBLISHED_DIGEST="$(
+                  docker buildx imagetools inspect "$IMAGE:$tag" 2>/dev/null |
+                    sed -n 's/^Digest:[[:space:]]*//p' || true
+                )"
+              fi
+              if [ "$PUBLISHED_DIGEST" != "$CANDIDATE_DIGEST" ]; then
+                echo "Could not publish immutable tag $IMAGE:$tag after 15 attempts." >&2
+                exit 1
               fi
             done
             VERSION_DIGEST="$(

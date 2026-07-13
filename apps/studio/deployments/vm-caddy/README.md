@@ -11,7 +11,7 @@
 
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
-This deployment pins Junjo AI Studio `0.81.4` and Junjo `0.63.0` as a compatible release pair.
+This deployment pins Junjo AI Studio `0.81.5` and Junjo `0.63.0` as a compatible release pair.
 
 Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
 
@@ -480,18 +480,18 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.4`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.5`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
 *   **Details**: Rust service that receives telemetry via OTLP gRPC (port 26155), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
 *   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
 #### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.4`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.5`
 *   **Purpose**: API server, authentication, and data processing
 *   **Details**: Python FastAPI application that handles HTTP API requests (port 26154), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 #### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.4`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.5`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 26153, proxied through Caddy.
 
