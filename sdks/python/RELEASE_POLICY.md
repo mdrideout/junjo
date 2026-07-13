@@ -8,16 +8,28 @@
 
 ## Required Release Checks
 
-Every release must pass the Python SDK library-health checks from
-`sdks/python`:
+Junjo requires Python 3.11 or newer. Python 3.13 is the repository-owned
+development, documentation, and release-build version. Every release must pass
+the Python SDK primary library-health checks from `sdks/python` on Python 3.13:
 
 - `uv run ruff check .`
 - `uv run pytest -q`
 - `uv run ty check --error-on-warning src`
+- `uv run sphinx-build -W -b html docs docs/_build/html`
 - `uv run python -m build`
 - `uv run twine check dist/*`
 
-These checks define the required support contract for the `junjo` Python library itself.
+Compatibility jobs also run `uv run pytest -q` on Python 3.11, 3.12, and
+3.14. PyPI publication waits for the primary health job, the complete supported
+Python compatibility matrix, and a single Python 3.13 distribution build.
+
+Keep `requires-python = ">=3.11"` and Ruff's `target-version = "py311"` aligned
+with the minimum supported version. The development default must not allow
+syntax that prevents installation on a declared compatible Python version.
+Reassess the minimum when Python 3.11 reaches end of life in October 2027.
+
+These checks define the required support contract for the `junjo` Python
+library itself.
 
 ## Examples
 

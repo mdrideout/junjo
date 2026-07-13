@@ -22,7 +22,9 @@ REQUIRED_PATHS = (
     "LICENSE",
     "sdks/python/AGENTS.md",
     "sdks/python/LICENSE",
+    "sdks/python/.python-version",
     "sdks/python/pyproject.toml",
+    "sdks/python/RELEASE_POLICY.md",
     "sdks/python/uv.lock",
     "apps/studio/AGENTS.md",
     "apps/studio/LICENSE",
@@ -53,6 +55,8 @@ REQUIRED_PATHS = (
     "docs/roadmaps/MONOREPO_GITHUB_CUTOVER_RUNBOOK.md",
     ".github/dependabot.yml",
     ".github/workflows/platform-gate.yml",
+    ".github/workflows/python-ci.yml",
+    ".github/workflows/python-publish.yml",
     ".github/workflows/studio-deployments.yml",
     ".github/workflows/studio-docker-publish.yml",
     ".github/workflows/studio-release-validation.yml",
@@ -353,6 +357,57 @@ def validate_website_build_contract() -> None:
         "relative(outputRoot, resolvedTarget)" in validator
         and "!isAbsolute(outputRelativeTarget)" in validator,
         "website link validation must reject targets outside generated output",
+    )
+
+
+def validate_python_support_policy() -> None:
+    """Keep the SDK development runtime and published compatibility explicit."""
+    sdk_root = PLATFORM_ROOT / "sdks/python"
+    development_version = (sdk_root / ".python-version").read_text(
+        encoding="utf-8"
+    ).strip()
+    require(
+        development_version == "3.13",
+        "the Python SDK development and documentation version must be 3.13",
+    )
+
+    pyproject = tomllib.loads(
+        (sdk_root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    project = pyproject["project"]
+    require(
+        project["requires-python"] == ">=3.11",
+        "the Python SDK compatibility floor must remain Python 3.11",
+    )
+    expected_classifiers = {
+        f"Programming Language :: Python :: 3.{minor}"
+        for minor in range(11, 15)
+    }
+    require(
+        expected_classifiers.issubset(set(project["classifiers"])),
+        "the Python SDK classifiers must declare every tested Python version",
+    )
+    require(
+        pyproject["tool"]["ruff"]["target-version"] == "py311",
+        "Ruff must preserve syntax compatibility with the Python 3.11 floor",
+    )
+
+    workflow_root = PLATFORM_ROOT / ".github/workflows"
+    python_ci = (workflow_root / "python-ci.yml").read_text(encoding="utf-8")
+    require(
+        'name: Primary health (Python 3.13)' in python_ci
+        and 'python-version: "3.13"' in python_ci
+        and 'python-version: ["3.11", "3.12", "3.14"]' in python_ci
+        and "UV_PYTHON: ${{ matrix.python-version }}" in python_ci,
+        "Python CI must pair the 3.13 primary job with the supported compatibility matrix",
+    )
+    python_publish = (workflow_root / "python-publish.yml").read_text(
+        encoding="utf-8"
+    )
+    require(
+        "uses: ./.github/workflows/python-ci.yml" in python_publish
+        and "needs: [sdk-validation, build-release]" in python_publish,
+        "PyPI publication must wait for reusable SDK validation and one release build",
     )
 
 
@@ -665,6 +720,7 @@ def main() -> None:
     validate_secret_boundaries()
     validate_studio_frontend_foundation()
     validate_website_build_contract()
+    validate_python_support_policy()
     validate_release_routing()
     validate_studio_release_contract()
     validate_workflow_action_pins()

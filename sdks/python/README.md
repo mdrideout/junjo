@@ -11,6 +11,12 @@ Whether you’re building a simple chatbot, a complex data manipulation pipeline
 - [Python SDK Docs](https://python-api.junjo.ai/)
 - [PyPI](https://pypi.org/project/junjo/)
 
+#### Python support
+
+Junjo requires Python 3.11 or newer. Development and documentation use Python
+3.13, while CI currently verifies compatibility across Python 3.11 through
+3.14.
+
 #### Benefits:
 
 - ✨ Visualize your AI workflows
@@ -284,7 +290,7 @@ This project was made with the [uv](https://github.com/astral-sh/uv) python pack
 $ cd sdks/python
 
 # Setup and activate the virtual environment
-$ uv venv --python 3.11 .venv
+$ uv venv --python 3.13 .venv
 $ source .venv/bin/activate
 
 # Install optional development dependencies

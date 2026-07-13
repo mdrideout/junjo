@@ -42,8 +42,8 @@ $ npm run dev
 # This repo is a `uv` workspace. The virtual environment lives at the repo root
 # (`../../../.venv` from here), not inside this backend directory.
 #
-# Ensure all packages are installed (Python 3.11)
-$ uv sync --python 3.11 --package app
+# Ensure all packages are installed (Python 3.13)
+$ uv sync --python 3.13 --package app
 
 # Start the backend
 $ uv run --package app fastapi dev src/app/main.py

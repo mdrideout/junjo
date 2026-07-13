@@ -45,7 +45,7 @@ For a local Docker Compose AI Studio stack, the default local ports are:
 # example's README when switching between examples.
 #
 # Recommended (run from this directory):
-$ uv sync --python 3.11 --package base --all-extras
+$ uv sync --python 3.13 --package base --all-extras
 $ uv run --package base -m base.main
 $ uv run --package base -m base.visualize
 

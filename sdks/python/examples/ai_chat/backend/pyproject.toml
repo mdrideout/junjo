@@ -32,7 +32,7 @@ dependencies = [
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/
 line-length = 120        # Default, compatible with Black
-target-version = "py311" # Or your project's Python version
+target-version = "py311" # Preserve minimum supported Python syntax
 indent-width = 4         # Default, compatible with Black
 
 # Formatting options (optional - Ruff's formatter is Black-compatible by default)
