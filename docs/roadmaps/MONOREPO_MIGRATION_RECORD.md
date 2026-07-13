@@ -96,5 +96,5 @@ introduced by the path migration; they remain explicit follow-up maintenance.
 - [ ] Migrate or close active Studio issues and roadmap items.
 - [ ] Publish an archive notice in `junjo-ai-studio` pointing here.
 - [ ] Disable Studio workflows and releases in the archived repository.
-- [ ] Push the intentionally namespaced `studio-v*` historical tags.
+- [x] Push the intentionally namespaced `studio-v*` historical tags.
 - [ ] Perform release dry runs before enabling production publishing.
