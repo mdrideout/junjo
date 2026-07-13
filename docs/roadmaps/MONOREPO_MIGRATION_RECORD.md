@@ -1,11 +1,28 @@
 # Junjo monorepo migration record
 
+## Status
+
+This record currently proves the completed Python SDK and Studio source
+consolidation. It does not claim that the approved website, deployment
+distribution, Apache-2.0 relicensing, mirror publication, or hosting cutover
+work has been implemented.
+
+GitHub Actions, environments, credentials, trusted publishing, Cloudflare,
+mirror, archival, verification, and rollback steps follow
+`MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
+
+Append new source revisions, rewritten revisions, tree identities, import
+commands, scans, and validation results here as each remaining migration phase
+is executed. Do not convert planned work into recorded fact before it passes its
+validation gates.
+
 ## Scope
 
-This record accompanies ADR 0001 and the migration plan. It records the local
-source migration. GitHub issues, repository archival, secrets, environments,
-branch protection, and trusted-publisher configuration are operator cutover
-work and cannot be completed by repository commits.
+This record accompanies ADR 0001 and the migration plan. The evidence below
+records the initial local SDK and Studio source migration. GitHub issues,
+repository archival, distribution-mirror settings, website hosting, secrets,
+environments, branch protection, and trusted-publisher configuration are
+operator cutover work and cannot be completed by repository commits.
 
 ## Source revisions
 
@@ -87,8 +104,30 @@ frontend production build reports a large-chunk advisory, and backend tests
 report upstream HTTPX per-request-cookie deprecation warnings. None were
 introduced by the path migration; they remain explicit follow-up maintenance.
 
+## Remaining repository migration work
+
+- [ ] Complete the expanded website and deployment source imports.
+- [ ] Replace all Junjo-owned AGPL declarations with Apache-2.0 and validate
+  every independently packaged or exported component.
+- [ ] Add and validate `.env.bak` ignores for Studio and both deployment
+  distributions.
+- [ ] Add website, deployment, license, archive, and mirror validation in the
+  monorepo.
+- [ ] Append exact source revisions, import commands, tree identities, and
+  validation results to this record.
+
 ## Operator cutover checklist
 
+- [ ] Update surviving distribution and archived source repository default
+  branches so they do not advertise a conflicting current license.
+- [ ] Configure one-way publication credentials for both deployment mirrors.
+- [ ] Convert `junjo-ai-studio-minimal-build` into a generated distribution
+  whose canonical source is `apps/studio/deployments/minimal`.
+- [ ] Convert `junjo-ai-studio-deployment-example` into a generated
+  distribution whose canonical source is
+  `apps/studio/deployments/vm-caddy`.
+- [ ] Cut website hosting over to `apps/website`, then archive the old website
+  source repository with a destination notice.
 - [ ] Configure required checks and branch protection in the destination.
 - [ ] Recreate Studio publishing secrets and environments in the destination.
 - [ ] Confirm the PyPI trusted publisher accepts the moved workflow.

@@ -2,38 +2,79 @@
 
 - Status: Accepted
 - Date: 2026-07-12
+- Updated: 2026-07-12
 - Owners: Junjo platform
 
 ## Context
 
-The Junjo Python SDK and Junjo AI Studio were developed in separate Git
-repositories. Agent execution will add coordinated changes to SDK lifecycle
-telemetry, ingestion preservation, backend queries, frontend diagnostics, and
-shared conformance fixtures. Separate repositories turn each contract change
-into a manually coordinated sequence of commits and releases.
+Junjo is one platform with several independently built and deployed surfaces:
 
-The components nevertheless have different users, dependency graphs, runtime
-responsibilities, versions, licenses, and deployment artifacts. Combining
-their source must not combine those boundaries.
+- language SDKs that execute Workflows and Agents;
+- Junjo AI Studio, which ingests, queries, evaluates, and visualizes execution
+  evidence;
+- the Junjo website and platform documentation;
+- supported Studio deployment distributions.
+
+The Python SDK and Studio were initially developed in separate repositories.
+The website, minimal Studio distribution, and VM/Caddy deployment example also
+evolved in separate repositories. That separation makes coordinated changes to
+telemetry contracts, product terminology, supported versions, deployment
+configuration, documentation, and release validation depend on manual
+synchronization.
+
+The components still have different users, dependency graphs, runtime
+responsibilities, build systems, release cadences, and deployment artifacts.
+One repository must improve coordination without obscuring those boundaries.
 
 ## Decision
 
-The existing `junjo` repository is the Junjo platform monorepo.
+The existing `junjo` repository is the canonical source repository for the
+Junjo platform.
 
-- Python SDK source, tests, examples, package metadata, and public docs live in
-  `sdks/python`.
-- Junjo AI Studio lives in `apps/studio` with its backend, frontend, ingestion
-  service, internal protobufs, deployment files, and component ADRs intact.
-- language-independent telemetry contracts live in `contracts/telemetry`.
-- cross-platform ADRs and roadmaps live in root `docs`.
-- active CI and release workflows live in root `.github/workflows` and route by
-  changed path or namespaced release tag.
+The target layout is:
 
-Each component keeps an independent dependency lock, build, version, release,
-and runtime. The monorepo creates one review and compatibility boundary; it
-does not create a shared application runtime.
+```text
+junjo/
+├── sdks/
+│   └── python/
+├── apps/
+│   ├── studio/
+│   │   └── deployments/
+│   │       ├── minimal/
+│   │       └── vm-caddy/
+│   └── website/
+├── contracts/
+│   └── telemetry/
+├── docs/
+│   ├── adr/
+│   └── roadmaps/
+├── tooling/
+└── .github/workflows/
+```
 
-## Runtime boundaries
+Ownership is explicit:
+
+- `sdks/python` owns the Python SDK, public API, examples, tests, package
+  metadata, and Python Sphinx documentation.
+- `apps/studio` owns Studio backend, frontend, ingestion, internal protobufs,
+  service documentation, supported deployment distributions, and Studio
+  releases.
+- `apps/website` owns the Junjo marketing site, platform narrative, platform
+  guides, and website deployment.
+- `contracts/telemetry` owns language-independent telemetry schemas, versions,
+  fixtures, and conformance expectations.
+- root `docs` owns cross-platform decisions and roadmaps.
+- root workflows route validation and publishing by component path and release
+  identity.
+
+Each independently deployable product keeps its own dependency lock, build,
+version where one is useful, release artifact, and runtime. Deployment
+distributions are self-contained artifacts released with Studio, not
+independently versioned products. Contracts and documentation are not runtimes.
+The monorepo is a source and review boundary, not one application runtime or one
+dependency graph.
+
+## Runtime and documentation boundaries
 
 - SDKs may emit the shared telemetry contract but may not import Studio code.
 - Studio consumes OpenTelemetry and shared fixtures but may not import an SDK
@@ -42,91 +83,183 @@ does not create a shared application runtime.
   public cross-language telemetry contract.
 - shared contract directories contain schemas and conformance data, not SDK or
   Studio business logic.
-- future SDKs own their language-native dependencies and implementations while
-  conforming to the same observable semantics.
+- future SDKs own language-native dependencies and implementations while
+  conforming to shared observable semantics.
+- the website does not become a runtime dependency of an SDK or Studio.
+- Python API documentation remains canonical under `sdks/python/docs`.
+- the website owns platform and product documentation and may link to or
+  publish generated SDK reference output; it must not create a second manually
+  maintained Python API source of truth.
+
+## Canonical source and distribution repositories
+
+The two supported Studio deployment repositories have a different source
+boundary and distribution boundary:
+
+- canonical minimal deployment source lives in
+  `apps/studio/deployments/minimal`;
+- canonical VM/Caddy deployment source lives in
+  `apps/studio/deployments/vm-caddy`;
+- the existing standalone GitHub repositories remain small operator-facing
+  distributions;
+- standalone distributions are published one way from validated monorepo
+  source;
+- standalone distributions are not edited as co-equal sources of truth;
+- each distribution contains a generated-source notice and a link to its
+  canonical monorepo directory;
+- changes are proposed against the monorepo and exported only after validation.
+
+Keeping a cloneable distribution does not justify maintaining the deployment
+contract independently from the Studio release that it deploys.
+
+The website does not require a distribution mirror. After its deployment and
+repository settings are cut over, its old source repository is archived with a
+link to `apps/website`.
 
 ## Versions and releases
 
-Versions remain independent:
+Product versions remain independent:
 
-- `sdk-python-v<version>` routes only to the Python package release.
-- `studio-v<version>` routes only to the Studio image release.
-- future SDKs use `sdk-<language>-v<version>`.
+- `sdk-python-v<version>` routes only to the Python package release;
+- `studio-v<version>` routes only to the Studio image and deployment release;
+- future SDKs use `sdk-<language>-v<version>`;
 - the telemetry contract uses its own integer version in
-  `contracts/telemetry/VERSION`.
+  `contracts/telemetry/VERSION`;
+- the website deploys independently from its own validated path and does not
+  receive an artificial platform version.
 
-Release workflows must verify the exact namespaced tag against the component's
-version before obtaining publishing credentials. A release for one component
-must leave every other publisher skipped.
+The minimal and VM/Caddy deployments do not have independent future product
+versions. A `studio-v<version>` release owns:
 
-Historical Junjo tags remain unchanged. Imported Studio tags are namespaced as
-`studio-v<original-tag>` so they cannot collide with historical Junjo tags and
-follow the new Studio convention.
+1. the synchronized backend, frontend, and ingestion images;
+2. the supported deployment snapshots pinned to those images;
+3. validation that deployment configuration matches the released Studio
+   runtime contract;
+4. release archives and one-way publication of the standalone distributions.
+
+Distribution publication occurs only after the Studio images and deployment
+checks succeed.
+
+Product versions are not implicit telemetry contract identifiers. Every Junjo
+executable span carries the explicit telemetry contract version required by the
+active contract.
 
 ## Telemetry contract ownership
 
 `contracts/telemetry` is the canonical owner of current interoperability
 fixtures and schemas. A semantic change requires one atomic change containing:
 
-1. an explicit contract-version decision
-2. updated schemas and canonical fixtures
-3. affected SDK emitter assertions
-4. affected Studio ingestion, backend, and frontend assertions
-5. documentation of the compatibility change
-
-Product versions must not be used as an implicit contract identifier.
-Every Junjo executable span carries the integer
-`junjo.telemetry.contract_version` so stored and live telemetry remain
-self-describing even when SDK and Studio product versions differ.
+1. an explicit contract-version decision;
+2. updated schemas and canonical fixtures;
+3. affected SDK emitter assertions;
+4. affected Studio ingestion, backend, and frontend assertions;
+5. documentation of the compatibility change.
 
 ## Git history
 
-The Python history stays in place and normal Git renames preserve file
-discoverability. Studio `master` history and tags were rewritten only in a
-disposable clone so every tracked Studio path is nested under `apps/studio`,
-then merged without squashing and with unrelated histories explicitly allowed.
-The existing public Junjo history was not rewritten.
+Useful source histories are preserved during component import.
 
-Only Studio `master` ancestry and release tags are imported. Unmerged inactive
-branch tips remain available in the archived Studio repository; they are not
-part of the platform's active history. The exact source revisions and commands
-are recorded in `docs/roadmaps/MONOREPO_MIGRATION_RECORD.md`.
+- The original Junjo history remains the destination history.
+- Studio history was imported beneath `apps/studio` without squashing.
+- Website history is imported beneath `apps/website` after all current local
+  work is committed and publication of its private history is approved.
+- Minimal deployment history is imported beneath
+  `apps/studio/deployments/minimal`.
+- VM/Caddy deployment history is imported beneath
+  `apps/studio/deployments/vm-caddy`.
+- Imported historical tags are namespaced so they cannot collide:
+  `studio-v*`, `studio-minimal-v*`, and `studio-deployment-v*`.
+- Deployment imports do not create continuing subtree, submodule, or
+  bidirectional synchronization workflows.
+
+Exact source revisions, commands, scans, and validation results belong in the
+monorepo migration record rather than this ADR.
 
 ## Licensing
 
-Licensing is component-scoped:
+All Junjo-authored source, applications, documentation, contracts, examples,
+and deployment distributions are licensed under Apache License 2.0.
 
-- the Python SDK is Apache-2.0 under `sdks/python/LICENSE`;
-- root platform documentation and shared interoperability artifacts are
-  Apache-2.0 under root `LICENSE`;
-- Studio remains AGPL-3.0 under `apps/studio/LICENSE`.
+Implementation of this decision includes:
 
-The root Apache license does not replace or override Studio's AGPL license.
+- replacing the Studio AGPL-3.0 license and notices with Apache-2.0;
+- keeping or adding an Apache-2.0 `LICENSE` in every independently packaged or
+  exported component;
+- including Apache-2.0 in both standalone deployment distributions;
+- updating package metadata, README licensing text, generated archives,
+  container metadata, and website notices where applicable;
+- preserving third-party license and notice obligations.
+
+There is no mixed Junjo-owned Apache/AGPL component policy after the relicensing
+work is complete.
+
+## Secrets and local data
+
+Component imports operate only on reviewed Git-tracked history. Local runtime
+state, secrets, databases, caches, build output, and generated files are not
+imported.
+
+The Studio setup wizard and both deployment setup wizards may create
+`.env.bak`. Before the expanded migration is implemented or either deployment
+is published:
+
+- `.env.bak` is explicitly ignored alongside `.env` in Studio and both
+  deployment distributions;
+- the generated backup is treated as secret-bearing local state;
+- validation proves it cannot enter a release archive or distribution mirror.
+
+## CI and validation boundaries
+
+- Python SDK changes run Python validation and affected telemetry conformance.
+- Studio changes run backend, frontend, ingestion, Compose, image, and affected
+  telemetry validation.
+- deployment changes render Compose, test setup behavior, validate version and
+  environment contracts, and run appropriate smoke tests.
+- website changes run its independent install, static checks, build, and link
+  validation.
+- contract changes run every affected producer and consumer.
+- root integration checks remain small and explicit.
+
+No root package manager or universal lock is introduced.
 
 ## Consequences
 
 Positive consequences:
 
-- SDK and Studio compatibility changes can be reviewed and tested atomically;
-- canonical fixtures have one owner;
-- Agent telemetry can evolve with its diagnostic consumers;
+- SDK, Studio, deployment, website, and contract changes can be reviewed
+  atomically when they are genuinely coupled;
+- supported Studio deployments cannot silently drift from released images;
+- public product terminology and links can change with their implementation;
+- operators retain small cloneable deployment repositories;
 - future SDKs have a clear independent home and conformance target;
-- path-scoped CI avoids one universal dependency environment.
+- all Junjo-owned source has one clear license.
 
 Costs and constraints:
 
-- repository history is larger because both useful histories are retained;
 - CI and release routing must remain precise;
-- contributors must run commands from the owning component;
-- GitHub issues, secrets, environments, and archived-repository settings still
-  require operator cutover outside the source tree.
+- one-way distribution publication requires protected credentials and explicit
+  failure handling;
+- the website and Studio keep independent deployment environments;
+- imported history increases repository size;
+- archived repositories, hosting settings, template settings, secrets, and
+  environments still require operator cutover outside source commits.
 
 ## Rejected alternatives
 
-- Git submodules: rejected because they do not provide atomic cross-contract
-  changes or shared pull-request validation.
-- One root package manager and lock: rejected because the components are
-  independent products with incompatible runtime and release concerns.
-- Squashed Studio import: rejected because it destroys useful provenance.
+- Separate canonical deployment repositories: rejected because their versions,
+  environment contracts, and runtime topology are owned by Studio releases.
+- Removing standalone deployment repositories: rejected because a small
+  cloneable operator artifact is valuable even when it is not the canonical
+  source.
+- Bidirectional synchronization: rejected because it creates conflicting
+  sources of truth.
+- Putting supported deployment distributions at repository root: rejected
+  because Studio owns their runtime and release contract.
+- Merging website dependencies with the Studio frontend or a root JavaScript
+  workspace: rejected because they are independent deployables.
+- Git submodules: rejected because they do not provide atomic contract changes
+  or shared pull-request validation.
+- One root package manager, version, or lock: rejected because independently
+  deployable products have separate runtime and release concerns.
 - Direct Studio dependency from SDKs: rejected because telemetry is the
   intended integration boundary.

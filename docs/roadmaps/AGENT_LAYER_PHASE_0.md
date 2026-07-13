@@ -12,9 +12,10 @@ ADRs that should be accepted before Agent runtime implementation begins.
 This document is not itself an accepted ADR and does not define a final public
 API.
 
-Repository consolidation is planned separately in
-`MONOREPO_MIGRATION_PLAN.md`. The ADR paths and numbers suggested below are
-provisional until the monorepo ownership structure is accepted.
+Remaining repository consolidation is tracked separately in
+`MONOREPO_MIGRATION_PLAN.md`. The monorepo ownership structure is accepted in
+ADR 0001; the focused Agent ADRs suggested below use that ownership and
+nonconflicting numbers.
 
 ## Phase 0 Objective
 
@@ -37,8 +38,9 @@ in Junjo AI Studio, including:
 - model and tool usage
 - failures, cancellation, and termination reason
 
-Phase 0 is complete when the strategic decisions are accepted and the paired
-SDK/Studio telemetry contract is specific enough to implement and test.
+Phase 0 is complete when the strategic decisions are accepted and the shared
+telemetry contract is specific enough for SDK producer and Studio consumer
+conformance to be implemented and tested.
 
 ## Architectural Position
 
@@ -666,7 +668,7 @@ Required cases:
 Tests should assert span hierarchy, identities, attributes, events, statuses,
 and cancellation semantics.
 
-### Paired Studio Fixtures
+### Shared Contract And Studio Consumer Fixtures
 
 Create stable OTLP/JSON fixtures from representative deterministic Agent runs.
 Junjo AI Studio tests should verify:
@@ -681,7 +683,7 @@ Junjo AI Studio tests should verify:
 
 ### AI Chat Acceptance Application
 
-The `examples/ai_chat` proof should include:
+The `sdks/python/examples/ai_chat` proof should include:
 
 - a general response with no Tool
 - a deterministic conversation-history query Tool
@@ -690,8 +692,8 @@ The `examples/ai_chat` proof should include:
 - bounded loop termination
 - a complete Agent state and operation timeline in Studio
 
-The example consumes public Junjo APIs. It must not contain runtime behavior that
-belongs in `src/junjo`.
+The example consumes public Junjo APIs. It must not contain runtime behavior
+that belongs in `sdks/python/src/junjo`.
 
 ## Suggested Implementation Layers
 
@@ -738,7 +740,7 @@ Telemetry is not a follow-up feature. Agent state, model, Tool, error, and
 cancellation evidence must be emitted and tested as each execution behavior is
 implemented.
 
-### Work Package 5: Add Paired Studio Contract Support
+### Work Package 5: Add Studio Consumer Support
 
 Add ingestion fixtures, backend semantic queries, frontend schemas/accessors,
 Agent timeline UI, state reconstruction, and nested Workflow visualization.
@@ -757,15 +759,15 @@ Update together:
 - deterministic test guidance
 - opt-in eval guidance
 - AI Chat README and runnable behavior
-- Junjo/Studio paired-version compatibility notes
+- shared telemetry-contract compatibility and conformance notes
 
 ## Suggested ADR Set
 
-The repository does not currently have a root Junjo ADR directory. When Phase 0
-decisions are ready for acceptance, create `docs/adr/` and use it as the
-strategic source of truth for these decisions.
+Root cross-platform decisions live in the existing `docs/adr` directory. ADR
+0001 already owns the platform monorepo decision. The Agent ADRs should use the
+following nonconflicting paths when their decisions are ready for acceptance.
 
-### `docs/adr/0001-agent-execution-model.md`
+### `docs/adr/0002-agent-execution-model.md`
 
 Owns:
 
@@ -777,7 +779,7 @@ Owns:
 - limits, failures, cancellation, and termination
 - why Agent is not a Node, Workflow, Subflow, session, or persistence layer
 
-### `docs/adr/0002-agent-model-driver-and-tool-contracts.md`
+### `docs/adr/0003-agent-model-driver-and-tool-contracts.md`
 
 Owns:
 
@@ -789,7 +791,7 @@ Owns:
 - strict default error semantics
 - explicit non-goals for provider SDK recreation
 
-### `docs/adr/0003-agent-workflow-composition.md`
+### `docs/adr/0004-agent-workflow-composition.md`
 
 Owns:
 
@@ -800,9 +802,10 @@ Owns:
 - why generic adapters are deferred until repetition is proven
 - OpenTelemetry parentage expectations
 
-### `docs/adr/0004-agent-telemetry-contract.md`
+### `docs/adr/0005-agent-telemetry-contract.md`
 
-Owns the SDK emission contract:
+Owns the shared Agent telemetry semantics and the SDK-producer/Studio-consumer
+conformance obligations:
 
 - Agent, model-operation, and Tool-operation span semantics
 - executable and operation identity
@@ -813,11 +816,12 @@ Owns the SDK emission contract:
 - Tool arguments and results
 - usage, errors, cancellation, and termination
 - payload size and payload-policy seam
-- fixtures and paired compatibility requirements
+- canonical contract fixture requirements and SDK producer conformance
 
-This ADR should be reviewed against Junjo AI Studio before acceptance.
+This ADR should be reviewed against the Studio consumer requirements before
+acceptance. Canonical fixture ownership remains in `contracts/telemetry`.
 
-### Junjo AI Studio: `docs/adr/005-agent-execution-diagnostics.md`
+### Junjo AI Studio: `apps/studio/docs/adr/005-agent-execution-diagnostics.md`
 
 Owns Studio interpretation and product behavior:
 
@@ -828,10 +832,10 @@ Owns Studio interpretation and product behavior:
 - backend semantic endpoints
 - ingestion preservation tests
 - frontend schemas, accessors, and diagnostics UI
-- paired SDK/Studio fixture ownership
+- Studio consumer conformance against canonical fixtures
 
-The Studio ADR references the SDK telemetry ADR instead of duplicating emitted
-attribute definitions.
+The Studio ADR references the root telemetry ADR and canonical shared contract
+instead of duplicating emitted attribute definitions or fixture ownership.
 
 ### Testing Strategy Document, Not ADR
 
@@ -858,7 +862,8 @@ The Phase 0 discussion currently supports these defaults:
 12. Agent diagnostics use dynamic span hierarchy and ordered state events, not
     a fabricated Graph snapshot.
 13. Agent telemetry is implemented and tested with the runtime, not afterward.
-14. Junjo and Junjo AI Studio ship Agent telemetry changes as a paired contract.
+14. Agent telemetry changes update the shared contract, SDK producer, and Studio
+    consumer conformance atomically.
 
 ## Open Decisions Requiring ADR Resolution
 
@@ -882,8 +887,8 @@ The Phase 0 discussion currently supports these defaults:
 
 Phase 0 is complete when:
 
-- the four Junjo ADRs are accepted
-- the paired Studio diagnostics ADR is accepted
+- root Agent ADRs 0002 through 0005 are accepted
+- the Studio diagnostics ADR is accepted
 - Agent ownership and non-ownership boundaries are explicit
 - Agent state, dependency, model-driver, Tool, and result contracts are defined
 - Workflow/Agent composition is defined without premature adapters
@@ -891,7 +896,8 @@ Phase 0 is complete when:
 - Agent telemetry attributes, events, ordering, and span hierarchy are defined
 - payload reconstruction and size strategy is defined
 - deterministic SDK telemetry fixtures are specified
-- paired Studio fixture and UI expectations are specified
+- Studio consumer fixture and UI expectations are specified against the shared
+  contract
 - AI Chat acceptance scenarios and validation gates are agreed
 
 Only then should Horizon 1 runtime implementation begin.

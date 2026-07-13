@@ -9,8 +9,8 @@ API design or a substitute for focused ADRs.
 The detailed Horizon 0 architecture and telemetry plan lives in
 [AGENT_LAYER_PHASE_0.md](AGENT_LAYER_PHASE_0.md).
 
-The proposed repository consolidation that should precede substantial Agent
-implementation is documented in
+The remaining approved repository consolidation that should precede
+substantial Agent implementation is documented in
 [MONOREPO_MIGRATION_PLAN.md](MONOREPO_MIGRATION_PLAN.md).
 
 Before a horizon changes a strategic runtime contract, write or update the
@@ -50,8 +50,8 @@ unrelated orchestration systems.
 
 ### AI Chat Example
 
-`examples/ai_chat` is the first framework proving ground and canonical teaching
-application for the Agent layer.
+`sdks/python/examples/ai_chat` is the first framework proving ground and
+canonical teaching application for the Agent layer.
 
 It should prove that the public Junjo primitives are:
 
@@ -61,8 +61,9 @@ It should prove that the public Junjo primitives are:
 - understandable from public code and documentation
 - compatible with structured workflows, subflows, and concurrency
 
-Agent runtime behavior must be implemented in `src/junjo`, not hidden inside
-the example. The example is an acceptance application for public SDK behavior.
+Agent runtime behavior must be implemented in `sdks/python/src/junjo`, not
+hidden inside the example. The example is an acceptance application for public
+SDK behavior.
 
 ### Junjo AI Studio
 
@@ -72,17 +73,19 @@ It should first visualize and query agent execution evidence. Later it should
 support evaluation datasets, experiments, comparisons, failure analysis, and
 governed improvement proposals.
 
-Agent telemetry is a paired contract between the Junjo SDK and Junjo AI Studio.
-Changes to span semantics must be planned across both repositories.
+Agent telemetry is part of the shared telemetry contract. Changes to span
+semantics must update the SDK producer, canonical contract, and Studio consumer
+conformance in one monorepo change.
 
 ### MBB Platform
 
 MBB remains the vertical product proving ground.
 
 It should adopt the Agent layer only after the core execution and telemetry
-contracts have been proven in `examples/ai_chat`. MBB will then validate whether
-the foundation creates a valuable personalized application, including
-schema-aware questions, user-defined tracking, and adaptive interfaces.
+contracts have been proven in `sdks/python/examples/ai_chat`. MBB will then
+validate whether the foundation creates a valuable personalized application,
+including schema-aware questions, user-defined tracking, and adaptive
+interfaces.
 
 ## Strategic Principles
 
@@ -176,9 +179,9 @@ Agent -> Workflow Tool
 ```
 
 The existing message workflow in
-`examples/ai_chat/backend/src/app/workflows/handle_message` provides the
-baseline. Its fixed directive classification and response branches provide a
-clear comparison with autonomous capability selection.
+`sdks/python/examples/ai_chat/backend/src/app/workflows/handle_message`
+provides the baseline. Its fixed directive classification and response branches
+provide a clear comparison with autonomous capability selection.
 
 ## Candidate Runtime Concepts
 
@@ -336,9 +339,9 @@ Workflow span
 ```
 
 The first telemetry ADR must decide whether agent, model, and tool operations
-need new `junjo.span_type` values or separate semantic attributes. AI Studio
-compatibility must be verified with fixtures and contract tests before a paired
-release.
+need new `junjo.span_type` values or separate semantic attributes. Studio
+consumer compatibility must be verified against canonical fixtures and contract
+tests before affected component releases.
 
 Payload inclusion policy should remain an explicit seam in the telemetry
 contract. Production privacy and retention work can wait until the core
@@ -376,7 +379,7 @@ Junjo execution concepts.
 
 - Relevant ADRs are accepted before implementation.
 - The initial public surface and explicit non-goals are understood.
-- Paired Junjo AI Studio telemetry impact is documented.
+- Shared telemetry-contract and Studio consumer impact is documented.
 - The `ai_chat` acceptance scenarios are defined.
 
 ### Horizon 1: Deterministic Agent Kernel
@@ -409,7 +412,8 @@ Implement a single-agent tool loop as a normal Junjo runtime capability.
 
 #### Exit criteria
 
-- All runtime behavior is covered by deterministic root tests.
+- All runtime behavior is covered by deterministic SDK-owned tests under
+  `sdks/python/tests`.
 - Concurrent executions demonstrate state isolation.
 - Failure and cancellation behavior is explicit and observable.
 - No external service is required to run the test suite.
@@ -437,7 +441,7 @@ Prove that the Agent layer composes cleanly with a realistic Junjo application.
 - The example no longer relies on timing sleeps or untracked execution for its
   canonical agent path.
 
-### Horizon 3: Live Evals And Paired Telemetry
+### Horizon 3: Live Evals And Shared Telemetry Conformance
 
 #### Objective
 
@@ -449,7 +453,7 @@ Make autonomous behavior measurable without weakening deterministic CI.
 - initial tool-selection and response-quality datasets
 - model and prompt comparison workflow
 - in-memory SDK telemetry assertions
-- paired Studio ingestion and frontend fixtures
+- canonical shared fixtures with SDK producer and Studio consumer assertions
 - Studio visualization for dynamic agent runs and nested workflow tools
 
 #### Exit criteria
@@ -458,7 +462,8 @@ Make autonomous behavior measurable without weakening deterministic CI.
 - Deterministic tests and probabilistic evals have separate commands and
   documentation.
 - Studio can reconstruct a complete hybrid execution.
-- Junjo and Studio telemetry contracts have paired compatibility coverage.
+- the shared telemetry contract has SDK producer and Studio consumer
+  compatibility coverage.
 
 ### Horizon 4: Agent-Queryable Evidence Plane
 

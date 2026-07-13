@@ -1,1051 +1,776 @@
-# Junjo Monorepo Migration Plan
+# Junjo Platform Monorepo Migration Plan
 
 ## Status
 
-Implemented in the `codex/platform-monorepo-migration` branch on 2026-07-12.
-ADR 0001 records the accepted architecture and
-`MONOREPO_MIGRATION_RECORD.md` records the history import, validation, and
-remaining external operator cutover.
+Approved and partially implemented.
 
-This plan describes how the `junjo` Python SDK and `junjo-ai-studio`
-repositories were consolidated into one Junjo platform monorepo without
-combining their runtime responsibilities, dependency graphs, versions, or
-deployment artifacts.
+- The Python SDK and Junjo AI Studio source migration was completed on the
+  `codex/platform-monorepo-migration` branch on 2026-07-12.
+- The expanded migration of the website and two Studio deployment
+  distributions is approved but not yet implemented.
+- The Apache-2.0 relicensing of all Junjo-owned components is approved but not
+  yet implemented.
+- The existing source migration evidence is recorded in
+  `MONOREPO_MIGRATION_RECORD.md`. That record must be extended with exact
+  revisions and validation results as the remaining components are imported.
 
-The consolidation should be completed before substantial Agent-layer runtime
-implementation begins so Agent execution and Studio diagnostics can evolve as
-one atomic cross-system contract.
+ADR 0001 defines the accepted end state. This plan defines how to move from the
+current partial monorepo to that end state without mixing runtime refactors into
+the structural work.
 
-## Recommendation
+The executable GitHub Actions, environments, credentials, publishing, hosting,
+external-repository, verification, and rollback procedure is defined in
+`MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
-Use the existing `junjo` repository as the destination monorepo.
+## Objective
 
-The destination should contain:
+Make the `junjo` repository the canonical source and integration boundary for:
 
-- independently versioned language SDKs
-- independently deployed Junjo AI Studio services
-- shared telemetry contracts and conformance fixtures
-- cross-platform ADRs and roadmaps
-- examples that validate SDK and Studio integration
+- current and future Junjo SDKs;
+- Junjo AI Studio;
+- shared telemetry contracts;
+- the Junjo website;
+- supported Studio deployment distributions;
+- platform ADRs, roadmaps, validation, and release routing.
 
-Monorepo means one source tree and one integration boundary. It does not mean:
+The migration must preserve simple ownership boundaries. One repository does
+not mean one package, dependency graph, lock, runtime, version, or deployment.
 
-- one package
-- one version
-- one dependency lock
-- one deployment artifact
-- one runtime process
-- direct SDK dependencies on Studio
-- direct Studio dependencies on a particular SDK implementation
+## Decisions Already Made
 
-## Why Consolidate Before Agent Implementation
+The following are not open migration questions:
 
-The Agent layer crosses the current repository boundary by design:
+1. The existing `junjo` repository remains the destination.
+2. The Python SDK remains in `sdks/python`.
+3. Studio remains in `apps/studio`.
+4. The website moves to `apps/website`.
+5. The minimal Studio distribution moves to
+   `apps/studio/deployments/minimal`.
+6. The VM/Caddy deployment example moves to
+   `apps/studio/deployments/vm-caddy`.
+7. The deployment repositories remain available as one-way generated
+   distributions, not co-equal editable sources.
+8. The old website repository is archived after hosting and source cutover.
+9. All Junjo-authored components use Apache License 2.0.
+10. `.env.bak` is secret-bearing local state and must be ignored and excluded
+    from imports and distributions.
+11. Useful Git history is preserved through rehearsed imports.
+12. Independently deployable products keep separate locks, builds, validation,
+    and releases; deployment distributions release with Studio.
 
-```text
-Junjo SDK
-  -> Agent execution and state
-  -> model and Tool telemetry
-  -> Agent/Workflow nesting
-
-Junjo AI Studio
-  -> ingestion contract preservation
-  -> Agent execution queries
-  -> state reconstruction
-  -> dynamic Agent timeline
-  -> nested Workflow Graph visualization
-```
-
-Implementing this in separate repositories would require coordinated commits,
-fixtures, CI runs, tags, and releases for every telemetry-contract change.
-
-A monorepo allows one pull request to contain:
-
-- SDK emission changes
-- canonical contract fixtures
-- Studio ingestion assertions
-- backend query changes
-- frontend schema and diagnostic changes
-- AI Chat acceptance behavior
-- cross-system documentation
-
-The code remains separated by responsibility even though compatibility changes
-are reviewed atomically.
-
-## Current Release Boundaries To Preserve
-
-### Junjo Python SDK
-
-Current artifact:
-
-- PyPI project: `junjo`
-- Python import: `junjo`
-- supported Python: 3.11+
-- build: setuptools through `python -m build`
-- release: GitHub Release triggers PyPI trusted publishing
-
-The monorepo migration must not change the installed package name, import path,
-public API, or wheel contents except for intentional future SDK changes.
-
-### Junjo AI Studio
-
-Current artifacts:
-
-- backend Docker image
-- frontend Docker image
-- ingestion Docker image
-
-Studio currently versions and releases those three services together. Preserve
-that service-level version synchronization after the move.
-
-### Shared Compatibility
-
-The Python SDK and Studio currently use separately numbered paired releases.
-The monorepo should preserve independent product versions while adding an
-explicit telemetry-contract version and compatibility tests.
-
-## Target Repository Structure
+## Target Repository Shape
 
 ```text
 junjo/
 ├── AGENTS.md
 ├── README.md
-├── LICENSE
-├── Taskfile.yml                         # Optional root orchestration
-│
+├── LICENSE                              # Apache-2.0
 ├── sdks/
 │   ├── python/
 │   │   ├── AGENTS.md
+│   │   ├── LICENSE                      # Apache-2.0
 │   │   ├── pyproject.toml
 │   │   ├── uv.lock
-│   │   ├── README.md
 │   │   ├── src/junjo/
 │   │   ├── tests/
-│   │   ├── docs/                       # Python public Sphinx docs
+│   │   ├── docs/
 │   │   └── examples/
-│   │       ├── ai_chat/
-│   │       ├── base/
-│   │       └── getting_started/
-│   │
-│   ├── typescript/                     # Future
-│   ├── rust/                           # Future
-│   └── go/                             # Future
-│
+│   └── <future-language>/
 ├── apps/
-│   └── studio/
+│   ├── studio/
+│   │   ├── AGENTS.md
+│   │   ├── LICENSE                      # Apache-2.0
+│   │   ├── VERSION
+│   │   ├── backend/
+│   │   ├── frontend/
+│   │   ├── ingestion/
+│   │   ├── proto/
+│   │   ├── docs/
+│   │   ├── scripts/
+│   │   └── deployments/
+│   │       ├── minimal/
+│   │       │   ├── LICENSE              # included in exported artifact
+│   │       │   ├── README.md
+│   │       │   ├── docker-compose.yml
+│   │       │   ├── .env.example
+│   │       │   ├── scripts/junjo
+│   │       │   └── examples/
+│   │       └── vm-caddy/
+│   │           ├── LICENSE              # included in exported artifact
+│   │           ├── README.md
+│   │           ├── docker-compose.yml
+│   │           ├── .env.example
+│   │           ├── scripts/junjo
+│   │           ├── caddy/
+│   │           └── junjo_app/
+│   └── website/
 │       ├── AGENTS.md
-│       ├── VERSION
+│       ├── LICENSE                      # Apache-2.0
 │       ├── README.md
-│       ├── compose.yaml
-│       ├── backend/
-│       ├── frontend/
-│       ├── ingestion/
-│       ├── proto/
-│       ├── docs/adr/                   # Studio-owned decisions
-│       ├── scripts/
-│       └── test-fixtures/
-│
+│       ├── package.json
+│       ├── package-lock.json
+│       ├── astro.config.mjs
+│       ├── public/
+│       └── src/
 ├── contracts/
 │   └── telemetry/
-│       ├── README.md
-│       ├── VERSION
-│       ├── schemas/
-│       ├── fixtures/
-│       └── compatibility/
-│
 ├── docs/
-│   ├── adr/                            # Cross-platform decisions
+│   ├── adr/
 │   └── roadmaps/
-│
 ├── tooling/
-│   └── scripts/
-│
-└── .github/
-    └── workflows/
+└── .github/workflows/
 ```
 
-This is the preferred end-state shape. Exact file locations should be validated
-during a rehearsal migration before final cutover.
+## Ownership Boundaries
 
-## Directory Ownership
+### Python SDK
 
-### Root
+`sdks/python` owns the Python public API, runtime, tests, examples, package
+metadata, Sphinx documentation, and PyPI release.
 
-The repository root owns only platform-wide concerns:
+### Studio
 
-- platform overview
-- cross-system contribution entrypoints
-- root task orchestration
-- cross-platform ADRs
-- shared telemetry contracts
-- integration CI
-- release routing
+`apps/studio` owns the backend, frontend, ingestion service, internal RPC
+contracts, Studio version, Docker images, and supported operator deployment
+distributions.
 
-The root must not become a duplicate source of truth for SDK or Studio
-implementation details.
+The source-development Compose configuration remains separate from deployment
+Compose files that consume prebuilt production images. One file must not be
+forced to serve both concerns.
 
-### `sdks/python`
+### Website
 
-Owns:
+`apps/website` owns the product site, platform narrative, platform-level guides,
+navigation, and its static-site deployment.
+
+Python API and SDK documentation remains canonical in `sdks/python/docs`. The
+website may link to or publish generated SDK reference output but must not
+maintain competing hand-written Python API documentation.
 
-- Python Junjo runtime
-- Python public API and docstrings
-- Python unit and contract tests
-- Python Sphinx documentation
-- Python package metadata
-- Python SDK examples
-- PyPI release workflow inputs
+### Deployment distributions
 
-### `apps/studio`
+The deployment directories are Studio-owned release surfaces. Their external
+repositories are distribution channels optimized for `git clone`, not source
+ownership boundaries.
 
-Owns:
+### Shared contracts
+
+`contracts/telemetry` owns cross-language schemas, versions, canonical fixtures,
+and producer/consumer expectations. It contains no Studio or SDK business
+logic.
 
-- Studio backend
-- Studio frontend
-- Studio ingestion
-- Studio-internal protobuf contracts
-- Studio deployment configuration
-- Studio service version
-- Studio implementation ADRs
-- Studio Docker image releases
+## Source Baselines
 
-### `contracts/telemetry`
+Before implementation, refresh and record the exact source tips. The baselines
+reviewed for this plan are:
 
-Owns language-independent compatibility artifacts:
+| Component | Reviewed source tip | Important state |
+|---|---|---|
+| Existing monorepo | current migration branch | SDK and Studio already imported |
+| Website | `ce1a597caceddc19362181c4c96ae48a5611da7d` | local checkout has uncommitted redesign work |
+| Minimal deployment | `e135323140d880b783a12cd28690d7bbd04b9594` | clean; pins Studio 0.81.1 |
+| VM/Caddy deployment | `a6b6bade3dfdfc9ff5ce451df5136ba290562f74` | clean; pins Studio 0.81.1 and SDK 0.63.0 |
+
+Do not begin a history rewrite from a dirty source checkout. The website work
+must first be committed on an intentional source branch and pushed or otherwise
+backed up. Disposable clean clones are then created from recorded revisions.
+
+## Licensing Plan
+
+All Junjo-authored source and published distributions will use Apache License
+2.0.
+
+Implementation work includes:
+
+- verify that Junjo has the rights needed to relicense all Junjo-owned source
+  and resolve any contributor-specific grants before publication;
+- replace `apps/studio/LICENSE` with Apache-2.0;
+- replace AGPL language in the Studio README and any owned metadata;
+- search source, docs, container labels, package manifests, generated archives,
+  and website notices for obsolete AGPL declarations;
+- add Apache-2.0 component licenses where independently packaged artifacts need
+  to remain self-describing;
+- ensure both deployment export roots contain `LICENSE`;
+- ensure website source and assets have an explicit Apache-2.0 disposition;
+- retain required third-party notices and dependency licenses;
+- update the default branches of surviving distribution and archived source
+  repositories so they do not advertise a conflicting current license;
+- update root documentation only in the same implementation commit that makes
+  the repository license state true.
+
+The license change is a deliberate product decision, not an incidental result
+of moving files beneath the root license. Validation must fail if Junjo-owned
+AGPL declarations remain in current trees, published artifacts, or external
+default branches after relicensing. Historical commits retain their historically
+accurate license files; do not rewrite published history merely to change old
+license text.
+
+## Secret And Local-State Protection
+
+The current Studio setup wizard and both deployment setup wizards can create
+`.env.bak`. A backup may contain the same production secrets as `.env`. The
+existing root `env.bak/` pattern does not match the `.env.bak` file and is not
+adequate protection.
+
+Before history import or distribution publication:
+
+- add `.env.bak` to the applicable Studio and deployment `.gitignore` files;
+- retain `.env` and runtime data ignores;
+- add a test or archive assertion proving neither `.env` nor `.env.bak` can be
+  included in an exported distribution;
+- secret-scan imported history and the final combined history;
+- inspect untracked and ignored source worktrees without copying that data;
+- import only Git-tracked content from disposable clones.
 
-- telemetry contract version
-- canonical attribute and event definitions
-- JSON schemas for serialized snapshots
-- golden OTLP or normalized JSON fixtures
-- expected hierarchy and state reconstruction outcomes
-- SDK emitter conformance cases
-- Studio consumer conformance cases
+Validation must use `git check-ignore` or an equivalent repository-owned check
+for every location where a setup wizard can create the backup.
 
-It must not contain runtime business logic from any SDK or Studio service.
+No `.dbdata`, certificates, private keys, provider tokens, caches, virtual
+environments, `node_modules`, build output, or generated runtime state may enter
+the import.
 
-### `docs/adr`
+## Git History Strategy
 
-Owns decisions that cross more than one deployable or language implementation,
-including:
+Use the same history-preserving approach proven for Studio:
 
-- monorepo structure and release boundaries
-- cross-language telemetry semantics
-- SDK/Studio compatibility policy
-- future shared experience-definition contracts
+1. Clone the source repository into a disposable location.
+2. Run secret and large-file scans.
+3. Rewrite tracked paths into the final destination directory with
+   `git filter-repo --to-subdirectory-filter`.
+4. Namespace imported tags in the disposable clone.
+5. Validate tree identity and reachable commit counts.
+6. Merge without squashing and with unrelated histories explicitly allowed.
+7. Remove the temporary remote.
+8. Record commands, source tips, rewritten tips, tree IDs, and validation in
+   `MONOREPO_MIGRATION_RECORD.md`.
+
+Tag treatment:
 
-Python-only runtime ADRs should live under `sdks/python/docs/adr/`. Studio-only
-ADRs should remain under `apps/studio/docs/adr/`. Ingestion-specific ADRs remain
-under `apps/studio/ingestion/adr/`.
+- preserve existing monorepo `sdk-python-v*` and `studio-v*` tags;
+- import minimal deployment historical tags as `studio-minimal-v*`;
+- import VM/Caddy historical tags as `studio-deployment-v*`;
+- do not create new independent deployment tag streams after cutover;
+- the website currently has no release-tag requirement; do not invent one.
+
+Do not use continuing submodules or subtrees. The result is an ordinary
+monorepo with one canonical source tree.
+
+## One-Way Distribution Model
 
-## Instruction File Strategy
+The minimal and VM/Caddy repositories remain publicly cloneable after cutover.
+They are published projections of monorepo source.
 
-The current repositories have materially different guidance. A monorepo
-justifies scoped instruction files because the rules differ on every task within
-those directories.
+Required behavior:
 
-### Root `AGENTS.md`
+- the monorepo directory is the only editable source;
+- each external README states that the repository is generated and links to the
+  canonical directory;
+- pull requests and issues that propose source changes are redirected to the
+  monorepo;
+- mirror publication exports only the owning deployment directory;
+- the export includes Apache-2.0 `LICENSE` and excludes local state;
+- publication occurs after the corresponding `studio-v*` images and deployment
+  tests pass;
+- publication is one way and never imports mirror commits back into the
+  monorepo;
+- the minimal repository remains a GitHub template;
+- the VM/Caddy repository should also be evaluated as a GitHub template;
+- each Studio release may attach self-contained deployment zip or tar archives
+  in addition to updating mirrors.
 
-Keep the root file short and platform-oriented:
+Mirror automation must be explicit about credentials, destination branch,
+expected source commit, and failure behavior. A failed mirror publication fails
+the distribution portion of the release visibly; it must not silently leave a
+repository claiming support for a version it does not contain.
 
-- shared developer philosophy
-- repository map
-- cross-system contract rules
-- ADR ownership
-- change hygiene
-- validation routing
+## Version And Release Rules
 
-### `sdks/python/AGENTS.md`
+### Python SDK
 
-Move and adapt the current Junjo SDK guidance:
+- Tag: `sdk-python-v<version>`
+- Artifact: PyPI `junjo`
+- Working directory: `sdks/python`
+- Credentials: Python publishing environment only
 
-- public docstrings and Sphinx rules
-- Graph/Workflow/State/Store boundaries
-- telemetry and hook separation
-- Python validation commands
-- example teaching rules
+### Studio
 
-### `apps/studio/AGENTS.md`
+- Tag: `studio-v<version>`
+- Artifacts: backend, frontend, and ingestion images
+- Additional artifacts: minimal and VM/Caddy deployment snapshots
+- Working directory: `apps/studio`
+- Credentials: Studio image and deployment-distribution environments only
+
+Both deployment Compose files remain self-contained and explicitly pin released
+images. CI asserts that every pinned Studio image tag equals
+`apps/studio/VERSION`. README compatibility statements must be validated against
+the same release input.
+
+Do not create a runtime dependency from a deployment directory to the rest of
+the repository. Exported deployments must work after the directory is copied
+out of the monorepo.
+
+### Website
+
+- Trigger: validated changes beneath `apps/website`
+- Artifact: static site
+- Environment: independent website hosting environment
+- Version: no artificial shared platform version
+
+Website publication is independent from SDK and Studio releases.
 
-Move and adapt the current Studio guidance:
+## CI Plan
+
+### Deployment validation
+
+Changes to `apps/studio/deployments/**`, Studio runtime configuration, or
+`apps/studio/VERSION` run the affected deployment checks.
+
+For both distributions:
+
+- render `docker compose config` using safe fixture environment values;
+- assert the three Studio image repositories and tags;
+- assert required service names, internal ports, public ports, volumes, health
+  checks, and environment variables;
+- validate setup-wizard development and production paths;
+- validate generated secret format without exposing values;
+- validate URL and hostname behavior;
+- test repeated setup and `.env.bak` handling;
+- assert secret-bearing files are ignored and absent from archives;
+- validate README version and compatibility statements;
+- build a self-contained release archive and inspect its inventory.
+
+Additional minimal checks:
+
+- confirm the distribution includes only the three core Studio services;
+- confirm it does not acquire an implicit reverse proxy or demo application;
+- validate the reference Caddy example independently.
+
+Additional VM/Caddy checks:
+
+- validate Caddy configuration;
+- build the Caddy image and Junjo demo application;
+- validate the demo application's SDK pin and current API use;
+- run an end-to-end smoke test that starts Studio, emits telemetry, and proves
+  ingestion and queryability before distribution publication;
+- verify production setup guidance does not expose internal RPC ports.
+
+### Website validation
+
+Changes to `apps/website/**` run a path-scoped website workflow:
+
+- clean dependency installation from its own lock;
+- Astro/type checking;
+- lint or formatting checks once explicitly configured;
+- production static build;
+- internal link validation;
+- checks for known obsolete Junjo repository names and URLs;
+- deployment dry run against the selected host.
+
+Do not create a root npm workspace or merge the website lock with the Studio
+frontend lock.
+
+### Licensing validation
+
+Add a repository-owned check that verifies:
+
+- expected Apache-2.0 component licenses exist;
+- Junjo-owned AGPL declarations are absent;
+- deployment archives include Apache-2.0;
+- required third-party notices remain present.
+
+### Existing validation
+
+Continue to route existing Python, Studio, telemetry-contract, and release
+checks by their owning paths. A deployment or website migration is not a reason
+to weaken existing component validation.
+
+## Repository Surfaces To Update During Implementation
+
+The migration is not complete while high-authority repository guidance still
+describes the previous layout or license. Update these surfaces in the same
+commits that make their statements true:
+
+- root `README.md`: add website and deployment ownership and replace the mixed
+  Apache/AGPL explanation;
+- root `AGENTS.md`: route website and deployment work to their owners and
+  validation gates;
+- `apps/studio/AGENTS.md`: add supported deployment distributions to the Studio
+  domain map;
+- `apps/studio/README.md`: replace AGPL text and describe external deployment
+  repositories as generated distributions;
+- `contracts/telemetry/README.md`: remove obsolete separate-license language;
+- `sdks/python/RELEASE_POLICY.md`: replace manual template-update instructions
+  with validated one-way publication;
+- `tooling/scripts/validate_repository.py`: require the expanded layout,
+  Apache-2.0 state, release routing, and distribution invariants;
+- Studio and deployment `.gitignore` files: correctly ignore `.env.bak`;
+- external deployment READMEs: identify the canonical monorepo source and
+  generated status;
+- website README and hosting configuration: identify `apps/website` as source.
+
+Do not update current-state documentation ahead of implementation in a way that
+claims a move, license change, mirror, or deployment has already happened.
+
+## Migration Phases
+
+### Phase 0: Align decisions and inventory
+
+Work:
+
+- update ADR 0001 and this migration plan;
+- mark the initial migration record as partial rather than platform-complete;
+- record source repository visibility, branches, tags, releases, issues,
+  secrets, hosting, and environments;
+- identify every current license declaration;
+- inventory website hosting and domain ownership;
+- inventory external deployment repository settings;
+- refresh source revisions immediately before implementation.
+
+Exit criteria:
+
+- accepted docs describe one unambiguous target;
+- no open directory, license, source-of-truth, or distribution-direction
+  decision remains;
+- source work is safely preserved;
+- implementation inputs are recorded.
+
+### Phase 1: Protect source work and prepare clean imports
+
+Work:
 
-- backend, ingestion, and frontend ownership
-- migration rules
-- Studio validation commands
-- source-of-truth rules
-- subsystem skills
+- commit and back up the current website redesign without rewriting it;
+- commit `.env.bak` ignore protection in current Studio and both deployment
+  source repositories;
+- refresh and record all source tips after those protection commits;
+- create disposable clean clones from recorded source revisions;
+- scan each source history for secrets and large files;
+- inspect ignored and untracked files separately;
+- add or plan fingerprint-scoped false-positive handling without broad secret
+  exclusions;
+- rehearse all three imports end to end.
+
+Exit criteria:
+
+- no source work exists only in an uncommitted checkout;
+- every selected source tip includes the applicable `.env.bak` protection;
+- scans pass or have narrow reviewed findings;
+- rewritten trees match source trees at the selected tips;
+- tags and paths do not collide;
+- exact import commands are ready.
 
-Existing nested Studio skills should move with Studio and remain the preferred
-home for task-specific subsystem guidance.
-
-## Dependency And Workspace Strategy
-
-Do not create one repository-wide dependency graph.
-
-### Python SDK Workspace
-
-`sdks/python` should remain its own uv workspace containing the SDK and its
-Python examples.
-
-It preserves:
-
-- Python 3.11+ support
-- SDK development dependencies
-- workspace installation of `junjo` into examples
-- one SDK/example lock strategy
-
-### Studio Backend
-
-`apps/studio/backend` remains a separate Python 3.13 uv project with its own
-lock file. Do not add it to the Python SDK workspace.
-
-### Studio Frontend
-
-`apps/studio/frontend` retains its own `package.json` and npm lock.
-
-### Studio Ingestion
-
-`apps/studio/ingestion` retains its own Cargo manifest and lock.
-
-### Future SDKs
-
-Each future SDK owns its idiomatic package manager and lock files:
-
-- TypeScript: npm/pnpm package and lock
-- Rust: Cargo package and lock
-- Go: Go module files
-
-Root tasks may orchestrate these projects but must not merge their dependency
-resolution.
-
-## Python Package Publishing From The Monorepo
-
-The Python SDK can publish normally from `sdks/python`.
-
-Conceptual release steps:
-
-```text
-checkout repository
-  -> set up Python 3.11
-  -> install uv
-  -> run SDK checks from sdks/python
-  -> build sdks/python/dist/*
-  -> validate wheel and source distribution
-  -> publish those artifacts to PyPI
-```
-
-Preserve:
-
-- `[project].name = "junjo"`
-- `src/junjo` package discovery
-- Python version support
-- project URLs
-- license inclusion
-- README rendering
-- trusted publishing environment
-
-Update only repository-relative paths and workflow working directories.
-
-Before cutover, build distributions from the old and migrated layouts at the
-same source commit and compare:
-
-- wheel file list
-- source distribution file list
-- package metadata
-- import behavior
-- installed public API
-- tests against the built wheel
-
-The archive bytes need not be identical because paths and timestamps can vary.
-The installed behavior and intended contents must be equivalent.
-
-## Independent Version And Tag Strategy
-
-Monorepo products remain independently versioned.
-
-Use namespaced tags going forward:
-
-```text
-sdk-python-v0.64.0
-studio-v0.82.0
-sdk-typescript-v0.1.0
-sdk-rust-v0.1.0
-```
-
-### Python SDK Release
-
-Triggered only by `sdk-python-v*` tags or a corresponding GitHub Release.
-
-Publishes:
-
-- PyPI `junjo`
-- Python SDK release notes
-- optionally built Sphinx documentation
-
-### Studio Release
-
-Triggered only by `studio-v*` tags or a corresponding GitHub Release.
-
-Publishes synchronized versions of:
-
-- Studio backend image
-- Studio frontend image
-- Studio ingestion image
-
-### Future SDK Releases
-
-Each language uses its own tag prefix and package registry.
-
-### Existing Tags
-
-Do not rewrite or delete existing Junjo tags.
-
-When importing Studio history, namespace imported Studio tags or leave them in
-the archived Studio repository. Do not create ambiguous unprefixed tags in the
-destination.
-
-The rehearsal migration must determine which tag-import approach preserves the
-most useful history without colliding with existing tags.
-
-## Telemetry Contract Versioning
-
-Add a telemetry-contract version independent of SDK and Studio versions.
-
-Conceptual compatibility:
-
-```text
-Python SDK 0.64.0
-  emits telemetry contract 3
-
-TypeScript SDK 0.8.0
-  emits telemetry contract 3
-
-Studio 0.82.0
-  consumes telemetry contract 3
-```
-
-During greenfield development, Studio may support only the active telemetry
-contract. The version still must be explicit so failures are diagnosable and
-future language SDKs can prove conformance.
-
-The contract version should be present in canonical fixtures and emitted
-telemetry according to a cross-platform ADR.
-
-## Future Language SDK Strategy
-
-Additional SDKs should share concepts and observable contracts, not a mechanical
-translation of Python implementation details.
-
-Every SDK should preserve these platform semantics where supported:
-
-- reusable definitions and isolated runs
-- explicit Graph or Agent execution identity
-- state transition ordering
-- failure and cancellation semantics
-- Graph snapshot schema
-- Agent definition snapshot schema
-- Tool and model-operation semantics
-- telemetry contract version
-
-Language implementations remain idiomatic:
-
-- Python may use Pydantic and asyncio
-- TypeScript may use Zod and promises
-- Rust may use Serde and Tokio
-- Go may use structs and contexts
-
-The conformance suite should state expected outcomes without requiring identical
-internal class hierarchies.
-
-## Git History Preservation
-
-The migration should preserve both repositories' useful history.
-
-### Destination
-
-Use the current `junjo` repository and its history as the destination.
-
-### Python SDK Move
-
-Move current Junjo SDK files into `sdks/python` using normal Git moves in a
-dedicated migration commit. Git history remains reachable, and `git log
---follow` can trace renamed files.
-
-Platform-level files created during the Agent strategy work move to root
-`docs/roadmaps` or root `docs/adr` as appropriate rather than into the Python
-package.
-
-### Studio Import
-
-Import Studio through a rehearsed history-preserving method that rewrites or
-places its paths beneath `apps/studio` before combining histories.
-
-Candidate methods:
-
-1. Prepare a temporary Studio clone with `git filter-repo
-   --to-subdirectory-filter apps/studio`, then merge the rewritten branch into
-   Junjo.
-2. Use a one-time, non-squashed Git subtree import beneath `apps/studio`.
-
-Prefer the method that:
-
-- avoids root path collisions
-- preserves commit authorship and messages
-- keeps file history discoverable
-- does not require rewriting existing Junjo public history
-- produces an ordinary repository after migration, without a continuing
-  subtree/submodule workflow
-
-Do not use a Git submodule. The objective is atomic changes and shared CI, which
-a submodule would not provide.
-
-### Rehearsal
-
-Perform the entire import in disposable local clones first. Record exact
-commands and validate the resulting history before touching the destination
-remote.
-
-### Issues, Releases, And Pull Requests
-
-Git history does not migrate GitHub issues, releases, discussions, or pull
-request metadata automatically.
-
-Before archiving Studio:
-
-- export or inventory open issues
-- recreate active roadmap items in Junjo
-- preserve links to historical Studio releases
-- update repository URLs in package metadata and documentation
-- add an archive notice and destination link to Studio
-
-## CI Architecture
-
-Use path-filtered workflows and a small number of integration gates.
-
-### Python SDK CI
-
-Triggered by changes to:
-
-- `sdks/python/**`
-- shared telemetry contracts consumed by Python
-- Python SDK workflow definitions
-
-Runs:
+### Phase 2: Import minimal deployment
+
+Work:
+
+- verify the rehearsed source includes `.env.bak` protection;
+- import history beneath `apps/studio/deployments/minimal`;
+- preserve the distribution's root-level `docker-compose.yml` clone-and-run
+  interface;
+- remove source-repository-only synchronization machinery;
+- update links to canonical Studio and SDK locations;
+- add Compose, setup, version, archive, and secret-file validation.
+
+Exit criteria:
+
+- useful history and namespaced historical tags are reachable;
+- the distribution renders and passes contract checks;
+- archives are self-contained and contain no secret-bearing files;
+- no manual upstream-diff instructions remain necessary.
+
+### Phase 3: Import VM/Caddy deployment
+
+Work:
+
+- verify the rehearsed source includes `.env.bak` protection;
+- import history beneath `apps/studio/deployments/vm-caddy`;
+- preserve the operator walkthrough, Caddy surface, and demo application;
+- remove source-repository-only synchronization machinery;
+- update demo application and compatibility links;
+- add Caddy, image, demo, telemetry, archive, and secret-file validation.
+
+Exit criteria:
+
+- useful history and namespaced historical tags are reachable;
+- Caddy and Compose validate;
+- the example application builds and emits observable telemetry;
+- the deployment is self-contained outside the monorepo;
+- no secret-bearing backup is tracked or exported.
+
+### Phase 4: Import website
+
+Work:
+
+- confirm private-history publication and asset licensing;
+- import the preserved website history beneath `apps/website`;
+- keep its npm project and lock independent;
+- replace starter and obsolete product content;
+- configure the canonical site URL and hosting path;
+- add website CI and deployment dry run;
+- update platform navigation without duplicating Python API docs.
+
+Exit criteria:
+
+- website history and current redesign work are present;
+- clean install and production build pass;
+- links and terminology match current Junjo components;
+- hosting configuration is ready for cutover;
+- the website does not depend on Studio frontend internals.
+
+### Phase 5: Establish Apache-2.0 licensing
+
+Work:
+
+- replace Studio AGPL-3.0 license and owned notices;
+- add Apache-2.0 licenses to website and deployment export roots;
+- update owned package, README, container, and website metadata;
+- add licensing validation.
+
+Exit criteria:
+
+- every Junjo-owned component and export is Apache-2.0;
+- no owned AGPL declaration remains;
+- third-party notices remain intact;
+- root documentation reflects the implemented state.
+
+### Phase 6: Build Studio distribution release flow
+
+Work:
+
+- extend `studio-v*` validation to both deployments;
+- build deployment archives;
+- implement one-way mirror publication;
+- add generated-source notices;
+- define narrowly scoped mirror credential and environment requirements;
+- test publication to disposable or non-production destinations;
+- verify mirror output exactly matches the exported source tree.
+
+Exit criteria:
+
+- a Studio release cannot publish mismatched image and deployment versions;
+- external distributions are reproducible from a recorded monorepo commit;
+- direct mirror edits are not part of the workflow;
+- failure is visible and recoverable without changing canonical source.
+
+### Phase 7: Repository completion gate and Agent work resumption
+
+Work:
+
+- run all component and cross-contract validation;
+- run combined-history secret scanning;
+- validate release routing and credential isolation without production
+  publication;
+- validate website deployment and both mirror publications against disposable or
+  non-production destinations;
+- inspect release archives and mirror inventories;
+- append import and validation evidence to the migration record;
+- update root maps, scoped instructions, and Agent roadmap references to the
+  implemented layout.
+
+Exit criteria:
+
+- ADR, plan, record, root documentation, and implementation agree;
+- all histories and tags are discoverable and unambiguous;
+- all current Junjo-owned source and artifacts are Apache-2.0;
+- SDK, Studio, deployments, website, and contracts pass their independent
+  checks;
+- release archives and one-way distribution output are reproducible;
+- production publishing remains disabled until external cutover is authorized.
+
+Agent implementation may resume after this repository-complete gate. It is not
+blocked on hosting credentials, repository archival, or other external operator
+state.
+
+### Phase 8: External cutover and post-cutover verification
+
+Work:
+
+- configure destination branch protection and required checks;
+- configure website hosting secrets and environment;
+- configure deployment mirror credentials;
+- publish and verify the website from `apps/website`;
+- publish and verify both generated deployment repositories;
+- publish Apache-2.0 license and current-source notices to surviving or archived
+  repository default branches;
+- archive the old website source repository with a redirect;
+- retain deployment repositories as generated distributions;
+- update GitHub descriptions, template status, links, issues, and contribution
+  guidance;
+- complete any remaining original Studio source-repository archival work;
+- append external cutover results to the migration record.
+
+Exit criteria:
+
+- public links resolve to current source or distribution locations;
+- website production deployment is sourced only from the monorepo;
+- deployment repositories match monorepo export content;
+- current default branches and published artifacts use Apache-2.0;
+- archived source repositories cannot publish competing artifacts;
+- operators retain a simple clone experience;
+- external cutover does not invalidate the Phase 7 repository validation.
+
+## Validation Checklist
+
+### Repository integrity
+
+- exact source and rewritten revisions recorded
+- source and imported tree identities checked
+- useful histories reachable
+- imported tags namespaced
+- ignored runtime state absent
+- combined-history secret scan passes
+- repository validation script knows all new owned paths
+
+### Licensing
+
+- root Apache-2.0 license valid
+- Python component Apache-2.0 license valid
+- Studio Apache-2.0 license valid
+- website Apache-2.0 license valid
+- both deployment exports include Apache-2.0
+- owned AGPL text absent
+- third-party notices retained
+
+### Python SDK and telemetry
 
 - Ruff
 - pytest
 - ty
-- Sphinx
-- package build and validation
-- Python telemetry conformance fixtures
-- Python examples smoke tests
+- Sphinx without new warnings
+- package build and Twine validation
+- installed-wheel smoke test
+- telemetry contract conformance
 
-### Studio CI
-
-Triggered by changes to:
-
-- `apps/studio/**`
-- shared telemetry contracts consumed by Studio
-
-Runs the existing scoped checks:
+### Studio
 
 - backend tests and Ruff
-- frontend tests, lint, and build
-- ingestion Rust tests
+- frontend tests, lint, and production build
+- ingestion locked tests
 - protobuf staleness
-- REST API contract validation
-- Studio service version synchronization
-
-### Cross-Contract CI
-
-Triggered by changes to:
-
-- `contracts/telemetry/**`
-- any SDK telemetry emitter
-- Studio ingestion/backend/frontend telemetry consumers
-
-Runs:
-
-- SDK generation or loading of canonical fixtures
-- Studio ingestion preservation tests
-- Studio backend semantic query tests
-- Studio frontend schema and reconstruction tests
-- nested Workflow/Agent diagnostic fixtures
-
-### Root Integration CI
-
-Runs only the minimal end-to-end checks that prove repository integration.
-Avoid running every language and service build for unrelated documentation or
-component-local changes.
-
-### Required Checks
-
-Branch protection should require checks based on changed paths where GitHub
-configuration permits. Ensure skipped path-filtered workflows do not leave
-required checks permanently pending.
-
-## Release Workflow Migration
-
-### Python
-
-Update the existing publish workflow to:
-
-- recognize only Python SDK release tags
-- run with `sdks/python` as the project directory
-- upload only `sdks/python/dist/*`
-- verify the release commit is reachable from the default branch
-- keep PyPI trusted publishing narrowly scoped
-
-### Studio
-
-Update the Docker matrix workflow to:
-
-- recognize only Studio release tags
-- read `apps/studio/VERSION`
-- use `apps/studio` build context
-- continue building amd64 and arm64 images
-- retain current image repository names unless a separate branding decision is
-  made
-
-### Secrets And Environments
-
-Inventory and recreate repository secrets and deployment environments in the
-destination before disabling Studio workflows.
-
-Keep release permissions scoped per job:
-
-- PyPI environment for Python publishing
-- Docker credentials for Studio publishing
-- future registry credentials for other SDKs
-
-Monorepo access must not grant every workflow every publishing credential.
-
-## Documentation Migration
-
-### Platform Documentation
-
-Root README should explain:
-
-- what Junjo is
-- available SDKs
-- Junjo AI Studio
-- repository navigation
-- component release and installation links
-
-### Python Public Documentation
-
-Move existing Sphinx documentation with the Python SDK unless a page is truly
-platform-wide.
-
-Preserve:
-
-- Python API documentation URLs
-- public docstrings
-- examples and tutorials
-- PyPI links
-- Studio setup references
-
-### Studio Documentation
-
-Move Studio onboarding and operations docs beneath `apps/studio` and update all
-relative links.
-
-### Roadmaps And ADRs
-
-Move current Agent roadmap documents to root `docs/roadmaps` because Agent
-telemetry and Studio diagnostics are cross-platform work.
-
-Create a root monorepo ADR before migration. Existing proposed Agent ADR paths
-and numbers are provisional and should be assigned within the final monorepo
-ownership structure after the monorepo ADR is accepted.
-
-## Proposed Monorepo ADR
-
-Create before implementation:
-
-### `docs/adr/0001-junjo-platform-monorepo.md`
-
-Owns:
-
-- decision to use one repository
-- target directory structure
-- component ownership
-- independent version and release policy
-- dependency and lock-file separation
-- shared telemetry-contract ownership
-- future language SDK placement
-- root versus component ADR ownership
-- history-preservation strategy
-- archived Studio repository policy
-
-The ADR should not duplicate step-by-step migration commands. Commands and
-validation results belong in this plan or a migration runbook.
-
-## Migration Phases
-
-### Phase 0: Inventory And ADR Approval
-
-#### Work
-
-- accept the monorepo ADR
-- inventory repository branches, tags, releases, issues, secrets, environments,
-  packages, images, and external links
-- inventory ignored local data that must never be imported
-- record current validation commands and successful baselines
-- choose default branch naming
-- choose history-import method through rehearsal
-- finalize directory ownership
-
-#### Exit criteria
-
-- ADR accepted
-- inventory complete
-- both repositories pass their current validation gates
-- exact rehearsal commands documented
-- no unresolved tag or path collision
-
-### Phase 1: Create The Platform Skeleton
-
-#### Work
-
-- create root platform README and AGENTS guidance
-- create `sdks`, `apps`, `contracts`, and root docs structure
-- move Python SDK using Git moves
-- restore Python uv workspace with examples
-- update Python-local paths without changing runtime behavior
-
-#### Exit criteria
-
-- Python SDK tests pass from its new directory
-- Sphinx builds
-- examples resolve the workspace SDK
-- wheel and source distribution validate
-- installed public API matches the pre-migration build
-
-### Phase 2: Import Studio History
-
-#### Work
-
-- import rehearsed Studio history beneath `apps/studio`
-- resolve root metadata collisions intentionally
-- preserve Studio VERSION and service layout
-- move Studio instruction and skill files
-- update internal relative paths
-
-#### Exit criteria
-
-- Studio file history is discoverable
-- no Junjo SDK files were overwritten
-- no local databases, build products, secrets, or caches were imported
-- Studio commands run from the documented directory
-
-### Phase 3: Restore Studio Builds And Tests
-
-#### Work
-
-- update Docker build contexts and Compose paths
-- update backend scripts and locks
-- update frontend scripts and locks
-- update Rust/protobuf paths
-- update version synchronization scripts
-- run the full Studio validation suite
-
-#### Exit criteria
-
-- backend tests and lint pass
-- frontend tests, lint, and build pass
-- ingestion tests pass
-- protobuf staleness check passes
-- REST API contracts pass
-- development and production Compose render successfully
-- all three production images build locally or in CI
-
-### Phase 4: Establish Shared Telemetry Contracts
-
-#### Work
-
-- create telemetry contract README and version
-- move or copy canonical fixtures into contract ownership
-- define fixture generation ownership
-- add Python emitter conformance checks
-- add Studio consumer conformance checks
-- ensure existing Workflow state and Graph fixtures pass before Agent changes
-
-#### Exit criteria
-
-- current Python SDK telemetry is represented by canonical fixtures
-- Studio ingests and renders the fixtures correctly
-- one command or CI workflow validates the full contract
-- SDK and Studio package versions are not used as a substitute for contract
-  identity
-
-### Phase 5: Rebuild CI Boundaries
-
-#### Work
-
-- move workflows into the destination `.github/workflows`
-- add path filtering
-- preserve component-specific caches
-- add cross-contract CI
-- add repository integration smoke checks
-- configure required-check behavior
-
-#### Exit criteria
-
-- Python-only changes run Python and relevant contract checks
-- Studio-only changes run Studio and relevant contract checks
-- contract changes run all producers and consumers
-- unrelated paths do not run every expensive job
-- all release workflows remain disabled or dry-run-only until cutover approval
-
-### Phase 6: Rebuild Independent Releases
-
-#### Work
-
-- implement namespaced tag routing
-- update PyPI build paths and trusted publisher configuration
-- update Studio Docker build paths
-- inventory and restore secrets/environments
-- test artifact creation without publishing
-- validate version/tag mismatch failures
-
-#### Exit criteria
-
-- Python dry run builds the expected wheel and source distribution
-- Studio dry run builds all expected images
-- a Python tag cannot trigger Studio publishing
-- a Studio tag cannot trigger PyPI publishing
-- release jobs have only their required credentials
-
-### Phase 7: Documentation And External Cutover
-
-#### Work
-
-- update GitHub links, badges, package URLs, and clone instructions
-- update Python documentation build/deployment configuration
-- update Studio minimal-build and deployment-example references where necessary
-- migrate active issues and roadmap items
-- publish archive notice in `junjo-ai-studio`
-- disable old Studio CI and releases
-
-#### Exit criteria
-
-- public Python installation instructions are unchanged for users
-- Studio deployment instructions point to valid paths/images
-- external repositories reference the monorepo source
-- the old Studio repository is clearly archived and read-only
-- no active publishing workflow remains in the archived repository
-
-### Phase 8: Resume Agent Phase 0 And Horizon 1
-
-#### Work
-
-- move Agent roadmap and Phase 0 docs to root platform roadmap ownership
-- write Agent ADRs in their final scopes
-- write paired Agent telemetry and Studio diagnostics ADRs
-- begin deterministic Agent kernel implementation only after those decisions are
-  accepted
-
-#### Exit criteria
-
-- Agent work occurs entirely in the monorepo
-- one branch can change SDK emission, fixtures, and Studio consumption
-- the pre-Agent Workflow telemetry contract remains green
-
-## Validation Checklist
-
-### Repository Integrity
-
-- both Git histories are reachable
-- authorship and commit messages are preserved
-- tags are unambiguous
-- ignored build output and local data are absent
-- Git LFS or large-file history is understood before import
-- secret scanning passes across combined history
-
-### Python SDK
-
-- `uv run ruff check .`
-- `uv run pytest -q`
-- `uv run ty check --error-on-warning src`
-- Sphinx HTML build without new warnings
-- wheel and source distribution build
-- `twine check`
-- install wheel into a clean environment
-- import and run a minimal Workflow
-- examples use the workspace SDK
-
-Commands will require their final `sdks/python` working directory after the
-move.
-
-### Studio
-
-- backend test script
-- backend Ruff
-- frontend tests
-- frontend lint
-- frontend production build
-- ingestion Cargo tests
-- protobuf generation/staleness
-- REST API contract validation
+- REST contract validation
+- development and production Compose rendering
+- production image builds
 - Studio version synchronization
-- development Compose render
-- production Compose render
-- three Docker production builds
 
-### Cross-System
+### Deployment distributions
 
-- Python emits canonical Workflow telemetry fixture
-- ingestion preserves attributes and events
-- backend returns expected traces
-- frontend parses Graph and state events
-- state patches reconstruct expected final state
-- nested Subflow and concurrent execution fixtures still render
-- paired contract CI passes from a clean checkout
+- Compose rendering
+- image tag synchronization
+- environment and port contract checks
+- setup-wizard tests
+- `.env` and `.env.bak` exclusion
+- release archive inventory
+- Caddy validation where applicable
+- demo application build and telemetry smoke test where applicable
+- one-way mirror dry run
 
-### Release Dry Runs
+### Website
 
-- Python tag routing
-- Studio tag routing
-- artifact names and versions
-- PyPI metadata
-- Docker image tags
-- amd64 and arm64 build configuration
-- release credentials remain scoped
+- clean dependency install
+- static/type checks
+- production build
+- link validation
+- obsolete terminology check
+- deployment dry run
 
-## Migration Risks And Mitigations
+### Release isolation
 
-### Risk: Migration And Feature Work Become Entangled
+- Python tags cannot trigger Studio or website publication
+- Studio tags cannot trigger PyPI or website publication
+- website changes cannot obtain PyPI or Studio credentials
+- mirror jobs receive only mirror credentials
+- deployment mirrors publish only after Studio artifacts validate
 
-Mitigation:
+## Risks And Mitigations
 
-- isolate migration on its own branch
-- freeze Agent runtime implementation during structural moves
-- make behavior-preserving commits
-- resume Agent work only after migration validation
+### Dirty website work is lost
 
-### Risk: One Repository Creates Runtime Coupling
+Mitigation: preserve and push the current work before creating disposable
+history-rewrite clones. Never run filtering commands in the working checkout.
 
-Mitigation:
+### Distribution mirrors become competing sources
 
-- enforce directory ownership
-- prohibit SDK imports from Studio
-- prohibit Studio imports from SDK implementations
-- communicate only through explicit telemetry/contracts
-- retain separate dependency graphs and release artifacts
+Mitigation: one-way publication, generated notices, source links, and no
+bidirectional synchronization.
 
-### Risk: CI Becomes Slow And Noisy
+### Studio releases and deployment pins drift
 
-Mitigation:
+Mitigation: validate exact image tags and compatibility statements during every
+`studio-v*` release before publication.
 
-- path-filter component workflows
-- reserve full integration runs for contract changes
-- preserve language-specific caches
-- avoid a single mandatory root build command for every change
+### Secrets enter history or archives
 
-### Risk: Release Tags Trigger The Wrong Publisher
+Mitigation: explicitly ignore `.env.bak`, scan histories, inspect archive
+inventories, and publish only from clean tracked exports.
 
-Mitigation:
+### Relicensing is only partially applied
 
-- namespaced tags
-- explicit tag validation in every publish workflow
-- independent GitHub environments
-- dry-run artifact builds before enabling publishing
+Mitigation: update license files, owned notices, manifests, docs, archives, and
+container metadata together; add an automated absence check for owned AGPL
+declarations.
 
-### Risk: History Import Leaks Secrets Or Large Local Data
+### Monorepo creates dependency coupling
 
-Mitigation:
+Mitigation: retain independent locks and working directories. Use contracts and
+CI orchestration rather than runtime imports.
 
-- run secret and large-file scans on Studio history before import
-- inspect ignored and untracked data separately
-- rehearse in disposable clones
-- never import working-directory caches or `.dbdata`
+### Website documentation duplicates SDK documentation
 
-### Risk: Public Python Package Changes Accidentally
+Mitigation: keep Python API ownership in Sphinx and website ownership at the
+platform/product layer.
 
-Mitigation:
+### External cutover breaks operator workflows
 
-- compare built artifacts
-- install and test the wheel
-- preserve package name/import metadata
-- keep migration changes separate from public API changes
+Mitigation: retain small deployment repositories, preserve clone commands,
+test generated artifacts, and archive only repositories that no longer serve a
+distribution purpose.
 
-### Risk: Studio Archive Breaks External Links
+## Branch And Change Hygiene
 
-Mitigation:
-
-- leave the old repository visible and archived
-- add prominent redirect documentation
-- preserve historical releases
-- update active external repositories before archival
-
-## Cutover And Rollback
-
-### Cutover
-
-Do not enable new publishing workflows until all validation and dry-run gates
-pass.
-
-Recommended cutover order:
-
-1. Merge the fully validated monorepo migration.
-2. Confirm default-branch CI.
-3. Enable namespaced Python release workflow.
-4. Enable namespaced Studio release workflow.
-5. Perform non-production or patch release smoke tests as appropriate.
-6. Update external source links.
-7. Archive Studio only after destination releases are proven.
-
-### Rollback
-
-Because the migration is additive to the Junjo repository, rollback before
-cutover is a normal branch or merge revert.
-
-Keep the Studio repository operational until:
-
-- Studio builds pass in the destination
-- Studio release dry runs pass
-- secrets and environments are present
-- the first destination Studio release path is proven
-
-Do not delete the Studio repository. Archive it after successful cutover so its
-history, issues, and releases remain accessible.
-
-## Worktree And Branch Hygiene
-
-Perform migration work on a dedicated branch separate from the Agent roadmap
-branch.
-
-Suggested branch:
+Continue the expanded migration on the dedicated branch:
 
 ```text
 codex/platform-monorepo-migration
 ```
 
-Before creating that branch:
+Before implementation:
 
-- commit or otherwise intentionally preserve the current roadmap documents
-- start from the agreed destination base commit
-- ensure both repository worktrees are clean
-- record both source commit SHAs in the migration notes
+- confirm the branch contains the validated initial SDK/Studio migration;
+- commit these planning changes separately from source imports;
+- refresh all source revisions;
+- ensure the destination and import clones are clean;
+- preserve unrelated local work;
+- avoid Agent runtime changes during structural migration.
 
-Do not mix unrelated runtime refactors into the migration commits.
+Each import, relicensing change, validation layer, and external publication
+workflow should be reviewable as a coherent commit. Do not combine unrelated
+runtime refactors with the migration.
 
 ## Definition Of Done
 
-The monorepo migration is complete when:
+The repository migration is complete when:
 
-- Junjo Python SDK and Studio source live in the destination repository
-- both histories remain accessible
-- Python publishes independently to PyPI
-- Studio publishes its three images independently from Python
-- each component retains its own dependency and version boundaries
-- current Workflow telemetry passes a shared conformance suite
-- root and nested documentation have clear ownership
-- old Studio source repository is safely archived
-- future SDK directories and release conventions are established
-- Agent Phase 0 ADRs can be written against one repository and one shared
-  telemetry contract
+- SDK, Studio, website, and supported deployment source live in the monorepo;
+- useful histories and tags are preserved and recorded;
+- all Junjo-owned source and distributions are Apache-2.0;
+- `.env.bak` and other secret-bearing local state are ignored and excluded;
+- each independently deployable product retains its own dependencies, build,
+  and release boundary;
+- deployment distributions remain self-contained artifacts released with
+  Studio;
+- Studio release dry runs validate and export both deployment distributions;
+- external deployment repository output is reproducible as a one-way mirror;
+- the website builds and passes a deployment dry run from `apps/website`;
+- root and scoped documentation match the implemented layout;
+- all component, contract, release, and security validation passes;
+- Agent work can proceed without coordinating changes across competing source
+  repositories.
 
-The migration must not be considered complete merely because files were copied
-into one tree. It is complete only when builds, tests, releases, documentation,
-history, and cross-system contracts all work from the new repository.
+External cutover is complete when the website and distribution mirrors are
+published from the monorepo, current external default branches use Apache-2.0,
+and obsolete source repositories are archived or converted to generated
+distributions as appropriate.
+
+Copying files is not repository completion. Source ownership, history,
+licensing, builds, tests, release dry runs, distribution generation, and
+documentation must agree before Agent implementation resumes. Production
+hosting and external repository cutover are then verified as an operator phase.
