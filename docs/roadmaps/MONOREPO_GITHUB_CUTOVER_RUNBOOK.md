@@ -54,8 +54,6 @@ Snapshot date: 2026-07-13.
   `studio-distributions-production`, and `studio-release-production` exist with
   tag-only deployment policies;
 - those four environments currently contain no secrets;
-- `studio-dockerhub-production` does not yet contain the
-  `STUDIO_RELEASE_AUTHORITY_CUTOVER` confirmation;
 - read-only default `GITHUB_TOKEN` permissions;
 - all GitHub Actions allowed and no repository-level SHA-pin requirement;
 - strict `master` protection with administrator enforcement and conversation
@@ -70,7 +68,7 @@ The public Docker Hub repository API currently reports immutable tags disabled
 on the backend, frontend, and ingestion repositories (`enabled: false`, retained
 rule `.*`). The release workflow intentionally refuses its first registry
 mutation until Gate B replaces that state with the two exact contract-owned
-rules and the exclusive-authority confirmation is present.
+rules.
 
 ### Old Studio repository
 
@@ -128,7 +126,7 @@ that need external credentials:
 
 | Environment | Why it exists | What the operator changes |
 | --- | --- | --- |
-| `studio-dockerhub-production` | Allows Studio release jobs to push the three production images. | Add two Docker Hub secrets and, after disabling the old publisher, one authority variable. |
+| `studio-dockerhub-production` | Allows Studio release jobs to push the three production images. | Add the Docker Hub username and token. |
 | `studio-distributions-production` | Allows the release job to replace the contents of the two generated deployment-mirror repositories. | Add a narrowly installed GitHub App ID and private key. |
 | `studio-release-production` | Separates final GitHub Release creation from image and mirror publication. | Nothing. It deliberately has no secrets. |
 | `pypi` | Binds PyPI's short-lived OIDC token to the Python publishing job. | Nothing in GitHub. Configure the matching publisher on PyPI. |
@@ -139,13 +137,12 @@ keys in variables.
 
 ### Configure `studio-dockerhub-production`
 
-**Purpose:** give only Studio production jobs access to Docker Hub, and prevent
-the monorepo from publishing until the old repository has lost that authority.
+**Purpose:** give only Studio production jobs access to Docker Hub.
 
 **Where:** **Junjo repository > Settings > Environments >
 `studio-dockerhub-production`**.
 
-**Before adding the authority variable:**
+**Before publishing:**
 
 1. In `mdrideout/junjo-ai-studio`, open **Actions > Publish Docker Images**, use
    the workflow menu, and choose **Disable workflow**.
@@ -179,17 +176,11 @@ after verification. Docker documents this control under
 2. Under **Environment secrets**, add:
    - `DOCKERHUB_USERNAME`: the Docker Hub account name;
    - `DOCKERHUB_TOKEN`: the new token, not the account password.
-3. Under **Environment variables**, add:
-   - `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo`
-
-The authority variable is an intentional circuit breaker. Its value tells the
-workflow that the operator has disabled competing publishers; it is not a
-credential and it does not grant access by itself.
 
 **Verify:** return to the environment page and confirm the two secret *names*
-and one variable are listed. Do not print secret values. The first release also
-queries the public Docker Hub settings and fails before pushing if any immutable
-rule differs from the contract.
+are listed. Do not print secret values. The first release also queries the
+public Docker Hub settings and fails before pushing if any immutable rule
+differs from the contract.
 
 ### Configure `studio-distributions-production`
 
@@ -296,19 +287,10 @@ website deployment environments or Cloudflare API secrets for this cutover.
 
 ### Stable required checks
 
-Do not require a workflow that can be skipped entirely by top-level path
-filters. GitHub leaves a required but skipped workflow pending.
-
-Implement an always-triggered pull-request gate:
-
-1. A path-detection job determines whether Python, Studio, telemetry,
-   deployments, website, licensing, or platform files changed.
-2. Affected validation jobs run or call reusable component workflows.
-3. Unaffected expensive jobs skip at job level rather than skipping the entire
-   workflow.
-4. A final `required` job uses `if: always()` and fails if any required affected
-   job failed or was cancelled.
-5. The final job always emits the same status-check name.
+The always-triggered pull-request gate runs only fast repository integrity
+validation. It does not call component suites, deployment smoke, image builds,
+or the Studio release rehearsal. A final `required` job uses `if: always()` and
+emits one stable status-check name.
 
 Target required checks:
 
@@ -316,30 +298,19 @@ Target required checks:
   protection API context)
 - `Gitleaks Scan`
 
-Keep component job names visible for diagnostics, but do not make a
-path-filtered component workflow a required branch-protection context.
+Component workflows remain path-scoped on pushes to `master` and available for
+manual execution. The complete Studio suite, deployment proof, dry builds, and
+publication checks run as part of a `studio-v*` production release.
 
 ### Pull-request workflow rules
 
 - No publishing credentials.
-- The platform gate is the sole pull-request caller for reusable component
-  workflows; component workflows retain path-filtered `push`, manual, and
-  `workflow_call` triggers without duplicate direct pull-request triggers.
-- When deployment or release ownership is affected, the shared Studio release
-  validation workflow owns admission, Studio, telemetry, deployment, and dry
-  build checks. The gate skips the corresponding direct jobs; component-only
-  changes still use direct routing. The write-capable publisher is not reusable
-  and is never part of the pull-request workflow graph.
+- Pull requests run repository invariants, tooling unit tests, actionlint,
+  Zizmor, and Gitleaks only.
+- Component and release-validation workflows are never called from the
+  pull-request workflow graph.
 - No live model credentials.
-- Fixed non-production application test secrets only.
 - Explicit `permissions: contents: read`.
-- Timeouts on every expensive job.
-- Path detection includes workflow files and validation tooling that can change
-  the meaning of a check.
-- Deployment validation covers Compose, setup wizards, `.env`/`.env.bak`
-  exclusion, version pins, Caddy, archives, and demo telemetry.
-- Website validation covers locked install, static checks, build, links, and
-  obsolete Junjo terminology.
 
 ### Production workflow rules
 
@@ -347,8 +318,7 @@ path-filtered component workflow a required branch-protection context.
   one owning environment. Admission, tests, and registry smoke remain
   uncredentialed.
 - Production Studio releases serialize and do not cancel in progress.
-- Registry mutation waits for the protected exclusive-authority assertion and
-  live Docker Hub immutable-tag proof.
+- Registry mutation waits for live Docker Hub immutable-tag proof.
 - Website previews may cancel superseded builds; Cloudflare production remains
   single-source through Git integration.
 - Mirror publication serializes per destination repository.
@@ -367,9 +337,8 @@ this ordering:
    target to that source revision.
 2. Run Studio component tests and all deployment validation without production
    credentials.
-3. Confirm the old publisher is disabled and this monorepo is the exclusive
-   release authority; validate the live contract-owned immutable-tag rules on
-   all three Docker Hub repositories.
+3. Validate the live contract-owned immutable-tag rules on all three Docker Hub
+   repositories.
 4. Build and push each architecture by content digest, without assigning a
    mutable architecture tag.
 5. Assemble candidate multi-platform manifests, preflight all version and
@@ -407,11 +376,11 @@ successful admission and live-control jobs would be stale. Use "Re-run all
 jobs" so admission, Docker Hub controls, and all producer evidence are refreshed.
 Evidence from another workflow run is never selected.
 
-The manual publisher and pull-request gate both call the same read-only
-`studio-release-validation.yml` workflow. It performs admission, component and
-deployment validation, and inspected dry builds without publishing credentials.
-`studio-docker-publish.yml` is a top-level tag/manual workflow only; its
-write-capable jobs cannot enter a pull-request reusable-workflow graph.
+The publisher calls the read-only `studio-release-validation.yml` workflow. It
+performs admission, component and deployment validation, and inspected dry
+builds before any publishing credential is used. `studio-docker-publish.yml` is
+a top-level tag/manual workflow only; its write-capable jobs cannot enter the
+pull-request workflow graph.
 
 ## Distribution Export Contract
 
@@ -632,8 +601,7 @@ item links to the detailed purpose, location, action, and verification above.
 - [ ] [Transfer Docker publishing authority](#configure-studio-dockerhub-production):
   disable the old `Publish Docker Images` workflow, delete its Docker secrets,
   disable Docker Hub Autobuilds, configure both immutable-tag rules on all three
-  image repositories, add new environment credentials, then add the authority
-  variable last.
+  image repositories, and add the new environment credentials.
 - [ ] [Create and install the mirror GitHub App](#configure-studio-distributions-production),
   then store its App ID and private key in the distributions environment.
 - [ ] [Configure PyPI Trusted Publishing](#configure-the-pypi-trust-relationship)

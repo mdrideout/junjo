@@ -57,7 +57,6 @@ REQUIRED_PATHS = (
     ".github/workflows/studio-docker-publish.yml",
     ".github/workflows/studio-release-validation.yml",
     ".github/workflows/website-ci.yml",
-    "tooling/scripts/detect_ci_changes.py",
     "tooling/scripts/build_studio_release_evidence.py",
     "tooling/scripts/export_studio_distribution.py",
     "tooling/scripts/publish_studio_distribution.py",
@@ -68,7 +67,6 @@ REQUIRED_PATHS = (
     "tooling/scripts/validate_studio_runtime.py",
     "tooling/studio_release_contract.json",
     "tooling/tests/test_ci_release_tools.py",
-    "tooling/tests/test_ci_routing.py",
     "tooling/tests/test_studio_artifact_licenses.py",
     "tooling/tests/test_studio_deployment_tools.py",
     "tooling/tests/test_studio_release_evidence.py",
@@ -506,10 +504,9 @@ def validate_release_routing() -> None:
     require(
         "Validate live Docker Hub immutable-tag controls" in studio_publish
         and "validate-dockerhub" in studio_publish
-        and "STUDIO_RELEASE_AUTHORITY_CUTOVER" in studio_publish
         and studio_publish.index("Validate live Docker Hub immutable-tag controls")
         < studio_publish.index("Build and push architecture image by digest"),
-        "Studio registry mutation must wait for live immutability and authority controls",
+        "Studio registry mutation must wait for live immutability controls",
     )
     require(
         "JUNJO_MINIMAL_MIRROR" not in studio_publish
@@ -541,36 +538,28 @@ def validate_release_routing() -> None:
         "both mirror destinations must be validated before any mirror publication",
     )
     require(
-        "name: required" in platform_gate and "if: always()" in platform_gate,
-        "the platform gate must expose one stable final required check",
+        "name: required" in platform_gate
+        and "if: always()" in platform_gate
+        and "uses: ./.github/workflows/platform-integrity.yml" in platform_gate
+        and "PLATFORM_RESULT: ${{ needs.platform.result }}" in platform_gate,
+        "the pull-request gate must expose one stable platform-integrity check",
+    )
+    forbidden_pr_workflows = (
+        "python-ci.yml",
+        "studio-backend-tests.yml",
+        "studio-frontend-tests.yml",
+        "studio-proto-staleness-check.yml",
+        "studio-rest-api-contract-validation.yml",
+        "studio-version-sync-check.yml",
+        "telemetry-contract.yml",
+        "studio-release-validation.yml",
+        "studio-docker-publish.yml",
+        "website-ci.yml",
     )
     require(
-        "studio_release_rehearsal:" in platform_gate
-        and "uses: ./.github/workflows/studio-release-validation.yml"
-        in platform_gate
-        and "uses: ./.github/workflows/studio-docker-publish.yml"
-        not in platform_gate
-        and "STUDIO_RELEASE_REHEARSAL_RESULT" in platform_gate,
-        "affected pull requests must gate only on read-only Studio release validation",
-    )
-    rehearsal_owned_components = (
-        "studio_backend",
-        "studio_frontend",
-        "studio_proto",
-        "studio_rest",
-        "studio_version",
-        "telemetry",
-    )
-    for component in rehearsal_owned_components:
-        require(
-            f"if: needs.detect.outputs.{component} == 'true' && "
-            "needs.detect.outputs.deployments != 'true'" in platform_gate,
-            f"the shared release rehearsal must replace direct {component} execution",
-        )
-    require(
-        "if: needs.detect.outputs.deployments == 'true'" in platform_gate
-        and "\n  deployments:\n" not in platform_gate,
-        "deployment changes must run only through the shared release rehearsal umbrella",
+        all(workflow not in platform_gate for workflow in forbidden_pr_workflows)
+        and "detect_ci_changes" not in platform_gate,
+        "pull requests must not run component or release validation workflows",
     )
     require(
         'refs/tags/${REF_NAME}^{commit}' in studio_validation

@@ -33,10 +33,6 @@ def load_script_module(name: str, relative_path: str) -> ModuleType:
     return module
 
 
-detector = load_script_module(
-    "detect_ci_changes",
-    "tooling/scripts/detect_ci_changes.py",
-)
 release_policy = load_script_module(
     "validate_studio_release_policy",
     "tooling/scripts/validate_studio_release_policy.py",
@@ -317,7 +313,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
                     settings_directory=settings_directory,
                 )
 
-    def test_platform_gate_requires_the_shared_release_rehearsal(self) -> None:
+    def test_pull_requests_are_fast_and_releases_keep_full_validation(self) -> None:
         release_workflow = (
             REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
         ).read_text(encoding="utf-8")
@@ -334,31 +330,23 @@ class StudioReleasePolicyTests(unittest.TestCase):
             "uses: ./.github/workflows/studio-release-validation.yml",
             release_workflow,
         )
-        self.assertIn("studio_release_rehearsal:", platform_gate)
         self.assertIn(
-            "uses: ./.github/workflows/studio-release-validation.yml", platform_gate
+            "uses: ./.github/workflows/platform-integrity.yml", platform_gate
         )
-        self.assertNotIn(
-            "uses: ./.github/workflows/studio-docker-publish.yml", platform_gate
-        )
-        self.assertIn("STUDIO_RELEASE_REHEARSAL_RESULT", platform_gate)
-        for component in (
-            "studio_backend",
-            "studio_frontend",
-            "studio_proto",
-            "studio_rest",
-            "studio_version",
-            "telemetry",
+        self.assertIn("PLATFORM_RESULT: ${{ needs.platform.result }}", platform_gate)
+        self.assertNotIn("studio-release-validation.yml", platform_gate)
+        self.assertNotIn("detect_ci_changes", platform_gate)
+        for workflow in (
+            "python-ci.yml",
+            "studio-backend-tests.yml",
+            "studio-frontend-tests.yml",
+            "studio-proto-staleness-check.yml",
+            "studio-rest-api-contract-validation.yml",
+            "studio-version-sync-check.yml",
+            "telemetry-contract.yml",
+            "website-ci.yml",
         ):
-            self.assertIn(
-                f"if: needs.detect.outputs.{component} == 'true' && "
-                "needs.detect.outputs.deployments != 'true'",
-                platform_gate,
-            )
-        self.assertIn(
-            "if: needs.detect.outputs.deployments == 'true'", platform_gate
-        )
-        self.assertNotIn("\n  deployments:\n", platform_gate)
+            self.assertNotIn(workflow, platform_gate)
 
     def test_release_artifacts_are_stable_and_partial_reruns_fail_closed(self) -> None:
         workflow = (
@@ -417,7 +405,6 @@ class StudioReleasePolicyTests(unittest.TestCase):
             workflow.index("Validate live Docker Hub immutable-tag controls"),
             workflow.index("Build and push architecture image by digest"),
         )
-        self.assertIn("STUDIO_RELEASE_AUTHORITY_CUTOVER", workflow)
         mirror_preflight = workflow.index(
             "Validate all mirror destinations before minting mutation credentials"
         )
@@ -446,96 +433,6 @@ class StudioReleasePolicyTests(unittest.TestCase):
             self.assertIn(f"/tmp/junjo-release/{filename}", evidence_upload)
         self.assertNotIn("mirror-preflight.json", evidence_upload)
         self.assertNotIn("mirror-authorized-preflight.json", evidence_upload)
-
-
-class ChangeDetectionTests(unittest.TestCase):
-    """Prove repository paths select the checks that own those paths."""
-
-    def enabled_components(self, *paths: str) -> set[str]:
-        result = detector.detect_components(paths)
-        return {name for name, enabled in result.items() if enabled}
-
-    def test_shared_telemetry_contract_fans_out_to_producers_and_consumers(
-        self,
-    ) -> None:
-        self.assertEqual(
-            self.enabled_components("contracts/telemetry/spans/v1/schema.json"),
-            {"python", "studio_backend", "studio_frontend", "telemetry"},
-        )
-
-    def test_component_local_paths_do_not_enable_unrelated_checks(self) -> None:
-        cases = {
-            "sdks/python/docs/index.rst": {"python"},
-            "apps/studio/backend/tests/test_health.py": {"studio_backend"},
-            "apps/studio/frontend/src/App.tsx": {"studio_frontend"},
-            "apps/studio/deployments/minimal/docker-compose.yml": {"deployments"},
-            "apps/website/src/content/docs/index.mdx": {"website"},
-        }
-        for path, expected in cases.items():
-            with self.subTest(path=path):
-                self.assertEqual(self.enabled_components(path), expected)
-
-    def test_run_all_paths_enable_every_component(self) -> None:
-        for path in detector.RUN_ALL_PATHS:
-            with self.subTest(path=path):
-                self.assertEqual(
-                    self.enabled_components(path),
-                    set(detector.COMPONENTS),
-                )
-
-    def test_platform_gate_path_with_dot_slash_still_runs_every_check(self) -> None:
-        self.assertEqual(
-            self.enabled_components("./.github/workflows/platform-gate.yml"),
-            set(detector.COMPONENTS),
-        )
-
-    def test_shared_local_action_change_runs_every_check(self) -> None:
-        self.assertEqual(
-            self.enabled_components(".github/actions/setup-platform/action.yml"),
-            set(detector.COMPONENTS),
-        )
-
-    def test_any_workflow_change_runs_every_check(self) -> None:
-        self.assertEqual(
-            self.enabled_components(".github/workflows/studio-docker-publish.yml"),
-            set(detector.COMPONENTS),
-        )
-
-    def test_deployment_publication_tooling_runs_deployment_checks(self) -> None:
-        paths = (
-            "tooling/studio_release_contract.json",
-            "tooling/scripts/build_studio_release_evidence.py",
-            "tooling/scripts/publish_studio_distribution.py",
-            "tooling/scripts/smoke_studio_distribution.py",
-            "tooling/scripts/validate_studio_release_policy.py",
-            "tooling/tests/test_studio_deployment_tools.py",
-            "tooling/tests/test_studio_release_evidence.py",
-            "tooling/tests/test_studio_setup_wizards.py",
-        )
-        for path in paths:
-            with self.subTest(path=path):
-                self.assertEqual(self.enabled_components(path), {"deployments"})
-
-    def test_main_appends_stable_github_outputs_in_component_order(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="junjo-ci-output-") as temporary:
-            output_path = Path(temporary) / "github-output"
-            arguments = [
-                "detect_ci_changes.py",
-                "apps/website/package.json",
-                "--github-output",
-                str(output_path),
-            ]
-            with mock.patch.object(sys, "argv", arguments):
-                detector.main()
-
-            expected = [
-                f"{component}={'true' if component == 'website' else 'false'}"
-                for component in detector.COMPONENTS
-            ]
-            self.assertEqual(
-                output_path.read_text(encoding="utf-8").splitlines(),
-                expected,
-            )
 
 
 class MirrorTreeTests(unittest.TestCase):

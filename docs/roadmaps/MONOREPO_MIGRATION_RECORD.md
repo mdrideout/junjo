@@ -46,8 +46,6 @@ Verified through the GitHub API on 2026-07-13:
 - `studio-dockerhub-production`, `studio-distributions-production`, and
   `studio-release-production` allow only `studio-v*` tags;
 - the four environments contain no stored secrets;
-- `studio-dockerhub-production` does not yet contain the exclusive-authority
-  confirmation;
 - publication destinations are repository-owned in
   `tooling/studio_release_contract.json`; obsolete mutable mirror-name
   repository variables were removed;
@@ -61,7 +59,7 @@ trusted-publisher gates are exercised successfully.
 The public Docker Hub API reported `enabled: false` with retained rule `.*` for
 all three Studio repositories on 2026-07-13. The implemented production
 workflow will fail before registry mutation until Gate B installs the two exact
-contract rules and records this monorepo as the exclusive publisher.
+contract rules.
 
 ## Final pull-request and merge evidence
 
@@ -340,9 +338,9 @@ for the final pushed-revision checks:
 - `git diff --check` passed.
 
 No production authority was used by these validations. Protected-environment
-credentials, old-publisher disablement, live Docker Hub
-immutable-rule configuration, exclusive-authority confirmation, and first
-production releases remain cutover evidence and are not claimed here.
+credentials, old-publisher disablement, live Docker Hub immutable-rule
+configuration, and first production releases remain cutover evidence and are
+not claimed here.
 
 ## Repository migration work
 
@@ -382,10 +380,8 @@ production releases remain cutover evidence and are not claimed here.
   owning environments.
 - [ ] Confirm the PyPI trusted publisher accepts the moved workflow.
 - [ ] Confirm Docker Hub credentials and image permissions.
-- [ ] Disable the old Studio publisher and Docker Hub autobuilds, configure the
-  exact immutable-tag rules on all three image repositories, and then set
-  `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in the protected Docker Hub
-  environment.
+- [ ] Disable the old Studio publisher and Docker Hub autobuilds, then configure
+  the exact immutable-tag rules on all three image repositories.
 - [ ] Migrate or close active Studio issues and roadmap items.
 - [ ] Publish an archive notice in `junjo-ai-studio` pointing here.
 - [ ] Disable all remaining Studio workflows before archiving the old repository.
