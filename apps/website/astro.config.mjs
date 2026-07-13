@@ -7,12 +7,13 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   site: "https://junjo.ai",
   redirects: {
-    "/guides/example/": "/docs/guides/example/",
-    "/reference/example/": "/docs/reference/example/",
+    "/guides/example/": "/docs/guides/getting-started/",
+    "/reference/example/": "/docs/reference/platform/",
   },
   integrations: [
     starlight({
       title: "Junjo AI",
+      disable404Route: true,
       social: [
         {
           icon: "github",
@@ -29,15 +30,15 @@ export default defineConfig({
       sidebar: [
         {
           label: "Documentation",
-          slug: "docs",
+          link: "/docs/",
         },
         {
           label: "Guides",
-          autogenerate: { directory: "docs/guides" },
+          items: [{ autogenerate: { directory: "docs/guides" } }],
         },
         {
           label: "Reference",
-          autogenerate: { directory: "docs/reference" },
+          items: [{ autogenerate: { directory: "docs/reference" } }],
         },
       ],
     }),

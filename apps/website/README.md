@@ -1,54 +1,54 @@
-# Starlight Starter Kit: Basics
+# Junjo website
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+This directory owns the public Junjo website at
+[junjo.ai](https://junjo.ai/), including the platform landing page and concise
+product documentation. It is an independent Astro and Starlight application
+inside the Junjo platform repository.
 
-```
-npm create astro@latest -- --template starlight
-```
+The website explains how the platform components fit together. Detailed Python
+SDK API and implementation documentation remains owned by `sdks/python/docs`
+and is published at [python-api.junjo.ai](https://python-api.junjo.ai/). Studio
+runtime code and deployment packages remain owned by `apps/studio`.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/starlight/tree/main/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/starlight/tree/main/examples/basics)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/withastro/starlight&create_from_path=examples/basics)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwithastro%2Fstarlight%2Ftree%2Fmain%2Fexamples%2Fbasics&project-name=my-starlight-docs&repository-name=my-starlight-docs)
+## Requirements
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+- Node.js 22.12 or newer
+- npm 9.6.5 or newer
 
-## 🚀 Project Structure
+## Development
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+Run commands from `apps/website`:
 
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   ├── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+```bash
+npm ci
+npm run dev
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+The development server is available at `http://localhost:4321` by default.
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+## Validation and production build
 
-Static assets, like favicons, can be placed in the `public/` directory.
+```bash
+npm run check
+npm run build
+```
 
-## 🧞 Commands
+`npm run check` performs Astro content and TypeScript diagnostics. The static
+production site is written to `dist`. `npm run validate` runs both required
+checks in sequence, and `npm run preview` serves the completed production build
+locally.
 
-All commands are run from the root of the project, from a terminal:
+This component deliberately keeps its own `package-lock.json`; it is not part
+of a repository-wide JavaScript workspace. CI and deployment should install
+with `npm ci` from this directory and publish only `apps/website/dist`.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Content ownership
 
-## 👀 Want to learn more?
+- `src/pages/index.astro` owns the platform landing page.
+- `src/content/docs` owns the Starlight pages routed beneath `/docs/`.
+- `src/assets` owns source-controlled images processed by Astro.
+- `public` owns files copied directly into the built site.
 
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+Keep product descriptions and repository links aligned with the current SDK,
+Studio, and deployment surfaces in this monorepo. Do not duplicate the Python
+API reference here.

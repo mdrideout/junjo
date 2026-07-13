@@ -6,7 +6,7 @@ const ogImage = new URL(workflowPreview.src, "https://junjo.ai").toString();
 const valueProps = [
   {
     title: "Graph-first orchestration",
-    body: "Model nodes, edges, retries, and branching in one explicit graph so behavior is readable before runtime.",
+    body: "Model nodes, edges, conditions, and branching in one explicit graph so behavior is readable before runtime.",
   },
   {
     title: "Observable by default",
@@ -154,10 +154,10 @@ const workflowSteps = [
               pip install junjo
             </code>
             <code class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-junjo-cloud">
-              from junjo import Graph
+              workflow = create_workflow()
             </code>
             <code class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-junjo-cloud">
-              graph.execute(initial_state)
+              result = await workflow.execute()
             </code>
           </div>
         </div>
