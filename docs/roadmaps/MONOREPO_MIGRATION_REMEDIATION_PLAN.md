@@ -462,7 +462,7 @@ an interrupted same-version resume. Only the valid partial resume proceeds.
 - Keep Docker credentials only in `studio-dockerhub-production`.
 - Keep mirror credentials only in `studio-distributions-production`.
 - Preserve ordering: immutable images, exact-image smoke, immutable mirrors,
-  floating tags, Docker descriptions, final evidence, GitHub release.
+  floating tags, final evidence, GitHub release.
 - If a rebuild produces a different digest, do not overwrite immutable tags;
   make a corrective version.
 

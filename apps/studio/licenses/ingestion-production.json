@@ -2106,7 +2106,7 @@
   "scope": "normal Cargo dependency closure for both published Linux targets; development-only and build-only dependencies are excluded",
   "source_lock": {
     "path": "ingestion/Cargo.lock",
-    "sha256": "f01609e2fe0cd931ebc887ea5768090439ccebb6274eb283806122202df20314"
+    "sha256": "70c087e3f17264a4a9470028320b65871eb4be9fefdd305724b03d0b0c345cab"
   },
   "targets": {
     "linux/amd64": "x86_64-unknown-linux-gnu",
