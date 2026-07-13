@@ -1,0 +1,177 @@
+---
+import workflowPreview from "../assets/junjo-base-example-screenshot.png";
+import "../styles/global.css";
+const ogImage = new URL(workflowPreview.src, "https://junjo.ai").toString();
+
+const valueProps = [
+  {
+    title: "Graph-first orchestration",
+    body: "Model nodes, edges, retries, and branching in one explicit graph so behavior is readable before runtime.",
+  },
+  {
+    title: "Observable by default",
+    body: "Capture OpenTelemetry traces across workflow and node execution so debugging and optimization are grounded in data.",
+  },
+  {
+    title: "Eval-ready development",
+    body: "Use pytest + LLM evaluations to verify node behavior against real test cases before shipping new workflow logic.",
+  },
+];
+
+const workflowSteps = [
+  "Define nodes and connect them into a graph.",
+  "Execute with conditional branches and parallel paths.",
+  "Inspect traces and state transitions to improve quality.",
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Junjo AI | Graph Workflows for AI Systems</title>
+    <meta
+      name="description"
+      content="Junjo is an open-source Python library for designing and operating graph-based AI workflows with telemetry and evaluation support."
+    />
+    <link rel="canonical" href="https://junjo.ai/" />
+    <meta property="og:title" content="Junjo AI | Graph Workflows for AI Systems" />
+    <meta
+      property="og:description"
+      content="Design, execute, test, and debug complex graph-based AI workflows."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://junjo.ai/" />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-junjo-ink font-sans text-white antialiased selection:bg-junjo-sky/30">
+    <div
+      class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(29,155,240,0.24),transparent_40%),radial-gradient(circle_at_80%_35%,rgba(22,199,154,0.2),transparent_38%),radial-gradient(circle_at_50%_90%,rgba(246,196,83,0.18),transparent_45%)]"
+    ></div>
+
+    <header class="border-b border-white/10">
+      <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
+        <a href="/" class="text-lg font-extrabold tracking-tight">Junjo 順序 AI</a>
+        <nav class="flex items-center gap-5 text-sm text-white/80">
+          <a href="/docs/" class="transition hover:text-white">Docs</a>
+          <a href="https://python-api.junjo.ai/" target="_blank" rel="noopener noreferrer" class="transition hover:text-white">Python API</a>
+          <a
+            href="https://github.com/mdrideout/junjo"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-junjo-sky hover:text-junjo-cloud"
+          >
+            GitHub
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="mx-auto grid w-full max-w-6xl gap-14 px-6 pb-14 pt-20 md:grid-cols-[1.05fr_0.95fr] md:items-center md:pt-24">
+        <div>
+          <p class="mb-5 inline-flex rounded-full border border-junjo-sky/30 bg-junjo-sky/10 px-3 py-1 font-mono text-xs uppercase tracking-[0.14em] text-junjo-cloud">
+            Open Source Python Framework
+          </p>
+          <h1 class="text-4xl font-extrabold leading-tight sm:text-5xl">
+            Graph-native AI workflows with precise runtime visibility.
+          </h1>
+          <p class="mt-6 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
+            Junjo helps teams design, execute, test, and debug complex AI pipelines as clear
+            node-and-edge graphs instead of opaque chains.
+          </p>
+          <div class="mt-9 flex flex-wrap gap-3">
+            <a
+              href="/docs/"
+              class="inline-flex items-center rounded-full bg-junjo-sky px-6 py-3 text-sm font-semibold text-junjo-ink transition hover:bg-junjo-cloud"
+            >
+              Explore Documentation
+            </a>
+            <a
+              href="https://python-api.junjo.ai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center rounded-full border border-white/25 px-6 py-3 text-sm font-semibold transition hover:border-junjo-mint hover:text-junjo-mint"
+            >
+              Python API Reference
+            </a>
+          </div>
+          <ul class="mt-8 space-y-2 text-sm text-white/75">
+            {workflowSteps.map((step) => (
+              <li class="flex items-start gap-3">
+                <span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-junjo-mint"></span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="relative">
+          <div class="absolute -inset-3 rounded-3xl bg-gradient-to-r from-junjo-sky/35 to-junjo-mint/30 blur-2xl"></div>
+          <div class="relative overflow-hidden rounded-3xl border border-white/15 bg-[#0d1f33]/80 p-3 shadow-2xl shadow-black/30">
+            <img
+              src={workflowPreview.src}
+              alt="Junjo workflow graph interface"
+              width={workflowPreview.width}
+              height={workflowPreview.height}
+              class="w-full rounded-2xl border border-white/10 object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="border-y border-white/10 bg-black/20">
+        <div class="mx-auto w-full max-w-6xl px-6 py-16">
+          <div class="mb-10 max-w-2xl">
+            <h2 class="text-3xl font-bold sm:text-4xl">Built for serious workflow engineering</h2>
+            <p class="mt-4 text-white/75">
+              Junjo keeps your AI orchestration explicit and testable as systems become larger and
+              more stateful.
+            </p>
+          </div>
+          <div class="grid gap-5 md:grid-cols-3">
+            {valueProps.map((item) => (
+              <article class="rounded-2xl border border-white/12 bg-white/[0.03] p-6">
+                <h3 class="text-lg font-bold">{item.title}</h3>
+                <p class="mt-3 text-sm leading-relaxed text-white/75">{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto w-full max-w-6xl px-6 py-16">
+        <div class="rounded-3xl border border-white/12 bg-white/[0.03] p-7 sm:p-10">
+          <p class="font-mono text-xs uppercase tracking-[0.14em] text-junjo-sun">Get started</p>
+          <h2 class="mt-4 text-2xl font-bold sm:text-3xl">From setup to observability in minutes</h2>
+          <div class="mt-7 grid gap-4 sm:grid-cols-3">
+            <code class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-junjo-cloud">
+              pip install junjo
+            </code>
+            <code class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-junjo-cloud">
+              from junjo import Graph
+            </code>
+            <code class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-junjo-cloud">
+              graph.execute(initial_state)
+            </code>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-white/10">
+      <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-8 text-sm text-white/65 sm:flex-row sm:items-center sm:justify-between">
+        <p>© {new Date().getFullYear()} Junjo AI</p>
+        <div class="flex gap-5">
+          <a href="/docs/" class="transition hover:text-white">Documentation</a>
+          <a href="https://github.com/mdrideout/junjo" target="_blank" rel="noopener noreferrer" class="transition hover:text-white">GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
