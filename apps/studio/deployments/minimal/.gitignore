@@ -1,5 +1,6 @@
 # Environment files (contains secrets)
 .env
+.env.bak
 
 # Database data directories (contains user data)
 .dbdata/
