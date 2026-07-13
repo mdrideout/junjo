@@ -1,6 +1,7 @@
 # Misc
 /tmp/
 .env
+.env.bak
 .dbdata/
 .certs/
 .DS_Store
