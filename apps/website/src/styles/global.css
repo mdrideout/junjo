@@ -1,5 +1,46 @@
-@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;700;800&display=swap");
+
+@layer base, starlight, theme, components, utilities;
+
+@import "@astrojs/starlight-tailwind";
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --font-sans: "Manrope", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-junjo-ink: #071522;
+  --color-junjo-sky: #1d9bf0;
+  --color-junjo-mint: #16c79a;
+  --color-junjo-sun: #f6c453;
+  --color-junjo-cloud: #edf4fb;
+}
+
+/*
+ * Starlight + Tailwind doesn't include Tailwind's preflight reset by default.
+ * These minimal rules keep custom Astro pages predictable without fighting Starlight.
+ */
+@layer base {
+  *,
+  ::before,
+  ::after,
+  ::backdrop,
+  ::file-selector-button {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
 
 .hero img {
-  border-radius: 50px !important;
+  border-radius: 1.25rem !important;
+  border: 1px solid var(--sl-color-hairline-light);
 }

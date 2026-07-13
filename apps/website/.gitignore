@@ -19,3 +19,9 @@ pnpm-debug.log*
 
 # macOS-specific files
 .DS_Store
+
+# Vendor files
+.vendor/
+
+# Locally installed third-party agent skills
+.agents/

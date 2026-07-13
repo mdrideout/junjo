@@ -1,31 +1,43 @@
 // @ts-check
 import { defineConfig, passthroughImageService } from "astro/config";
 import starlight from "@astrojs/starlight";
-
 import tailwindcss from "@tailwindcss/vite";
-
-import "./src/styles/global.css";
 
 // https://astro.build/config
 export default defineConfig({
+  site: "https://junjo.ai",
+  redirects: {
+    "/guides/example/": "/docs/guides/example/",
+    "/reference/example/": "/docs/reference/example/",
+  },
   integrations: [
     starlight({
       title: "Junjo AI",
-      social: {
-        github: "https://github.com/mdrideout/junjo",
-        twitter: "https://twitter.com/junjo_ai",
-      },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/mdrideout/junjo",
+        },
+        {
+          icon: "twitter",
+          label: "Twitter",
+          href: "https://twitter.com/junjo_ai",
+        },
+      ],
+      customCss: ["./src/styles/global.css"],
       sidebar: [
         {
+          label: "Documentation",
+          slug: "docs",
+        },
+        {
           label: "Guides",
-          items: [
-            // Each item here is one entry in the navigation menu.
-            { label: "Example Guide", slug: "guides/example" },
-          ],
+          autogenerate: { directory: "docs/guides" },
         },
         {
           label: "Reference",
-          autogenerate: { directory: "reference" },
+          autogenerate: { directory: "docs/reference" },
         },
       ],
     }),
