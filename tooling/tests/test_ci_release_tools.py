@@ -404,6 +404,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
             workflow.index("Validate live Docker Hub immutable-tag controls"),
             workflow.index("Build and push architecture image by digest"),
         )
+
         mirror_preflight = workflow.index(
             "Validate all mirror destinations before minting mutation credentials"
         )
@@ -432,6 +433,16 @@ class StudioReleasePolicyTests(unittest.TestCase):
             self.assertIn(f"/tmp/junjo-release/{filename}", evidence_upload)
         self.assertNotIn("mirror-preflight.json", evidence_upload)
         self.assertNotIn("mirror-authorized-preflight.json", evidence_upload)
+
+    def test_floating_tag_verification_waits_for_registry_convergence(self) -> None:
+        workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("for attempt in $(seq 1 15)", workflow)
+        self.assertIn(
+            'if [ "$PROMOTED_DIGEST" = "$VERSION_DIGEST" ]; then', workflow
+        )
+        self.assertIn("sleep 2", workflow)
 
 
 class MirrorTreeTests(unittest.TestCase):

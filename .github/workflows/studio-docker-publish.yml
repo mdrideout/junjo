@@ -577,10 +577,20 @@ jobs:
               docker buildx imagetools create \
                 -t "$IMAGE:$tag" \
                 "$IMAGE@$VERSION_DIGEST"
-              PROMOTED_DIGEST="$(
-                docker buildx imagetools inspect "$IMAGE:$tag" |
-                  sed -n 's/^Digest:[[:space:]]*//p'
-              )"
+              PROMOTED_DIGEST=""
+              for attempt in $(seq 1 15); do
+                PROMOTED_DIGEST="$(
+                  docker buildx imagetools inspect "$IMAGE:$tag" |
+                    sed -n 's/^Digest:[[:space:]]*//p'
+                )"
+                if [ "$PROMOTED_DIGEST" = "$VERSION_DIGEST" ]; then
+                  break
+                fi
+                if [ "$attempt" -lt 15 ]; then
+                  echo "Waiting for $IMAGE:$tag to converge to $VERSION_DIGEST (attempt $attempt/15)."
+                  sleep 2
+                fi
+              done
               if [ "$PROMOTED_DIGEST" != "$VERSION_DIGEST" ]; then
                 echo "$IMAGE:$tag does not resolve to the exact release digest." >&2
                 exit 1
