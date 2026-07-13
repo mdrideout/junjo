@@ -8,7 +8,7 @@ This document turns Phases 6 through 8 of `MONOREPO_MIGRATION_PLAN.md` into an
 executable repository and operator cutover. It covers GitHub Actions, required
 checks, environments, credentials, PyPI trusted publishing, Docker Hub,
 deployment-distribution mirrors, Cloudflare Pages, old-repository shutdown,
-verification, and rollback.
+verification, and forward recovery.
 
 Do not treat a checked box as evidence by itself. Record the exact workflow run,
 deployment, release, commit, image digest, or settings snapshot in
@@ -26,9 +26,10 @@ deployment, release, commit, image digest, or settings snapshot in
   protected environment.
 - Give every workflow `permissions: contents: read` by default and elevate only
   the job that needs additional access.
-- Do not archive or disconnect a working source/deployment until the replacement
-  has passed its production verification gate.
-- Do not move or delete an immutable package or image version during rollback.
+- Production downtime, preview continuity, backward compatibility, and old
+  deployment rollback are not migration gates. Merge the validated repository
+  first, then replace external configuration directly.
+- Do not move, overwrite, or delete an immutable package or image version.
   Recover with a forward fix or corrective release.
 - Do not force-push generated distribution history during ordinary publication.
 
@@ -388,22 +389,19 @@ does not make a legal conclusion or approve a release.
 
 ## Cloudflare Pages Cutover
 
-Do not repoint either existing production Pages project before the migration is
-merged. Current `master` does not contain the monorepo roots, so doing so would
-break the next production build. Gate A uses isolated preview projects; Gate C
-performs the production settings change under a short deployment freeze.
-If a legacy production project currently attempts and fails previews for the
-migration branch, disable previews for that branch only (or temporarily disable
-non-production previews) without changing its `master` production settings.
-Record the prior preview policy and restore the intended policy after cutover.
+Merge the validated migration before changing Cloudflare. The failing legacy
+Cloudflare check on pull request 12 is not a merge gate because it evaluates the
+new tree with obsolete project settings. No temporary Pages projects, preview
+rehearsal, deployment freeze, or old-project fallback is required. After the
+merge, update both existing Pages projects directly and fix any deployment
+failure forward on `master`.
 
 ### Python API documentation
 
-Create a temporary Python-documentation Pages project from the migration branch
-with these final settings:
+Update the existing `junjo-python-api` Pages project with these settings:
 
 - repository: `mdrideout/junjo`
-- preview branch: `codex/platform-monorepo-migration`
+- production branch: `master`
 - root directory: `sdks/python`
 - runtime variable: `PYTHON_VERSION=3.13`
 - build command:
@@ -413,28 +411,18 @@ with these final settings:
   - `sdks/python/*`
   - `contracts/telemetry/*` when contract docs affect the site
   - relevant root workflow/tooling paths
-- final production custom domain: `python-api.junjo.ai` (do not attach it to
-  the temporary project)
+- production custom domain: `python-api.junjo.ai`
 
-Validate its generated preview before merging the source move. Do not attach
-the production custom domain. Record the temporary Pages project, deployment
-ID, preview URL, source commit, root, runtime variable, exact build command,
-output directory, and result.
-
-At Gate C, freeze pushes to `master`, merge the validated revision, apply the
-same root/runtime/build/output settings to the existing `junjo-python-api`
-project, and trigger one production deployment. Preserve its current settings
-snapshot so the operator can restore them immediately if the monorepo build
-fails. Then verify `python-api.junjo.ai`, TLS, index, API pages, static assets,
-sitemap, and existing deep links before lifting the freeze.
+Trigger a production deployment and verify the domain, TLS, index, API pages,
+static assets, sitemap, and deep links. If it fails, correct `master` or the
+Pages settings and deploy again.
 
 ### Junjo website
 
-Create a temporary website Pages project from the migration branch with these
-final settings:
+Update the existing `junjo-website` Pages project with these settings:
 
 - repository: `mdrideout/junjo`
-- preview branch: `codex/platform-monorepo-migration`
+- production branch: `master`
 - root directory: `apps/website`
 - runtime variable: `NODE_VERSION=22.12.0`
 - build command: `npm ci && npm run build && npm run validate:build`
@@ -442,18 +430,12 @@ final settings:
 - include build-watch paths:
   - `apps/website/*`
   - platform documentation paths intentionally consumed by the site
-- final production custom domain: `junjo.ai` (do not attach it to the temporary
-  project)
+- production custom domain: `junjo.ai`
 
-Validate the isolated monorepo preview first without attaching `junjo.ai`. At
-Gate C, freeze source and hosting changes, merge the validated revision, point
-the existing production project at `mdrideout/junjo` `master` with these exact
-settings, and trigger one deployment. Restore the recorded old-project
-settings if it fails. Disconnect the old `mdrideout/junjo-website` integration
-only after the monorepo production deployment passes domain, TLS, redirects,
-assets, sitemap, robots, and deep-link checks. Record the same project,
-deployment, source, root, runtime, command, output, and result fields used for
-the Python documentation project.
+Trigger a production deployment and verify the domain, TLS, redirects, assets,
+sitemap, robots, and deep links. Disconnect the old
+`mdrideout/junjo-website` integration; if the new deployment fails, correct the
+monorepo or Pages settings and deploy again.
 
 ## PyPI Trusted Publisher Cutover
 
@@ -467,9 +449,8 @@ Before the next Python release:
    - environment `pypi`
 3. Confirm the GitHub `pypi` environment is restricted to `sdk-python-v*` tags.
 4. Run the full package build and metadata validation without publishing.
-5. Use TestPyPI for an OIDC rehearsal if a production release is not due.
-6. Publish the next normal version and record the workflow and PyPI URL.
-7. Remove obsolete publisher entries only after the new identity succeeds.
+5. Publish the next normal version and record the workflow and PyPI URL.
+6. Remove obsolete publisher entries.
 
 PyPI versions cannot be reused. Recovery from a publication problem is a new
 corrective package version.
@@ -499,7 +480,7 @@ request commit.
 
 ## Repository Cutover Sequence
 
-### Gate A: Repository-complete
+### Gate A: Merge the repository
 
 - [x] All planned source histories imported and recorded.
 - [x] Current Junjo-owned source, package metadata, and OCI metadata declare
@@ -511,24 +492,23 @@ request commit.
   excluded everywhere they can be created.
 - [x] Stable required gate implemented.
 - [x] Website and deployment CI prove their complete current contracts.
-- [ ] Studio dry-run release and distribution export pass.
+- [x] Studio dry-run release and distribution export pass.
 - [x] Python local package build and Twine validation pass.
 - [x] Combined-history and current-tree secret scans pass after remediation.
 - [x] Root and scoped documentation are prepared and locally validated.
-- [ ] Record the final pushed revision and successful required workflow runs.
+- [x] Record final pull-request revision `afc5db6` and successful Platform Gate
+  and Gitleaks runs in the migration record.
 - [x] Record the license holder's confirmed Tailwind UI/Plus purchase and
   historical Studio end-product use; retain the imported commits and tags under
   their applicable historical licenses as decided by ADR 0002.
-- [ ] Create isolated Cloudflare preview projects with the monorepo roots and
-  exact build commands above, then record successful previews from the PR head.
+- [ ] Merge pull request 12 with a merge commit, not squash or rebase.
+- [ ] Verify required checks on `master`.
 
-Repository implementation produces the evidence required by Gate A. Production
-publishing, hosting cutover, and source-repository retirement do not begin until
-Gate A passes.
+The obsolete Cloudflare pull-request check is explicitly non-blocking. Merge is
+the first remaining operator action.
 
-### Gate B: Configure production control plane
+### Gate B: Replace external control-plane configuration
 
-- [ ] Snapshot destination and old-repository GitHub settings.
 - [x] Configure GitHub environments and ref policies.
 - [ ] Recreate/rotate only approved environment credentials.
 - [ ] Disable every old Studio release workflow and Docker Hub autobuild, remove
@@ -540,8 +520,8 @@ Gate A passes.
   `studio-dockerhub-production`.
 - [ ] Configure PyPI trusted publisher.
 - [ ] Install the mirror GitHub App on exactly two repositories.
-- [ ] Run every deployment against a preview, temporary branch, or temporary
-  repository.
+- [ ] Reconfigure both existing Cloudflare Pages projects directly against
+  `mdrideout/junjo` `master` using the component roots above.
 - [x] Verify required checks are exactly `required` and `Gitleaks Scan` after
   their stable contexts exist.
 - [ ] Enable repository action-SHA enforcement after the merged workflow set is
@@ -549,17 +529,15 @@ Gate A passes.
 - [ ] Add and verify an immutable `studio-v*` tag ruleset, or record the exact
   GitHub plan/API limitation that prevents it.
 
-### Gate C: Production cutover
+### Gate C: Publish and verify
 
-- [ ] Merge the validated migration.
-- [ ] Verify default-branch CI.
 - [ ] Verify both Cloudflare production projects.
 - [ ] Perform the first destination Studio release.
 - [ ] Verify exact image manifests and digests.
 - [ ] Verify both release archives from clean extraction.
 - [ ] Verify both mirrors from fresh clones.
 - [ ] Verify generated-source SHAs and tree digests.
-- [ ] Perform the next Python release or TestPyPI trusted-publisher proof.
+- [ ] Perform the next Python release.
 
 ### Gate D: Retire competing sources
 
@@ -569,11 +547,9 @@ Gate A passes.
   notice that preserves the Tailwind Plus boundary; do not relabel retained
   Catalyst-derived source as Apache-2.0.
 - [ ] Disable every remaining non-release old Studio workflow.
-- [ ] Delete remaining old Studio repository secrets after destination
-  publication works.
+- [ ] Delete remaining old Studio repository secrets.
 - [ ] Archive the old Studio source repository.
-- [ ] Disconnect and archive the old website source repository after Cloudflare
-  production observation.
+- [ ] Disconnect and archive the old website source repository.
 - [ ] Keep both deployment repositories unarchived as generated distributions.
 - [ ] Keep the minimal repository as a template.
 - [ ] Decide and record whether VM/Caddy is also a template.
@@ -637,44 +613,17 @@ Record:
 - custom-domain/TLS verification;
 - old workflow disablement and repository archival state.
 
-## Rollback
+## Forward-only recovery
 
-### Before production cutover
-
-Revert or fix the migration branch normally. Do not change old source or hosting
-integrations.
-
-### Website or documentation
-
-Promote the last known-good Cloudflare deployment and reconnect the prior Git
-integration if it has not yet been archived. Do not delete the last good
-deployment during cutover.
-
-### Distribution mirrors
-
-Restore the last known-good exported content with a new forward commit. Do not
-force-push mirror history during rollback.
-
-### Docker Hub
-
-Exact version and source-SHA tags remain immutable. Repoint only floating
-`major.minor` and `latest` manifests to the last known-good digests, then issue a
-corrective Studio release.
-
-### PyPI
-
-Published versions cannot be reused. Fix the trusted-publisher identity or
-package issue and publish a new corrective version.
-
-### Branch protection
-
-Use the saved protection snapshot to restore the previous contexts if the new
-stable gate is defective. Never remove all protection as a convenience
-workaround.
+Cutover failures are fixed in the monorepo and redeployed. Distribution mirrors
+receive a new forward commit. Exact Docker version/source tags and published
+PyPI versions are never reused; issue a corrective Studio or Python release.
+Do not restore old source repositories, old publishers, compatibility paths, or
+parallel production authorities.
 
 ## Completion
 
 GitHub and hosting cutover is complete only when canonical source, required
 checks, environments, least-privilege credentials, releases, mirrors,
-Cloudflare deployments, external repository status, evidence, and rollback
-paths all agree with ADR 0001.
+Cloudflare deployments, external repository status, and evidence all agree with
+ADR 0001.

@@ -2,23 +2,17 @@
 
 ## Status
 
-Repository remediation is implemented and locally validated in the
-`codex/platform-monorepo-migration` worktree as of 2026-07-13. It remains
-provisional until the change is committed, pushed, and validated by the final
-pull-request checks. The accepted ADRs, Junjo-owned Base UI foundation, release
-transaction, deployment proof, CI routing, secret scanning, license metadata,
-and repository-owned validation described below are present in the prepared
-change. Local results are recorded in `MONOREPO_MIGRATION_RECORD.md`; immutable
-commit and workflow evidence must be appended after publication.
+Repository remediation is implemented, pushed, and validated on
+`codex/platform-monorepo-migration` as of 2026-07-13. The accepted ADRs,
+Junjo-owned Base UI foundation, release transaction, deployment proof, CI
+routing, secret scanning, license metadata, repository-owned validation, and
+immutable workflow evidence are recorded in `MONOREPO_MIGRATION_RECORD.md`.
 
-Pull request 12 and production cutover remain blocked until the remaining
-non-code gates are resolved:
-
-- obtain successful repository and Cloudflare checks from the final pushed
-  pull-request revision;
-- complete the credential, trusted-publisher, hosting, first-release, and old
-  repository retirement steps in
-  `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
+Pull request 12 is repository-complete at revision `afc5db6`: Platform Gate and
+Gitleaks passed. The legacy Cloudflare check uses obsolete project settings and
+is explicitly not a merge gate. Merge is the next action; credentials, trusted
+publishing, direct hosting reconfiguration, first releases, and old repository
+retirement follow from `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
 No production tag, mirror publication, repository archival, or Cloudflare
 source cutover may occur before its corresponding cutover gate passes.
@@ -606,10 +600,8 @@ Run and record, in dependency order:
 10. Python Ruff, pytest, ty, Sphinx, package build, and Twine validation;
 11. telemetry contract compatibility plus producer and consumer conformance;
 12. a no-credential Studio release dry-run;
-13. create isolated Cloudflare preview projects with the monorepo roots and
-    exact build commands from the cutover runbook, then obtain successful
-    previews from the pull request head without changing either production
-    project.
+13. merge the exact validated revision with a merge commit so imported history
+    remains in `master` ancestry.
 
 The read-only release-validation workflow is reusable through `workflow_call`;
 both the top-level publisher and platform gate invoke it. Production and
@@ -622,9 +614,9 @@ umbrella: the gate skips its direct Studio, telemetry, and deployment calls so
 those checks execute once. Component-only changes continue to use the smaller
 direct jobs.
 
-### Gate B: production control-plane configuration
+### Gate B: post-merge production control-plane configuration
 
-- Configure production authority only after Gate A is green; do not merge yet.
+- Merge immediately after Gate A is green, then configure production authority.
 - Verify the already-created, tag-restricted `studio-release-production`
   environment before using it.
 - Populate least-privilege Docker Hub and GitHub App credentials in their
@@ -636,17 +628,15 @@ direct jobs.
 - Configure PyPI Trusted Publishing for the moved workflow.
 - Configure the accepted immutable release-tag ruleset.
 
-### Gate C: first production releases
+### Gate C: direct external cutover and first production releases
 
-- Merge the exact Gate A revision and verify `master` repeats the required
-  repository checks.
+- Verify `master` repeats the required repository checks.
 - Enable repository action-SHA enforcement only after the merged workflow set
   is present, then record the settings response.
 - Release the next Python version according to the Python release plan.
 - Prepare Studio `0.81.2` or later; never reuse `0.81.1`.
-- Under a deployment freeze, apply the previewed Cloudflare settings to the
-  existing production projects only after merge, with the recorded prior
-  settings as immediate rollback:
+- Apply the monorepo Cloudflare settings directly to the existing production
+  projects after merge:
   - Python docs source `sdks/python`, output `docs/_build/html`;
   - website source `apps/website`, output `dist`.
 - Verify exact image digests, source-SHA tags, distribution archives, mirror
@@ -706,7 +696,8 @@ The monorepo migration is complete only when:
   digest, repository, branch, commit, and tree;
 - a real example application sends telemetry that the released Studio can
   query;
-- all repository-owned and Cloudflare checks pass on the merge revision;
+- all repository-owned checks pass on the merge revision and the directly
+  reconfigured Cloudflare production projects deploy from `master`;
 - the first monorepo releases succeed from protected environments;
 - old repositories no longer act as competing source or release authorities;
 - `MONOREPO_MIGRATION_RECORD.md` contains the exact proof for every completed

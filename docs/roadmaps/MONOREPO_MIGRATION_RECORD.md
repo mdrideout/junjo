@@ -7,14 +7,14 @@ remediation evidence for
 the Python SDK, Studio, website, minimal Studio distribution, and VM/Caddy
 distribution. The fixes required by
 `MONOREPO_MIGRATION_REMEDIATION_PLAN.md` are implemented on
-`codex/platform-monorepo-migration`. The remediation remains provisional until
-its commit and final workflow runs are recorded below.
+`codex/platform-monorepo-migration`. Final pull-request evidence is recorded
+below; the branch is ready to merge.
 
 This does not claim that the migration has merged or that production cutover is
-complete. Final pull-request and Cloudflare checks, credentials, trusted
-publishing, hosting cutover, first production releases, and old-repository
-retirement remain explicit gates. Historical Catalyst rights are resolved by
-the license holder confirmation recorded below.
+complete. Merge, credentials, trusted publishing, direct hosting cutover, first
+production releases, and old-repository retirement remain operator work. The
+legacy Cloudflare pull-request failure is not a merge gate. Historical Catalyst
+rights are resolved by the license holder confirmation recorded below.
 
 Production mirror publication, hosting cutover, environment credentials,
 trusted-publisher changes, action-SHA enforcement, the immutable release-tag
@@ -22,7 +22,7 @@ ruleset, and source-repository retirement remain operator cutover work. This
 record does not claim those external mutations have happened.
 
 GitHub Actions, environments, credentials, trusted publishing, Cloudflare,
-mirror, archival, verification, and rollback steps follow
+mirror, archival, verification, and forward-recovery steps follow
 `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
 Append external settings evidence and production verification here as the
@@ -64,6 +64,23 @@ The public Docker Hub API reported `enabled: false` with retained rule `.*` for
 all three Studio repositories on 2026-07-13. The implemented production
 workflow will fail before registry mutation until Gate B installs the two exact
 contract rules and records this monorepo as the exclusive publisher.
+
+## Final pull-request evidence
+
+Pull request 12 is repository-complete and ready to merge:
+
+- final reviewed head: `afc5db6df948e6197bad3231a498b9fdcd7a99c7`;
+- Platform Gate run
+  `https://github.com/mdrideout/junjo/actions/runs/29258647990` passed every
+  routed component, both-architecture dry build, release rehearsal, and local
+  telemetry smoke;
+- Gitleaks run
+  `https://github.com/mdrideout/junjo/actions/runs/29258647436` passed;
+- the branch is mergeable and synchronized with its remote;
+- the only non-green check is the legacy Cloudflare Pages integration using
+  obsolete pre-monorepo build settings. Production downtime and preview
+  continuity are not migration requirements, so that check is intentionally
+  non-blocking and Cloudflare is reconfigured directly after merge.
 
 ## Source revisions
 
@@ -318,9 +335,8 @@ for the final pushed-revision checks:
   vulnerabilities.
 - `git diff --check` passed.
 
-No production authority was used by these validations. The no-credential
-Studio workflow dispatch, final pull-request checks, Cloudflare previews,
-protected-environment credentials, old-publisher disablement, live Docker Hub
+No production authority was used by these validations. Protected-environment
+credentials, old-publisher disablement, live Docker Hub
 immutable-rule configuration, exclusive-authority confirmation, and first
 production releases remain cutover evidence and are not claimed here.
 

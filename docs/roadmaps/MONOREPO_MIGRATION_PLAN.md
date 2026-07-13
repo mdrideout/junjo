@@ -2,9 +2,9 @@
 
 ## Status
 
-Source consolidation is complete. Repository remediation is implemented and
-locally validated in the migration worktree, but remains provisional until its
-commit is pushed and the final pull-request checks provide immutable evidence.
+Source consolidation and repository remediation are complete. The final branch
+revision is pushed, required pull-request checks passed, and pull request 12 is
+ready for a history-preserving merge commit.
 
 - The Python SDK and Junjo AI Studio source migration was completed on the
   `codex/platform-monorepo-migration` branch on 2026-07-12.
@@ -15,8 +15,8 @@ commit is pushed and the final pull-request checks provide immutable evidence.
   publication, setup-wizard proof, and end-to-end deployment telemetry smoke.
 - Exact revisions, tree identities, and repository validation results are
   recorded in `MONOREPO_MIGRATION_RECORD.md`.
-- Tag-restricted GitHub environments and base branch protection are configured
-  but not yet exercised by the final revision. Credentials, action-SHA
+- Tag-restricted GitHub environments and base branch protection are configured;
+  the required checks passed on the final revision. Credentials, action-SHA
   enforcement, the immutable release-tag ruleset, Cloudflare, PyPI, production
   mirrors, and repository retirement remain the external cutover described by
   `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
@@ -24,15 +24,17 @@ commit is pushed and the final pull-request checks provide immutable evidence.
 The implemented fixes and remaining completion gates are defined in
 `MONOREPO_MIGRATION_REMEDIATION_PLAN.md`. Historical Catalyst use is resolved
 by the license holder's confirmed Tailwind UI/Plus purchase and application
-end-product use. Final pull-request/Cloudflare checks, credentials, publishing,
-hosting, and old-repository retirement remain explicit cutover gates.
+end-product use. Required pull-request checks are complete. Credentials,
+publishing, hosting, and old-repository retirement remain explicit cutover
+work. The legacy Cloudflare pull-request check is not a merge gate; Cloudflare
+is reconfigured directly after merge.
 
 ADR 0001 defines the accepted end state. This plan records how the repository
 was moved to that state without mixing runtime refactors into the structural
 work, and identifies the remaining external cutover boundary.
 
 The executable GitHub Actions, environments, credentials, publishing, hosting,
-external-repository, verification, and rollback procedure is defined in
+external-repository, verification, and forward-recovery procedure is defined in
 `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
 
 ## Objective
