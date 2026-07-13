@@ -19,8 +19,9 @@ def find_env_file() -> str:
     Find .env file in current directory or parent directory.
 
     This allows the app to work whether running from:
-    - Repository root: /Users/matt/repos/junjo-ai-studio/
-    - Backend directory: /Users/matt/repos/junjo-ai-studio/backend/
+    - Platform root: <repo>/
+    - Studio root: <repo>/apps/studio/
+    - Backend directory: <repo>/apps/studio/backend/
 
     Returns:
         Path to .env file (current dir, parent dir, or default ".env")

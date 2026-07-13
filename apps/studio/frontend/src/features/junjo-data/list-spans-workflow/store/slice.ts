@@ -19,8 +19,11 @@ export const workflowSpanListSlice = createSlice({
   initialState,
   reducers: {
     // Listener Middleware Triggers
-    fetchSpansTypeWorkflow: (_state, _action: PayloadAction<string>) => {
-      // Handled by listener middleware
+    fetchSpansTypeWorkflow: {
+      reducer: () => {
+        // Handled by listener middleware
+      },
+      prepare: (payload: string) => ({ payload }),
     },
 
     setWorkflowExecutionsData: (state, action: PayloadAction<OtelSpan[]>) => {

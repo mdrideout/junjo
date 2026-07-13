@@ -8,9 +8,11 @@ describe('Junjo transport contract', () => {
   it.each(fixtures)('parses current backend payload for %s', (fixture: (typeof fixtures)[number]) => {
     const parsedSpans = OtelSpanSchema.array().parse(fixture.spans)
 
+    expect(fixture.contract_version).toBe(1)
     expect(parsedSpans).toHaveLength(fixture.spans.length)
 
     for (const span of parsedSpans) {
+      expect(span.attributes_json['junjo.telemetry.contract_version']).toBe(1)
       const graphSnapshot = span.attributes_json['junjo.workflow.execution_graph_snapshot']
       if (graphSnapshot !== undefined) {
         expect(typeof graphSnapshot).toBe('string')

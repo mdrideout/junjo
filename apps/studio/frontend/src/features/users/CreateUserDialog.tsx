@@ -12,9 +12,14 @@ import { useAppDispatch } from '../../root-store/hooks'
 import { UsersStateActions } from './slice'
 import { getApiHost } from '../../config'
 
+interface ApiErrorResponse {
+  detail?: string | Array<{ msg?: string; message?: string }>
+  message?: string
+}
+
 export default function CreateUserDialog() {
   const dispatch = useAppDispatch()
-  let [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   // Loading and error states
   const [loading, setLoading] = useState(false)
@@ -34,7 +39,7 @@ export default function CreateUserDialog() {
     // Perform setup
     try {
       const endpoint = '/users'
-      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+      const response = await fetch(`${getApiHost()}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -42,7 +47,7 @@ export default function CreateUserDialog() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = (await response.json()) as ApiErrorResponse
         console.log('Error response:', errorData)
 
         // Try detail field (handles both Pydantic array and custom string)
@@ -50,7 +55,7 @@ export default function CreateUserDialog() {
           if (Array.isArray(errorData.detail)) {
             // Pydantic validation errors (422)
             const errors = errorData.detail
-              .map((err: any) => err.msg || err.message)
+              .map((err) => err.msg || err.message)
               .join('. ')
             throw new Error(errors || 'Validation failed.')
           }
@@ -70,8 +75,8 @@ export default function CreateUserDialog() {
       // Refresh the users list
       dispatch(UsersStateActions.fetchUsersData({ force: true }))
       setIsOpen(false)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }

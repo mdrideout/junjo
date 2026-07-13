@@ -22,7 +22,7 @@ The backend service provides:
 For running the full Junjo AI Studio stack from this repository, see the [root README.md](../README.md#source-development). The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
 
 ```bash
-# From repository root
+# From the Studio root (apps/studio)
 docker compose up --build
 
 # Restart backend only, after the stack is running
@@ -123,7 +123,7 @@ curl http://localhost:26154/ping
 The easiest way to run all backend tests including gRPC integration tests:
 
 ```bash
-# From repository root
+# From the Studio root (apps/studio)
 ./backend/scripts/run-backend-tests.sh
 
 # Or from backend directory
@@ -211,7 +211,7 @@ uv run pytest -v
 
 Tests run automatically on pull requests and pushes to main/master branches.
 
-**Workflow**: [`.github/workflows/backend-tests.yml`](../.github/workflows/backend-tests.yml)
+**Workflow**: [`studio-backend-tests.yml`](../../../.github/workflows/studio-backend-tests.yml)
 
 **What runs in CI**:
 - **Linting**: ruff check and format validation
@@ -368,7 +368,7 @@ backend/
 
 ## Configuration
 
-The backend reads configuration from environment variables (`.env` file at repository root).
+The backend reads configuration from environment variables (`.env` file at the Studio root).
 
 **See the [root README.md](../README.md#configuration) for complete configuration details.**
 
@@ -457,4 +457,4 @@ lsof -i :50053
 - **[Root README](../README.md)** - Full Junjo AI Studio documentation
 - **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Image-based deployment starting point
 - **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - End-to-end deployment example
-- **[Junjo Python Library](https://github.com/mdrideout/junjo)** - AI graph workflow framework
+- **[Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python)** - AI graph workflow framework

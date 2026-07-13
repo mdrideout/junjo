@@ -6,11 +6,12 @@ This document covers testing patterns and practices for Junjo AI Studio.
 
 1. [Running Tests](#running-tests)
 2. [Testing Strategy Overview](#testing-strategy-overview)
-3. [Contract Testing (Frontend/Backend)](#contract-testing-frontendbackend)
-4. [Integration Testing with MSW](#integration-testing-with-msw)
-5. [Shared Test Fixtures](#shared-test-fixtures)
-6. [Common Testing Pitfalls](#common-testing-pitfalls)
-7. [Backend Test Markers](#backend-test-markers)
+3. [Platform Telemetry Contract](#platform-telemetry-contract)
+4. [Contract Testing (Frontend/Backend)](#contract-testing-frontendbackend)
+5. [Integration Testing with MSW](#integration-testing-with-msw)
+6. [Shared Test Fixtures](#shared-test-fixtures)
+7. [Common Testing Pitfalls](#common-testing-pitfalls)
+8. [Backend Test Markers](#backend-test-markers)
 
 ---
 
@@ -45,6 +46,13 @@ npm run test:run
 ```
 
 Use `npm test` only when you want Vitest watch mode.
+
+The complete Studio runner also executes frontend lint and the production
+TypeScript/Vite build:
+
+```bash
+./run-all-tests.sh
+```
 
 **What it covers:**
 - Contract tests (Zod schemas vs OpenAPI)
@@ -96,6 +104,26 @@ uv run pytest -m security          # Security tests only
 - **Integration tests:** All mutation operations with path/body parameters
 - **Component tests:** All user-facing components with interactions
 - **Unit tests:** All utility functions and business logic
+
+---
+
+## Platform Telemetry Contract
+
+Language-independent telemetry schemas and normalized Workflow fixtures live
+at `../../contracts/telemetry`. They are the compatibility boundary between SDK
+emitters and Studio ingestion, backend, and frontend consumers; do not fork
+component-local copies.
+
+From the platform root, validate the canonical artifacts with:
+
+```bash
+python3 contracts/telemetry/compatibility/validate_contract.py
+```
+
+Backend and frontend transport tests load the same files from
+`contracts/telemetry/fixtures/workflow`. A semantic telemetry change must update
+the contract version or schema as appropriate and keep all producer and
+consumer tests green in one change.
 
 ---
 

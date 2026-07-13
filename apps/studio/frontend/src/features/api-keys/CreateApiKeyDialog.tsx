@@ -12,6 +12,11 @@ import { PlusIcon } from '@heroicons/react/24/outline'
 import { ApiKeysStateActions } from './slice'
 import { getApiHost } from '../../config'
 
+interface ApiErrorResponse {
+  detail?: string | Array<{ msg?: string; message?: string }>
+  message?: string
+}
+
 export default function CreateApiKeyDialog() {
   const dispatch = useAppDispatch()
   const [isOpen, setIsOpen] = useState(false)
@@ -40,7 +45,7 @@ export default function CreateApiKeyDialog() {
 
     // Perform setup
     try {
-      const apiHost = getApiHost('/api_keys')
+      const apiHost = getApiHost()
       const response = await fetch(`${apiHost}/api_keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,7 +53,7 @@ export default function CreateApiKeyDialog() {
         credentials: 'include',
       })
 
-      const responseData = await response.json()
+      const responseData = (await response.json()) as ApiErrorResponse
 
       if (!response.ok) {
         console.log('Error response:', responseData)
@@ -58,7 +63,7 @@ export default function CreateApiKeyDialog() {
           if (Array.isArray(responseData.detail)) {
             // Pydantic validation errors (422)
             const errors = responseData.detail
-              .map((err: any) => err.msg || err.message)
+              .map((err) => err.msg || err.message)
               .join('. ')
             throw new Error(errors || 'Validation failed.')
           }

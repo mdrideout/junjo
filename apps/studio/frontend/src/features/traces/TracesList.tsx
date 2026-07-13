@@ -19,7 +19,7 @@ export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
         const endpoint = filterLLM
           ? `/api/v1/observability/services/${serviceName}/spans/root?has_llm=true`
           : `/api/v1/observability/services/${serviceName}/spans/root`
-        const apiHost = getApiHost(endpoint)
+        const apiHost = getApiHost()
         const response = await fetch(`${apiHost}${endpoint}`, {
           credentials: 'include',
         })
@@ -28,7 +28,7 @@ export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
         }
         const data = await response.json()
         setTraces(data)
-      } catch (error) {
+      } catch {
         setError(true)
       } finally {
         setLoading(false)

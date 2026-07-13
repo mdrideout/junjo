@@ -36,7 +36,7 @@ export default function WorkflowDetailPage() {
     if (!workflowSpan) {
       dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
     }
-  }, [dispatch, workflowSpan])
+  }, [dispatch, traceId, workflowSpan])
 
   // IF: activeSpan is null and there is a spanId in the URL, set the active span
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function WorkflowDetailPage() {
         dispatch(WorkflowDetailStateActions.setActiveSpan(span))
       }
     }
-  }, [spanId, traceSpans, activeSpan])
+  }, [activeSpan, dispatch, spanId, traceSpans])
 
   if (loading) return null
 

@@ -2,6 +2,28 @@
  * Utility functions for JSON Schema manipulation across LLM providers
  */
 
+export type JsonSchema = Record<string, unknown>
+
+type ExistingAdditionalProperties<T> = T extends { additionalProperties: infer Value }
+  ? OpenAICompatibleSchema<Value>
+  : boolean | JsonSchema | undefined
+
+export type OpenAICompatibleSchema<T> = T extends readonly (infer Item)[]
+  ? OpenAICompatibleSchema<Item>[]
+  : T extends JsonSchema
+    ? Omit<
+        { [Key in keyof T]: OpenAICompatibleSchema<T[Key]> },
+        'additionalProperties' | 'required'
+      > & {
+        additionalProperties: ExistingAdditionalProperties<T>
+        required: string[] | undefined
+      }
+    : T
+
+function isJsonSchema(value: unknown): value is JsonSchema {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 /**
  * Ensures a JSON schema is compatible with OpenAI's strict mode by adding
  * `additionalProperties: false` and `required` fields to all object types recursively.
@@ -16,12 +38,14 @@
  * @param schema - The original JSON schema (not modified)
  * @returns A new schema with OpenAI strict mode requirements applied
  */
-export function ensureOpenAISchemaCompatibility(schema: Record<string, any>): Record<string, any> {
+export function ensureOpenAISchemaCompatibility<T extends JsonSchema>(
+  schema: T,
+): OpenAICompatibleSchema<T> {
   // Deep clone to avoid mutating the original
-  const cloned = JSON.parse(JSON.stringify(schema))
+  const cloned = JSON.parse(JSON.stringify(schema)) as JsonSchema
 
-  function addAdditionalPropertiesRecursive(obj: any): void {
-    if (typeof obj !== 'object' || obj === null) {
+  function addAdditionalPropertiesRecursive(obj: unknown): void {
+    if (!isJsonSchema(obj)) {
       return
     }
 
@@ -29,7 +53,7 @@ export function ensureOpenAISchemaCompatibility(schema: Record<string, any>): Re
     // and required contains all property keys
     if (obj.type === 'object') {
       // Add required field with all property keys
-      if (obj.properties && typeof obj.properties === 'object') {
+      if (isJsonSchema(obj.properties)) {
         const propertyKeys = Object.keys(obj.properties)
         if (propertyKeys.length > 0) {
           // Only set required if there are properties
@@ -37,22 +61,22 @@ export function ensureOpenAISchemaCompatibility(schema: Record<string, any>): Re
         }
 
         // Recursively process properties
-        for (const key in obj.properties) {
-          addAdditionalPropertiesRecursive(obj.properties[key])
+        for (const property of Object.values(obj.properties)) {
+          addAdditionalPropertiesRecursive(property)
         }
       }
 
       // Handle patternProperties if present
-      if (obj.patternProperties && typeof obj.patternProperties === 'object') {
-        for (const pattern in obj.patternProperties) {
-          addAdditionalPropertiesRecursive(obj.patternProperties[pattern])
+      if (isJsonSchema(obj.patternProperties)) {
+        for (const patternSchema of Object.values(obj.patternProperties)) {
+          addAdditionalPropertiesRecursive(patternSchema)
         }
       }
 
       // Handle additionalProperties:
       // - If it's a schema object, process it recursively (don't overwrite it)
       // - Otherwise, ensure it's set to false
-      if (typeof obj.additionalProperties === 'object') {
+      if (isJsonSchema(obj.additionalProperties)) {
         addAdditionalPropertiesRecursive(obj.additionalProperties)
       } else if (obj.additionalProperties === undefined) {
         obj.additionalProperties = false
@@ -64,7 +88,7 @@ export function ensureOpenAISchemaCompatibility(schema: Record<string, any>): Re
       if (obj.items) {
         if (Array.isArray(obj.items)) {
           // Tuple validation
-          obj.items.forEach((item: any) => addAdditionalPropertiesRecursive(item))
+          obj.items.forEach((item) => addAdditionalPropertiesRecursive(item))
         } else {
           // Single schema for all items
           addAdditionalPropertiesRecursive(obj.items)
@@ -73,14 +97,15 @@ export function ensureOpenAISchemaCompatibility(schema: Record<string, any>): Re
 
       // Handle prefixItems (JSON Schema 2020-12)
       if (obj.prefixItems && Array.isArray(obj.prefixItems)) {
-        obj.prefixItems.forEach((item: any) => addAdditionalPropertiesRecursive(item))
+        obj.prefixItems.forEach((item) => addAdditionalPropertiesRecursive(item))
       }
     }
 
     // Handle oneOf, anyOf, allOf
     ['oneOf', 'anyOf', 'allOf'].forEach((keyword) => {
-      if (obj[keyword] && Array.isArray(obj[keyword])) {
-        obj[keyword].forEach((subSchema: any) => addAdditionalPropertiesRecursive(subSchema))
+      const schemas = obj[keyword]
+      if (Array.isArray(schemas)) {
+        schemas.forEach((subSchema) => addAdditionalPropertiesRecursive(subSchema))
       }
     })
 
@@ -91,14 +116,15 @@ export function ensureOpenAISchemaCompatibility(schema: Record<string, any>): Re
 
     // Handle definitions/defs (common places for reusable schemas)
     ['definitions', '$defs'].forEach((keyword) => {
-      if (obj[keyword] && typeof obj[keyword] === 'object') {
-        for (const key in obj[keyword]) {
-          addAdditionalPropertiesRecursive(obj[keyword][key])
+      const definitions = obj[keyword]
+      if (isJsonSchema(definitions)) {
+        for (const definition of Object.values(definitions)) {
+          addAdditionalPropertiesRecursive(definition)
         }
       }
     })
   }
 
   addAdditionalPropertiesRecursive(cloned)
-  return cloned
+  return cloned as OpenAICompatibleSchema<T>
 }

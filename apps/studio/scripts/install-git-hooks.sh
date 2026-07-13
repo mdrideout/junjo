@@ -11,16 +11,18 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}Installing Junjo AI Studio Git hooks...${NC}"
 echo ""
 
-# Get the repository root
-REPO_ROOT=$(git rev-parse --show-toplevel)
+# Keep the Git hook at the platform root while resolving Studio files from this
+# script. This remains correct when Studio is nested under apps/studio.
+GIT_ROOT=$(git rev-parse --show-toplevel)
+STUDIO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 # Create hooks directory if it doesn't exist
-mkdir -p "$REPO_ROOT/.git/hooks"
+mkdir -p "$GIT_ROOT/.git/hooks"
 
 # Install pre-commit hook
 echo "📝 Installing pre-commit hook..."
-cp "$REPO_ROOT/scripts/pre-commit.sh" "$REPO_ROOT/.git/hooks/pre-commit"
-chmod +x "$REPO_ROOT/.git/hooks/pre-commit"
+cp "$GIT_ROOT/tooling/scripts/pre-commit.sh" "$GIT_ROOT/.git/hooks/pre-commit"
+chmod +x "$GIT_ROOT/.git/hooks/pre-commit"
 echo -e "${GREEN}✓${NC} Pre-commit hook installed"
 
 echo ""

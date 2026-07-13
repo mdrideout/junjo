@@ -3,7 +3,7 @@ import { ListUsersResponse, ListUsersResponseSchema } from '../schema'
 
 export const fetchUsers = async (): Promise<ListUsersResponse> => {
   const endpoint = '/users'
-  const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+  const response = await fetch(`${getApiHost()}${endpoint}`, {
     method: 'GET',
     credentials: 'include',
     headers: {

@@ -20,11 +20,17 @@ export const apiKeysSlice = createSlice({
   name: 'apiKeysState',
   initialState,
   reducers: {
-    fetchApiKeysData: (_state, _action: PayloadAction<{ force: boolean }>) => {
-      // listener triggers
+    fetchApiKeysData: {
+      reducer: () => {
+        // listener triggers
+      },
+      prepare: (payload: { force: boolean }) => ({ payload }),
     },
-    deleteApiKey: (_state, _action: PayloadAction<{ id: string }>) => {
-      // listener triggers
+    deleteApiKey: {
+      reducer: () => {
+        // listener triggers
+      },
+      prepare: (payload: { id: string }) => ({ payload }),
     },
     setApiKeys: (state, action: PayloadAction<ListApiKeysResponse>) => {
       state.apiKeys = action.payload

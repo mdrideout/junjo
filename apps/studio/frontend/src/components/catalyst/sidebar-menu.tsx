@@ -11,7 +11,7 @@ import {
 } from '@radix-ui/react-icons'
 import { Link } from './link'
 import { Sidebar, SidebarBody, SidebarHeading, SidebarItem, SidebarLabel, SidebarSection } from './sidebar'
-import { AuthContext } from '../../auth/auth-context'
+import { AuthContext } from '../../auth/auth-context-value'
 import { useContext } from 'react'
 import junjoLogo from '../../assets/junjo-logo.svg'
 
@@ -81,7 +81,7 @@ export default function SidebarMenu() {
               </div>
             </SidebarLabel>
           </SidebarItem>
-          <SidebarItem href="https://github.com/mdrideout/junjo-ai-studio" target="_blank">
+          <SidebarItem href="https://github.com/mdrideout/junjo/tree/master/apps/studio" target="_blank">
             <GitHubLogoIcon />
             <SidebarLabel>
               <div className="flex items-center gap-x-2">

@@ -1,0 +1,58 @@
+name: Studio Proto Staleness
+
+on:
+  pull_request:
+    paths:
+      - "apps/studio/proto/**"
+      - "apps/studio/backend/app/proto_gen/**"
+      - "apps/studio/backend/scripts/generate_proto.sh"
+      - "apps/studio/ingestion/build.rs"
+      - ".github/workflows/studio-proto-staleness-check.yml"
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/proto/**"
+      - "apps/studio/backend/app/proto_gen/**"
+      - "apps/studio/backend/scripts/generate_proto.sh"
+      - "apps/studio/ingestion/build.rs"
+      - ".github/workflows/studio-proto-staleness-check.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-proto:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install protoc 30.2
+        run: |
+          PROTOC_VERSION=30.2
+          curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+          sudo unzip -o "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d /usr/local bin/protoc
+          sudo unzip -o "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d /usr/local 'include/*'
+          rm "protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+          protoc --version
+      - name: Regenerate Python proto files
+        working-directory: apps/studio
+        run: ./run-all-proto-gen.sh
+      - name: Validate Rust proto compilation
+        working-directory: apps/studio/ingestion
+        run: cargo check --locked --message-format=short
+      - name: Check generated files
+        run: |
+          if ! git diff --exit-code -- apps/studio/proto apps/studio/backend/app/proto_gen; then
+            echo "Studio protobuf output is stale. Run apps/studio/run-all-proto-gen.sh." >&2
+            exit 1
+          fi

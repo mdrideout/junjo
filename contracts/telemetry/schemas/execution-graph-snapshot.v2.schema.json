@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/execution-graph-snapshot.v2.schema.json",
+  "title": "Junjo Workflow execution graph snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "graphStructuralId", "nodes", "edges"],
+  "properties": {
+    "v": {"const": 2},
+    "graphStructuralId": {"type": "string", "minLength": 1},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["nodeRuntimeId", "nodeStructuralId", "nodeType", "nodeLabel"],
+      "properties": {
+        "nodeRuntimeId": {"type": "string", "minLength": 1},
+        "nodeStructuralId": {"type": "string", "minLength": 1},
+        "nodeType": {"type": "string", "minLength": 1},
+        "nodeLabel": {"type": "string", "minLength": 1},
+        "isConcurrentSubgraph": {"const": true},
+        "childNodeRuntimeIds": {"type": "array", "items": {"type": "string"}},
+        "isSubflow": {"const": true},
+        "subflowGraphStructuralId": {"type": "string"},
+        "subflowSourceNodeRuntimeId": {"type": "string"},
+        "subflowSourceNodeStructuralId": {"type": "string"},
+        "subflowSinkNodeRuntimeIds": {"type": "array", "items": {"type": "string"}},
+        "subflowSinkNodeStructuralIds": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edgeStructuralId",
+        "tailNodeRuntimeId",
+        "tailNodeStructuralId",
+        "headNodeRuntimeId",
+        "headNodeStructuralId",
+        "edgeConditionLabel",
+        "edgeScope",
+        "parentSubflowRuntimeId"
+      ],
+      "properties": {
+        "edgeStructuralId": {"type": "string", "minLength": 1},
+        "tailNodeRuntimeId": {"type": "string", "minLength": 1},
+        "tailNodeStructuralId": {"type": "string", "minLength": 1},
+        "headNodeRuntimeId": {"type": "string", "minLength": 1},
+        "headNodeStructuralId": {"type": "string", "minLength": 1},
+        "edgeConditionLabel": {"type": ["string", "null"]},
+        "edgeScope": {"enum": ["explicit", "subflow"]},
+        "parentSubflowRuntimeId": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

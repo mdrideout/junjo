@@ -7,7 +7,7 @@ import { getApiHost } from '../../../config'
 
 export const deleteUser = async (id: string): Promise<void> => {
   const endpoint = `/users/${id}`
-  const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+  const response = await fetch(`${getApiHost()}${endpoint}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: {
@@ -21,7 +21,7 @@ export const deleteUser = async (id: string): Promise<void> => {
     try {
       const errorData = await response.json()
       errorDetails = errorData.message || errorDetails // Use message from response if present
-    } catch (e) {
+    } catch {
       // Ignore if response body is not JSON or empty
     }
     throw new Error(`deleteUser failed for ID ${id}: ${errorDetails} (Status: ${response.status})`)

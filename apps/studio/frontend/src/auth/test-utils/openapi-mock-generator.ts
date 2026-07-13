@@ -9,12 +9,12 @@
  * which include Field(examples=[...]) for realistic test data.
  */
 
-import OpenAPIBackend from 'openapi-backend'
+import OpenAPIBackend, { type Document } from 'openapi-backend'
 import openapiSpec from '../../../backend/openapi.json'
 
 // Initialize OpenAPI Backend with the specification
 export const api = new OpenAPIBackend({
-  definition: openapiSpec as any, // Type assertion: OpenAPI 3.1.0 not fully typed by openapi-backend
+  definition: openapiSpec as Document,
   strict: false, // Don't fail on unknown operations
   validate: false, // Disable OpenAPI spec validation (FastAPI uses 3.1.0 with JSON Schema 2020-12)
   quick: true, // Skip validation during init (FastAPI 3.1.0 not fully compatible with openapi-backend)
@@ -25,7 +25,7 @@ export const api = new OpenAPIBackend({
 // openapi-backend validates against OpenAPI 3.0.x, so we skip validation
 try {
   api.init()
-} catch (error) {
+} catch {
   // Ignore validation errors - FastAPI 3.1.0 compatibility issue
   console.warn('OpenAPI validation skipped (FastAPI 3.1.0 compatibility)')
 }
@@ -40,7 +40,7 @@ try {
  * const { status, mock } = generateMock('listUsers')
  * // Returns: { status: 200, mock: [{ id: "usr_...", email: "alice@example.com", ... }] }
  */
-export function generateMock(operationId: string): { status: number; mock: any } {
+export function generateMock(operationId: string): { status: number; mock: unknown } {
   const { status, mock } = api.mockResponseForOperation(operationId)
   return { status: status || 200, mock }
 }

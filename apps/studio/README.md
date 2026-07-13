@@ -4,7 +4,7 @@
 
 **Junjo AI Studio** is an open source, self-hostable AI Agent and Workflow debugging and eval platform for any OpenTelemetry instrumented AI application. 
 
-The [Junjo Python Library](https://github.com/mdrideout/junjo) is a framework for structuring AI logic and enhancing Otel span data to improve observability and developer velocity. Junjo remains decoupled from your LLM implementations and business logic, providing a layer of organization, execution, and telemetry to your existing application.
+The [Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python) is a framework for structuring AI logic and enhancing Otel span data to improve observability and developer velocity. Junjo remains decoupled from your LLM implementations and business logic, providing a layer of organization, execution, and telemetry to your existing application.
 
 Gain complete visibility to the state of the application, and every change LLMs make to the application state. Complex, mission critical AI workflows are made transparent and understandable with Junjo.
 
@@ -129,7 +129,7 @@ docker compose down -v
 
 ### Next Steps
 
-Configure your [Junjo Python Library](https://github.com/mdrideout/junjo) application using the setup and endpoint guidance from the minimal build repository.
+Configure your [Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python) application using the setup and endpoint guidance from the minimal build repository.
 
 **Version compatibility:** Junjo AI Studio and the Junjo Python Library must run releases that share the same telemetry contract. Mismatched pairings can still ingest spans, but Junjo AI Studio will not be able to render workflow graphs or match spans to their nodes. When upgrading one, upgrade the other to a matching release.
 
@@ -141,7 +141,13 @@ This source repository is not the hosted deployment template. For operator-manag
 
 ## Source Development
 
-This repository contains the complete open source Junjo AI Studio codebase.
+This directory contains the complete open source Junjo AI Studio codebase. From
+the Junjo platform repository root, enter the Studio project before running its
+commands:
+
+```bash
+cd apps/studio
+```
 
 Use the default hot-reload local stack when you want to develop or modify Junjo AI Studio itself:
 
@@ -512,7 +518,7 @@ Junjo AI Studio has comprehensive test coverage across all services. Tests are o
 ```
 
 This script runs:
-0. **Proto version checking** - Warns if protoc version doesn't match required v30.2
+0. **Proto version checking** - Warns if the system compiler used by Rust does not match v30.2
 1. **Python linting** - Runs ruff check on backend code (matches pre-commit validation)
 2. **Backend tests** - Unit, integration, and gRPC tests (Python/pytest)
 3. **Ingestion tests** - Rust unit/integration tests (Cargo)
@@ -635,10 +641,10 @@ See [backend/scripts/README_SCHEMA_VALIDATION.md](backend/scripts/README_SCHEMA_
 ### GitHub Actions
 
 Tests run automatically on all PRs via GitHub Actions:
-- `.github/workflows/backend-tests.yml` - Backend test suite
-- `.github/workflows/rest-api-contract-validation.yml` - REST API contract tests
-- `.github/workflows/proto-staleness-check.yml` - Proto file validation
-- `.github/workflows/version-sync-check.yml` - Version drift validation against `VERSION`
+- `../../.github/workflows/studio-backend-tests.yml` - Backend test suite
+- `../../.github/workflows/studio-rest-api-contract-validation.yml` - REST API contract tests
+- `../../.github/workflows/studio-proto-staleness-check.yml` - Proto file validation
+- `../../.github/workflows/studio-version-sync-check.yml` - Version drift validation against `VERSION`
 
 ---
 
@@ -725,7 +731,7 @@ docker compose up --build
 ## Resources
 
 ### Documentation
-- **[Junjo Python Library](https://github.com/mdrideout/junjo)** - AI Graph Workflow framework
+- **[Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python)** - AI Graph Workflow framework
 
 ### Example Repositories
 - **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Minimal setup with pre-built images

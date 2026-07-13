@@ -6,7 +6,7 @@ export interface FlushWalResponse {
 }
 
 export async function flushWal(): Promise<FlushWalResponse> {
-  const apiHost = getApiHost('/api/admin/flush-wal')
+  const apiHost = getApiHost()
   const res = await fetch(`${apiHost}/api/admin/flush-wal`, {
     method: 'POST',
     credentials: 'include',

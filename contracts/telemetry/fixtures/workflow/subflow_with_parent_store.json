@@ -1,0 +1,132 @@
+{
+  "contract_version": 1,
+  "scenario": "subflow_with_parent_store",
+  "trace_id": "22222222222222222222222222222222",
+  "service_name": "svc-junjo-phase0-subflow",
+  "spans": [
+    {
+      "trace_id": "22222222222222222222222222222222",
+      "span_id": "2222222222222221",
+      "parent_span_id": null,
+      "service_name": "svc-junjo-phase0-subflow",
+      "name": "parent_workflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:05:00.000000+00:00",
+      "end_time": "2026-04-05T12:05:00.400000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.workflow.state.start": "{\"parent_ready\":false}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-parent-subflow-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.subflow.prepare\",\"nodeStructuralId\":\"struct-subflow-prepare\",\"nodeType\":\"Node\",\"nodeLabel\":\"prepare\"},{\"nodeRuntimeId\":\"node.subflow.container\",\"nodeStructuralId\":\"struct-subflow-container\",\"nodeType\":\"Workflow\",\"nodeLabel\":\"child_subflow\",\"isSubflow\":true,\"subflowGraphStructuralId\":\"graph-child-subflow-01\",\"subflowSourceNodeRuntimeId\":\"node.child.entry\",\"subflowSourceNodeStructuralId\":\"struct-child-entry\",\"subflowSinkNodeRuntimeIds\":[\"node.child.exit\"],\"subflowSinkNodeStructuralIds\":[\"struct-child-exit\"]},{\"nodeRuntimeId\":\"node.child.entry\",\"nodeStructuralId\":\"struct-child-entry\",\"nodeType\":\"Node\",\"nodeLabel\":\"child_entry\"},{\"nodeRuntimeId\":\"node.child.exit\",\"nodeStructuralId\":\"struct-child-exit\",\"nodeType\":\"Node\",\"nodeLabel\":\"child_exit\"}],\"edges\":[{\"edgeStructuralId\":\"edge-parent-prepare-subflow\",\"tailNodeRuntimeId\":\"node.subflow.prepare\",\"tailNodeStructuralId\":\"struct-subflow-prepare\",\"headNodeRuntimeId\":\"node.subflow.container\",\"headNodeStructuralId\":\"struct-subflow-container\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null},{\"edgeStructuralId\":\"edge-child-entry-exit\",\"tailNodeRuntimeId\":\"node.child.entry\",\"tailNodeStructuralId\":\"struct-child-entry\",\"headNodeRuntimeId\":\"node.child.exit\",\"headNodeStructuralId\":\"struct-child-exit\",\"edgeConditionLabel\":null,\"edgeScope\":\"subflow\",\"parentSubflowRuntimeId\":\"node.subflow.container\"}]}",
+        "junjo.workflow.store.id": "store-subflow-parent-01",
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "workflow",
+        "junjo.executable_definition_id": "workflow.parent.with_subflow",
+        "junjo.executable_runtime_id": "run-subflow-parent-01",
+        "junjo.executable_structural_id": "graph-parent-subflow-01",
+        "junjo.enclosing_graph_structural_id": "graph-parent-subflow-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "22222222222222222222222222222222",
+      "span_id": "2222222222222222",
+      "parent_span_id": "2222222222222221",
+      "service_name": "svc-junjo-phase0-subflow",
+      "name": "prepare",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:05:00.050000+00:00",
+      "end_time": "2026-04-05T12:05:00.100000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.subflow.prepare",
+        "junjo.parent_executable_definition_id": "workflow.parent.with_subflow",
+        "junjo.executable_runtime_id": "node.subflow.prepare",
+        "junjo.executable_structural_id": "struct-subflow-prepare",
+        "junjo.enclosing_graph_structural_id": "graph-parent-subflow-01",
+        "junjo.parent_executable_runtime_id": "run-subflow-parent-01",
+        "junjo.parent_executable_structural_id": "graph-parent-subflow-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "22222222222222222222222222222222",
+      "span_id": "2222222222222223",
+      "parent_span_id": "2222222222222221",
+      "service_name": "svc-junjo-phase0-subflow",
+      "name": "child_subflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:05:00.120000+00:00",
+      "end_time": "2026-04-05T12:05:00.300000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.workflow.state.start": "{\"child_ready\":false}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-child-subflow-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.child.entry\",\"nodeStructuralId\":\"struct-child-entry\",\"nodeType\":\"Node\",\"nodeLabel\":\"child_entry\"},{\"nodeRuntimeId\":\"node.child.exit\",\"nodeStructuralId\":\"struct-child-exit\",\"nodeType\":\"Node\",\"nodeLabel\":\"child_exit\"}],\"edges\":[{\"edgeStructuralId\":\"edge-child-entry-exit\",\"tailNodeRuntimeId\":\"node.child.entry\",\"tailNodeStructuralId\":\"struct-child-entry\",\"headNodeRuntimeId\":\"node.child.exit\",\"headNodeStructuralId\":\"struct-child-exit\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
+        "junjo.workflow.store.id": "store-subflow-child-01",
+        "junjo.workflow.parent_store.id": "store-subflow-parent-01",
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "subflow",
+        "junjo.executable_definition_id": "workflow.child.subflow",
+        "junjo.executable_runtime_id": "run-subflow-child-01",
+        "junjo.executable_structural_id": "graph-child-subflow-01",
+        "junjo.enclosing_graph_structural_id": "graph-child-subflow-01",
+        "junjo.parent_executable_definition_id": "workflow.parent.with_subflow",
+        "junjo.parent_executable_runtime_id": "run-subflow-parent-01",
+        "junjo.parent_executable_structural_id": "graph-parent-subflow-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "22222222222222222222222222222222",
+      "span_id": "2222222222222224",
+      "parent_span_id": "2222222222222223",
+      "service_name": "svc-junjo-phase0-subflow",
+      "name": "child_entry",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:05:00.150000+00:00",
+      "end_time": "2026-04-05T12:05:00.240000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.child.entry",
+        "junjo.parent_executable_definition_id": "workflow.child.subflow",
+        "junjo.executable_runtime_id": "node.child.entry",
+        "junjo.executable_structural_id": "struct-child-entry",
+        "junjo.enclosing_graph_structural_id": "graph-child-subflow-01",
+        "junjo.parent_executable_runtime_id": "run-subflow-child-01",
+        "junjo.parent_executable_structural_id": "graph-child-subflow-01"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": 1775390700180000000,
+          "attributes": {
+            "id": "state-event-subflow-01",
+            "junjo.store.name": "ChildSubflowState",
+            "junjo.store.id": "store-subflow-child-01",
+            "junjo.store.action": "mark_child_ready",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/child_ready\",\"value\":true}]"
+          }
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    }
+  ]
+}

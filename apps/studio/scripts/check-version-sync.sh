@@ -7,11 +7,11 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+STUDIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$STUDIO_ROOT"
 
 if [ ! -f VERSION ]; then
-  echo "ERROR: VERSION file not found at repo root."
+  echo "ERROR: VERSION file not found at the Studio root."
   exit 1
 fi
 

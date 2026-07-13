@@ -11,7 +11,7 @@ import { OtelSpan, OtelSpanSchema } from '../../../traces/schemas/schemas'
 export async function getSpansTypeWorkflow(serviceName: string): Promise<OtelSpan[]> {
   // Use Python backend endpoint
   const endpoint = `/api/v1/observability/services/${serviceName}/workflows`
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     credentials: 'include',

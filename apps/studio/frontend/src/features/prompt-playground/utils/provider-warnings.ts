@@ -1,4 +1,5 @@
 import { OtelSpan } from '../../traces/schemas/schemas'
+import type { JsonSchema } from './schema-utils'
 
 // Structure for provider-specific warnings
 export interface ProviderWarning {
@@ -11,11 +12,31 @@ export interface ProviderWarning {
 
 // Structure for JSON schema info (informational, not a warning)
 export interface JsonSchemaInfo {
-  schema: Record<string, any>
+  schema: JsonSchema
 }
 
 // Detection function signature
 type WarningDetector = (span: OtelSpan) => ProviderWarning | null
+
+function isJsonObject(value: unknown): value is JsonSchema {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseJsonObject(value: string): JsonSchema | null {
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return isJsonObject(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function getInvocationParameters(value: unknown): JsonSchema | null {
+  if (typeof value === 'string') {
+    return parseJsonObject(value)
+  }
+  return isJsonObject(value) ? value : null
+}
 
 // Gemini-specific detector for response_schema vs response_json_schema
 function detectGeminiWarnings(span: OtelSpan): ProviderWarning | null {
@@ -41,16 +62,12 @@ function detectGeminiWarnings(span: OtelSpan): ProviderWarning | null {
   const invocationParams = span.attributes_json['llm.invocation_parameters']
 
   if (typeof invocationParams === 'string') {
-    try {
-      const parsed = JSON.parse(invocationParams)
-      if (
-        'response_schema' in parsed &&
-        parsed.response_schema !== null &&
-        parsed.response_schema !== undefined
-      ) {
+    const parsed = parseJsonObject(invocationParams)
+    if (parsed) {
+      if (parsed.response_schema !== null && parsed.response_schema !== undefined) {
         hasResponseSchema = true
       }
-    } catch (e) {
+    } else {
       // If parsing fails, check string pattern
       if (
         invocationParams.includes('response_schema=') &&
@@ -59,11 +76,9 @@ function detectGeminiWarnings(span: OtelSpan): ProviderWarning | null {
         hasResponseSchema = true
       }
     }
-  } else if (typeof invocationParams === 'object' && invocationParams !== null) {
-    if ('response_schema' in invocationParams) {
-      if (invocationParams.response_schema !== null && invocationParams.response_schema !== undefined) {
-        hasResponseSchema = true
-      }
+  } else if (isJsonObject(invocationParams)) {
+    if (invocationParams.response_schema !== null && invocationParams.response_schema !== undefined) {
+      hasResponseSchema = true
     }
   }
 
@@ -131,25 +146,18 @@ export function detectOpenAIJsonSchema(span: OtelSpan): JsonSchemaInfo | null {
   // Check llm.invocation_parameters for response_format.json_schema
   const invocationParams = span.attributes_json['llm.invocation_parameters']
 
-  let jsonSchema: Record<string, any> | null = null
-
-  if (typeof invocationParams === 'string') {
-    try {
-      const parsed = JSON.parse(invocationParams)
-      if (parsed.response_format?.json_schema?.schema) {
-        jsonSchema = parsed.response_format.json_schema.schema
-      }
-    } catch (e) {
-      // If parsing fails, schema not available
-      return null
-    }
-  } else if (typeof invocationParams === 'object' && invocationParams !== null) {
-    if (invocationParams.response_format?.json_schema?.schema) {
-      jsonSchema = invocationParams.response_format.json_schema.schema as Record<string, any>
-    }
+  const parsed = getInvocationParameters(invocationParams)
+  if (!parsed || !isJsonObject(parsed.response_format)) {
+    return null
   }
 
-  if (jsonSchema) {
+  const responseFormat = parsed.response_format
+  if (!isJsonObject(responseFormat.json_schema)) {
+    return null
+  }
+
+  const jsonSchema = responseFormat.json_schema.schema
+  if (isJsonObject(jsonSchema)) {
     return { schema: jsonSchema }
   }
 
@@ -168,33 +176,14 @@ export function detectAnthropicJsonSchema(span: OtelSpan): JsonSchemaInfo | null
   // Check llm.invocation_parameters for tools[].input_schema
   const invocationParams = span.attributes_json['llm.invocation_parameters']
 
-  let jsonSchema: Record<string, any> | null = null
-
-  if (typeof invocationParams === 'string') {
-    try {
-      const parsed = JSON.parse(invocationParams)
-      if (parsed.tools && Array.isArray(parsed.tools) && parsed.tools.length > 0) {
-        // Get the first tool's input_schema
-        const firstTool = parsed.tools[0]
-        if (firstTool.input_schema) {
-          jsonSchema = firstTool.input_schema
-        }
-      }
-    } catch (e) {
-      // If parsing fails, schema not available
-      return null
-    }
-  } else if (typeof invocationParams === 'object' && invocationParams !== null) {
-    if (invocationParams.tools && Array.isArray(invocationParams.tools) && invocationParams.tools.length > 0) {
-      const firstTool = invocationParams.tools[0]
-      if (firstTool.input_schema) {
-        jsonSchema = firstTool.input_schema as Record<string, any>
-      }
-    }
+  const parsed = getInvocationParameters(invocationParams)
+  if (!parsed || !Array.isArray(parsed.tools)) {
+    return null
   }
 
-  if (jsonSchema) {
-    return { schema: jsonSchema }
+  const firstTool = parsed.tools[0]
+  if (isJsonObject(firstTool) && isJsonObject(firstTool.input_schema)) {
+    return { schema: firstTool.input_schema }
   }
 
   return null
@@ -212,35 +201,16 @@ export function detectGeminiJsonSchema(span: OtelSpan): JsonSchemaInfo | null {
   // Check llm.invocation_parameters for response_json_schema
   const invocationParams = span.attributes_json['llm.invocation_parameters']
 
-  let jsonSchema: Record<string, any> | null = null
-
-  if (typeof invocationParams === 'string') {
-    try {
-      const parsed = JSON.parse(invocationParams)
-      // Check for response_json_schema (proper telemetry from genai SDK)
-      if ('response_json_schema' in parsed && parsed.response_json_schema) {
-        jsonSchema = parsed.response_json_schema
-      }
-    } catch (e) {
-      // If parsing fails, schema not available
-      return null
-    }
-  } else if (typeof invocationParams === 'object' && invocationParams !== null) {
-    // Check for response_json_schema (proper telemetry from genai SDK)
-    if ('response_json_schema' in invocationParams && invocationParams.response_json_schema) {
-      jsonSchema = invocationParams.response_json_schema as Record<string, any>
-    }
-  }
-
-  if (jsonSchema) {
-    return { schema: jsonSchema }
+  const parsed = getInvocationParameters(invocationParams)
+  if (parsed && isJsonObject(parsed.response_json_schema)) {
+    return { schema: parsed.response_json_schema }
   }
 
   return null
 }
 
 // Unified JSON schema detector - tries all providers
-export function detectJsonSchema(span: OtelSpan): Record<string, any> | null {
+export function detectJsonSchema(span: OtelSpan): JsonSchema | null {
   // Try provider-specific detectors
   const openaiResult = detectOpenAIJsonSchema(span)
   if (openaiResult) return openaiResult.schema

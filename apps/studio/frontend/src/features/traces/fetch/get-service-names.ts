@@ -4,7 +4,7 @@ import z from 'zod'
 export const fetchServiceNames = async (): Promise<string[]> => {
   // Use Python backend endpoint
   const endpoint = '/api/v1/observability/services'
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     method: 'GET',

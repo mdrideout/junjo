@@ -125,11 +125,11 @@ describe('API Request Validation: Mutation Operations', () => {
 
   describe('Request Body Validation', () => {
     it('POST /api_keys sends correct request body structure', async () => {
-      let capturedBody: any
+      let capturedBody: { name: string } = { name: '' }
 
       server.use(
         http.post(`${API_BASE}/api_keys`, async ({ request }) => {
-          capturedBody = await request.json()
+          capturedBody = (await request.json()) as { name: string }
           return HttpResponse.json({
             id: 'key_123',
             key: 'sk_live_abc123def456',
@@ -160,11 +160,17 @@ describe('API Request Validation: Mutation Operations', () => {
     })
 
     it('POST /users sends correct request body structure', async () => {
-      let capturedBody: any
+      let capturedBody: { email: string; password: string } = {
+        email: '',
+        password: '',
+      }
 
       server.use(
         http.post(`${API_BASE}/users`, async ({ request }) => {
-          capturedBody = await request.json()
+          capturedBody = (await request.json()) as {
+            email: string
+            password: string
+          }
           return HttpResponse.json({ message: 'User created successfully' })
         }),
       )

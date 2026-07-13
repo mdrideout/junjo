@@ -19,7 +19,7 @@ export const settingsSlice = createSlice({
   name: 'settingsState',
   initialState,
   reducers: {
-    flushWal: (_state) => {
+    flushWal: () => {
       // listener triggers
     },
     setFlushWalLoading: (state, action: PayloadAction<boolean>) => {

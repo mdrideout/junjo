@@ -20,11 +20,17 @@ export const usersSlice = createSlice({
   name: 'usersState',
   initialState,
   reducers: {
-    fetchUsersData: (_state, _action: PayloadAction<{ force: boolean }>) => {
-      // Triggers listener middleware
+    fetchUsersData: {
+      reducer: () => {
+        // Triggers listener middleware
+      },
+      prepare: (payload: { force: boolean }) => ({ payload }),
     },
-    deleteUser: (_state, _action: PayloadAction<{ id: string }>) => {
-      // Triggers listener middleware
+    deleteUser: {
+      reducer: () => {
+        // Triggers listener middleware
+      },
+      prepare: (payload: { id: string }) => ({ payload }),
     },
     setUsers: (state, action: PayloadAction<ListUsersResponse>) => {
       state.users = action.payload

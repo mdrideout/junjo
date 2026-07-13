@@ -107,9 +107,10 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
   describe('Mock Data Quality', () => {
     it('Generated user mocks contain realistic example data from Field()', () => {
       const { mock } = generateMock('list_users_users_get')
+      const users = ListUsersResponseSchema.parse(mock)
 
-      if (mock.length > 0) {
-        const user = mock[0]
+      if (users.length > 0) {
+        const user = users[0]
 
         // Check that examples from Field() are being used
         // Backend schema has: Field(examples=["usr_2k4h6j8m9n0p1q2r"])
@@ -125,9 +126,10 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
 
     it('Generated API key mocks contain realistic example data from Field()', () => {
       const { mock } = generateMock('list_api_keys_api_keys_get')
+      const apiKeys = ListApiKeysResponseSchema.parse(mock)
 
-      if (mock.length > 0) {
-        const apiKey = mock[0]
+      if (apiKeys.length > 0) {
+        const apiKey = apiKeys[0]
 
         // Check that examples from Field() are being used
         expect(apiKey.id).toBeDefined()

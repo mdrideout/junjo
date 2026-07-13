@@ -33,7 +33,7 @@ startListener({
     try {
       const data = await fetchUsers()
       dispatch(UsersStateActions.setUsers(data))
-    } catch (error) {
+    } catch {
       dispatch(UsersStateActions.setError(true))
     } finally {
       dispatch(UsersStateActions.setLoading(false))
@@ -53,7 +53,7 @@ startListener({
     try {
       await deleteUser(id) // Call the API function to delete the user
       console.log(`Successfully deleted user with ID: ${id}`)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Failed to delete user with ID: ${id}`, error)
       // Dispatch an error action, potentially with the error message
       dispatch(UsersStateActions.setError(true))

@@ -1,15 +1,18 @@
 # Protocol Buffer Tool Versions
 
-This document specifies the **locked versions** of Protocol Buffer tools used for **Python code generation** in Junjo AI Studio.
+This document specifies the locked Protocol Buffer tools used by Studio's
+Python code generation and Rust build-time generation.
 
-> **Note:** The Rust ingestion service generates proto code at **build time** via `build.rs` using `tonic-prost-build`. No manual proto generation or version locking is needed for Rust.
+> **Note:** The Python generator uses the compiler bundled with
+> `grpcio-tools`; it does not use the system `protoc` binary. Rust's
+> `tonic-prost-build` uses the system binary at build time.
 
 ## Required Tool Versions
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| **protoc** | v30.2 | Protocol Buffer compiler (for Python) |
-| **grpcio-tools** | 1.76.0 | Python protobuf/gRPC code generator |
+| **System protoc** | v30.2 | Rust ingestion build-time compiler |
+| **grpcio-tools** | 1.76.0 (bundled libprotoc 31.1) | Python protobuf/gRPC code generator |
 
 ## Proto Generation by Language
 
@@ -29,7 +32,8 @@ Rust proto files are:
 - Placed in `target/` directory (gitignored)
 - Regenerated fresh on every `cargo build`
 
-**No version locking needed:** Every build regenerates protos from source. There's no committed generated code that could become stale.
+The system compiler is locked to v30.2 so local and CI Rust builds use the same
+input compiler even though Rust output is not committed.
 
 ```rust
 // ingestion/build.rs
@@ -45,20 +49,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Understanding Version Numbers
 
-### Protoc Dual Versioning
-
-**Protoc uses dual versioning:**
-- **Release version**: `v30.2` (what you download/install, shown by `protoc --version`)
-- **Full semantic version**: `v6.30.2` (shown in generated file headers)
-
-Both refer to the same version.
-
 ### What You'll See Where
 
-**Installation/CLI output:**
+**System compiler used by Rust:**
 ```bash
 $ protoc --version
-libprotoc 30.2  # Shows minor.patch only
+libprotoc 30.2
+```
+
+**Compiler bundled with the locked Python generator:**
+```bash
+$ cd backend
+$ uv run python -m grpc_tools.protoc --version
+libprotoc 31.1
 ```
 
 **Generated Python files (header comment):**
@@ -72,15 +75,21 @@ libprotoc 30.2  # Shows minor.patch only
 
 ✅ **Python files showing `Protobuf Python Version: 6.31.1` is CORRECT** - this is the protobuf Python **runtime library** version (from `protobuf` package), NOT the protoc compiler version
 
-✅ **Python runtime version can differ from protoc version** - grpcio-tools 1.76.0 bundles protoc v30.2 (compiler) but generates code for protobuf 6.31.1 (runtime). This is normal.
+✅ **Python runtime version can differ from protoc version** - grpcio-tools
+1.76.0 bundles libprotoc 31.1 and generates code for protobuf 6.31.1. This is
+normal.
 
-❌ **If `protoc --version` shows anything other than `30.2`**, you need to install the correct version
+❌ **If system `protoc --version` is not 30.2**, Rust validation is not using
+the locked compiler.
+
+❌ **If `uv run python -m grpc_tools.protoc --version` is not 31.1**, the
+backend environment does not match the locked Python generator.
 
 ## Installation Instructions
 
 ### macOS
 
-**Install protoc v30.2:**
+**Install system protoc v30.2 for Rust builds:**
 ```bash
 PROTOC_VERSION=30.2
 curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-osx-x86_64.zip
@@ -97,7 +106,7 @@ uv sync  # Installs grpcio-tools==1.76.0 from uv.lock
 
 ### Linux
 
-**Install protoc v30.2:**
+**Install system protoc v30.2 for Rust builds:**
 ```bash
 PROTOC_VERSION=30.2
 curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
@@ -114,7 +123,7 @@ uv sync  # Installs grpcio-tools==1.76.0 from uv.lock
 
 ### Windows
 
-**Install protoc v30.2:**
+**Install system protoc v30.2 for Rust builds:**
 ```powershell
 $PROTOC_VERSION = "30.2"
 Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-win64.zip" -OutFile "protoc.zip"
@@ -139,7 +148,7 @@ protoc --version
 
 # For Python (from backend directory with uv environment active)
 uv run python -m grpc_tools.protoc --version
-# Expected: libprotoc 30.2 (bundled with grpcio-tools)
+# Expected: libprotoc 31.1 (bundled with grpcio-tools 1.76.0)
 ```
 
 ## Regenerating Proto Files
@@ -171,7 +180,7 @@ The pre-commit hook automatically regenerates Python proto files before each com
 
 ### Python Proto Validation
 
-The `.github/workflows/proto-staleness-check.yml` workflow:
+The root `.github/workflows/studio-proto-staleness-check.yml` workflow:
 1. Regenerates Python proto files from scratch
 2. Runs `git diff` to check for changes
 3. Fails the build if any differences are detected
@@ -189,18 +198,18 @@ The same workflow runs `cargo check` in the ingestion directory to verify:
 - Verify installation with `which protoc`
 
 ### Generated Python code differs from committed files
-- Ensure you have protoc v30.2 installed (not from Homebrew)
+- Ensure `backend/uv.lock` is current and `grpcio-tools==1.76.0` is installed
+- Verify the bundled generator reports `libprotoc 31.1`
 - Regenerate: `cd backend && ./scripts/generate_proto.sh`
-- If using Homebrew's protoc, uninstall it: `brew uninstall protobuf`
 
 ### CI validation fails with "Proto files are out of date"
-- Your local protoc version differs from v30.2
-- Install v30.2 manually (do not use package managers)
+- Your locked Python environment or `grpcio-tools` version differs from CI
+- Run `uv sync --locked` from `backend`
 - Regenerate proto files locally
 - Commit the updated files
 
 ### Rust build fails with proto errors
-- Ensure `proto/` directory exists at repository root
+- Ensure `proto/` exists at the Studio root (`apps/studio`)
 - Check `ingestion/build.rs` references correct paths
 - Run `cargo clean && cargo build` to regenerate
 
@@ -209,7 +218,7 @@ The same workflow runs `cargo check` in the ingestion directory to verify:
 When updating protoc version:
 
 1. Update version numbers in this file
-2. Update `.github/workflows/proto-staleness-check.yml`
+2. Update `../../.github/workflows/studio-proto-staleness-check.yml`
 3. Regenerate Python proto files locally
 4. Test that Rust `cargo build` still works
 5. Commit all updated files in a single commit

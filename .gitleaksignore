@@ -1,0 +1,7 @@
+# Historical documentation examples confirmed as false positives during the
+# monorepo import. Fingerprints keep the exception scoped to one rule, file,
+# commit, and line rather than allowlisting the current documentation path.
+c750238cc7aceccfea2ca2ac68f134618d706711:docs/docker_reference.rst:generic-api-key:253
+4fa4c003b388cbc68349c9dc5a57292cf8245854:docs/docker_reference.rst:generic-api-key:231
+4fa4c003b388cbc68349c9dc5a57292cf8245854:docs/docker_reference.rst:generic-api-key:253
+9814332402ba4182aea1a92daf28169df7eaa012:apps/studio/backend/README.md:generic-api-key:5

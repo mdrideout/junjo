@@ -1,0 +1,46 @@
+name: Studio Version Sync
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/VERSION"
+      - "apps/studio/backend/app/main.py"
+      - "apps/studio/backend/app/common/responses.py"
+      - "apps/studio/backend/pyproject.toml"
+      - "apps/studio/backend/uv.lock"
+      - "apps/studio/ingestion/Cargo.toml"
+      - "apps/studio/ingestion/Cargo.lock"
+      - "apps/studio/frontend/package.json"
+      - "apps/studio/frontend/package-lock.json"
+      - "apps/studio/frontend/backend/openapi.json"
+      - "apps/studio/scripts/check-version-sync.sh"
+      - "apps/studio/scripts/sync-version.sh"
+      - ".github/workflows/studio-version-sync-check.yml"
+  pull_request:
+    paths:
+      - "apps/studio/VERSION"
+      - "apps/studio/backend/app/main.py"
+      - "apps/studio/backend/app/common/responses.py"
+      - "apps/studio/backend/pyproject.toml"
+      - "apps/studio/backend/uv.lock"
+      - "apps/studio/ingestion/Cargo.toml"
+      - "apps/studio/ingestion/Cargo.lock"
+      - "apps/studio/frontend/package.json"
+      - "apps/studio/frontend/package-lock.json"
+      - "apps/studio/frontend/backend/openapi.json"
+      - "apps/studio/scripts/check-version-sync.sh"
+      - "apps/studio/scripts/sync-version.sh"
+      - ".github/workflows/studio-version-sync-check.yml"
+  workflow_dispatch:
+
+jobs:
+  check-version-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Check synchronized Studio versions
+        working-directory: apps/studio
+        run: ./scripts/check-version-sync.sh

@@ -15,7 +15,7 @@ import {
  */
 export const litellmRequest = async (payload: LiteLLMRequest): Promise<LiteLLMResponse> => {
   const endpoint = '/llm/generate'
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     method: 'POST',

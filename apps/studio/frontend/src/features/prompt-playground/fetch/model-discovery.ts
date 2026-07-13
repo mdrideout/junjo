@@ -24,7 +24,7 @@ interface ModelsResponse {
  */
 export const fetchAllModels = async (): Promise<ModelInfo[]> => {
   const endpoint = '/llm/models'
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     method: 'GET',
@@ -44,7 +44,7 @@ export const fetchAllModels = async (): Promise<ModelInfo[]> => {
  */
 export const fetchModelsByProvider = async (provider: string): Promise<ModelInfo[]> => {
   const endpoint = `/llm/providers/${provider}/models`
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     method: 'GET',
@@ -64,7 +64,7 @@ export const fetchModelsByProvider = async (provider: string): Promise<ModelInfo
  */
 export const refreshModelsByProvider = async (provider: string): Promise<ModelInfo[]> => {
   const endpoint = `/llm/providers/${provider}/models/refresh`
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     method: 'POST',

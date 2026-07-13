@@ -6,20 +6,8 @@
  */
 
 import { render, RenderOptions } from '@testing-library/react'
-import { BrowserRouter } from 'react-router'
-import { AuthProvider } from '../auth-context'
-import { ReactElement, ReactNode } from 'react'
-
-/**
- * Custom wrapper that provides all necessary context providers for auth components.
- */
-function AllProviders({ children }: { children: ReactNode }) {
-  return (
-    <BrowserRouter>
-      <AuthProvider>{children}</AuthProvider>
-    </BrowserRouter>
-  )
-}
+import type { ReactElement } from 'react'
+import { AllProviders } from './test-providers'
 
 /**
  * Custom render function that wraps components with AuthProvider and BrowserRouter.
@@ -37,6 +25,4 @@ export function renderWithProviders(
   return render(ui, { wrapper: AllProviders, ...options })
 }
 
-// Re-export everything from React Testing Library for convenience
-export * from '@testing-library/react'
 export { userEvent } from '@testing-library/user-event'

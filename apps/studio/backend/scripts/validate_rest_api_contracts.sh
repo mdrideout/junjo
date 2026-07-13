@@ -8,7 +8,7 @@
 #
 # Usage:
 #   From backend directory:  ./scripts/validate_rest_api_contracts.sh
-#   From repo root:          ./backend/scripts/validate_rest_api_contracts.sh
+#   From Studio root:        ./backend/scripts/validate_rest_api_contracts.sh
 #
 # Exit codes:
 #   0 - Validation passed

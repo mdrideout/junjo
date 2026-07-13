@@ -246,7 +246,7 @@ export function parseOpenAIModel(model: ModelInfo): ParsedModelInfo {
   }
 
   // Create display name - use the model's display_name or the full ID (without provider prefix)
-  let displayName = model.display_name || idWithoutProvider
+  const displayName = model.display_name || idWithoutProvider
 
   // Detect dated models (models with date suffixes like -YYYY-MM-DD or -MMDD)
   const hasDate = /\d{4}-\d{2}-\d{2}/.test(idWithoutProvider) || /-\d{4}$/.test(idWithoutProvider)
@@ -310,7 +310,7 @@ export function parseGeminiModel(model: ModelInfo): ParsedModelInfo {
   const withoutVersion = withoutFamily.replace(`${version}-`, '')
 
   // Remove release type suffixes and date suffixes
-  let cleanVariant = withoutVersion
+  const cleanVariant = withoutVersion
     .replace(/-exp$/i, '')
     .replace(/-preview.*$/i, '')
 

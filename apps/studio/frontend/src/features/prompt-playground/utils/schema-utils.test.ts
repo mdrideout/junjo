@@ -233,8 +233,8 @@ describe('ensureOpenAISchemaCompatibility', () => {
 
       // Original should remain unchanged
       expect(original).toEqual(originalCopy)
-      expect((original as any).required).toBeUndefined()
-      expect((original as any).additionalProperties).toBeUndefined()
+      expect((original as Record<string, unknown>).required).toBeUndefined()
+      expect((original as Record<string, unknown>).additionalProperties).toBeUndefined()
     })
   })
 

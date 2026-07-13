@@ -4,7 +4,7 @@ React + TypeScript frontend for the Junjo AI Studio web UI.
 
 ## Running
 
-Primary workflow is the full hot-reload stack from the repository root:
+Primary workflow is the full hot-reload stack from the Studio root (`apps/studio`):
 
 ```bash
 docker compose up --build
@@ -28,7 +28,7 @@ npm install
 npm run dev
 ```
 
-Vite serves on `http://localhost:26151` by default. This path is intended for frontend-focused testing/debugging and assumes the backend is reachable at `http://localhost:26154`. The supported full-stack workflow is `docker compose up --build` from the repository root.
+Vite serves on `http://localhost:26151` by default. This path is intended for frontend-focused testing/debugging and assumes the backend is reachable at `http://localhost:26154`. The supported full-stack workflow is `docker compose up --build` from the Studio root.
 
 ## Commands
 

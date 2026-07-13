@@ -102,7 +102,9 @@ export default function FlatStateEventsList(props: FlatStateEventsListProps) {
             className={`${spanClass} px-2 py-2 cursor-pointer flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 ${determineActiveStyle()}`}
             onClick={() => {
               // Set the active span that this state event belongs to
-              span && dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+              if (span) {
+                dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+              }
 
               // Set the active set state event
               dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(event))

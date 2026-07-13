@@ -1,6 +1,9 @@
 # Junjo AI Studio AGENTS.md
 
-Note: Junjo is a python Graph Based LLM workflow library. This repository is the junjo-ai-studio library which pairs with `../junjo` SDK library.
+Note: this directory is the Junjo AI Studio component of the Junjo platform
+monorepo. It pairs through explicit telemetry contracts with the Python SDK in
+`/Users/matt/repos/junjo/sdks/python`. Run Studio commands from
+`/Users/matt/repos/junjo/apps/studio` unless a command says otherwise.
 
 ## Developer Philosophy
 
@@ -39,7 +42,7 @@ Careful consideration is needed for code in every domain. We separate code by re
 
 ## Important Commands
 
-Run from repo root unless a command says otherwise.
+Run from the Studio root (`apps/studio`) unless a command says otherwise.
 
 - Full stack: `docker compose up -d`
 - Full test suite: `./run-all-tests.sh`

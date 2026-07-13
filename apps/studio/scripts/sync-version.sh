@@ -8,8 +8,8 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+STUDIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$STUDIO_ROOT"
 
 SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
 
@@ -27,7 +27,7 @@ if [ "$#" -eq 1 ]; then
   printf "%s\n" "$VERSION" > VERSION
 else
   if [ ! -f VERSION ]; then
-    echo "ERROR: VERSION file not found at repo root."
+    echo "ERROR: VERSION file not found at the Studio root."
     exit 1
   fi
   VERSION="$(tr -d '[:space:]' < VERSION)"

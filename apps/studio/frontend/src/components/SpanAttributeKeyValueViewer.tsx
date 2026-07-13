@@ -4,14 +4,16 @@ import { lightTheme } from '@uiw/react-json-view/light'
 import { useEffect, useState } from 'react'
 
 interface SpanAttributeKeyValueViewerProps {
-  value: any
+  value: unknown
 }
 
-function tryParseJson(value: string) {
+function tryParseJson(value: string):
+  | { success: true; result: object }
+  | { success: false; result: null } {
   try {
-    const parsed = JSON.parse(value)
+    const parsed = JSON.parse(value) as object
     return { success: true, result: parsed }
-  } catch (e) {
+  } catch {
     return { success: false, result: null }
   }
 }

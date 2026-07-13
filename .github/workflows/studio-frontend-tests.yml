@@ -1,0 +1,40 @@
+name: Studio Frontend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/frontend/**"
+      - "contracts/telemetry/**"
+      - ".github/workflows/studio-frontend-tests.yml"
+  pull_request:
+    paths:
+      - "apps/studio/frontend/**"
+      - "contracts/telemetry/**"
+      - ".github/workflows/studio-frontend-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/studio/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/studio/frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Test
+        run: npm run test:run
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build

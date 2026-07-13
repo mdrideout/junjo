@@ -21,7 +21,7 @@ startListener({
     try {
       const data = await fetchServiceNames()
       listenerApi.dispatch(TracesStateActions.setServiceNamesData(data))
-    } catch (error) {
+    } catch {
       listenerApi.dispatch(TracesStateActions.setServiceNamesError(true))
     } finally {
       listenerApi.dispatch(TracesStateActions.setServiceNamesLoading(false))
@@ -62,7 +62,7 @@ startListener({
           data,
         }),
       )
-    } catch (error) {
+    } catch {
       dispatch(TracesStateActions.setTracesError(true))
     } finally {
       dispatch(TracesStateActions.setTracesLoading(false))

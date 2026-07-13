@@ -1,5 +1,5 @@
 import { ReactNode, useContext } from 'react'
-import { AuthContext } from '../auth/auth-context'
+import { AuthContext } from '../auth/auth-context-value'
 import SignIn from '../auth/sign-in/SignIn'
 import Setup from '../auth/setup/Setup'
 

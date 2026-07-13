@@ -6,7 +6,7 @@
 #   1. Python linting (ruff check)
 #   2. Backend tests (unit, integration, gRPC)
 #   3. Ingestion tests (Rust)
-#   4. Frontend tests (unit, integration, component)
+#   4. Frontend tests, lint, and production build
 #   5. Contract tests (frontend ↔ backend schema validation)
 #   6. Proto file validation (regeneration + staleness check)
 #
@@ -15,8 +15,8 @@
 
 set -e  # Exit on first error
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$REPO_ROOT"
+STUDIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$STUDIO_ROOT"
 
 # Track test results
 LINTING_RESULT=0
@@ -92,10 +92,12 @@ echo ""
 
 # 4. Frontend Tests
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "4/6: Frontend Tests (TypeScript)"
+echo "4/6: Frontend Tests, Lint, and Build (TypeScript)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 cd frontend
 npm run test:run || FRONTEND_RESULT=$?
+npm run lint || FRONTEND_RESULT=$?
+npm run build || FRONTEND_RESULT=$?
 cd ..
 echo ""
 

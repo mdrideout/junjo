@@ -1,8 +1,13 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { AuthContext } from '../auth-context'
+import { AuthContext } from '../auth-context-value'
 import { getApiHost } from '../../config'
 import { getPostSignInDestination } from '../navigation-helpers'
+
+interface ApiErrorResponse {
+  detail?: string | Array<{ msg?: string; message?: string }>
+  message?: string
+}
 
 export default function SetupForm() {
   const [error, setError] = useState<string | null>(null)
@@ -31,7 +36,7 @@ export default function SetupForm() {
     // Perform setup
     try {
       const endpoint = '/users/create-first-user'
-      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+      const response = await fetch(`${getApiHost()}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -39,7 +44,7 @@ export default function SetupForm() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
+        const data = (await response.json()) as ApiErrorResponse
         console.log('Error response:', data)
 
         // Try detail field (handles both Pydantic array and custom string)
@@ -47,7 +52,7 @@ export default function SetupForm() {
           if (Array.isArray(data.detail)) {
             // Pydantic validation errors (422)
             const errors = data.detail
-              .map((err: any) => err.msg || err.message)
+              .map((err) => err.msg || err.message)
               .join('. ')
             throw new Error(errors || 'Validation failed.')
           }
@@ -75,8 +80,8 @@ export default function SetupForm() {
       const destination = await getPostSignInDestination()
       console.log('[SetupForm] Navigating to:', destination)
       navigate(destination)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     }
   }
 

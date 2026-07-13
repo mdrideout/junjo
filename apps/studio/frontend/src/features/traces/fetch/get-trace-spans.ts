@@ -7,7 +7,7 @@ const GetTraceSpansResponseSchema = z.array(OtelSpanSchema)
 export async function getTraceSpans(traceId: string): Promise<OtelSpan[]> {
   // Use Python backend endpoint
   const endpoint = `/api/v1/observability/traces/${traceId}/spans`
-  const apiHost = getApiHost(endpoint)
+  const apiHost = getApiHost()
 
   const response = await fetch(`${apiHost}${endpoint}`, {
     credentials: 'include',

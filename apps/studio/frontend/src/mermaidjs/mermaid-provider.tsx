@@ -1,10 +1,6 @@
-import React, { useEffect, createContext } from 'react'
+import React, { useEffect } from 'react'
 import mermaid, { MermaidConfig } from 'mermaid'
-
-// Create a context for mermaid-related functionality
-export const MermaidContext = createContext({
-  // You can add functions here if needed, like forceRerender
-})
+import { MermaidContext } from './mermaid-context'
 
 // Define the base config to avoid repetition
 const getMermaidConfig = (theme: 'dark' | 'neutral'): MermaidConfig => ({

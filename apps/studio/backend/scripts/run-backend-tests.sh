@@ -3,7 +3,7 @@
 #
 # Usage:
 #   From backend directory:  ./scripts/run-backend-tests.sh
-#   From repo root:          ./backend/scripts/run-backend-tests.sh
+#   From Studio root:        ./backend/scripts/run-backend-tests.sh
 
 # Determine script directory and navigate to backend root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,0 +1,150 @@
+name: Publish Studio Docker Images
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  prepare:
+    if: startsWith(github.event.release.tag_name, 'studio-v')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      major_minor: ${{ steps.release.outputs.major_minor }}
+      short_sha: ${{ steps.release.outputs.short_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Validate release tag and prepare image tags
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
+          EXPECTED_TAG="studio-v${VERSION}"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "Release tag must be $EXPECTED_TAG, received $RELEASE_TAG." >&2
+            exit 1
+          fi
+          git fetch origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "Release commit must be reachable from origin/master." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major_minor=${VERSION%.*}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short=7 "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+
+  build:
+    if: startsWith(github.event.release.tag_name, 'studio-v')
+    needs: prepare
+    name: Build ${{ matrix.service }} for ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: backend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: frontend
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: frontend
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - service: ingestion
+            platform: linux/amd64
+            arch: amd64
+            runs-on: ubuntu-latest
+          - service: ingestion
+            platform: linux/arm64
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push architecture image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/studio
+          file: ./apps/studio/${{ matrix.service }}/Dockerfile
+          target: production
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: |
+            mdrideout/junjo-ai-studio-${{ matrix.service }}:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
+            mdrideout/junjo-ai-studio-${{ matrix.service }}:${{ needs.prepare.outputs.major_minor }}-${{ matrix.arch }}
+            mdrideout/junjo-ai-studio-${{ matrix.service }}:latest-${{ matrix.arch }}
+            mdrideout/junjo-ai-studio-${{ matrix.service }}:${{ needs.prepare.outputs.short_sha }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=studio-${{ matrix.service }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=studio-${{ matrix.service }}-${{ matrix.arch }}
+
+  merge-and-push:
+    if: startsWith(github.event.release.tag_name, 'studio-v')
+    needs: [prepare, build]
+    name: Publish ${{ matrix.service }} manifest
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend, ingestion]
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Create and push multi-platform manifests
+        env:
+          IMAGE: mdrideout/junjo-ai-studio-${{ matrix.service }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          MAJOR_MINOR: ${{ needs.prepare.outputs.major_minor }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+        run: |
+          for tag in "$VERSION" "$MAJOR_MINOR" latest "$SHORT_SHA"; do
+            docker buildx imagetools create \
+              -t "$IMAGE:$tag" \
+              "$IMAGE:$tag-amd64" \
+              "$IMAGE:$tag-arm64"
+          done
+
+  update-hub-description:
+    if: startsWith(github.event.release.tag_name, 'studio-v')
+    needs: merge-and-push
+    name: Update ${{ matrix.service }} Docker Hub description
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend, ingestion]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: mdrideout/junjo-ai-studio-${{ matrix.service }}
+          readme-filepath: ./apps/studio/README.md

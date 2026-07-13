@@ -1,0 +1,112 @@
+name: Studio Backend and Ingestion
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/studio/backend/**"
+      - "apps/studio/ingestion/**"
+      - "apps/studio/proto/**"
+      - "contracts/telemetry/**"
+      - ".github/workflows/studio-backend-tests.yml"
+  pull_request:
+    paths:
+      - "apps/studio/backend/**"
+      - "apps/studio/ingestion/**"
+      - "apps/studio/proto/**"
+      - "contracts/telemetry/**"
+      - ".github/workflows/studio-backend-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/backend/uv.lock"
+      - name: Install backend dependencies
+        working-directory: apps/studio/backend
+        run: uv sync --all-extras --locked
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run backend tests
+        working-directory: apps/studio
+        run: ./backend/scripts/run-backend-tests.sh 2>&1 | tee /tmp/backend-test.log
+        env:
+          PYTHONUNBUFFERED: "1"
+          JUNJO_SESSION_SECRET: "tHYEOeDANnwNydQHmitFdkBYbuIrY68Xo1aPZ6WCPVI="
+          JUNJO_SECURE_COOKIE_KEY: "2AorEiMD7P/kiosXFgLvahxdABNVYMUzWHPghTweskk="
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-backend-test-logs
+          path: /tmp/backend-test.log
+          retention-days: 7
+
+  backend-lint:
+    name: Backend Lint and Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/studio/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/backend/uv.lock"
+      - name: Install backend dependencies
+        run: uv sync --all-extras --locked
+      - name: Ruff check
+        run: uv run ruff check app/ --output-format=github
+      - name: Ruff format check
+        run: uv run ruff format app/ --check
+
+  ingestion-tests:
+    name: Ingestion Rust Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/studio/ingestion
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run ingestion tests
+        run: cargo test --locked --message-format=short

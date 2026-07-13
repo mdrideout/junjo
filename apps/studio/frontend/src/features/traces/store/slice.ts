@@ -31,10 +31,13 @@ export const tracesSlice = createSlice({
   initialState,
   reducers: {
     // Listener Middleware Triggers
-    fetchSpansByTraceId: (_state, _action: PayloadAction<{ traceId: string | undefined }>) => {
-      // Handled by listener middleware
+    fetchSpansByTraceId: {
+      reducer: () => {
+        // Handled by listener middleware
+      },
+      prepare: (payload: { traceId: string | undefined }) => ({ payload }),
     },
-    fetchServiceNames: (_state) => {
+    fetchServiceNames: () => {
       // Handled by listener middleware
     },
 

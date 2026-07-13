@@ -1,0 +1,16 @@
+name: Platform Integrity
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  repository-invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Validate monorepo boundaries and release routing
+        run: python3 tooling/scripts/validate_repository.py

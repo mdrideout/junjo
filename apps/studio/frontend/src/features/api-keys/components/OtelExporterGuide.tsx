@@ -106,7 +106,7 @@ export default function OtelExporterGuide() {
                 → Full OpenTelemetry Documentation
               </a>
               <a
-                href="https://github.com/mdrideout/junjo/blob/main/examples/base/src/base/otel_config.py"
+                href="https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/base/src/base/otel_config.py"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:underline"

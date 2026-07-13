@@ -1,26 +1,7 @@
-import { createContext, useState, ReactNode, useCallback, useEffect } from 'react'
+import { useState, ReactNode, useCallback, useEffect } from 'react'
 import { UsersExistSchema } from './schema'
 import { getApiHost } from '../config'
-
-interface AuthContextType {
-  isAuthenticated: boolean
-  loading: boolean
-  needsSetup: boolean | null
-  checkAuthStatus: () => void
-  checkSetupStatus: () => void
-  login: (token: string) => void
-  logout: () => void
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  loading: true,
-  needsSetup: null,
-  checkAuthStatus: () => {},
-  checkSetupStatus: () => {},
-  login: () => {},
-  logout: () => {},
-})
+import { AuthContext } from './auth-context-value'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -37,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // --- Use the dedicated setup status endpoint ---
       const endpoint = '/users/db-has-users'
-      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+      const response = await fetch(`${getApiHost()}${endpoint}`, {
         method: 'GET',
       })
       if (response.ok) {
@@ -65,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthCheckLoading(true)
     try {
       const endpoint = '/auth-test'
-      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+      const response = await fetch(`${getApiHost()}${endpoint}`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -101,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       const endpoint = '/sign-out'
-      const response = await fetch(`${getApiHost(endpoint)}${endpoint}`, {
+      const response = await fetch(`${getApiHost()}${endpoint}`, {
         method: 'POST',
         credentials: 'include',
       })

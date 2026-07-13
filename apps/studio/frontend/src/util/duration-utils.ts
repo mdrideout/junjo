@@ -37,7 +37,7 @@ export function isoStringToMicrosecondsSinceEpoch(isoString: string) {
   }
 
   // Split the ISO string on the decimal point
-  const [_secondsPart, fractionPartWithZone] = isoString.split('.')
+  const fractionPartWithZone = isoString.split('.')[1]
   if (!fractionPartWithZone) {
     return date.getTime() * 1000 // no fractional part
   }

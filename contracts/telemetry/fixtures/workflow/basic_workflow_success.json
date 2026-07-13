@@ -1,0 +1,113 @@
+{
+  "contract_version": 1,
+  "scenario": "basic_workflow_success",
+  "trace_id": "11111111111111111111111111111111",
+  "service_name": "svc-junjo-phase0-basic",
+  "spans": [
+    {
+      "trace_id": "11111111111111111111111111111111",
+      "span_id": "1111111111111111",
+      "parent_span_id": null,
+      "service_name": "svc-junjo-phase0-basic",
+      "name": "basic_workflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:00:00.000000+00:00",
+      "end_time": "2026-04-05T12:00:00.300000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.workflow.state.start": "{\"input\":\"hello\",\"output\":null}",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-basic-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.basic.fetch_input\",\"nodeStructuralId\":\"struct-basic-fetch\",\"nodeType\":\"Node\",\"nodeLabel\":\"fetch_input\"},{\"nodeRuntimeId\":\"node.basic.transform_output\",\"nodeStructuralId\":\"struct-basic-transform\",\"nodeType\":\"Node\",\"nodeLabel\":\"transform_output\"}],\"edges\":[{\"edgeStructuralId\":\"edge-basic-fetch-transform\",\"tailNodeRuntimeId\":\"node.basic.fetch_input\",\"tailNodeStructuralId\":\"struct-basic-fetch\",\"headNodeRuntimeId\":\"node.basic.transform_output\",\"headNodeStructuralId\":\"struct-basic-transform\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
+        "junjo.workflow.store.id": "store-basic-01",
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "workflow",
+        "junjo.executable_definition_id": "workflow.basic",
+        "junjo.executable_runtime_id": "run-basic-01",
+        "junjo.executable_structural_id": "graph-basic-01",
+        "junjo.enclosing_graph_structural_id": "graph-basic-01"
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "11111111111111111111111111111111",
+      "span_id": "1111111111111112",
+      "parent_span_id": "1111111111111111",
+      "service_name": "svc-junjo-phase0-basic",
+      "name": "fetch_input",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:00:00.050000+00:00",
+      "end_time": "2026-04-05T12:00:00.120000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.basic.fetch_input",
+        "junjo.parent_executable_definition_id": "workflow.basic",
+        "junjo.executable_runtime_id": "node.basic.fetch_input",
+        "junjo.executable_structural_id": "struct-basic-fetch",
+        "junjo.enclosing_graph_structural_id": "graph-basic-01",
+        "junjo.parent_executable_runtime_id": "run-basic-01",
+        "junjo.parent_executable_structural_id": "graph-basic-01"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": 1775390400060000000,
+          "attributes": {
+            "id": "state-event-basic-01",
+            "junjo.store.name": "BasicWorkflowState",
+            "junjo.store.id": "store-basic-01",
+            "junjo.store.action": "set_input",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/input\",\"value\":\"hello\"}]"
+          }
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    },
+    {
+      "trace_id": "11111111111111111111111111111111",
+      "span_id": "1111111111111113",
+      "parent_span_id": "1111111111111111",
+      "service_name": "svc-junjo-phase0-basic",
+      "name": "transform_output",
+      "kind": "INTERNAL",
+      "start_time": "2026-04-05T12:00:00.150000+00:00",
+      "end_time": "2026-04-05T12:00:00.250000+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 1,
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node.basic.transform_output",
+        "junjo.parent_executable_definition_id": "workflow.basic",
+        "junjo.executable_runtime_id": "node.basic.transform_output",
+        "junjo.executable_structural_id": "struct-basic-transform",
+        "junjo.enclosing_graph_structural_id": "graph-basic-01",
+        "junjo.parent_executable_runtime_id": "run-basic-01",
+        "junjo.parent_executable_structural_id": "graph-basic-01"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": 1775390400180000000,
+          "attributes": {
+            "id": "state-event-basic-02",
+            "junjo.store.name": "BasicWorkflowState",
+            "junjo.store.id": "store-basic-01",
+            "junjo.store.action": "set_output",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/output\",\"value\":\"HELLO\"}]"
+          }
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 0,
+      "trace_state": null
+    }
+  ]
+}

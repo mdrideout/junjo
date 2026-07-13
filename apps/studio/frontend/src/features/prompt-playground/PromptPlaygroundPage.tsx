@@ -22,6 +22,67 @@ import GenerationSettingsModal from './components/GenerationSettingsModal'
 import ActiveSettingsDisplay from './components/ActiveSettingsDisplay'
 import { GenerationSettings } from './store/slice'
 
+type JsonObject = Record<string, unknown>
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function getInputValue(value: unknown): string {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (isJsonObject(parsed) && parsed.contents !== undefined) {
+      return String(parsed.contents)
+    }
+  } catch {
+    // The telemetry value is already plain text.
+  }
+
+  return value
+}
+
+function getOutputValue(attributes: JsonObject): string {
+  const outputValue =
+    attributes['llm.output_messages.0.message.content'] ||
+    attributes['output.value'] ||
+    attributes['llm.output']
+
+  if (!outputValue) {
+    return ''
+  }
+
+  if (typeof outputValue === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(outputValue)
+
+      if (isJsonObject(parsed) && Array.isArray(parsed.candidates)) {
+        const firstCandidate = parsed.candidates[0]
+        if (isJsonObject(firstCandidate) && isJsonObject(firstCandidate.content)) {
+          const parts = firstCandidate.content.parts
+          const firstPart = Array.isArray(parts) ? parts[0] : undefined
+          if (isJsonObject(firstPart) && firstPart.text) {
+            return String(firstPart.text)
+          }
+        }
+      }
+
+      return JSON.stringify(parsed, null, 2) ?? ''
+    } catch {
+      return outputValue
+    }
+  }
+
+  if (typeof outputValue === 'object') {
+    return JSON.stringify(outputValue, null, 2) ?? ''
+  }
+
+  return ''
+}
+
 // Helper function to parse generation settings from OpenInference telemetry
 function parseSettingsFromTelemetry(span: OtelSpan, targetProvider: string): GenerationSettings {
   const invocationParams = span.attributes_json['llm.invocation_parameters']
@@ -191,7 +252,7 @@ export default function PromptPlaygroundPage() {
         setError(false)
         // Use Python backend endpoint
         const endpoint = `/api/v1/observability/traces/${traceId}/spans/${spanId}`
-        const apiHost = getApiHost(endpoint)
+        const apiHost = getApiHost()
         const response = await fetch(`${apiHost}${endpoint}`, {
           credentials: 'include',
         })
@@ -200,7 +261,7 @@ export default function PromptPlaygroundPage() {
         }
         const data = await response.json()
         setSpan(data)
-      } catch (error) {
+      } catch {
         setError(true)
       } finally {
         setLoading(false)
@@ -220,59 +281,6 @@ export default function PromptPlaygroundPage() {
 
   if (!span) {
     return <div>Span not found.</div>
-  }
-
-  const getInputValue = (value: any) => {
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value)
-        if (parsed.contents) {
-          return parsed.contents
-        }
-        return value
-      } catch (e) {
-        return value
-      }
-    }
-    return ''
-  }
-
-  const getOutputValue = (attributes: any) => {
-    // Try to get the output value from various possible attribute paths
-    let outputValue =
-      attributes['llm.output_messages.0.message.content'] ||
-      attributes['output.value'] ||
-      attributes['llm.output']
-
-    if (outputValue) {
-      // If it's a string, try to parse it as JSON
-      if (typeof outputValue === 'string') {
-        try {
-          const parsed = JSON.parse(outputValue)
-
-          // Check if it's a Gemini response with candidates structure
-          if (parsed.candidates && Array.isArray(parsed.candidates)) {
-            // Extract just the text content if available
-            if (parsed.candidates[0]?.content?.parts?.[0]?.text) {
-              return parsed.candidates[0].content.parts[0].text
-            }
-          }
-
-          // For other JSON structures, format with indentation for readability
-          return JSON.stringify(parsed, null, 2)
-        } catch (e) {
-          // If it's not valid JSON, return as-is
-          return outputValue
-        }
-      }
-
-      // If it's already an object, format it as JSON string with indentation
-      if (typeof outputValue === 'object') {
-        return JSON.stringify(outputValue, null, 2)
-      }
-    }
-
-    return ''
   }
 
   const inputValue = getInputValue(span.attributes_json['input.value'])

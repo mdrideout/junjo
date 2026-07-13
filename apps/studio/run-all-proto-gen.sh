@@ -6,8 +6,8 @@
 
 set -e
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$REPO_ROOT"
+STUDIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$STUDIO_ROOT"
 
 echo "========================================"
 echo "Regenerating All Proto Files"

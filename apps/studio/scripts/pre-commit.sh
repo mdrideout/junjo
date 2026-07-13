@@ -12,8 +12,8 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Get the repository root
-REPO_ROOT=$(git rev-parse --show-toplevel)
+# Resolve the Studio project independently from the platform Git root.
+STUDIO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 # Track if any proto files were modified
 PROTO_MODIFIED=false
@@ -49,7 +49,7 @@ check_tool_versions
 # Function to generate Python proto files for backend
 generate_python_proto() {
   echo "  → Generating Python proto files for backend..."
-  cd "$REPO_ROOT/backend"
+  cd "$STUDIO_ROOT/backend"
 
   # Check if the generation script exists
   if [ ! -f "scripts/generate_proto.sh" ]; then
@@ -80,7 +80,7 @@ PYTHON_FORMATTED=false
 run_ruff_format() {
   echo ""
   echo "🎨 Pre-commit: Running ruff format on backend..."
-  cd "$REPO_ROOT/backend"
+  cd "$STUDIO_ROOT/backend"
 
   # Check if uv is available
   if ! command -v uv &> /dev/null; then
@@ -148,7 +148,7 @@ else
   echo -e "✓ All files are up-to-date"
 fi
 
-# Return to repo root
-cd "$REPO_ROOT"
+# Return to the Studio root
+cd "$STUDIO_ROOT"
 
 exit 0
