@@ -19,6 +19,8 @@ jobs:
           persist-credentials: false
       - name: Validate monorepo boundaries and release routing
         run: python3 tooling/scripts/validate_repository.py
+      - name: Run platform tooling unit tests
+        run: python3 -m unittest discover -s tooling/tests -p 'test_*.py' -v
       - name: Validate GitHub Actions syntax
         run: |
           docker run --rm \

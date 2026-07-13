@@ -24,6 +24,7 @@ Run from `apps/website`:
 npm ci
 npm run check
 npm run build
+npm run validate:build
 npm audit --omit=dev --audit-level=high
 ```
 

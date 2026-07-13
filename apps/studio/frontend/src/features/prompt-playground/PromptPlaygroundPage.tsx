@@ -7,7 +7,7 @@ import { litellmRequest } from './fetch/litellm-request'
 import { PromptPlaygroundActions } from './store/slice'
 import ModelSelector from './components/ModelSelector'
 import ProviderSelector from './components/ProviderSelector'
-import { Switch } from '../../components/catalyst/switch'
+import { Switch } from '../../components/forms/switch'
 import { getSpanDurationString } from '../../util/duration-utils'
 import CircularProgress from '../../components/CircularProgress'
 import { detectProviderWarnings, detectJsonSchema } from './utils/provider-warnings'
@@ -488,13 +488,12 @@ export default function PromptPlaygroundPage() {
                     originalProvider={originalProvider}
                     provider={selectedProvider}
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="w-44">
                     <Switch
+                      label="Structured output"
                       checked={jsonMode}
-                      onChange={(checked) => dispatch(PromptPlaygroundActions.setJsonMode(checked))}
-                      className="group"
+                      onCheckedChange={(checked) => dispatch(PromptPlaygroundActions.setJsonMode(checked))}
                     />
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">Structured Output</span>
                   </div>
                   <button
                     type="button"
@@ -607,23 +606,23 @@ export default function PromptPlaygroundPage() {
 
       {providerWarning && (
         <ProviderWarningModal
-          isOpen={warningModalOpen}
-          onClose={() => setWarningModalOpen(false)}
+          open={warningModalOpen}
+          onOpenChange={setWarningModalOpen}
           warning={providerWarning}
         />
       )}
 
       {jsonSchemaInfo && (
         <JsonSchemaModal
-          isOpen={schemaModalOpen}
-          onClose={() => setSchemaModalOpen(false)}
+          open={schemaModalOpen}
+          onOpenChange={setSchemaModalOpen}
           schemaInfo={jsonSchemaInfo}
         />
       )}
 
       <GenerationSettingsModal
-        isOpen={settingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
+        open={settingsModalOpen}
+        onOpenChange={setSettingsModalOpen}
         provider={selectedProvider}
         model={selectedModel}
         settings={generationSettings}

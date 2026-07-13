@@ -23,9 +23,59 @@ COMPONENTS = (
 RUN_ALL_PATHS = {
     ".github/dependabot.yml",
     "tooling/scripts/detect_ci_changes.py",
+    "tooling/tests/test_ci_routing.py",
     "tooling/tests/test_ci_release_tools.py",
 }
 RUN_ALL_PREFIXES = (".github/actions/", ".github/workflows/")
+
+STUDIO_CROSS_RUNTIME_PATHS = {
+    "apps/studio/.dockerignore",
+    "apps/studio/.env.example",
+    "apps/studio/compose.yaml",
+    "apps/studio/compose.monitoring.yaml",
+    "apps/studio/scripts/junjo",
+}
+
+STUDIO_ALL_CHECK_PATHS = {
+    "apps/studio/run-all-tests.sh",
+    "apps/studio/scripts/install-git-hooks.sh",
+    "apps/studio/scripts/pre-commit.sh",
+}
+
+STUDIO_ARTIFACT_LICENSE_PATHS = {
+    "apps/studio/LICENSE",
+    "apps/studio/THIRD_PARTY_NOTICES.md",
+    "tooling/scripts/validate_studio_artifact_licenses.py",
+    "tooling/tests/test_studio_artifact_licenses.py",
+}
+
+STUDIO_ARTIFACT_LICENSE_PREFIXES = ("apps/studio/licenses/",)
+
+STUDIO_NON_PRODUCT_PATHS = {
+    "apps/studio/.gitignore",
+    "apps/studio/AGENTS.md",
+    "apps/studio/PROTO_VERSIONS.md",
+    "apps/studio/README.md",
+    "apps/studio/TESTING.md",
+    "apps/studio/junjo-screenshot.png",
+}
+
+STUDIO_NON_PRODUCT_PREFIXES = (
+    "apps/studio/.agents/",
+    "apps/studio/.claude/",
+    "apps/studio/docs/",
+)
+
+STUDIO_PRODUCT_PREFIXES = (
+    "apps/studio/backend/",
+    "apps/studio/deployments/",
+    "apps/studio/e2e_test_apps/",
+    "apps/studio/frontend/",
+    "apps/studio/ingestion/",
+    "apps/studio/proto/",
+    "apps/studio/scripts/",
+    "apps/studio/test-fixtures/",
+)
 
 
 def _starts_with(path: str, *prefixes: str) -> bool:
@@ -42,8 +92,70 @@ def detect_components(paths: Iterable[str]) -> dict[str, bool]:
     ):
         return {component: True for component in COMPONENTS}
 
+    unmapped_studio_paths = sorted(
+        path
+        for path in normalized
+        if path.startswith("apps/studio/")
+        and path not in STUDIO_NON_PRODUCT_PATHS
+        and not path.startswith(STUDIO_NON_PRODUCT_PREFIXES)
+        and path not in STUDIO_CROSS_RUNTIME_PATHS
+        and path not in STUDIO_ALL_CHECK_PATHS
+        and path not in STUDIO_ARTIFACT_LICENSE_PATHS
+        and path != "apps/studio/VERSION"
+        and path != "apps/studio/run-all-proto-gen.sh"
+        and not path.startswith(STUDIO_ARTIFACT_LICENSE_PREFIXES)
+        and not path.startswith(STUDIO_PRODUCT_PREFIXES)
+    )
+    if unmapped_studio_paths:
+        raise RuntimeError(
+            "Studio product path has no CI owner: " + ", ".join(unmapped_studio_paths)
+        )
+
     for path in normalized:
         is_contract = path.startswith("contracts/telemetry/")
+        is_artifact_license_input = (
+            path in STUDIO_ARTIFACT_LICENSE_PATHS
+            or path.startswith(STUDIO_ARTIFACT_LICENSE_PREFIXES)
+        )
+
+        if is_artifact_license_input:
+            for component in (
+                "studio_backend",
+                "studio_frontend",
+                "telemetry",
+                "deployments",
+            ):
+                result[component] = True
+
+        if path in STUDIO_ALL_CHECK_PATHS:
+            for component in (
+                "studio_backend",
+                "studio_frontend",
+                "studio_proto",
+                "studio_rest",
+                "studio_version",
+                "telemetry",
+                "deployments",
+            ):
+                result[component] = True
+
+        if path in STUDIO_CROSS_RUNTIME_PATHS:
+            result["studio_backend"] = True
+            result["studio_frontend"] = True
+            result["telemetry"] = True
+            result["deployments"] = True
+
+        if path == "apps/studio/run-all-proto-gen.sh":
+            result["studio_backend"] = True
+            result["studio_proto"] = True
+
+        if path.startswith("apps/studio/e2e_test_apps/"):
+            result["telemetry"] = True
+            result["deployments"] = True
+
+        if path.startswith("apps/studio/test-fixtures/"):
+            result["studio_backend"] = True
+            result["telemetry"] = True
 
         if (
             _starts_with(path, "sdks/python/")
@@ -134,17 +246,29 @@ def detect_components(paths: Iterable[str]) -> dict[str, bool]:
         if (
             _starts_with(path, "apps/studio/deployments/")
             or path == "apps/studio/VERSION"
+            or path
+            in {
+                "apps/studio/backend/Dockerfile",
+                "apps/studio/frontend/Dockerfile",
+                "apps/studio/ingestion/Dockerfile",
+            }
             or _starts_with(
                 path,
                 "tooling/scripts/build_studio_release_evidence",
                 "tooling/scripts/validate_studio_deployments",
                 "tooling/scripts/export_studio_distribution",
                 "tooling/scripts/publish_studio_distribution",
+                "tooling/scripts/smoke_studio_distribution",
+                "tooling/scripts/validate_studio_release_policy",
+                "tooling/scripts/validate_studio_runtime",
             )
             or path
             in {
+                "tooling/studio_release_contract.json",
                 "tooling/tests/test_studio_deployment_tools.py",
                 "tooling/tests/test_studio_release_evidence.py",
+                "tooling/tests/test_studio_runtime.py",
+                "tooling/tests/test_studio_setup_wizards.py",
             }
         ):
             result["deployments"] = True

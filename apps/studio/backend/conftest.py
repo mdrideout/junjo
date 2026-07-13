@@ -17,6 +17,13 @@ import pytest_asyncio
 from dotenv import dotenv_values
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+# Pytest owns its security configuration explicitly. Runtime settings remain
+# required; these deterministic values exist only in the test process.
+os.environ["JUNJO_SESSION_SECRET"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+os.environ["JUNJO_SECURE_COOKIE_KEY"] = (
+    "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+)
+
 # Set test database paths BEFORE any app code gets imported
 # This ensures db_config.py (which creates engine at import time) uses test location
 #

@@ -64,7 +64,7 @@ def setup_telemetry() -> tuple[TracerProvider, MeterProvider] | None:
 
     # Construct a Junjo exporter for Junjo AI Studio (see docker-compose.yml)
     junjo_ai_studio_exporter = JunjoOtelExporter(
-        # The Junjo AI Studio container name on the same docker network
+        # The Junjo AI Studio service name on the same Compose network
         host="junjo-ai-studio-ingestion",  # Junjo AI Studio ingestion on the shared Docker network
         port="26155",
         api_key=JUNJO_AI_STUDIO_API_KEY,

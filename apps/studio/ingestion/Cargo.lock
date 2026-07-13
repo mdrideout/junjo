@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "ingestion"
-version = "0.81.1"
+version = "0.81.2"
 dependencies = [
  "anyhow",
  "arrow",

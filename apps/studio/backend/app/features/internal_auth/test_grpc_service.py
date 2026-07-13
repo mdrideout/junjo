@@ -15,7 +15,7 @@ from app.proto_gen import auth_pb2
 async def test_validate_api_key_valid():
     """Test ValidateApiKey returns is_valid=True for existing API key."""
     servicer = InternalAuthServicer()
-    request = auth_pb2.ValidateApiKeyRequest(api_key="test_valid_key_12345")
+    request = auth_pb2.ValidateApiKeyRequest(api_key="fixture-valid-key")
     context = MagicMock()
 
     # Mock the repository to return a key (indicating it exists)
@@ -24,13 +24,13 @@ async def test_validate_api_key_valid():
         new_callable=AsyncMock,
     ) as mock_get_by_key:
         mock_get_by_key.return_value = MagicMock(
-            id="test_id", key="test_valid_key_12345", name="Test Key"
+            id="test_id", key="fixture-valid-key", name="Test Key"
         )
 
         response = await servicer.ValidateApiKey(request, context)
 
         assert response.is_valid is True
-        mock_get_by_key.assert_called_once_with("test_valid_key_12345")
+        mock_get_by_key.assert_called_once_with("fixture-valid-key")
 
 
 @pytest.mark.unit
@@ -38,7 +38,7 @@ async def test_validate_api_key_valid():
 async def test_validate_api_key_invalid():
     """Test ValidateApiKey returns is_valid=False for non-existent API key."""
     servicer = InternalAuthServicer()
-    request = auth_pb2.ValidateApiKeyRequest(api_key="invalid_key_12345")
+    request = auth_pb2.ValidateApiKeyRequest(api_key="fixture-missing-key")
     context = MagicMock()
 
     # Mock the repository to raise an exception (key not found)
@@ -51,7 +51,7 @@ async def test_validate_api_key_invalid():
         response = await servicer.ValidateApiKey(request, context)
 
         assert response.is_valid is False
-        mock_get_by_key.assert_called_once_with("invalid_key_12345")
+        mock_get_by_key.assert_called_once_with("fixture-missing-key")
 
 
 @pytest.mark.unit

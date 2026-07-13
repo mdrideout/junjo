@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-12
-- Updated: 2026-07-12
+- Updated: 2026-07-13
 - Owners: Junjo platform
 
 ## Context
@@ -178,7 +178,9 @@ monorepo migration record rather than this ADR.
 ## Licensing
 
 All Junjo-authored source, applications, documentation, contracts, examples,
-and deployment distributions are licensed under Apache License 2.0.
+and deployment distributions are licensed under Apache License 2.0. ADR 0002
+defines the required boundary between Junjo-authored work and third-party
+material and governs historical Catalyst provenance.
 
 Implementation of this decision includes:
 
@@ -188,7 +190,8 @@ Implementation of this decision includes:
 - including Apache-2.0 in both standalone deployment distributions;
 - updating package metadata, README licensing text, generated archives,
   container metadata, and website notices where applicable;
-- preserving third-party license and notice obligations.
+- preserving third-party license and notice obligations under their actual
+  licenses rather than describing third-party material as Apache-2.0.
 
 There is no mixed Junjo-owned component license policy: Apache-2.0 applies
 across the current platform.
@@ -203,8 +206,8 @@ The Studio setup wizard and both deployment setup wizards may create
 `.env.bak`. Before the expanded migration is implemented or either deployment
 is published:
 
-- `.env.bak` is explicitly ignored alongside `.env` in Studio and both
-  deployment distributions;
+- `.env.bak` and the private atomic-writer staging pattern are explicitly
+  ignored alongside `.env` in Studio and both deployment distributions;
 - the generated backup is treated as secret-bearing local state;
 - validation proves it cannot enter a release archive or distribution mirror.
 

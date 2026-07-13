@@ -1,0 +1,1667 @@
+{
+  "artifact": "Studio frontend production static bundle",
+  "dependencies": [
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@antfu/install-pkg",
+      "version": "1.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@antfu/utils",
+      "version": "8.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@babel/runtime",
+      "version": "7.29.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@base-ui/react",
+      "version": "1.6.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@base-ui/utils",
+      "version": "0.3.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@braintree/sanitize-url",
+      "version": "7.1.1"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_source": "package-lock.json",
+      "name": "@chevrotain/cst-dts-gen",
+      "version": "11.0.3"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_source": "package-lock.json",
+      "name": "@chevrotain/gast",
+      "version": "11.0.3"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_source": "package-lock.json",
+      "name": "@chevrotain/regexp-to-ast",
+      "version": "11.0.3"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_source": "package-lock.json",
+      "name": "@chevrotain/types",
+      "version": "11.0.3"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_source": "package-lock.json",
+      "name": "@chevrotain/utils",
+      "version": "11.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@floating-ui/core",
+      "version": "1.8.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@floating-ui/dom",
+      "version": "1.8.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@floating-ui/react-dom",
+      "version": "2.1.9"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@floating-ui/utils",
+      "version": "0.2.12"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@heroicons/react",
+      "version": "2.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@iconify/types",
+      "version": "2.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@iconify/utils",
+      "version": "2.3.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@mermaid-js/parser",
+      "version": "0.4.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/number",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/primitive",
+      "version": "1.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-arrow",
+      "version": "1.1.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-collection",
+      "version": "1.1.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-compose-refs",
+      "version": "1.1.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-context",
+      "version": "1.1.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-direction",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-dismissable-layer",
+      "version": "1.1.11"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-focus-guards",
+      "version": "1.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-focus-scope",
+      "version": "1.1.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-icons",
+      "version": "1.3.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-id",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-popper",
+      "version": "1.2.8"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-portal",
+      "version": "1.1.9"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-primitive",
+      "version": "2.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-select",
+      "version": "2.2.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-callback-ref",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-controllable-state",
+      "version": "1.2.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-effect-event",
+      "version": "0.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-escape-keydown",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-layout-effect",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-previous",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-rect",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-use-size",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/react-visually-hidden",
+      "version": "1.2.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@radix-ui/rect",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@reduxjs/toolkit",
+      "version": "2.6.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/cookie",
+      "version": "0.6.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3",
+      "version": "7.4.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-array",
+      "version": "3.2.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-axis",
+      "version": "3.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-brush",
+      "version": "3.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-chord",
+      "version": "3.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-color",
+      "version": "3.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-contour",
+      "version": "3.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-delaunay",
+      "version": "6.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-dispatch",
+      "version": "3.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-drag",
+      "version": "3.0.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-dsv",
+      "version": "3.0.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-ease",
+      "version": "3.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-fetch",
+      "version": "3.0.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-force",
+      "version": "3.0.10"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-format",
+      "version": "3.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-geo",
+      "version": "3.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-hierarchy",
+      "version": "3.1.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-interpolate",
+      "version": "3.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-path",
+      "version": "3.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-polygon",
+      "version": "3.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-quadtree",
+      "version": "3.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-random",
+      "version": "3.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-scale",
+      "version": "4.0.9"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-scale-chromatic",
+      "version": "3.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-selection",
+      "version": "3.0.11"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-shape",
+      "version": "3.1.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-time",
+      "version": "3.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-time-format",
+      "version": "4.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-timer",
+      "version": "3.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-transition",
+      "version": "3.0.9"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/d3-zoom",
+      "version": "3.0.8"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/debug",
+      "version": "4.1.12"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/estree",
+      "version": "1.0.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/estree-jsx",
+      "version": "1.0.5"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/geojson",
+      "version": "7946.0.16"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/hast",
+      "version": "3.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/mdast",
+      "version": "4.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/ms",
+      "version": "2.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/react",
+      "version": "19.0.10"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/react-dom",
+      "version": "19.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/trusted-types",
+      "version": "2.0.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/unist",
+      "version": "2.0.11"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/unist",
+      "version": "3.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@types/use-sync-external-store",
+      "version": "0.0.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@uiw/react-json-view",
+      "version": "2.0.0-alpha.30"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "@wooorm/starry-night",
+      "version": "3.8.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "acorn",
+      "version": "8.14.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "aria-hidden",
+      "version": "1.2.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "ccount",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "character-entities",
+      "version": "2.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "character-entities-html4",
+      "version": "2.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "character-entities-legacy",
+      "version": "3.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "character-reference-invalid",
+      "version": "2.0.1"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_source": "package-lock.json",
+      "name": "chevrotain",
+      "version": "11.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "chevrotain-allstar",
+      "version": "0.3.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "clsx",
+      "version": "2.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "comma-separated-tokens",
+      "version": "2.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "commander",
+      "version": "7.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "commander",
+      "version": "8.3.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "confbox",
+      "version": "0.1.8"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "confbox",
+      "version": "0.2.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "cookie",
+      "version": "1.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "cose-base",
+      "version": "1.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "cose-base",
+      "version": "2.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "csstype",
+      "version": "3.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "cytoscape",
+      "version": "3.31.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "cytoscape-cose-bilkent",
+      "version": "4.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "cytoscape-fcose",
+      "version": "2.2.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3",
+      "version": "7.9.0"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_source": "package-lock.json",
+      "name": "d3-array",
+      "version": "2.12.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-array",
+      "version": "3.2.4"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-axis",
+      "version": "3.0.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-brush",
+      "version": "3.0.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-chord",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-color",
+      "version": "3.1.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-contour",
+      "version": "4.0.2"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-delaunay",
+      "version": "6.0.4"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-dispatch",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-drag",
+      "version": "3.0.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-dsv",
+      "version": "3.0.1"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_source": "package-lock.json",
+      "name": "d3-ease",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-fetch",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-force",
+      "version": "3.0.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-format",
+      "version": "3.1.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-geo",
+      "version": "3.1.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-hierarchy",
+      "version": "3.1.2"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-interpolate",
+      "version": "3.0.1"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_source": "package-lock.json",
+      "name": "d3-path",
+      "version": "1.0.9"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-path",
+      "version": "3.1.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-polygon",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-quadtree",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-random",
+      "version": "3.0.1"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_source": "package-lock.json",
+      "name": "d3-sankey",
+      "version": "0.12.3"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-scale",
+      "version": "4.0.2"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-scale-chromatic",
+      "version": "3.1.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-selection",
+      "version": "3.0.0"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_source": "package-lock.json",
+      "name": "d3-shape",
+      "version": "1.3.7"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-shape",
+      "version": "3.2.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-time",
+      "version": "3.1.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-time-format",
+      "version": "4.1.0"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-timer",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-transition",
+      "version": "3.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "d3-zoom",
+      "version": "3.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "dagre-d3-es",
+      "version": "7.0.11"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "dayjs",
+      "version": "1.11.13"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "decode-named-character-reference",
+      "version": "1.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "deep-object-diff",
+      "version": "1.1.9"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "delaunator",
+      "version": "5.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "dequal",
+      "version": "2.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "detect-node-es",
+      "version": "1.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "devlop",
+      "version": "1.1.0"
+    },
+    {
+      "license": "(MPL-2.0 OR Apache-2.0)",
+      "license_source": "package-lock.json",
+      "name": "dompurify",
+      "version": "3.2.5"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "estree-util-is-identifier-name",
+      "version": "3.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "exsolve",
+      "version": "1.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "fast-json-patch",
+      "version": "3.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "get-nonce",
+      "version": "1.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "globals",
+      "version": "15.15.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "hachure-fill",
+      "version": "0.5.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "hast-util-to-jsx-runtime",
+      "version": "2.3.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "hast-util-whitespace",
+      "version": "3.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "iconv-lite",
+      "version": "0.6.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "immer",
+      "version": "10.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "import-meta-resolve",
+      "version": "4.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "inline-style-parser",
+      "version": "0.2.6"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "internmap",
+      "version": "1.0.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "internmap",
+      "version": "2.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "is-alphabetical",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "is-alphanumerical",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "is-decimal",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "is-hexadecimal",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "katex",
+      "version": "0.16.21"
+    },
+    {
+      "license": "MIT",
+      "license_source": "artifact-license-policy override",
+      "name": "khroma",
+      "version": "2.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "kolorist",
+      "version": "1.8.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "langium",
+      "version": "3.3.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "layout-base",
+      "version": "1.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "layout-base",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "local-pkg",
+      "version": "1.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "lodash-es",
+      "version": "4.17.21"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "longest-streak",
+      "version": "3.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "marked",
+      "version": "15.0.7"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-from-markdown",
+      "version": "2.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-mdx-expression",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-mdx-jsx",
+      "version": "3.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-mdxjs-esm",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-phrasing",
+      "version": "4.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-to-markdown",
+      "version": "2.1.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mdast-util-to-string",
+      "version": "4.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mermaid",
+      "version": "11.6.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark",
+      "version": "4.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-core-commonmark",
+      "version": "2.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-factory-destination",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-factory-label",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-factory-space",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-factory-title",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-factory-whitespace",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-character",
+      "version": "2.1.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-chunked",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-classify-character",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-combine-extensions",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-decode-numeric-character-reference",
+      "version": "2.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-decode-string",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-encode",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-html-tag-name",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-normalize-identifier",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-resolve-all",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-sanitize-uri",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-subtokenize",
+      "version": "2.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-symbol",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "micromark-util-types",
+      "version": "2.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "mlly",
+      "version": "1.7.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "package-manager-detector",
+      "version": "0.2.11"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "parse-entities",
+      "version": "4.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "path-data-parser",
+      "version": "0.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "pathe",
+      "version": "2.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "pkg-types",
+      "version": "1.3.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "pkg-types",
+      "version": "2.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "points-on-curve",
+      "version": "0.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "points-on-path",
+      "version": "0.2.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "property-information",
+      "version": "7.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "quansync",
+      "version": "0.2.10"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react",
+      "version": "19.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react-dom",
+      "version": "19.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react-redux",
+      "version": "9.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react-remove-scroll",
+      "version": "2.6.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react-remove-scroll-bar",
+      "version": "2.3.8"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react-router",
+      "version": "7.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "react-style-singleton",
+      "version": "2.2.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "redux",
+      "version": "5.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "redux-thunk",
+      "version": "3.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "reselect",
+      "version": "5.2.0"
+    },
+    {
+      "license": "Unlicense",
+      "license_source": "package-lock.json",
+      "name": "robust-predicates",
+      "version": "3.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "roughjs",
+      "version": "4.6.6"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_source": "package-lock.json",
+      "name": "rw",
+      "version": "1.3.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "safer-buffer",
+      "version": "2.1.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "scheduler",
+      "version": "0.25.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "set-cookie-parser",
+      "version": "2.7.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "space-separated-tokens",
+      "version": "2.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "stringify-entities",
+      "version": "4.0.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "style-to-js",
+      "version": "1.1.19"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "style-to-object",
+      "version": "1.0.12"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "stylis",
+      "version": "4.3.6"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "tinyexec",
+      "version": "0.3.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "ts-dedent",
+      "version": "2.2.0"
+    },
+    {
+      "license": "0BSD",
+      "license_source": "package-lock.json",
+      "name": "tslib",
+      "version": "2.8.1"
+    },
+    {
+      "license": "ISC",
+      "license_source": "package-lock.json",
+      "name": "turbo-stream",
+      "version": "2.4.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "ufo",
+      "version": "1.5.4"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "unist-util-is",
+      "version": "6.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "unist-util-position",
+      "version": "5.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "unist-util-stringify-position",
+      "version": "4.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "unist-util-visit",
+      "version": "5.0.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "unist-util-visit-parents",
+      "version": "6.0.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "use-callback-ref",
+      "version": "1.3.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "use-sidecar",
+      "version": "1.1.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "use-sync-external-store",
+      "version": "1.6.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "uuid",
+      "version": "11.1.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vfile-message",
+      "version": "4.0.3"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-jsonrpc",
+      "version": "8.2.0"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-languageserver",
+      "version": "9.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-languageserver-protocol",
+      "version": "3.17.5"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-languageserver-textdocument",
+      "version": "1.0.12"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-languageserver-types",
+      "version": "3.17.5"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-oniguruma",
+      "version": "2.0.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-textmate",
+      "version": "9.2.1"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "vscode-uri",
+      "version": "3.0.8"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "zod",
+      "version": "3.24.2"
+    },
+    {
+      "license": "MIT",
+      "license_source": "package-lock.json",
+      "name": "zwitch",
+      "version": "2.0.4"
+    }
+  ],
+  "format": "junjo.studio.dependency-license-inventory.v1",
+  "scope": "unique packages from package-lock v3 entries marked as part of the production dependency closure; build tools are not represented unless also production dependencies",
+  "source_lock": {
+    "path": "frontend/package-lock.json",
+    "sha256": "a635a46eee60583986d9d2334a6e4ad03080182bbb46697a5996b9eda5c42303"
+  }
+}

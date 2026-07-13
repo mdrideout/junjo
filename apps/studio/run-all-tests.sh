@@ -18,6 +18,11 @@ set -e  # Exit on first error
 STUDIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$STUDIO_ROOT"
 
+# The validation process owns deterministic test-only security settings.
+# Production and development runtime configuration remains mandatory.
+export JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+export JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+
 # Track test results
 LINTING_RESULT=0
 BACKEND_RESULT=0

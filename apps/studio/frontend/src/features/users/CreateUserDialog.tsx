@@ -1,13 +1,7 @@
 import { useState } from 'react'
-import { Button } from '../../components/catalyst/button'
-import {
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogDescription,
-  DialogTitle,
-} from '../../components/catalyst/dialog'
 import { UserPlusIcon } from '@heroicons/react/24/solid'
+import { ActionButton } from '../../components/actions/action-button'
+import { Modal, ModalFooter } from '../../components/overlays/modal'
 import { useAppDispatch } from '../../root-store/hooks'
 import { UsersStateActions } from './slice'
 import { getApiHost } from '../../config'
@@ -54,9 +48,7 @@ export default function CreateUserDialog() {
         if (errorData.detail) {
           if (Array.isArray(errorData.detail)) {
             // Pydantic validation errors (422)
-            const errors = errorData.detail
-              .map((err) => err.msg || err.message)
-              .join('. ')
+            const errors = errorData.detail.map((err) => err.msg || err.message).join('. ')
             throw new Error(errors || 'Validation failed.')
           }
           // Custom error string (400, 409, etc.)
@@ -84,53 +76,61 @@ export default function CreateUserDialog() {
 
   return (
     <>
-      <button
-        className={
-          'px-2 py-1 text-xs cursor-pointer font-bold flex gap-x-2 items-center bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 rounded-md'
-        }
+      <ActionButton
+        size="compact"
+        intent="secondary"
         onClick={() => {
           setIsOpen(true)
         }}
       >
         <UserPlusIcon className={'size-4'} /> Create User
-      </button>
-      <Dialog open={isOpen} onClose={setIsOpen}>
-        <DialogTitle>Create User</DialogTitle>
-        <DialogDescription>
-          This user will have complete access. There are currently no roles or permissions.
-        </DialogDescription>
-        <DialogBody>
-          <form onSubmit={handleSubmit} className="">
-            <div className="flex flex-col gap-y-2">
-              <input type="hidden" name="actionType" value="signIn" />
+      </ActionButton>
+      <Modal
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        title="Create User"
+        description="This user will have complete access. There are currently no roles or permissions."
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-4">
+            <input type="hidden" name="actionType" value="signIn" />
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              Email address
               <input
                 type="email"
                 name="email"
                 placeholder="Email address"
                 required
-                className="py-1 px-2 rounded-sm border border-zinc-300 dark:border-zinc-600"
+                className="rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 font-normal outline-none focus:border-[var(--studio-focus-ring)]"
               />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              Password
               <input
                 type="password"
                 name="password"
                 placeholder="Password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
-                className="py-1 px-2 rounded-sm border border-zinc-300 dark:border-zinc-600"
+                className="rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 font-normal outline-none focus:border-[var(--studio-focus-ring)]"
               />
-              {error && <p className="text-red-700 dark:text-red-300">{error}</p>}
-            </div>
-            <DialogActions>
-              <Button plain onClick={() => setIsOpen(false)}>
-                Cancel
-              </Button>
-              <Button disabled={loading} type="submit">
-                Create User
-              </Button>
-            </DialogActions>
-          </form>
-        </DialogBody>
-      </Dialog>
+            </label>
+            {error && (
+              <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            )}
+          </div>
+          <ModalFooter>
+            <ActionButton intent="secondary" onClick={() => setIsOpen(false)}>
+              Cancel
+            </ActionButton>
+            <ActionButton disabled={loading} type="submit">
+              Create User
+            </ActionButton>
+          </ModalFooter>
+        </form>
+      </Modal>
     </>
   )
 }

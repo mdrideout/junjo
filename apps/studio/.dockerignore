@@ -23,6 +23,7 @@ frontend/node_modules/
 
 # Documentation
 *.md
+!THIRD_PARTY_NOTICES.md
 docs/
 
 # Test artifacts

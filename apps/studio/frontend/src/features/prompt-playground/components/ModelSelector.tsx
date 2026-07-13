@@ -101,7 +101,8 @@ export default function ModelSelector(props: ModelSelectorProps) {
   const isDisabled = !provider || isFetching
 
   // Get display text for selected model
-  const selectedModelDisplay = selectedModel || (isFetching ? 'Loading...' : !provider ? 'Select provider first' : 'Select a model')
+  const selectedModelDisplay =
+    selectedModel || (isFetching ? 'Loading...' : !provider ? 'Select provider first' : 'Select a model')
 
   return (
     <div className="flex items-center gap-2">
@@ -119,8 +120,8 @@ export default function ModelSelector(props: ModelSelectorProps) {
       </button>
 
       <ModelSelectorModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
         models={allModels}
         provider={provider}
         selectedModel={selectedModel}

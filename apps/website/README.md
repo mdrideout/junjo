@@ -31,12 +31,14 @@ The development server is available at `http://localhost:4321` by default.
 ```bash
 npm run check
 npm run build
+npm run validate:build
 ```
 
 `npm run check` performs Astro content and TypeScript diagnostics. The static
-production site is written to `dist`. `npm run validate` runs both required
-checks in sequence, and `npm run preview` serves the completed production build
-locally.
+production site is written to `dist`. `npm run validate:build` rejects broken
+internal build references and obsolete source-repository URLs. `npm run
+validate` runs all three required checks in sequence, and `npm run preview`
+serves the completed production build locally.
 
 This component deliberately keeps its own `package-lock.json`; it is not part
 of a repository-wide JavaScript workspace. CI and deployment should install

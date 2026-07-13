@@ -104,6 +104,12 @@ CMD ["cargo", "watch", "-i", ".dbdata", "-i", "target", "-w", "src", "-w", "/pro
 # ============================================================
 FROM debian:bookworm-slim AS production
 
+LABEL org.opencontainers.image.source="https://github.com/mdrideout/junjo" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/junjo-ai-studio/
+COPY licenses/ingestion-production.json /usr/share/licenses/junjo-ai-studio/
+
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*

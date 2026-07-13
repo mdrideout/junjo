@@ -21,6 +21,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$BACKEND_DIR"
 
+# Schema generation imports the application. Supply deterministic test-only
+# security settings rather than relying on a developer's runtime .env file.
+export JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+export JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+
 echo "========================================"
 echo "API Schema Validation (CI/CD)"
 echo "========================================"

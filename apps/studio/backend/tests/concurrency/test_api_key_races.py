@@ -109,7 +109,7 @@ async def test_concurrent_duplicate_key_prevention(mock_authenticated_user):
     """
     # Mock nanoid to return duplicate values
     duplicate_id = "duplicate_id_21chars"
-    duplicate_key = "duplicate_key_64chars" + "x" * 42  # Pad to 64 chars
+    duplicate_key = "f" * 64
 
     call_count = 0
 

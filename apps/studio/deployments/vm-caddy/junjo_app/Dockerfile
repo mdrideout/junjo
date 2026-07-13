@@ -1,6 +1,9 @@
 # Use an official Python runtime as a parent image
 FROM python:3.13-slim
 
+LABEL org.opencontainers.image.source="https://github.com/mdrideout/junjo" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
 # Set Python to run in unbuffered mode to ensure logs stream in real-time
 ENV PYTHONUNBUFFERED=1
 

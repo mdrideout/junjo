@@ -36,5 +36,7 @@ jobs:
         run: npm run check
       - name: Build production site
         run: npm run build
+      - name: Validate internal links and canonical source terminology
+        run: npm run validate:build
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high

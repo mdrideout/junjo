@@ -4,8 +4,12 @@ on:
   push:
     branches: [master]
     paths:
+      - "apps/studio/LICENSE"
+      - "apps/studio/THIRD_PARTY_NOTICES.md"
+      - "apps/studio/licenses/**"
       - "apps/studio/frontend/**"
       - "contracts/telemetry/**"
+      - "tooling/scripts/validate_studio_artifact_licenses.py"
       - ".github/workflows/studio-frontend-tests.yml"
   workflow_dispatch:
   workflow_call:
@@ -39,3 +43,9 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
+      - name: Validate production artifact license evidence
+        run: |
+          python3 ../../../tooling/scripts/validate_studio_artifact_licenses.py \
+            check \
+            --verify-installed-frontend \
+            --frontend-dist dist

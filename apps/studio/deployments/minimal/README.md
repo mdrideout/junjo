@@ -4,12 +4,14 @@
 > [`apps/studio/deployments/minimal`](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/minimal)
 > in the Junjo platform monorepo. The standalone
 > [`junjo-ai-studio-minimal-build`](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
-> repository is a generated release mirror for convenient cloning. Submit
-> changes to the canonical source; direct mirror changes will be overwritten.
+> repository is the designated release mirror for convenient cloning. Its
+> first monorepo-driven refresh remains a cutover gate. Submit changes to the
+> canonical source; direct mirror changes will be overwritten after that
+> publication path is active.
 
 A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
 
-This template pins Junjo AI Studio `0.81.1`. Applications that emit Junjo workflow telemetry should use Junjo `0.63.0`.
+This template pins Junjo AI Studio `0.81.2`. Applications that emit Junjo workflow telemetry should use Junjo `0.63.0`.
 
 A Junjo AI Studio instance can be used for an unlimited number of projects that use the [Junjo](https://github.com/mdrideout/junjo) python AI graph workflow framework. Any Junjo Application can send telemetry to this Junjo AI Studio instance, assuming it has valid API Key credentials.
 
@@ -146,7 +148,7 @@ Junjo AI Studio consists of three Docker services:
    ```bash
    docker compose up -d
    ```
-   > Note: Do not run `docker network create junjo_network` manually. Docker Compose creates and labels this network automatically.
+   > Note: Docker Compose creates a project-scoped network automatically. Do not create or share a network manually.
 
 4. Access the frontend:
    - **Frontend UI:** `http://localhost:26153`
@@ -259,9 +261,9 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 
 **Deployment Approach:**
 - Create 3 separate "Web Services" from the Docker images:
-  - `mdrideout/junjo-ai-studio-backend:0.81.1`
-  - `mdrideout/junjo-ai-studio-ingestion:0.81.1`
-  - `mdrideout/junjo-ai-studio-frontend:0.81.1`
+  - `mdrideout/junjo-ai-studio-backend:0.81.2`
+  - `mdrideout/junjo-ai-studio-ingestion:0.81.2`
+  - `mdrideout/junjo-ai-studio-frontend:0.81.2`
 - Add persistent disks for data volumes
 
 **Volume Configuration:**
@@ -314,17 +316,17 @@ JUNJO_SECURE_COOKIE_KEY=<generated-secret>
 ```
 Services to Deploy:
 1. junjo-backend
-   - Image: mdrideout/junjo-ai-studio-backend:0.81.1
+   - Image: mdrideout/junjo-ai-studio-backend:0.81.2
    - Port: 26154
    - Volume: /app/.dbdata
 
 2. junjo-ingestion
-   - Image: mdrideout/junjo-ai-studio-ingestion:0.81.1
+   - Image: mdrideout/junjo-ai-studio-ingestion:0.81.2
    - Port: 26155
    - Volume: /app/.dbdata
 
 3. junjo-frontend
-   - Image: mdrideout/junjo-ai-studio-frontend:0.81.1
+   - Image: mdrideout/junjo-ai-studio-frontend:0.81.2
    - Port: 26153
 ```
 
@@ -381,7 +383,7 @@ If you're using Scenario 2, you'll need to configure a reverse proxy to route tr
 
 **Example routing table:**
 
-| Service   | Docker Container & Internal Port        | Example Production URL         |
+| Service   | Compose Service & Internal Port          | Example Production URL         |
 |-----------|----------------------------------------|--------------------------------|
 | Frontend  | junjo-ai-studio-frontend:26153         | https://junjo.example.com           |
 | Backend   | junjo-ai-studio-backend:26154          | https://api.junjo.example.com       |
@@ -418,7 +420,7 @@ def setup_telemetry():
 
     resource = Resource.create({"service.name": "My Junjo Application"})
 
-    # The Junjo AI Studio container name on the same docker network
+    # The Junjo AI Studio service name on the same Compose network
     junjo_exporter = JunjoOtelExporter(
         host="junjo-ai-studio-ingestion",  # Junjo AI Studio ingestion on the shared Docker network
         port="26155",

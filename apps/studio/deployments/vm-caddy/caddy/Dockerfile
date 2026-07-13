@@ -5,4 +5,7 @@ RUN xcaddy build \
 
 FROM caddy:2-alpine
 
+LABEL org.opencontainers.image.source="https://github.com/mdrideout/junjo" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy

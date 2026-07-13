@@ -10,12 +10,18 @@ on:
         description: Studio version to validate without publishing
         required: true
         type: string
+  workflow_call:
+    inputs:
+      version:
+        description: Optional Studio version assertion for a no-credential rehearsal
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: studio-release-${{ github.ref }}
+  group: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/studio-v') && 'studio-release' || format('studio-release-rehearsal-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -24,51 +30,95 @@ jobs:
     outputs:
       version: ${{ steps.release.outputs.version }}
       major_minor: ${{ steps.release.outputs.major_minor }}
-      short_sha: ${{ steps.release.outputs.short_sha }}
+      source_revision: ${{ steps.release.outputs.source_revision }}
       production: ${{ steps.release.outputs.production }}
+      release_state: ${{ steps.release.outputs.release_state }}
+      run_attempt: ${{ steps.attempt.outputs.run_attempt }}
     steps:
+      - name: Record admitted workflow attempt
+        id: attempt
+        run: echo "run_attempt=$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Validate release identity
+      - name: Read existing GitHub releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCTION_EVENT: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/studio-v') }}
+        run: |
+          gh release list \
+            --repo "$GITHUB_REPOSITORY" \
+            --limit 1000 \
+            --json tagName,isDraft,isPrerelease \
+            > /tmp/studio-existing-releases.json
+          if [ "$PRODUCTION_EVENT" = "true" ] && \
+             gh release view "$GITHUB_REF_NAME" \
+               --repo "$GITHUB_REPOSITORY" \
+               --json tagName,isDraft,isPrerelease \
+               > /tmp/studio-candidate-release.json 2>/dev/null; then
+            python3 - <<'PY'
+          import json
+          import pathlib
+
+          releases_path = pathlib.Path("/tmp/studio-existing-releases.json")
+          releases = json.loads(releases_path.read_text(encoding="utf-8"))
+          candidate = json.loads(
+              pathlib.Path("/tmp/studio-candidate-release.json").read_text(encoding="utf-8")
+          )
+          if not any(release["tagName"] == candidate["tagName"] for release in releases):
+              releases.append(candidate)
+          releases_path.write_text(
+              json.dumps(releases, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+          fi
+      - name: Validate release admission policy
         id: release
         env:
-          EVENT_NAME: ${{ github.event_name }}
+          PRODUCTION_EVENT: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/studio-v') }}
           REF_NAME: ${{ github.ref_name }}
           REQUESTED_VERSION: ${{ inputs.version }}
         run: |
           VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
-          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "Studio VERSION must be a stable X.Y.Z version, received $VERSION." >&2
-            exit 1
-          fi
-          EXPECTED_TAG="studio-v${VERSION}"
-          git fetch origin master
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
-            echo "Release commit must be reachable from origin/master." >&2
-            exit 1
-          fi
-          if [ "$EVENT_NAME" = "push" ]; then
-            if [ "$REF_NAME" != "$EXPECTED_TAG" ]; then
-              echo "Release tag must be $EXPECTED_TAG, received $REF_NAME." >&2
+          git fetch --no-tags origin master
+          git fetch --force --tags origin
+          git tag --list 'studio-v*' |
+            python3 -c 'import json,sys; json.dump([line.strip() for line in sys.stdin if line.strip()], sys.stdout)' \
+            > /tmp/studio-existing-tags.json
+          POLICY_ARGUMENTS=(
+            --studio-version "$VERSION"
+            --source-revision "$GITHUB_SHA"
+            --existing-releases /tmp/studio-existing-releases.json
+            --existing-tags /tmp/studio-existing-tags.json
+            --github-output "$GITHUB_OUTPUT"
+          )
+          if [ "$PRODUCTION_EVENT" = "true" ]; then
+            TAG_TARGET="$(git rev-parse --verify "refs/tags/${REF_NAME}^{commit}")"
+            if [ "$TAG_TARGET" != "$GITHUB_SHA" ]; then
+              echo "Fetched release tag $REF_NAME points to $TAG_TARGET, expected event revision $GITHUB_SHA." >&2
               exit 1
             fi
-            PRODUCTION=true
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+              echo "Release revision $GITHUB_SHA is not reachable from origin/master." >&2
+              exit 1
+            fi
+            POLICY_ARGUMENTS+=(
+              --mode production
+              --release-tag "$REF_NAME"
+              --source-is-on-master
+            )
           else
-            if [ "$REQUESTED_VERSION" != "$VERSION" ]; then
+            if [ -n "$REQUESTED_VERSION" ] && [ "$REQUESTED_VERSION" != "$VERSION" ]; then
               echo "Dry-run version must be $VERSION, received $REQUESTED_VERSION." >&2
               exit 1
             fi
-            PRODUCTION=false
+            POLICY_ARGUMENTS+=(--mode dry-run)
           fi
-          {
-            echo "version=$VERSION"
-            echo "major_minor=${VERSION%.*}"
-            echo "short_sha=$(git rev-parse --short=12 "$GITHUB_SHA")"
-            echo "production=$PRODUCTION"
-          } >> "$GITHUB_OUTPUT"
+          python3 tooling/scripts/validate_studio_release_policy.py \
+            admit \
+            "${POLICY_ARGUMENTS[@]}"
 
   studio_backend:
     name: Studio backend and ingestion
@@ -165,6 +215,65 @@ jobs:
           cache-from: type=gha,scope=studio-dry-${{ matrix.service }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=studio-dry-${{ matrix.service }}-${{ matrix.arch }}
 
+  dockerhub_controls:
+    if: needs.prepare.outputs.production == 'true'
+    needs:
+      - prepare
+      - studio_backend
+      - studio_frontend
+      - studio_proto
+      - studio_rest
+      - studio_version
+      - telemetry
+      - deployments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: studio-dockerhub-production
+    steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Require exclusive monorepo release authority
+        env:
+          CONFIRMED_AUTHORITY: ${{ vars.STUDIO_RELEASE_AUTHORITY_CUTOVER }}
+        run: |
+          if [ "$CONFIRMED_AUTHORITY" != "$GITHUB_REPOSITORY" ]; then
+            echo "STUDIO_RELEASE_AUTHORITY_CUTOVER must equal $GITHUB_REPOSITORY after the old publisher is disabled." >&2
+            exit 1
+          fi
+      - name: Validate live Docker Hub immutable-tag controls
+        run: |
+          mkdir -p /tmp/dockerhub-settings
+          for service in backend frontend ingestion; do
+            IMAGE="$(
+              python3 -c \
+                'import json,sys; print(json.load(open("tooling/studio_release_contract.json"))["images"][sys.argv[1]]["repository"])' \
+                "$service"
+            )"
+            NAMESPACE="${IMAGE%%/*}"
+            REPOSITORY="${IMAGE#*/}"
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --proto '=https' \
+              --tlsv1.2 \
+              "https://hub.docker.com/v2/namespaces/${NAMESPACE}/repositories/${REPOSITORY}" \
+              > "/tmp/dockerhub-settings/${service}.json"
+          done
+          python3 tooling/scripts/validate_studio_release_policy.py \
+            validate-dockerhub \
+            --settings-directory /tmp/dockerhub-settings
+
   build_architecture_images:
     if: needs.prepare.outputs.production == 'true'
     needs:
@@ -176,6 +285,7 @@ jobs:
       - studio_version
       - telemetry
       - deployments
+      - dockerhub_controls
     name: Build ${{ matrix.service }} for ${{ matrix.arch }}
     strategy:
       fail-fast: false
@@ -209,6 +319,14 @@ jobs:
     timeout-minutes: 45
     environment: studio-dockerhub-production
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -220,6 +338,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Resolve image repository from the release contract
+        id: image
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: |
+          python3 - "$SERVICE" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          contract = json.loads(
+              pathlib.Path("tooling/studio_release_contract.json").read_text()
+          )
+          repository = contract["images"][sys.argv[1]]["repository"]
+          with pathlib.Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+              output.write(f"repository={repository}\n")
+          PY
       - name: Build and push architecture image by digest
         id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -229,7 +364,7 @@ jobs:
           target: production
           platforms: ${{ matrix.platform }}
           push: true
-          outputs: type=image,name=mdrideout/junjo-ai-studio-${{ matrix.service }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ steps.image.outputs.repository }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=studio-${{ matrix.service }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=studio-${{ matrix.service }}-${{ matrix.arch }}
       - name: Capture architecture digest
@@ -250,6 +385,7 @@ jobs:
           name: studio-digest-${{ matrix.service }}-${{ matrix.arch }}
           path: /tmp/studio-digests
           if-no-files-found: error
+          overwrite: true
           retention-days: 7
 
   exact_manifests:
@@ -259,6 +395,18 @@ jobs:
     timeout-minutes: 15
     environment: studio-dockerhub-production
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Download architecture digests
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -275,12 +423,16 @@ jobs:
       - name: Create candidate multi-platform manifests
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          SOURCE_REVISION: ${{ needs.prepare.outputs.source_revision }}
         run: |
           mkdir -p /tmp/image-evidence
           for service in backend frontend ingestion; do
-            IMAGE="mdrideout/junjo-ai-studio-${service}"
-            CANDIDATE_TAG="candidate-${SHORT_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            IMAGE="$(
+              python3 -c \
+                'import json,sys; print(json.load(open("tooling/studio_release_contract.json"))["images"][sys.argv[1]]["repository"])' \
+                "$service"
+            )"
+            CANDIDATE_TAG="candidate-${SOURCE_REVISION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             mapfile -t DIGEST_FILES < <(
               find /tmp/studio-digests -type f -name "${service}-*" | sort
             )
@@ -304,95 +456,194 @@ jobs:
             fi
             printf '%s\n' "$CANDIDATE_DIGEST" > "/tmp/image-evidence/${service}.candidate-digest"
           done
-      - name: Preflight every immutable release tag
+      - name: Classify every immutable release tag
+        id: immutable-state
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          SOURCE_REVISION: ${{ needs.prepare.outputs.source_revision }}
         run: |
+          STATE_PATH=/tmp/studio-immutable-image-state.json
+          python3 - "$VERSION" "$SOURCE_REVISION" "$STATE_PATH" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          version, source_revision, output_path = sys.argv[1:]
+          contract = json.loads(
+              pathlib.Path("tooling/studio_release_contract.json").read_text(encoding="utf-8")
+          )
+          images = {}
+          for service in ("backend", "frontend", "ingestion"):
+              images[service] = {
+                  "repository": contract["images"][service]["repository"],
+                  "candidate_digest": pathlib.Path(
+                      f"/tmp/image-evidence/{service}.candidate-digest"
+                  ).read_text(encoding="utf-8").strip(),
+                  "tags": {"version": None, "source_revision": None},
+              }
+          state = {
+              "schema_version": 1,
+              "studio_version": version,
+              "source_revision": source_revision,
+              "images": images,
+          }
+          pathlib.Path(output_path).write_text(
+              json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
           for service in backend frontend ingestion; do
-            IMAGE="mdrideout/junjo-ai-studio-${service}"
-            CANDIDATE_DIGEST="$(cat "/tmp/image-evidence/${service}.candidate-digest")"
-            for tag in "$VERSION" "$SHORT_SHA"; do
-              if EXISTING_OUTPUT="$(docker buildx imagetools inspect "$IMAGE:$tag" 2>/dev/null)"; then
+            IMAGE="$(
+              python3 -c \
+                'import json,sys; print(json.load(open("tooling/studio_release_contract.json"))["images"][sys.argv[1]]["repository"])' \
+                "$service"
+            )"
+            for role_and_tag in "version=$VERSION" "source_revision=$SOURCE_REVISION"; do
+              ROLE="${role_and_tag%%=*}"
+              TAG="${role_and_tag#*=}"
+              if EXISTING_OUTPUT="$(docker buildx imagetools inspect "$IMAGE:$TAG" 2>/dev/null)"; then
                 EXISTING_DIGEST="$(
                   printf '%s\n' "$EXISTING_OUTPUT" |
                     sed -n 's/^Digest:[[:space:]]*//p'
                 )"
-                if [ "$EXISTING_DIGEST" != "$CANDIDATE_DIGEST" ]; then
-                  echo "$IMAGE:$tag already points to a different digest; refusing to overwrite an immutable release tag." >&2
+                if [[ ! "$EXISTING_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+                  echo "$IMAGE:$TAG returned an invalid immutable digest." >&2
                   exit 1
                 fi
+                python3 - "$STATE_PATH" "$service" "$ROLE" "$EXISTING_DIGEST" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          state = json.loads(path.read_text(encoding="utf-8"))
+          state["images"][sys.argv[2]]["tags"][sys.argv[3]] = sys.argv[4]
+          path.write_text(
+              json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
               fi
             done
           done
-      - name: Publish immutable release tags
+          python3 tooling/scripts/validate_studio_release_policy.py \
+            classify-images \
+            --state "$STATE_PATH" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Publish registry-enforced immutable release tags
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          SOURCE_REVISION: ${{ needs.prepare.outputs.source_revision }}
         run: |
           for service in backend frontend ingestion; do
-            IMAGE="mdrideout/junjo-ai-studio-${service}"
+            IMAGE="$(
+              python3 -c \
+                'import json,sys; print(json.load(open("tooling/studio_release_contract.json"))["images"][sys.argv[1]]["repository"])' \
+                "$service"
+            )"
             CANDIDATE_DIGEST="$(cat "/tmp/image-evidence/${service}.candidate-digest")"
-            for tag in "$VERSION" "$SHORT_SHA"; do
+            for tag in "$VERSION" "$SOURCE_REVISION"; do
               if ! docker buildx imagetools inspect "$IMAGE:$tag" >/dev/null 2>&1; then
-                docker buildx imagetools create \
-                  -t "$IMAGE:$tag" \
-                  "$IMAGE@$CANDIDATE_DIGEST"
+                if ! docker buildx imagetools create \
+                    -t "$IMAGE:$tag" \
+                    "$IMAGE@$CANDIDATE_DIGEST"; then
+                  RACING_DIGEST="$(
+                    docker buildx imagetools inspect "$IMAGE:$tag" |
+                      sed -n 's/^Digest:[[:space:]]*//p'
+                  )"
+                  if [ "$RACING_DIGEST" != "$CANDIDATE_DIGEST" ]; then
+                    echo "Immutable tag $IMAGE:$tag was created concurrently with a different digest." >&2
+                    exit 1
+                  fi
+                fi
               fi
             done
-            docker buildx imagetools inspect "$IMAGE:$VERSION" \
-              > "/tmp/image-evidence/${service}.txt"
+            VERSION_DIGEST="$(
+              docker buildx imagetools inspect "$IMAGE:$VERSION" |
+                sed -n 's/^Digest:[[:space:]]*//p'
+            )"
+            REVISION_DIGEST="$(
+              docker buildx imagetools inspect "$IMAGE:$SOURCE_REVISION" |
+                sed -n 's/^Digest:[[:space:]]*//p'
+            )"
+            if [ "$VERSION_DIGEST" != "$CANDIDATE_DIGEST" ] || \
+               [ "$REVISION_DIGEST" != "$CANDIDATE_DIGEST" ]; then
+              echo "Published immutable tags for $service do not resolve to the candidate digest." >&2
+              exit 1
+            fi
+            python3 - \
+              "$service" "$IMAGE" "$VERSION" "$SOURCE_REVISION" \
+              "$CANDIDATE_DIGEST" "/tmp/image-evidence/${service}.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          service, repository, version, revision, digest, output_path = sys.argv[1:]
+          evidence = {
+              "schema_version": 1,
+              "service": service,
+              "repository": repository,
+              "studio_version": version,
+              "source_revision": revision,
+              "digest": digest,
+              "tags": {
+                  "version": {"name": version, "digest": digest},
+                  "source_revision": {"name": revision, "digest": digest},
+              },
+          }
+          pathlib.Path(output_path).write_text(
+              json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
           done
       - name: Upload exact image evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: studio-image-evidence-${{ needs.prepare.outputs.version }}
-          path: /tmp/image-evidence
+          path: /tmp/image-evidence/*.json
           if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
   smoke_exact_release:
     if: needs.prepare.outputs.production == 'true'
     needs: [prepare, exact_manifests]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
-      - name: Prepare isolated minimal deployment
+      - name: Download exact image evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: studio-image-evidence-${{ needs.prepare.outputs.version }}
+          path: /tmp/studio-release/images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Prove exact registry images accept and expose real telemetry
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          cp -R apps/studio/deployments/minimal /tmp/junjo-studio-smoke
-          cd /tmp/junjo-studio-smoke
-          ./scripts/junjo setup --non-interactive --env development --profile 1g
-      - name: Start exact release images
-        working-directory: /tmp/junjo-studio-smoke
-        run: docker compose pull && docker compose up -d
-      - name: Verify frontend, backend, and ingestion
-        run: |
-          for _ in $(seq 1 60); do
-            BACKEND_OK=false
-            FRONTEND_OK=false
-            INGESTION_OK=false
-            curl --fail --silent http://localhost:26154/health >/dev/null && BACKEND_OK=true
-            curl --fail --silent http://localhost:26153/ >/dev/null && FRONTEND_OK=true
-            [ "$(docker inspect --format '{{.State.Health.Status}}' junjo-ai-studio-ingestion 2>/dev/null || true)" = "healthy" ] && INGESTION_OK=true
-            if $BACKEND_OK && $FRONTEND_OK && $INGESTION_OK; then
-              exit 0
-            fi
-            sleep 5
+          EXPECTED_IMAGES=()
+          for service in backend frontend ingestion; do
+            EVIDENCE="/tmp/studio-release/images/${service}.json"
+            REPOSITORY="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["repository"])' "$EVIDENCE")"
+            DIGEST="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["digest"])' "$EVIDENCE")"
+            EXPECTED_IMAGES+=(--expected-image "${service}=${REPOSITORY}@${DIGEST}")
           done
-          echo "Exact Studio release did not become healthy." >&2
-          exit 1
-      - name: Capture logs on failure
-        if: failure()
-        working-directory: /tmp/junjo-studio-smoke
-        run: docker compose logs --no-color
-      - name: Stop smoke deployment
-        if: always()
-        working-directory: /tmp/junjo-studio-smoke
-        run: docker compose down --volumes
+          python3 tooling/scripts/smoke_studio_distribution.py \
+            --studio-version "$VERSION" \
+            --image-source registry \
+            "${EXPECTED_IMAGES[@]}"
 
   publish_distributions:
     if: needs.prepare.outputs.production == 'true'
@@ -400,15 +651,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: studio-distributions-production
-    outputs:
-      minimal_commit: ${{ steps.evidence.outputs.minimal_commit }}
-      vm_caddy_commit: ${{ steps.evidence.outputs.vm_caddy_commit }}
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Validate all mirror destinations before minting mutation credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/junjo-release
+          python3 tooling/scripts/publish_studio_distribution.py \
+            validate-destinations \
+            > /tmp/junjo-release/mirror-preflight.json
       - name: Create mirror installation token
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
@@ -420,11 +684,16 @@ jobs:
           repositories: |
             junjo-ai-studio-minimal-build
             junjo-ai-studio-deployment-example
+      - name: Revalidate all mirror destinations with the installation token
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          python3 tooling/scripts/publish_studio_distribution.py \
+            validate-destinations \
+            > /tmp/junjo-release/mirror-authorized-preflight.json
       - name: Export and publish distributions
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          MINIMAL_MIRROR: ${{ vars.JUNJO_MINIMAL_MIRROR }}
-          VM_CADDY_MIRROR: ${{ vars.JUNJO_VM_CADDY_MIRROR }}
           SOURCE_REPOSITORY: https://github.com/${{ github.repository }}
           SOURCE_REVISION: ${{ github.sha }}
           STUDIO_VERSION: ${{ needs.prepare.outputs.version }}
@@ -450,28 +719,30 @@ jobs:
             --archive "/tmp/junjo-release/junjo-ai-studio-vm-caddy-${STUDIO_VERSION}.tar.gz" \
             > /tmp/junjo-release/vm-caddy-export.json
           python3 tooling/scripts/publish_studio_distribution.py \
+            publish \
             --export-directory /tmp/junjo-release/minimal \
-            --repository "$MINIMAL_MIRROR" \
+            --distribution minimal \
             --source-revision "$SOURCE_REVISION" \
             > /tmp/junjo-release/minimal-mirror.json
           python3 tooling/scripts/publish_studio_distribution.py \
+            publish \
             --export-directory /tmp/junjo-release/vm-caddy \
-            --repository "$VM_CADDY_MIRROR" \
+            --distribution vm-caddy \
             --source-revision "$SOURCE_REVISION" \
             > /tmp/junjo-release/vm-caddy-mirror.json
-      - name: Capture mirror commits
-        id: evidence
-        run: |
-          echo "minimal_commit=$(python3 -c 'import json; print(json.load(open("/tmp/junjo-release/minimal-mirror.json"))["commit"])')" >> "$GITHUB_OUTPUT"
-          echo "vm_caddy_commit=$(python3 -c 'import json; print(json.load(open("/tmp/junjo-release/vm-caddy-mirror.json"))["commit"])')" >> "$GITHUB_OUTPUT"
       - name: Upload release and mirror evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: studio-distributions-${{ needs.prepare.outputs.version }}
           path: |
-            /tmp/junjo-release/*.tar.gz
-            /tmp/junjo-release/*.json
+            /tmp/junjo-release/junjo-ai-studio-minimal-${{ needs.prepare.outputs.version }}.tar.gz
+            /tmp/junjo-release/junjo-ai-studio-vm-caddy-${{ needs.prepare.outputs.version }}.tar.gz
+            /tmp/junjo-release/minimal-export.json
+            /tmp/junjo-release/minimal-mirror.json
+            /tmp/junjo-release/vm-caddy-export.json
+            /tmp/junjo-release/vm-caddy-mirror.json
           if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
   promote_floating_tags:
@@ -481,6 +752,18 @@ jobs:
     timeout-minutes: 10
     environment: studio-dockerhub-production
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Log in to Docker Hub
@@ -494,11 +777,27 @@ jobs:
           MAJOR_MINOR: ${{ needs.prepare.outputs.major_minor }}
         run: |
           for service in backend frontend ingestion; do
-            IMAGE="mdrideout/junjo-ai-studio-${service}"
+            IMAGE="$(
+              python3 -c \
+                'import json,sys; print(json.load(open("tooling/studio_release_contract.json"))["images"][sys.argv[1]]["repository"])' \
+                "$service"
+            )"
+            VERSION_DIGEST="$(
+              docker buildx imagetools inspect "$IMAGE:$VERSION" |
+                sed -n 's/^Digest:[[:space:]]*//p'
+            )"
             for tag in "$MAJOR_MINOR" latest; do
               docker buildx imagetools create \
                 -t "$IMAGE:$tag" \
-                "$IMAGE:$VERSION"
+                "$IMAGE@$VERSION_DIGEST"
+              PROMOTED_DIGEST="$(
+                docker buildx imagetools inspect "$IMAGE:$tag" |
+                  sed -n 's/^Digest:[[:space:]]*//p'
+              )"
+              if [ "$PROMOTED_DIGEST" != "$VERSION_DIGEST" ]; then
+                echo "$IMAGE:$tag does not resolve to the exact release digest." >&2
+                exit 1
+              fi
             done
           done
 
@@ -513,16 +812,41 @@ jobs:
       matrix:
         service: [backend, frontend, ingestion]
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+      - name: Resolve image repository from the release contract
+        id: image
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: |
+          python3 - "$SERVICE" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          contract = json.loads(
+              pathlib.Path("tooling/studio_release_contract.json").read_text()
+          )
+          repository = contract["images"][sys.argv[1]]["repository"]
+          with pathlib.Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+              output.write(f"repository={repository}\n")
+          PY
       - name: Update Docker Hub description
         uses: peter-evans/dockerhub-description@432a30c9e07499fd01da9f8a49f0faf9e0ca5b77 # v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: mdrideout/junjo-ai-studio-${{ matrix.service }}
+          repository: ${{ steps.image.outputs.repository }}
           readme-filepath: ./apps/studio/README.md
 
   publish_release:
@@ -534,13 +858,23 @@ jobs:
       - promote_floating_tags
       - update_descriptions
     runs-on: ubuntu-latest
+    environment: studio-release-production
     permissions:
       contents: write
     steps:
+      - name: Reject partial production rerun
+        env:
+          ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}
+        run: |
+          if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]; then
+            echo "::error::Production release jobs cannot reuse admission from an earlier workflow attempt. Choose 'Re-run all jobs' for this workflow run." >&2
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Download distribution evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -551,11 +885,31 @@ jobs:
         with:
           name: studio-image-evidence-${{ needs.prepare.outputs.version }}
           path: /tmp/studio-release/images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Reinspect every immutable image tag
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SOURCE_REVISION: ${{ needs.prepare.outputs.source_revision }}
+        run: |
+          for service in backend frontend ingestion; do
+            EVIDENCE="/tmp/studio-release/images/${service}.json"
+            IMAGE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["repository"])' "$EVIDENCE")"
+            EXPECTED_DIGEST="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["digest"])' "$EVIDENCE")"
+            for tag in "$VERSION" "$SOURCE_REVISION"; do
+              ACTUAL_DIGEST="$(
+                docker buildx imagetools inspect "$IMAGE:$tag" |
+                  sed -n 's/^Digest:[[:space:]]*//p'
+              )"
+              if [ "$ACTUAL_DIGEST" != "$EXPECTED_DIGEST" ]; then
+                echo "$IMAGE:$tag changed after immutable image publication." >&2
+                exit 1
+              fi
+            done
+          done
       - name: Build complete release evidence
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-          MINIMAL_COMMIT: ${{ needs.publish_distributions.outputs.minimal_commit }}
-          VM_CADDY_COMMIT: ${{ needs.publish_distributions.outputs.vm_caddy_commit }}
           SOURCE_REVISION: ${{ github.sha }}
           SOURCE_REPOSITORY: https://github.com/${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -569,15 +923,26 @@ jobs:
             --workflow-url "$WORKFLOW_URL" \
             --image-directory /tmp/studio-release/images \
             --distribution-directory /tmp/studio-release/distributions \
-            --minimal-mirror-commit "$MINIMAL_COMMIT" \
-            --vm-caddy-mirror-commit "$VM_CADDY_COMMIT" \
             --evidence-output /tmp/studio-release/RELEASE_EVIDENCE.json \
             --notes-output /tmp/studio-release/RELEASE_NOTES.md
       - name: Publish GitHub release last
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_REVISION: ${{ needs.prepare.outputs.source_revision }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
+          git fetch --force origin \
+            "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          git fetch --no-tags origin master
+          TAG_TARGET="$(git rev-parse --verify "refs/tags/${GITHUB_REF_NAME}^{commit}")"
+          if [ "$TAG_TARGET" != "$SOURCE_REVISION" ]; then
+            echo "Release tag $GITHUB_REF_NAME moved to $TAG_TARGET after admission; expected $SOURCE_REVISION." >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$SOURCE_REVISION" origin/master; then
+            echo "Release revision $SOURCE_REVISION is no longer reachable from origin/master." >&2
+            exit 1
+          fi
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "Release $GITHUB_REF_NAME already exists; refusing to overwrite it." >&2
             exit 1

@@ -7,11 +7,14 @@ import argparse
 import filecmp
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
 import tempfile
 from pathlib import Path
+
+from validate_studio_release_policy import load_release_contract
 
 
 def require(condition: bool, message: str) -> None:
@@ -99,25 +102,108 @@ def require_equal_trees(expected: Path, actual: Path) -> None:
         )
 
 
+def validate_mirror_destination(
+    distribution: str, destination: dict[str, str]
+) -> dict[str, str]:
+    """Resolve one contract-owned mirror and prove its identity and default branch."""
+    repository = destination["mirror_repository"]
+    branch = destination["mirror_branch"]
+    response = run(
+        [
+            "gh",
+            "api",
+            f"repos/{repository}",
+            "--jq",
+            "{full_name: .full_name, default_branch: .default_branch}",
+        ]
+    )
+    try:
+        resolved = json.loads(response)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(
+            f"GitHub returned invalid mirror identity JSON for {distribution}"
+        ) from error
+    require(
+        isinstance(resolved, dict),
+        f"GitHub mirror identity for {distribution} must be an object",
+    )
+    require(
+        resolved.get("full_name") == repository,
+        "GitHub resolved a different mirror repository than the release contract",
+    )
+    require(
+        resolved.get("default_branch") == branch,
+        f"GitHub mirror default branch for {distribution} must be {branch}",
+    )
+    return {
+        "distribution": distribution,
+        "repository": repository,
+        "branch": branch,
+    }
+
+
+def validate_mirror_destinations() -> dict[str, object]:
+    """Validate every mirror destination together before any publication mutation."""
+    require(bool(os.environ.get("GH_TOKEN")), "GH_TOKEN is required")
+    contract = load_release_contract()
+    distributions = contract["distributions"]
+    destinations = [
+        validate_mirror_destination(name, distributions[name])
+        for name in ("minimal", "vm-caddy")
+    ]
+    return {"schema_version": 1, "destinations": destinations}
+
+
 def publish(
     *,
     export_directory: Path,
-    repository: str,
-    branch: str,
+    distribution: str,
     source_revision: str,
 ) -> dict[str, str | bool]:
-    """Publish a generated export and verify the remote default tree."""
-    require(bool(os.environ.get("GH_TOKEN")), "GH_TOKEN is required")
+    """Publish one contract-bound export and verify its exact remote tree."""
     require(
         export_directory.is_dir(), f"export directory is missing: {export_directory}"
     )
+    require(
+        re.fullmatch(r"[0-9a-f]{40}", source_revision) is not None,
+        "source revision must be a full lowercase 40-character Git SHA",
+    )
+    contract = load_release_contract()
+    distributions = contract["distributions"]
+    require(
+        distribution in distributions,
+        f"distribution is not in the Studio release contract: {distribution}",
+    )
+    destination = distributions[distribution]
+    repository = destination["mirror_repository"]
+    branch = destination["mirror_branch"]
+    canonical_source_path = destination["canonical_source_path"]
+    require(isinstance(repository, str), "mirror repository must be a string")
+    require(isinstance(branch, str), "mirror branch must be a string")
+    require(
+        isinstance(canonical_source_path, str),
+        "canonical source path must be a string",
+    )
+
     manifest_path = export_directory / "EXPORT_MANIFEST.json"
     require(manifest_path.is_file(), "export manifest is missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source = manifest.get("source")
+    require(isinstance(source, dict), "export manifest source must be an object")
     require(
-        manifest.get("source", {}).get("source_revision") == source_revision,
+        source.get("distribution") == distribution,
+        "export distribution does not match publication distribution",
+    )
+    require(
+        source.get("canonical_source_path") == canonical_source_path,
+        "export canonical source path does not match the release contract",
+    )
+    require(
+        source.get("source_revision") == source_revision,
         "export source revision does not match publication revision",
     )
+    require(bool(os.environ.get("GH_TOKEN")), "GH_TOKEN is required")
+    validate_mirror_destination(distribution, destination)
     run(["gh", "auth", "setup-git"])
 
     with tempfile.TemporaryDirectory(prefix="junjo-mirror-publish-") as temporary:
@@ -169,6 +255,7 @@ def publish(
         )
 
     return {
+        "distribution": distribution,
         "repository": repository,
         "branch": branch,
         "commit": remote_commit,
@@ -179,19 +266,29 @@ def publish(
 
 
 def main() -> None:
-    """Publish one generated distribution and print non-secret evidence JSON."""
+    """Validate destinations or publish one generated distribution."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--export-directory", type=Path, required=True)
-    parser.add_argument("--repository", required=True)
-    parser.add_argument("--branch", default="master")
-    parser.add_argument("--source-revision", required=True)
-    args = parser.parse_args()
-    report = publish(
-        export_directory=args.export_directory.resolve(),
-        repository=args.repository,
-        branch=args.branch,
-        source_revision=args.source_revision,
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser(
+        "validate-destinations",
+        help="Validate every contract-owned mirror before publication.",
     )
+    publish_parser = commands.add_parser(
+        "publish",
+        help="Publish and verify one generated distribution.",
+    )
+    publish_parser.add_argument("--export-directory", type=Path, required=True)
+    publish_parser.add_argument("--distribution", required=True)
+    publish_parser.add_argument("--source-revision", required=True)
+    args = parser.parse_args()
+    if args.command == "validate-destinations":
+        report = validate_mirror_destinations()
+    else:
+        report = publish(
+            export_directory=args.export_directory.resolve(),
+            distribution=args.distribution,
+            source_revision=args.source_revision,
+        )
     print(json.dumps(report, indent=2, sort_keys=True))
 
 

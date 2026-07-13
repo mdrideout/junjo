@@ -223,8 +223,8 @@ Tests run automatically on pull requests and pushes to main/master branches.
 
 CI uses hardcoded test values for security settings (these protect only ephemeral test data):
 ```yaml
-JUNJO_SESSION_SECRET: "tHYEOeDANnwNydQHmitFdkBYbuIrY68Xo1aPZ6WCPVI="
-JUNJO_SECURE_COOKIE_KEY: "2AorEiMD7P/kiosXFgLvahxdABNVYMUzWHPghTweskk="  # Base64-encoded 32 bytes
+JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="  # Base64-encoded 32 bytes
 ```
 
 LLM API keys are stored as GitHub Secrets (optional - tests skip if not present):

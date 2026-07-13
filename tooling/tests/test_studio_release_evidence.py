@@ -15,6 +15,9 @@ from types import ModuleType
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_ROOT = REPOSITORY_ROOT / "tooling" / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 
 def load_script_module(name: str, relative_path: str) -> ModuleType:
@@ -47,7 +50,8 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
         self.distributions = self.root / "distributions"
         self.images.mkdir()
         self.distributions.mkdir()
-        self.version = "0.81.1"
+        self.contract = evidence_builder.load_release_contract()
+        self.version = "0.81.2"
         self.release_tag = f"studio-v{self.version}"
         self.source_repository = "https://github.com/mdrideout/junjo"
         self.source_revision = "a" * 40
@@ -61,11 +65,29 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
             ("1", "2", "3"),
             strict=True,
         ):
-            (self.images / f"{service}.candidate-digest").write_text(
-                f"sha256:{character * 64}\n",
-                encoding="utf-8",
+            digest = f"sha256:{character * 64}"
+            self.write_json_to(
+                self.images / f"{service}.json",
+                {
+                    "schema_version": 1,
+                    "service": service,
+                    "repository": self.contract["images"][service]["repository"],
+                    "studio_version": self.version,
+                    "source_revision": self.source_revision,
+                    "digest": digest,
+                    "tags": {
+                        "version": {"name": self.version, "digest": digest},
+                        "source_revision": {
+                            "name": self.source_revision,
+                            "digest": digest,
+                        },
+                    },
+                },
             )
-        for name, canonical_source_path in evidence_builder.DISTRIBUTIONS.items():
+        for name in evidence_builder.DISTRIBUTIONS:
+            canonical_source_path = self.contract["distributions"][name][
+                "canonical_source_path"
+            ]
             self.write_distribution(name, canonical_source_path)
 
     def tearDown(self) -> None:
@@ -137,14 +159,21 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
         self.write_json(
             f"{name}-mirror.json",
             {
+                "distribution": name,
+                "repository": self.contract["distributions"][name]["mirror_repository"],
+                "branch": self.contract["distributions"][name]["mirror_branch"],
                 "commit": self.mirror_commits[name],
                 "source_revision": self.source_revision,
+                "changed": True,
                 "tree_sha256": tree_sha256,
             },
         )
 
     def write_json(self, filename: str, value: object) -> None:
-        (self.distributions / filename).write_text(
+        self.write_json_to(self.distributions / filename, value)
+
+    def write_json_to(self, path: Path, value: object) -> None:
+        path.write_text(
             json.dumps(value, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
@@ -161,8 +190,6 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
             "workflow_url": self.workflow_url,
             "image_directory": self.images,
             "distribution_directory": self.distributions,
-            "minimal_mirror_commit": self.mirror_commits["minimal"],
-            "vm_caddy_mirror_commit": self.mirror_commits["vm-caddy"],
         }
         arguments.update(overrides)
         return evidence_builder.build_release_evidence(**arguments)
@@ -174,7 +201,7 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first["release_tag"], self.release_tag)
         self.assertEqual(
-            list(first["image_digests"]),
+            list(first["images"]),
             list(evidence_builder.SERVICES),
         )
         self.assertEqual(
@@ -188,18 +215,42 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
 
     def test_requires_exact_tag_for_studio_version(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "release tag must be"):
-            self.build(release_tag="studio-v0.81.2")
+            self.build(release_tag="studio-v0.81.3")
+
+    def test_rejects_pre_monorepo_baseline(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "greater than completed baseline"):
+            self.build(studio_version="0.81.1", release_tag="studio-v0.81.1")
 
     def test_requires_full_source_revision(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "source revision must be"):
             self.build(source_revision="abc123")
 
     def test_rejects_invalid_image_digest(self) -> None:
-        (self.images / "frontend.candidate-digest").write_text(
-            "sha256:not-a-digest\n",
-            encoding="utf-8",
-        )
+        report = json.loads((self.images / "frontend.json").read_text())
+        report["digest"] = "sha256:not-a-digest"
+        self.write_json_to(self.images / "frontend.json", report)
         with self.assertRaisesRegex(RuntimeError, "frontend image digest"):
+            self.build()
+
+    def test_rejects_unexpected_evidence_files(self) -> None:
+        (self.images / "stale.json").write_text("{}\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            RuntimeError, "image evidence files must be exactly"
+        ):
+            self.build()
+
+    def test_rejects_wrong_image_repository(self) -> None:
+        report = json.loads((self.images / "backend.json").read_text())
+        report["repository"] = "someone/else"
+        self.write_json_to(self.images / "backend.json", report)
+        with self.assertRaisesRegex(RuntimeError, "repository does not match"):
+            self.build()
+
+    def test_rejects_immutable_tag_digest_mismatch(self) -> None:
+        report = json.loads((self.images / "ingestion.json").read_text())
+        report["tags"]["source_revision"]["digest"] = "sha256:" + "f" * 64
+        self.write_json_to(self.images / "ingestion.json", report)
+        with self.assertRaisesRegex(RuntimeError, "does not resolve"):
             self.build()
 
     def test_rejects_export_source_revision_mismatch(self) -> None:
@@ -219,22 +270,42 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
     def test_rejects_tree_hash_that_does_not_match_inventory(self) -> None:
         self.write_distribution(
             "minimal",
-            evidence_builder.DISTRIBUTIONS["minimal"],
+            self.contract["distributions"]["minimal"]["canonical_source_path"],
             reported_tree_sha256="d" * 64,
         )
         with self.assertRaisesRegex(RuntimeError, "inventory does not match"):
             self.build()
 
-    def test_rejects_mirror_commit_mismatch(self) -> None:
+    def test_records_the_validated_mirror_report_commit(self) -> None:
         report = self.read_json("vm-caddy-mirror.json")
         report["commit"] = "d" * 40
         self.write_json("vm-caddy-mirror.json", report)
-        with self.assertRaisesRegex(RuntimeError, "mirror report commit"):
-            self.build()
+        evidence = self.build()
+        self.assertEqual(
+            evidence["distributions"]["vm-caddy"]["mirror"]["commit"],
+            "d" * 40,
+        )
 
     def test_rejects_invalid_mirror_commit_sha(self) -> None:
+        report = self.read_json("minimal-mirror.json")
+        report["commit"] = "not-a-sha"
+        self.write_json("minimal-mirror.json", report)
         with self.assertRaisesRegex(RuntimeError, "mirror commit must be"):
-            self.build(minimal_mirror_commit="not-a-sha")
+            self.build()
+
+    def test_rejects_wrong_mirror_repository_or_branch(self) -> None:
+        for key, value in (("repository", "someone/else"), ("branch", "other")):
+            with self.subTest(key=key):
+                report = self.read_json("minimal-mirror.json")
+                original = report[key]
+                report[key] = value
+                self.write_json("minimal-mirror.json", report)
+                with self.assertRaisesRegex(
+                    RuntimeError, f"mirror {key} does not match"
+                ):
+                    self.build()
+                report[key] = original
+                self.write_json("minimal-mirror.json", report)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 {
   "name": "junjo-ai-studio-frontend",
   "private": true,
-  "version": "0.81.1",
+  "version": "0.81.2",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,21 +15,18 @@
     "test:contracts": "vitest run -t 'API Contract'"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.0",
+    "@base-ui/react": "^1.6.0",
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/react-select": "^2.2.6",
-    "@radix-ui/react-switch": "^1.1.3",
     "@reduxjs/toolkit": "^2.6.1",
     "@uiw/react-json-view": "^2.0.0-alpha.30",
     "@wooorm/starry-night": "^3.8.0",
     "clsx": "^2.1.1",
     "deep-object-diff": "^1.1.9",
     "fast-json-patch": "^3.1.1",
-    "framer-motion": "^12.4.4",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "mermaid": "^11.6.0",
-    "radix-ui": "^1.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",

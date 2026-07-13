@@ -19,7 +19,7 @@ VERSION="$(tr -d '[:space:]' < VERSION)"
 SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
 
 if [[ ! "$VERSION" =~ $SEMVER_REGEX ]]; then
-  echo "ERROR: VERSION must be a semver-like value (e.g. 0.80.0). Found: $VERSION"
+  echo "ERROR: VERSION must be a semver-like value (e.g. 1.2.3). Found: $VERSION"
   exit 1
 fi
 

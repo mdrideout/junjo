@@ -4,10 +4,14 @@ on:
   push:
     branches: [master]
     paths:
+      - "apps/studio/LICENSE"
+      - "apps/studio/THIRD_PARTY_NOTICES.md"
+      - "apps/studio/licenses/**"
       - "apps/studio/backend/**"
       - "apps/studio/ingestion/**"
       - "apps/studio/proto/**"
       - "contracts/telemetry/**"
+      - "tooling/scripts/validate_studio_artifact_licenses.py"
       - ".github/workflows/studio-backend-tests.yml"
   workflow_dispatch:
   workflow_call:
@@ -50,8 +54,8 @@ jobs:
         run: ./backend/scripts/run-backend-tests.sh 2>&1 | tee /tmp/backend-test.log
         env:
           PYTHONUNBUFFERED: "1"
-          JUNJO_SESSION_SECRET: "tHYEOeDANnwNydQHmitFdkBYbuIrY68Xo1aPZ6WCPVI="
-          JUNJO_SECURE_COOKIE_KEY: "2AorEiMD7P/kiosXFgLvahxdABNVYMUzWHPghTweskk="
+          JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
       - name: Upload test logs on failure
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -110,3 +114,8 @@ jobs:
           toolchain: stable
       - name: Run ingestion tests
         run: cargo test --locked --message-format=short
+      - name: Validate production dependency license closure
+        run: |
+          python3 ../../../tooling/scripts/validate_studio_artifact_licenses.py \
+            check \
+            --with-cargo-metadata

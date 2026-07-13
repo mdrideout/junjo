@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import argparse
 import base64
+import os
 import re
 import secrets
-import shutil
 import sys
+import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -72,6 +73,8 @@ SECRET_PLACEHOLDERS = {
     "your_base64_secret_here",
     "your_base64_key_here",
 }
+
+PRIVATE_FILE_MODE = 0o600
 
 CLOUDFLARE_TOKEN_PLACEHOLDERS = {
     "",
@@ -159,14 +162,44 @@ def mask_value(key: str, value: str) -> str:
         "JUNJO_SECURE_COOKIE_KEY",
         "CLOUDFLARE_API_TOKEN",
     }:
-        if len(value) <= 10:
-            return "*" * len(value)
-        return f"{value[:6]}...{value[-4:]}"
+        return "<redacted>"
     return value
 
 
 def generate_secret() -> str:
     return base64.b64encode(secrets.token_bytes(32)).decode("ascii")
+
+
+def write_private_file_atomically(path: Path, contents: bytes) -> None:
+    """Durably replace a private file without exposing partial contents."""
+    file_descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=".junjo-env-staging-",
+    )
+    temporary_path = Path(temporary_name)
+
+    try:
+        os.fchmod(file_descriptor, PRIVATE_FILE_MODE)
+        temporary_file = os.fdopen(file_descriptor, "wb")
+        file_descriptor = -1
+        with temporary_file:
+            temporary_file.write(contents)
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+
+        os.replace(temporary_path, path)
+        os.chmod(path, PRIVATE_FILE_MODE)
+
+        directory_descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    except BaseException:
+        if file_descriptor >= 0:
+            os.close(file_descriptor)
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def prompt_profile(default: str) -> str:
@@ -292,16 +325,16 @@ def run_setup(args: argparse.Namespace) -> int:
         print(f"Error: {env_example} not found.")
         return 1
 
-    if not env_path.exists():
+    if not env_preexisting:
         print(f"Creating {env_path} from {env_example}.")
-        if not args.dry_run:
-            env_path.write_text(
-                env_example.read_text(encoding="utf-8"), encoding="utf-8"
-            )
 
-    base_lines = (
-        env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    prior_env_contents = env_path.read_bytes() if env_preexisting else None
+    base_text = (
+        prior_env_contents.decode("utf-8")
+        if prior_env_contents is not None
+        else env_example.read_text(encoding="utf-8")
     )
+    base_lines = base_text.splitlines()
     current, _ = parse_env_lines(base_lines)
 
     print("\nJunjo AI Studio setup wizard")
@@ -413,11 +446,15 @@ def run_setup(args: argparse.Namespace) -> int:
     if args.dry_run:
         print("\nDry run mode: no files written.")
     else:
-        if env_preexisting and env_path.exists():
-            backup_path = env_path.parent / f"{env_path.name}.bak"
-            shutil.copy2(env_path, backup_path)
-            print(f"Backup written to {backup_path}")
-        env_path.write_text(new_text, encoding="utf-8")
+        try:
+            if prior_env_contents is not None:
+                backup_path = env_path.parent / f"{env_path.name}.bak"
+                write_private_file_atomically(backup_path, prior_env_contents)
+                print(f"Backup written to {backup_path}")
+            write_private_file_atomically(env_path, new_text.encode("utf-8"))
+        except OSError as error:
+            print(f"Error: unable to write private environment files: {error}")
+            return 1
         print(f"Wrote {env_path}")
 
     print("\nConfiguration summary")

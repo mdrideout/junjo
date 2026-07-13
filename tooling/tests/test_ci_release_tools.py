@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,6 +16,9 @@ from unittest import mock
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_ROOT = REPOSITORY_ROOT / "tooling" / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 
 def load_script_module(name: str, relative_path: str) -> ModuleType:
@@ -33,10 +37,399 @@ detector = load_script_module(
     "detect_ci_changes",
     "tooling/scripts/detect_ci_changes.py",
 )
+release_policy = load_script_module(
+    "validate_studio_release_policy",
+    "tooling/scripts/validate_studio_release_policy.py",
+)
 publisher = load_script_module(
     "publish_studio_distribution",
     "tooling/scripts/publish_studio_distribution.py",
 )
+
+
+class StudioReleasePolicyTests(unittest.TestCase):
+    """Prove release admission is forward-only and globally unambiguous."""
+
+    def setUp(self) -> None:
+        self.contract = release_policy.load_release_contract()
+        self.source_revision = "a" * 40
+
+    def validate(self, **overrides: object) -> dict[str, str]:
+        arguments: dict[str, object] = {
+            "contract": self.contract,
+            "studio_version": "0.81.2",
+            "mode": "production",
+            "release_tag": "studio-v0.81.2",
+            "source_revision": self.source_revision,
+            "source_is_on_master": True,
+            "existing_releases": [],
+            "existing_tags": ["studio-v0.81.1", "studio-v0.81.2"],
+        }
+        arguments.update(overrides)
+        return release_policy.validate_release_policy(**arguments)
+
+    def test_first_monorepo_release_is_admitted(self) -> None:
+        self.assertEqual(
+            self.validate(),
+            {
+                "version": "0.81.2",
+                "major_minor": "0.81",
+                "source_revision": self.source_revision,
+                "production": "true",
+                "release_state": "new",
+            },
+        )
+
+    def test_exact_imported_two_part_tags_are_historical_provenance(self) -> None:
+        imported_tags = [
+            "studio-v0.10",
+            "studio-v0.20",
+            "studio-v0.30",
+            "studio-v0.40",
+            "studio-v0.42",
+        ]
+        self.assertEqual(
+            self.contract["imported_two_part_studio_tags"], imported_tags
+        )
+        outputs = self.validate(
+            existing_tags=[
+                *imported_tags,
+                "studio-v0.44.0",
+                "studio-v0.81.1",
+                "studio-v0.81.2",
+            ]
+        )
+        self.assertEqual(outputs["release_state"], "new")
+
+    def test_unknown_two_part_studio_tag_is_rejected(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "must be a stable X.Y.Z version"):
+            self.validate(
+                existing_tags=[
+                    *self.contract["imported_two_part_studio_tags"],
+                    "studio-v0.43",
+                    "studio-v0.81.2",
+                ]
+            )
+
+    def test_completed_baseline_cannot_be_rebuilt(self) -> None:
+        with self.assertRaisesRegex(
+            RuntimeError, "greater than completed baseline 0.81.1"
+        ):
+            self.validate(
+                studio_version="0.81.1",
+                release_tag="studio-v0.81.1",
+            )
+
+    def test_candidate_must_be_newer_than_every_completed_release(self) -> None:
+        with self.assertRaisesRegex(
+            RuntimeError, "latest completed release or stable tag 0.82.0"
+        ):
+            self.validate(
+                existing_releases=[
+                    {
+                        "tagName": "studio-v0.82.0",
+                        "isDraft": False,
+                        "isPrerelease": False,
+                    }
+                ]
+            )
+
+    def test_existing_candidate_release_blocks_before_publication(self) -> None:
+        for draft in (False, True):
+            with self.subTest(draft=draft):
+                with self.assertRaisesRegex(RuntimeError, "already exists"):
+                    self.validate(
+                        existing_releases=[
+                            {
+                                "tagName": "studio-v0.81.2",
+                                "isDraft": draft,
+                                "isPrerelease": False,
+                            }
+                        ]
+                    )
+
+    def test_newer_fetched_tag_blocks_a_queued_older_release(self) -> None:
+        with self.assertRaisesRegex(
+            RuntimeError, "latest completed release or stable tag 0.81.3"
+        ):
+            self.validate(
+                existing_tags=[
+                    "studio-v0.81.1",
+                    "studio-v0.81.2",
+                    "studio-v0.81.3",
+                ]
+            )
+
+    def test_production_source_must_be_reachable_from_master(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "reachable from origin/master"):
+            self.validate(source_is_on_master=False)
+        with self.assertRaisesRegex(RuntimeError, "release tag must be studio-v0.81.2"):
+            self.validate(release_tag="studio-v0.81.3")
+
+    def test_dry_run_can_validate_a_branch_without_a_release_tag(self) -> None:
+        outputs = self.validate(
+            mode="dry-run",
+            release_tag=None,
+            source_is_on_master=False,
+        )
+        self.assertEqual(outputs["production"], "false")
+
+    def test_admission_classifies_completed_and_stale_states(self) -> None:
+        completed = release_policy.classify_release_admission(
+            contract=self.contract,
+            studio_version="0.81.2",
+            mode="production",
+            release_tag="studio-v0.81.2",
+            source_revision=self.source_revision,
+            source_is_on_master=True,
+            existing_releases=[
+                {
+                    "tagName": "studio-v0.81.2",
+                    "isDraft": False,
+                    "isPrerelease": False,
+                }
+            ],
+            existing_tags=["studio-v0.81.1", "studio-v0.81.2"],
+        )
+        self.assertEqual(completed.state, "completed")
+
+        stale = release_policy.classify_release_admission(
+            contract=self.contract,
+            studio_version="0.81.2",
+            mode="production",
+            release_tag="studio-v0.81.2",
+            source_revision=self.source_revision,
+            source_is_on_master=False,
+            existing_releases=[],
+            existing_tags=["studio-v0.81.1", "studio-v0.81.2"],
+        )
+        self.assertEqual(stale.state, "stale")
+
+    def immutable_state(
+        self, *, observed: dict[tuple[str, str], str] | None = None
+    ) -> dict[str, object]:
+        digest = "sha256:" + ("b" * 64)
+        observed = observed or {}
+        return {
+            "schema_version": 1,
+            "studio_version": "0.81.2",
+            "source_revision": self.source_revision,
+            "images": {
+                service: {
+                    "repository": self.contract["images"][service]["repository"],
+                    "candidate_digest": digest,
+                    "tags": {
+                        role: observed.get((service, role))
+                        for role in ("version", "source_revision")
+                    },
+                }
+                for service in release_policy.EXPECTED_SERVICES
+            },
+        }
+
+    def test_immutable_tags_classify_new_and_true_partial_resume(self) -> None:
+        new = release_policy.classify_immutable_image_state(
+            contract=self.contract, state=self.immutable_state()
+        )
+        self.assertEqual(new.state, "new")
+
+        digest = "sha256:" + ("b" * 64)
+        resume = release_policy.classify_immutable_image_state(
+            contract=self.contract,
+            state=self.immutable_state(
+                observed={
+                    ("backend", "version"): digest,
+                    ("frontend", "source_revision"): digest,
+                }
+            ),
+        )
+        self.assertEqual(resume.state, "resume")
+
+    def test_immutable_tag_digest_mismatch_is_stale(self) -> None:
+        stale = release_policy.classify_immutable_image_state(
+            contract=self.contract,
+            state=self.immutable_state(
+                observed={
+                    ("backend", "version"): "sha256:" + ("c" * 64),
+                }
+            ),
+        )
+        self.assertEqual(stale.state, "stale")
+        self.assertIn("backend:version", stale.reason)
+
+    def test_release_contract_owns_exact_destinations(self) -> None:
+        self.assertEqual(
+            self.contract["dockerhub_immutable_tag_rules"],
+            [r"^[0-9]+\.[0-9]+\.[0-9]+$", r"^[0-9a-f]{40}$"],
+        )
+        self.assertEqual(
+            self.contract["images"]["backend"]["repository"],
+            "mdrideout/junjo-ai-studio-backend",
+        )
+        self.assertEqual(
+            self.contract["distributions"]["minimal"],
+            {
+                "canonical_source_path": "apps/studio/deployments/minimal",
+                "mirror_repository": "mdrideout/junjo-ai-studio-minimal-build",
+                "mirror_branch": "master",
+            },
+        )
+
+    def test_dockerhub_controls_require_exact_live_rules_for_every_image(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="junjo-dockerhub-settings-") as temporary:
+            settings_directory = Path(temporary)
+            expected_rules = self.contract["dockerhub_immutable_tag_rules"]
+            for service in release_policy.EXPECTED_SERVICES:
+                namespace, name = self.contract["images"][service][
+                    "repository"
+                ].split("/", maxsplit=1)
+                (settings_directory / f"{service}.json").write_text(
+                    json.dumps(
+                        {
+                            "namespace": namespace,
+                            "name": name,
+                            "immutable_tags_settings": {
+                                "enabled": True,
+                                "rules": list(reversed(expected_rules)),
+                            },
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+            evidence = release_policy.validate_dockerhub_controls(
+                contract=self.contract,
+                settings_directory=settings_directory,
+            )
+            self.assertEqual(evidence["schema_version"], 1)
+            self.assertEqual(len(evidence["repositories"]), 3)
+
+            frontend = json.loads(
+                (settings_directory / "frontend.json").read_text(encoding="utf-8")
+            )
+            frontend["immutable_tags_settings"]["rules"] = [".*"]
+            (settings_directory / "frontend.json").write_text(
+                json.dumps(frontend), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(RuntimeError, "frontend Docker Hub immutable rules"):
+                release_policy.validate_dockerhub_controls(
+                    contract=self.contract,
+                    settings_directory=settings_directory,
+                )
+
+    def test_platform_gate_requires_the_shared_release_rehearsal(self) -> None:
+        release_workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
+        ).read_text(encoding="utf-8")
+        platform_gate = (
+            REPOSITORY_ROOT / ".github/workflows/platform-gate.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("workflow_call:", release_workflow)
+        self.assertIn("studio_release_rehearsal:", platform_gate)
+        self.assertIn(
+            "uses: ./.github/workflows/studio-docker-publish.yml", platform_gate
+        )
+        self.assertIn("STUDIO_RELEASE_REHEARSAL_RESULT", platform_gate)
+        for component in (
+            "studio_backend",
+            "studio_frontend",
+            "studio_proto",
+            "studio_rest",
+            "studio_version",
+            "telemetry",
+        ):
+            self.assertIn(
+                f"if: needs.detect.outputs.{component} == 'true' && "
+                "needs.detect.outputs.deployments != 'true'",
+                platform_gate,
+            )
+        self.assertIn(
+            "if: needs.detect.outputs.deployments == 'true'", platform_gate
+        )
+        self.assertNotIn("\n  deployments:\n", platform_gate)
+
+    def test_release_artifacts_are_stable_and_partial_reruns_fail_closed(self) -> None:
+        workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("${{ github.run_attempt }}", workflow)
+        self.assertIn(
+            "run_attempt: ${{ steps.attempt.outputs.run_attempt }}", workflow
+        )
+        self.assertIn(
+            "candidate-${SOURCE_REVISION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}",
+            workflow,
+        )
+        self.assertNotRegex(
+            workflow,
+            r"(?:studio-digest|studio-image-evidence|studio-distributions)-[^\n]*run_attempt",
+        )
+        self.assertEqual(workflow.count("overwrite: true"), 3)
+
+        production_jobs = (
+            "dockerhub_controls",
+            "build_architecture_images",
+            "exact_manifests",
+            "smoke_exact_release",
+            "publish_distributions",
+            "promote_floating_tags",
+            "update_descriptions",
+            "publish_release",
+        )
+        for job in production_jobs:
+            match = re.search(
+                rf"(?ms)^  {job}:\n(?P<body>.*?)(?=^  [a-z][a-z0-9_]*:\n|\Z)",
+                workflow,
+            )
+            self.assertIsNotNone(match, f"missing production job {job}")
+            body = match.group("body") if match is not None else ""
+            self.assertIn("Reject partial production rerun", body)
+            self.assertIn(
+                "ADMITTED_RUN_ATTEMPT: ${{ needs.prepare.outputs.run_attempt }}",
+                body,
+            )
+            self.assertIn(
+                'if [ "$ADMITTED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]',
+                body,
+            )
+
+    def test_release_controls_precede_every_production_mutation(self) -> None:
+        workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
+        ).read_text(encoding="utf-8")
+        self.assertLess(
+            workflow.index("Validate live Docker Hub immutable-tag controls"),
+            workflow.index("Build and push architecture image by digest"),
+        )
+        self.assertIn("STUDIO_RELEASE_AUTHORITY_CUTOVER", workflow)
+        mirror_preflight = workflow.index(
+            "Validate all mirror destinations before minting mutation credentials"
+        )
+        token = workflow.index("Create mirror installation token")
+        authorized_preflight = workflow.index(
+            "Revalidate all mirror destinations with the installation token"
+        )
+        first_publish = workflow.index(
+            "publish \\\n            --export-directory /tmp/junjo-release/minimal"
+        )
+        self.assertLess(mirror_preflight, token)
+        self.assertLess(token, authorized_preflight)
+        self.assertLess(authorized_preflight, first_publish)
+
+        evidence_upload = workflow[
+            workflow.index("- name: Upload release and mirror evidence") :
+            workflow.index("\n  promote_floating_tags:")
+        ]
+        self.assertNotIn("/tmp/junjo-release/*.json", evidence_upload)
+        for filename in (
+            "minimal-export.json",
+            "minimal-mirror.json",
+            "vm-caddy-export.json",
+            "vm-caddy-mirror.json",
+        ):
+            self.assertIn(f"/tmp/junjo-release/{filename}", evidence_upload)
+        self.assertNotIn("mirror-preflight.json", evidence_upload)
+        self.assertNotIn("mirror-authorized-preflight.json", evidence_upload)
 
 
 class ChangeDetectionTests(unittest.TestCase):
@@ -94,10 +487,14 @@ class ChangeDetectionTests(unittest.TestCase):
 
     def test_deployment_publication_tooling_runs_deployment_checks(self) -> None:
         paths = (
+            "tooling/studio_release_contract.json",
             "tooling/scripts/build_studio_release_evidence.py",
             "tooling/scripts/publish_studio_distribution.py",
+            "tooling/scripts/smoke_studio_distribution.py",
+            "tooling/scripts/validate_studio_release_policy.py",
             "tooling/tests/test_studio_deployment_tools.py",
             "tooling/tests/test_studio_release_evidence.py",
+            "tooling/tests/test_studio_setup_wizards.py",
         )
         for path in paths:
             with self.subTest(path=path):
@@ -207,7 +604,11 @@ class MirrorPublicationTests(unittest.TestCase):
         (self.export / "LICENSE").write_text("Apache License 2.0\n", encoding="utf-8")
         (self.export / "README.md").write_text("Generated mirror\n", encoding="utf-8")
         manifest = {
-            "source": {"source_revision": self.source_revision},
+            "source": {
+                "distribution": "minimal",
+                "canonical_source_path": "apps/studio/deployments/minimal",
+                "source_revision": self.source_revision,
+            },
             "tree_sha256": "b" * 64,
         }
         (self.export / "EXPORT_MANIFEST.json").write_text(
@@ -236,11 +637,109 @@ class MirrorPublicationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "source revision does not match"):
                 publisher.publish(
                     export_directory=self.export,
-                    repository="mdrideout/generated-mirror",
-                    branch="master",
-                    source_revision="different-revision",
+                    distribution="minimal",
+                    source_revision="d" * 40,
                 )
         mocked_run.assert_not_called()
+
+    def test_distribution_binding_mismatch_stops_before_authentication(self) -> None:
+        manifest_path = self.export / "EXPORT_MANIFEST.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["source"]["distribution"] = "vm-caddy"
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        with (
+            mock.patch.dict(os.environ, {"GH_TOKEN": self.secret}),
+            mock.patch.object(publisher, "run") as mocked_run,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, "export distribution does not match"
+            ):
+                publisher.publish(
+                    export_directory=self.export,
+                    distribution="minimal",
+                    source_revision=self.source_revision,
+                )
+        mocked_run.assert_not_called()
+
+    def test_repository_redirect_stops_before_authentication_or_clone(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"GH_TOKEN": self.secret}),
+            mock.patch.object(
+                publisher,
+                "run",
+                return_value=json.dumps(
+                    {
+                        "full_name": "mdrideout/unexpected-mirror",
+                        "default_branch": "master",
+                    }
+                ),
+            ) as mocked_run,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "resolved a different mirror"):
+                publisher.publish(
+                    export_directory=self.export,
+                    distribution="minimal",
+                    source_revision=self.source_revision,
+                )
+        mocked_run.assert_called_once_with(
+            [
+                "gh",
+                "api",
+                "repos/mdrideout/junjo-ai-studio-minimal-build",
+                "--jq",
+                "{full_name: .full_name, default_branch: .default_branch}",
+            ]
+        )
+
+    def test_wrong_default_branch_stops_before_authentication_or_clone(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"GH_TOKEN": self.secret}),
+            mock.patch.object(
+                publisher,
+                "run",
+                return_value=json.dumps(
+                    {
+                        "full_name": "mdrideout/junjo-ai-studio-minimal-build",
+                        "default_branch": "main",
+                    }
+                ),
+            ) as mocked_run,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "default branch for minimal"):
+                publisher.publish(
+                    export_directory=self.export,
+                    distribution="minimal",
+                    source_revision=self.source_revision,
+                )
+        self.assertEqual(mocked_run.call_count, 1)
+
+    def test_all_destinations_are_validated_together_before_authentication(self) -> None:
+        responses = [
+            json.dumps(
+                {
+                    "full_name": "mdrideout/junjo-ai-studio-minimal-build",
+                    "default_branch": "master",
+                }
+            ),
+            json.dumps(
+                {
+                    "full_name": "mdrideout/junjo-ai-studio-deployment-example",
+                    "default_branch": "wrong",
+                }
+            ),
+        ]
+        with (
+            mock.patch.dict(os.environ, {"GH_TOKEN": self.secret}),
+            mock.patch.object(publisher, "run", side_effect=responses) as mocked_run,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "default branch for vm-caddy"):
+                publisher.validate_mirror_destinations()
+        self.assertEqual(mocked_run.call_count, 2)
+        for call in mocked_run.call_args_list:
+            self.assertEqual(call.args[0][:2], ["gh", "api"])
 
     def test_publication_is_deterministic_and_never_passes_token_in_commands(
         self,
@@ -250,6 +749,13 @@ class MirrorPublicationTests(unittest.TestCase):
 
         def offline_run(command: list[str], *, cwd: Path | None = None) -> str:
             observed_commands.append(command)
+            if command[:2] == ["gh", "api"]:
+                return json.dumps(
+                    {
+                        "full_name": "mdrideout/junjo-ai-studio-minimal-build",
+                        "default_branch": "master",
+                    }
+                )
             if command == ["gh", "auth", "setup-git"]:
                 return ""
             if command[:3] == ["gh", "repo", "clone"]:
@@ -272,14 +778,12 @@ class MirrorPublicationTests(unittest.TestCase):
         ):
             first = publisher.publish(
                 export_directory=self.export,
-                repository="mdrideout/generated-mirror",
-                branch="master",
+                distribution="minimal",
                 source_revision=self.source_revision,
             )
             second = publisher.publish(
                 export_directory=self.export,
-                repository="mdrideout/generated-mirror",
-                branch="master",
+                distribution="minimal",
                 source_revision=self.source_revision,
             )
 
@@ -287,6 +791,9 @@ class MirrorPublicationTests(unittest.TestCase):
         self.assertFalse(second["changed"])
         self.assertEqual(first["commit"], second["commit"])
         self.assertEqual(first["tree_sha256"], "b" * 64)
+        self.assertEqual(first["distribution"], "minimal")
+        self.assertEqual(first["repository"], "mdrideout/junjo-ai-studio-minimal-build")
+        self.assertEqual(first["branch"], "master")
         evidence = json.dumps([first, second, observed_commands], sort_keys=True)
         self.assertNotIn(self.secret, evidence)
         auth_indexes = [

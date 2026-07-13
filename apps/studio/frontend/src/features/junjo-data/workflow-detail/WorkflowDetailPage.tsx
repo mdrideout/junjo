@@ -7,7 +7,7 @@ import { RootState } from '../../../root-store/store'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
-import { Switch } from 'radix-ui'
+import { Switch } from '../../../components/forms/switch'
 import RenderJunjoGraphList from '../../../mermaidjs/RenderJunjoGraphList'
 import TabbedSpanLists from '../span-lists/TabbedSpanLists'
 import WorkflowDetailStateNav from './WorkflowDetailStateNav'
@@ -96,18 +96,8 @@ export default function WorkflowDetailPage() {
 
       <div className={`w-full shrink-0 pb-3 h-80 overflow-scroll shadow-md p-3 bg-zinc-50 dark:bg-zinc-800`}>
         <div className={'mb-2'}>
-          <div className="flex items-center">
-            <label className={'pr-3 text-xs leading-none'} htmlFor="airplane-mode">
-              Edge labels
-            </label>
-            <Switch.Root
-              checked={mermaidEdgeLabels}
-              onCheckedChange={setMermaidEdgeLabels}
-              className="relative h-[14px] w-[28px] border-0 cursor-default rounded-full outline-none bg-zinc-200 data-[state=checked]:bg-zinc-300"
-              id="edge-label-switch"
-            >
-              <Switch.Thumb className="block size-[14px] bg-zinc-700 translate-x-[1px] rounded-full transition-transform duration-100 will-change-transform data-[state=checked]:translate-x-[13px]" />
-            </Switch.Root>
+          <div className="w-44">
+            <Switch label="Edge labels" checked={mermaidEdgeLabels} onCheckedChange={setMermaidEdgeLabels} />
           </div>
         </div>
         <RenderJunjoGraphList

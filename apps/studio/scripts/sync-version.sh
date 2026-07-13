@@ -4,7 +4,7 @@
 #
 # Usage:
 #   ./scripts/sync-version.sh            # uses VERSION file
-#   ./scripts/sync-version.sh 0.80.0     # sets VERSION, then syncs everything
+#   ./scripts/sync-version.sh 1.2.3      # sets VERSION, then syncs everything
 
 set -euo pipefail
 
@@ -21,7 +21,7 @@ fi
 if [ "$#" -eq 1 ]; then
   VERSION="$1"
   if [[ ! "$VERSION" =~ $SEMVER_REGEX ]]; then
-    echo "ERROR: Invalid version '$VERSION' (expected semver-like value, e.g. 0.80.0)"
+    echo "ERROR: Invalid version '$VERSION' (expected semver-like value, e.g. 1.2.3)"
     exit 1
   fi
   printf "%s\n" "$VERSION" > VERSION
@@ -77,7 +77,9 @@ fi
 
 (
   cd backend
-  uv run python scripts/export_openapi_schema.py >/dev/null
+  JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
+    JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" \
+    uv run python scripts/export_openapi_schema.py >/dev/null
 )
 cp backend/openapi.json frontend/backend/openapi.json
 

@@ -2,6 +2,7 @@
 /tmp/
 .env
 .env.bak
+.junjo-env-staging-*
 .dbdata/
 .certs/
 .DS_Store

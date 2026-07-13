@@ -24,8 +24,8 @@ RUN PROTOC_VERSION=30.2 && \
     unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
     rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Install the same immutable uv release used by repository and hosting builds.
+COPY --from=ghcr.io/astral-sh/uv:0.11.7@sha256:240fb85ab0f263ef12f492d8476aa3a2e4e1e333f7d67fbdd923d00a506a516a /uv /uvx /bin/
 
 # Set working directory
 WORKDIR /app
@@ -42,6 +42,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Stage 2: Production - Final image
 FROM python:3.13-slim-trixie AS production
+
+LABEL org.opencontainers.image.source="https://github.com/mdrideout/junjo" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/junjo-ai-studio/
+COPY backend/uv.lock /usr/share/licenses/junjo-ai-studio/backend-production.lock
 
 # Install tini and libstdc++6 using apt-get
 RUN apt-get update && \

@@ -1,20 +1,14 @@
+import { useContext } from 'react'
 import { Outlet } from 'react-router'
-import { Navbar } from '../components/catalyst/navbar'
-import { Sidebar } from '../components/catalyst/sidebar'
-import { SidebarLayout } from '../components/catalyst/sidebar-layout'
-import SidebarMenu from '../components/catalyst/sidebar-menu'
+import { AuthContext } from '../auth/auth-context-value'
+import { AppShell } from '../components/layout/app-shell'
 
 export function AppLayout() {
+  const { isAuthenticated } = useContext(AuthContext)
+
   return (
-    <SidebarLayout
-      sidebar={
-        <Sidebar>
-          <SidebarMenu />
-        </Sidebar>
-      }
-      navbar={<Navbar>Navbar content</Navbar>}
-    >
+    <AppShell isAuthenticated={isAuthenticated}>
       <Outlet />
-    </SidebarLayout>
+    </AppShell>
   )
 }

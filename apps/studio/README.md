@@ -44,10 +44,11 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 ## Quick Start
 
 Canonical deployment source lives under [`deployments/`](deployments/) in this
-monorepo. Standalone deployment repositories are generated, one-way release
-mirrors so operators can clone a small focused repository. Deployment changes
-must be contributed to the canonical directories here; direct mirror changes
-will be overwritten by the next publication.
+monorepo. Standalone deployment repositories are designated one-way release
+mirrors so operators can clone a small focused repository. The first
+monorepo-driven publication remains a cutover gate. Deployment changes must be
+contributed to the canonical directories here; direct mirror changes will be
+overwritten after that publication path is active.
 
 If you want to use Junjo AI Studio rather than modify its source code, start
 with the generated **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)**
@@ -442,13 +443,14 @@ If you route directly to this source repository's Compose services, target `fron
 
 ### Supported Deployment Distributions
 
-The paths below are canonical. The linked standalone repositories are
-generated release mirrors for operator use, not contribution targets.
+The paths below are canonical. The linked standalone repositories are the
+designated release distributions for operator use, not contribution targets;
+their first monorepo-driven refresh remains a cutover gate.
 
 #### Junjo AI Studio Minimal Build
 
 - **Canonical source:** [`deployments/minimal`](deployments/minimal)
-- **Generated mirror:** [mdrideout/junjo-ai-studio-minimal-build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
+- **Designated release mirror:** [mdrideout/junjo-ai-studio-minimal-build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
 
 A minimal, standalone repository with just the core Junjo AI Studio components using pre-built Docker images.
 
@@ -460,7 +462,7 @@ A minimal, standalone repository with just the core Junjo AI Studio components u
 #### Junjo AI Studio Deployment Example
 
 - **Canonical source:** [`deployments/vm-caddy`](deployments/vm-caddy)
-- **Generated mirror:** [mdrideout/junjo-ai-studio-deployment-example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
+- **Designated release mirror:** [mdrideout/junjo-ai-studio-deployment-example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
 
 A complete, production-ready example that includes a Junjo Python Library application alongside the server infrastructure.
 
@@ -577,7 +579,7 @@ Junjo AI Studio uses a centralized root `VERSION` file for release/app metadata 
 ./scripts/sync-version.sh
 
 # Set a new version and sync everything
-./scripts/sync-version.sh 0.80.0
+./scripts/sync-version.sh 0.82.0
 
 # Verify all managed files are in sync with VERSION
 ./scripts/check-version-sync.sh
@@ -780,4 +782,7 @@ docker compose up --build
 
 Copyright (C) 2025 Matthew Rideout
 
-Licensed under the Apache License, Version 2.0. See [`LICENSE`](LICENSE).
+Junjo-authored Studio source is licensed under the Apache License, Version 2.0.
+See [`LICENSE`](LICENSE). Incorporated third-party source and historical
+provenance are documented in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

@@ -104,5 +104,4 @@ volumes:
 
 networks:
   junjo-network:
-    name: junjo_network
     driver: bridge

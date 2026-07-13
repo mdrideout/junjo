@@ -2,21 +2,29 @@
 
 ## Status
 
-Repository implementation complete; external cutover pending.
+Source consolidation is complete. Repository remediation is implemented and
+locally validated in the migration worktree, but remains provisional until its
+commit is pushed and the final pull-request checks provide immutable evidence.
 
 - The Python SDK and Junjo AI Studio source migration was completed on the
   `codex/platform-monorepo-migration` branch on 2026-07-12.
 - The website and both Studio deployment distributions were imported with
   their preserved histories on the same migration branch.
-- All Junjo-authored components and supported distributions now carry Apache
-  License 2.0.
-- Repository-owned CI, deterministic distribution exports, mirror publication,
-  and the Studio release DAG are implemented and validated.
+- The prepared branch change contains the accepted Apache-2.0 boundary, Junjo-owned Studio
+  UI foundation, CI, deterministic exports, exact release transaction, mirror
+  publication, setup-wizard proof, and end-to-end deployment telemetry smoke.
 - Exact revisions, tree identities, and repository validation results are
   recorded in `MONOREPO_MIGRATION_RECORD.md`.
-- GitHub environments, credentials, branch protection, Cloudflare, PyPI,
-  production mirrors, and repository retirement remain the external cutover
-  described by `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
+- Tag-restricted GitHub environments and base branch protection are configured
+  but not yet exercised by the final revision. Credentials, action-SHA
+  enforcement, the immutable release-tag ruleset, Cloudflare, PyPI, production
+  mirrors, and repository retirement remain the external cutover described by
+  `MONOREPO_GITHUB_CUTOVER_RUNBOOK.md`.
+
+The implemented fixes and remaining completion gates are defined in
+`MONOREPO_MIGRATION_REMEDIATION_PLAN.md`. Historical Catalyst distribution
+rights, final pull-request/Cloudflare checks, credentials, publishing, hosting,
+and old-repository retirement remain explicit cutover gates.
 
 ADR 0001 defines the accepted end state. This plan records how the repository
 was moved to that state without mixing runtime refactors into the structural
@@ -56,8 +64,9 @@ The following are not open migration questions:
    distributions, not co-equal editable sources.
 8. The old website repository is archived after hosting and source cutover.
 9. All Junjo-authored components use Apache License 2.0.
-10. `.env.bak` is secret-bearing local state and must be ignored and excluded
-    from imports and distributions.
+10. `.env.bak` and interrupted atomic-writer staging files are secret-bearing
+    local state and must be ignored and excluded from imports and
+    distributions.
 11. Useful Git history is preserved through rehearsed imports.
 12. Independently deployable products keep separate locks, builds, validation,
     and releases; deployment distributions release with Studio.

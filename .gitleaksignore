@@ -5,3 +5,22 @@ c750238cc7aceccfea2ca2ac68f134618d706711:docs/docker_reference.rst:generic-api-k
 4fa4c003b388cbc68349c9dc5a57292cf8245854:docs/docker_reference.rst:generic-api-key:231
 4fa4c003b388cbc68349c9dc5a57292cf8245854:docs/docker_reference.rst:generic-api-key:253
 9814332402ba4182aea1a92daf28169df7eaa012:apps/studio/backend/README.md:generic-api-key:5
+
+# Historical test, workflow, and documentation fixtures found by a strict
+# default-rules scan. Each exception is bound to one commit, path, rule, and
+# line; the current tree uses low-entropy, visibly non-production fixtures.
+0505b6c0728187ce5df759892084b7a8149f734d:apps/studio/frontend/src/__tests__/integration/mutation-requests.test.ts:stripe-access-token:96
+5ba346113d761ed24a236f12661a4932d6430808:.github/workflows/studio-backend-tests.yml:generic-api-key:54
+5ba346113d761ed24a236f12661a4932d6430808:.github/workflows/studio-backend-tests.yml:generic-api-key:55
+8a7fa50767b27c42219b0335b244eec70cbfb096:apps/studio/backend/tests/test_production_settings.py:generic-api-key:10
+8a7fa50767b27c42219b0335b244eec70cbfb096:apps/studio/backend/tests/test_production_settings.py:generic-api-key:11
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/.github/workflows/backend-tests.yml:generic-api-key:59
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/.github/workflows/backend-tests.yml:generic-api-key:60
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/README.md:generic-api-key:242
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/README.md:generic-api-key:243
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/app/features/internal_auth/test_grpc_service.py:generic-api-key:18
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/app/features/internal_auth/test_grpc_service.py:generic-api-key:27
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/app/features/internal_auth/test_grpc_service.py:generic-api-key:41
+dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/tests/concurrency/test_api_key_races.py:generic-api-key:112
+dd2608cf2d0d42915144291c9ba5e80fa1395481:.github/workflows/studio-rest-api-contract-validation.yml:generic-api-key:60
+dd2608cf2d0d42915144291c9ba5e80fa1395481:.github/workflows/studio-rest-api-contract-validation.yml:generic-api-key:61

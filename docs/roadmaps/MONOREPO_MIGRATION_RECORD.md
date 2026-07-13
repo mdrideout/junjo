@@ -2,16 +2,23 @@
 
 ## Status
 
-This record proves the completed source consolidation for the Python SDK,
-Studio, website, minimal Studio distribution, and VM/Caddy distribution. It
-also records the repository implementation for Apache-2.0 licensing,
-deterministic distribution exports, path-owned CI, and the protected Studio
-release DAG.
+This record proves the completed source imports and records local repository
+remediation evidence for
+the Python SDK, Studio, website, minimal Studio distribution, and VM/Caddy
+distribution. The fixes required by
+`MONOREPO_MIGRATION_REMEDIATION_PLAN.md` are implemented on
+`codex/platform-monorepo-migration`. The remediation remains provisional until
+its commit and final workflow runs are recorded below.
+
+This does not claim that the migration has merged or that production cutover is
+complete. Historical Catalyst distribution rights, final pull-request and
+Cloudflare checks, credentials, trusted publishing, hosting cutover, first
+production releases, and old-repository retirement remain explicit gates.
 
 Production mirror publication, hosting cutover, environment credentials,
-trusted-publisher changes, branch-protection changes, and source-repository
-retirement remain operator cutover work. This record does not claim those
-external mutations have happened.
+trusted-publisher changes, action-SHA enforcement, the immutable release-tag
+ruleset, and source-repository retirement remain operator cutover work. This
+record does not claim those external mutations have happened.
 
 GitHub Actions, environments, credentials, trusted publishing, Cloudflare,
 mirror, archival, verification, and rollback steps follow
@@ -26,8 +33,36 @@ passes its validation gates.
 This record accompanies ADR 0001 and the migration plan. The evidence below
 records the local source migrations and repository implementation. GitHub issues,
 repository archival, distribution-mirror settings, website hosting, secrets,
-environments, branch protection, and trusted-publisher configuration are
-operator cutover work and cannot be completed by repository commits.
+environment policies, repository protections, and trusted-publisher
+configuration require operator evidence and cannot be completed by repository
+commits alone.
+
+## Destination control-plane snapshot
+
+Verified through the GitHub API on 2026-07-13:
+
+- `master` protection is strict, enforced for administrators, requires resolved
+  conversations, and requires `required` plus `Gitleaks Scan`;
+- `pypi` allows only `sdk-python-v*` tags;
+- `studio-dockerhub-production`, `studio-distributions-production`, and
+  `studio-release-production` allow only `studio-v*` tags;
+- the four environments contain no stored secrets;
+- `studio-dockerhub-production` does not yet contain the exclusive-authority
+  confirmation;
+- publication destinations are repository-owned in
+  `tooling/studio_release_contract.json`; obsolete mutable mirror-name
+  repository variables were removed;
+- repository Actions remain enabled for all actions and repository-level SHA
+  pin enforcement remains disabled until the final workflow set is merged.
+
+The environments and policies existing is not publishing proof. Docker Hub,
+GitHub App, and PyPI authorities remain incomplete until their credential or
+trusted-publisher gates are exercised successfully.
+
+The public Docker Hub API reported `enabled: false` with retained rule `.*` for
+all three Studio repositories on 2026-07-13. The implemented production
+workflow will fail before registry mutation until Gate B installs the two exact
+contract rules and records this monorepo as the exclusive publisher.
 
 ## Source revisions
 
@@ -79,10 +114,16 @@ Before publication, each temporary `studio-<version>` tag was renamed without
 moving its target to the accepted `studio-v<version>` namespace.
 
 The import intentionally includes Studio `master` ancestry and release tags.
-Unmerged historical branch tips (`multi-app-bug`, `nov-2025-improvements`, and
-`oct-2025-improvements`) remain in the archived source repository. The imported
-history includes historical binaries and produces an approximately 135 MiB Git
-pack; that provenance and repository-size cost is accepted.
+Unmerged historical branch tips (`multi-app-bug`, `nov-2025-improvements`,
+`oct-2025-improvements`, and `feat/node-exceptions-dashboard`) remain in the
+source repository. The last branch is at
+`6d3171c1c41270ad5baa92ad361179bf60942118`, three commits ahead of its base. It
+is unfinished work and is not canonical monorepo source; retain it as readable
+archive history. Destination [issue 13](https://github.com/mdrideout/junjo/issues/13)
+records the explicit review boundary for any desired product work.
+The imported history includes historical binaries and produces an
+approximately 135 MiB Git pack; that provenance and repository-size cost is
+accepted.
 
 The three expanded imports used the same history-preserving pattern with these
 destination filters:
@@ -106,7 +147,7 @@ data, and build caches were not imported or deleted.
 
 ## Validation results
 
-The migrated tree passed the repository-owned validation gates on 2026-07-12:
+The following repository-owned validations ran successfully on 2026-07-12:
 
 - platform structure and release-routing invariant script passed;
 - canonical telemetry contract version 1 validated six Workflow fixtures,
@@ -129,11 +170,13 @@ The migrated tree passed the repository-owned validation gates on 2026-07-12:
 - development/production Compose configuration rendered successfully;
 - backend, frontend, and ingestion production Docker images built from
   `apps/studio` as their context;
-- Gitleaks scanned the combined committed histories with no leaks after four
-  historical documentation false positives were fingerprint-scoped in
-  `.gitleaksignore`.
+- Gitleaks scanned the combined committed histories with no leaks. Broad path
+  and regex allowlists were subsequently removed; unavoidable historical
+  findings are fingerprint-scoped in `.gitleaksignore`.
 
-The expanded repository implementation also passed these gates on 2026-07-12:
+The expanded repository implementation also passed these existing checks on
+2026-07-12. Review subsequently found that their coverage is not sufficient to
+establish migration completion:
 
 - every Junjo-authored component and standalone distribution contains the same
   complete Apache License 2.0 text;
@@ -146,8 +189,10 @@ The expanded repository implementation also passed these gates on 2026-07-12:
   exclusion, license equality, archive reproducibility, mirror authentication,
   file content/mode verification, release-evidence reconstruction, and
   publication idempotence;
-- both canonical deployment distributions passed full Compose and setup-wizard
-  validation for Studio 0.81.1;
+- both canonical deployment distributions passed Compose rendering and the
+  existing limited setup-script checks for Studio 0.81.1; these checks do not
+  yet prove development/production generation, secret handling, reruns,
+  backups, VM image builds, or end-to-end telemetry;
 - Actionlint 1.7.12 passed every workflow;
 - Zizmor 1.26.1 reported no workflow security findings;
 - every external GitHub Action reference is pinned to an immutable commit;
@@ -162,17 +207,117 @@ The repository's existing Studio CI does not gate Rustfmt or Clippy. None were
 introduced by the structural migration; they remain explicit follow-up
 maintenance.
 
+## Remediation implementation and validation
+
+The remediation work ran successfully on 2026-07-13 against the current
+worktree prepared for pull request 12. These are local results, not a substitute
+for the final pushed-revision checks:
+
+- ADR 0002 and Studio ADRs 005 and 006 are accepted and match the current
+  implementation. The release destinations and immutable `0.81.1` baseline are
+  fixed in `tooling/studio_release_contract.json`, together with the exact
+  Docker Hub rules that protect stable versions and full source revisions; the
+  synchronized candidate version is `0.81.2`.
+- The nine-file Catalyst tree was deleted. Current frontend source has no
+  Catalyst or Headless UI implementation, no compatibility component surface,
+  and no direct `@headlessui/react`, `framer-motion`,
+  `@radix-ui/react-switch`, or `radix-ui` dependency. Studio's Junjo-owned
+  action, modal, switch, link, and application-shell contracts encapsulate Base
+  UI 1.6.0, and `THIRD_PARTY_NOTICES.md` records the Base UI and Tailwind CSS
+  MIT notices plus the historical Catalyst boundary.
+- A clean production build of pre-remediation revision `6341a60` contained
+  20,896 KiB across 95 output files, with a 2,653,229-byte main JavaScript chunk
+  and 99,137-byte main stylesheet. The final replacement build contains 4,648
+  KiB across 50 output files, with a 2,526,072-byte main JavaScript chunk and
+  65,531-byte main stylesheet. The replacement therefore reduced the served
+  build by 16,248 KiB, the main JavaScript chunk by 127,157 bytes, and the main
+  stylesheet by 33,606 bytes. The 45 removed files were production source maps;
+  the artifact validator proves no map or map reference is shipped.
+- The lock-bound artifact inventories record 277 production frontend packages
+  and 191 normal Rust dependencies across Linux AMD64/ARM64. Fast validation,
+  exact Cargo-metadata regeneration, installed frontend override evidence, and
+  production image copy contracts passed. All three images carry Junjo's
+  license and Studio notice; the frontend/ingestion images carry their
+  inventories and the backend carries its production lock. These are review
+  inputs, not legal approval; the first-image artifact-license review remains
+  an external Gate A item. Inspection of the final local Linux/AMD64 images
+  found the common license at
+  `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`,
+  the common notice at
+  `c64e3b1fc066da867f0a6f3f725b24e5e3b494c20dc3b35d3ba3eb933d5ef8b3`,
+  and component evidence hashes `095499e643cb88caee1ebef99e81e859b71cc77367357032e4d3fb1204d8912a`
+  (backend), `f7145b5efff0ef63b18589f09d6438882541782577997d1dc44ff231e88abcdf`
+  (frontend), and
+  `e4c5bcbddd6489f11d263660aa77136506d8500888d561f547a901fccf287341`
+  (ingestion).
+- `python3 -m unittest discover -s tooling/tests -v` passed all 107 tests. The
+  suite covers CI routing, strict release admission and evidence, exact mirror
+  identity and all-destination preflight, live Docker Hub control validation,
+  failed-job artifact retries, archive/export behavior, all three setup wizards, secret
+  redaction, atomic `0600` environment/backup publication,
+  ignored interruption residue, reruns/backups/rotation, artifact-license
+  closure, digest-only registry smoke, Compose contracts, and failure cleanup.
+- `python3 tooling/scripts/validate_repository.py` and
+  `python3 contracts/telemetry/compatibility/validate_contract.py` passed.
+- strict Gitleaks 8.30.0 scans passed for the entire reachable history and for a
+  temporary copy containing every existing tracked or untracked, non-ignored
+  current-tree file. The configuration has no path or regular-expression
+  allowlist; unavoidable history findings are exact fingerprints. A temporary
+  high-entropy GitHub-token-shaped file was then rejected as the negative
+  control.
+- Actionlint 1.7.12 passed every workflow. Zizmor 1.26.1 reported no workflow
+  findings.
+- `apps/studio/run-all-tests.sh` passed at `0.81.2`: 47 backend unit tests, 53
+  backend integration tests with three optional skips, eight gRPC tests, seven
+  ingestion unit tests, 14 ingestion integration tests, 138 frontend tests,
+  ESLint, the production TypeScript/Vite build, 17 REST contract tests, and
+  protobuf reproducibility.
+- The deployment validator rendered both `0.81.2` distributions. The exact
+  local Linux/AMD64 smoke built backend, frontend, ingestion, Caddy, and the VM
+  example application; created the first Studio user and API key; ran the real
+  example workflow; and proved that the workflow was queryable through Studio.
+  It then removed its containers, volumes, network, and temporary distribution
+  images.
+- The separate root-runtime validator rendered development and production for
+  both base Compose and the monitoring overlay, then checked exact source build
+  targets, internal service wiring, mounts, project-scoped volumes/networks,
+  and the cAdvisor boundary without building, pulling, or starting containers.
+- The Python SDK passed Ruff, 99 tests, `ty` with warnings treated as errors,
+  warning-free Sphinx HTML, wheel and source builds, and Twine validation. Both
+  artifacts contain the Apache license metadata.
+- The website passed locked installation, Astro checks across six source files
+  with zero findings, a five-route static production build, deterministic
+  validation of all seven generated HTML files and their internal references,
+  the obsolete-source URL guard, and a production dependency audit with zero
+  vulnerabilities.
+- `git diff --check` passed.
+
+No production authority was used by these validations. The no-credential
+Studio workflow dispatch, final pull-request checks, Cloudflare previews,
+historical Catalyst rights confirmation, artifact-license approval,
+protected-environment credentials, old-publisher disablement, live Docker Hub
+immutable-rule configuration, exclusive-authority confirmation, and first
+production releases remain cutover evidence and are not claimed here.
+
 ## Repository migration work
 
 - [x] Complete the expanded website and deployment source imports.
 - [x] Replace all Junjo-owned AGPL declarations with Apache-2.0 and validate
   every independently packaged or exported component.
-- [x] Add and validate `.env.bak` ignores for Studio and both deployment
-  distributions.
+- [x] Add and validate `.env`, `.env.bak`, and private staging-file ignores for
+  Studio and both deployment distributions.
 - [x] Add website, deployment, license, archive, and mirror validation in the
   monorepo.
 - [x] Append exact source revisions, import commands, tree identities, and
   validation results to this record.
+- [x] Replace the current Catalyst implementation with the Junjo-owned Base UI
+  foundation and preserve third-party notices.
+- [x] Implement the globally serialized, forward-only Studio release
+  transaction and exact image/distribution evidence contracts.
+- [x] Add complete setup-wizard tests and a real end-to-end Studio telemetry
+  smoke at version 0.81.2.
+- [x] Close CI-routing, current-tree secret scanning, package metadata, OCI
+  metadata, and repository-invariant gaps.
 
 ## Operator cutover checklist
 
@@ -186,12 +331,18 @@ maintenance.
   `apps/studio/deployments/vm-caddy`.
 - [ ] Cut website hosting over to `apps/website`, then archive the old website
   source repository with a destination notice.
-- [ ] Configure required checks and branch protection in the destination.
-- [ ] Recreate Studio publishing secrets and environments in the destination.
+- [x] Configure required checks and branch protection in the destination.
+- [x] Create tag-restricted publishing environments in the destination.
+- [ ] Recreate or rotate the approved Studio publishing credentials in their
+  owning environments.
 - [ ] Confirm the PyPI trusted publisher accepts the moved workflow.
 - [ ] Confirm Docker Hub credentials and image permissions.
+- [ ] Disable the old Studio publisher and Docker Hub autobuilds, configure the
+  exact immutable-tag rules on all three image repositories, and then set
+  `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in the protected Docker Hub
+  environment.
 - [ ] Migrate or close active Studio issues and roadmap items.
 - [ ] Publish an archive notice in `junjo-ai-studio` pointing here.
-- [ ] Disable Studio workflows and releases in the archived repository.
+- [ ] Disable all remaining Studio workflows before archiving the old repository.
 - [x] Push the intentionally namespaced `studio-v*` historical tags.
 - [ ] Perform release dry runs before enabling production publishing.

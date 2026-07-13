@@ -132,7 +132,7 @@ describe('API Request Validation: Mutation Operations', () => {
           capturedBody = (await request.json()) as { name: string }
           return HttpResponse.json({
             id: 'key_123',
-            key: 'sk_live_abc123def456',
+            key: 'fixture-generated-key',
             name: capturedBody.name,
             created_at: new Date().toISOString(),
           })

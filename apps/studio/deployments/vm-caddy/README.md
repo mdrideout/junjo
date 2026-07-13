@@ -4,12 +4,14 @@
 > [`apps/studio/deployments/vm-caddy`](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/vm-caddy)
 > in the Junjo platform monorepo. The standalone
 > [`junjo-ai-studio-deployment-example`](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
-> repository is a generated release mirror for convenient cloning. Submit
-> changes to the canonical source; direct mirror changes will be overwritten.
+> repository is the designated release mirror for convenient cloning. Its
+> first monorepo-driven refresh remains a cutover gate. Submit changes to the
+> canonical source; direct mirror changes will be overwritten after that
+> publication path is active.
 
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
-This deployment pins Junjo AI Studio `0.81.1` and Junjo `0.63.0` as a compatible release pair.
+This deployment pins Junjo AI Studio `0.81.2` and Junjo `0.63.0` as a compatible release pair.
 
 Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
 
@@ -127,7 +129,7 @@ The `caddy/Caddyfile` is configured for local development by default (no SSL req
 docker compose up --build
 ```
 
-Docker Compose creates and labels `junjo_network` automatically for this stack. Do not manually pre-create this network.
+Docker Compose creates a project-scoped network automatically for this stack. Do not create or share a network manually.
 
 ### 4. Access the Services
 
@@ -372,20 +374,13 @@ vi caddy/Caddyfile
 docker compose pull && docker compose up -d --build
 ```
 
-If you previously created `junjo_network` manually, remove it once before startup so Compose can recreate it with the correct labels:
-
-```bash
-docker network rm junjo_network
-docker compose up -d
-```
-
 #### Validate SSL
 
 Proper DNS setup, Caddy setup, and Cloudflare Token setup will result in the following logs being visible.
 
 ```bash
 # Check caddy logs for successful SSL setup
-docker logs -f junjo-caddy
+docker compose logs -f caddy
 
 # Search logs for "authorization finalized"
 ```
@@ -414,17 +409,17 @@ docker logs -f junjo-caddy
    ```
 6. View the logs of the sample junjo-app executing:
    ```bash
-   docker logs -f junjo-app
+   docker compose logs -f junjo-app
    ```
 
 #### Verify Deployment
 
 ```bash
 # Check all containers are running
-docker container ls
+docker compose ps
 
 # Watch application logs
-docker logs -f junjo-app
+docker compose logs -f junjo-app
 ```
 
 Your Junjo AI Studio is now live! Visit the Web UI to see workflow runs from the demo application.
@@ -485,18 +480,18 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.1`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.81.2`
 *   **Purpose**: High-throughput OpenTelemetry data ingestion
 *   **Details**: Rust service that receives telemetry via OTLP gRPC (port 26155), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
 *   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
 #### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.1`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.81.2`
 *   **Purpose**: API server, authentication, and data processing
 *   **Details**: Python FastAPI application that handles HTTP API requests (port 26154), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 #### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.1`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.81.2`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 26153, proxied through Caddy.
 
@@ -519,7 +514,7 @@ This deployment includes several interconnected services. The **core Junjo AI St
 - Sends complete trace data to `junjo-ai-studio-ingestion` via gRPC
 - Creates visible workflow runs in the Junjo AI Studio UI every 5 seconds
 - Shows how to configure `JunjoOtelExporter` in your own applications
-- Watch it running: `docker logs -f junjo-app`
+- Watch it running: `docker compose logs -f junjo-app`
 
 **For Production:**
 Use `junjo_app/` as a reference implementation. **Remove this service** from `docker-compose.yml` if you don't need the demo running continuously.

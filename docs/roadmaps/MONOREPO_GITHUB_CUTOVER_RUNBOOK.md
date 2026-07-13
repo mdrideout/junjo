@@ -34,7 +34,7 @@ deployment, release, commit, image digest, or settings snapshot in
 
 ## Current Control-Plane Inventory
 
-Snapshot date: 2026-07-12.
+Snapshot date: 2026-07-13.
 
 ### Destination repository
 
@@ -42,17 +42,29 @@ Snapshot date: 2026-07-12.
 
 - public visibility and `master` as the default branch;
 - no repository Actions secrets;
-- no repository Actions variables;
-- one environment named `pypi` with no protection rules or branch/tag policy;
+- no repository Actions variables select publication destinations; exact image
+  and mirror targets live in `tooling/studio_release_contract.json`;
+- `pypi`, `studio-dockerhub-production`,
+  `studio-distributions-production`, and `studio-release-production` exist with
+  tag-only deployment policies;
+- those four environments currently contain no secrets;
+- `studio-dockerhub-production` does not yet contain the
+  `STUDIO_RELEASE_AUTHORITY_CUTOVER` confirmation;
 - read-only default `GITHUB_TOKEN` permissions;
 - all GitHub Actions allowed and no repository-level SHA-pin requirement;
 - strict `master` protection with administrator enforcement and conversation
   resolution;
-- required checks named `library-health` and `Gitleaks Scan`;
+- required checks named `required` and `Gitleaks Scan`;
 - no repository rulesets.
 
 The migration branch contains the new monorepo workflows, but they are not
 active as default-branch workflows until merged.
+
+The public Docker Hub repository API currently reports immutable tags disabled
+on the backend, frontend, and ingestion repositories (`enabled: false`, retained
+rule `.*`). The release workflow intentionally refuses its first registry
+mutation until Gate B replaces that state with the two exact contract-owned
+rules and the exclusive-authority confirmation is present.
 
 ### Old Studio repository
 
@@ -116,12 +128,29 @@ Purpose: publish Studio images, manifests, and Docker Hub descriptions.
 - Environment secrets:
   - `DOCKERHUB_USERNAME`
   - `DOCKERHUB_TOKEN`
+- Environment variable:
+  - `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo`
 - Allowed ref: `studio-v*` tags.
-- Jobs: image architecture push, manifest creation/promotion, and Docker Hub
-  description update only.
+- Jobs: release-authority and live immutable-rule preflight, image architecture
+  push, manifest creation/promotion, and Docker Hub description update only.
 
 Create a new least-privilege Docker Hub token rather than reusing an unknown
 repository-secret value when possible.
+
+Do not create the authority variable until every old Studio release workflow
+and Docker Hub autobuild is disabled. Configure each of the three contract-owned
+Docker Hub repositories with **specific immutable tags** and exactly these Go/RE2
+rules:
+
+- `^[0-9]+\.[0-9]+\.[0-9]+$`
+- `^[0-9a-f]{40}$`
+
+This leaves `major.minor`, `latest`, and run-scoped candidate tags mutable while
+making stable versions and full source revisions registry-enforced write-once
+identities. The production workflow reads the live Docker Hub repository
+settings and fails before its first image mutation if any repository identity,
+enabled flag, or rule differs. See Docker's
+[immutable tags documentation](https://docs.docker.com/docker-hub/repos/manage/hub-images/immutable-tags/).
 
 ### `studio-distributions-production`
 
@@ -138,15 +167,24 @@ permission.
 
 - Environment variable: `JUNJO_MIRROR_APP_ID`
 - Environment secret: `JUNJO_MIRROR_APP_PRIVATE_KEY`
-- Repository variables:
-  - `JUNJO_MINIMAL_MIRROR=mdrideout/junjo-ai-studio-minimal-build`
-  - `JUNJO_VM_CADDY_MIRROR=mdrideout/junjo-ai-studio-deployment-example`
 - Allowed ref: `studio-v*` tags.
 
-A fine-grained personal access token restricted to those two repositories and
-contents write is an acceptable temporary fallback. Do not use a classic
-account-wide token. The workflow's normal `GITHUB_TOKEN` cannot write to other
-repositories.
+The GitHub App is the only supported mirror-publishing identity. The workflow's
+normal `GITHUB_TOKEN` cannot write to other repositories, and personal access
+tokens are not a fallback path.
+
+### `studio-release-production`
+
+Purpose: authorize the final GitHub release after all immutable images,
+deployment mirrors, floating tags, descriptions, and evidence have completed.
+
+- Stored secrets: none.
+- Allowed ref: `studio-v*` tags.
+- Job: final release-evidence validation and GitHub release creation only.
+- Required workflow permission: `contents: write` on that job only.
+
+This environment does not grant Docker or mirror credentials. It separates the
+final repository mutation from both external publishing authorities.
 
 ### `studio-live-model-tests`
 
@@ -207,6 +245,10 @@ path-filtered component workflow a required branch-protection context.
 - The platform gate is the sole pull-request caller for reusable component
   workflows; component workflows retain path-filtered `push`, manual, and
   `workflow_call` triggers without duplicate direct pull-request triggers.
+- When deployment or release ownership is affected, the shared Studio release
+  rehearsal owns the Studio, telemetry, and deployment checks. The gate skips
+  the corresponding direct jobs; component-only changes still use direct
+  routing.
 - No live model credentials.
 - Fixed non-production application test secrets only.
 - Explicit `permissions: contents: read`.
@@ -220,8 +262,12 @@ path-filtered component workflow a required branch-protection context.
 
 ### Production workflow rules
 
-- Every production job references exactly one owning environment.
+- Every credentialed or externally mutating production job references exactly
+  one owning environment. Admission, tests, and registry smoke remain
+  uncredentialed.
 - Production Studio releases serialize and do not cancel in progress.
+- Registry mutation waits for the protected exclusive-authority assertion and
+  live Docker Hub immutable-tag proof.
 - Website previews may cancel superseded builds; Cloudflare production remains
   single-source through Git integration.
 - Mirror publication serializes per destination repository.
@@ -235,37 +281,54 @@ The previous standalone release workflow promoted floating Docker tags before
 deployment and mirror validation. The monorepo implementation replaces it with
 this ordering:
 
-1. Validate `studio-v<version>` against `apps/studio/VERSION` and confirm the
-   release commit is reachable from `master`.
+1. Validate `studio-v<version>` against `apps/studio/VERSION`, confirm the
+   release commit is reachable from `master`, and bind the fetched live tag
+   target to that source revision.
 2. Run Studio component tests and all deployment validation without production
    credentials.
-3. Build and push each architecture by content digest, without assigning a
+3. Confirm the old publisher is disabled and this monorepo is the exclusive
+   release authority; validate the live contract-owned immutable-tag rules on
+   all three Docker Hub repositories.
+4. Build and push each architecture by content digest, without assigning a
    mutable architecture tag.
-4. Assemble candidate multi-platform manifests, preflight all version and
+5. Assemble candidate multi-platform manifests, preflight all version and
    source-SHA tags across all three services, then publish exact tags only when
-   absent or already resolving to the identical digest.
-5. Run clean deployment smoke tests against the exact version.
-6. Build both self-contained archives and verify inventories, license files,
+   absent or already resolving to the identical digest. Registry-side rules
+   reject a competing writer instead of allowing an overwrite.
+6. Run clean deployment smoke tests against the exact digests.
+7. Validate both mirror identities and default branches together without mirror
+   mutation credentials.
+8. Mint a short-lived GitHub App installation token and revalidate both mirror
+   destinations with it before either push.
+9. Build both self-contained archives and verify inventories, license files,
    generated-source metadata, and exclusion of `.env` and `.env.bak`.
-7. Stage archives, hashes, image digests, and provenance as workflow artifacts.
-8. Mint a short-lived GitHub App installation token.
-9. Publish each deployment directory one way to its mirror.
-10. Verify each mirror tree and source metadata against the monorepo source SHA.
-11. Promote `major.minor` and `latest` image manifests only after distribution
+10. Publish each deployment directory one way to its mirror.
+11. Verify each mirror tree and source metadata against the monorepo source SHA.
+12. Stage archives, mirror reports, hashes, image digests, and provenance as
+    stable same-run workflow artifacts.
+13. Promote `major.minor` and `latest` image manifests only after distribution
     verification succeeds.
-12. Update Docker Hub descriptions.
-13. Create the GitHub release last and attach image evidence, archives, export
-    reports, and a complete release-evidence document containing source SHA,
-    workflow URL, image digests, archive hashes, tree hashes, and mirror
-    commits.
+14. Update Docker Hub descriptions.
+15. Revalidate source reachability and the live tag target, then create the
+    GitHub release last and attach image evidence, archives, export reports, and
+    a complete release-evidence document containing source SHA, workflow URL,
+    image digests, archive hashes, tree hashes, and mirror commits.
 
 A distribution failure prevents floating-tag promotion and release finalization.
 Exact version/SHA images already pushed remain immutable evidence and may be
 superseded only by a corrective release.
 
-Add a manual dry-run mode that performs validation and builds inspected
-artifacts but does not push images, update mirrors, promote tags, or publish a
-release.
+Each evidence producer owns one stable artifact name within the workflow run
+and overwrites only that artifact when it reruns. Every production job compares
+the attempt recorded by admission with its current workflow attempt. Do not use
+"Re-run failed jobs" for a production release: it fails closed because its
+successful admission and live-control jobs would be stale. Use "Re-run all
+jobs" so admission, Docker Hub controls, and all producer evidence are refreshed.
+Evidence from another workflow run is never selected.
+
+The same workflow supports manual dry-run and pull-request `workflow_call`
+rehearsal modes. They perform validation and build inspected artifacts but do
+not push images, update mirrors, promote tags, or publish a release.
 
 ## Distribution Export Contract
 
@@ -293,45 +356,101 @@ The export process:
 
 No mirror commit is imported back into canonical source.
 
+## Studio artifact license evidence
+
+Studio treats artifact licensing as a reviewable release input rather than an
+inference from the repository root license. Each backend, frontend, and
+ingestion production image must contain Junjo's `LICENSE`,
+`THIRD_PARTY_NOTICES.md`, and the component evidence defined by ADR 0002.
+
+Before approving the first release, and after every production dependency
+change:
+
+1. Run
+   `python3 tooling/scripts/validate_studio_artifact_licenses.py check --with-cargo-metadata`.
+2. Run `npm ci && npm run build` from `apps/studio/frontend`, then run
+   `python3 ../../../tooling/scripts/validate_studio_artifact_licenses.py check --verify-installed-frontend --frontend-dist dist`.
+3. Review the frontend and ingestion inventory diffs, including new packages,
+   license expressions, and the exact evidence for manual overrides.
+4. Determine whether upstream copyright notices or license texts beyond the
+   committed Studio notice must be added to the artifact.
+5. Inspect all three built production images and record the paths and hashes of
+   their `/usr/share/licenses/junjo-ai-studio/` contents.
+6. Record the reviewer, source commit, inventory hashes, image digests, and
+   decision in `MONOREPO_MIGRATION_RECORD.md`.
+
+The validator proves lock binding, dependency selection, reviewed expression
+sets, manual evidence, image copy declarations, and source-map exclusion. It
+does not make a legal conclusion or approve a release.
+
 ## Cloudflare Pages Cutover
+
+Do not repoint either existing production Pages project before the migration is
+merged. Current `master` does not contain the monorepo roots, so doing so would
+break the next production build. Gate A uses isolated preview projects; Gate C
+performs the production settings change under a short deployment freeze.
+If a legacy production project currently attempts and fails previews for the
+migration branch, disable previews for that branch only (or temporarily disable
+non-production previews) without changing its `master` production settings.
+Record the prior preview policy and restore the intended policy after cutover.
 
 ### Python API documentation
 
-Update the `junjo-python-api` Pages project:
+Create a temporary Python-documentation Pages project from the migration branch
+with these final settings:
 
 - repository: `mdrideout/junjo`
-- production branch: `master`
+- preview branch: `codex/platform-monorepo-migration`
 - root directory: `sdks/python`
-- build: install locked documentation dependencies and run Sphinx
+- runtime variable: `PYTHON_VERSION=3.13`
+- build command:
+  `python -m pip install uv==0.11.7 && uv sync --frozen --package junjo --extra dev && uv run sphinx-build -W -b html docs docs/_build/html`
 - output directory: `docs/_build/html` relative to the configured root
 - include build-watch paths:
   - `sdks/python/*`
   - `contracts/telemetry/*` when contract docs affect the site
   - relevant root workflow/tooling paths
-- preserve custom domain: `python-api.junjo.ai`
+- final production custom domain: `python-api.junjo.ai` (do not attach it to
+  the temporary project)
 
-Validate a preview before merging the source move. After merge, verify the
-custom domain, TLS, index, API pages, static assets, sitemap, and existing deep
-links.
+Validate its generated preview before merging the source move. Do not attach
+the production custom domain. Record the temporary Pages project, deployment
+ID, preview URL, source commit, root, runtime variable, exact build command,
+output directory, and result.
+
+At Gate C, freeze pushes to `master`, merge the validated revision, apply the
+same root/runtime/build/output settings to the existing `junjo-python-api`
+project, and trigger one production deployment. Preserve its current settings
+snapshot so the operator can restore them immediately if the monorepo build
+fails. Then verify `python-api.junjo.ai`, TLS, index, API pages, static assets,
+sitemap, and existing deep links before lifting the freeze.
 
 ### Junjo website
 
-Update the `junjo-website` Pages project:
+Create a temporary website Pages project from the migration branch with these
+final settings:
 
 - repository: `mdrideout/junjo`
-- production branch: `master`
+- preview branch: `codex/platform-monorepo-migration`
 - root directory: `apps/website`
-- install/build from the website's own lock and scripts
+- runtime variable: `NODE_VERSION=22.12.0`
+- build command: `npm ci && npm run build && npm run validate:build`
 - output directory: `dist` relative to the configured root
 - include build-watch paths:
   - `apps/website/*`
   - platform documentation paths intentionally consumed by the site
-- preserve custom domain: `junjo.ai`
+- final production custom domain: `junjo.ai` (do not attach it to the temporary
+  project)
 
-Validate a monorepo preview first. Disconnect the old
-`mdrideout/junjo-website` integration only after the monorepo production
-deployment passes domain, TLS, redirects, assets, sitemap, robots, and deep-link
-checks.
+Validate the isolated monorepo preview first without attaching `junjo.ai`. At
+Gate C, freeze source and hosting changes, merge the validated revision, point
+the existing production project at `mdrideout/junjo` `master` with these exact
+settings, and trigger one deployment. Restore the recorded old-project
+settings if it fails. Disconnect the old `mdrideout/junjo-website` integration
+only after the monorepo production deployment passes domain, TLS, redirects,
+assets, sitemap, robots, and deep-link checks. Record the same project,
+deployment, source, root, runtime, command, output, and result fields used for
+the Python documentation project.
 
 ## PyPI Trusted Publisher Cutover
 
@@ -379,30 +498,55 @@ request commit.
 
 ### Gate A: Repository-complete
 
-- [x] All three source histories imported and recorded.
-- [x] Current Junjo-owned source and artifacts are Apache-2.0.
-- [x] `.env.bak` is ignored and excluded everywhere it can be created.
+- [x] All planned source histories imported and recorded.
+- [x] Current Junjo-owned source, package metadata, and OCI metadata declare
+  Apache-2.0; Studio lock-bound artifact inventories and notices are present.
+- [ ] Complete and record an artifact-license review of the first built Studio
+  images, including copyright/license-text obligations for bundled frontend
+  and statically linked Rust dependencies.
+- [x] `.env`, `.env.bak`, and interrupted private staging files are ignored and
+  excluded everywhere they can be created.
 - [x] Stable required gate implemented.
-- [x] Website and deployment CI implemented.
+- [x] Website and deployment CI prove their complete current contracts.
 - [ ] Studio dry-run release and distribution export pass.
-- [ ] Python publish dry run passes.
-- [x] Combined-history secret scan passes.
-- [x] Root and scoped documentation match implementation.
+- [x] Python local package build and Twine validation pass.
+- [x] Combined-history and current-tree secret scans pass after remediation.
+- [x] Root and scoped documentation are prepared and locally validated.
+- [ ] Record the final pushed revision and successful required workflow runs.
+- [ ] Verify the applicable Tailwind Plus distribution right for historical
+  Catalyst commits/tags, or approve and complete the ADR 0002 history rewrite.
+- [ ] Create isolated Cloudflare preview projects with the monorepo roots and
+  exact build commands above, then record successful previews from the PR head.
 
-Agent implementation may resume after Gate A. External credentials and hosting
-do not block repository architecture work.
+Repository implementation produces the evidence required by Gate A. Production
+publishing, hosting cutover, and source-repository retirement do not begin until
+Gate A passes.
+
+The current-source license item does not waive the separate historical
+Catalyst checkbox above.
 
 ### Gate B: Configure production control plane
 
 - [ ] Snapshot destination and old-repository GitHub settings.
-- [ ] Configure GitHub environments and ref policies.
+- [x] Configure GitHub environments and ref policies.
 - [ ] Recreate/rotate only approved environment credentials.
+- [ ] Disable every old Studio release workflow and Docker Hub autobuild, remove
+  its Docker publishing authority, and record the settings evidence.
+- [ ] Configure and verify the two contract-owned Docker Hub immutable-tag
+  rules on the backend, frontend, and ingestion repositories.
+- [ ] Only after those two checks, set
+  `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in
+  `studio-dockerhub-production`.
 - [ ] Configure PyPI trusted publisher.
 - [ ] Install the mirror GitHub App on exactly two repositories.
-- [ ] Configure Cloudflare monorepo roots and preview paths.
 - [ ] Run every deployment against a preview, temporary branch, or temporary
   repository.
-- [ ] Update required checks only after stable contexts exist.
+- [x] Verify required checks are exactly `required` and `Gitleaks Scan` after
+  their stable contexts exist.
+- [ ] Enable repository action-SHA enforcement after the merged workflow set is
+  present and record the settings response.
+- [ ] Add and verify an immutable `studio-v*` tag ruleset, or record the exact
+  GitHub plan/API limitation that prevents it.
 
 ### Gate C: Production cutover
 
@@ -418,10 +562,14 @@ do not block repository architecture work.
 
 ### Gate D: Retire competing sources
 
-- [ ] Update old Studio and website default branches with Apache-2.0 and
-  canonical-source/archive notices.
-- [ ] Disable every old Studio workflow.
-- [ ] Delete old Studio repository secrets after destination publication works.
+- [ ] Update the old website default branch with Apache-2.0 and a
+  canonical-source/archive notice.
+- [ ] Update the old Studio default branch with a canonical-source/archive
+  notice that preserves the Tailwind Plus boundary; do not relabel retained
+  Catalyst-derived source as Apache-2.0.
+- [ ] Disable every remaining non-release old Studio workflow.
+- [ ] Delete remaining old Studio repository secrets after destination
+  publication works.
 - [ ] Archive the old Studio source repository.
 - [ ] Disconnect and archive the old website source repository after Cloudflare
   production observation.
@@ -437,13 +585,33 @@ These commands inventory names and settings, never secret values:
 ```bash
 gh repo view mdrideout/junjo \
   --json nameWithOwner,visibility,defaultBranchRef,url
-gh secret list --repo mdrideout/junjo
-gh variable list --repo mdrideout/junjo
+gh secret list --repo mdrideout/junjo --json name --jq '.[].name'
+gh variable list --repo mdrideout/junjo --json name --jq '.[].name'
 gh api repos/mdrideout/junjo/environments
+for environment in pypi studio-dockerhub-production studio-distributions-production studio-release-production; do
+  gh secret list --repo mdrideout/junjo --env "$environment" --json name --jq '.[].name'
+  gh variable list --repo mdrideout/junjo --env "$environment" --json name --jq '.[].name'
+done
 gh api repos/mdrideout/junjo/actions/permissions
 gh api repos/mdrideout/junjo/actions/permissions/workflow
 gh api repos/mdrideout/junjo/branches/master/protection
+gh api repos/mdrideout/junjo/rulesets --paginate
 gh workflow list --repo mdrideout/junjo --all
+```
+
+Record the live Docker Hub identity and immutability settings without tokens:
+
+```bash
+for image in \
+  mdrideout/junjo-ai-studio-backend \
+  mdrideout/junjo-ai-studio-frontend \
+  mdrideout/junjo-ai-studio-ingestion; do
+  namespace="${image%%/*}"
+  repository="${image#*/}"
+  curl --fail --silent --show-error --proto '=https' --tlsv1.2 \
+    "https://hub.docker.com/v2/namespaces/${namespace}/repositories/${repository}" |
+    jq '{namespace, name, immutable_tags_settings}'
+done
 ```
 
 Run the same inventory for the old Studio, website, and distribution

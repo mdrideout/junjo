@@ -49,8 +49,8 @@ jobs:
       - name: Run schema validation pipeline
         working-directory: apps/studio/backend
         env:
-          JUNJO_SESSION_SECRET: "tHYEOeDANnwNydQHmitFdkBYbuIrY68Xo1aPZ6WCPVI="
-          JUNJO_SECURE_COOKIE_KEY: "2AorEiMD7P/kiosXFgLvahxdABNVYMUzWHPghTweskk="
+          JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
         run: ./scripts/validate_rest_api_contracts.sh
       - name: Upload OpenAPI schema on failure
         if: failure()

@@ -21,6 +21,7 @@ from typing import Any
 
 
 DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_RELEASE_CONTRACT = DEFAULT_REPOSITORY_ROOT / "tooling/studio_release_contract.json"
 
 BACKEND = "junjo-ai-studio-backend"
 INGESTION = "junjo-ai-studio-ingestion"
@@ -69,6 +70,36 @@ def require(condition: bool, message: str) -> None:
     """Raise a clear validation error when an invariant is false."""
     if not condition:
         raise RuntimeError(message)
+
+
+def load_image_repositories(contract_path: Path) -> dict[str, str]:
+    """Load Studio image destinations from the platform release contract."""
+    require(contract_path.is_file(), f"Studio release contract is missing: {contract_path}")
+    try:
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Studio release contract contains invalid JSON") from error
+    require(isinstance(contract, dict), "Studio release contract must be an object")
+    images = contract.get("images")
+    require(isinstance(images, dict), "Studio release contract images must be an object")
+    require(
+        set(images) == {"backend", "frontend", "ingestion"},
+        "Studio release contract must define exactly backend, frontend, and ingestion images",
+    )
+    repositories: dict[str, str] = {}
+    for service in ("backend", "frontend", "ingestion"):
+        image = images[service]
+        require(isinstance(image, dict), f"release image {service} must be an object")
+        repository = image.get("repository")
+        require(
+            isinstance(repository, str) and bool(repository),
+            f"release image {service} repository must be a non-empty string",
+        )
+        repositories[service] = repository
+    return repositories
+
+
+IMAGE_REPOSITORIES = load_image_repositories(DEFAULT_RELEASE_CONTRACT)
 
 
 def run_command(
@@ -285,9 +316,9 @@ def validate_rendered_compose(
     )
 
     expected_images = {
-        BACKEND: f"mdrideout/junjo-ai-studio-backend:{studio_version}",
-        INGESTION: f"mdrideout/junjo-ai-studio-ingestion:{studio_version}",
-        FRONTEND: f"mdrideout/junjo-ai-studio-frontend:{studio_version}",
+        BACKEND: f"{IMAGE_REPOSITORIES['backend']}:{studio_version}",
+        INGESTION: f"{IMAGE_REPOSITORIES['ingestion']}:{studio_version}",
+        FRONTEND: f"{IMAGE_REPOSITORIES['frontend']}:{studio_version}",
     }
     studio_images: dict[str, str] = {}
     for service_name, service in services.items():
@@ -295,8 +326,15 @@ def validate_rendered_compose(
             isinstance(service, dict),
             f"{distribution.name}: {service_name} must be an object",
         )
+        require(
+            "container_name" not in service,
+            f"{distribution.name}: {service_name} must use a Compose project-scoped container name",
+        )
         image = service.get("image")
-        if isinstance(image, str) and image.startswith("mdrideout/junjo-ai-studio-"):
+        if isinstance(image, str) and any(
+            image.startswith(f"{repository}:")
+            for repository in IMAGE_REPOSITORIES.values()
+        ):
             studio_images[service_name] = image
     require(
         studio_images == expected_images,
@@ -352,11 +390,13 @@ def validate_rendered_compose(
         f"{distribution.name}: junjo-network must be the only declared network",
     )
     network = networks["junjo-network"]
+    expected_network_name = f"junjo-{project_root.name}-validation_junjo-network"
     require(
         isinstance(network, dict)
-        and network.get("name") == "junjo_network"
+        and network.get("name") == expected_network_name
         and network.get("driver") == "bridge",
-        f"{distribution.name}: junjo-network must render as the junjo_network bridge",
+        f"{distribution.name}: junjo-network must render as the project-scoped "
+        f"{expected_network_name} bridge",
     )
     require_shared_data_mount(backend, ingestion)
 

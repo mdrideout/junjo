@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -38,6 +41,11 @@ exporter = load_script_module(
     "export_studio_distribution",
     "tooling/scripts/export_studio_distribution.py",
 )
+smoke = load_script_module(
+    "smoke_studio_distribution",
+    "tooling/scripts/smoke_studio_distribution.py",
+)
+SMOKE_IMAGE_REPOSITORIES = smoke.load_image_repositories(REPOSITORY_ROOT)
 
 
 def core_service(image: str, port: int) -> dict[str, object]:
@@ -95,7 +103,7 @@ def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str
         "services": services,
         "networks": {
             "junjo-network": {
-                "name": "junjo_network",
+                "name": "junjo-fixture-validation_junjo-network",
                 "driver": "bridge",
                 "ipam": {},
             }
@@ -196,6 +204,281 @@ class DeploymentComposeContractTests(unittest.TestCase):
                 distribution, rendered, "1.2.3", Path("/fixture")
             )
 
+    def test_services_must_not_escape_compose_project_namespacing(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        rendered = rendered_compose("minimal")
+        rendered["services"][validator.BACKEND]["container_name"] = "fixed-backend"
+        with self.assertRaisesRegex(RuntimeError, "project-scoped container name"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
+
+    def test_network_must_be_scoped_to_the_compose_project(self) -> None:
+        distribution = next(
+            item for item in validator.DISTRIBUTIONS if item.name == "minimal"
+        )
+        rendered = rendered_compose("minimal")
+        rendered["networks"]["junjo-network"]["name"] = "junjo_network"
+        with self.assertRaisesRegex(RuntimeError, "project-scoped"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
+
+
+class DistributionSmokeContractTests(unittest.TestCase):
+    """Exercise exact-image, redaction, and environment smoke contracts offline."""
+
+    def test_registry_images_bind_every_service_repository_and_digest(self) -> None:
+        digest = "sha256:" + ("a" * 64)
+        arguments = [
+            f"{service}={repository}@{digest}"
+            for service, repository in SMOKE_IMAGE_REPOSITORIES.items()
+        ]
+        images = smoke.parse_published_images(arguments, SMOKE_IMAGE_REPOSITORIES)
+        self.assertEqual(set(images), set(smoke.CORE_SERVICES))
+        for service, image in images.items():
+            self.assertEqual(image.repository, SMOKE_IMAGE_REPOSITORIES[service])
+            self.assertEqual(image.digest, digest)
+
+    def test_registry_images_reject_missing_or_wrong_repository_bindings(self) -> None:
+        digest = "sha256:" + ("a" * 64)
+        with self.assertRaisesRegex(smoke.SmokeError, "requires exact images"):
+            smoke.parse_published_images(
+                [f"backend={SMOKE_IMAGE_REPOSITORIES['backend']}@{digest}"],
+                SMOKE_IMAGE_REPOSITORIES,
+            )
+        with self.assertRaisesRegex(smoke.SmokeError, "repository must be"):
+            smoke.parse_published_images(
+                [
+                    f"backend=example.invalid/backend@{digest}",
+                    f"frontend={SMOKE_IMAGE_REPOSITORIES['frontend']}@{digest}",
+                    f"ingestion={SMOKE_IMAGE_REPOSITORIES['ingestion']}@{digest}",
+                ],
+                SMOKE_IMAGE_REPOSITORIES,
+            )
+
+    def test_compose_images_must_exactly_match_requested_version(self) -> None:
+        rendered = rendered_compose("vm-caddy", version="1.2.3")
+        smoke.assert_compose_images(rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES)
+        rendered["services"][validator.FRONTEND]["image"] = (
+            "mdrideout/junjo-ai-studio-frontend:latest"
+        )
+        with self.assertRaisesRegex(smoke.SmokeError, "must use exact image"):
+            smoke.assert_compose_images(
+                rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES
+            )
+
+    def test_registry_compose_override_binds_every_service_to_its_digest(self) -> None:
+        digest = "sha256:" + ("c" * 64)
+        expected_images = self.expected_registry_images(digest)
+        runner = self.registry_runner(expected_images)
+        with tempfile.TemporaryDirectory(prefix="junjo-exact-images-") as directory:
+            runner.runtime_root = Path(directory)
+            runner.write_exact_image_override()
+            self.assertIsNotNone(runner.exact_image_override)
+            override = json.loads(
+                runner.exact_image_override.read_text(encoding="utf-8")
+            )
+            for service, compose_service in zip(
+                smoke.CORE_SERVICES, smoke.COMPOSE_CORE_SERVICES, strict=True
+            ):
+                expected = expected_images[service]
+                self.assertEqual(
+                    override["services"][compose_service]["image"],
+                    f"{expected.repository}@{expected.digest}",
+                )
+            command = runner.compose_command("up", "--detach")
+            self.assertIn("docker-compose.yml", command)
+            self.assertIn(str(runner.exact_image_override), command)
+
+    def test_registry_pull_uses_evidence_digest_instead_of_version_tag(self) -> None:
+        digest = "sha256:" + ("d" * 64)
+        expected_images = self.expected_registry_images(digest)
+        runner = self.registry_runner(expected_images)
+        commands: list[list[str]] = []
+
+        def run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+            commands.append(command)
+            stdout = f"Name: fixture\nDigest: {digest}\n" if "imagetools" in command else ""
+            return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr="")
+
+        with mock.patch.object(smoke, "run_command", side_effect=run):
+            runner.pull_exact_registry_images()
+
+        pull_commands = [command for command in commands if command[1] == "pull"]
+        self.assertEqual(len(pull_commands), len(smoke.CORE_SERVICES))
+        self.assertEqual(
+            {command[-1] for command in pull_commands},
+            {
+                f"{image.repository}@{image.digest}"
+                for image in expected_images.values()
+            },
+        )
+
+    def test_manifest_inspection_requires_a_valid_top_level_digest(self) -> None:
+        digest = "sha256:" + ("b" * 64)
+        output = f"Name: fixture\nMediaType: application/test\nDigest: {digest}\n"
+        self.assertEqual(smoke.remote_manifest_digest(output), digest)
+        with self.assertRaisesRegex(smoke.SmokeError, "did not return"):
+            smoke.remote_manifest_digest("Name: fixture\n")
+
+    def test_diagnostics_redact_full_credentials_and_logged_fragments(self) -> None:
+        credential = "credential-value-with-enough-entropy"
+        diagnostic = (
+            f"full={credential} prefix={credential[:12]} short={credential[:6]} "
+            f"suffix={credential[-4:]}"
+        )
+        redacted = smoke.redact(diagnostic, [credential])
+        self.assertNotIn(credential, redacted)
+        self.assertNotIn(credential[:12], redacted)
+        self.assertNotIn(credential[:6], redacted)
+        self.assertNotIn(credential[-4:], redacted)
+
+    def test_api_key_update_replaces_one_existing_assignment(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="junjo-smoke-env-test-") as directory:
+            environment = Path(directory) / ".env"
+            environment.write_text(
+                "JUNJO_ENV=development\n"
+                "JUNJO_AI_STUDIO_API_KEY=placeholder\n",
+                encoding="utf-8",
+            )
+            smoke.update_environment_value(
+                environment, "JUNJO_AI_STUDIO_API_KEY", "replacement"
+            )
+            text = environment.read_text(encoding="utf-8")
+            self.assertEqual(text.count("JUNJO_AI_STUDIO_API_KEY="), 1)
+            self.assertIn("JUNJO_AI_STUDIO_API_KEY=replacement", text)
+
+    def smoke_runner(self) -> Any:
+        return smoke.StudioDistributionSmoke(
+            repository_root=REPOSITORY_ROOT,
+            studio_version=(
+                REPOSITORY_ROOT / "apps/studio/VERSION"
+            ).read_text(encoding="utf-8").strip(),
+            image_source="local",
+            platform="linux/amd64",
+            expected_images={},
+            image_repositories=SMOKE_IMAGE_REPOSITORIES,
+            timeout_seconds=1,
+        )
+
+    def expected_registry_images(
+        self, digest: str
+    ) -> dict[str, smoke.PublishedImage]:
+        return {
+            service: smoke.PublishedImage(service, repository, digest)
+            for service, repository in SMOKE_IMAGE_REPOSITORIES.items()
+        }
+
+    def registry_runner(
+        self, expected_images: dict[str, smoke.PublishedImage]
+    ) -> Any:
+        return smoke.StudioDistributionSmoke(
+            repository_root=REPOSITORY_ROOT,
+            studio_version=(
+                REPOSITORY_ROOT / "apps/studio/VERSION"
+            ).read_text(encoding="utf-8").strip(),
+            image_source="registry",
+            platform="linux/amd64",
+            expected_images=expected_images,
+            image_repositories=SMOKE_IMAGE_REPOSITORIES,
+            timeout_seconds=1,
+        )
+
+    @contextlib.contextmanager
+    def mocked_successful_smoke(
+        self,
+        runner: Any,
+        *,
+        cleanup_error: Exception | None,
+    ) -> Any:
+        with contextlib.ExitStack() as stack:
+            for method_name in (
+                "prepare_runtime",
+                "build_local_images",
+                "build_distribution_images",
+                "start_core_services",
+                "wait_for_core_services",
+                "start_demo_application",
+                "wait_for_example_workflow",
+            ):
+                stack.enter_context(mock.patch.object(runner, method_name))
+            stack.enter_context(
+                mock.patch.object(runner, "create_api_key", return_value="test-key")
+            )
+            cleanup = stack.enter_context(
+                mock.patch.object(runner, "cleanup", return_value=cleanup_error)
+            )
+            yield cleanup
+
+    def test_cleanup_failure_fails_an_otherwise_successful_smoke(self) -> None:
+        runner = self.smoke_runner()
+        cleanup_error = smoke.SmokeError("sanitized cleanup failure")
+        output = io.StringIO()
+        with (
+            self.mocked_successful_smoke(
+                runner, cleanup_error=cleanup_error
+            ) as cleanup,
+            contextlib.redirect_stdout(output),
+            self.assertRaises(smoke.SmokeError) as raised,
+        ):
+            runner.execute()
+        self.assertIs(raised.exception, cleanup_error)
+        cleanup.assert_called_once_with()
+        self.assertNotIn("smoke passed", output.getvalue())
+
+    def test_successful_smoke_with_successful_cleanup_returns_normally(self) -> None:
+        runner = self.smoke_runner()
+        output = io.StringIO()
+        with (
+            self.mocked_successful_smoke(runner, cleanup_error=None) as cleanup,
+            contextlib.redirect_stdout(output),
+        ):
+            runner.execute()
+        cleanup.assert_called_once_with()
+        self.assertIn("all smoke resources were cleaned up", output.getvalue())
+
+    def test_cleanup_failure_does_not_mask_the_primary_smoke_failure(self) -> None:
+        runner = self.smoke_runner()
+        primary_error = smoke.SmokeError("primary smoke failure")
+        cleanup_error = smoke.SmokeError("sanitized cleanup failure")
+        diagnostics = io.StringIO()
+        with (
+            mock.patch.object(
+                runner, "prepare_runtime", side_effect=primary_error
+            ),
+            mock.patch.object(runner, "print_failure_logs"),
+            mock.patch.object(runner, "cleanup", return_value=cleanup_error) as cleanup,
+            contextlib.redirect_stderr(diagnostics),
+            self.assertRaises(smoke.SmokeError) as raised,
+        ):
+            runner.execute()
+        self.assertIs(raised.exception, primary_error)
+        cleanup.assert_called_once_with()
+        self.assertIn(str(cleanup_error), diagnostics.getvalue())
+
+    def test_cleanup_failure_diagnostics_are_redacted(self) -> None:
+        runner = self.smoke_runner()
+        credential = "cleanup-secret-with-enough-entropy"
+        runner.sensitive_values.append(credential)
+        with tempfile.TemporaryDirectory(prefix="junjo-cleanup-test-") as directory:
+            runner.runtime_root = Path(directory)
+            result = subprocess.CompletedProcess(
+                args=["docker", "compose", "down"],
+                returncode=1,
+                stdout=f"credential={credential}",
+                stderr=f"prefix={credential[:12]}",
+            )
+            with mock.patch.object(smoke.subprocess, "run", return_value=result):
+                cleanup_error = runner.cleanup()
+        self.assertIsInstance(cleanup_error, smoke.SmokeError)
+        diagnostics = str(cleanup_error)
+        self.assertNotIn(credential, diagnostics)
+        self.assertNotIn(credential[:12], diagnostics)
+        self.assertIn("<redacted>", diagnostics)
+
 
 class DistributionExportTests(unittest.TestCase):
     """Exercise committed-file export, policy rejection, and reproducibility."""
@@ -220,9 +503,12 @@ class DistributionExportTests(unittest.TestCase):
         compose = (
             REPOSITORY_ROOT / "apps/studio/deployments/minimal/docker-compose.yml"
         ).read_text(encoding="utf-8")
+        current_studio_version = (
+            REPOSITORY_ROOT / "apps/studio/VERSION"
+        ).read_text(encoding="utf-8").strip()
         self.write(
             "apps/studio/deployments/minimal/docker-compose.yml",
-            compose.replace("0.81.1", "1.2.3"),
+            compose.replace(current_studio_version, "1.2.3"),
         )
         env_example = (
             REPOSITORY_ROOT / "apps/studio/deployments/minimal/.env.example"

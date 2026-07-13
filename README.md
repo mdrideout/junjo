@@ -14,7 +14,8 @@ components:
 - [`apps/website`](apps/website) — the Junjo product and documentation website.
 - [`apps/studio/deployments`](apps/studio/deployments) — canonical source for
   the minimal and VM/Caddy Studio distributions. Their standalone GitHub
-  repositories are generated release mirrors, not separate sources of truth.
+  repositories are designated one-way release mirrors, not separate sources
+  of truth; the first monorepo-driven publication remains a cutover gate.
 - [`contracts/telemetry`](contracts/telemetry) — language-independent telemetry
   schemas and conformance fixtures shared by SDK emitters and Studio consumers.
 - [`docs/roadmaps`](docs/roadmaps) — cross-platform product and implementation
@@ -77,4 +78,6 @@ packaged components, including the [Python SDK](sdks/python/LICENSE),
 [VM/Caddy deployment](apps/studio/deployments/vm-caddy/LICENSE).
 
 Third-party dependencies and bundled notices remain subject to their own
-licenses.
+licenses. Studio's incorporated-source notices and historical provenance are
+recorded in [`apps/studio/THIRD_PARTY_NOTICES.md`](apps/studio/THIRD_PARTY_NOTICES.md)
+and [ADR 0002](docs/adr/0002-platform-licensing-and-third-party-material.md).

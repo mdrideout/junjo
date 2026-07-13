@@ -4,8 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "junjo-backend"
-version = "0.81.1"
+version = "0.81.2"
 description = "Junjo AI Studio Python Backend - LLM Observability Platform"
+license = "Apache-2.0"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.120.4",

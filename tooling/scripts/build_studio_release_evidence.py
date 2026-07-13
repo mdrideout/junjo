@@ -12,16 +12,20 @@ import tarfile
 from pathlib import Path
 from typing import Any
 
+from validate_studio_release_policy import (
+    EXPECTED_DISTRIBUTIONS,
+    EXPECTED_SERVICES,
+    load_release_contract,
+    parse_version,
+)
+
 
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 VERSION_PATTERN = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
-SERVICES = ("backend", "frontend", "ingestion")
-DISTRIBUTIONS = {
-    "minimal": "apps/studio/deployments/minimal",
-    "vm-caddy": "apps/studio/deployments/vm-caddy",
-}
+SERVICES = EXPECTED_SERVICES
+DISTRIBUTIONS = EXPECTED_DISTRIBUTIONS
 
 
 def require(condition: bool, message: str) -> None:
@@ -66,6 +70,15 @@ def load_json_object(path: Path, label: str) -> dict[str, Any]:
         raise RuntimeError(f"{label} is not valid UTF-8 JSON: {path}") from error
     require(isinstance(value, dict), f"{label} must contain a JSON object: {path}")
     return value
+
+
+def require_exact_keys(value: dict[str, Any], expected: set[str], label: str) -> None:
+    """Reject incomplete or ambiguous release evidence objects."""
+    actual = set(value)
+    require(
+        actual == expected,
+        f"{label} fields must be exactly {sorted(expected)}, found {sorted(actual)}",
+    )
 
 
 def sha256_file(path: Path) -> str:
@@ -175,34 +188,107 @@ def validate_archive_inventory(
             )
 
 
-def read_image_digests(image_directory: Path) -> dict[str, str]:
-    """Read and validate the three exact multi-platform image digests."""
+def read_image_evidence(
+    *,
+    image_directory: Path,
+    image_contracts: dict[str, Any],
+    studio_version: str,
+    source_revision: str,
+) -> dict[str, dict[str, object]]:
+    """Validate each published immutable image tag and its reinspected digest."""
     require(
         image_directory.is_dir(),
         f"image evidence directory is missing: {image_directory}",
     )
-    image_digests: dict[str, str] = {}
+    expected_files = {f"{service}.json" for service in SERVICES}
+    actual_files = {
+        path.relative_to(image_directory).as_posix()
+        for path in image_directory.rglob("*")
+        if path.is_file()
+    }
+    require(
+        actual_files == expected_files,
+        "image evidence files must be exactly "
+        f"{sorted(expected_files)}, found {sorted(actual_files)}",
+    )
+    image_evidence: dict[str, dict[str, object]] = {}
     for service in SERVICES:
-        path = image_directory / f"{service}.candidate-digest"
-        require(path.is_file(), f"{service} image digest evidence is missing: {path}")
-        digest = path.read_text(encoding="utf-8").strip()
+        report = load_json_object(
+            image_directory / f"{service}.json",
+            f"{service} image evidence",
+        )
+        require_exact_keys(
+            report,
+            {
+                "schema_version",
+                "service",
+                "repository",
+                "studio_version",
+                "source_revision",
+                "digest",
+                "tags",
+            },
+            f"{service} image evidence",
+        )
+        expected_repository = image_contracts[service]["repository"]
         require(
-            IMAGE_DIGEST_PATTERN.fullmatch(digest) is not None,
+            report["schema_version"] == 1, f"{service} image evidence schema must be 1"
+        )
+        require(
+            report["service"] == service,
+            f"{service} image evidence names the wrong service",
+        )
+        require(
+            report["repository"] == expected_repository,
+            f"{service} image repository does not match the release contract",
+        )
+        require(
+            report["studio_version"] == studio_version,
+            f"{service} image version does not match the release",
+        )
+        require(
+            report["source_revision"] == source_revision,
+            f"{service} image source revision does not match the release",
+        )
+        digest = report["digest"]
+        require(
+            isinstance(digest, str)
+            and IMAGE_DIGEST_PATTERN.fullmatch(digest) is not None,
             f"{service} image digest must be sha256 followed by 64 lowercase hex characters",
         )
-        image_digests[service] = digest
-    return image_digests
+        tags = report["tags"]
+        require(isinstance(tags, dict), f"{service} image tags must be an object")
+        require_exact_keys(
+            tags, {"version", "source_revision"}, f"{service} image tags"
+        )
+        expected_tags = {
+            "version": studio_version,
+            "source_revision": source_revision,
+        }
+        for role, expected_name in expected_tags.items():
+            tag = tags[role]
+            require(isinstance(tag, dict), f"{service} {role} tag must be an object")
+            require_exact_keys(tag, {"name", "digest"}, f"{service} {role} tag")
+            require(
+                tag["name"] == expected_name,
+                f"{service} {role} tag has the wrong name",
+            )
+            require(
+                tag["digest"] == digest,
+                f"{service} {role} tag does not resolve to the release digest",
+            )
+        image_evidence[service] = report
+    return image_evidence
 
 
 def validate_distribution(
     *,
     name: str,
-    canonical_source_path: str,
+    distribution_contract: dict[str, Any],
     evidence_directory: Path,
     source_repository: str,
     source_revision: str,
     studio_version: str,
-    mirror_commit: str,
 ) -> dict[str, object]:
     """Validate one export archive, export report, and mirror publication report."""
     export_report = load_json_object(
@@ -236,6 +322,9 @@ def validate_distribution(
 
     source = export_report.get("source")
     require(isinstance(source, dict), f"{name} export report source must be an object")
+    canonical_source_path = distribution_contract["canonical_source_path"]
+    mirror_repository = distribution_contract["mirror_repository"]
+    mirror_branch = distribution_contract["mirror_branch"]
     expected_source = {
         "schema_version": 1,
         "distribution": name,
@@ -276,15 +365,38 @@ def validate_distribution(
     )
     validate_archive_inventory(archive, manifest)
 
-    require_git_sha(f"{name} mirror commit", mirror_commit)
     mirror_report = load_json_object(
         evidence_directory / f"{name}-mirror.json",
         f"{name} mirror report",
     )
-    require(
-        mirror_report.get("commit") == mirror_commit,
-        f"{name} mirror report commit does not match the workflow output",
+    require_exact_keys(
+        mirror_report,
+        {
+            "distribution",
+            "repository",
+            "branch",
+            "commit",
+            "source_revision",
+            "changed",
+            "tree_sha256",
+        },
+        f"{name} mirror report",
     )
+    require(
+        mirror_report.get("distribution") == name,
+        f"{name} mirror report names the wrong distribution",
+    )
+    require(
+        mirror_report.get("repository") == mirror_repository,
+        f"{name} mirror repository does not match the release contract",
+    )
+    require(
+        mirror_report.get("branch") == mirror_branch,
+        f"{name} mirror branch does not match the release contract",
+    )
+    mirror_commit = mirror_report.get("commit")
+    require(isinstance(mirror_commit, str), f"{name} mirror commit must be a string")
+    require_git_sha(f"{name} mirror commit", mirror_commit)
     require(
         mirror_report.get("source_revision") == source_revision,
         f"{name} mirror source revision does not match the release",
@@ -293,11 +405,19 @@ def validate_distribution(
         mirror_report.get("tree_sha256") == tree_sha256,
         f"{name} mirror tree hash does not match the export",
     )
+    require(
+        isinstance(mirror_report.get("changed"), bool),
+        f"{name} mirror changed flag must be a boolean",
+    )
 
     return {
         "archive_sha256": archive_sha256,
         "tree_sha256": tree_sha256,
-        "mirror_commit": mirror_commit,
+        "mirror": {
+            "repository": mirror_repository,
+            "branch": mirror_branch,
+            "commit": mirror_commit,
+        },
         "source": source,
     }
 
@@ -311,8 +431,6 @@ def build_release_evidence(
     workflow_url: str,
     image_directory: Path,
     distribution_directory: Path,
-    minimal_mirror_commit: str,
-    vm_caddy_mirror_commit: str,
 ) -> dict[str, object]:
     """Validate every release input and return the complete evidence document."""
     require(
@@ -326,26 +444,50 @@ def build_release_evidence(
     require_one_line("source repository", source_repository)
     require_one_line("workflow URL", workflow_url)
     require_git_sha("source revision", source_revision)
+    contract = load_release_contract()
+    baseline = contract["completed_release_baseline"]
+    require(isinstance(baseline, str), "completed release baseline must be a string")
+    require(
+        parse_version(studio_version) > parse_version(baseline),
+        f"Studio version must be greater than completed baseline {baseline}",
+    )
     require(
         distribution_directory.is_dir(),
         f"distribution evidence directory is missing: {distribution_directory}",
     )
-
-    mirror_commits = {
-        "minimal": minimal_mirror_commit,
-        "vm-caddy": vm_caddy_mirror_commit,
+    expected_distribution_files = {
+        filename
+        for name in DISTRIBUTIONS
+        for filename in (
+            f"{name}-export.json",
+            f"{name}-mirror.json",
+            f"junjo-ai-studio-{name}-{studio_version}.tar.gz",
+        )
     }
+    actual_distribution_files = {
+        path.relative_to(distribution_directory).as_posix()
+        for path in distribution_directory.rglob("*")
+        if path.is_file()
+    }
+    require(
+        actual_distribution_files == expected_distribution_files,
+        "distribution evidence files must be exactly "
+        f"{sorted(expected_distribution_files)}, "
+        f"found {sorted(actual_distribution_files)}",
+    )
+
+    image_contracts = contract["images"]
+    distribution_contracts = contract["distributions"]
     distributions = {
         name: validate_distribution(
             name=name,
-            canonical_source_path=canonical_source_path,
+            distribution_contract=distribution_contracts[name],
             evidence_directory=distribution_directory,
             source_repository=source_repository,
             source_revision=source_revision,
             studio_version=studio_version,
-            mirror_commit=mirror_commits[name],
         )
-        for name, canonical_source_path in DISTRIBUTIONS.items()
+        for name in DISTRIBUTIONS
     }
     return {
         "schema_version": 1,
@@ -354,16 +496,21 @@ def build_release_evidence(
         "source_repository": source_repository,
         "source_revision": source_revision,
         "workflow_url": workflow_url,
-        "image_digests": read_image_digests(image_directory),
+        "images": read_image_evidence(
+            image_directory=image_directory,
+            image_contracts=image_contracts,
+            studio_version=studio_version,
+            source_revision=source_revision,
+        ),
         "distributions": distributions,
     }
 
 
 def build_release_notes(evidence: dict[str, object]) -> str:
     """Render concise deterministic Markdown notes from validated evidence."""
-    image_digests = evidence["image_digests"]
+    images = evidence["images"]
     distributions = evidence["distributions"]
-    require(isinstance(image_digests, dict), "image digests must be an object")
+    require(isinstance(images, dict), "images must be an object")
     require(isinstance(distributions, dict), "distributions must be an object")
     lines = [
         f"Validated Junjo AI Studio {evidence['studio_version']} release.",
@@ -371,9 +518,15 @@ def build_release_notes(evidence: dict[str, object]) -> str:
         f"Canonical source: {evidence['source_repository']}@{evidence['source_revision']}",
         f"Workflow: {evidence['workflow_url']}",
         "",
-        "Image digests:",
+        "Immutable image tags:",
     ]
-    lines.extend(f"- {service}: `{image_digests[service]}`" for service in SERVICES)
+    for service in SERVICES:
+        image = images[service]
+        require(isinstance(image, dict), f"{service} image evidence must be an object")
+        lines.append(
+            f"- {service}: `{image['repository']}@{image['digest']}` "
+            f"(tags `{image['studio_version']}` and `{image['source_revision']}`)"
+        )
     lines.extend(("", "Deployment distributions:"))
     for name in DISTRIBUTIONS:
         item = distributions[name]
@@ -382,7 +535,9 @@ def build_release_notes(evidence: dict[str, object]) -> str:
         )
         lines.append(
             f"- {name}: archive `{item['archive_sha256']}`, "
-            f"tree `{item['tree_sha256']}`, mirror `{item['mirror_commit']}`"
+            f"tree `{item['tree_sha256']}`, mirror "
+            f"`{item['mirror']['repository']}:{item['mirror']['branch']}@"
+            f"{item['mirror']['commit']}`"
         )
     return "\n".join(lines) + "\n"
 
@@ -399,8 +554,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--workflow-url", required=True)
     parser.add_argument("--image-directory", type=Path, required=True)
     parser.add_argument("--distribution-directory", type=Path, required=True)
-    parser.add_argument("--minimal-mirror-commit", required=True)
-    parser.add_argument("--vm-caddy-mirror-commit", required=True)
     parser.add_argument("--evidence-output", type=Path, required=True)
     parser.add_argument("--notes-output", type=Path, required=True)
     return parser
@@ -417,8 +570,6 @@ def main() -> int:
         workflow_url=args.workflow_url,
         image_directory=args.image_directory.resolve(),
         distribution_directory=args.distribution_directory.resolve(),
-        minimal_mirror_commit=args.minimal_mirror_commit,
-        vm_caddy_mirror_commit=args.vm_caddy_mirror_commit,
     )
     evidence_output = args.evidence_output.resolve()
     notes_output = args.notes_output.resolve()

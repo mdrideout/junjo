@@ -7,8 +7,8 @@ from pydantic_settings import SettingsConfigDict
 from app.config.settings import AppSettings
 
 # Valid 32-byte test keys (generated with: openssl rand -base64 32)
-TEST_COOKIE_KEY = "2VgT3TJSLHTtLvnvK+KQhNzzwMDtNcZrtIb4Q+BIP5I="
-TEST_SESSION_SECRET = "YnVpbHQgd2l0aCBjbGF1ZGUgY29kZSBmb3IgdGVzdGluZwo="
+TEST_COOKIE_KEY = "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
+TEST_SESSION_SECRET = "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM="
 
 
 class _IsolatedAppSettings(AppSettings):
