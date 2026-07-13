@@ -63,6 +63,12 @@ all three Studio repositories on 2026-07-13. The implemented production
 workflow will fail before registry mutation until Gate B installs the two exact
 contract rules and records this monorepo as the exclusive publisher.
 
+The operator accepted the existing `mdrideout` personal Docker Hub namespace as
+the permanent image namespace. No organization, repository rename, image copy,
+or parallel image path is part of the cutover. On 2026-07-13 the public Docker
+Hub API also reported `is_automated: false` for the backend, frontend, and
+ingestion repositories; Docker Hub Autobuild disablement is therefore complete.
+
 ## Final pull-request and merge evidence
 
 Pull request 12 merged with history preserved:
@@ -382,8 +388,10 @@ production releases remain cutover evidence and are not claimed here.
   owning environments.
 - [ ] Confirm the PyPI trusted publisher accepts the moved workflow.
 - [ ] Confirm Docker Hub credentials and image permissions.
-- [ ] Disable the old Studio publisher and Docker Hub autobuilds, configure the
-  exact immutable-tag rules on all three image repositories, and then set
+- [x] Confirm Docker Hub Autobuilds are disabled on all three image
+  repositories.
+- [ ] Disable the old Studio publisher, configure the exact immutable-tag rules
+  on all three existing `mdrideout` image repositories, and then set
   `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in the protected Docker Hub
   environment.
 - [ ] Migrate or close active Studio issues and roadmap items.

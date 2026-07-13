@@ -620,9 +620,10 @@ direct jobs.
   environment before using it.
 - Populate least-privilege Docker Hub and GitHub App credentials in their
   owning environments.
-- Disable every old Studio release workflow and Docker Hub autobuild, configure
-  the contract-owned immutable-tag rules on all three image repositories, and
-  only then set `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in
+- Docker Hub Autobuilds are already confirmed disabled. Disable every old
+  Studio release workflow, configure the contract-owned immutable-tag rules on
+  all three existing `mdrideout` image repositories, and only then set
+  `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo` in
   `studio-dockerhub-production`.
 - Configure PyPI Trusted Publishing for the moved workflow.
 - Configure the accepted immutable release-tag ruleset.

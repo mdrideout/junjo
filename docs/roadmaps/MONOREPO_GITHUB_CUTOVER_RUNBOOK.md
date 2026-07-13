@@ -72,6 +72,15 @@ rule `.*`). The release workflow intentionally refuses its first registry
 mutation until Gate B replaces that state with the two exact contract-owned
 rules and the exclusive-authority confirmation is present.
 
+The accepted image namespace remains the existing `mdrideout` personal Docker
+Hub namespace. This cutover does not create a `junjo` organization, rename
+repositories, copy images, or retain parallel image locations. The canonical
+repositories remain:
+
+- `mdrideout/junjo-ai-studio-backend`
+- `mdrideout/junjo-ai-studio-frontend`
+- `mdrideout/junjo-ai-studio-ingestion`
+
 ### Old Studio repository
 
 `mdrideout/junjo-ai-studio` currently remains public, unarchived, and able to
@@ -152,12 +161,11 @@ the monorepo from publishing until the old repository has lost that authority.
 2. In that old repository, open **Settings > Secrets and variables > Actions**
    and delete `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`. This makes an accidental
    re-enable harmless.
-3. In Docker Hub, open each of these repositories and check **Builds > Configure
-   automated builds**. Disable every Autobuild rule:
-   - `mdrideout/junjo-ai-studio-backend`
-   - `mdrideout/junjo-ai-studio-frontend`
-   - `mdrideout/junjo-ai-studio-ingestion`
-4. In each Docker Hub repository, open **Settings > General > Tag mutability
+3. No Docker Hub Autobuild action remains. The public Docker Hub API confirmed
+   `is_automated: false` for all three repositories on 2026-07-13. If the web
+   UI shows a **Builds** tab, it should contain no enabled Autobuild rule.
+4. In **My Hub > Repositories**, open each canonical repository listed above.
+   Select **Settings > General > Tag mutability
    settings**, select **Specific tags are immutable**, and add exactly:
    - `^[0-9]+\.[0-9]+\.[0-9]+$`
    - `^[0-9a-f]{40}$`
@@ -177,7 +185,7 @@ after verification. Docker documents this control under
    repository-scoped; do not grant Delete permission. Docker documents this UI
    under [personal access tokens](https://docs.docker.com/security/access-tokens/).
 2. Under **Environment secrets**, add:
-   - `DOCKERHUB_USERNAME`: the Docker Hub account name;
+   - `DOCKERHUB_USERNAME`: `mdrideout`;
    - `DOCKERHUB_TOKEN`: the new token, not the account password.
 3. Under **Environment variables**, add:
    - `STUDIO_RELEASE_AUTHORITY_CUTOVER=mdrideout/junjo`
@@ -631,9 +639,9 @@ item links to the detailed purpose, location, action, and verification above.
   security boundaries; it does not provide credentials or enable publishing.
 - [ ] [Transfer Docker publishing authority](#configure-studio-dockerhub-production):
   disable the old `Publish Docker Images` workflow, delete its Docker secrets,
-  disable Docker Hub Autobuilds, configure both immutable-tag rules on all three
-  image repositories, add new environment credentials, then add the authority
-  variable last.
+  configure both immutable-tag rules on the three existing `mdrideout` image
+  repositories, add the `mdrideout` credentials, then add the authority
+  variable last. Docker Hub Autobuilds are already confirmed disabled.
 - [ ] [Create and install the mirror GitHub App](#configure-studio-distributions-production),
   then store its App ID and private key in the distributions environment.
 - [ ] [Configure PyPI Trusted Publishing](#configure-the-pypi-trust-relationship)
