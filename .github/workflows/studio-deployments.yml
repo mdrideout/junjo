@@ -1,19 +1,6 @@
 name: Studio Deployments
 
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - "apps/studio/VERSION"
-      - "apps/studio/deployments/**"
-      - "tooling/scripts/build_studio_release_evidence.py"
-      - "tooling/scripts/export_studio_distribution.py"
-      - "tooling/scripts/publish_studio_distribution.py"
-      - "tooling/scripts/validate_studio_deployments.py"
-      - "tooling/tests/test_ci_release_tools.py"
-      - "tooling/tests/test_studio_deployment_tools.py"
-      - "tooling/tests/test_studio_release_evidence.py"
-      - ".github/workflows/studio-deployments.yml"
   push:
     branches: [master]
     paths:

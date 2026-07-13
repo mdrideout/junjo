@@ -1,11 +1,6 @@
 name: Website
 
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - "apps/website/**"
-      - ".github/workflows/website-ci.yml"
   push:
     branches: [master]
     paths:

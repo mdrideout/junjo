@@ -9,13 +9,6 @@ on:
       - "apps/studio/proto/**"
       - "contracts/telemetry/**"
       - ".github/workflows/studio-backend-tests.yml"
-  pull_request:
-    paths:
-      - "apps/studio/backend/**"
-      - "apps/studio/ingestion/**"
-      - "apps/studio/proto/**"
-      - "contracts/telemetry/**"
-      - ".github/workflows/studio-backend-tests.yml"
   workflow_dispatch:
   workflow_call:
 

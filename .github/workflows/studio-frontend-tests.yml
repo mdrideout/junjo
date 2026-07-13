@@ -7,11 +7,6 @@ on:
       - "apps/studio/frontend/**"
       - "contracts/telemetry/**"
       - ".github/workflows/studio-frontend-tests.yml"
-  pull_request:
-    paths:
-      - "apps/studio/frontend/**"
-      - "contracts/telemetry/**"
-      - ".github/workflows/studio-frontend-tests.yml"
   workflow_dispatch:
   workflow_call:
 

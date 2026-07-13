@@ -10,14 +10,6 @@ on:
       - "apps/studio/frontend/src/**/*schema*.ts"
       - "apps/studio/frontend/src/__tests__/contracts/**"
       - ".github/workflows/studio-rest-api-contract-validation.yml"
-  pull_request:
-    paths:
-      - "apps/studio/backend/app/**/schemas.py"
-      - "apps/studio/backend/scripts/export_openapi_schema.py"
-      - "apps/studio/backend/scripts/validate_rest_api_contracts.sh"
-      - "apps/studio/frontend/src/**/*schema*.ts"
-      - "apps/studio/frontend/src/__tests__/contracts/**"
-      - ".github/workflows/studio-rest-api-contract-validation.yml"
   workflow_dispatch:
   workflow_call:
 

@@ -194,7 +194,8 @@ Implement an always-triggered pull-request gate:
 
 Target required checks:
 
-- `Platform Gate / required`
+- `Platform Gate / required` in the pull-request UI (`required` as the branch
+  protection API context)
 - `Gitleaks Scan`
 
 Keep component job names visible for diagnostics, but do not make a
@@ -203,6 +204,9 @@ path-filtered component workflow a required branch-protection context.
 ### Pull-request workflow rules
 
 - No publishing credentials.
+- The platform gate is the sole pull-request caller for reusable component
+  workflows; component workflows retain path-filtered `push`, manual, and
+  `workflow_call` triggers without duplicate direct pull-request triggers.
 - No live model credentials.
 - Fixed non-production application test secrets only.
 - Explicit `permissions: contents: read`.

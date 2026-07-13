@@ -1,12 +1,6 @@
 name: Python SDK
 
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - "sdks/python/**"
-      - "contracts/telemetry/**"
-      - ".github/workflows/python-ci.yml"
   push:
     branches: [master]
     paths:

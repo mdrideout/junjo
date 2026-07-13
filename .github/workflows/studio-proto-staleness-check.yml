@@ -1,13 +1,6 @@
 name: Studio Proto Staleness
 
 on:
-  pull_request:
-    paths:
-      - "apps/studio/proto/**"
-      - "apps/studio/backend/app/proto_gen/**"
-      - "apps/studio/backend/scripts/generate_proto.sh"
-      - "apps/studio/ingestion/build.rs"
-      - ".github/workflows/studio-proto-staleness-check.yml"
   push:
     branches: [master]
     paths:

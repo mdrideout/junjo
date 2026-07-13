@@ -1,7 +1,6 @@
 name: Platform Integrity
 
 on:
-  pull_request:
   push:
     branches: [master]
   workflow_dispatch:
