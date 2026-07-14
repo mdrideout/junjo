@@ -2,7 +2,7 @@
 
 All notable changes to Junjo will be documented in this file.
 
-## FUTURE RELEASE
+## 0.64.0 - 2026-07-13
 
 ### Telemetry
 
