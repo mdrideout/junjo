@@ -42,6 +42,12 @@ python3 tooling/docs/assemble_public_docs.py --write
 python3 tooling/docs/assemble_public_docs.py --check
 ```
 
+The default channel is `next`. A release workflow can set
+`JUNJO_DOCS_CHANNEL=stable` only while checked out at the corresponding released
+source revision. The channel is visible on API pages and recorded in both
+manifests, so an unreleased source preview cannot silently masquerade as stable
+documentation.
+
 ## Language SDK artifact contract
 
 Each SDK owns its extraction dependency, lockfile, public-symbol policy, and

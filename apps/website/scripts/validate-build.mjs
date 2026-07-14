@@ -140,6 +140,7 @@ const legacyApiMap = readJson(join(manifestRoot, "legacy-api-map.json"));
 requireCondition(apiManifest.version === 1, "unsupported Python API manifest version");
 requireCondition(apiManifest.sdk === "python", "API manifest is not for the Python SDK");
 requireCondition(apiManifest.docstring_parser === "auto", "API manifest does not support automatic docstring styles");
+requireCondition(["next", "stable"].includes(apiManifest.channel), "API manifest has an invalid documentation channel");
 requireCondition(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(apiManifest.sdk_version), "invalid SDK version");
 requireCondition(/^[0-9a-f]{40}$/.test(apiManifest.source_revision), "API source revision is not a full commit SHA");
 requireCondition(apiManifest.symbol_count === apiManifest.symbols.length, "API symbol count is inconsistent");

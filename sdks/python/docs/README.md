@@ -52,3 +52,14 @@ npm --prefix apps/website run validate
 Use `migrate_rst.py --write` only when the RST sources intentionally changed.
 The content ledger will update source and target hashes so review can prove
 that every source document remains accounted for.
+
+Assembly defaults to the `next` documentation channel and labels generated API
+pages as source previews. Build `stable` only from the exact released checkout:
+
+```bash
+JUNJO_DOCS_CHANNEL=stable python3 tooling/docs/assemble_public_docs.py --write
+```
+
+The version in `pyproject.toml`, full source revision, and channel are embedded
+in the API and assembly manifests. Passing `stable` does not turn an arbitrary
+checkout into a release; release automation must select the released commit.

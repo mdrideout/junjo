@@ -26,7 +26,9 @@ Implemented:
 - build validation for every migrated route, API route/anchor, baseline symbol,
   internal link, search artifact, sitemap, and unconverted markup token; and
 - a path-routed GitHub Actions workflow that uploads the exact validated static
-  artifact while retaining Sphinx as a parity gate.
+  `next` artifact while retaining Sphinx as a parity gate; and
+- an explicit `next`/`stable` manifest and page label, with stable assembly
+  callable only from a release-selected checkout.
 
 The original audit contained 4,094 RST lines. Source work that landed during
 implementation expanded the live corpus to 4,113 lines and the Sphinx API

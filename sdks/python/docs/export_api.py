@@ -505,6 +505,7 @@ def render_object_page(
     entries: list[dict[str, str]],
     version: str,
     revision: str,
+    channel: str,
     symbol_links: dict[str, tuple[str, str]],
 ) -> str:
     title = public_path.rsplit(".", 1)[-1]
@@ -519,7 +520,7 @@ def render_object_page(
         f"  label: {json_string(title)}",
         "---",
         "",
-        f"<!-- generated-by: Griffe; sdk-version: {version}; source-revision: {revision} -->",
+        f"<!-- generated-by: Griffe; sdk-version: {version}; source-revision: {revision}; channel: {channel} -->",
         f'<a id="{html.escape(public_path, quote=True)}"></a>',
         "",
         f"`{public_path}`",
@@ -527,6 +528,8 @@ def render_object_page(
         f"**Kind:** {kind_label}",
         "",
         f"**SDK version:** `{version}`",
+        "",
+        f"**Documentation channel:** {'Next source preview' if channel == 'next' else 'Stable release'}",
         "",
     ]
     signature = signature_for(obj)
@@ -556,17 +559,25 @@ def render_object_page(
     return "\n".join(output).rstrip() + "\n"
 
 
-def render_module_page(section: ModuleSection, symbols: list[str], version: str, revision: str) -> str:
+def render_module_page(
+    section: ModuleSection,
+    symbols: list[str],
+    version: str,
+    revision: str,
+    channel: str,
+) -> str:
     output = [
         "---",
         f"title: {json_string(section.title)}",
         f"description: {json_string(f'Python API reference for {section.module}.')}",
         "---",
         "",
-        f"<!-- generated-by: Griffe; sdk-version: {version}; source-revision: {revision} -->",
+        f"<!-- generated-by: Griffe; sdk-version: {version}; source-revision: {revision}; channel: {channel} -->",
         f'<a id="module-{html.escape(section.module, quote=True)}"></a>',
         "",
         f"Module: `{section.module}`",
+        "",
+        f"**Documentation channel:** {'Next source preview' if channel == 'next' else 'Stable release'}",
         "",
     ]
     if section.introduction:
@@ -576,17 +587,31 @@ def render_module_page(section: ModuleSection, symbols: list[str], version: str,
     return "\n".join(output).rstrip() + "\n"
 
 
-def render_api_index(sections: list[tuple[ModuleSection, list[str]]], version: str, revision: str) -> str:
+def render_api_index(
+    sections: list[tuple[ModuleSection, list[str]]],
+    version: str,
+    revision: str,
+    channel: str,
+) -> str:
     output = [
         "---",
         'title: "Python API Reference"',
         'description: "Generated reference for the public Junjo Python SDK API."',
         "---",
         "",
-        f"<!-- generated-by: Griffe; sdk-version: {version}; source-revision: {revision} -->",
+        f"<!-- generated-by: Griffe; sdk-version: {version}; source-revision: {revision}; channel: {channel} -->",
         '<a id="api"></a>',
         "",
         f"Reference for Junjo Python SDK `{version}`.",
+        "",
+        f"**Documentation channel:** {'Next source preview' if channel == 'next' else 'Stable release'}",
+        "",
+        (
+            "This preview is generated from repository source and may describe changes "
+            "not yet in the published package."
+            if channel == "next"
+            else "This reference is generated from the released source revision."
+        ),
         "",
         "The common Agent definition and binding types are also available from `junjo`. "
         "Provider-neutral messages, results, and typed errors live in `junjo.agent`, and "
@@ -603,7 +628,7 @@ def render_api_index(sections: list[tuple[ModuleSection, list[str]]], version: s
     return "\n".join(output).rstrip() + "\n"
 
 
-def generate_api(output: Path, baseline_path: Path, version: str, revision: str) -> None:
+def generate_api(output: Path, baseline_path: Path, version: str, revision: str, channel: str) -> None:
     baseline = load_baseline(baseline_path)
     pages = page_symbols(baseline)
     baseline_entries: list[dict[str, str]] = baseline["objects"]
@@ -633,6 +658,7 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str)
                 baseline_entries,
                 version,
                 revision,
+                channel,
                 symbol_links,
             )
         path = output_path_for_symbol(output, public_path)
@@ -649,11 +675,14 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str)
         sections.append((section, symbols))
         module_path = output / "docs/python/api" / slug_for_symbol(section.module) / "index.md"
         module_path.parent.mkdir(parents=True, exist_ok=True)
-        module_path.write_text(render_module_page(section, symbols, version, revision), encoding="utf-8")
+        module_path.write_text(
+            render_module_page(section, symbols, version, revision, channel),
+            encoding="utf-8",
+        )
 
     index_path = output / "docs/python/api/index.md"
     index_path.parent.mkdir(parents=True, exist_ok=True)
-    index_path.write_text(render_api_index(sections, version, revision), encoding="utf-8")
+    index_path.write_text(render_api_index(sections, version, revision, channel), encoding="utf-8")
 
     unmapped: list[str] = []
     for entry in baseline_entries:
@@ -688,6 +717,7 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str)
         "sdk": "python",
         "sdk_version": version,
         "source_revision": revision,
+        "channel": channel,
         "generator": f"griffe-{distribution_version('griffe')}",
         "docstring_parser": "auto",
         "sphinx_baseline_hash": baseline["source_inventory_hash"],
@@ -703,10 +733,10 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str)
     print(f"Generated {page_count} API pages covering {len(manifest_symbols)} Sphinx objects.")
 
 
-def check_generation(output: Path, baseline: Path, version: str, revision: str) -> None:
+def check_generation(output: Path, baseline: Path, version: str, revision: str, channel: str) -> None:
     with tempfile_directory() as temporary:
         expected_root = temporary / "expected"
-        generate_api(expected_root, baseline, version, revision)
+        generate_api(expected_root, baseline, version, revision, channel)
         expected_files = {
             path.relative_to(expected_root): path.read_bytes() for path in expected_root.rglob("*") if path.is_file()
         }
@@ -749,6 +779,9 @@ def main() -> int:
     generate_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     generate_parser.add_argument("--version")
     generate_parser.add_argument("--revision")
+    generate_parser.add_argument(
+        "--channel", choices=("next", "stable"), default=os.environ.get("JUNJO_DOCS_CHANNEL", "next")
+    )
     generate_parser.add_argument("--clean", action="store_true")
 
     check_parser = subparsers.add_parser("check", help="verify an existing generated API export")
@@ -756,6 +789,9 @@ def main() -> int:
     check_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     check_parser.add_argument("--version")
     check_parser.add_argument("--revision")
+    check_parser.add_argument(
+        "--channel", choices=("next", "stable"), default=os.environ.get("JUNJO_DOCS_CHANNEL", "next")
+    )
 
     args = parser.parse_args()
     if args.command == "baseline":
@@ -770,9 +806,9 @@ def main() -> int:
     if args.command == "generate":
         if args.clean and args.output.exists():
             shutil.rmtree(args.output)
-        generate_api(args.output, args.baseline, version, revision)
+        generate_api(args.output, args.baseline, version, revision, args.channel)
         return 0
-    check_generation(args.output, args.baseline, version, revision)
+    check_generation(args.output, args.baseline, version, revision, args.channel)
     return 0
 
 

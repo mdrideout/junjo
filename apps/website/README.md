@@ -51,6 +51,10 @@ producer with its own lock, assembles one exact artifact, and publishes only
 file belongs only on the legacy `python-api.junjo.ai` project after the
 parallel-run gate; it must never be deployed on `junjo.ai`.
 
+CI labels ordinary source builds as `next`. A caller may request the `stable`
+channel only from the exact released checkout; the channel, SDK version, and
+full source revision are embedded in the generated pages and manifests.
+
 ## Content ownership
 
 - `src/content/docs/index.mdx` owns the Starlight splash page at `/`.

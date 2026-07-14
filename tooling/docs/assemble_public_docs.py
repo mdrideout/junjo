@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,7 @@ MANIFEST_OUTPUT = WEBSITE_ROOT / "public/docs-manifests/generated/python"
 ASSEMBLY_RECORD = WEBSITE_ROOT / ".docs-assembly/manifest.json"
 LEGACY_REDIRECT_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api._redirects"
 PYTHON_ROOT = REPOSITORY_ROOT / "sdks/python"
+DOCUMENTATION_CHANNEL = os.environ.get("JUNJO_DOCS_CHANNEL", "next")
 
 
 def sha256_file(path: Path) -> str:
@@ -54,6 +56,8 @@ def run_python_api_export(output: Path) -> None:
             "--clean",
             "--output",
             str(output),
+            "--channel",
+            DOCUMENTATION_CHANNEL,
         ],
         cwd=PYTHON_ROOT,
         check=True,
@@ -138,6 +142,7 @@ def build_assembly(root: Path) -> None:
         "version": 1,
         "python_sdk_version": api_manifest["sdk_version"],
         "python_source_revision": api_manifest["source_revision"],
+        "documentation_channel": api_manifest["channel"],
         "files": files,
     }
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
