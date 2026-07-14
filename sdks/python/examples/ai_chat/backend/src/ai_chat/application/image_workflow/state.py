@@ -13,6 +13,9 @@ class ImageWorkflowState(BaseState):
 
 
 class ImageWorkflowStore(BaseStore[ImageWorkflowState]):
+    async def set_prompt(self, prompt: str) -> None:
+        await self.set_state({"prompt": prompt})
+
     async def set_prepared_prompt(self, *, prompt: str, alt_text: str) -> None:
         await self.set_state({"prepared_prompt": prompt, "alt_text": alt_text})
 

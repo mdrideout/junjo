@@ -3,6 +3,7 @@ import type {
   CandidateEvidence,
   PayloadEvidence,
 } from '../schemas/agent-execution'
+import type { TraceEvidence } from '../../traces/schemas/trace-evidence'
 
 const fullEvidence = (value: unknown): PayloadEvidence => ({
   mode: 'full',
@@ -220,5 +221,55 @@ export function makeAgentExecutionDetailFixture(): AgentExecutionDetail {
         event_dropped_attributes: 0,
       },
     },
+  }
+}
+
+export function makeAgentTraceEvidenceFixture(): TraceEvidence {
+  const detail = makeAgentExecutionDetailFixture()
+  const storeId = detail.state.store_id
+  if (storeId === null) throw new Error('Expected admitted Agent fixture Store')
+  return {
+    trace_id: detail.summary.trace_id,
+    spans: [],
+    executables_by_span_id: {
+      [detail.summary.agent_span_id]: {
+        executable_type: 'agent',
+        owner_span_id: detail.summary.agent_span_id,
+        runtime_id: detail.summary.runtime_id,
+        store_id: storeId,
+        unavailable_store: null,
+        summary: detail.summary,
+        definition: detail.definition,
+        input: detail.input,
+        output: detail.output,
+        input_candidate: detail.input_candidate,
+        history_candidate: detail.history_candidate,
+        error: detail.error,
+        cancellation: detail.cancellation,
+        integrity: detail.integrity,
+      },
+    },
+    operations_by_owner_runtime_id: {
+      [detail.summary.runtime_id]: Object.fromEntries(
+        detail.operations.map((operation) => [operation.span_id, operation]),
+      ),
+    },
+    stores_by_id: {
+      [storeId]: {
+        store_id: storeId,
+        owner_span_id: detail.summary.agent_span_id,
+        owner_runtime_id: detail.summary.runtime_id,
+        owner_executable_type: 'agent',
+        detail: detail.state,
+        integrity: detail.integrity,
+      },
+    },
+    relationships_by_owner_span_id: {
+      [detail.summary.agent_span_id]: {
+        parent: detail.parent_executable,
+        nested: detail.nested_executables,
+      },
+    },
+    diagnostics: [],
   }
 }

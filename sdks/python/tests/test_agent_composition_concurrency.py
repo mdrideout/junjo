@@ -15,6 +15,7 @@ from junjo import (
     AgentLimits,
     BaseState,
     BaseStore,
+    ExecutionCorrelation,
     Graph,
     Hooks,
     ModelDriverBinding,
@@ -92,6 +93,20 @@ class ExecuteAgentNode(Node[ParentStore]):
         await store.set_answer(result.output.value)
 
 
+class ConflictingCorrelationNode(Node[ParentStore]):
+    def __init__(self, agent: Agent) -> None:
+        super().__init__()
+        self.agent = agent
+
+    async def service(self, store: ParentStore) -> None:
+        state = await store.get_state()
+        await self.agent.execute(
+            AgentInput(value=state.input),
+            dependencies=None,
+            correlation=ExecutionCorrelation(type="test.turn", id="replacement"),
+        )
+
+
 @pytest.mark.asyncio
 async def test_workflow_node_invokes_agent_with_truthful_semantic_parent(
     span_exporter: InMemorySpanExporter,
@@ -155,7 +170,9 @@ async def test_workflow_node_invokes_agent_with_truthful_semantic_parent(
         hooks=workflow_hooks,
     )
 
-    result = await workflow.execute()
+    result = await workflow.execute(
+        correlation=ExecutionCorrelation(type="test.turn", id="turn-1")
+    )
 
     assert result.state.answer == "from agent"
     assert agent_results[0].output.value == "from agent"
@@ -172,6 +189,61 @@ async def test_workflow_node_invokes_agent_with_truthful_semantic_parent(
     assert agent_span.attributes["junjo.parent_executable_definition_id"] == nodes[0].id
     assert agent_span.attributes["junjo.parent_executable_type"] == "node"
     assert "junjo.enclosing_graph_structural_id" not in agent_span.attributes
+    owner_spans = [
+        span
+        for span in spans
+        if span.attributes.get("junjo.span_type") in {"workflow", "node", "agent"}
+    ]
+    assert owner_spans
+    for owner_span in owner_spans:
+        assert owner_span.attributes["junjo.correlation.type"] == "test.turn"
+        assert owner_span.attributes["junjo.correlation.id"] == "turn-1"
+    operation_spans = [
+        span
+        for span in spans
+        if "junjo.agent.operation_type" in span.attributes
+    ]
+    assert operation_spans
+    for operation_span in operation_spans:
+        assert "junjo.correlation.type" not in operation_span.attributes
+        assert "junjo.correlation.id" not in operation_span.attributes
+
+
+@pytest.mark.asyncio
+async def test_nested_executable_cannot_replace_active_correlation() -> None:
+    agent = Agent(
+        key="conflicting_agent",
+        name="Conflicting Agent",
+        instructions="Do not run.",
+        input_type=AgentInput,
+        model=ModelDriverBinding.shared(
+            descriptor=descriptor(),
+            driver=ScriptedModelDriver(
+                [FinalOutputResponse(output={"value": "unused"})]
+            ),
+        ),
+        tools=[],
+        output_type=AgentOutput,
+    )
+
+    def graph_factory() -> Graph:
+        node = ConflictingCorrelationNode(agent)
+        return Graph(source=node, sinks=[node], edges=[])
+
+    workflow = Workflow(
+        name="Correlation Parent Workflow",
+        graph_factory=graph_factory,
+        store_factory=lambda: ParentStore(ParentState(input="question")),
+        max_iterations=1,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="cannot replace the active correlation",
+    ):
+        await workflow.execute(
+            correlation=ExecutionCorrelation(type="test.turn", id="original")
+        )
 
 
 class ChildState(BaseState):

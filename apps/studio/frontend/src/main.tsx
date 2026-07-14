@@ -22,6 +22,7 @@ import TraceDetails from './features/traces/TraceDetails.tsx'
 import PromptPlaygroundPage from './features/prompt-playground/PromptPlaygroundPage.tsx'
 import AgentExecutionsPage from './features/agent-executions/AgentExecutionsPage.tsx'
 import AgentExecutionDetailPage from './features/agent-executions/AgentExecutionDetailPage.tsx'
+import ExecutionResolverPage from './features/execution-resolution/ExecutionResolverPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -86,6 +87,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <AgentExecutionDetailPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/resolve/executable"
+                  element={
+                    <AuthGuard>
+                      <ExecutionResolverPage />
                     </AuthGuard>
                   }
                 />

@@ -9,14 +9,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from junjo import AgentError
+from junjo.agent import AgentModelError
 
 from ai_chat.bootstrap import ChatApplication
 from ai_chat.config import TelemetrySettings
-from ai_chat.domain.errors import ContactNotFoundError, ConversationNotFoundError
+from ai_chat.domain.errors import (
+    ContactNotFoundError,
+    ConversationNotFoundError,
+    TurnExecutionError,
+    TurnInProgressError,
+    TurnNotFoundError,
+)
 from ai_chat.telemetry import TelemetryRuntime, start_telemetry
 
 from .routes import router
-from .schemas import AgentErrorResponse
+from .schemas import TurnProblemResponse, TurnResponse
 
 
 async def _close_lifespan_resources(
@@ -76,19 +83,82 @@ def create_app(
 
     @app.exception_handler(ConversationNotFoundError)
     @app.exception_handler(ContactNotFoundError)
-    async def not_found(_: Request, error: Exception) -> JSONResponse:
-        return JSONResponse(status_code=404, content={"detail": str(error)})
+    @app.exception_handler(TurnNotFoundError)
+    async def not_found(request: Request, error: Exception) -> JSONResponse:
+        return _problem(
+            request=request,
+            status=404,
+            problem_type="resource-not-found",
+            title="Resource not found",
+            detail=str(error),
+        )
+
+    @app.exception_handler(TurnInProgressError)
+    async def turn_conflict(request: Request, error: TurnInProgressError) -> JSONResponse:
+        return _problem(
+            request=request,
+            status=409,
+            problem_type="turn-in-progress",
+            title="Conversation already has an active Turn",
+            detail=str(error),
+        )
+
+    @app.exception_handler(TurnExecutionError)
+    async def turn_execution_failed(request: Request, error: TurnExecutionError) -> JSONResponse:
+        turn = await application.store.get_turn(error.turn_id)
+        cause = error.__cause__
+        status = 502 if isinstance(cause, AgentModelError) else 500
+        return _problem(
+            request=request,
+            status=status,
+            problem_type="turn-execution-failed",
+            title="Turn execution failed",
+            detail=turn.failure.detail if turn.failure is not None else str(error),
+            turn=TurnResponse.from_domain(turn),
+        )
 
     @app.exception_handler(AgentError)
-    async def agent_error(_: Request, error: AgentError) -> JSONResponse:
-        response = AgentErrorResponse(
-            detail=str(error),
+    async def unowned_agent_error(request: Request, error: AgentError) -> JSONResponse:
+        return _problem(
+            request=request,
+            status=502 if isinstance(error, AgentModelError) else 500,
+            problem_type="agent-execution-failed",
+            title="Agent execution failed",
+            detail="Agent execution failed outside an admitted Turn.",
             agent_run_id=error.run_id,
             termination_reason=error.termination_reason,
         )
-        return JSONResponse(
-            status_code=500,
-            content=response.model_dump(mode="json"),
-        )
 
     return app
+
+
+def _problem(
+    *,
+    request: Request,
+    status: int,
+    problem_type: str,
+    title: str,
+    detail: str,
+    turn: TurnResponse | None = None,
+    agent_run_id: str | None = None,
+    termination_reason: str | None = None,
+) -> JSONResponse:
+    references = turn.execution_references if turn is not None else None
+    failure = turn.failure if turn is not None else None
+    response = TurnProblemResponse(
+        type=f"https://junjo.ai/problems/ai-chat/{problem_type}",
+        title=title,
+        status=status,
+        detail=detail,
+        instance=request.url.path,
+        turn_id=turn.id if turn is not None else None,
+        workflow_run_id=references.workflow_run_id if references is not None else None,
+        agent_run_id=(references.agent_run_id if references is not None else agent_run_id),
+        termination_reason=(failure.termination_reason if failure is not None else termination_reason),
+        turn=turn,
+    )
+    return JSONResponse(
+        status_code=status,
+        content=response.model_dump(mode="json"),
+        media_type="application/problem+json",
+    )

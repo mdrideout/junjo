@@ -20,7 +20,38 @@ from junjo.agent.testing import ScriptedModelDriver
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from ai_chat.domain.models import ChatAgentOutput, ImageArtifact, MessageRole
+from ai_chat.domain.errors import TurnExecutionError
+from ai_chat.domain.models import (
+    ChatAgentOutput,
+    ContextPolicyReference,
+    ImageArtifact,
+    TurnStatus,
+)
+
+
+async def _seed_completed_turn(
+    harness,
+    *,
+    turn_id: str,
+    user_text: str,
+    assistant_text: str,
+) -> None:
+    admitted = await harness.store.admit_turn(
+        conversation_id="demo",
+        turn_id=turn_id,
+        text=user_text,
+        context_policy=ContextPolicyReference(),
+    )
+    await harness.store.start_turn(admitted.id)
+    await harness.store.record_turn_outcome(
+        turn_id=admitted.id,
+        output=ChatAgentOutput(message=assistant_text),
+        agent_run_id=f"{turn_id}-agent",
+    )
+    await harness.store.complete_turn(
+        turn_id=admitted.id,
+        workflow_run_id=f"{turn_id}-workflow",
+    )
 
 
 @pytest.mark.asyncio
@@ -34,12 +65,10 @@ async def test_scenario_1_general_request_produces_and_persists_direct_response(
 
     result = await harness.turns.submit(conversation_id="demo", text="Hello")
 
-    messages = await harness.store.list_messages("demo")
-    assert [message.role for message in messages] == [MessageRole.USER, MessageRole.ASSISTANT]
-    assert result.user_message == messages[0]
-    assert result.assistant_message == messages[1]
+    turns = await harness.store.list_turns("demo")
+    assert turns == (result,)
     assert result.assistant_message.content == "A direct answer."
-    assert result.workflow_run_id != result.agent_run_id
+    assert result.execution_references.workflow_run_id != result.execution_references.agent_run_id
     assert harness.driver is not None
     assert len(harness.driver.requests) == 1
     assert harness.renderer.calls == []
@@ -64,15 +93,11 @@ async def test_scenario_2_history_question_calls_scoped_read_only_query_tool(
             FinalOutputResponse(output={"message": "You mentioned the Junjo project.", "image": None}),
         ],
     )
-    await harness.store.append_user_message(
-        conversation_id="demo",
+    await _seed_completed_turn(
+        harness,
         turn_id="prior-turn",
-        content="I started the Junjo project.",
-    )
-    await harness.store.append_assistant_message(
-        conversation_id="demo",
-        turn_id="prior-turn",
-        output=ChatAgentOutput(message="That sounds useful."),
+        user_text="I started the Junjo project.",
+        assistant_text="That sounds useful.",
     )
 
     result = await harness.turns.submit(
@@ -101,13 +126,13 @@ async def test_scenario_2_history_question_calls_scoped_read_only_query_tool(
             },
         }
     ]
-    messages = await harness.store.list_messages("demo")
-    assert len(messages) == 4
+    turns = await harness.store.list_turns("demo")
+    assert len(turns) == 2
     assert harness.renderer.calls == []
 
 
 @pytest.mark.asyncio
-async def test_scenario_3_image_request_calls_fresh_structured_workflow_tool(
+async def test_scenario_3_known_image_request_uses_explicit_image_subflow(
     tmp_path: Path,
 ) -> None:
     artifact = ImageArtifact(
@@ -128,20 +153,23 @@ async def test_scenario_3_image_request_calls_fresh_structured_workflow_tool(
                 ]
             ),
             FinalOutputResponse(
-                output={"message": "Here is the lighthouse.", "image": artifact.model_dump(mode="json")}
+                output={
+                    "message": "Here is the lighthouse.",
+                    "image": artifact.model_dump(mode="json"),
+                }
             ),
         ],
     )
 
     result = await harness.turns.submit(conversation_id="demo", text="Draw a lighthouse")
 
-    assert result.assistant_message.image == artifact
-    assert harness.renderer.calls == [("a lighthouse", "Deterministic illustration: a lighthouse")]
+    assert result.assistant_message is not None
+    assert result.assistant_message.image is not None
+    assert result.assistant_message.image.id == artifact.id
+    assert result.execution_references.agent_run_id is None
+    assert harness.renderer.calls == [("Draw a lighthouse", "Deterministic illustration: Draw a lighthouse")]
     assert harness.driver is not None
-    assert len(harness.driver.requests) == 2
-    tool_result = harness.driver.requests[1].to_json()["messages"][-1]
-    assert tool_result["toolName"] == "create_image"
-    assert tool_result["result"]["artifact"]["id"] == "rendered-image"
+    assert len(harness.driver.requests) == 0
 
 
 @pytest.mark.asyncio
@@ -163,14 +191,18 @@ async def test_scenario_4_malformed_tool_arguments_fail_before_tool_side_effect(
         ],
     )
 
-    with pytest.raises(AgentToolInputValidationError) as raised:
+    with pytest.raises(TurnExecutionError) as raised:
         await harness.turns.submit(conversation_id="demo", text="Search history")
 
-    assert raised.value.tool_name == "search_conversation_history"
-    assert raised.value.state.tool_call_admitted_count == 0
-    assert raised.value.state.tool_call_started_count == 0
-    messages = await harness.store.list_messages("demo")
-    assert [message.role for message in messages] == [MessageRole.USER]
+    cause = raised.value.__cause__
+    assert isinstance(cause, AgentToolInputValidationError)
+    assert cause.tool_name == "search_conversation_history"
+    assert cause.state.tool_call_admitted_count == 0
+    assert cause.state.tool_call_started_count == 0
+    turns = await harness.store.list_turns("demo")
+    assert len(turns) == 1
+    assert turns[0].status is TurnStatus.FAILED
+    assert turns[0].assistant_message is None
     assert harness.renderer.calls == []
 
 
@@ -206,19 +238,24 @@ async def test_scenario_5_nested_workflow_failure_surfaces_at_tool_agent_and_out
         ],
     )
 
-    with pytest.raises(AgentToolError) as raised:
-        await harness.turns.submit(conversation_id="demo", text="Create a failing image")
+    with pytest.raises(TurnExecutionError) as raised:
+        await harness.turns.submit(
+            conversation_id="demo",
+            text="Surprise me with something visual",
+        )
 
-    assert raised.value.tool_name == "create_image"
-    assert isinstance(raised.value.__cause__, ImageRenderFailure)
-    assert raised.value.state.tool_call_started_count == 1
-    assert raised.value.state.tool_call_completed_count == 0
-    messages = await harness.store.list_messages("demo")
-    assert [message.role for message in messages] == [MessageRole.USER]
+    cause = raised.value.__cause__
+    assert isinstance(cause, AgentToolError)
+    assert cause.tool_name == "create_image"
+    assert isinstance(cause.__cause__, ImageRenderFailure)
+    assert cause.state.tool_call_started_count == 1
+    assert cause.state.tool_call_completed_count == 0
+    turns = await harness.store.list_turns("demo")
+    assert turns[0].status is TurnStatus.FAILED
 
     spans = tuple(span_exporter.get_finished_spans())
     outer = _named_span(spans, "Chat Turn Workflow")
-    execute_agent = _named_span(spans, "ExecuteAgentNode")
+    execute_agent = _named_span(spans, "CreateGeneralAgentResponseNode")
     agent = _named_span(spans, "AI Chat Agent")
     tool = _operation_span(spans, "tool")
     nested = _named_span(spans, "Create Chat Image Workflow")
@@ -233,7 +270,7 @@ async def test_scenario_5_nested_workflow_failure_surfaces_at_tool_agent_and_out
     _assert_parent(tool, agent)
     _assert_parent(nested, tool)
     _assert_parent(render_image, nested)
-    assert not any(span.name == "PersistResultNode" for span in spans)
+    assert not any(span.name == "PersistOutcomeNode" for span in spans)
 
 
 @pytest.mark.asyncio
@@ -265,16 +302,18 @@ async def test_scenario_6_looping_model_is_stopped_before_next_model_operation(
         ],
     )
 
-    with pytest.raises(AgentLimitExceededError) as raised:
+    with pytest.raises(TurnExecutionError) as raised:
         await harness.turns.submit(conversation_id="demo", text="Loop")
 
-    assert raised.value.limit_kind == "model_requests"
-    assert raised.value.limit == 2
-    assert raised.value.attempted_count == 3
+    cause = raised.value.__cause__
+    assert isinstance(cause, AgentLimitExceededError)
+    assert cause.limit_kind == "model_requests"
+    assert cause.limit == 2
+    assert cause.attempted_count == 3
     assert harness.driver is not None
     assert len(harness.driver.requests) == 2
-    messages = await harness.store.list_messages("demo")
-    assert [message.role for message in messages] == [MessageRole.USER]
+    turns = await harness.store.list_turns("demo")
+    assert turns[0].status is TurnStatus.FAILED
 
 
 class BlockingImageRenderer(RecordingImageRenderer):
@@ -315,7 +354,12 @@ async def test_scenario_7_cancellation_drains_active_nested_workflow_and_propaga
             )
         ],
     )
-    task = asyncio.create_task(harness.turns.submit(conversation_id="demo", text="Draw and wait"))
+    task = asyncio.create_task(
+        harness.turns.submit(
+            conversation_id="demo",
+            text="Surprise me with something visual",
+        )
+    )
     await asyncio.wait_for(renderer.started.wait(), timeout=2)
 
     task.cancel("test cancellation")
@@ -324,12 +368,12 @@ async def test_scenario_7_cancellation_drains_active_nested_workflow_and_propaga
 
     assert task.done()
     assert renderer.cancelled.is_set()
-    messages = await harness.store.list_messages("demo")
-    assert [message.role for message in messages] == [MessageRole.USER]
+    turns = await harness.store.list_turns("demo")
+    assert turns[0].status is TurnStatus.CANCELLED
 
     spans = tuple(span_exporter.get_finished_spans())
     outer = _named_span(spans, "Chat Turn Workflow")
-    execute_agent = _named_span(spans, "ExecuteAgentNode")
+    execute_agent = _named_span(spans, "CreateGeneralAgentResponseNode")
     agent = _named_span(spans, "AI Chat Agent")
     tool = _operation_span(spans, "tool")
     nested = _named_span(spans, "Create Chat Image Workflow")
@@ -344,7 +388,7 @@ async def test_scenario_7_cancellation_drains_active_nested_workflow_and_propaga
     _assert_parent(tool, agent)
     _assert_parent(nested, tool)
     _assert_parent(render_image, nested)
-    assert not any(span.name == "PersistResultNode" for span in spans)
+    assert not any(span.name == "PersistOutcomeNode" for span in spans)
 
 
 @pytest.mark.asyncio
@@ -362,27 +406,23 @@ async def test_scenario_8_concurrent_turns_share_definition_but_not_run_state(
         descriptor=scripted_descriptor(),
         factory=driver_factory,
     )
-    harness = make_harness(tmp_path, binding=binding)
+    harness = make_harness(tmp_path, binding=binding, include_second_conversation=True)
 
     first, second = await asyncio.gather(
         harness.turns.submit(conversation_id="demo", text="first input"),
-        harness.turns.submit(conversation_id="demo", text="second input"),
+        harness.turns.submit(conversation_id="demo-2", text="second input"),
     )
 
-    assert first.agent_run_id != second.agent_run_id
-    assert first.workflow_run_id != second.workflow_run_id
+    assert first.execution_references.agent_run_id != second.execution_references.agent_run_id
+    assert first.execution_references.workflow_run_id != second.execution_references.workflow_run_id
     assert first.user_message.turn_id != second.user_message.turn_id
     assert len(drivers) == 2
     captured_inputs = sorted(
         str(driver.requests[0].to_json()["messages"][-1]["input"]["message"]) for driver in drivers
     )
     assert captured_inputs == ["first input", "second input"]
-    messages = await harness.store.list_messages("demo")
-    assert len(messages) == 4
-    assert {message.turn_id for message in messages} == {
-        first.user_message.turn_id,
-        second.user_message.turn_id,
-    }
+    assert await harness.store.list_turns("demo") == (first,)
+    assert await harness.store.list_turns("demo-2") == (second,)
 
 
 def _named_span(spans: tuple[ReadableSpan, ...], name: str) -> ReadableSpan:

@@ -11,6 +11,7 @@ class ChatDependencies:
 
     conversation_id: str
     turn_id: str
+    before_sequence: int
     history: HistoryReader
     contacts: ContactReader
     images: ImageRenderer

@@ -11,7 +11,11 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
 from ai_chat import __version__
-from ai_chat.config import TelemetrySettings
+from ai_chat.config import (
+    STUDIO_SERVICE_NAME,
+    STUDIO_SERVICE_NAMESPACE,
+    TelemetrySettings,
+)
 
 
 class _TelemetryProvider(Protocol):
@@ -68,8 +72,8 @@ def start_telemetry(settings: TelemetrySettings) -> TelemetryRuntime:
     _require_unowned_global_provider_slots()
     resource = Resource.create(
         {
-            "service.namespace": "junjo.examples",
-            "service.name": "ai-chat",
+            "service.namespace": STUDIO_SERVICE_NAMESPACE,
+            "service.name": STUDIO_SERVICE_NAME,
             "service.version": __version__,
         }
     )
@@ -98,7 +102,10 @@ def start_telemetry(settings: TelemetrySettings) -> TelemetryRuntime:
         except BaseException as cleanup_error:
             raise BaseExceptionGroup(
                 "telemetry provider installation and cleanup both failed",
-                [RuntimeError("OpenTelemetry providers are already installed"), cleanup_error],
+                [
+                    RuntimeError("OpenTelemetry providers are already installed"),
+                    cleanup_error,
+                ],
             ) from None
         raise RuntimeError("OpenTelemetry providers are already installed")
 

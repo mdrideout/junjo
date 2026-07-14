@@ -16,22 +16,15 @@ export interface AgentExecutionDetailRequestState {
 
 export interface AgentExecutionsState {
   lists: Record<string, AgentExecutionListRequestState>
-  details: Record<string, AgentExecutionDetailRequestState>
 }
 
 export const initialAgentExecutionsState: AgentExecutionsState = {
   lists: {},
-  details: {},
 }
 
 function listRequestState(state: AgentExecutionsState, key: string): AgentExecutionListRequestState {
   state.lists[key] ??= { data: [], loading: false, error: null }
   return state.lists[key]
-}
-
-function detailRequestState(state: AgentExecutionsState, key: string): AgentExecutionDetailRequestState {
-  state.details[key] ??= { data: null, loading: false, error: null }
-  return state.details[key]
 }
 
 export const agentExecutionsSlice = createSlice({
@@ -44,12 +37,6 @@ export const agentExecutionsSlice = createSlice({
       },
       prepare: (query: AgentExecutionQuery) => ({ payload: query }),
     },
-    fetchAgentExecutionDetail: {
-      reducer: () => {
-        // Listener middleware owns the request.
-      },
-      prepare: (payload: { traceId: string; agentSpanId: string }) => ({ payload }),
-    },
     setListLoading: (state, action: PayloadAction<{ key: string; loading: boolean }>) => {
       listRequestState(state, action.payload.key).loading = action.payload.loading
     },
@@ -58,15 +45,6 @@ export const agentExecutionsSlice = createSlice({
     },
     setListData: (state, action: PayloadAction<{ key: string; data: AgentExecutionSummary[] }>) => {
       listRequestState(state, action.payload.key).data = action.payload.data
-    },
-    setDetailLoading: (state, action: PayloadAction<{ key: string; loading: boolean }>) => {
-      detailRequestState(state, action.payload.key).loading = action.payload.loading
-    },
-    setDetailError: (state, action: PayloadAction<{ key: string; error: string | null }>) => {
-      detailRequestState(state, action.payload.key).error = action.payload.error
-    },
-    setDetailData: (state, action: PayloadAction<{ key: string; data: AgentExecutionDetail }>) => {
-      detailRequestState(state, action.payload.key).data = action.payload.data
     },
   },
 })

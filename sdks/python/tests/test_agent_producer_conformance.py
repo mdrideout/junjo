@@ -29,6 +29,7 @@ from junjo import (
     AgentLimits,
     BaseState,
     BaseStore,
+    ExecutionCorrelation,
     Graph,
     Hooks,
     ModelDriverBinding,
@@ -467,7 +468,18 @@ async def _execute_scenario(  # noqa: C901
             tools=(_tool("lookup", workflow_service),),
         )
         with suppress(Exception):
-            await agent.execute(question, dependencies=None)
+            await agent.execute(
+                question,
+                dependencies=None,
+                correlation=(
+                    ExecutionCorrelation(
+                        type="ai_chat.turn",
+                        id="turn-fixture-001",
+                    )
+                    if scenario == "tool_invokes_nested_workflow"
+                    else None
+                ),
+            )
         return
 
     if scenario == "standalone_agent_under_non_junjo_span":

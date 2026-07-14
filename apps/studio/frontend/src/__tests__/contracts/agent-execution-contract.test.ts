@@ -24,10 +24,7 @@ const AgentOpenApiSurfaceSchema = z
     paths: z
       .object({
         '/api/v1/agent-executions': z.object({ get: OperationSchema }).passthrough(),
-        '/api/v1/agent-executions/{trace_id}/{agent_span_id}': z
-          .object({ get: OperationSchema })
-          .passthrough(),
-        '/api/v1/workflow-executions/{trace_id}/{workflow_span_id}/store': z
+        '/api/v1/trace-evidence/{trace_id}': z
           .object({ get: OperationSchema })
           .passthrough(),
       })
@@ -38,10 +35,7 @@ const AgentOpenApiSurfaceSchema = z
 describe('API Contract: Agent execution routes', () => {
   const surface = AgentOpenApiSurfaceSchema.parse(openapiSpec)
   const listOperation = surface.paths['/api/v1/agent-executions'].get
-  const detailOperation =
-    surface.paths['/api/v1/agent-executions/{trace_id}/{agent_span_id}'].get
-  const workflowStoreOperation =
-    surface.paths['/api/v1/workflow-executions/{trace_id}/{workflow_span_id}/store'].get
+  const detailOperation = surface.paths['/api/v1/trace-evidence/{trace_id}'].get
 
   function expectSeparatedErrorContracts(
     operation: z.infer<typeof OperationSchema>,
@@ -101,8 +95,8 @@ describe('API Contract: Agent execution routes', () => {
     )
   })
 
-  it('publishes canonical trace/span detail identity and typed evidence errors', () => {
-    expect(detailOperation.operationId).toBe('get_agent_execution_detail')
+  it('publishes one cohesive trace detail document with transport validation only', () => {
+    expect(detailOperation.operationId).toBe('get_trace_evidence')
     expect(detailOperation.parameters).toMatchObject([
       {
         name: 'trace_id',
@@ -110,27 +104,21 @@ describe('API Contract: Agent execution routes', () => {
         required: true,
         schema: { pattern: '^[0-9a-f]{32}$' },
       },
-      {
-        name: 'agent_span_id',
-        in: 'path',
-        required: true,
-        schema: { pattern: '^[0-9a-f]{16}$' },
-      },
     ])
     expect(detailOperation.responses['200']).toMatchObject({
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/AgentExecutionDetail' },
+          schema: { $ref: '#/components/schemas/TraceEvidence' },
         },
       },
     })
-    expectSeparatedErrorContracts(
-      detailOperation,
-      '#/components/schemas/AgentEvidenceErrorResponse',
-    )
-    expectSeparatedErrorContracts(
-      workflowStoreOperation,
-      '#/components/schemas/WorkflowEvidenceErrorResponse',
-    )
+    expect(detailOperation.responses['409']).toBeUndefined()
+    expect(detailOperation.responses['422']).toMatchObject({
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/HTTPValidationError' },
+        },
+      },
+    })
   })
 })

@@ -19,6 +19,7 @@ import {
 } from '../../traces/schemas/schemas'
 import tracesSlice from '../../traces/store/slice'
 import workflowDetailSlice from './store/slice'
+import { makeTraceEvidence } from '../../traces/testing/make-trace-evidence'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
 import {
   rawStateEventIdentity,
@@ -87,7 +88,7 @@ function makeStore(spans: OtelSpan[], stateEventScrollTarget: StateEventIdentity
       },
       tracesState: {
         serviceNames: { data: [], loading: false, error: false },
-        traceSpans: { [workflowSpan.trace_id]: spans },
+        traceEvidence: { [workflowSpan.trace_id]: makeTraceEvidence(spans) },
         loading: false,
         error: false,
       },

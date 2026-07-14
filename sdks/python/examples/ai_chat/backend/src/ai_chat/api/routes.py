@@ -1,16 +1,18 @@
-"""Awaited request/response routes with no polling or background execution."""
+"""Turn-oriented routes over application-owned background execution."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, status
 
 from ai_chat.bootstrap import ChatApplication
 
 from .schemas import (
     ConversationListResponse,
     ConversationSummary,
-    MessageListResponse,
-    MessageResponse,
+    CreateContactRequest,
+    CreateContactResponse,
+    PublicConfigResponse,
     SubmitTurnRequest,
-    SubmitTurnResponse,
+    TurnListResponse,
+    TurnResponse,
 )
 
 router = APIRouter(prefix="/api")
@@ -23,6 +25,11 @@ def _application(request: Request) -> ChatApplication:
     return application
 
 
+@router.get("/config")
+async def public_config(request: Request) -> PublicConfigResponse:
+    return PublicConfigResponse.from_settings(_application(request).debug)
+
+
 @router.get("/conversations")
 async def list_conversations(request: Request) -> ConversationListResponse:
     conversations = await _application(request).list_conversations()
@@ -31,23 +38,41 @@ async def list_conversations(request: Request) -> ConversationListResponse:
     )
 
 
-@router.get("/conversations/{conversation_id}/messages")
-async def list_messages(conversation_id: str, request: Request) -> MessageListResponse:
-    messages = await _application(request).list_messages(conversation_id)
-    return MessageListResponse(
+@router.get("/conversations/{conversation_id}/turns")
+async def list_turns(conversation_id: str, request: Request) -> TurnListResponse:
+    turns = await _application(request).list_turns(conversation_id)
+    return TurnListResponse(
         conversation_id=conversation_id,
-        messages=tuple(MessageResponse.from_domain(item) for item in messages),
+        turns=tuple(TurnResponse.from_domain(item) for item in turns),
     )
 
 
-@router.post("/conversations/{conversation_id}/turns")
+@router.get("/turns/{turn_id}")
+async def get_turn(turn_id: str, request: Request) -> TurnResponse:
+    turn = await _application(request).store.get_turn(turn_id)
+    return TurnResponse.from_domain(turn)
+
+
+@router.post("/contacts", status_code=status.HTTP_201_CREATED)
+async def create_contact(
+    body: CreateContactRequest,
+    request: Request,
+) -> CreateContactResponse:
+    result = await _application(request).contacts.create(body.sex)
+    return CreateContactResponse(conversation=ConversationSummary.from_domain(result))
+
+
+@router.post(
+    "/conversations/{conversation_id}/turns",
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def submit_turn(
     conversation_id: str,
     body: SubmitTurnRequest,
     request: Request,
-) -> SubmitTurnResponse:
-    result = await _application(request).turns.submit(
+) -> TurnResponse:
+    turn = await _application(request).admit_turn(
         conversation_id=conversation_id,
         text=body.text,
     )
-    return SubmitTurnResponse.from_domain(result)
+    return TurnResponse.from_domain(turn)

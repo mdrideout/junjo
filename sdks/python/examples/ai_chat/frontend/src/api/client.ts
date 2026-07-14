@@ -1,14 +1,20 @@
 import { z } from 'zod'
 import {
-  AgentErrorResponseSchema,
   ConversationsResponseSchema,
+  CreateContactRequestSchema,
+  CreateContactResponseSchema,
   CreateTurnRequestSchema,
-  MessagesResponseSchema,
-  TurnResponseSchema,
+  PublicConfigResponseSchema,
+  TurnListResponseSchema,
+  TurnProblemResponseSchema,
+  TurnSchema,
   type ConversationsResponse,
+  type CreateContactRequest,
+  type CreateContactResponse,
   type CreateTurnRequest,
-  type MessagesResponse,
-  type TurnResponse,
+  type PublicConfig,
+  type Turn,
+  type TurnListResponse,
 } from './schemas'
 
 export function normalizeApiBaseUrl(value: string | undefined): string {
@@ -32,7 +38,10 @@ export function normalizeApiBaseUrl(value: string | undefined): string {
   return parsed.origin
 }
 
-const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
+const DEFAULT_API_BASE_URL = 'http://localhost:26252'
+const API_BASE_URL = normalizeApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL,
+)
 
 function rejectAmbiguousUrlCharacters(value: string): void {
   if (value.includes('\\') || Array.from(value).some(character => {
@@ -71,18 +80,24 @@ export function resolveApiAssetUrl(path: string, baseUrl = API_BASE_URL): string
 
 export class ApiError extends Error {
   readonly status: number
+  readonly turn: Turn | null
+  readonly workflowRunId: string | null
   readonly agentRunId: string | null
   readonly terminationReason: string | null
 
   constructor(
     status: number,
     detail = `Chat API request failed (${status}).`,
+    turn: Turn | null = null,
+    workflowRunId: string | null = null,
     agentRunId: string | null = null,
     terminationReason: string | null = null,
   ) {
     super(detail)
     this.name = 'ApiError'
     this.status = status
+    this.turn = turn
+    this.workflowRunId = workflowRunId
     this.agentRunId = agentRunId
     this.terminationReason = terminationReason
   }
@@ -95,13 +110,15 @@ async function apiError(response: Response): Promise<ApiError> {
   } catch {
     return new ApiError(response.status)
   }
-  const parsed = AgentErrorResponseSchema.safeParse(body)
+  const parsed = TurnProblemResponseSchema.safeParse(body)
   if (!parsed.success) return new ApiError(response.status)
   return new ApiError(
     response.status,
     parsed.data.detail,
-    parsed.data.agent_run_id,
-    parsed.data.termination_reason,
+    parsed.data.turn ?? null,
+    parsed.data.workflow_run_id ?? null,
+    parsed.data.agent_run_id ?? null,
+    parsed.data.termination_reason ?? null,
   )
 }
 
@@ -115,22 +132,39 @@ async function requestJson<T>(
   return schema.parse(await response.json())
 }
 
+export function getPublicConfig(signal?: AbortSignal): Promise<PublicConfig> {
+  return requestJson('/api/config', PublicConfigResponseSchema, { signal })
+}
+
 export function getConversations(signal?: AbortSignal): Promise<ConversationsResponse> {
   return requestJson('/api/conversations', ConversationsResponseSchema, { signal })
 }
 
-export async function getConversationMessages(
+export function createContact(request: CreateContactRequest): Promise<CreateContactResponse> {
+  const body = CreateContactRequestSchema.parse(request)
+  return requestJson('/api/contacts', CreateContactResponseSchema, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export function getTurn(turnId: string, signal?: AbortSignal): Promise<Turn> {
+  return requestJson(`/api/turns/${encodeURIComponent(turnId)}`, TurnSchema, { signal })
+}
+
+export async function getConversationTurns(
   conversationId: string,
   signal?: AbortSignal,
-): Promise<MessagesResponse> {
+): Promise<TurnListResponse> {
   const id = encodeURIComponent(conversationId)
   const result = await requestJson(
-    `/api/conversations/${id}/messages`,
-    MessagesResponseSchema,
+    `/api/conversations/${id}/turns`,
+    TurnListResponseSchema,
     { signal },
   )
   if (result.conversation_id !== conversationId) {
-    throw new Error('Chat API returned messages for a different conversation.')
+    throw new Error('Chat API returned turns for a different conversation.')
   }
   return result
 }
@@ -138,12 +172,12 @@ export async function getConversationMessages(
 export async function createTurn(
   conversationId: string,
   request: CreateTurnRequest,
-): Promise<TurnResponse> {
+): Promise<Turn> {
   const body = CreateTurnRequestSchema.parse(request)
   const id = encodeURIComponent(conversationId)
   const result = await requestJson(
     `/api/conversations/${id}/turns`,
-    TurnResponseSchema,
+    TurnSchema,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

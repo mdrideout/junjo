@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import subprocess
 import sys
@@ -11,12 +12,17 @@ from pathlib import Path
 import httpx
 import pytest
 from conftest import make_harness
-from junjo.agent import AgentAdmissionError, FinalOutputResponse, ToolCall, ToolCallsResponse
+from junjo.agent import (
+    AgentAdmissionError,
+    FinalOutputResponse,
+    ToolCall,
+    ToolCallsResponse,
+)
 
 from ai_chat.api.app import create_app
 from ai_chat.api.schemas import MessageResponse
 from ai_chat.bootstrap import ChatApplication
-from ai_chat.config import Settings, TelemetrySettings
+from ai_chat.config import ModelProvider, Settings, TelemetrySettings
 from ai_chat.telemetry import TelemetryRuntime
 
 
@@ -35,24 +41,70 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
         ) as client:
             conversations = await client.get("/api/conversations")
             assert conversations.status_code == 200
-            assert conversations.json() == {"conversations": [{"id": "demo", "title": "Demo conversation"}]}
+            assert conversations.json() == {
+                "conversations": [
+                    {
+                        "id": "demo",
+                        "title": "Demo conversation",
+                        "contact": {
+                            "id": "contact-1",
+                            "first_name": "Junjo",
+                            "last_name": "Guide",
+                            "sex": "female",
+                            "age": 31,
+                            "city": "Brooklyn",
+                            "state": "NY",
+                            "bio": "A deterministic application contact.",
+                            "avatar_url": "/api/images/avatar-1.svg",
+                        },
+                        "last_message_at": None,
+                    }
+                ]
+            }
+
+            config = await client.get("/api/config")
+            assert config.status_code == 200
+            assert config.json() == {
+                "debug_enabled": False,
+                "studio_ui_url": None,
+                "service_namespace": "junjo.examples",
+                "service_name": "ai-chat",
+            }
 
             turn = await client.post(
                 "/api/conversations/demo/turns",
                 json={"text": "Hello from the API"},
             )
-            assert turn.status_code == 200
-            payload = turn.json()
+            assert turn.status_code == 202
+            admitted = turn.json()
+            assert admitted["status"] == "admitted"
+            payload = await _terminal_turn(client, admitted["id"])
             assert set(payload) == {
+                "object_type",
+                "schema_version",
+                "id",
+                "revision",
                 "conversation_id",
-                "workflow_run_id",
-                "agent_run_id",
+                "sequence",
+                "status",
+                "context_policy",
                 "user_message",
                 "assistant_message",
+                "execution_references",
+                "failure",
+                "created_at",
+                "updated_at",
+                "completed_at",
             }
+            assert payload["object_type"] == "ai_chat.turn"
+            assert payload["schema_version"] == 1
+            assert payload["status"] == "completed"
             assert payload["conversation_id"] == "demo"
             assert payload["user_message"]["content"] == "Hello from the API"
             assert payload["assistant_message"]["content"] == "API response"
+            assert payload["execution_references"]["workflow_run_id"]
+            assert payload["execution_references"]["agent_run_id"]
+            assert payload["failure"] is None
             for message in (payload["user_message"], payload["assistant_message"]):
                 assert set(message) == {
                     "id",
@@ -66,11 +118,11 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
                 assert message["image_url"] is None
                 assert message["image_alt"] is None
 
-            messages = await client.get("/api/conversations/demo/messages")
-            assert messages.status_code == 200
-            assert messages.json() == {
+            turns = await client.get("/api/conversations/demo/turns")
+            assert turns.status_code == 200
+            assert turns.json() == {
                 "conversation_id": "demo",
-                "messages": [payload["user_message"], payload["assistant_message"]],
+                "turns": [payload],
             }
 
             rejected = await client.post(
@@ -87,7 +139,7 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
 
 
 @pytest.mark.asyncio
-async def test_admitted_agent_failure_is_a_strict_server_error_envelope(
+async def test_background_agent_failure_is_persisted_and_pollable(
     tmp_path: Path,
 ) -> None:
     harness = make_harness(
@@ -111,18 +163,18 @@ async def test_admitted_agent_failure_is_a_strict_server_error_envelope(
             transport=httpx.ASGITransport(app=app),
             base_url="http://test",
         ) as client:
-            response = await client.post(
+            admitted = await client.post(
                 "/api/conversations/demo/turns",
                 json={"text": "Search history"},
             )
+            assert admitted.status_code == 202
+            body = await _terminal_turn(client, admitted.json()["id"])
 
-    assert response.status_code == 500
-    assert response.json() == {
-        "detail": "Arguments for Tool 'search_conversation_history' failed declared validation.",
-        "agent_run_id": response.json()["agent_run_id"],
-        "termination_reason": "tool_input_validation_error",
-    }
-    assert response.json()["agent_run_id"]
+    assert body["status"] == "failed"
+    assert body["execution_references"]["workflow_run_id"] is None
+    assert body["execution_references"]["agent_run_id"]
+    assert body["failure"]["termination_reason"] == "tool_input_validation_error"
+    assert body["failure"]["code"] == "agent_execution_failed"
 
 
 @pytest.mark.asyncio
@@ -143,7 +195,7 @@ async def test_internal_agent_admission_failure_is_not_misclassified_as_http_inp
             run_id="admission-run",
         )
 
-    monkeypatch.setattr(harness.turns, "submit", fail_admission)
+    monkeypatch.setattr(harness.turns, "admit", fail_admission)
     app = create_app(application=harness.application)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
@@ -156,11 +208,30 @@ async def test_internal_agent_admission_failure_is_not_misclassified_as_http_inp
             )
 
     assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/problem+json")
     assert response.json() == {
-        "detail": "Agent admission machinery failed.",
+        "type": "https://junjo.ai/problems/ai-chat/agent-execution-failed",
+        "title": "Agent execution failed",
+        "status": 500,
+        "detail": "Agent execution failed outside an admitted Turn.",
+        "instance": "/api/conversations/demo/turns",
+        "turn_id": None,
+        "workflow_run_id": None,
         "agent_run_id": "admission-run",
         "termination_reason": "internal_error",
+        "turn": None,
     }
+
+
+async def _terminal_turn(client: httpx.AsyncClient, turn_id: str) -> dict[str, object]:
+    for _ in range(100):
+        response = await client.get(f"/api/turns/{turn_id}")
+        assert response.status_code == 200
+        payload = response.json()
+        if payload["status"] in {"completed", "failed", "cancelled"}:
+            return payload
+        await asyncio.sleep(0)
+    raise AssertionError("Turn did not reach a terminal state.")
 
 
 def test_api_image_url_and_alt_are_one_strict_pair() -> None:
@@ -190,6 +261,8 @@ class RecordingApplication(ChatApplication):
         super().__init__(
             store=source.store,
             turns=source.turns,
+            contacts=source.contacts,
+            images=source.images,
             image_directory=source.image_directory,
         )
         self._events = events
@@ -521,3 +594,33 @@ def test_telemetry_boolean_and_port_accept_explicit_valid_values(
     assert settings.telemetry is not None
     assert settings.telemetry.insecure is False
     assert settings.telemetry.port == 443
+
+
+@pytest.mark.parametrize(
+    ("provider", "required_key"),
+    [("gemini", "GEMINI_API_KEY"), ("grok", "XAI_API_KEY")],
+)
+def test_live_provider_selection_requires_its_own_key(
+    monkeypatch: pytest.MonkeyPatch,
+    provider: str,
+    required_key: str,
+) -> None:
+    monkeypatch.setenv("AI_CHAT_MODEL_PROVIDER", provider)
+    monkeypatch.delenv(required_key, raising=False)
+
+    with pytest.raises(ValueError, match=required_key):
+        Settings.from_environment()
+
+
+def test_demo_provider_is_the_explicit_credential_free_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AI_CHAT_MODEL_PROVIDER", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+
+    settings = Settings.from_environment()
+
+    assert settings.model_provider is ModelProvider.DEMO
+    assert settings.gemini_api_key is None
+    assert settings.xai_api_key is None

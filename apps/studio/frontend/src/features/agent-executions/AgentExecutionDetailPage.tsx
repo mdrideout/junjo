@@ -4,8 +4,8 @@ import ErrorPage from '../../components/errors/ErrorPage'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { AgentExecutionDetailView } from './components/AgentExecutionDetailView'
 import { SpanIdSchema, TraceIdSchema } from './schemas/agent-execution'
-import { AgentExecutionsActions } from './store/slice'
 import { selectAgentExecutionDetailRequest } from './store/selectors'
+import { TracesStateActions } from '../traces/store/slice'
 
 export default function AgentExecutionDetailPage() {
   const { traceId, agentSpanId } = useParams()
@@ -21,7 +21,7 @@ export default function AgentExecutionDetailPage() {
 
   useEffect(() => {
     if (identityIsValid && traceId && agentSpanId) {
-      dispatch(AgentExecutionsActions.fetchAgentExecutionDetail({ traceId, agentSpanId }))
+      dispatch(TracesStateActions.fetchTraceEvidence({ traceId }))
     }
   }, [agentSpanId, dispatch, identityIsValid, traceId])
 

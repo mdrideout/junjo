@@ -18,9 +18,15 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 
 from ai_chat.adapters.persistence import InMemoryChatStore
 from ai_chat.application.chat_agent import create_chat_agent
+from ai_chat.application.contact_workflow import ContactCreationService
 from ai_chat.application.turn_workflow import ChatTurnService
 from ai_chat.bootstrap import ChatApplication
-from ai_chat.domain.models import ContactProfile, Conversation, ImageArtifact
+from ai_chat.domain.models import (
+    ContactProfile,
+    ContactSex,
+    Conversation,
+    ImageArtifact,
+)
 
 
 @pytest.fixture
@@ -90,15 +96,33 @@ def make_harness(
     renderer: RecordingImageRenderer | None = None,
     limits: AgentLimits | None = None,
     id_factory: Callable[[], str] | None = None,
+    include_second_conversation: bool = False,
 ) -> Harness:
     ids = id_factory or SequenceIds()
     store = InMemoryChatStore(
-        conversations=(Conversation(id="demo", title="Demo conversation", contact_id="contact-1"),),
+        conversations=(
+            Conversation(id="demo", title="Demo conversation", contact_id="contact-1"),
+            *(
+                (Conversation(id="demo-2", title="Second conversation", contact_id="contact-1"),)
+                if include_second_conversation
+                else ()
+            ),
+        ),
         contacts=(
             ContactProfile(
                 id="contact-1",
-                display_name="Junjo Guide",
+                first_name="Junjo",
+                last_name="Guide",
+                sex=ContactSex.FEMALE,
+                age=31,
+                city="Brooklyn",
+                state="NY",
                 bio="A deterministic application contact.",
+                avatar=ImageArtifact(
+                    id="avatar-1",
+                    url="/api/images/avatar-1.svg",
+                    alt_text="Portrait of Junjo Guide",
+                ),
             ),
         ),
         id_factory=ids,
@@ -116,8 +140,13 @@ def make_harness(
     agent = create_chat_agent(model, limits=limits)
     turns = ChatTurnService(
         agent=agent,
-        messages=store,
+        turns=store,
         history=store,
+        contacts=store,
+        images=image_renderer,
+        id_factory=ids,
+    )
+    contacts = ContactCreationService(
         contacts=store,
         images=image_renderer,
         id_factory=ids,
@@ -126,6 +155,8 @@ def make_harness(
     application = ChatApplication(
         store=store,
         turns=turns,
+        contacts=contacts,
+        images=image_renderer,
         image_directory=image_directory,
     )
     return Harness(

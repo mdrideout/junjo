@@ -11,6 +11,27 @@ from ai_chat.domain.models import ImageArtifact
 from ai_chat.domain.ports import IdFactory
 
 
+def ensure_seed_avatar(directory: Path) -> None:
+    """Create the seeded contact avatar in the application artifact store."""
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "demo-avatar.svg"
+    if path.exists():
+        return
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" '
+        'viewBox="0 0 640 640">'
+        '<defs><linearGradient id="b" x2="1" y2="1">'
+        '<stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/>'
+        '</linearGradient></defs><rect width="640" height="640" fill="url(#b)"/>'
+        '<circle cx="320" cy="245" r="112" fill="#f4d7c4"/>'
+        '<path d="M135 640c18-170 112-250 185-250s167 80 185 250" fill="#18181b"/>'
+        '<text x="320" y="590" text-anchor="middle" fill="white" '
+        'font-family="system-ui,sans-serif" font-size="34">Junjo Guide</text>'
+        "</svg>",
+        encoding="utf-8",
+    )
+
+
 class SvgImageRenderer:
     """Write one small deterministic SVG file per explicit image request."""
 

@@ -1,24 +1,37 @@
-"""Small explicit SQLite adapter for the runnable chat application."""
+"""SQLite adapter for schema-versioned canonical AI Chat Turn objects."""
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import aiosqlite
+from pydantic import ValidationError
 
-from ai_chat.domain.errors import ContactNotFoundError, ConversationNotFoundError, TurnPersistenceError
+from ai_chat.domain.errors import (
+    ContactNotFoundError,
+    ConversationNotFoundError,
+    TurnInProgressError,
+    TurnNotFoundError,
+    TurnPersistenceError,
+)
 from ai_chat.domain.models import (
     ChatAgentOutput,
     ChatMessage,
     CompletedTurn,
     ContactProfile,
+    ContactSex,
+    ContextPolicyReference,
     Conversation,
+    ConversationOverview,
     HistoryMatch,
     ImageArtifact,
     MessageRole,
+    Turn,
+    TurnFailure,
+    TurnStatus,
 )
 from ai_chat.domain.ports import Clock, IdFactory
 
@@ -26,30 +39,36 @@ _SCHEMA = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS contacts (
     id TEXT PRIMARY KEY,
-    display_name TEXT NOT NULL,
-    bio TEXT NOT NULL
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    sex TEXT NOT NULL CHECK (sex IN ('male', 'female')),
+    age INTEGER NOT NULL,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    bio TEXT NOT NULL,
+    avatar_id TEXT NOT NULL,
+    avatar_url TEXT NOT NULL,
+    avatar_alt_text TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS conversations (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     contact_id TEXT NOT NULL REFERENCES contacts(id)
 );
-CREATE TABLE IF NOT EXISTS messages (
-    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-    id TEXT NOT NULL UNIQUE,
-    turn_id TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS turns (
+    id TEXT PRIMARY KEY,
     conversation_id TEXT NOT NULL REFERENCES conversations(id),
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-    content TEXT NOT NULL,
-    image_json TEXT,
-    created_at TEXT NOT NULL,
-    UNIQUE(turn_id, role)
+    sequence INTEGER NOT NULL,
+    document_json TEXT NOT NULL,
+    UNIQUE(conversation_id, sequence)
 );
+CREATE INDEX IF NOT EXISTS turns_conversation_sequence
+    ON turns(conversation_id, sequence);
 """
 
 
 class SqliteChatStore:
-    """SQLite implementation of all persistence ports for this one aggregate."""
+    """Persist canonical Turn JSON with deterministic identity projections."""
 
     def __init__(
         self,
@@ -70,11 +89,24 @@ class SqliteChatStore:
             await database.executescript(_SCHEMA)
             if self._seed_demo:
                 await database.execute(
-                    "INSERT OR IGNORE INTO contacts(id, display_name, bio) VALUES (?, ?, ?)",
+                    """
+                    INSERT OR IGNORE INTO contacts(
+                        id, first_name, last_name, sex, age, city, state, bio,
+                        avatar_id, avatar_url, avatar_alt_text
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
                     (
                         "demo-contact",
-                        "Junjo Guide",
+                        "Junjo",
+                        "Guide",
+                        "female",
+                        31,
+                        "Brooklyn",
+                        "NY",
                         "A deterministic contact used by the Junjo hybrid execution example.",
+                        "demo-avatar",
+                        "/api/images/demo-avatar.svg",
+                        "Portrait of Junjo Guide",
                     ),
                 )
                 await database.execute(
@@ -86,19 +118,80 @@ class SqliteChatStore:
     async def close(self) -> None:
         return None
 
-    async def list_conversations(self) -> tuple[Conversation, ...]:
+    async def list_conversations(self) -> tuple[ConversationOverview, ...]:
         async with self._connection() as database:
             rows = await _rows(
                 database,
-                "SELECT id, title, contact_id FROM conversations ORDER BY id",
+                """
+                SELECT conversations.id, conversations.title, conversations.contact_id,
+                       contacts.first_name, contacts.last_name, contacts.sex,
+                       contacts.age, contacts.city, contacts.state, contacts.bio,
+                       contacts.avatar_id, contacts.avatar_url, contacts.avatar_alt_text,
+                       MAX(json_extract(turns.document_json, '$.updated_at')) AS last_message_at
+                FROM conversations
+                JOIN contacts ON contacts.id = conversations.contact_id
+                LEFT JOIN turns ON turns.conversation_id = conversations.id
+                GROUP BY conversations.id
+                ORDER BY COALESCE(last_message_at, '') DESC, conversations.id
+                """,
             )
         return tuple(
-            Conversation(
-                id=_text(row, "id"),
-                title=_text(row, "title"),
-                contact_id=_text(row, "contact_id"),
+            ConversationOverview(
+                conversation=Conversation(
+                    id=_text(row, "id"),
+                    title=_text(row, "title"),
+                    contact_id=_text(row, "contact_id"),
+                ),
+                contact=_contact_from_row(row),
+                last_message_at=row["last_message_at"],
             )
             for row in rows
+        )
+
+    async def create_contact(
+        self,
+        *,
+        contact: ContactProfile,
+        conversation: Conversation,
+    ) -> ConversationOverview:
+        if conversation.contact_id != contact.id:
+            raise TurnPersistenceError("Conversation must reference the new contact.")
+        async with self._connection() as database:
+            await database.execute("BEGIN IMMEDIATE")
+            try:
+                await database.execute(
+                    """
+                    INSERT INTO contacts(
+                        id, first_name, last_name, sex, age, city, state, bio,
+                        avatar_id, avatar_url, avatar_alt_text
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        contact.id,
+                        contact.first_name,
+                        contact.last_name,
+                        contact.sex.value,
+                        contact.age,
+                        contact.city,
+                        contact.state,
+                        contact.bio,
+                        contact.avatar.id,
+                        contact.avatar.url,
+                        contact.avatar.alt_text,
+                    ),
+                )
+                await database.execute(
+                    "INSERT INTO conversations(id, title, contact_id) VALUES (?, ?, ?)",
+                    (conversation.id, conversation.title, conversation.contact_id),
+                )
+                await database.commit()
+            except BaseException:
+                await database.rollback()
+                raise
+        return ConversationOverview(
+            conversation=conversation,
+            contact=contact,
+            last_message_at=None,
         )
 
     async def get_contact_for_conversation(self, conversation_id: str) -> ContactProfile:
@@ -106,7 +199,7 @@ class SqliteChatStore:
             row = await _row(
                 database,
                 """
-                SELECT contacts.id, contacts.display_name, contacts.bio
+                SELECT contacts.*
                 FROM conversations
                 JOIN contacts ON contacts.id = conversations.contact_id
                 WHERE conversations.id = ?
@@ -115,251 +208,322 @@ class SqliteChatStore:
             )
         if row is None:
             raise ContactNotFoundError(conversation_id)
-        return ContactProfile(
-            id=_text(row, "id"),
-            display_name=_text(row, "display_name"),
-            bio=_text(row, "bio"),
-        )
+        return _contact_from_row(row)
 
-    async def append_user_message(
+    async def admit_turn(
         self,
         *,
         conversation_id: str,
         turn_id: str,
-        content: str,
-    ) -> ChatMessage:
-        return await self._append_message(
-            conversation_id=conversation_id,
-            turn_id=turn_id,
-            role=MessageRole.USER,
-            content=content,
-            image=None,
-        )
+        text: str,
+        context_policy: ContextPolicyReference,
+    ) -> Turn:
+        async with self._connection() as database:
+            await database.execute("BEGIN IMMEDIATE")
+            try:
+                await _require_conversation(database, conversation_id)
+                existing = await _rows(
+                    database,
+                    "SELECT document_json FROM turns WHERE conversation_id = ? ORDER BY sequence",
+                    (conversation_id,),
+                )
+                if any(_turn_from_row(row).status in {TurnStatus.ADMITTED, TurnStatus.RUNNING} for row in existing):
+                    raise TurnInProgressError(conversation_id)
+                duplicate = await _row(
+                    database,
+                    "SELECT id FROM turns WHERE id = ?",
+                    (turn_id,),
+                )
+                if duplicate is not None:
+                    raise TurnPersistenceError(f"Turn {turn_id} already exists.")
+                sequence_row = await _row(
+                    database,
+                    "SELECT COALESCE(MAX(sequence), 0) + 1 AS next_sequence FROM turns WHERE conversation_id = ?",
+                    (conversation_id,),
+                )
+                if sequence_row is None:
+                    raise TurnPersistenceError("Could not allocate a Turn sequence.")
+                sequence = int(sequence_row["next_sequence"])
+                now = self._clock()
+                turn = Turn(
+                    id=turn_id,
+                    revision=0,
+                    conversation_id=conversation_id,
+                    sequence=sequence,
+                    status=TurnStatus.ADMITTED,
+                    context_policy=context_policy,
+                    user_message=ChatMessage(
+                        id=self._id_factory(),
+                        turn_id=turn_id,
+                        conversation_id=conversation_id,
+                        role=MessageRole.USER,
+                        content=text,
+                        created_at=now,
+                    ),
+                    created_at=now,
+                    updated_at=now,
+                )
+                turn = _validated_turn(turn)
+                await database.execute(
+                    "INSERT INTO turns(id, conversation_id, sequence, document_json) VALUES (?, ?, ?, ?)",
+                    (turn.id, turn.conversation_id, turn.sequence, _turn_json(turn)),
+                )
+                await database.commit()
+            except BaseException:
+                await database.rollback()
+                raise
+        return turn
 
-    async def append_assistant_message(
+    async def start_turn(self, turn_id: str) -> Turn:
+        return await self._update(turn_id, lambda turn: turn.start(self._clock()))
+
+    async def record_turn_outcome(
         self,
         *,
-        conversation_id: str,
         turn_id: str,
         output: ChatAgentOutput,
-    ) -> ChatMessage:
-        async with self._connection() as database:
-            user = await _row(
-                database,
-                """
-                SELECT id FROM messages
-                WHERE conversation_id = ? AND turn_id = ? AND role = 'user'
-                """,
-                (conversation_id, turn_id),
+        agent_run_id: str | None,
+    ) -> Turn:
+        def transition(turn: Turn) -> Turn:
+            now = self._clock()
+            return turn.record_outcome(
+                assistant_message=ChatMessage(
+                    id=self._id_factory(),
+                    turn_id=turn.id,
+                    conversation_id=turn.conversation_id,
+                    role=MessageRole.ASSISTANT,
+                    content=output.message,
+                    image=output.image,
+                    created_at=now,
+                ),
+                agent_run_id=agent_run_id,
+                now=now,
             )
-        if user is None:
-            raise TurnPersistenceError("An assistant message requires its persisted user input.")
-        return await self._append_message(
-            conversation_id=conversation_id,
-            turn_id=turn_id,
-            role=MessageRole.ASSISTANT,
-            content=output.message,
-            image=output.image,
+
+        return await self._update(turn_id, transition)
+
+    async def complete_turn(self, *, turn_id: str, workflow_run_id: str) -> Turn:
+        return await self._update(
+            turn_id,
+            lambda turn: turn.complete(workflow_run_id=workflow_run_id, now=self._clock()),
         )
 
-    async def list_messages(self, conversation_id: str) -> tuple[ChatMessage, ...]:
+    async def terminate_turn(
+        self,
+        *,
+        turn_id: str,
+        status: TurnStatus,
+        failure: TurnFailure,
+        agent_run_id: str | None,
+    ) -> Turn:
+        if status not in {TurnStatus.FAILED, TurnStatus.CANCELLED}:
+            raise ValueError("A terminal failure status must be failed or cancelled.")
+        return await self._update(
+            turn_id,
+            lambda turn: turn.terminate(
+                status=status,
+                failure=failure,
+                agent_run_id=agent_run_id,
+                now=self._clock(),
+            ),
+        )
+
+    async def get_turn(self, turn_id: str) -> Turn:
+        async with self._connection() as database:
+            row = await _row(
+                database,
+                "SELECT document_json FROM turns WHERE id = ?",
+                (turn_id,),
+            )
+        if row is None:
+            raise TurnNotFoundError(turn_id)
+        return _turn_from_row(row)
+
+    async def list_turns(self, conversation_id: str) -> tuple[Turn, ...]:
+        async with self._connection() as database:
+            await _require_conversation(database, conversation_id)
+            rows = await _rows(
+                database,
+                "SELECT document_json FROM turns WHERE conversation_id = ? ORDER BY sequence",
+                (conversation_id,),
+            )
+        return tuple(_turn_from_row(row) for row in rows)
+
+    async def recent_completed_turns(
+        self,
+        conversation_id: str,
+        before_sequence: int,
+        limit: int,
+    ) -> tuple[CompletedTurn, ...]:
         async with self._connection() as database:
             await _require_conversation(database, conversation_id)
             rows = await _rows(
                 database,
                 """
-                SELECT id, turn_id, conversation_id, role, content, image_json, created_at
-                FROM messages WHERE conversation_id = ? ORDER BY sequence
-                """,
-                (conversation_id,),
-            )
-        return tuple(_message(row) for row in rows)
-
-    async def completed_turns_before(
-        self,
-        conversation_id: str,
-        before_turn_id: str,
-    ) -> tuple[CompletedTurn, ...]:
-        async with self._connection() as database:
-            boundary = await _turn_boundary(database, conversation_id, before_turn_id)
-            rows = await _rows(
-                database,
-                """
-                SELECT id, turn_id, conversation_id, role, content, image_json, created_at
-                FROM messages
+                SELECT document_json FROM turns
                 WHERE conversation_id = ? AND sequence < ?
                 ORDER BY sequence
                 """,
-                (conversation_id, boundary),
+                (conversation_id, before_sequence),
             )
-        return _complete_turns(tuple(_message(row) for row in rows))
+        completed = [turn for turn in (_turn_from_row(row) for row in rows) if turn.status is TurnStatus.COMPLETED][
+            -limit:
+        ]
+        return tuple(_completed_turn(turn) for turn in completed)
 
     async def search_history(
         self,
         conversation_id: str,
-        before_turn_id: str,
+        before_sequence: int,
         query: str,
         limit: int,
     ) -> tuple[HistoryMatch, ...]:
         async with self._connection() as database:
-            boundary = await _turn_boundary(database, conversation_id, before_turn_id)
+            await _require_conversation(database, conversation_id)
             rows = await _rows(
                 database,
                 """
-                SELECT turn_id, role, content
-                FROM messages
-                WHERE conversation_id = ?
-                  AND sequence < ?
-                  AND instr(lower(content), lower(?)) > 0
-                ORDER BY sequence DESC
-                LIMIT ?
+                SELECT document_json FROM turns
+                WHERE conversation_id = ? AND sequence < ?
+                ORDER BY sequence
                 """,
-                (conversation_id, boundary, query, limit),
+                (conversation_id, before_sequence),
             )
-        return tuple(
-            HistoryMatch(
-                turn_id=_text(row, "turn_id"),
-                role=MessageRole(_text(row, "role")),
-                content=_text(row, "content"),
-            )
-            for row in reversed(rows)
-        )
+        needle = query.casefold()
+        matches: list[HistoryMatch] = []
+        for row in rows:
+            turn = _turn_from_row(row)
+            if turn.status is not TurnStatus.COMPLETED:
+                continue
+            for message in (turn.user_message, turn.assistant_message):
+                if message is not None and needle in message.content.casefold():
+                    matches.append(
+                        HistoryMatch(
+                            turn_id=turn.id,
+                            role=message.role,
+                            content=message.content,
+                        )
+                    )
+        return tuple(matches[-limit:])
 
-    async def _append_message(
-        self,
-        *,
-        conversation_id: str,
-        turn_id: str,
-        role: MessageRole,
-        content: str,
-        image: ImageArtifact | None,
-    ) -> ChatMessage:
-        message = ChatMessage(
-            id=self._id_factory(),
-            turn_id=turn_id,
-            conversation_id=conversation_id,
-            role=role,
-            content=content,
-            image=image,
-            created_at=self._clock(),
-        )
+    async def _update(self, turn_id: str, transition: Callable[[Turn], Turn]) -> Turn:
         async with self._connection() as database:
-            await _require_conversation(database, conversation_id)
+            await database.execute("BEGIN IMMEDIATE")
             try:
+                row = await _row(
+                    database,
+                    "SELECT document_json FROM turns WHERE id = ?",
+                    (turn_id,),
+                )
+                if row is None:
+                    raise TurnNotFoundError(turn_id)
+                current = _turn_from_row(row)
+                updated = transition(current)
+                if (
+                    updated.id != current.id
+                    or updated.conversation_id != current.conversation_id
+                    or updated.sequence != current.sequence
+                ):
+                    raise TurnPersistenceError("A Turn transition cannot change aggregate identity.")
+                if updated.revision != current.revision + 1:
+                    raise TurnPersistenceError("A Turn transition must advance exactly one revision.")
+                updated = _validated_turn(updated)
                 await database.execute(
-                    """
-                    INSERT INTO messages(
-                        id, turn_id, conversation_id, role, content, image_json, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        message.id,
-                        message.turn_id,
-                        message.conversation_id,
-                        message.role.value,
-                        message.content,
-                        message.image.model_dump_json() if message.image is not None else None,
-                        message.created_at.isoformat(),
-                    ),
+                    "UPDATE turns SET document_json = ? WHERE id = ?",
+                    (_turn_json(updated), turn_id),
                 )
                 await database.commit()
-            except aiosqlite.IntegrityError as exc:
-                raise TurnPersistenceError(f"Turn {turn_id} already has a {role.value} message.") from exc
-        return message
+            except BaseException:
+                await database.rollback()
+                raise
+        return updated
 
     @asynccontextmanager
     async def _connection(self) -> AsyncIterator[aiosqlite.Connection]:
-        connection = await aiosqlite.connect(self._path)
-        connection.row_factory = aiosqlite.Row
+        database = await aiosqlite.connect(self._path)
+        database.row_factory = aiosqlite.Row
+        await database.execute("PRAGMA foreign_keys = ON")
         try:
-            yield connection
+            yield database
         finally:
-            await connection.close()
+            await database.close()
+
+
+def _turn_json(turn: Turn) -> str:
+    return turn.model_dump_json()
+
+
+def _validated_turn(turn: Turn) -> Turn:
+    try:
+        return Turn.model_validate_json(turn.model_dump_json())
+    except ValidationError as error:
+        raise TurnPersistenceError("Turn document violates schema version 1.") from error
+
+
+def _turn_from_row(row: aiosqlite.Row) -> Turn:
+    raw = row["document_json"]
+    if not isinstance(raw, str):
+        raise TurnPersistenceError("Stored Turn document is not JSON text.")
+    try:
+        return Turn.model_validate_json(raw)
+    except ValidationError as error:
+        raise TurnPersistenceError("Stored Turn document violates schema version 1.") from error
+
+
+def _completed_turn(turn: Turn) -> CompletedTurn:
+    if turn.assistant_message is None:
+        raise TurnPersistenceError(f"Completed Turn {turn.id} has no assistant message.")
+    return CompletedTurn(user=turn.user_message, assistant=turn.assistant_message)
 
 
 async def _require_conversation(database: aiosqlite.Connection, conversation_id: str) -> None:
-    if await _row(database, "SELECT id FROM conversations WHERE id = ?", (conversation_id,)) is None:
+    row = await _row(database, "SELECT id FROM conversations WHERE id = ?", (conversation_id,))
+    if row is None:
         raise ConversationNotFoundError(conversation_id)
-
-
-async def _turn_boundary(
-    database: aiosqlite.Connection,
-    conversation_id: str,
-    turn_id: str,
-) -> int:
-    row = await _row(
-        database,
-        "SELECT min(sequence) AS sequence FROM messages WHERE conversation_id = ? AND turn_id = ?",
-        (conversation_id, turn_id),
-    )
-    if row is None or row["sequence"] is None:
-        raise TurnPersistenceError(f"Current turn {turn_id} has no persisted input.")
-    value = row["sequence"]
-    if not isinstance(value, int):
-        raise TurnPersistenceError("SQLite returned a non-integer message sequence.")
-    return value
 
 
 async def _row(
     database: aiosqlite.Connection,
-    statement: str,
-    parameters: Sequence[object] = (),
+    query: str,
+    parameters: tuple[object, ...] = (),
 ) -> aiosqlite.Row | None:
-    cursor = await database.execute(statement, parameters)
+    cursor = await database.execute(query, parameters)
     return await cursor.fetchone()
 
 
 async def _rows(
     database: aiosqlite.Connection,
-    statement: str,
-    parameters: Sequence[object] = (),
+    query: str,
+    parameters: tuple[object, ...] = (),
 ) -> list[aiosqlite.Row]:
-    cursor = await database.execute(statement, parameters)
+    cursor = await database.execute(query, parameters)
     return list(await cursor.fetchall())
 
 
-def _message(row: aiosqlite.Row) -> ChatMessage:
-    image_json = _optional_text(row, "image_json")
-    return ChatMessage(
-        id=_text(row, "id"),
-        turn_id=_text(row, "turn_id"),
-        conversation_id=_text(row, "conversation_id"),
-        role=MessageRole(_text(row, "role")),
-        content=_text(row, "content"),
-        image=ImageArtifact.model_validate_json(image_json) if image_json is not None else None,
-        created_at=datetime.fromisoformat(_text(row, "created_at")),
-    )
-
-
-def _text(row: aiosqlite.Row, key: str) -> str:
-    value = row[key]
+def _text(row: aiosqlite.Row, name: str) -> str:
+    value: Any = row[name]
     if not isinstance(value, str):
-        raise TurnPersistenceError(f"SQLite column {key} must contain text.")
+        raise TurnPersistenceError(f"Expected text column {name}.")
     return value
 
 
-def _optional_text(row: aiosqlite.Row, key: str) -> str | None:
-    value = row[key]
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise TurnPersistenceError(f"SQLite column {key} must contain text or null.")
-    return value
-
-
-def _complete_turns(messages: tuple[ChatMessage, ...]) -> tuple[CompletedTurn, ...]:
-    grouped: dict[str, dict[MessageRole, ChatMessage]] = {}
-    order: list[str] = []
-    for message in messages:
-        if message.turn_id not in grouped:
-            grouped[message.turn_id] = {}
-            order.append(message.turn_id)
-        grouped[message.turn_id][message.role] = message
-    return tuple(
-        CompletedTurn(
-            user=grouped[turn_id][MessageRole.USER],
-            assistant=grouped[turn_id][MessageRole.ASSISTANT],
-        )
-        for turn_id in order
-        if MessageRole.USER in grouped[turn_id] and MessageRole.ASSISTANT in grouped[turn_id]
+def _contact_from_row(row: aiosqlite.Row) -> ContactProfile:
+    try:
+        age = int(row["age"])
+    except (TypeError, ValueError) as error:
+        raise TurnPersistenceError("Expected integer column age.") from error
+    return ContactProfile(
+        id=_text(row, "contact_id") if "contact_id" in row.keys() else _text(row, "id"),
+        first_name=_text(row, "first_name"),
+        last_name=_text(row, "last_name"),
+        sex=ContactSex(_text(row, "sex")),
+        age=age,
+        city=_text(row, "city"),
+        state=_text(row, "state"),
+        bio=_text(row, "bio"),
+        avatar=ImageArtifact(
+            id=_text(row, "avatar_id"),
+            url=_text(row, "avatar_url"),
+            alt_text=_text(row, "avatar_alt_text"),
+        ),
     )

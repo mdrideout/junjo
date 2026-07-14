@@ -12,9 +12,12 @@ license = "Apache-2.0"
 dependencies = [
     "aiosqlite>=0.21.0",
     "fastapi[standard]>=0.115.10",
+    "google-genai>=1.3.0",
     "junjo",
     "opentelemetry-sdk>=1.37.0",
+    "pillow>=11.3.0",
     "pydantic>=2.12.0",
+    "xai-sdk>=1.6.1",
 ]
 
 [dependency-groups]

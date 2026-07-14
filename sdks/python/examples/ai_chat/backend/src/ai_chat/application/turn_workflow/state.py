@@ -2,25 +2,41 @@
 
 from junjo import BaseState, BaseStore
 
-from ai_chat.domain.models import ChatAgentOutput, ChatMessage
+from ai_chat.domain.models import (
+    ChatAgentOutput,
+    CompletedTurn,
+    ContactProfile,
+    MessageDirective,
+    Turn,
+)
 
 
 class TurnWorkflowState(BaseState):
-    conversation_id: str
-    turn_id: str
-    text: str
-    user_message: ChatMessage | None = None
-    agent_output: ChatAgentOutput | None = None
+    turn: Turn
+    recent_turns: tuple[CompletedTurn, ...] = ()
+    contact: ContactProfile | None = None
+    directive: MessageDirective | None = None
+    response: ChatAgentOutput | None = None
     agent_run_id: str | None = None
-    assistant_message: ChatMessage | None = None
 
 
 class TurnWorkflowStore(BaseStore[TurnWorkflowState]):
-    async def set_user_message(self, message: ChatMessage) -> None:
-        await self.set_state({"user_message": message})
+    async def set_recent_turns(self, turns: tuple[CompletedTurn, ...]) -> None:
+        await self.set_state({"recent_turns": turns})
 
-    async def set_agent_result(self, *, output: ChatAgentOutput, run_id: str) -> None:
-        await self.set_state({"agent_output": output, "agent_run_id": run_id})
+    async def set_contact(self, contact: ContactProfile) -> None:
+        await self.set_state({"contact": contact})
 
-    async def set_assistant_message(self, message: ChatMessage) -> None:
-        await self.set_state({"assistant_message": message})
+    async def set_directive(self, directive: MessageDirective) -> None:
+        await self.set_state({"directive": directive})
+
+    async def set_response(
+        self,
+        response: ChatAgentOutput,
+        *,
+        agent_run_id: str | None = None,
+    ) -> None:
+        await self.set_state({"response": response, "agent_run_id": agent_run_id})
+
+    async def set_persisted_turn(self, turn: Turn) -> None:
+        await self.set_state({"turn": turn})

@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { API_BASE, server } from '../../../auth/test-utils/mock-server'
 import { store, type RootState } from '../../../root-store/store'
-import { getAgentExecutionDetailKey, getAgentExecutionQueryKey } from '../schemas/query'
+import { getAgentExecutionQueryKey } from '../schemas/query'
 import { makeAgentExecutionDetailFixture } from '../testing/fixtures'
 import { selectAgentExecutionDetailRequest, selectAgentExecutionListRequest } from './selectors'
 import {
@@ -11,17 +11,62 @@ import {
   agentExecutionsReducer,
   initialAgentExecutionsState,
 } from './slice'
+import type { TraceEvidence } from '../../traces/schemas/trace-evidence'
+
+function evidenceForDetail(detail: ReturnType<typeof makeAgentExecutionDetailFixture>): TraceEvidence {
+  const storeId = detail.state.store_id
+  if (storeId === null) throw new Error('Expected admitted Agent fixture Store')
+  return {
+    trace_id: detail.summary.trace_id,
+    spans: [],
+    executables_by_span_id: {
+      [detail.summary.agent_span_id]: {
+        executable_type: 'agent',
+        owner_span_id: detail.summary.agent_span_id,
+        runtime_id: detail.summary.runtime_id,
+        store_id: storeId,
+        unavailable_store: null,
+        summary: detail.summary,
+        definition: detail.definition,
+        input: detail.input,
+        output: detail.output,
+        input_candidate: detail.input_candidate,
+        history_candidate: detail.history_candidate,
+        error: detail.error,
+        cancellation: detail.cancellation,
+        integrity: detail.integrity,
+      },
+    },
+    operations_by_owner_runtime_id: {
+      [detail.summary.runtime_id]: Object.fromEntries(
+        detail.operations.map((operation) => [operation.span_id, operation]),
+      ),
+    },
+    stores_by_id: {
+      [storeId]: {
+        store_id: storeId,
+        owner_span_id: detail.summary.agent_span_id,
+        owner_runtime_id: detail.summary.runtime_id,
+        owner_executable_type: 'agent',
+        detail: detail.state,
+        integrity: detail.integrity,
+      },
+    },
+    relationships_by_owner_span_id: {
+      [detail.summary.agent_span_id]: {
+        parent: detail.parent_executable,
+        nested: detail.nested_executables,
+      },
+    },
+    diagnostics: [],
+  }
+}
 
 describe('Agent execution state', () => {
-  it('owns request state independently by deterministic list and detail keys', () => {
+  it('keeps list request state separate while deriving detail from trace evidence', () => {
     const fixture = makeAgentExecutionDetailFixture()
     const query = { service_namespace: 'junjo.examples', service_name: 'ai-chat' }
     const listKey = getAgentExecutionQueryKey(query)
-    const detailKey = getAgentExecutionDetailKey(
-      fixture.summary.trace_id,
-      fixture.summary.agent_span_id,
-    )
-
     let state = agentExecutionsReducer(
       initialAgentExecutionsState,
       AgentExecutionsActions.setListLoading({ key: listKey, loading: true }),
@@ -30,12 +75,17 @@ describe('Agent execution state', () => {
       state,
       AgentExecutionsActions.setListData({ key: listKey, data: [fixture.summary] }),
     )
-    state = agentExecutionsReducer(
-      state,
-      AgentExecutionsActions.setDetailData({ key: detailKey, data: fixture }),
-    )
-
-    const root = { agentExecutionsState: state } as RootState
+    const base = store.getState()
+    const root = {
+      ...base,
+      agentExecutionsState: state,
+      tracesState: {
+        ...base.tracesState,
+        traceEvidence: {
+          [fixture.summary.trace_id]: evidenceForDetail(fixture),
+        },
+      },
+    } satisfies RootState
     expect(selectAgentExecutionListRequest(root, query)).toMatchObject({
       loading: true,
       data: [fixture.summary],
@@ -49,7 +99,10 @@ describe('Agent execution state', () => {
   })
 
   it('returns immutable empty selector results for requests that have not started', () => {
-    const root = { agentExecutionsState: initialAgentExecutionsState } as RootState
+    const root = {
+      ...store.getState(),
+      agentExecutionsState: initialAgentExecutionsState,
+    } satisfies RootState
 
     expect(
       selectAgentExecutionListRequest(root, {
@@ -89,26 +142,4 @@ describe('Agent execution state', () => {
     expect(requestCount).toBe(1)
   })
 
-  it('listener middleware records a semantic detail request failure', async () => {
-    const traceId = '22222222222222222222222222222222'
-    const agentSpanId = 'eeeeeeeeeeeeeeee'
-    server.use(
-      http.get(
-        `${API_BASE}/api/v1/agent-executions/:trace_id/:agent_span_id`,
-        () => new HttpResponse(null, { status: 500 }),
-      ),
-    )
-
-    store.dispatch(AgentExecutionsActions.fetchAgentExecutionDetail({ traceId, agentSpanId }))
-
-    await waitFor(() => {
-      expect(
-        selectAgentExecutionDetailRequest(store.getState(), { traceId, agentSpanId }),
-      ).toEqual({
-        data: null,
-        loading: false,
-        error: 'Failed to fetch Agent execution (500)',
-      })
-    })
-  })
 })

@@ -1,9 +1,12 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { API_BASE, server } from '../../auth/test-utils/mock-server'
-import { getAgentExecution } from '../../features/agent-executions/fetch/get-agent-execution'
 import { listAgentExecutions } from '../../features/agent-executions/fetch/list-agent-executions'
-import { makeAgentExecutionDetailFixture } from '../../features/agent-executions/testing/fixtures'
+import {
+  makeAgentExecutionDetailFixture,
+  makeAgentTraceEvidenceFixture,
+} from '../../features/agent-executions/testing/fixtures'
+import { getTraceEvidence } from '../../features/traces/fetch/get-trace-evidence'
 
 describe('Agent semantic API requests', () => {
   it('sends the explicit service scope and supported list filters', async () => {
@@ -46,27 +49,28 @@ describe('Agent semantic API requests', () => {
     expect(parameters.get('limit')).toBe('25')
   })
 
-  it('requests one execution by canonical trace and Agent span identity', async () => {
+  it('requests one cohesive evidence document by canonical trace identity', async () => {
     const fixture = makeAgentExecutionDetailFixture()
+    const evidence = makeAgentTraceEvidenceFixture()
     let observedPath = ''
 
     server.use(
-      http.get(`${API_BASE}/api/v1/agent-executions/:trace_id/:agent_span_id`, ({ request }) => {
+      http.get(`${API_BASE}/api/v1/trace-evidence/:trace_id`, ({ request }) => {
         observedPath = new URL(request.url).pathname
-        return HttpResponse.json(fixture)
+        return HttpResponse.json(evidence)
       }),
     )
 
-    const result = await getAgentExecution(fixture.summary.trace_id, fixture.summary.agent_span_id)
+    const result = await getTraceEvidence(fixture.summary.trace_id)
 
-    expect(observedPath).toBe(
-      '/api/v1/agent-executions/11111111111111111111111111111111/aaaaaaaaaaaaaaaa',
-    )
-    expect(result.summary.runtime_id).toBe('agent_run_01JFIXTURE')
+    expect(observedPath).toBe('/api/v1/trace-evidence/11111111111111111111111111111111')
+    expect(result.executables_by_span_id[fixture.summary.agent_span_id]).toMatchObject({
+      runtime_id: 'agent_run_01JFIXTURE',
+    })
   })
 
-  it('rejects invalid identities before issuing a request', async () => {
-    await expect(getAgentExecution('not-a-trace-id', 'not-a-span-id')).rejects.toThrow(
+  it('rejects invalid trace identity before issuing a request', async () => {
+    await expect(getTraceEvidence('not-a-trace-id')).rejects.toThrow(
       'Trace ID must be 32 lowercase hexadecimal characters',
     )
   })
@@ -87,47 +91,36 @@ describe('Agent semantic API requests', () => {
     const fixture = makeAgentExecutionDetailFixture()
     server.use(
       http.get(`${API_BASE}/api/v1/agent-executions`, () => new HttpResponse(null, { status: 503 })),
-      http.get(
-        `${API_BASE}/api/v1/agent-executions/:trace_id/:agent_span_id`,
-        () => new HttpResponse(null, { status: 404 }),
-      ),
+      http.get(`${API_BASE}/api/v1/trace-evidence/:trace_id`, () =>
+        new HttpResponse(null, { status: 404 })),
     )
 
     await expect(
       listAgentExecutions({ service_namespace: '', service_name: 'ai-chat' }),
     ).rejects.toThrow('Failed to fetch Agent executions (503)')
     await expect(
-      getAgentExecution(fixture.summary.trace_id, fixture.summary.agent_span_id),
-    ).rejects.toThrow('Failed to fetch Agent execution (404)')
+      getTraceEvidence(fixture.summary.trace_id),
+    ).rejects.toThrow('Failed to fetch trace evidence (404)')
   })
 
-  it('preserves typed backend evidence rejection diagnostics', async () => {
+  it('preserves typed backend evidence diagnostics inside successful trace evidence', async () => {
     const fixture = makeAgentExecutionDetailFixture()
+    const evidence = makeAgentTraceEvidenceFixture()
+    evidence.diagnostics.push({
+      scope: 'executable',
+      owner_span_id: fixture.summary.agent_span_id,
+      issue: {
+        code: 'unsupported_contract_version',
+        path: 'resource.contract_version',
+        message: 'Expected contract version 2.',
+      },
+    })
     server.use(
-      http.get(
-        `${API_BASE}/api/v1/agent-executions/:trace_id/:agent_span_id`,
-        () => HttpResponse.json(
-          {
-            code: 'unsupported_contract',
-            message: 'Telemetry contract 1 is not supported.',
-            diagnostics: [
-              {
-                code: 'unsupported_contract_version',
-                path: 'resource.contract_version',
-                message: 'Expected contract version 2.',
-              },
-            ],
-          },
-          { status: 409 },
-        ),
-      ),
+      http.get(`${API_BASE}/api/v1/trace-evidence/:trace_id`, () => HttpResponse.json(evidence)),
     )
 
-    await expect(
-      getAgentExecution(fixture.summary.trace_id, fixture.summary.agent_span_id),
-    ).rejects.toThrow(
-      'unsupported_contract: Telemetry contract 1 is not supported. — unsupported_contract_version at resource.contract_version',
-    )
+    const result = await getTraceEvidence(fixture.summary.trace_id)
+    expect(result.diagnostics[0].issue.code).toBe('unsupported_contract_version')
   })
 
   it('keeps request-validation 422 separate from stored-evidence conflicts', async () => {

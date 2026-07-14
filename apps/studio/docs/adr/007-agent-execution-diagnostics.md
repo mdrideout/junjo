@@ -30,16 +30,17 @@ This ADR owns how Studio preserves, queries, and presents that evidence.
 
 ### Studio is the Agent evidence plane
 
-Studio provides a semantic diagnostic path from ingested OpenTelemetry evidence
-to an Agent execution view:
+Studio provides a cohesive diagnostic path from ingested OpenTelemetry
+evidence to flexible trace, Workflow, and Agent exploration:
 
-`OTLP ingestion -> durable span storage -> semantic Agent query -> diagnostic UI`
+`OTLP ingestion -> durable span storage -> cohesive trace evidence -> diagnostic UI`
 
 Each layer has one responsibility:
 
 - ingestion preserves shared-contract fields and parentage;
-- the backend interprets stored evidence into typed Agent query results;
-- the frontend presents those semantic results and interactive state history.
+- the backend returns complete normalized evidence enriched with generic
+  verified annotations;
+- the frontend indexes, selects, relates, and presents the cohesive evidence.
 
 Studio does not control Agent execution, evaluate model quality, or modify
 Agent definitions in the initial diagnostic feature.
@@ -70,10 +71,33 @@ File-level Agent selection metadata analogous to existing Workflow file
 metadata may be added if list-query performance requires it. The initial design
 does not add a per-Agent semantic database or a second ingestion path.
 
-### Backend owns semantic interpretation
+### Backend owns cohesive evidence enrichment
 
-The backend adds a dedicated Agent diagnostics feature with typed summary and
-detail contracts.
+For detail and exploration, the backend returns one typed `TraceEvidence`
+document. Complete normalized telemetry and generic verified annotations are
+two parts of that document, not competing sources of truth or separate
+frontend models.
+
+`TraceEvidence` contains:
+
+- every span in the selected trace with complete normalized attributes,
+  events, links, resource attributes, status, parentage, trace metadata, and
+  preserved loss counters;
+- executable annotations indexed by owner span ID;
+- model and Tool operation annotations indexed by owning Agent runtime ID and
+  operation span ID;
+- Store annotations indexed by Store ID, including verified transitions that
+  retain their source event identity, before state, patch, and after state;
+- semantic parent and nested executable references joined by physical and
+  runtime identities; and
+- trace-level and owner-level integrity diagnostics.
+
+Verified annotations are conclusions derived from the included raw evidence.
+They do not replace, omit, or repair that evidence. Partial or malformed
+contract evidence remains inspectable and receives explicit diagnostics.
+
+The backend also provides typed summary queries for large-scale filtering and
+pagination. Those queries do not replace the cohesive detail document.
 
 An `AgentExecutionSummary` contains:
 
@@ -92,8 +116,7 @@ supports filters for Agent key, structural ID, service version, outcome, and
 time range. Physical Parquet, DataFusion, and SQLite selection remain behind
 backend repository and service boundaries.
 
-An `AgentExecutionDetail` is addressed by trace ID and Agent span ID. It
-contains:
+The Agent annotation for an Agent owner span contains:
 
 - the summary;
 - definition and capabilities;
@@ -151,28 +174,47 @@ The backend:
   original;
 - treats response occurrence, response type, and normalized usage as semantic
   facts independent from whether response content is inspectable;
-- returns typed semantic data rather than storage-shaped rows.
+- returns typed generic annotations joined to complete normalized spans rather
+  than UI-specific response shapes.
 
 Timestamps remain available for display and duration. They are not used to
 resolve operation or state ordering.
 
-The existing raw trace API remains useful as a secondary diagnostic surface,
-but raw storage-shaped evidence is not embedded in `AgentExecutionDetail`. A
-secondary raw panel fetches the raw trace separately using identities from the
-semantic detail. The Agent frontend does not infer product behavior by scanning
-those rows.
+The existing raw trace API remains useful as a low-level observability surface.
+Studio detail pages use `TraceEvidence` so one request and one frontend evidence
+store contain both the complete raw trace and its verified annotations.
 
 The HTTP boundary keeps caller validation and stored-evidence interpretation
 separate. FastAPI request and path validation exclusively owns status 422 and
-its `HTTPValidationError` envelope. A valid request whose stored Agent or
-Workflow evidence cannot be interpreted returns the typed semantic evidence
-error at status 409. Frontends parse semantic diagnostics only for 409; they do
-not reinterpret a transport-validation response as execution evidence.
+its `HTTPValidationError` envelope. A trace that can be normalized returns its
+raw evidence even when Agent or Workflow annotations are partial, malformed, or
+unsupported; those conditions appear as typed diagnostics in `TraceEvidence`.
+Not-found and physical-identity conflicts remain explicit transport outcomes.
+The frontend never reinterprets request validation as execution evidence.
 
-### Frontend renders realized execution, not a Graph
+### Frontend owns exploration and presentation
 
-Studio adds an Agent execution feature with its own typed API schema and
-feature state. The primary view contains:
+The frontend validates and stores one `TraceEvidence` document for a loaded
+trace. It derives reusable indexes and selectors for span identity, physical
+parentage, executable ownership, runtime identity, operation ownership, Store
+identity, correlation, and nested executable references.
+
+The frontend remains free to:
+
+- sort, filter, group, search, and compare loaded spans;
+- traverse physical and semantic relationships;
+- render trees, tables, timelines, Workflow Graphs, payload viewers, and new
+  visualizations without adding a backend endpoint;
+- combine verified Store state with surrounding raw spans;
+- inspect every raw attribute, event, link, resource value, status, and loss
+  counter; and
+- deep-link to any known physical or runtime identity.
+
+The frontend does not independently replay Store patches, declare evidence
+integrity, or infer hidden content. Backend annotations remain authoritative
+for those facts.
+
+The primary Agent view contains:
 
 - Agent identity, structural ID, outcome, and termination reason;
 - limits, counts, usage, and duration;
@@ -201,8 +243,9 @@ Missing, redacted, excluded, referenced, and genuinely empty evidence are
 visually distinct. Studio does not infer hidden content or automatically fetch
 opaque references.
 
-Raw attributes and events may remain available in a secondary panel for
-low-level diagnosis. They are not the primary product model.
+Raw attributes and events remain first-class inspectable evidence in the same
+frontend model. They are not a second product model and need no fuzzy merge
+with verified annotations.
 
 ### Store reconstruction is one backend semantic capability
 
@@ -235,20 +278,16 @@ Only `failed` is corruption. Intentional policy transformation is not mislabeled
 as a patch replay mismatch, while missing required evidence still cannot become
 `policy_unavailable` without an explicit payload mode.
 
-Feature selection and presentation remain separate:
+Feature selection and presentation remain separate. Trace-evidence assembly
+selects and normalizes one trace, shared backend utilities derive executable
+and Store annotations, and frontend features decide how to present the result.
+There is no Workflow-specific or Agent-specific Store reconstruction engine.
 
-- Workflow backend services select Workflow evidence;
-- Agent backend services select Agent evidence;
-- the shared backend utility performs only Store reconstruction and integrity
-  verification.
-
-The existing Workflow detail and the Agent detail both consume these typed
-backend projections. The Workflow Store route is addressed by trace and
-Workflow-or-Subflow span identity; it returns the shared Store detail and
-evidence-integrity envelope. Agent detail embeds the same Store types in its
-larger semantic result. Neither frontend replays raw event patches. Interactive
-navigation selects the backend-projected transition `before`, `after`, and
-patch values and exposes state tabs only for a `verified` reconstruction.
+Workflow and Agent detail consume Store annotations from the same
+`TraceEvidence` document. Neither frontend replays raw event patches.
+Interactive navigation selects the backend-verified transition `before`,
+`after`, and patch values and exposes state tabs only for a `verified`
+reconstruction.
 `policy_unavailable`, `failed`, and `not_applicable` remain visibly distinct.
 Frontend projection tests are generated from canonical backend results.
 
@@ -274,10 +313,10 @@ is introduced.
   canonical fixtures, and conformance semantics.
 - SDKs own execution and emission.
 - Ingestion owns transport conversion and durable preservation.
-- Backend repositories own physical selection; Agent services own semantic
-  assembly.
-- Frontend schemas own API validation; feature code owns presentation and
-  interaction.
+- Backend repositories own physical selection; trace-evidence services own
+  normalization and generic verified annotation assembly.
+- Frontend schemas own cohesive-document validation; shared evidence indexes
+  own relationships; feature code owns presentation and interaction.
 - Studio never imports SDK runtime internals.
 - Public hooks are not an ingestion or telemetry path.
 
@@ -287,8 +326,8 @@ Canonical Agent fixtures must prove:
 
 - Agent-contract fields and events survive ingestion;
 - summary filtering finds standalone and Workflow-nested Agents;
-- detail queries either assemble all required Agent contract evidence or return
-  `partial` with stable reasons;
+- trace-evidence queries preserve all raw evidence and annotate each supported
+  executable as complete or partial with stable reasons;
 - boundary input/history rejection renders with no fabricated Store or
   operations;
 - operation sequence overrides timestamp ordering;
@@ -317,21 +356,27 @@ Canonical Agent fixtures must prove:
   from application/model/Tool errors and expose only verified Store facts;
 - resource service scope and version remain queryable across releases;
 - dropped-evidence counters survive ingestion and force partial integrity;
-- frontend schemas and views accept every supported scenario.
+- frontend schemas preserve every normalized raw field and views accept every
+  supported scenario;
+- Workflow, Agent, and raw trace views use one evidence document and identity
+  index;
+- a new selector or visualization over existing evidence requires no backend
+  endpoint.
 
 Valid producer and consumer span fixtures directly drive ingestion and backend
-semantic assembly. Frontend tests consume the typed backend projections
-generated from those fixtures through an integration adapter, not a frontend
-raw-span interpreter or copied Studio fixture. SDK producer equivalence applies
-only to the producer fixture set. Cross-component validation runs before the
-version 2 contract can merge.
+trace-evidence assembly. Frontend tests consume cohesive documents generated
+from those fixtures, including both raw spans and verified annotations, rather
+than copied frontend fixtures. SDK producer equivalence applies only to the
+producer fixture set. Cross-component validation runs before the version 2
+contract can merge.
 
 ## Consequences
 
 Developers can diagnose dynamic Agent behavior with the same transparency as
-Workflows while seeing the execution model truthfully. The backend provides a
-stable semantic API, and the frontend no longer has to infer Agent behavior
-from physical span rows.
+Workflows while seeing the execution model truthfully. The backend provides
+authoritative verification without narrowing the frontend to predefined
+semantic views. Complete raw evidence and verified facts remain connected by
+stable IDs in one document.
 
 Studio gains a new feature module and shared backend Store reconstruction
 utility.
@@ -343,7 +388,12 @@ SDK and Studio releases must remain coordinated during greenfield development.
 - Render Agent as a static Graph: its path is realized at runtime.
 - Add Agent semantics to ingestion: transport storage should not own product
   interpretation.
-- Let the frontend scan raw spans: physical storage would become a product API.
+- Raw-only frontend interpretation: every client would reimplement contract
+  validation and could disagree about Store replay or evidence integrity.
+- Separate raw and semantic frontend stores: the client would have to reconcile
+  two overlapping datasets and could lose identity or payload fidelity.
+- One backend contract per visualization: it couples evidence interpretation to
+  the current UI and prevents flexible client-side exploration.
 - Copy nested Workflow evidence into Tool payloads: it duplicates the Graph
   source of truth.
 - Infer ordering from timestamps: sequence and revision fields are

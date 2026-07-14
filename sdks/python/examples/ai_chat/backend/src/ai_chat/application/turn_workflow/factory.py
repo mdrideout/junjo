@@ -3,8 +3,13 @@
 from junjo import Agent, Workflow
 
 from ai_chat.application.dependencies import ChatDependencies
-from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput
-from ai_chat.domain.ports import ContactReader, HistoryReader, ImageRenderer, MessageRepository
+from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput, Turn
+from ai_chat.domain.ports import (
+    ContactReader,
+    HistoryReader,
+    ImageRenderer,
+    TurnRepository,
+)
 
 from .graph import create_turn_graph
 from .state import TurnWorkflowState, TurnWorkflowStore
@@ -12,11 +17,9 @@ from .state import TurnWorkflowState, TurnWorkflowStore
 
 def create_turn_workflow(
     *,
-    conversation_id: str,
-    turn_id: str,
-    text: str,
+    turn: Turn,
     agent: Agent[ChatAgentInput, ChatAgentOutput, ChatDependencies],
-    messages: MessageRepository,
+    turns: TurnRepository,
     history: HistoryReader,
     contacts: ContactReader,
     images: ImageRenderer,
@@ -25,17 +28,11 @@ def create_turn_workflow(
         name="Chat Turn Workflow",
         graph_factory=lambda: create_turn_graph(
             agent=agent,
-            messages=messages,
+            turns=turns,
             history=history,
             contacts=contacts,
             images=images,
         ),
-        store_factory=lambda: TurnWorkflowStore(
-            initial_state=TurnWorkflowState(
-                conversation_id=conversation_id,
-                turn_id=turn_id,
-                text=text,
-            )
-        ),
+        store_factory=lambda: TurnWorkflowStore(initial_state=TurnWorkflowState(turn=turn)),
         max_iterations=1,
     )

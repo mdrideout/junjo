@@ -6,9 +6,16 @@ import {
   selectWorkflowDetailActiveSpan,
 } from '../../junjo-data/workflow-detail/store/selectors'
 import { wrapSpan } from '../utils/span-accessor'
+import type { ExecutableAnnotation, StoreAnnotation, TraceEvidence } from '../schemas/trace-evidence'
 
 export const selectTracesState = (state: RootState) => state.tracesState
-export const selectTraceSpans = (state: RootState) => state.tracesState.traceSpans
+export const selectTraceEvidence = (state: RootState) => state.tracesState.traceEvidence
+export const selectTraceSpans = createSelector(
+  [selectTraceEvidence],
+  (evidenceByTraceId): Record<string, OtelSpan[]> => Object.fromEntries(
+    Object.entries(evidenceByTraceId).map(([traceId, evidence]) => [traceId, evidence.spans]),
+  ),
+)
 export const selectTracesLoading = (state: RootState) => state.tracesState.loading
 export const selectTracesError = (state: RootState) => state.tracesState.error
 
@@ -17,13 +24,42 @@ export const selectServiceNamesLoading = (state: RootState) => state.tracesState
 export const selectServiceNamesError = (state: RootState) => state.tracesState.serviceNames.error
 export const selectServiceNames = (state: RootState) => state.tracesState.serviceNames.data
 
+export const selectTraceEvidenceForTraceId = createSelector(
+  [
+    selectTraceEvidence,
+    (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
+  ],
+  (evidenceByTraceId, traceId): TraceEvidence | undefined =>
+    traceId === undefined ? undefined : evidenceByTraceId[traceId],
+)
+
+export const selectExecutableBySpanId = createSelector(
+  [
+    selectTraceEvidenceForTraceId,
+    (_state: RootState, props: { spanId: string | undefined }) => props.spanId,
+  ],
+  (evidence, spanId): ExecutableAnnotation | undefined =>
+    evidence === undefined || spanId === undefined
+      ? undefined
+      : evidence.executables_by_span_id[spanId],
+)
+
+export const selectStoreById = createSelector(
+  [
+    selectTraceEvidenceForTraceId,
+    (_state: RootState, props: { storeId: string | undefined }) => props.storeId,
+  ],
+  (evidence, storeId): StoreAnnotation | undefined =>
+    evidence === undefined || storeId === undefined ? undefined : evidence.stores_by_id[storeId],
+)
+
 /**
  * Selector: Select Span By Id
  * Given a traceId and spanId, return the span with that id
  */
 export const selectSpanById = createSelector(
   [
-    (state: RootState) => state.tracesState.traceSpans,
+    selectTraceSpans,
     (_state: RootState, props: { traceId: string | undefined; spanId: string | undefined }) => props.traceId,
     (_state: RootState, props: { traceId: string | undefined; spanId: string | undefined }) => props.spanId,
   ],
@@ -45,7 +81,7 @@ export const selectSpanById = createSelector(
  */
 export const selectTraceSpansForTraceId = createSelector(
   [
-    (state: RootState) => state.tracesState.traceSpans,
+    selectTraceSpans,
     (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
   ],
   (traceSpans, traceId): OtelSpan[] => {
@@ -99,7 +135,7 @@ const createWorkflowChainSelector = createSelectorCreator(lruMemoize, workflowCh
  */
 export const identifySpanWorkflowChain = createWorkflowChainSelector(
   [
-    (state: RootState) => state.tracesState.traceSpans,
+    selectTraceSpans,
     (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
     (_state: RootState, props: { workflowSpanId: string | undefined }) => props.workflowSpanId,
     selectWorkflowDetailActiveSpan,

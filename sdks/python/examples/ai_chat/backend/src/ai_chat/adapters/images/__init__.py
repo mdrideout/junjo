@@ -1,5 +1,11 @@
-"""Deterministic image rendering adapters."""
+"""Application-owned image rendering adapters."""
 
-from .svg import SvgImageRenderer
+from .live import GeminiImageRenderer, GrokImageRenderer
+from .svg import SvgImageRenderer, ensure_seed_avatar
 
-__all__ = ["SvgImageRenderer"]
+__all__ = [
+    "GeminiImageRenderer",
+    "GrokImageRenderer",
+    "SvgImageRenderer",
+    "ensure_seed_avatar",
+]

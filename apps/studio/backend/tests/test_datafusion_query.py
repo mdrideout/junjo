@@ -304,6 +304,59 @@ def test_parses_attributes_and_events_json(temp_parquet_dir):
     assert results[0]["events_json"][0]["timeUnixNano"] == "123"
 
 
+def test_query_exact_executable_identity_filters_before_and_after_datafusion(
+    temp_parquet_dir,
+):
+    trace_id = uuid.uuid4().hex
+    file_path = os.path.join(temp_parquet_dir, "execution-resolution.parquet")
+    expected = create_test_span(
+        trace_id=trace_id,
+        span_id="a" * 16,
+        service_name="ai-chat",
+        attributes={
+            "junjo.telemetry.contract_version": 2,
+            "junjo.span_type": "workflow",
+            "junjo.executable_runtime_id": "run_100%",
+        },
+    )
+    write_spans_to_parquet(
+        [
+            expected,
+            create_test_span(
+                trace_id=trace_id,
+                span_id="b" * 16,
+                service_name="ai-chat",
+                attributes={
+                    "junjo.telemetry.contract_version": 2,
+                    "junjo.span_type": "agent",
+                    "junjo.executable_runtime_id": "run_100%",
+                },
+            ),
+            create_test_span(
+                trace_id=trace_id,
+                span_id="c" * 16,
+                service_name="ai-chat",
+                attributes={
+                    "junjo.telemetry.contract_version": 2,
+                    "junjo.span_type": "workflow",
+                    "junjo.executable_runtime_id": "run_1000",
+                },
+            ),
+        ],
+        file_path,
+    )
+
+    query = UnifiedSpanQuery()
+    query.register_cold([file_path])
+    results = query.query_spans_two_tier(
+        service_name="ai-chat",
+        executable_type="workflow",
+        executable_runtime_id="run_100%",
+    )
+
+    assert [row["span_id"] for row in results] == ["a" * 16]
+
+
 def test_register_cold_skips_empty_parquet_files(temp_parquet_dir):
     trace_id = uuid.uuid4().hex
     valid_path = os.path.join(temp_parquet_dir, "valid.parquet")

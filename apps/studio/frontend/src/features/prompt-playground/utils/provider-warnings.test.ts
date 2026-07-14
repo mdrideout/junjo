@@ -24,6 +24,11 @@ const createBaseSpan = (): OtelSpan => ({
   status_message: '',
   trace_flags: 0,
   trace_state: null,
+  dropped_attributes_count: 0,
+  dropped_events_count: 0,
+  dropped_links_count: 0,
+  resource_attributes_json: { 'service.name': 'test-service' },
+  resource_dropped_attributes_count: 0,
 })
 
 // Mock OpenInference span with OpenAI JSON schema

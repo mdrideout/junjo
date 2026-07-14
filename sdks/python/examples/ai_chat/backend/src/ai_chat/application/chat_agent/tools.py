@@ -22,7 +22,7 @@ class SearchConversationHistoryService:
     ) -> SearchHistoryOutput:
         matches = await context.dependencies.history.search_history(
             context.dependencies.conversation_id,
-            context.dependencies.turn_id,
+            context.dependencies.before_sequence,
             input.query,
             input.limit,
         )

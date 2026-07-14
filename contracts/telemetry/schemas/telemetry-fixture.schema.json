@@ -79,7 +79,9 @@
             },
             "junjo.parent_executable_definition_id": {"type": "string", "minLength": 1},
             "junjo.parent_executable_runtime_id": {"type": "string", "minLength": 1},
-            "junjo.parent_executable_structural_id": {"type": "string", "minLength": 1}
+            "junjo.parent_executable_structural_id": {"type": "string", "minLength": 1},
+            "junjo.correlation.type": {"type": "string", "minLength": 1},
+            "junjo.correlation.id": {"type": "string", "minLength": 1}
           }
         },
         "events_json": {

@@ -8,12 +8,16 @@ from typing import Protocol
 
 from .models import (
     ChatAgentOutput,
-    ChatMessage,
     CompletedTurn,
     ContactProfile,
+    ContextPolicyReference,
     Conversation,
+    ConversationOverview,
     HistoryMatch,
     ImageArtifact,
+    Turn,
+    TurnFailure,
+    TurnStatus,
 )
 
 IdFactory = Callable[[], str]
@@ -21,7 +25,16 @@ Clock = Callable[[], datetime]
 
 
 class ConversationReader(Protocol):
-    async def list_conversations(self) -> tuple[Conversation, ...]: ...
+    async def list_conversations(self) -> tuple[ConversationOverview, ...]: ...
+
+
+class ContactWriter(Protocol):
+    async def create_contact(
+        self,
+        *,
+        contact: ContactProfile,
+        conversation: Conversation,
+    ) -> ConversationOverview: ...
 
 
 class ContactReader(Protocol):
@@ -29,39 +42,56 @@ class ContactReader(Protocol):
 
 
 class HistoryReader(Protocol):
-    async def completed_turns_before(
+    async def recent_completed_turns(
         self,
         conversation_id: str,
-        before_turn_id: str,
+        before_sequence: int,
+        limit: int,
     ) -> tuple[CompletedTurn, ...]: ...
 
     async def search_history(
         self,
         conversation_id: str,
-        before_turn_id: str,
+        before_sequence: int,
         query: str,
         limit: int,
     ) -> tuple[HistoryMatch, ...]: ...
 
 
-class MessageRepository(Protocol):
-    async def append_user_message(
+class TurnRepository(Protocol):
+    async def admit_turn(
         self,
         *,
         conversation_id: str,
         turn_id: str,
-        content: str,
-    ) -> ChatMessage: ...
+        text: str,
+        context_policy: ContextPolicyReference,
+    ) -> Turn: ...
 
-    async def append_assistant_message(
+    async def start_turn(self, turn_id: str) -> Turn: ...
+
+    async def record_turn_outcome(
         self,
         *,
-        conversation_id: str,
         turn_id: str,
         output: ChatAgentOutput,
-    ) -> ChatMessage: ...
+        agent_run_id: str | None,
+    ) -> Turn: ...
 
-    async def list_messages(self, conversation_id: str) -> tuple[ChatMessage, ...]: ...
+    async def complete_turn(self, *, turn_id: str, workflow_run_id: str) -> Turn: ...
+
+    async def terminate_turn(
+        self,
+        *,
+        turn_id: str,
+        status: TurnStatus,
+        failure: TurnFailure,
+        agent_run_id: str | None,
+    ) -> Turn: ...
+
+    async def get_turn(self, turn_id: str) -> Turn: ...
+
+    async def list_turns(self, conversation_id: str) -> tuple[Turn, ...]: ...
 
 
 class ImageRenderer(Protocol):
@@ -71,8 +101,9 @@ class ImageRenderer(Protocol):
 class ApplicationStore(
     ConversationReader,
     ContactReader,
+    ContactWriter,
     HistoryReader,
-    MessageRepository,
+    TurnRepository,
     Protocol,
 ):
     async def initialize(self) -> None: ...

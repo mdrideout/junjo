@@ -509,6 +509,24 @@ Junjo AI Studio is designed to be low resource:
 
 ## Advanced Topics
 
+### Stable execution links
+
+Applications should persist Junjo Workflow or Agent runtime IDs, not
+OpenTelemetry trace/span IDs. A signed-in Studio user can follow a stable
+frontend link of this form:
+
+```text
+/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=agent&runtime_id=<run-id>&destination=detail
+```
+
+The authenticated frontend polls the exact backend resolution boundary for a
+bounded ingestion window and then replaces the stable URL with the existing
+Agent, Workflow, or full-trace route. Resolution requires service namespace,
+service name, executable type, and runtime ID. Missing evidence remains not
+found; multiple matching owner spans are an explicit conflict and Studio never
+selects the newest match. Applications do not receive a Studio API credential
+to construct or follow these links.
+
 ### Database & Storage Access
 
 #### Inspecting Parquet Files (Span Data)

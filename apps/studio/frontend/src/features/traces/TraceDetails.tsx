@@ -25,7 +25,7 @@ export default function TraceDetails() {
     if (!traceId) return
     if (spans.length > 0) return
     if (requestedTraceId === traceId) return
-    dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
+    dispatch(TracesStateActions.fetchTraceEvidence({ traceId }))
     setRequestedTraceId(traceId)
   }, [dispatch, traceId, spans.length, requestedTraceId])
 

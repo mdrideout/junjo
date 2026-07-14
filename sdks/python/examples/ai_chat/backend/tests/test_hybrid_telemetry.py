@@ -48,14 +48,16 @@ async def test_scenario_9_complete_hybrid_hierarchy_and_all_stores_replay_in_mem
 
     result = await harness.turns.submit(
         conversation_id="demo",
-        text="Create a telemetry image",
+        text="Surprise me with a telemetry visual",
     )
 
     spans = tuple(span_exporter.get_finished_spans())
     outer = _named(spans, "Chat Turn Workflow")
-    persist_input = _named(spans, "PersistInputNode")
-    execute_agent = _named(spans, "ExecuteAgentNode")
-    persist_result = _named(spans, "PersistResultNode")
+    initial_data = _named(spans, "Load Turn Context")
+    load_context = _named(spans, "LoadRecentContextNode")
+    load_contact = _named(spans, "LoadContactNode")
+    execute_agent = _named(spans, "CreateGeneralAgentResponseNode")
+    persist_outcome = _named(spans, "PersistOutcomeNode")
     agent = _named(spans, "AI Chat Agent")
     tool = _operation(spans, "tool")
     nested = _named(spans, "Create Chat Image Workflow")
@@ -69,9 +71,11 @@ async def test_scenario_9_complete_hybrid_hierarchy_and_all_stores_replay_in_mem
     assert outer.attributes["junjo.span_type"] == "workflow"
     assert agent.attributes["junjo.span_type"] == "agent"
     assert nested.attributes["junjo.span_type"] == "workflow"
-    assert _parent_id(persist_input) == outer.context.span_id
+    assert _parent_id(initial_data) == outer.context.span_id
+    assert _parent_id(load_context) == initial_data.context.span_id
+    assert _parent_id(load_contact) == initial_data.context.span_id
     assert _parent_id(execute_agent) == outer.context.span_id
-    assert _parent_id(persist_result) == outer.context.span_id
+    assert _parent_id(persist_outcome) == outer.context.span_id
     assert _parent_id(agent) == execute_agent.context.span_id
     assert [_parent_id(span) for span in model_operations] == [
         agent.context.span_id,
@@ -88,12 +92,23 @@ async def test_scenario_9_complete_hybrid_hierarchy_and_all_stores_replay_in_mem
         == execute_agent.attributes["junjo.executable_runtime_id"]
     )
     assert nested.attributes["junjo.parent_executable_type"] == "agent"
-    assert nested.attributes["junjo.parent_executable_runtime_id"] == result.agent_run_id
+    assert nested.attributes["junjo.parent_executable_runtime_id"] == result.execution_references.agent_run_id
     assert [
         span.attributes["junjo.agent.operation.sequence"]
         for span in (*model_operations[:1], tool, *model_operations[1:])
     ] == [1, 2, 3]
     assert agent.attributes["junjo.agent.operation.count"] == 3
+
+    correlated_owner_spans = [span for span in spans if span.attributes.get("junjo.span_type") is not None]
+    assert correlated_owner_spans
+    for span in correlated_owner_spans:
+        assert span.attributes["junjo.correlation.type"] == "ai_chat.turn"
+        assert span.attributes["junjo.correlation.id"] == result.id
+    for span in model_operations:
+        assert "junjo.correlation.type" not in span.attributes
+        assert "junjo.correlation.id" not in span.attributes
+    assert "junjo.correlation.type" not in tool.attributes
+    assert "junjo.correlation.id" not in tool.attributes
 
     store_ids = {
         outer.attributes["junjo.workflow.store.id"],

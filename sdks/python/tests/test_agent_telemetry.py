@@ -12,7 +12,14 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
 
-from junjo import Agent, AgentLimits, ModelDriverBinding, ModelDriverDescriptor, Tool
+from junjo import (
+    Agent,
+    AgentLimits,
+    ExecutionCorrelation,
+    ModelDriverBinding,
+    ModelDriverDescriptor,
+    Tool,
+)
 from junjo.agent import (
     AgentInputValidationError,
     AgentModelResponseError,
@@ -183,6 +190,48 @@ async def test_standalone_agent_under_non_junjo_span_keeps_only_physical_parenta
     assert model.parent is not None
     assert model.parent.span_id == owner.context.span_id
     assert not any(key.startswith("junjo.parent_executable_") for key in owner.attributes)
+
+
+@pytest.mark.asyncio
+async def test_standalone_agent_correlation_is_owner_only(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    agent = agent_for([FinalOutputResponse(output={"value": "done"})])
+
+    await agent.execute(
+        Input(value="question"),
+        dependencies=None,
+        correlation=ExecutionCorrelation(type="test.turn", id="turn-1"),
+    )
+
+    spans = span_exporter.get_finished_spans()
+    owner = next(span for span in spans if span.attributes.get("junjo.span_type") == "agent")
+    model = next(
+        span
+        for span in spans
+        if span.attributes.get("junjo.agent.operation_type") == "model_request"
+    )
+    assert owner.attributes["junjo.correlation.type"] == "test.turn"
+    assert owner.attributes["junjo.correlation.id"] == "turn-1"
+    assert "junjo.correlation.type" not in model.attributes
+    assert "junjo.correlation.id" not in model.attributes
+
+
+@pytest.mark.parametrize(
+    ("correlation_type", "correlation_id"),
+    [
+        ("", "turn-1"),
+        ("test.turn", ""),
+        ("test.\ud800", "turn-1"),
+        ("test.turn", "turn-\ud800"),
+    ],
+)
+def test_execution_correlation_rejects_nonportable_identity(
+    correlation_type: str,
+    correlation_id: str,
+) -> None:
+    with pytest.raises(ValueError):
+        ExecutionCorrelation(type=correlation_type, id=correlation_id)
 
 
 @pytest.mark.asyncio

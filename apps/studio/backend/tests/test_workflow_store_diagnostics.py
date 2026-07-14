@@ -1,4 +1,4 @@
-"""Conformance and HTTP tests for authoritative Workflow Store diagnostics."""
+"""Conformance tests for authoritative Workflow Store diagnostics."""
 
 from __future__ import annotations
 
@@ -6,17 +6,10 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
-from app.features.auth.dependencies import get_authenticated_user
-from app.features.workflow_diagnostics.assembler import (
-    WorkflowEvidenceError,
-    assemble_workflow_store_diagnostic,
-)
-from app.main import app
+from app.features.workflow_diagnostics.assembler import assemble_workflow_store_diagnostic
 
 FIXTURE_ROOT = (
     Path(__file__).resolve().parents[4] / "contracts" / "telemetry" / "fixtures" / "workflow"
@@ -29,18 +22,6 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC is not None and SPEC.loader is not None
 GENERATOR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(GENERATOR)
-
-
-@pytest.fixture
-def authenticated_app(mock_authenticated_user):
-    """Run one route test with an explicit authenticated Studio session dependency."""
-    app.dependency_overrides[get_authenticated_user] = lambda: mock_authenticated_user
-    try:
-        yield app
-    finally:
-        app.dependency_overrides.pop(get_authenticated_user, None)
-
-
 def _workflow_cases() -> list[tuple[str, dict, list[dict]]]:
     cases = []
     for path in sorted(FIXTURE_ROOT.glob("*.json")):
@@ -168,156 +149,3 @@ def test_workflow_store_excludes_transition_on_noncanonical_carrier_span() -> No
     assert detail.state.reconstruction_status == "failed"
     assert all(transition.span_id != "not-a-span-id" for transition in detail.state.transitions)
     assert "invalid_span_id" in {issue.code for issue in detail.integrity.diagnostics}
-
-
-@pytest.mark.asyncio
-async def test_workflow_store_route_requires_authentication() -> None:
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/workflow-executions/11111111111111111111111111111111/aaaaaaaaaaaaaaaa/store"
-        )
-
-    assert response.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_workflow_store_route_path_validation_uses_transport_422(
-    authenticated_app,
-) -> None:
-    transport = ASGITransport(app=authenticated_app)
-    with patch(
-        "app.features.workflow_diagnostics.service.get_workflow_store",
-        new=AsyncMock(return_value=None),
-    ) as query:
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/workflow-executions/not-a-trace/not-a-span/store")
-
-    assert response.status_code == 422
-    assert response.json()["detail"] == [
-        {
-            "type": "string_pattern_mismatch",
-            "loc": ["path", "trace_id"],
-            "msg": "String should match pattern '^[0-9a-f]{32}$'",
-            "input": "not-a-trace",
-            "ctx": {"pattern": "^[0-9a-f]{32}$"},
-        },
-        {
-            "type": "string_pattern_mismatch",
-            "loc": ["path", "workflow_span_id"],
-            "msg": "String should match pattern '^[0-9a-f]{16}$'",
-            "input": "not-a-span",
-            "ctx": {"pattern": "^[0-9a-f]{16}$"},
-        },
-    ]
-    query.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_workflow_store_route_returns_typed_projection(authenticated_app) -> None:
-    _name, owner, spans = _workflow_cases()[0]
-    detail = assemble_workflow_store_diagnostic(owner, spans)
-    transport = ASGITransport(app=authenticated_app)
-    with patch(
-        "app.features.workflow_diagnostics.service.get_workflow_store",
-        new=AsyncMock(return_value=detail),
-    ):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(
-                f"/api/v1/workflow-executions/{detail.trace_id}/{detail.workflow_span_id}/store"
-            )
-
-    assert response.status_code == 200
-    assert response.json() == detail.model_dump(mode="json")
-
-
-@pytest.mark.asyncio
-async def test_workflow_store_route_returns_typed_contract_error(authenticated_app) -> None:
-    _name, owner, _spans = _workflow_cases()[0]
-    error = WorkflowEvidenceError(
-        "unsupported_contract",
-        "Unsupported telemetry contract.",
-    )
-    transport = ASGITransport(app=authenticated_app)
-    with patch(
-        "app.features.workflow_diagnostics.service.get_workflow_store",
-        new=AsyncMock(side_effect=error),
-    ):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(
-                f"/api/v1/workflow-executions/{owner['trace_id']}/{owner['span_id']}/store"
-            )
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "unsupported_contract"
-
-
-@pytest.mark.asyncio
-async def test_workflow_store_route_preserves_partial_invalid_event_timestamp(
-    authenticated_app,
-) -> None:
-    _name, owner, spans = _workflow_cases()[0]
-    spans = copy.deepcopy(spans)
-    owner = next(span for span in spans if span["span_id"] == owner["span_id"])
-    event_span = next(span for span in spans if span["events_json"])
-    event_span["events_json"][0]["timeUnixNano"] = 2**63
-    transport = ASGITransport(app=authenticated_app)
-    with patch(
-        "app.features.workflow_diagnostics.repository.get_workflow_trace",
-        new=AsyncMock(return_value=spans),
-    ):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(
-                f"/api/v1/workflow-executions/{owner['trace_id']}/{owner['span_id']}/store"
-            )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["integrity"]["status"] == "partial"
-    assert "invalid_event_timestamp" in {item["code"] for item in body["integrity"]["diagnostics"]}
-
-
-@pytest.mark.asyncio
-async def test_workflow_store_route_rejects_nonportable_owner_name_without_500(
-    authenticated_app,
-) -> None:
-    _name, owner, spans = _workflow_cases()[0]
-    spans = copy.deepcopy(spans)
-    owner = next(span for span in spans if span["span_id"] == owner["span_id"])
-    owner["name"] = "\ud800"
-    transport = ASGITransport(app=authenticated_app)
-    with patch(
-        "app.features.workflow_diagnostics.repository.get_workflow_trace",
-        new=AsyncMock(return_value=spans),
-    ):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(
-                f"/api/v1/workflow-executions/{owner['trace_id']}/{owner['span_id']}/store"
-            )
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "unidentifiable_workflow"
-
-
-@pytest.mark.parametrize("malformed", [{}, []], ids=["object", "array"])
-@pytest.mark.asyncio
-async def test_workflow_store_route_rejects_unhashable_owner_type_without_500(
-    authenticated_app,
-    malformed: object,
-) -> None:
-    _name, original_owner, original_spans = _workflow_cases()[0]
-    spans = copy.deepcopy(original_spans)
-    owner = next(span for span in spans if span["span_id"] == original_owner["span_id"])
-    owner["attributes_json"]["junjo.span_type"] = malformed
-    transport = ASGITransport(app=authenticated_app)
-    with patch(
-        "app.features.workflow_diagnostics.repository.get_workflow_trace",
-        new=AsyncMock(return_value=spans),
-    ):
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(
-                f"/api/v1/workflow-executions/{owner['trace_id']}/{owner['span_id']}/store"
-            )
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "unidentifiable_workflow"

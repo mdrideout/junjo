@@ -51,6 +51,21 @@ must never be coerced through a JSON number. Event ordering comparisons use its
 exact integer value; executable operation and Store transition sequences remain
 the semantic ordering authorities.
 
+## Application execution correlation
+
+An application may attach one trusted identity to a Junjo execution tree with
+the optional executable-owner attributes `junjo.correlation.type` and
+`junjo.correlation.id`. The pair is all-or-none, contains nonempty portable
+I-JSON text, and propagates unchanged to nested executable owners. Model and
+Tool operation spans do not repeat it. Correlation remains distinct from
+Junjo definition/runtime identities and OpenTelemetry trace/span identities.
+
+This is an optional governed extension of contract version 2: existing valid
+version 2 evidence remains valid without the pair. The canonical
+`agent/producer/tool_invokes_nested_workflow` fixture proves propagation across
+an Agent, a Tool-owned nested Workflow, and its Nodes. ADR 0007 owns the
+application trust and Studio resolution semantics.
+
 ## Change rules
 
 For a semantic contract change:

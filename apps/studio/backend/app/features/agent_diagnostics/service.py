@@ -7,11 +7,9 @@ from typing import Literal
 
 from app.features.agent_diagnostics import repository
 from app.features.agent_diagnostics.assembler import (
-    assemble_agent_detail,
     assemble_agent_summary,
 )
 from app.features.agent_diagnostics.schemas import (
-    AgentExecutionDetail,
     AgentExecutionSummary,
 )
 
@@ -56,20 +54,3 @@ async def list_agent_executions(
             continue
         summaries.append(summary)
     return sorted(summaries, key=lambda item: item.start_time, reverse=True)[:limit]
-
-
-async def get_agent_execution(trace_id: str, agent_span_id: str) -> AgentExecutionDetail | None:
-    """Return one owner-scoped Agent semantic detail."""
-    spans = await repository.get_agent_trace(trace_id)
-    owner_span = next(
-        (
-            span
-            for span in spans
-            if span.get("span_id") == agent_span_id
-            and isinstance(span.get("attributes_json"), dict)
-        ),
-        None,
-    )
-    if owner_span is None:
-        return None
-    return assemble_agent_detail(owner_span, spans)

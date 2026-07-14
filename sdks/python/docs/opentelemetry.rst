@@ -91,6 +91,39 @@ language-independent contract used by SDK emitters and Studio consumers; it is
 separate from the Python package version and from payload-specific schema
 versions such as the execution graph snapshot's ``v`` field.
 
+Application execution correlation
+---------------------------------
+
+Applications often need to connect one domain action to every Junjo
+executable it caused without making a domain ID equal to a Workflow run ID or
+an OpenTelemetry trace ID. Pass one immutable
+:class:`~junjo.correlation.ExecutionCorrelation` at the trusted top-level
+execution boundary:
+
+.. code-block:: python
+
+    from junjo import ExecutionCorrelation
+
+    result = await workflow.execute(
+        correlation=ExecutionCorrelation(
+            type="support.ticket",
+            id=ticket.id,
+        )
+    )
+
+The value is inherited automatically by nested Workflow, Subflow, Node,
+RunConcurrent, and Agent owner spans. A nested executable cannot replace an
+active correlation with a different value. Junjo records the pair as
+``junjo.correlation.type`` and ``junjo.correlation.id`` on executable owner
+spans. Model and Tool operation spans do not duplicate it because their owning
+Agent is explicit.
+
+Correlation remains diagnostic execution input. Junjo does not add it to
+Store state, Tool dependencies, OpenTelemetry Baggage, or application
+authorization. The application still passes its domain identity explicitly
+where business behavior needs it, and it must revalidate any identity received
+across a network boundary.
+
 Agent evidence and Store replay
 -------------------------------
 

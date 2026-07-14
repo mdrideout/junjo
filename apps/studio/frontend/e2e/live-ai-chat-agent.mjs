@@ -11,6 +11,7 @@ import { describeActionableRequestFailure } from './request-failure-policy.mjs'
 
 const EVIDENCE_FIELDS = new Set([
   'schema_version',
+  'turn_id',
   'service_namespace',
   'service_name',
   'service_version',
@@ -53,7 +54,7 @@ function requiredText(value, name) {
 function readEvidence(value) {
   assert.ok(value !== null && typeof value === 'object' && !Array.isArray(value), 'evidence must be an object')
   assert.deepEqual(new Set(Object.keys(value)), EVIDENCE_FIELDS, 'evidence fields are incorrect')
-  assert.equal(value.schema_version, 1, 'evidence schema version is incorrect')
+  assert.equal(value.schema_version, 2, 'evidence schema version is incorrect')
   for (const name of EVIDENCE_FIELDS) {
     if (name !== 'schema_version' && name !== 'tool_operation_sequence') requiredText(value[name], name)
   }
@@ -101,7 +102,8 @@ const browser = await chromium.launch({ headless: true })
 const page = await browser.newPage({ viewport: { width: 1600, height: 1200 } })
 const browserFailures = []
 const firstPartyOrigins = new Set([frontendOrigin, backendOrigin])
-let observedAgentProjection = false
+let observedTraceEvidence = false
+let observedExecutionResolution = false
 page.on('pageerror', (error) => browserFailures.push(`page error: ${error.message}`))
 page.on('requestfailed', (request) => {
   const failure = describeActionableRequestFailure({
@@ -113,11 +115,24 @@ page.on('requestfailed', (request) => {
 })
 page.on('response', (response) => {
   const url = new URL(response.url())
-  const expectedPath = `/api/v1/agent-executions/${evidence.trace_id}/${evidence.agent_span_id}`
+  if (url.pathname === '/api/v1/execution-resolution') {
+    if (
+      url.searchParams.get('service_namespace') === evidence.service_namespace
+      && url.searchParams.get('service_name') === evidence.service_name
+      && url.searchParams.get('executable_type') === 'agent'
+      && url.searchParams.get('runtime_id') === evidence.agent_run_id
+    ) {
+      observedExecutionResolution = true
+      if (url.origin !== backendOrigin || !response.ok()) {
+        browserFailures.push(`Execution resolution response was ${response.status()} from ${url.origin}`)
+      }
+    }
+  }
+  const expectedPath = `/api/v1/trace-evidence/${evidence.trace_id}`
   if (url.pathname === expectedPath) {
-    observedAgentProjection = true
+    observedTraceEvidence = true
     if (url.origin !== backendOrigin || !response.ok()) {
-      browserFailures.push(`Agent projection response was ${response.status()} from ${url.origin}`)
+      browserFailures.push(`TraceEvidence response was ${response.status()} from ${url.origin}`)
     }
   }
 })
@@ -130,7 +145,14 @@ try {
   await page.waitForFunction(() => window.location.pathname !== '/sign-in', undefined, { timeout })
 
   const agentUrl = `${frontendOrigin}/agents/${evidence.trace_id}/${evidence.agent_span_id}`
-  await page.goto(agentUrl, { waitUntil: 'domcontentloaded', timeout })
+  const resolverUrl = new URL('/resolve/executable', frontendOrigin)
+  resolverUrl.searchParams.set('service_namespace', evidence.service_namespace)
+  resolverUrl.searchParams.set('service_name', evidence.service_name)
+  resolverUrl.searchParams.set('executable_type', 'agent')
+  resolverUrl.searchParams.set('runtime_id', evidence.agent_run_id)
+  resolverUrl.searchParams.set('destination', 'detail')
+  await page.goto(resolverUrl.href, { waitUntil: 'domcontentloaded', timeout })
+  await page.waitForURL(agentUrl, { timeout })
   await visible(page.getByRole('heading', { level: 1, name: evidence.agent_name, exact: true }), 'Agent heading', timeout)
   await visible(page.getByRole('region', { name: 'Evidence integrity' }), 'evidence integrity', timeout)
   await visible(page.getByText('Contract evidence: complete', { exact: true }), 'complete evidence label', timeout)
@@ -178,7 +200,8 @@ try {
     timeout,
   )
 
-  assert.ok(observedAgentProjection, 'the Agent semantic projection request was not observed')
+  assert.ok(observedTraceEvidence, 'the cohesive TraceEvidence request was not observed')
+  assert.ok(observedExecutionResolution, 'the stable execution resolver request was not observed')
   assert.deepEqual(browserFailures, [], browserFailures.join('\n'))
 } finally {
   await browser.close()

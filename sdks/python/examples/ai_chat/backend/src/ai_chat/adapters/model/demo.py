@@ -32,7 +32,7 @@ class DemoModelDriver:
         input_value = cast(Mapping[str, object], current_input.input)
         text = str(input_value["message"])
         lowered = text.casefold()
-        if any(word in lowered for word in ("image", "picture", "draw", "illustrate")):
+        if any(word in lowered for word in ("image", "picture", "draw", "illustrate", "visual", "artwork")):
             return ToolCallsResponse(
                 tool_calls=[
                     ToolCall(

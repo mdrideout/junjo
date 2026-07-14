@@ -59,7 +59,7 @@ export default function WorkflowDetailPage() {
   useEffect(() => {
     // If the span does not yet exist in state, fetch it
     if (!workflowSpan) {
-      dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
+      dispatch(TracesStateActions.fetchTraceEvidence({ traceId }))
     }
   }, [dispatch, traceId, workflowSpan])
 

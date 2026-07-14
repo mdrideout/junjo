@@ -1244,6 +1244,12 @@ def _configure_case(scenario: str) -> dict[str, Any]:
             for span in fragment:
                 _set_cancelled(span)
         case["spans"].extend(fragment)
+        if scenario == "tool_invokes_nested_workflow":
+            for span in case["spans"]:
+                attributes = span["attributes_json"]
+                if "junjo.span_type" in attributes:
+                    attributes["junjo.correlation.type"] = "ai_chat.turn"
+                    attributes["junjo.correlation.id"] = "turn-fixture-001"
         return case
     if scenario in {
         "agent_inside_workflow_node",

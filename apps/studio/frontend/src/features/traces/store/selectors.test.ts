@@ -12,6 +12,7 @@ import {
   selectTraceFailureSpans,
   selectWorkflowSpanByStoreId,
 } from './selectors'
+import { makeTraceEvidence } from '../testing/make-trace-evidence'
 
 function loadFixtureSpans(caseName: string): OtelSpan[] {
   const fixture = loadJunjoTransportFixtureCase(caseName)
@@ -59,7 +60,7 @@ function buildState({
     ...baseState,
     tracesState: {
       ...baseState.tracesState,
-      traceSpans: traceId ? { [traceId]: spans } : {},
+      traceEvidence: traceId ? { [traceId]: makeTraceEvidence(spans) } : {},
     },
     workflowDetailState: {
       ...baseState.workflowDetailState,

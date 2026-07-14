@@ -14,6 +14,7 @@ import tracesSlice from '../../traces/store/slice'
 import { rawStateEventIdentity } from './state-event-identity'
 import WorkflowDetailPage from './WorkflowDetailPage'
 import workflowDetailSlice, { WorkflowDetailStateActions } from './store/slice'
+import { makeTraceEvidence } from '../../traces/testing/make-trace-evidence'
 
 vi.mock('./WorkflowDetailNavButtons', () => ({ default: () => null }))
 vi.mock('./WorkflowDetailStateDiff', () => ({ default: () => null }))
@@ -73,9 +74,9 @@ function makeStore(basicSpans: OtelSpan[], subflowSpans: OtelSpan[]) {
       },
       tracesState: {
         serviceNames: { data: [], loading: false, error: false },
-        traceSpans: {
-          [basicTraceId]: basicSpans,
-          [subflowTraceId]: subflowSpans,
+        traceEvidence: {
+          [basicTraceId]: makeTraceEvidence(basicSpans),
+          [subflowTraceId]: makeTraceEvidence(subflowSpans),
         },
         loading: false,
         error: false,

@@ -1,4 +1,4 @@
-"""Strict API projections; domain internals do not leak over HTTP."""
+"""Strict Turn-oriented HTTP projections; domain internals remain private."""
 
 from __future__ import annotations
 
@@ -7,30 +7,72 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from ai_chat.domain.models import ChatMessage, Conversation, TurnResult
+from ai_chat.config import DebugSettings
+from ai_chat.domain.models import (
+    ChatMessage,
+    ContactProfile,
+    ContactSex,
+    ConversationOverview,
+    Turn,
+)
 
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class AgentErrorResponse(ApiModel):
-    detail: str
-    agent_run_id: str
-    termination_reason: str
+class ContactResponse(ApiModel):
+    id: str
+    first_name: str
+    last_name: str
+    sex: Literal["male", "female"]
+    age: int
+    city: str
+    state: str
+    bio: str
+    avatar_url: str
+
+    @classmethod
+    def from_domain(cls, contact: ContactProfile) -> ContactResponse:
+        return cls(
+            id=contact.id,
+            first_name=contact.first_name,
+            last_name=contact.last_name,
+            sex=contact.sex.value,
+            age=contact.age,
+            city=contact.city,
+            state=contact.state,
+            bio=contact.bio,
+            avatar_url=contact.avatar.url,
+        )
 
 
 class ConversationSummary(ApiModel):
     id: str
     title: str
+    contact: ContactResponse
+    last_message_at: datetime | None
 
     @classmethod
-    def from_domain(cls, conversation: Conversation) -> ConversationSummary:
-        return cls(id=conversation.id, title=conversation.title)
+    def from_domain(cls, overview: ConversationOverview) -> ConversationSummary:
+        return cls(
+            id=overview.conversation.id,
+            title=overview.conversation.title,
+            contact=ContactResponse.from_domain(overview.contact),
+            last_message_at=overview.last_message_at,
+        )
 
 
 class ConversationListResponse(ApiModel):
     conversations: tuple[ConversationSummary, ...]
+
+
+class CreateContactRequest(ApiModel):
+    sex: ContactSex
+
+
+class CreateContactResponse(ApiModel):
+    conversation: ConversationSummary
 
 
 class MessageResponse(ApiModel):
@@ -63,9 +105,66 @@ class MessageResponse(ApiModel):
         )
 
 
-class MessageListResponse(ApiModel):
+class ContextPolicyResponse(ApiModel):
+    id: Literal["recent-completed-turns"]
+    version: Literal[1]
+    recent_turn_limit: int
+
+
+class ExecutionReferencesResponse(ApiModel):
+    workflow_run_id: str | None
+    agent_run_id: str | None
+
+
+class TurnFailureResponse(ApiModel):
+    code: str
+    detail: str
+    termination_reason: str | None
+
+
+class TurnResponse(ApiModel):
+    object_type: Literal["ai_chat.turn"]
+    schema_version: Literal[1]
+    id: str
+    revision: int
     conversation_id: str
-    messages: tuple[MessageResponse, ...]
+    sequence: int
+    status: Literal["admitted", "running", "completed", "failed", "cancelled"]
+    context_policy: ContextPolicyResponse
+    user_message: MessageResponse
+    assistant_message: MessageResponse | None
+    execution_references: ExecutionReferencesResponse
+    failure: TurnFailureResponse | None
+    created_at: datetime
+    updated_at: datetime
+    completed_at: datetime | None
+
+    @classmethod
+    def from_domain(cls, turn: Turn) -> TurnResponse:
+        return cls(
+            object_type=turn.object_type,
+            schema_version=turn.schema_version,
+            id=turn.id,
+            revision=turn.revision,
+            conversation_id=turn.conversation_id,
+            sequence=turn.sequence,
+            status=turn.status.value,
+            context_policy=ContextPolicyResponse(**turn.context_policy.model_dump()),
+            user_message=MessageResponse.from_domain(turn.user_message),
+            assistant_message=(
+                MessageResponse.from_domain(turn.assistant_message) if turn.assistant_message is not None else None
+            ),
+            execution_references=ExecutionReferencesResponse(**turn.execution_references.model_dump()),
+            failure=(TurnFailureResponse(**turn.failure.model_dump()) if turn.failure else None),
+            created_at=turn.created_at,
+            updated_at=turn.updated_at,
+            completed_at=turn.completed_at,
+        )
+
+
+class TurnListResponse(ApiModel):
+    conversation_id: str
+    turns: tuple[TurnResponse, ...]
 
 
 class SubmitTurnRequest(ApiModel):
@@ -80,19 +179,30 @@ class SubmitTurnRequest(ApiModel):
         return normalized
 
 
-class SubmitTurnResponse(ApiModel):
-    conversation_id: str
-    workflow_run_id: str
-    agent_run_id: str
-    user_message: MessageResponse
-    assistant_message: MessageResponse
+class PublicConfigResponse(ApiModel):
+    debug_enabled: bool
+    studio_ui_url: str | None
+    service_namespace: str
+    service_name: str
 
     @classmethod
-    def from_domain(cls, result: TurnResult) -> SubmitTurnResponse:
+    def from_settings(cls, settings: DebugSettings) -> PublicConfigResponse:
         return cls(
-            conversation_id=result.conversation_id,
-            workflow_run_id=result.workflow_run_id,
-            agent_run_id=result.agent_run_id,
-            user_message=MessageResponse.from_domain(result.user_message),
-            assistant_message=MessageResponse.from_domain(result.assistant_message),
+            debug_enabled=settings.enabled,
+            studio_ui_url=settings.studio_ui_url,
+            service_namespace=settings.service_namespace,
+            service_name=settings.service_name,
         )
+
+
+class TurnProblemResponse(ApiModel):
+    type: str
+    title: str
+    status: int
+    detail: str
+    instance: str
+    turn_id: str | None = None
+    workflow_run_id: str | None = None
+    agent_run_id: str | None = None
+    termination_reason: str | None = None
+    turn: TurnResponse | None = None

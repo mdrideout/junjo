@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
 from app.features.agent_diagnostics import service
 from app.features.agent_diagnostics.contract import AgentEvidenceError
 from app.features.agent_diagnostics.schemas import (
     AgentEvidenceErrorResponse,
-    AgentExecutionDetail,
     AgentExecutionListQuery,
     AgentExecutionSummary,
 )
@@ -56,27 +55,3 @@ async def list_agent_executions(
         )
     except AgentEvidenceError as error:
         return _semantic_error(error)
-
-
-@router.get(
-    "/{trace_id}/{agent_span_id}",
-    response_model=AgentExecutionDetail,
-    operation_id="get_agent_execution_detail",
-    responses={
-        404: {"description": "Agent execution not found"},
-        409: {"model": AgentEvidenceErrorResponse},
-    },
-)
-async def get_agent_execution_detail(
-    trace_id: Annotated[str, Path(pattern="^[0-9a-f]{32}$")],
-    agent_span_id: Annotated[str, Path(pattern="^[0-9a-f]{16}$")],
-    _authenticated_user: CurrentUser,
-) -> AgentExecutionDetail | JSONResponse:
-    """Get one typed Agent execution detail by OTLP identity."""
-    try:
-        detail = await service.get_agent_execution(trace_id, agent_span_id)
-    except AgentEvidenceError as error:
-        return _semantic_error(error)
-    if detail is None:
-        return JSONResponse(status_code=404, content={"detail": "Agent execution not found"})
-    return detail

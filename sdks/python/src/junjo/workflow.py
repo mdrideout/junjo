@@ -22,6 +22,12 @@ from ._lifecycle import (
     LifecycleDispatcher,
 )
 from ._terminal import drain_terminal_work
+from .correlation import (
+    ExecutionCorrelation,
+    _active_execution_correlation,
+    _resolve_execution_correlation,
+    _set_correlation_span_attributes,
+)
 from .hooks import Hooks
 from .node import Node
 from .run_concurrent import RunConcurrent
@@ -182,6 +188,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         parent_id: str | None = None,
         *,
         validate_graph: bool = True,
+        correlation: ExecutionCorrelation | None = None,
     ) -> ExecutionResult[StateT]:
         """
         Execute the workflow or subflow and return the final execution snapshot.
@@ -199,10 +206,15 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         :param validate_graph: Whether to run ``Graph.validate()`` on the
             fresh graph before execution starts. Defaults to ``True``.
         :type validate_graph: bool
+        :param correlation: Optional trusted application identity for this
+            execution tree. Nested Junjo executables inherit it and cannot
+            replace it.
+        :type correlation: ExecutionCorrelation | None
         :returns: A detached snapshot of the completed execution, including
             the final state and current-scope execution counts.
         :rtype: ExecutionResult[StateT]
         """
+        effective_correlation = _resolve_execution_correlation(correlation)
         parent_active_identity = get_active_executable_identity()
         graph = self._graph_factory()
         if validate_graph:
@@ -255,7 +267,9 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             extra=workflow_log_extra,
         )
 
-        with tracer.start_as_current_span(self.name) as span:
+        with _active_execution_correlation(effective_correlation), tracer.start_as_current_span(
+            self.name
+        ) as span:
             try:
                 initial_store_evidence = await ctx.store._get_store_owner_evidence()
                 set_full_payload(
@@ -273,6 +287,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                 span.set_attribute("junjo.span_type", self.span_type)
                 span.set_attribute("junjo.executable_definition_id", self.id)
                 span.set_attribute("junjo.executable_runtime_id", ctx.run_id)
+                _set_correlation_span_attributes(span, effective_correlation)
                 span.set_attribute(
                     "junjo.executable_structural_id",
                     ctx.compiled_graph.graph_structural_id,

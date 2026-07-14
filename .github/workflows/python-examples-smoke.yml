@@ -3,7 +3,7 @@ name: Python Examples
 on:
   pull_request:
     paths:
-      - "sdks/python/examples/ai_chat/**"
+      - "sdks/python/examples/**"
       - "sdks/python/src/junjo/**"
       - "sdks/python/pyproject.toml"
       - "sdks/python/uv.lock"
@@ -11,7 +11,7 @@ on:
   push:
     branches: [master]
     paths:
-      - "sdks/python/examples/ai_chat/**"
+      - "sdks/python/examples/**"
       - "sdks/python/src/junjo/**"
       - "sdks/python/pyproject.toml"
       - "sdks/python/uv.lock"
@@ -37,6 +37,8 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+      - name: Validate AI chat Compose model
+        run: docker compose --file examples/ai_chat/compose.yaml config --quiet
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -81,7 +83,6 @@ jobs:
         run: npm run build
 
   getting-started:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -103,7 +104,6 @@ jobs:
         run: uv run --package getting-started python examples/getting_started/main.py
 
   base:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:

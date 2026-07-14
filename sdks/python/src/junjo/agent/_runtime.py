@@ -21,6 +21,12 @@ from .._identity import (
 from .._json import freeze_json, thaw_json
 from .._lifecycle import AgentLifecycleIdentity, LifecycleDispatcher, PreparedHookEvent
 from .._terminal import drain_terminal_work
+from ..correlation import (
+    ExecutionCorrelation,
+    _active_execution_correlation,
+    _resolve_execution_correlation,
+    _set_correlation_span_attributes,
+)
 from ..telemetry.diagnostics import (
     cancellation_reason,
     error_type,
@@ -717,19 +723,22 @@ async def execute_agent(
     input: object,
     dependencies: DependenciesT,
     history: Sequence[AgentMessage],
+    correlation: ExecutionCorrelation | None,
 ) -> AgentExecutionResult[OutputT]:
     """Create identity first, admit typed boundaries, then run one isolated loop."""
 
+    effective_correlation = _resolve_execution_correlation(correlation)
     run_id = generate_safe_id()
     active_parent = get_active_executable_identity()
     parent = active_parent.as_parent() if active_parent is not None else None
     tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
-    with tracer.start_as_current_span(
+    with _active_execution_correlation(effective_correlation), tracer.start_as_current_span(
         agent.name,
         record_exception=False,
         set_status_on_exception=False,
     ) as span:
         initialize_agent_span(span, agent=agent, run_id=run_id, parent=parent)
+        _set_correlation_span_attributes(span, effective_correlation)
         try:
             normalized_input, detached_history = _validate_invocation(
                 agent=agent,

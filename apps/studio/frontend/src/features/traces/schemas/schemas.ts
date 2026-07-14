@@ -44,10 +44,15 @@ export const OtelSpanSchema = z.object({
   status_code: z.string(),
   status_message: z.string(),
   trace_flags: z.number(),
-  trace_state: z.any(),
+  trace_state: z.string().nullable(),
+  dropped_attributes_count: z.number().int().nonnegative().safe(),
+  dropped_events_count: z.number().int().nonnegative().safe(),
+  dropped_links_count: z.number().int().nonnegative().safe(),
+  resource_attributes_json: z.record(z.unknown()),
+  resource_dropped_attributes_count: z.number().int().nonnegative().safe(),
   // Note: Junjo attributes (junjo.*, junjo.workflow.*) are in attributes_json.
   // Use SpanAccessor from utils/span-accessor.ts for typed access.
-})
+}).strict()
 export type OtelSpan = z.infer<typeof OtelSpanSchema>
 
 export const WorkflowSpansE2EResponseSchema = z.object({

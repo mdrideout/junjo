@@ -11,6 +11,10 @@ from ._identity import (
     active_executable_identity,
     get_active_executable_identity,
 )
+from .correlation import (
+    _get_active_execution_correlation,
+    _set_correlation_span_attributes,
+)
 from .store import StoreT
 from .telemetry.diagnostics import cancellation_reason
 from .telemetry.otel_schema import (
@@ -155,6 +159,10 @@ class Node(Generic[StoreT], ABC):
                 span.set_attribute("junjo.executable_definition_id", self.id)
                 span.set_attribute("junjo.parent_executable_definition_id", parent_id)
                 span.set_attribute("junjo.executable_runtime_id", self.id)
+                _set_correlation_span_attributes(
+                    span,
+                    _get_active_execution_correlation(),
+                )
                 if node_structural_id is not None:
                     span.set_attribute(
                         "junjo.executable_structural_id",

@@ -18,6 +18,7 @@ from .._json import (
     require_ijson_text,
     thaw_json,
 )
+from ..correlation import ExecutionCorrelation
 from ..hooks import Hooks
 from ..util import generate_safe_id
 from ._schema import schema_for
@@ -178,6 +179,7 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         *,
         dependencies: DependenciesT,
         history: Sequence[AgentMessage] = (),
+        correlation: ExecutionCorrelation | None = None,
     ) -> AgentExecutionResult[OutputT]:
         """Execute one isolated run against detached typed boundaries.
 
@@ -186,6 +188,9 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
             Tool contexts.
         :param history: Complete prior normalized exchanges. Junjo does not
             persist history between calls.
+        :param correlation: Optional trusted application identity for this
+            execution tree. Nested Junjo executables inherit it and cannot
+            replace it.
         :returns: A detached successful result whose output is ``OutputT``.
         :raises AgentInvocationError: If admission boundaries are invalid.
         :raises AgentExecutionError: If admitted execution fails.
@@ -199,6 +204,7 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
             input=input,
             dependencies=dependencies,
             history=history,
+            correlation=correlation,
         )
 
 

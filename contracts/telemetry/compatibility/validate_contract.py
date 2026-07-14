@@ -757,6 +757,30 @@ def _validate_common_fixture(fixture: Any, name: str, contract_version: int) -> 
                 name,
             )
         attributes = span["attributes_json"]
+        correlation_type = attributes.get("junjo.correlation.type")
+        correlation_id = attributes.get("junjo.correlation.id")
+        correlation_present = correlation_type is not None or correlation_id is not None
+        _require(
+            (correlation_type is None) == (correlation_id is None),
+            "incomplete_execution_correlation",
+            f"{name}: span {span['span_id']}",
+        )
+        if correlation_present:
+            span_type = attributes.get("junjo.span_type")
+            _require(
+                isinstance(span_type, str)
+                and span_type
+                in {"workflow", "subflow", "node", "run_concurrent", "agent"}
+                and "junjo.agent.operation_type" not in attributes,
+                "execution_correlation_on_non_owner",
+                f"{name}: span {span['span_id']}",
+            )
+            _require(
+                _is_portable_text(correlation_type, nonempty=True)
+                and _is_portable_text(correlation_id, nonempty=True),
+                "invalid_execution_correlation",
+                f"{name}: span {span['span_id']}",
+            )
         if "junjo.span_type" in attributes or "junjo.agent.operation_type" in attributes:
             _require(
                 attributes.get("junjo.telemetry.contract_version") == contract_version,
@@ -767,6 +791,34 @@ def _validate_common_fixture(fixture: Any, name: str, contract_version: int) -> 
     for span in fixture["spans"]:
         parent_id = span.get("parent_span_id")
         _require(parent_id is None or parent_id in span_ids, "unknown_parent_span", name)
+
+    spans_by_id = {span["span_id"]: span for span in fixture["spans"]}
+    owner_types = {"workflow", "subflow", "node", "run_concurrent", "agent"}
+    for span in fixture["spans"]:
+        attributes = span["attributes_json"]
+        span_type = attributes.get("junjo.span_type")
+        if not isinstance(span_type, str) or span_type not in owner_types:
+            continue
+        actual = (
+            attributes.get("junjo.correlation.type"),
+            attributes.get("junjo.correlation.id"),
+        )
+        parent_id = span.get("parent_span_id")
+        while parent_id is not None:
+            ancestor = spans_by_id[parent_id]
+            ancestor_attributes = ancestor["attributes_json"]
+            inherited = (
+                ancestor_attributes.get("junjo.correlation.type"),
+                ancestor_attributes.get("junjo.correlation.id"),
+            )
+            if inherited != (None, None):
+                _require(
+                    actual == inherited,
+                    "execution_correlation_inheritance_mismatch",
+                    f"{name}: span {span['span_id']}",
+                )
+                break
+            parent_id = ancestor.get("parent_span_id")
     _validate_schema_instance(
         fixture,
         "telemetry-fixture.schema.json",
@@ -2510,6 +2562,31 @@ def _validate_bounded_malformed_agent_scalars(
                 "malformed_fixture_root_accepted",
                 type(malformed_root).__name__,
             )
+    correlated = _load_json(producer_root / "tool_invokes_nested_workflow.json")
+    owner = next(
+        span
+        for span in correlated["spans"]
+        if span["attributes_json"].get("junjo.span_type") == "agent"
+    )
+    owner["attributes_json"].pop("junjo.correlation.id")
+    try:
+        _validate_common_fixture(
+            correlated,
+            "tool_invokes_nested_workflow",
+            contract_version,
+        )
+    except ContractValidationError as error:
+        _require(
+            error.code == "incomplete_execution_correlation",
+            "unexpected_diagnostic",
+            "incomplete execution correlation",
+        )
+        checked += 1
+    else:
+        raise ContractValidationError(
+            "incomplete_execution_correlation_accepted",
+            "tool_invokes_nested_workflow",
+        )
     return checked
 
 

@@ -34,7 +34,3 @@ export function getAgentExecutionQueryKey(query: AgentExecutionQuery): string {
   const validated = AgentExecutionQuerySchema.parse(query)
   return JSON.stringify(validated)
 }
-
-export function getAgentExecutionDetailKey(traceId: string, agentSpanId: string): string {
-  return `${traceId}:${agentSpanId}`
-}

@@ -400,6 +400,8 @@ class UnifiedSpanQuery:
         root_only: bool = False,
         workflow_only: bool = False,
         agent_only: bool = False,
+        executable_type: str | None = None,
+        executable_runtime_id: str | None = None,
         order_by: str = "start_time DESC",
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
@@ -413,6 +415,8 @@ class UnifiedSpanQuery:
             root_only: Only return root spans (no parent)
             workflow_only: Only return workflow spans (post-filter)
             agent_only: Only return Agent executable spans (post-filter)
+            executable_type: Exact Junjo executable owner type
+            executable_runtime_id: Exact Junjo executable runtime identity
             order_by: SQL ORDER BY clause
             limit: Maximum rows to return
 
@@ -447,6 +451,15 @@ class UnifiedSpanQuery:
             where_clauses.append('attributes LIKE \'%"junjo.span_type":"workflow"%\'')
         if agent_only:
             where_clauses.append('attributes LIKE \'%"junjo.span_type":"agent"%\'')
+        if executable_type is not None:
+            # Keep SQL responsible only for narrowing the scan to executable-owner
+            # candidates. Attribute JSON is opaque text at this boundary and may use
+            # different valid whitespace, while LIKE also treats ``%`` and ``_`` in
+            # runtime identities as wildcards. Exact semantics belong to the parsed
+            # post-filter below.
+            where_clauses.append("attributes LIKE '%\"junjo.span_type\"%'")
+        if executable_runtime_id is not None:
+            where_clauses.append("attributes LIKE '%\"junjo.executable_runtime_id\"%'")
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -473,6 +486,19 @@ class UnifiedSpanQuery:
                     r
                     for r in rows
                     if r.get("attributes_json", {}).get("junjo.span_type") == "agent"
+                ]
+            if executable_type is not None:
+                rows = [
+                    row
+                    for row in rows
+                    if row.get("attributes_json", {}).get("junjo.span_type") == executable_type
+                ]
+            if executable_runtime_id is not None:
+                rows = [
+                    row
+                    for row in rows
+                    if row.get("attributes_json", {}).get("junjo.executable_runtime_id")
+                    == executable_runtime_id
                 ]
 
             return rows

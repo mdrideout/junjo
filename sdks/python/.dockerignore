@@ -1,0 +1,10 @@
+.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/node_modules/
+**/dist/
+**/build/
+**/docs/_build/
+examples/ai_chat/backend/runtime-data/

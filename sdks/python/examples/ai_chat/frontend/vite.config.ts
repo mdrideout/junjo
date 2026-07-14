@@ -1,12 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react-swc'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   server: {
-    proxy: {
-      '/api': 'http://localhost:8000',
-    },
+    port: 26251,
+    strictPort: true,
   },
   test: {
     environment: 'jsdom',

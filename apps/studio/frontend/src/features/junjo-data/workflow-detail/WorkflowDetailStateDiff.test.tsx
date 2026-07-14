@@ -11,6 +11,7 @@ import { loadJunjoTransportFixtureCase } from '../../../test-utils/junjo-fixture
 import { OtelSpan, OtelSpanSchema } from '../../traces/schemas/schemas'
 import tracesSlice from '../../traces/store/slice'
 import workflowDetailSlice from './store/slice'
+import { makeTraceEvidence } from '../../traces/testing/make-trace-evidence'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
 import {
   BackendWorkflowStoreProjectionFixtureListSchema,
@@ -84,8 +85,8 @@ function renderStateDiff({
           loading: false,
           error: false,
         },
-        traceSpans: {
-          [defaultWorkflowSpan.trace_id]: spans,
+        traceEvidence: {
+          [defaultWorkflowSpan.trace_id]: makeTraceEvidence(spans),
         },
         loading: false,
         error: false,

@@ -22,6 +22,7 @@ from .agent import (
     Tool,
 )
 from .condition import Condition
+from .correlation import ExecutionCorrelation
 from .edge import Edge
 from .graph import (
     CompiledEdge,
@@ -73,6 +74,7 @@ __all__ = [
     "GraphFactory",
     "StoreFactory",
     "ExecutionResult",
+    "ExecutionCorrelation",
     "Workflow",
     "Subflow",
     "Tool",

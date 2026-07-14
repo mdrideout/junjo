@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getWorkflowStoreDiagnostic } from '../fetch/get-workflow-store-diagnostic'
+import { useMemo } from 'react'
+import { useAppSelector } from '../../../root-store/hooks'
 import type { WorkflowStoreDiagnostic } from '../schemas/workflow-store-diagnostic'
 
 export interface WorkflowStoreDiagnosticRequest {
@@ -8,41 +8,50 @@ export interface WorkflowStoreDiagnosticRequest {
   error: string | null
 }
 
-const EMPTY_REQUEST: WorkflowStoreDiagnosticRequest = {
-  data: null,
-  loading: false,
-  error: null,
-}
-
 export function useWorkflowStoreDiagnostic(
   traceId: string | undefined,
   workflowSpanId: string | undefined,
 ): WorkflowStoreDiagnosticRequest {
-  const [request, setRequest] = useState<WorkflowStoreDiagnosticRequest>(EMPTY_REQUEST)
+  const evidence = useAppSelector((state) =>
+    traceId === undefined ? undefined : state.tracesState.traceEvidence[traceId],
+  )
+  const loading = useAppSelector((state) => state.tracesState.loading)
+  const hasError = useAppSelector((state) => state.tracesState.error)
 
-  useEffect(() => {
+  return useMemo(() => {
     if (traceId === undefined || workflowSpanId === undefined) {
-      setRequest(EMPTY_REQUEST)
-      return
+      return { data: null, loading: false, error: null }
+    }
+    const executable = evidence?.executables_by_span_id[workflowSpanId]
+    if (executable?.executable_type !== 'workflow' && executable?.executable_type !== 'subflow') {
+      return {
+        data: null,
+        loading,
+        error: hasError ? 'Failed to fetch Workflow Store diagnostics' : null,
+      }
+    }
+    const state = executable.store_id === null
+      ? executable.unavailable_store
+      : evidence?.stores_by_id[executable.store_id]?.detail
+    if (state === null || state === undefined) {
+      return {
+        data: null,
+        loading: false,
+        error: 'Workflow Store evidence is unavailable',
+      }
     }
 
-    const controller = new AbortController()
-    setRequest({ data: null, loading: true, error: null })
-
-    void getWorkflowStoreDiagnostic(traceId, workflowSpanId, controller.signal)
-      .then((data) => {
-        setRequest({ data, loading: false, error: null })
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return
-        const message = error instanceof Error
-          ? error.message
-          : 'Failed to fetch Workflow Store diagnostics'
-        setRequest({ data: null, loading: false, error: message })
-      })
-
-    return () => controller.abort()
-  }, [traceId, workflowSpanId])
-
-  return request
+    return {
+      data: {
+        trace_id: traceId,
+        workflow_span_id: workflowSpanId,
+        executable_type: executable.executable_type,
+        name: executable.name,
+        state,
+        integrity: executable.integrity,
+      },
+      loading: false,
+      error: null,
+    }
+  }, [evidence, hasError, loading, traceId, workflowSpanId])
 }

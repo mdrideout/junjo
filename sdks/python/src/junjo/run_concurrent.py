@@ -14,6 +14,10 @@ from ._identity import (
     get_active_executable_identity,
 )
 from ._json import require_ijson_text
+from .correlation import (
+    _get_active_execution_correlation,
+    _set_correlation_span_attributes,
+)
 from .node import Node
 from .store import BaseStore
 from .telemetry.diagnostics import cancellation_reason
@@ -223,6 +227,10 @@ class RunConcurrent(Node):
                 span.set_attribute("junjo.executable_definition_id", self.id)
                 span.set_attribute("junjo.parent_executable_definition_id", parent_id)
                 span.set_attribute("junjo.executable_runtime_id", self.id)
+                _set_correlation_span_attributes(
+                    span,
+                    _get_active_execution_correlation(),
+                )
                 if run_concurrent_structural_id is not None:
                     span.set_attribute(
                         "junjo.executable_structural_id",

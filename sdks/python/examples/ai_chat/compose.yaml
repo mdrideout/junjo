@@ -1,0 +1,91 @@
+name: junjo-ai-chat
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: examples/ai_chat/backend/Dockerfile
+    init: true
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      AI_CHAT_DATA_DIRECTORY: /data
+      AI_CHAT_CORS_ORIGINS: http://localhost:${AI_CHAT_FRONTEND_PORT:-26251}
+      JUNJO_AI_STUDIO_HOST: ${JUNJO_AI_STUDIO_HOST:-host.docker.internal}
+      JUNJO_AI_STUDIO_PORT: ${JUNJO_AI_STUDIO_PORT:-26155}
+      JUNJO_AI_STUDIO_INSECURE: ${JUNJO_AI_STUDIO_INSECURE:-true}
+      WATCHFILES_FORCE_POLLING: "true"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - ${AI_CHAT_BACKEND_PORT:-26252}:${AI_CHAT_BACKEND_PORT:-26252}
+    command:
+      - fastapi
+      - dev
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${AI_CHAT_BACKEND_PORT:-26252}
+      - examples/ai_chat/backend/src/ai_chat/main.py
+    volumes:
+      - ai-chat-data:/data
+      - ../../src:/workspace/src
+      - ./backend:/workspace/examples/ai_chat/backend
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://localhost:${AI_CHAT_BACKEND_PORT:-26252}/api/config', timeout=2)
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    init: true
+    environment:
+      VITE_API_BASE_URL: http://localhost:${AI_CHAT_BACKEND_PORT:-26252}
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "250"
+    ports:
+      - ${AI_CHAT_FRONTEND_PORT:-26251}:${AI_CHAT_FRONTEND_PORT:-26251}
+    command:
+      - npm
+      - run
+      - dev
+      - --
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${AI_CHAT_FRONTEND_PORT:-26251}
+      - --strictPort
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app
+      - ai-chat-frontend-node-modules:/app/node_modules
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:${AI_CHAT_FRONTEND_PORT:-26251}')
+            .then(response => process.exit(response.ok ? 0 : 1))
+            .catch(() => process.exit(1))
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+volumes:
+  ai-chat-data:
+  ai-chat-frontend-node-modules:

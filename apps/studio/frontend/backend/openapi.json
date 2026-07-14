@@ -1061,33 +1061,59 @@
         }
       }
     },
-    "/api/v1/agent-executions/{trace_id}/{agent_span_id}": {
+    "/api/v1/execution-resolution": {
       "get": {
         "tags": [
-          "agent-executions"
+          "execution-resolution"
         ],
-        "summary": "Get Agent Execution Detail",
-        "description": "Get one typed Agent execution detail by OTLP identity.",
-        "operationId": "get_agent_execution_detail",
+        "summary": "Resolve Execution",
+        "operationId": "resolve_execution",
         "parameters": [
           {
-            "name": "trace_id",
-            "in": "path",
+            "name": "service_namespace",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$",
-              "title": "Trace Id"
+              "description": "Exact service.namespace; empty is explicit",
+              "title": "Service Namespace"
+            },
+            "description": "Exact service.namespace; empty is explicit"
+          },
+          {
+            "name": "service_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact service.name",
+              "title": "Service Name"
+            },
+            "description": "Exact service.name"
+          },
+          {
+            "name": "executable_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workflow",
+                "subflow",
+                "agent"
+              ],
+              "type": "string",
+              "title": "Executable Type"
             }
           },
           {
-            "name": "agent_span_id",
-            "in": "path",
+            "name": "runtime_id",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{16}$",
-              "title": "Agent Span Id"
+              "minLength": 1,
+              "title": "Runtime Id"
             }
           }
         ],
@@ -1097,19 +1123,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentExecutionDetail"
+                  "$ref": "#/components/schemas/ExecutionResolution"
                 }
               }
             }
           },
           "404": {
-            "description": "Agent execution not found"
+            "description": "Execution owner span not found"
           },
           "409": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentEvidenceErrorResponse"
+                  "$ref": "#/components/schemas/ExecutionResolutionConflictResponse"
                 }
               }
             },
@@ -1128,14 +1154,14 @@
         }
       }
     },
-    "/api/v1/workflow-executions/{trace_id}/{workflow_span_id}/store": {
+    "/api/v1/trace-evidence/{trace_id}": {
       "get": {
         "tags": [
-          "workflow-executions"
+          "trace-evidence"
         ],
-        "summary": "Get Workflow Store Diagnostic",
-        "description": "Get backend-authoritative Store reconstruction for one Workflow owner.",
-        "operationId": "get_workflow_store_diagnostic",
+        "summary": "Get Trace Evidence",
+        "description": "Get complete raw evidence and verified annotations for one trace.",
+        "operationId": "get_trace_evidence",
         "parameters": [
           {
             "name": "trace_id",
@@ -1146,16 +1172,6 @@
               "pattern": "^[0-9a-f]{32}$",
               "title": "Trace Id"
             }
-          },
-          {
-            "name": "workflow_span_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{16}$",
-              "title": "Workflow Span Id"
-            }
           }
         ],
         "responses": {
@@ -1164,23 +1180,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowStoreDiagnostic"
+                  "$ref": "#/components/schemas/TraceEvidence"
                 }
               }
             }
           },
           "404": {
-            "description": "Workflow execution not found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkflowEvidenceErrorResponse"
-                }
-              }
-            },
-            "description": "Conflict"
+            "description": "Trace not found"
           },
           "422": {
             "description": "Validation Error",
@@ -1365,8 +1371,42 @@
         ],
         "title": "AgentEvidenceErrorResponse"
       },
-      "AgentExecutionDetail": {
+      "AgentExecutableAnnotation": {
         "properties": {
+          "executable_type": {
+            "type": "string",
+            "const": "agent",
+            "title": "Executable Type"
+          },
+          "owner_span_id": {
+            "type": "string",
+            "title": "Owner Span Id"
+          },
+          "runtime_id": {
+            "type": "string",
+            "title": "Runtime Id"
+          },
+          "store_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Id"
+          },
+          "unavailable_store": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoreDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "summary": {
             "$ref": "#/components/schemas/AgentExecutionSummary"
           },
@@ -1413,47 +1453,6 @@
               }
             ]
           },
-          "operations": {
-            "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/ModelOperation"
-                },
-                {
-                  "$ref": "#/components/schemas/ToolOperation"
-                }
-              ],
-              "discriminator": {
-                "propertyName": "operation_type",
-                "mapping": {
-                  "model_request": "#/components/schemas/ModelOperation",
-                  "tool": "#/components/schemas/ToolOperation"
-                }
-              }
-            },
-            "type": "array",
-            "title": "Operations"
-          },
-          "state": {
-            "$ref": "#/components/schemas/StoreDetail"
-          },
-          "parent_executable": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ParentExecutableReference"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "nested_executables": {
-            "items": {
-              "$ref": "#/components/schemas/NestedExecutableReference"
-            },
-            "type": "array",
-            "title": "Nested Executables"
-          },
           "error": {
             "anyOf": [
               {
@@ -1481,14 +1480,16 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
+          "executable_type",
+          "owner_span_id",
+          "runtime_id",
+          "store_id",
           "summary",
           "definition",
-          "operations",
-          "state",
-          "nested_executables",
           "integrity"
         ],
-        "title": "AgentExecutionDetail"
+        "title": "AgentExecutableAnnotation",
+        "description": "Verified Agent owner facts; operations and Store evidence remain indexed."
       },
       "AgentExecutionSummary": {
         "properties": {
@@ -1948,6 +1949,31 @@
         "title": "EvidenceLossCounts",
         "description": "Preserved OTLP loss counters relevant to one semantic projection."
       },
+      "ExecutableRelationships": {
+        "properties": {
+          "parent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParentExecutableReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nested": {
+            "items": {
+              "$ref": "#/components/schemas/NestedExecutableReference"
+            },
+            "type": "array",
+            "title": "Nested"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ExecutableRelationships",
+        "description": "Semantic executable boundaries discovered from one owner."
+      },
       "ExecutionError": {
         "properties": {
           "type": {
@@ -1984,6 +2010,93 @@
           "type"
         ],
         "title": "ExecutionError"
+      },
+      "ExecutionResolution": {
+        "properties": {
+          "service_namespace": {
+            "type": "string",
+            "title": "Service Namespace"
+          },
+          "service_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Service Name"
+          },
+          "executable_type": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "subflow",
+              "agent"
+            ],
+            "title": "Executable Type"
+          },
+          "runtime_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Runtime Id"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          },
+          "detail_path": {
+            "type": "string",
+            "pattern": "^/",
+            "title": "Detail Path"
+          },
+          "trace_path": {
+            "type": "string",
+            "pattern": "^/",
+            "title": "Trace Path"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "service_namespace",
+          "service_name",
+          "executable_type",
+          "runtime_id",
+          "trace_id",
+          "span_id",
+          "detail_path",
+          "trace_path"
+        ],
+        "title": "ExecutionResolution"
+      },
+      "ExecutionResolutionConflictResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "ambiguous_execution_identity",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "match_count": {
+            "type": "integer",
+            "minimum": 2.0,
+            "title": "Match Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "match_count"
+        ],
+        "title": "ExecutionResolutionConflictResponse"
       },
       "FlushWALResponse": {
         "properties": {
@@ -2635,6 +2748,134 @@
         ],
         "title": "NestedExecutableReference"
       },
+      "NormalizedSpanEvidence": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "span_id": {
+            "type": "string",
+            "title": "Span Id"
+          },
+          "parent_span_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Span Id"
+          },
+          "service_name": {
+            "type": "string",
+            "title": "Service Name"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "start_time": {
+            "type": "string",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "title": "End Time"
+          },
+          "status_code": {
+            "type": "string",
+            "title": "Status Code"
+          },
+          "status_message": {
+            "type": "string",
+            "title": "Status Message"
+          },
+          "attributes_json": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes Json"
+          },
+          "events_json": {
+            "items": {},
+            "type": "array",
+            "title": "Events Json"
+          },
+          "links_json": {
+            "items": {},
+            "type": "array",
+            "title": "Links Json"
+          },
+          "trace_flags": {
+            "type": "integer",
+            "title": "Trace Flags"
+          },
+          "trace_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace State"
+          },
+          "dropped_attributes_count": {
+            "type": "integer",
+            "title": "Dropped Attributes Count"
+          },
+          "dropped_events_count": {
+            "type": "integer",
+            "title": "Dropped Events Count"
+          },
+          "dropped_links_count": {
+            "type": "integer",
+            "title": "Dropped Links Count"
+          },
+          "resource_attributes_json": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Resource Attributes Json"
+          },
+          "resource_dropped_attributes_count": {
+            "type": "integer",
+            "title": "Resource Dropped Attributes Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "span_id",
+          "parent_span_id",
+          "service_name",
+          "name",
+          "kind",
+          "start_time",
+          "end_time",
+          "status_code",
+          "status_message",
+          "attributes_json",
+          "events_json",
+          "links_json",
+          "trace_flags",
+          "trace_state",
+          "dropped_attributes_count",
+          "dropped_events_count",
+          "dropped_links_count",
+          "resource_attributes_json",
+          "resource_dropped_attributes_count"
+        ],
+        "title": "NormalizedSpanEvidence",
+        "description": "One normalized span, including every field preserved by Studio storage."
+      },
       "ParentExecutableReference": {
         "properties": {
           "executable_type": {
@@ -2882,6 +3123,55 @@
         ],
         "title": "SignInRequest",
         "description": "Schema for sign-in request."
+      },
+      "StoreAnnotation": {
+        "properties": {
+          "store_id": {
+            "type": "string",
+            "title": "Store Id"
+          },
+          "owner_span_id": {
+            "type": "string",
+            "title": "Owner Span Id"
+          },
+          "owner_runtime_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Runtime Id"
+          },
+          "owner_executable_type": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "subflow",
+              "agent"
+            ],
+            "title": "Owner Executable Type"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/StoreDetail"
+          },
+          "integrity": {
+            "$ref": "#/components/schemas/EvidenceIntegrity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "store_id",
+          "owner_span_id",
+          "owner_executable_type",
+          "detail",
+          "integrity"
+        ],
+        "title": "StoreAnnotation",
+        "description": "One independently verified executable Store, keyed by its Store ID."
       },
       "StoreDetail": {
         "properties": {
@@ -3261,6 +3551,135 @@
         ],
         "title": "ToolOperation"
       },
+      "TraceEvidence": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/NormalizedSpanEvidence"
+            },
+            "type": "array",
+            "title": "Spans"
+          },
+          "executables_by_span_id": {
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AgentExecutableAnnotation"
+                },
+                {
+                  "$ref": "#/components/schemas/WorkflowExecutableAnnotation"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "executable_type",
+                "mapping": {
+                  "agent": "#/components/schemas/AgentExecutableAnnotation",
+                  "subflow": "#/components/schemas/WorkflowExecutableAnnotation",
+                  "workflow": "#/components/schemas/WorkflowExecutableAnnotation"
+                }
+              }
+            },
+            "type": "object",
+            "title": "Executables By Span Id"
+          },
+          "operations_by_owner_runtime_id": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ModelOperation"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ToolOperation"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "operation_type",
+                  "mapping": {
+                    "model_request": "#/components/schemas/ModelOperation",
+                    "tool": "#/components/schemas/ToolOperation"
+                  }
+                }
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Operations By Owner Runtime Id"
+          },
+          "stores_by_id": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StoreAnnotation"
+            },
+            "type": "object",
+            "title": "Stores By Id"
+          },
+          "relationships_by_owner_span_id": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ExecutableRelationships"
+            },
+            "type": "object",
+            "title": "Relationships By Owner Span Id"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/TraceEvidenceDiagnostic"
+            },
+            "type": "array",
+            "title": "Diagnostics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "spans",
+          "executables_by_span_id",
+          "operations_by_owner_runtime_id",
+          "stores_by_id",
+          "relationships_by_owner_span_id",
+          "diagnostics"
+        ],
+        "title": "TraceEvidence",
+        "description": "Complete normalized telemetry plus generic verified annotations."
+      },
+      "TraceEvidenceDiagnostic": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "trace",
+              "executable"
+            ],
+            "title": "Scope"
+          },
+          "owner_span_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Span Id"
+          },
+          "issue": {
+            "$ref": "#/components/schemas/EvidenceDiagnostic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scope",
+          "issue"
+        ],
+        "title": "TraceEvidenceDiagnostic",
+        "description": "A diagnostic scoped to the trace or to one executable owner."
+      },
       "Usage": {
         "properties": {
           "prompt_tokens": {
@@ -3412,50 +3831,8 @@
         ],
         "title": "ValidationError"
       },
-      "WorkflowEvidenceErrorResponse": {
+      "WorkflowExecutableAnnotation": {
         "properties": {
-          "code": {
-            "type": "string",
-            "enum": [
-              "unsupported_contract",
-              "unidentifiable_workflow"
-            ],
-            "title": "Code"
-          },
-          "message": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Message"
-          },
-          "diagnostics": {
-            "items": {
-              "$ref": "#/components/schemas/EvidenceDiagnostic"
-            },
-            "type": "array",
-            "title": "Diagnostics"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "code",
-          "message"
-        ],
-        "title": "WorkflowEvidenceErrorResponse",
-        "description": "Typed rejection of unsupported or unidentifiable Workflow evidence."
-      },
-      "WorkflowStoreDiagnostic": {
-        "properties": {
-          "trace_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{32}$",
-            "title": "Trace Id"
-          },
-          "workflow_span_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{16}$",
-            "title": "Workflow Span Id"
-          },
           "executable_type": {
             "type": "string",
             "enum": [
@@ -3464,13 +3841,67 @@
             ],
             "title": "Executable Type"
           },
+          "owner_span_id": {
+            "type": "string",
+            "title": "Owner Span Id"
+          },
           "name": {
             "type": "string",
-            "minLength": 1,
             "title": "Name"
           },
-          "state": {
-            "$ref": "#/components/schemas/StoreDetail"
+          "definition_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definition Id"
+          },
+          "runtime_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Id"
+          },
+          "structural_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structural Id"
+          },
+          "store_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Id"
+          },
+          "unavailable_store": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoreDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "integrity": {
             "$ref": "#/components/schemas/EvidenceIntegrity"
@@ -3479,15 +3910,13 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "trace_id",
-          "workflow_span_id",
           "executable_type",
+          "owner_span_id",
           "name",
-          "state",
           "integrity"
         ],
-        "title": "WorkflowStoreDiagnostic",
-        "description": "Backend-authoritative Store projection for one Workflow executable."
+        "title": "WorkflowExecutableAnnotation",
+        "description": "Verified Workflow owner facts; the Store is indexed independently."
       }
     }
   }

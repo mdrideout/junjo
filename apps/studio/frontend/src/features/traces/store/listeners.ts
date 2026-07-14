@@ -1,7 +1,7 @@
 import { createListenerMiddleware } from '@reduxjs/toolkit/react'
 import { AppDispatch, RootState } from '../../../root-store/store'
 import { TracesStateActions } from './slice'
-import { getTraceSpans } from '../fetch/get-trace-spans'
+import { getTraceEvidence } from '../fetch/get-trace-evidence'
 import { fetchServiceNames } from '../fetch/get-service-names'
 
 export const otelStateListenerMiddleware = createListenerMiddleware()
@@ -30,7 +30,7 @@ startListener({
 })
 
 startListener({
-  actionCreator: TracesStateActions.fetchSpansByTraceId,
+  actionCreator: TracesStateActions.fetchTraceEvidence,
   effect: async (action, { getState, dispatch }) => {
     const { traceId } = action.payload
     if (!traceId) throw new Error('No traceId provided')
@@ -55,9 +55,9 @@ startListener({
 
     // Fetch the data
     try {
-      const data = await getTraceSpans(traceId)
+      const data = await getTraceEvidence(traceId)
       dispatch(
-        TracesStateActions.setTracesData({
+        TracesStateActions.setTraceEvidenceData({
           traceId,
           data,
         }),

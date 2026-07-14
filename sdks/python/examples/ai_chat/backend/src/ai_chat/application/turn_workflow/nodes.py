@@ -1,34 +1,100 @@
-"""Three explicit ownership steps in the chat turn Workflow."""
+"""Single-responsibility Nodes in the restored handle-message Workflow."""
 
 from junjo import Agent, Node
 
 from ai_chat.application.dependencies import ChatDependencies
-from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput
-from ai_chat.domain.ports import ContactReader, HistoryReader, ImageRenderer, MessageRepository
+from ai_chat.domain.models import (
+    ChatAgentInput,
+    ChatAgentOutput,
+    MessageDirective,
+)
+from ai_chat.domain.ports import ContactReader, HistoryReader, ImageRenderer, TurnRepository
 
 from .history import agent_history
 from .state import TurnWorkflowStore
 
 
-class PersistInputNode(Node[TurnWorkflowStore]):
-    """Persist the user's input before autonomous processing begins."""
+class LoadRecentContextNode(Node[TurnWorkflowStore]):
+    """Load bounded history required on every Turn."""
 
-    def __init__(self, messages: MessageRepository) -> None:
+    def __init__(self, history: HistoryReader) -> None:
         super().__init__()
-        self._messages = messages
+        self._history = history
 
     async def service(self, store: TurnWorkflowStore) -> None:
         state = await store.get_state()
-        message = await self._messages.append_user_message(
-            conversation_id=state.conversation_id,
-            turn_id=state.turn_id,
-            content=state.text,
+        recent_turns = await self._history.recent_completed_turns(
+            state.turn.conversation_id,
+            state.turn.sequence,
+            state.turn.context_policy.recent_turn_limit,
         )
-        await store.set_user_message(message)
+        await store.set_recent_turns(recent_turns)
 
 
-class ExecuteAgentNode(Node[TurnWorkflowStore]):
-    """Map detached Workflow state into one isolated Agent execution."""
+class LoadContactNode(Node[TurnWorkflowStore]):
+    """Load the conversation contact required on every Turn."""
+
+    def __init__(self, contacts: ContactReader) -> None:
+        super().__init__()
+        self._contacts = contacts
+
+    async def service(self, store: TurnWorkflowStore) -> None:
+        state = await store.get_state()
+        contact = await self._contacts.get_contact_for_conversation(state.turn.conversation_id)
+        await store.set_contact(contact)
+
+
+class AssessMessageDirectiveNode(Node[TurnWorkflowStore]):
+    """Classify known product behaviors before bounded autonomous handling."""
+
+    async def service(self, store: TurnWorkflowStore) -> None:
+        state = await store.get_state()
+        text = state.turn.user_message.content.casefold()
+        if any(word in text for word in ("image", "picture", "draw", "illustrate")):
+            directive = MessageDirective.IMAGE_RESPONSE
+        elif any(word in text for word in ("date idea", "date night", "romantic")):
+            directive = MessageDirective.DATE_IDEA_RESEARCH
+        elif any(word in text for word in ("work", "job", "career", "office")):
+            directive = MessageDirective.WORK_RELATED_RESPONSE
+        else:
+            directive = MessageDirective.GENERAL_RESPONSE
+        await store.set_directive(directive)
+
+
+class CreateWorkResponseNode(Node[TurnWorkflowStore]):
+    async def service(self, store: TurnWorkflowStore) -> None:
+        state = await store.get_state()
+        if state.contact is None:
+            raise RuntimeError("Contact must be loaded before creating a work response.")
+        await store.set_response(
+            ChatAgentOutput(
+                message=(
+                    f"{state.contact.first_name} thinks a good first step is to make "
+                    "the work problem smaller, write down the next concrete action, "
+                    "and protect a short block of focus time for it."
+                )
+            )
+        )
+
+
+class CreateDateIdeaResponseNode(Node[TurnWorkflowStore]):
+    async def service(self, store: TurnWorkflowStore) -> None:
+        state = await store.get_state()
+        if state.contact is None:
+            raise RuntimeError("Contact must be loaded before creating a date response.")
+        await store.set_response(
+            ChatAgentOutput(
+                message=(
+                    f"For a date with {state.contact.first_name}, try a relaxed walk "
+                    f"somewhere interesting in {state.contact.city}, then pick a small "
+                    "restaurant neither of you has tried."
+                )
+            )
+        )
+
+
+class CreateGeneralAgentResponseNode(Node[TurnWorkflowStore]):
+    """Map Workflow state into one bounded Agent execution."""
 
     def __init__(
         self,
@@ -46,45 +112,40 @@ class ExecuteAgentNode(Node[TurnWorkflowStore]):
 
     async def service(self, store: TurnWorkflowStore) -> None:
         state = await store.get_state()
-        if state.user_message is None:
-            raise RuntimeError("The user message must be persisted before Agent execution.")
-        prior_turns = await self._history.completed_turns_before(
-            state.conversation_id,
-            state.turn_id,
-        )
         dependencies = ChatDependencies(
-            conversation_id=state.conversation_id,
-            turn_id=state.turn_id,
+            conversation_id=state.turn.conversation_id,
+            turn_id=state.turn.id,
+            before_sequence=state.turn.sequence,
             history=self._history,
             contacts=self._contacts,
             images=self._images,
         )
         result = await self._agent.execute(
             ChatAgentInput(
-                conversation_id=state.conversation_id,
-                turn_id=state.turn_id,
-                message=state.text,
+                conversation_id=state.turn.conversation_id,
+                turn_id=state.turn.id,
+                message=state.turn.user_message.content,
             ),
             dependencies=dependencies,
-            history=agent_history(prior_turns),
+            history=agent_history(state.recent_turns),
         )
-        await store.set_agent_result(output=result.output, run_id=result.run_id)
+        await store.set_response(result.output, agent_run_id=result.run_id)
 
 
-class PersistResultNode(Node[TurnWorkflowStore]):
-    """Persist the validated detached Agent output as application data."""
+class PersistOutcomeNode(Node[TurnWorkflowStore]):
+    """Persist the selected branch response as application data."""
 
-    def __init__(self, messages: MessageRepository) -> None:
+    def __init__(self, turns: TurnRepository) -> None:
         super().__init__()
-        self._messages = messages
+        self._turns = turns
 
     async def service(self, store: TurnWorkflowStore) -> None:
         state = await store.get_state()
-        if state.agent_output is None:
-            raise RuntimeError("A validated Agent output is required before persistence.")
-        message = await self._messages.append_assistant_message(
-            conversation_id=state.conversation_id,
-            turn_id=state.turn_id,
-            output=state.agent_output,
+        if state.response is None:
+            raise RuntimeError("A response is required before persistence.")
+        turn = await self._turns.record_turn_outcome(
+            turn_id=state.turn.id,
+            output=state.response,
+            agent_run_id=state.agent_run_id,
         )
-        await store.set_assistant_message(message)
+        await store.set_persisted_turn(turn)

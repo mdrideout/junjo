@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { render, within } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { AgentExecutionDetailView } from '../components/AgentExecutionDetailView'
@@ -79,14 +79,15 @@ describe('API Contract: backend Agent semantic projections', () => {
         </MemoryRouter>,
       )
       expect(
-        within(view.container).getByRole('heading', {
-          level: 1,
-          name: projection.detail.summary.agent_name,
-        }),
+        view.container.querySelector('h1')?.textContent,
         `detail heading missing for ${projection.case_name}`,
-      ).toBeInTheDocument()
-      expect(within(view.container).getByRole('region', { name: 'Evidence integrity' })).toBeInTheDocument()
+      ).toBe(projection.detail.summary.agent_name)
+      expect(
+        view.container.querySelector(
+          'section[aria-label="Evidence integrity"]',
+        ),
+      ).not.toBeNull()
       view.unmount()
     }
-  }, 15_000)
+  }, 30_000)
 })

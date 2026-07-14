@@ -61,7 +61,9 @@
         "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":2,\"model_request_count\":2,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":2,\"fields\":{\"inputTokens\":{\"sum\":20,\"observations\":2},\"outputTokens\":{\"sum\":8,\"observations\":2},\"totalTokens\":{\"sum\":28,\"observations\":2}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}",
         "junjo.agent.output.mode": "full",
         "junjo.agent.output.policy": "junjo.full.v1",
-        "junjo.agent.output": "{\"answer\":\"done\"}"
+        "junjo.agent.output": "{\"answer\":\"done\"}",
+        "junjo.correlation.type": "ai_chat.turn",
+        "junjo.correlation.id": "turn-fixture-001"
       },
       "events_json": [
         {
@@ -400,7 +402,9 @@
         "junjo.workflow.state.start": "{\"value\":\"result-1\"}",
         "junjo.workflow.state.end.mode": "full",
         "junjo.workflow.state.end.policy": "junjo.full.v1",
-        "junjo.workflow.state.end": "{\"value\":\"result-1\"}"
+        "junjo.workflow.state.end": "{\"value\":\"result-1\"}",
+        "junjo.correlation.type": "ai_chat.turn",
+        "junjo.correlation.id": "turn-fixture-001"
       },
       "events_json": [],
       "links_json": [],
@@ -436,7 +440,9 @@
         "junjo.enclosing_graph_structural_id": "graph-463bcca262989930",
         "junjo.parent_executable_definition_id": "workflow-definition-463bcca262",
         "junjo.parent_executable_runtime_id": "workflow-run-463bcca262",
-        "junjo.parent_executable_structural_id": "graph-463bcca262989930"
+        "junjo.parent_executable_structural_id": "graph-463bcca262989930",
+        "junjo.correlation.type": "ai_chat.turn",
+        "junjo.correlation.id": "turn-fixture-001"
       },
       "events_json": [],
       "links_json": [],
