@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed implementation-planning document.
+Active implementation-planning document.
 
 This document turns Horizon 0 from `AGENT_LAYER_ROADMAP.md` into a concrete
 architecture discussion. It records recommended boundaries, contracts,
@@ -10,12 +10,19 @@ telemetry requirements, Junjo AI Studio implications, open decisions, and the
 ADRs that should be accepted before Agent runtime implementation begins.
 
 This document is not itself an accepted ADR and does not define a final public
-API.
+API. The monorepo ownership structure is accepted in ADR 0001, licensing is
+accepted in ADR 0002, and the Agent execution model is proposed in ADR 0003.
+The focused Agent ADRs use the next nonconflicting numbers.
 
-Remaining repository consolidation is tracked separately in
-`MONOREPO_MIGRATION_PLAN.md`. The monorepo ownership structure is accepted in
-ADR 0001; the focused Agent ADRs suggested below use that ownership and
-nonconflicting numbers.
+Decision progress:
+
+| Decision | Status |
+| --- | --- |
+| ADR 0003: Agent execution model | Proposed — ready for review |
+| ADR 0004: Agent model-driver and Tool contracts | Next |
+| ADR 0005: Agent and Workflow composition | Pending |
+| ADR 0006: Agent telemetry contract | Pending |
+| Studio ADR 007: Agent execution diagnostics | Pending |
 
 ## Phase 0 Objective
 
@@ -73,6 +80,7 @@ The reusable Agent definition owns configuration:
 - definition identity
 - human-readable name
 - instructions
+- declared input type
 - model driver
 - available tools
 - expected final output type
@@ -179,8 +187,9 @@ State changes should happen through explicit store actions such as:
 - set final output
 - set termination reason
 
-The exact state model requires an ADR because it becomes part of telemetry,
-diagnostics, deterministic testing, and `AgentExecutionResult` design.
+ADR 0003 proposes this ownership, transition, isolation, and detached-result
+model. ADR 0004 will supply the exact normalized transcript and Tool-call types
+stored within it.
 
 ### Dependency Layer
 
@@ -497,8 +506,13 @@ Agent-specific attributes:
 - `junjo.agent.termination_reason`
 - accumulated usage fields
 
-The Agent definition snapshot should be canonical, versioned JSON containing
-the exact diagnosable definition for the run, subject to payload policy:
+Canonical structural definition material should be versioned and normalized
+before payload policy is applied. It supplies the deterministic structural
+fingerprint and contains stable declared identities rather than arbitrary
+Python callable identity.
+
+A separate emitted Agent definition snapshot contains the diagnosable
+definition for the run, subject to payload policy:
 
 - snapshot schema version
 - Agent name and identity
@@ -509,8 +523,11 @@ the exact diagnosable definition for the run, subject to payload policy:
 - final output schema
 - execution limits
 
-The snapshot should support a deterministic structural fingerprint so Studio
-can compare runs using materially different Agent definitions.
+Redaction, exclusion, or reference substitution must not change how the
+structural fingerprint is computed. The emitted snapshot records observable
+transformation metadata so Studio can distinguish complete, redacted, and
+referenced evidence while still comparing the pre-transformation structural
+fingerprint.
 
 ### Model Operation Span
 
@@ -745,6 +762,11 @@ implemented.
 Add ingestion fixtures, backend semantic queries, frontend schemas/accessors,
 Agent timeline UI, state reconstruction, and nested Workflow visualization.
 
+Work Packages 4 and 5 may be organized separately, but a telemetry-contract
+change cannot land or release with only one side complete. Canonical schemas
+and fixtures, SDK producer conformance, and Studio ingestion/backend/frontend
+consumer conformance change atomically.
+
 ### Work Package 6: Prove The Public API In AI Chat
 
 Update the example only after the runtime public surface is coherent and
@@ -761,13 +783,15 @@ Update together:
 - AI Chat README and runnable behavior
 - shared telemetry-contract compatibility and conformance notes
 
-## Suggested ADR Set
+## ADR Set
 
 Root cross-platform decisions live in the existing `docs/adr` directory. ADR
-0001 already owns the platform monorepo decision. The Agent ADRs should use the
-following nonconflicting paths when their decisions are ready for acceptance.
+0001 owns the platform monorepo decision and ADR 0002 owns licensing. The Agent
+decisions use the following nonconflicting sequence.
 
-### `docs/adr/0002-agent-execution-model.md`
+### [`docs/adr/0003-agent-execution-model.md`](../adr/0003-agent-execution-model.md)
+
+Status: Proposed — ready for review.
 
 Owns:
 
@@ -779,19 +803,24 @@ Owns:
 - limits, failures, cancellation, and termination
 - why Agent is not a Node, Workflow, Subflow, session, or persistence layer
 
-### `docs/adr/0003-agent-model-driver-and-tool-contracts.md`
+### `docs/adr/0004-agent-model-driver-and-tool-contracts.md`
 
 Owns:
 
+- typed Agent input and validation/copy semantics
 - provider-neutral model request and response contract
 - application-owned provider drivers
+- stable declared model-driver, model, and Tool identity
 - Tool definition, validation, execution, and result contract
+- concurrency-safe shared collaborators versus per-run factories
 - dependency context separate from state and model context
 - sequential initial Tool policy
+- bounded output-validation correction policy or explicit rejection of it
+- fully assembled initial response and non-streaming boundary
 - strict default error semantics
 - explicit non-goals for provider SDK recreation
 
-### `docs/adr/0004-agent-workflow-composition.md`
+### `docs/adr/0005-agent-workflow-composition.md`
 
 Owns:
 
@@ -799,17 +828,19 @@ Owns:
 - Agent invoking Workflow through an application Tool
 - state/input/output mapping ownership
 - nested cancellation and failure propagation
+- lifecycle-observer snapshot isolation for each execution
 - why generic adapters are deferred until repetition is proven
 - OpenTelemetry parentage expectations
 
-### `docs/adr/0005-agent-telemetry-contract.md`
+### `docs/adr/0006-agent-telemetry-contract.md`
 
 Owns the shared Agent telemetry semantics and the SDK-producer/Studio-consumer
 conformance obligations:
 
 - Agent, model-operation, and Tool-operation span semantics
 - executable and operation identity
-- Agent definition snapshot and structural fingerprint
+- canonical structural fingerprint material separated from the emitted,
+  payload-policy-subject Agent definition snapshot
 - Agent state start/end and `set_state` event behavior
 - state revision and ordering decision
 - normalized model request and response evidence
@@ -821,7 +852,7 @@ conformance obligations:
 This ADR should be reviewed against the Studio consumer requirements before
 acceptance. Canonical fixture ownership remains in `contracts/telemetry`.
 
-### Junjo AI Studio: `apps/studio/docs/adr/005-agent-execution-diagnostics.md`
+### Junjo AI Studio: `apps/studio/docs/adr/007-agent-execution-diagnostics.md`
 
 Owns Studio interpretation and product behavior:
 
@@ -847,6 +878,10 @@ unless a strategic architectural decision emerges that requires an ADR.
 
 The Phase 0 discussion currently supports these defaults:
 
+ADR 0003 proposes the execution, ownership, state, result, limit, failure,
+cancellation, and initial non-streaming decisions below. The remaining items
+constrain ADRs 0004 through 0006 and Studio ADR 007.
+
 1. Agent is a first-class executable sibling to Workflow.
 2. Agent definitions are reusable; every execution is isolated.
 3. Agent owns no persistent memory, application transport, or database.
@@ -864,16 +899,14 @@ The Phase 0 discussion currently supports these defaults:
 13. Agent telemetry is implemented and tested with the runtime, not afterward.
 14. Agent telemetry changes update the shared contract, SDK producer, and Studio
     consumer conformance atomically.
+15. The initial Agent API is non-streaming; model drivers return one fully
+    assembled normalized response per request.
 
 ## Open Decisions Requiring ADR Resolution
 
-- final public execution method name and signature
 - exact normalized input and transcript types
 - exact structured-output validation and correction policy
 - whether explicit output-validation retries exist initially
-- exact Agent state exposed in `AgentExecutionResult`
-- how Agent definition identity remains comparable across process restarts and
-  releases
 - exact common versus Graph-specific lifecycle context split
 - public Agent hook surface
 - model and Tool operation attribute namespace
@@ -887,7 +920,7 @@ The Phase 0 discussion currently supports these defaults:
 
 Phase 0 is complete when:
 
-- root Agent ADRs 0002 through 0005 are accepted
+- root Agent ADRs 0003 through 0006 are accepted
 - the Studio diagnostics ADR is accepted
 - Agent ownership and non-ownership boundaries are explicit
 - Agent state, dependency, model-driver, Tool, and result contracts are defined

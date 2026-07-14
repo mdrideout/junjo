@@ -6,12 +6,13 @@ Planning document. This roadmap records the current product and architecture
 direction for adding autonomous agent execution to Junjo. It is not an accepted
 API design or a substitute for focused ADRs.
 
+Horizon 0 is active. The monorepo consolidation and production cutover are
+complete. [ADR 0003](../adr/0003-agent-execution-model.md) proposes the Agent
+execution model for review; the model/Tool boundary, composition, telemetry,
+and Studio diagnostics decisions remain before runtime implementation begins.
+
 The detailed Horizon 0 architecture and telemetry plan lives in
 [AGENT_LAYER_PHASE_0.md](AGENT_LAYER_PHASE_0.md).
-
-The remaining approved repository consolidation that should precede
-substantial Agent implementation is documented in
-[MONOREPO_MIGRATION_PLAN.md](MONOREPO_MIGRATION_PLAN.md).
 
 Before a horizon changes a strategic runtime contract, write or update the
 relevant ADR and explicitly consider compatibility with Junjo AI Studio.
@@ -193,6 +194,7 @@ Reusable configuration describing:
 
 - name
 - instructions
+- declared input type
 - model driver
 - available tools
 - structured output type
@@ -243,14 +245,15 @@ Potential result information includes:
 - bounded execution-step summaries
 - termination reason
 
-The precise result surface requires an ADR before implementation.
+ADR 0003 proposes the detached, typed result and terminal-outcome boundary. ADR
+0004 will supply the exact normalized transcript and usage types it contains.
 
 ## Testing And Evaluation Model
 
 ### Layer 1: Junjo Runtime Tests
 
-Root tests under `tests/` use a scripted fake model driver and deterministic
-tools.
+SDK tests under `sdks/python/tests` use a scripted fake model driver and
+deterministic Tools.
 
 They should cover at least:
 
@@ -262,7 +265,8 @@ They should cover at least:
 - unknown tools and malformed model behavior
 - tool failures
 - model failures
-- maximum iteration and usage limits
+- model-request and Tool-call limits
+- usage accounting
 - cancellation
 - concurrent run isolation
 - reusable Agent definitions
@@ -286,7 +290,7 @@ These tests should verify end-to-end behavior such as:
 - model and tool failures are represented correctly
 - multiple chat runs remain isolated
 
-They should have an explicit CI command separate from the root library tests.
+They should have an explicit CI command separate from the SDK library tests.
 
 ### Layer 3: Opt-In Live Evals
 
@@ -395,7 +399,9 @@ Implement a single-agent tool loop as a normal Junjo runtime capability.
 - injected model driver
 - typed function tools
 - structured final output
-- bounded iterations and usage
+- bounded model requests and Tool calls
+- usage accounting
+- typed input validation
 - cancellation and failures
 - detached execution result
 - lifecycle dispatch and telemetry
@@ -409,6 +415,7 @@ Implement a single-agent tool loop as a normal Junjo runtime capability.
 - generated workflows or interfaces
 - automatic prompt or source modification
 - durable background execution
+- incremental public streaming
 
 #### Exit criteria
 

@@ -52,7 +52,7 @@ REQUIRED_PATHS = (
     "contracts/telemetry/README.md",
     "docs/adr/0001-junjo-platform-monorepo.md",
     "docs/adr/0002-platform-licensing-and-third-party-material.md",
-    "docs/roadmaps/MONOREPO_GITHUB_CUTOVER_RUNBOOK.md",
+    "docs/roadmaps/MONOREPO_MIGRATION_RECORD.md",
     ".github/dependabot.yml",
     ".github/workflows/platform-gate.yml",
     ".github/workflows/python-ci.yml",
