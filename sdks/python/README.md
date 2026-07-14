@@ -58,7 +58,17 @@ Junjo simply helps you organize your python functions (whether they be logic, LL
 
 #### 🥧 Conventional
 
-Junjo provides primitive building blocks that let you build any sort of executable workflow. From linear chains of LLM calls, to complex branching workflows with concurrent subflows, to fully autonomous agents.
+Junjo provides primitive building blocks for explicit graph Workflows, from
+linear chains of LLM calls to conditional loops, branching paths, and
+concurrent subflows. A Workflow declares its possible graph paths before
+execution; model calls inside Nodes may update state used by edge conditions,
+but they do not dynamically create or rewrite the graph.
+
+Junjo's accepted architecture also defines a future first-class `Agent`
+execution model for the complementary case where a model chooses the next
+capability at runtime from an explicit set of tools. That Agent runtime is not
+implemented in the current Python SDK, and an Agent will be a sibling to
+`Workflow`, not a dynamically generated graph or a special kind of Workflow.
 
 Junjo uses conventional Pythonic architecture. Rather than obfuscating, proprietary decorators or runtime scripts that hijack execution, Junjo graph workflows are constructed conventionally with python classes and generics, and Pydantic models for type safe immutable state.
 
@@ -70,7 +80,10 @@ Junjo organizes conventional OpenTelemetry spans into easy to understand groups.
 
 #### 🤝 Compatible
 
-Junjo can work alongside other AI Agent frameworks. Junjo Workflows can be setup as **tools** that Autonomous Agent frameworks can call for high-accuracy repeatable processes (like RAG retrieval or complex document parsing logic).
+Junjo can work alongside external AI Agent frameworks. Application code can
+expose a Junjo Workflow to one of those frameworks as a **tool** for a
+high-accuracy, repeatable process such as RAG retrieval or complex document
+parsing. That adapter does not turn the Workflow itself into an Agent.
 
 You can execute autonomous agent capabilities from other libraries inside a Junjo AI workflow. For example, a Junjo workflow node can run a [smolagents](https://github.com/huggingface/smolagents) tool calling agent as a single step within a greater Junjo workflow or subflow.
 
@@ -197,16 +210,29 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Building AI Workflows and Agents as Graph Workflows
+## Building Explicit Graph Workflows for AI Systems
 
-Agentic AI applications use LLMs to determine the order of execution of python functions. These functions may involve LLM requests, API requests, database CRUD operations, etc.
+AI applications often need to coordinate Python functions that perform LLM
+requests, API calls, database operations, retrieval, and deterministic business
+logic.
 
-The simplest way to organize functions that can be / need to be conditionally executed in a certain order is in the form of a [directed graph](https://en.wikipedia.org/wiki/Directed_graph).
+Junjo Workflows organize those functions as an explicit
+[directed graph](https://en.wikipedia.org/wiki/Directed_graph). The application
+declares the possible paths before execution. Nodes perform work and update
+typed state; edges and conditions determine which declared path a run takes.
+This produces a bounded structure that is straightforward to inspect, test,
+and observe.
 
-A directed graph gives one the building blocks to create any sort of agentic application, including:
+The current Workflow runtime supports structures such as:
 
 - High precision workflows in the form of a Directed Acyclic Graph (DAG)
-- Autonomous AI Agents in the form of dynamically determined directed graphs
+- Conditional branches and loops over declared edges
+- Concurrent node groups and nested subflows
+
+The accepted future Junjo Agent model covers runtime tool selection without
+pretending that the realized sequence of model and tool operations is a static
+or dynamically generated Workflow graph. It is a separate first-class
+execution model and is not yet part of the released Python runtime.
 
 ## Junjo AI Studio
 

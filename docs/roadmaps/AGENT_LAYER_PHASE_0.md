@@ -1,936 +1,308 @@
-# Agent Layer Phase 0: Architecture And Telemetry Design
+# Agent Layer Phase 0: Architecture And Telemetry Decisions
 
 ## Status
 
-Active implementation-planning document.
-
-This document turns Horizon 0 from `AGENT_LAYER_ROADMAP.md` into a concrete
-architecture discussion. It records recommended boundaries, contracts,
-telemetry requirements, Junjo AI Studio implications, open decisions, and the
-ADRs that should be accepted before Agent runtime implementation begins.
-
-This document is not itself an accepted ADR and does not define a final public
-API. The monorepo ownership structure is accepted in ADR 0001, licensing is
-accepted in ADR 0002, and the Agent execution model is proposed in ADR 0003.
-The focused Agent ADRs use the next nonconflicting numbers.
-
-Decision progress:
-
-| Decision | Status |
-| --- | --- |
-| ADR 0003: Agent execution model | Proposed — ready for review |
-| ADR 0004: Agent model-driver and Tool contracts | Next |
-| ADR 0005: Agent and Workflow composition | Pending |
-| ADR 0006: Agent telemetry contract | Pending |
-| Studio ADR 007: Agent execution diagnostics | Pending |
-
-## Phase 0 Objective
-
-Define the smallest coherent autonomous Agent runtime that can be built on
-Junjo's existing architectural principles without weakening the clarity of the
-Workflow, Graph, State, Store, Execution, Lifecycle, Hook, and Telemetry layers.
-
-The design must make every realized Agent execution diagnostically transparent
-in Junjo AI Studio, including:
-
-- Agent definition and run identity
-- exact normalized model inputs and outputs, subject to an explicit payload
-  policy
-- tools made available to the model
-- tool calls selected by the model
-- validated tool arguments and returned results
-- Agent run state before, during, and after execution
-- chronological state transitions and JSON patches
-- nested Junjo Workflow executions invoked by tools
-- model and tool usage
-- failures, cancellation, and termination reason
-
-Phase 0 is complete when the strategic decisions are accepted and the shared
-telemetry contract is specific enough for SDK producer and Studio consumer
-conformance to be implemented and tested.
-
-## Architectural Position
-
-An Agent is a reusable executable definition that delegates next-step selection
-to a model within a bounded loop over explicit tools and produces a typed,
-detached result.
-
-An Agent should be a first-class executable sibling to `Workflow`. It should not
-subclass `Workflow`, `Subflow`, or `Node`.
-
-The Agent runtime should reuse Junjo's proven principles:
-
-- reusable definitions and isolated executions
-- fresh run-local state for every execution
-- immutable state transitions
-- explicit side effects
-- detached public results
-- cancellation distinct from failure
-- lifecycle hooks as optional observers
-- telemetry independent from hooks
-- application-owned persistence and transport
-
-It should not reuse graph-specific contracts when those contracts would
-misrepresent dynamic Agent behavior.
-
-## What Agent Owns
-
-The reusable Agent definition owns configuration:
-
-- definition identity
-- human-readable name
-- instructions
-- declared input type
-- model driver
-- available tools
-- expected final output type
-- explicit execution limits
-- optional Agent lifecycle hooks
-
-Each Agent execution owns run-local mechanics:
-
-- run identity
-- input
-- supplied conversation history
-- internal transcript
-- run-local dependencies
-- model request count
-- tool call count
-- usage totals
-- pending and completed tool calls
-- final output
-- termination reason
-- lifecycle and telemetry context
-
-## What Agent Does Not Own
-
-Agent must not own:
-
-- persistent chat or conversation storage
-- long-term memory storage
-- application database sessions
-- user authentication or authorization policy
-- product event transport
-- WebSocket or HTTP lifecycle
-- provider API keys as global Agent state
-- background job durability
-- arbitrary application state outside explicit tools
-- automatic source-code modification
-- eval datasets or promotion policy
-- Junjo AI Studio persistence or queries
-
-Applications pass dependencies and selected context into an Agent execution.
-Applications decide what parts of the result or transcript to persist.
-
-## Layer Boundaries
-
-### Public Definition Layer
-
-The public layer should expose simple, explicit construction of:
-
-- Agent
-- Tool
-- model-driver contract
-- Agent execution result
-- Agent lifecycle hooks
-
-Public construction should not require decorators, docstring parsing, hidden
-global registries, or provider-owned conversation sessions.
-
-### Execution Layer
-
-A private Agent execution layer should own the bounded model/tool loop. It is
-the only layer permitted to mutate internal Agent run state.
-
-Conceptual execution:
-
-```text
-create fresh run context and Agent state
-  -> record initial state
-  -> construct normalized model request
-  -> execute model driver
-  -> record normalized model response
-  -> final output?
-       yes -> validate output -> complete
-       no  -> validate ordered tool calls
-              -> execute tools
-              -> record tool results
-              -> repeat
-```
-
-The model chooses the next action. Junjo owns validation, execution, state,
-limits, cancellation, results, lifecycle, and telemetry.
-
-### Agent State Layer
-
-Agent execution needs a Junjo-owned internal state model and store. Application
-developers should not need to define an Agent store for ordinary use.
-
-Candidate Agent run state responsibilities:
-
-- normalized input and prior history
-- ordered model and tool transcript
-- current model iteration
-- total tool calls
-- accumulated usage
-- pending tool calls
-- completed tool results
-- validated final output
-- termination reason
-
-State changes should happen through explicit store actions such as:
-
-- append model response
-- register pending tool calls
-- append tool result
-- update usage
-- set final output
-- set termination reason
-
-ADR 0003 proposes this ownership, transition, isolation, and detached-result
-model. ADR 0004 will supply the exact normalized transcript and Tool-call types
-stored within it.
-
-### Dependency Layer
-
-Application dependencies are not Agent state.
-
-Dependencies may include:
-
-- authenticated user context
-- repositories
-- database or HTTP clients
-- storage clients
-- application configuration
-- request-scoped domain event sinks
-
-Tools receive an opaque typed run context containing those dependencies. The
-model sees only values deliberately included in model input or returned by a
-tool.
-
-This preserves three separate concepts:
-
-```text
-Agent state
-  = information evolving during one Agent execution
-
-Application dependencies
-  = services available to perform work
-
-Model context
-  = selected information intentionally shown to the model
-```
-
-### Model Driver Layer
-
-The model driver owns provider translation, not Agent orchestration.
-
-Junjo supplies a normalized request containing:
-
-- instructions
-- input and transcript
-- available tool definitions
-- expected final output schema
-- explicitly standardized model configuration
-
-The driver returns one normalized response:
-
-- typed final-output candidate, or
-- one or more ordered tool calls
-
-Each normalized tool call includes:
-
-- provider tool-call identifier
-- tool name
-- JSON arguments
-
-The driver owns:
-
-- provider SDK calls
-- provider request and response conversion
-- provider-specific errors
-- provider usage extraction
-- provider streaming assembly when supported later
-
-Junjo owns:
-
-- the execution loop
-- transcript state
-- tool resolution and validation
-- limits
-- output validation
-- cancellation
-- lifecycle
-- result construction
-- Junjo semantic telemetry
-
-### Tool Layer
-
-A Tool is an explicit model-callable capability.
-
-A Tool contract should include:
-
-- stable name
-- clear description
-- validated input type
-- explicit output contract
-- application-owned service callable
-
-The Tool service receives validated input and the typed Agent run context.
-
-Default error semantics should be explicit:
-
-- a tool exception fails Agent execution
-- a recoverable domain result is returned as a typed Tool result
-- Junjo does not silently convert arbitrary exceptions into model-visible text
-- model-visible recovery behavior may be added later only as an explicit policy
-
-The initial implementation should execute multiple Tool calls sequentially in
-the order returned by the model. Concurrency can be added later as an explicit
-policy once read-only and mutating Tool semantics are represented.
-
-## Workflow And Agent Composition
-
-### Workflow Executes Agent
-
-An application Node can read its Workflow Store, execute an Agent, and commit
-selected results back through Store actions.
-
-```text
-Application Node
-  -> read detached Workflow state
-  -> construct Agent input and dependencies
-  -> execute Agent
-  -> validate AgentExecutionResult
-  -> update Workflow Store
-```
-
-The first implementation should use an ordinary application Node rather than a
-generic `AgentNode` adapter. Introduce an adapter only if repeated mapping code
-becomes brittle.
-
-### Agent Executes Workflow
-
-A Tool service can construct and execute a Junjo Workflow, then map its detached
-`ExecutionResult` into a Tool result.
-
-```text
-Tool service
-  -> construct Workflow definition and run-local input
-  -> execute Workflow
-  -> map ExecutionResult into typed Tool output
-```
-
-The first implementation should use explicit application code rather than a
-generic Workflow-to-Tool adapter. OpenTelemetry parentage should naturally place
-the nested Workflow span beneath the Tool span.
-
-## Lifecycle Architecture
-
-### Current Constraint
-
-Junjo's current internal lifecycle context is graph-shaped.
-`StoreLifecycleContext` contains:
-
-- enclosing Graph structural identity
-- executable structural identity
-- compiled Node structural IDs
-
-Those fields are correct for Workflow Stores but do not cleanly describe a
-standalone Agent.
-
-The existing public `LifecycleEvent` also assumes Graph structural fields are
-available for every event.
-
-### Recommended Direction
-
-Separate genuinely common execution identity from Graph-specific identity.
-
-Conceptually:
-
-```text
-Executable identity
-  - definition ID
-  - runtime ID
-  - name
-  - executable type
-  - parent executable runtime ID
-
-Graph executable identity
-  - executable structural ID
-  - enclosing Graph structural ID
-  - parent executable structural ID
-```
-
-Do not use fake Graph IDs for Agent execution. Do not make every existing field
-nullable without first considering whether separate event bases and lifecycle
-contexts would preserve clearer contracts.
-
-Agent lifecycle should include:
-
-- Agent started
-- Agent completed
-- Agent failed
-- Agent cancelled
-
-Public hooks remain optional observers. Hook failure must not control Agent
-execution, and hook errors should be recorded on the real active Agent span in
-the same manner as existing Workflow and Node hook failures.
-
-Model and Tool operations require telemetry but do not necessarily require
-public hooks in the first implementation.
-
-## Telemetry Principles
-
-### Telemetry Is The Diagnostic Source Of Truth
-
-Junjo telemetry must make it possible to reconstruct what the Agent was asked,
-what capabilities it had, what it chose, what each capability returned, how
-state changed, and why execution terminated.
-
-Public hooks must not be the telemetry control plane.
-
-### Full Transparency Has A Defined Boundary
-
-Full transparency means recording observable execution evidence:
-
-- normalized instructions and model input
-- available Tool definitions
-- normalized model output
-- selected Tool calls
-- Tool arguments and results
-- state transitions
-- usage and timing
-- errors and cancellation
-
-It does not mean requiring or fabricating hidden model chain-of-thought. If a
-provider returns an explicit reasoning summary as ordinary output, it may be
-recorded according to payload policy. Junjo diagnostics must not depend on
-private reasoning tokens that providers do not expose.
-
-### Agent Runs Are Dynamic Traces
-
-A Workflow has a serialized execution Graph snapshot. An Agent does not.
-
-Agent execution should be represented through the realized OpenTelemetry span
-tree and ordered state events. Junjo AI Studio should render an Agent decision
-timeline or tree, not a fabricated static Graph.
-
-Nested Workflows invoked by Tools retain their own Graph snapshots and Graph
-views.
-
-### Existing State Event Contract Should Be Reused
-
-The current `BaseStore.set_state()` contract emits `set_state` events containing:
-
-- event ID
-- Store name and ID
-- Store action
-- JSON Patch
-
-Junjo AI Studio already groups and renders state events by Store ID and applies
-the patches chronologically. Agent state should reuse this contract so Studio's
-state-diff machinery remains conceptually consistent.
-
-The Agent telemetry ADR should decide whether the generic state contract also
-adds monotonic Store revision information:
-
-- revision before
-- revision after
-- deterministic transition sequence
-
-Timestamps remain useful, but an explicit revision gives Studio a stable total
-ordering and supports future concurrent execution without ambiguous state-event
-order.
-
-### State Transitions Should Remain Causally Attached
-
-State changes should be recorded on the span that caused them:
-
-- model response state changes on the active model-operation span
-- Tool-call registration on the active Agent/model span
-- Tool result state changes on the active Tool span
-- final-output state changes on the active Agent or final model span
-
-Studio can then aggregate all `set_state` events by Agent Store ID while also
-showing which operation caused each transition.
-
-## Proposed Span Hierarchy
-
-```text
-Agent span
-  -> model request span: iteration 1
-  -> Tool span: query_history
-  -> model request span: iteration 2
-  -> Tool span: create_image
-      -> Workflow span: Create Image Workflow
-          -> Node spans
-  -> model request span: iteration 3
-```
-
-When an Agent runs inside a Workflow Node:
-
-```text
-Workflow span
-  -> Node span: Run Chat Agent
-      -> Agent span
-          -> model and Tool spans
-```
-
-OpenTelemetry span parentage is the runtime execution hierarchy. Junjo runtime
-and structural attributes provide semantic identity within that hierarchy.
-
-## Proposed Telemetry Semantics
-
-Exact names must be accepted in the Agent telemetry ADR. The following groups
-describe the required information and candidate attribute names.
-
-### Agent Span
-
-Generic executable attributes:
-
-- `junjo.span_type = "agent"`
-- `junjo.executable_definition_id`
-- `junjo.executable_runtime_id`
-- parent executable runtime identity when nested
-
-Agent-specific attributes:
-
-- `junjo.agent.definition_snapshot`
-- `junjo.agent.structural_id` or explicit definition version
-- `junjo.agent.store.id`
-- `junjo.agent.state.start`
-- `junjo.agent.state.end`
-- `junjo.agent.model_request.count`
-- `junjo.agent.tool_call.count`
-- `junjo.agent.termination_reason`
-- accumulated usage fields
-
-Canonical structural definition material should be versioned and normalized
-before payload policy is applied. It supplies the deterministic structural
-fingerprint and contains stable declared identities rather than arbitrary
-Python callable identity.
-
-A separate emitted Agent definition snapshot contains the diagnosable
-definition for the run, subject to payload policy:
-
-- snapshot schema version
-- Agent name and identity
-- static instructions
-- model-driver/model identity
-- available Tool names and descriptions
-- Tool input and output schemas
-- final output schema
-- execution limits
-
-Redaction, exclusion, or reference substitution must not change how the
-structural fingerprint is computed. The emitted snapshot records observable
-transformation metadata so Studio can distinguish complete, redacted, and
-referenced evidence while still comparing the pre-transformation structural
-fingerprint.
-
-### Model Operation Span
-
-Model and Tool operations should not automatically be treated as Graph
-executables. A separate operation attribute may be clearer than adding every
-operation to `JunjoOtelSpanTypes`.
-
-Candidate information:
-
-- `junjo.agent.operation_type = "model_request"`
-- Agent run ID
-- iteration ordinal
-- Agent state revision used to construct the request
-- provider and model identity
-- normalized request JSON
-- normalized response JSON
-- response type: final output or Tool calls
-- input, output, cached, and reasoning-token usage when supplied by the provider
-- request duration and terminal status
-
-The normalized request must preserve the actual semantic content sent through
-the driver. Provider instrumentation may add additional provider-specific spans,
-but Junjo must not depend on provider instrumentation for its Agent diagnostic
-contract.
-
-### Tool Operation Span
-
-Candidate information:
-
-- `junjo.agent.operation_type = "tool"`
-- Agent run ID
-- Tool definition identity or structural fingerprint
-- Tool name
-- provider Tool-call ID
-- call ordinal
-- validated argument JSON
-- serialized result JSON
-- Agent state revision before and after result commit
-- success, failure, or cancellation
-
-A nested Workflow invoked by the Tool should be a normal child span rather than
-having its telemetry copied into Tool attributes.
-
-### Errors And Cancellation
-
-Agent, model, Tool, and nested Workflow spans should use the existing Junjo and
-OpenTelemetry conventions:
-
-- standard error status and `error.type` for failures
-- recorded exception event where appropriate
-- `junjo.cancelled = true` for cancellation
-- `junjo.cancelled_reason`
-
-Cancellation should not be represented as an error.
-
-## Payload Size And Duplication
-
-Full diagnostics can produce large telemetry payloads, especially when full
-conversation history is repeated on every model request.
-
-The telemetry ADR must explicitly choose how exact reproducibility is balanced
-against duplication. Candidate strategy:
-
-- Agent state start plus ordered JSON patches reconstruct the transcript
-- Agent definition snapshot records offered capabilities once per run
-- each model span records the exact normalized request or an exact delta plus
-  the referenced Agent state revision
-- Tool spans record exact arguments and results once
-- large binary data is represented by metadata or application-owned references,
-  not embedded directly in span attributes
-
-Do not silently truncate payloads inside execution mechanics. Any redaction,
-exclusion, reference substitution, or size limit should be implemented through
-an explicit payload policy with observable metadata indicating that the value
-was transformed.
-
-## Junjo AI Studio Requirements
-
-### Ingestion
-
-The Rust ingestion service currently preserves span attributes and events as
-JSON. Agent telemetry should continue using standard OTLP spans and events so
-ingestion remains primarily transport and durable storage rather than an Agent
-semantic processor.
-
-Ingestion contract tests should prove preservation of:
-
-- Agent span attributes
-- model-operation attributes
-- Tool-operation attributes
-- Agent `set_state` events
-- failure and cancellation evidence
-
-### Backend
-
-The backend should expose semantic Agent queries without requiring clients to
-scan raw span storage.
-
-Initial diagnostic queries should support:
-
-- list Agent executions by service and Agent identity
-- retrieve the complete trace for an Agent run
-- retrieve standalone and Workflow-nested Agent runs
-- filter by completion, failure, or cancellation
-- retrieve model and Tool child operations
-- retrieve Agent state events by Store ID
-
-The metadata index may eventually add Agent-specific file-selection hints, but
-Agent ingestion must not become coupled to backend availability.
-
-### Frontend
-
-Junjo AI Studio should add an Agent execution view with:
-
-- Agent definition and available capabilities
-- input and final output
-- chronological model and Tool timeline
-- per-operation inputs and outputs
-- state transition navigation
-- before, after, patch, and detailed state views
-- nested Workflow links and Graph visualization
-- usage, duration, and termination summary
-- failures and cancellation at the owning operation
-
-Existing state-diff behavior should be reused through the `set_state` and Store
-ID contract rather than implementing a second Agent-only diff engine.
-
-The current frontend span accessor, schemas, state selectors, and Graph matching
-logic are direct compatibility consumers of the SDK telemetry contract. Agent
-fixtures must exercise those boundaries.
-
-## Testing And Contract Verification
-
-### Junjo SDK Tests
-
-Use an OpenTelemetry in-memory exporter to assert the complete semantic contract
-for deterministic scripted Agent executions.
-
-Required cases:
-
-- direct final output
-- one Tool call followed by final output
-- multiple ordered Tool calls
-- Tool invoking a nested Workflow
-- model failure
-- Tool failure
-- malformed model output
-- limit termination
-- cancellation during model execution
-- cancellation during Tool execution
-- Agent inside a Workflow Node
-- concurrent Agent run isolation
-- every Agent state patch reconstructs the final state
-
-Tests should assert span hierarchy, identities, attributes, events, statuses,
-and cancellation semantics.
-
-### Shared Contract And Studio Consumer Fixtures
-
-Create stable OTLP/JSON fixtures from representative deterministic Agent runs.
-Junjo AI Studio tests should verify:
-
-- ingestion preserves the contract
-- backend queries return the complete Agent execution
-- frontend schemas accept the payload
-- timeline construction preserves execution order
-- Agent state reconstruction reaches the expected final state
-- nested Workflow spans still match their Graph snapshots
-- failures and cancellations appear on the correct operation
-
-### AI Chat Acceptance Application
-
-The `sdks/python/examples/ai_chat` proof should include:
-
-- a general response with no Tool
-- a deterministic conversation-history query Tool
-- a structured image Workflow invoked as a Tool
-- a Tool failure
-- bounded loop termination
-- a complete Agent state and operation timeline in Studio
-
-The example consumes public Junjo APIs. It must not contain runtime behavior
-that belongs in `sdks/python/src/junjo`.
-
-## Suggested Implementation Layers
-
-File names remain implementation choices, but responsibilities should stay
-visibly separated:
-
-```text
-public Agent definition and result
-public model-driver contract and normalized message types
-public Tool contract
-private Agent execution loop
-private Agent run state and Store
-private Agent lifecycle dispatch
-Agent telemetry attribute/schema definitions
-provider drivers outside the core Agent execution layer
-```
-
-Do not introduce a universal executable superclass during Phase 0. Share small,
-proven internal mechanisms only where Workflow and Agent genuinely repeat the
-same behavior.
-
-## Implementation Work Packages
-
-### Work Package 1: Accept ADRs
-
-Write and approve the Agent execution, model/Tool boundary, composition, and
-telemetry ADRs before runtime implementation.
-
-### Work Package 2: Prepare Common Lifecycle Boundaries
-
-Refactor only the graph assumptions that prevent a clean Agent lifecycle.
-Preserve Workflow, Node, Subflow, Store, Hook, and telemetry behavior with
-existing tests before adding Agent behavior.
-
-### Work Package 3: Implement Deterministic Agent Kernel
-
-Implement reusable Agent definitions, isolated execution, internal immutable
-state, normalized model responses, sequential Tool execution, explicit limits,
-detached results, failure, and cancellation.
-
-### Work Package 4: Implement Agent Telemetry With The Kernel
-
-Telemetry is not a follow-up feature. Agent state, model, Tool, error, and
-cancellation evidence must be emitted and tested as each execution behavior is
+Complete as of 2026-07-13.
+
+Root ADRs 0003 through 0006 and Studio ADRs 004 and 007 are accepted and
+normative. This document remains the Horizon 0 traceability and
+implementation-sequencing record. All Horizon 0 exit criteria are satisfied,
+and Horizon 1 may begin.
+
+Horizon 0 produced architectural decisions only. It does not claim that an
+Agent runtime, telemetry contract version 2, or Studio Agent view is currently
 implemented.
 
-### Work Package 5: Add Studio Consumer Support
+## Objective
 
-Add ingestion fixtures, backend semantic queries, frontend schemas/accessors,
-Agent timeline UI, state reconstruction, and nested Workflow visualization.
+Define the smallest coherent Agent runtime that can be built on Junjo's
+existing architectural principles without weakening the Workflow, Graph,
+State, Store, Execution, Lifecycle, Hook, Telemetry, or Studio boundaries.
 
-Work Packages 4 and 5 may be organized separately, but a telemetry-contract
-change cannot land or release with only one side complete. Canonical schemas
-and fixtures, SDK producer conformance, and Studio ingestion/backend/frontend
-consumer conformance change atomically.
+The design must support dynamic model-selected capabilities while preserving:
 
-### Work Package 6: Prove The Public API In AI Chat
+- reusable definitions and isolated runs;
+- typed input, state, Tools, and output;
+- explicit application-owned side effects;
+- bounded execution and detached results;
+- failure and cancellation semantics;
+- deterministic tests;
+- complete shared-contract diagnostics in Studio.
 
-Update the example only after the runtime public surface is coherent and
-deterministically tested.
+## Accepted decision set
 
-### Work Package 7: Complete Public Teaching Surfaces
+| Decision | Status | Ownership |
+| --- | --- | --- |
+| [ADR 0003: Agent execution model](../adr/0003-agent-execution-model.md) | Accepted | Agent definition, run, state, result, limits, terminal behavior |
+| [ADR 0004: Agent ModelDriver and Tool contracts](../adr/0004-agent-model-driver-and-tool-contracts.md) | Accepted | Typed normalized model and application capability boundaries |
+| [ADR 0005: Agent and Workflow composition](../adr/0005-agent-workflow-composition.md) | Accepted | Composition, lifecycle identity, hooks, nested propagation |
+| [ADR 0006: Agent telemetry contract](../adr/0006-agent-telemetry-contract.md) | Accepted | Contract v2 spans, operations, state revisions, payloads, fixtures |
+| [Studio ADR 004: Span Events JSON Contract](../../apps/studio/docs/adr/004-events-json-contract.md) | Accepted | Canonical stored event shape and dropped-attribute mapping |
+| [Studio ADR 007: Agent execution diagnostics](../../apps/studio/docs/adr/007-agent-execution-diagnostics.md) | Accepted | Ingestion preservation, semantic queries, diagnostic UI |
 
-Update together:
+The ADRs are the source of truth. This record summarizes their boundaries
+without redefining their detailed contracts.
 
-- public docstrings
-- Sphinx concepts and API docs
-- deterministic test guidance
-- opt-in eval guidance
-- AI Chat README and runnable behavior
-- shared telemetry-contract compatibility and conformance notes
+## Architectural result
 
-## ADR Set
+`Agent` is a first-class executable sibling to `Workflow`. It owns a private,
+bounded model/Tool loop and produces a typed detached result. It is not a Node,
+Workflow subclass, dynamic Graph, provider session, or persistence layer.
 
-Root cross-platform decisions live in the existing `docs/adr` directory. ADR
-0001 owns the platform monorepo decision and ADR 0002 owns licensing. The Agent
-decisions use the following nonconflicting sequence.
+The initial composition is:
 
-### [`docs/adr/0003-agent-execution-model.md`](../adr/0003-agent-execution-model.md)
+`Application -> Agent definition -> isolated Agent run`
 
-Status: Proposed — ready for review.
+An Agent run collaborates with:
 
-Owns:
+- a ModelDriver that translates one normalized request into one normalized
+  response;
+- explicit typed Tools that call application services;
+- ordinary application Nodes and Tool services for Workflow composition;
+- lifecycle observers that cannot control execution or telemetry;
+- OpenTelemetry emission consumed through the shared platform contract.
 
-- definition of an Agent
-- Agent as a first-class executable sibling to Workflow
-- reusable definition and run-local execution boundary
-- internal immutable Agent state
-- detached Agent execution result
-- limits, failures, cancellation, and termination
-- why Agent is not a Node, Workflow, Subflow, session, or persistence layer
+### Responsibility map
 
-### `docs/adr/0004-agent-model-driver-and-tool-contracts.md`
+| Layer | Owns | Does not own |
+| --- | --- | --- |
+| Agent definition | Stable key, display configuration, declared schemas, collaborator bindings, limits | Live run state, persistence |
+| Private Agent execution | Validation, loop, Store transitions, limits, terminal behavior | Provider translation, application side effects |
+| ModelDriver binding | Declared model identity and collaborator ownership | Provider calls or Agent looping |
+| ModelDriver | Provider request/response translation and usage extraction | Declared identity, looping, Tools, lifecycle, Junjo telemetry policy |
+| Tool | Typed capability definition and application service boundary | Private Agent Store or transcript mutation |
+| Application | Dependencies, authorization, persistence, transactions, transport, recovery policy | Junjo runtime mechanics |
+| Lifecycle | Run-local public observer dispatch | Telemetry control or product transport |
+| Shared telemetry contract | Semantic evidence, ordering, fixtures, producer/consumer conformance | Runtime control or Studio storage |
+| Studio ingestion | Preservation of shared-contract OTLP evidence | Agent interpretation |
+| Studio backend | Typed Agent queries and semantic assembly | SDK internals or frontend presentation |
+| Studio frontend | Dynamic timeline, state exploration, nested Workflow navigation | Physical telemetry queries or contract inference |
 
-Owns:
+The governing rule is:
 
-- typed Agent input and validation/copy semantics
-- provider-neutral model request and response contract
-- application-owned provider drivers
-- stable declared model-driver, model, and Tool identity
-- Tool definition, validation, execution, and result contract
-- concurrency-safe shared collaborators versus per-run factories
-- dependency context separate from state and model context
-- sequential initial Tool policy
-- bounded output-validation correction policy or explicit rejection of it
-- fully assembled initial response and non-streaming boundary
-- strict default error semantics
-- explicit non-goals for provider SDK recreation
+> The Agent decides, Junjo executes, Tools perform application work, telemetry
+> explains, and Studio interprets.
 
-### `docs/adr/0005-agent-workflow-composition.md`
+## Resolved Horizon 0 questions
 
-Owns:
+### Identity and isolation
 
-- Workflow executing Agent through an application Node
-- Agent invoking Workflow through an application Tool
-- state/input/output mapping ownership
-- nested cancellation and failure propagation
-- lifecycle-observer snapshot isolation for each execution
-- why generic adapters are deferred until repetition is proven
-- OpenTelemetry parentage expectations
+- Applications declare a stable Agent key.
+- Definition, structural, and run identity remain separate.
+- Agent structural configuration and collaborator bindings are immutable and
+  reusable; referenced hook membership is mutable but snapshotted per run.
+- Every admitted execution owns fresh state and run-local machinery.
+- Shared collaborators require an explicit concurrency-safety guarantee;
+  otherwise applications supply per-run factories.
+- Hook callback membership is snapshotted when an executable starts.
 
-### `docs/adr/0006-agent-telemetry-contract.md`
+### Typed model and Tool boundaries
 
-Owns the shared Agent telemetry semantics and the SDK-producer/Studio-consumer
-conformance obligations:
+- Agent and Tool inputs and outputs are Pydantic `TypeAdapter`-compatible,
+  schema-capable, and JSON-serializable.
+- History and transcript use a closed provider-neutral message model.
+- A ModelDriver returns exactly one final-output response or one non-empty
+  ordered Tool-call response.
+- ModelDriver and Tool boundaries never expose provider SDK objects or private
+  Agent state.
+- Tool batches are budgeted, resolved, and validated before any service runs.
+- Initial Tool execution is sequential and preserves model-returned order.
+- Final output is validated once; there is no automatic correction retry.
+- Core initially provides contracts and deterministic scripted support, not an
+  official provider dependency.
 
-- Agent, model-operation, and Tool-operation span semantics
-- executable and operation identity
-- canonical structural fingerprint material separated from the emitted,
-  payload-policy-subject Agent definition snapshot
-- Agent state start/end and `set_state` event behavior
-- state revision and ordering decision
-- normalized model request and response evidence
-- Tool arguments and results
-- usage, errors, cancellation, and termination
-- payload size and payload-policy seam
-- canonical contract fixture requirements and SDK producer conformance
+### Workflow composition and lifecycle
 
-This ADR should be reviewed against the Studio consumer requirements before
-acceptance. Canonical fixture ownership remains in `contracts/telemetry`.
+- Workflow-to-Agent mapping lives in an ordinary application Node.
+- Agent-to-Workflow mapping lives in an ordinary application Tool service.
+- Parent and child Stores, limits, identities, hooks, and results remain
+  independent.
+- Failures and cancellation propagate through every owning boundary unless
+  application code explicitly handles a domain outcome.
+- Common executable identity and Graph-only identity are separate.
+- Public Agent hooks are limited to started, completed, failed, and cancelled.
+- No generic AgentNode, WorkflowTool, or universal executable base is introduced
+  before repetition proves one necessary.
 
-### Junjo AI Studio: `apps/studio/docs/adr/007-agent-execution-diagnostics.md`
+### Telemetry and Studio
 
-Owns Studio interpretation and product behavior:
+- Agent semantics and generic Store revisions form telemetry contract version
+  2.
+- The Agent is an executable span; model and Tool spans are ordered Agent
+  operations, not fake Graph executables.
+- Structural identity is computed from canonical pre-policy definition material.
+- Full normalized requests, responses, Tool values, and state evidence are the
+  default proof contract.
+- Payload transformation is explicit; nothing is silently truncated.
+- Store transitions use monotonic sequence and revision numbers plus RFC 6902
+  patch arrays.
+- Store-owning spans publish expected transition counts and terminal revisions
+  so missing evidence is detectable.
+- Studio renders a realized Agent timeline/tree and preserves nested Workflow
+  Graph views.
+- Ingestion preserves contract evidence and OTLP loss signals, the backend owns
+  semantic queries and reconstruction integrity, and the frontend owns
+  presentation and verified state navigation.
 
-- Agent execution query model
-- dynamic timeline/tree instead of static Graph rendering
-- Agent state reconstruction
-- nested Workflow Graph navigation
-- backend semantic endpoints
-- ingestion preservation tests
-- frontend schemas, accessors, and diagnostics UI
-- Studio consumer conformance against canonical fixtures
+## Contract rollout boundary
 
-The Studio ADR references the root telemetry ADR and canonical shared contract
-instead of duplicating emitted attribute definitions or fixture ownership.
+The active telemetry contract remains version 1 until implementation exists.
+The Horizon 1 contract change is one atomic platform change containing:
 
-### Testing Strategy Document, Not ADR
+1. telemetry contract version 2 and schemas;
+2. updated Workflow fixtures, payload slots, and Store producer behavior;
+3. canonical Agent producer, consumer, invalid, and fingerprint fixtures;
+4. SDK Agent runtime and telemetry producer conformance;
+5. public Agent docstrings, Sphinx teaching surfaces, and testing guidance;
+6. Studio resource and loss-signal preservation;
+7. Studio backend semantic Agent queries and Store integrity;
+8. Studio frontend Agent diagnostics;
+9. cross-component validation.
 
-Deterministic tests, live eval commands, dataset layout, and CI commands are
-implementation and contributor workflow concerns. Keep them in testing docs
-unless a strategic architectural decision emerges that requires an ADR.
+These pieces may be developed incrementally on one branch. They may not merge
+or release as incompatible producer-only or consumer-only states. After the
+atomic merge, deploy Studio version 2 first, publish the SDK second, and then
+upgrade emitters. Version 1 is rejected after Studio cutover; no fallback is
+added.
 
-## Recommended Initial Decisions
+## Post-Horizon-0 implementation sequence
 
-The Phase 0 discussion currently supports these defaults:
+### Work package 1: architectural decisions
 
-ADR 0003 proposes the execution, ownership, state, result, limit, failure,
-cancellation, and initial non-streaming decisions below. The remaining items
-constrain ADRs 0004 through 0006 and Studio ADR 007.
+Complete. ADRs 0003 through 0006 and Studio ADRs 004 and 007 are accepted.
 
-1. Agent is a first-class executable sibling to Workflow.
-2. Agent definitions are reusable; every execution is isolated.
-3. Agent owns no persistent memory, application transport, or database.
-4. Internal Agent state follows Junjo's immutable Store pattern.
-5. Dependencies remain separate from Agent state and model context.
-6. Model drivers translate providers; Junjo owns orchestration.
-7. Tools are explicit typed capabilities with application-owned services.
-8. Tool calls execute sequentially and preserve model-returned order initially.
-9. Tool exceptions fail execution by default.
-10. Workflows and Agents compose through ordinary application Nodes and Tools
-    before generic adapters are considered.
-11. Agent lifecycle, application streaming, and telemetry remain separate.
-12. Agent diagnostics use dynamic span hierarchy and ordered state events, not
-    a fabricated Graph snapshot.
-13. Agent telemetry is implemented and tested with the runtime, not afterward.
-14. Agent telemetry changes update the shared contract, SDK producer, and Studio
-    consumer conformance atomically.
-15. The initial Agent API is non-streaming; model drivers return one fully
-    assembled normalized response per request.
+### Work package 2: lifecycle preparation
 
-## Open Decisions Requiring ADR Resolution
+Separate common executable identity from Graph-only identity, snapshot Hooks per
+run, and preserve existing Workflow behavior except for the accepted
+callback-membership snapshot change before adding Agent behavior.
 
-- exact normalized input and transcript types
-- exact structured-output validation and correction policy
-- whether explicit output-validation retries exist initially
-- exact common versus Graph-specific lifecycle context split
-- public Agent hook surface
-- model and Tool operation attribute namespace
-- exact state revision contract
-- exact model request storage versus reconstructable delta strategy
-- initial payload-policy interface
-- whether provider-specific drivers live in Junjo, optional packages, examples,
-  or application code
+### Work package 3: deterministic Agent kernel
 
-## Phase 0 Exit Criteria
+Implement public typed definitions and contracts plus the private isolated
+model/Tool loop, Store, limits, result, failures, cancellation, and scripted
+ModelDriver support.
 
-Phase 0 is complete when:
+### Work package 4: telemetry contract version 2
 
-- root Agent ADRs 0003 through 0006 are accepted
-- the Studio diagnostics ADR is accepted
-- Agent ownership and non-ownership boundaries are explicit
-- Agent state, dependency, model-driver, Tool, and result contracts are defined
-- Workflow/Agent composition is defined without premature adapters
-- lifecycle refactoring scope is known
-- Agent telemetry attributes, events, ordering, and span hierarchy are defined
-- payload reconstruction and size strategy is defined
-- deterministic SDK telemetry fixtures are specified
-- Studio consumer fixture and UI expectations are specified against the shared
-  contract
-- AI Chat acceptance scenarios and validation gates are agreed
+Implement Store revisions and owner counts, Agent and operation spans, the
+built-in full payload policy, canonical valid and invalid fixtures, structural
+fingerprint conformance, and SDK producer tests with the kernel.
 
-Only then should Horizon 1 runtime implementation begin.
+### Work package 5: Studio consumer support
+
+Implement ingestion preservation tests, typed backend Agent queries and shared
+Store integrity, frontend schemas and dynamic execution diagnostics, and
+canonical consumer conformance.
+
+### Work package 6: public Agent teaching surfaces
+
+Ship complete public API docstrings, Sphinx concept and API documentation,
+deterministic scripted-testing guidance, composition examples, and telemetry
+conformance guidance with the Horizon 1 runtime. These surfaces must state that
+an Agent is a first-class executable and never describe it as a generated
+Graph.
+
+Work package 2 may merge independently after existing Workflow behavior remains
+green because it does not activate Agent telemetry. Work packages 3 through 6
+comprise the compatible Agent runtime, evidence path, and public contract; they
+cross the merge boundary together.
+
+### Work package 7: AI Chat proof
+
+Use the public Agent API in `sdks/python/examples/ai_chat` with an
+application-local provider adapter, deterministic integration tests, a
+conversation query Tool, and a structured Workflow Tool. This is Horizon 2.
+
+The canonical acceptance cases are the nine
+[Initial AI Chat Acceptance Scenarios](AGENT_LAYER_ROADMAP.md#initial-ai-chat-acceptance-scenarios)
+in the strategy roadmap.
+
+### Work package 8: live evaluations
+
+Add explicit opt-in datasets and commands only after the deterministic kernel
+and AI Chat proof are stable. Live credentials and probabilistic evals remain
+outside default CI. This is Horizon 3.
+
+## Horizon 1 validation gates
+
+### Python SDK
+
+- Ruff;
+- deterministic pytest suite;
+- ty;
+- complete public Agent docstrings, Sphinx concepts/API pages, deterministic
+  testing guidance, and telemetry conformance guidance;
+- Sphinx with warnings treated as failures;
+- package build and Twine validation;
+- repeated and concurrent Agent isolation;
+- complete terminal and cancellation coverage.
+
+### Shared telemetry contract
+
+- dependency-free contract validator;
+- Workflow and Agent fixture schema validation;
+- RFC 8785 fingerprint conformance;
+- Store reconstruction from counts, revisions, and patches;
+- corrupt-derivative rejection and loss-signal preservation;
+- SDK producer equivalence for the producer fixture set.
+
+### Studio
+
+- ingestion contract preservation;
+- backend semantic summary and detail queries;
+- frontend schemas and Agent diagnostics;
+- authoritative backend Workflow/Agent Store reconstruction and frontend
+  navigation over verified projections;
+- nested Workflow Graph matching;
+- `apps/studio/run-all-tests.sh`.
+
+## Horizon 2 validation gates
+
+### AI Chat
+
+- deterministic application integration tests with no provider credentials;
+- public Junjo APIs only;
+- no timing sleeps or untracked background execution on the canonical path.
+- all nine canonical acceptance scenarios pass.
+
+## Explicitly deferred
+
+Horizon 0 does not design:
+
+- multi-agent managers or handoffs;
+- persistent sessions or long-term memory;
+- MCP;
+- parallel Tools;
+- public incremental streaming;
+- automatic output repair;
+- retries, provider fallback, or token/cost enforcement;
+- durable background execution;
+- generated Workflows, schemas, or interfaces;
+- source-code modification;
+- evaluation promotion policy;
+- Agent-queryable Studio APIs;
+- a universal executable abstraction.
+
+Each requires evidence from the preceding horizons and a focused decision when
+it becomes current.
+
+## Exit criteria
+
+- [x] Root Agent ADRs 0003 through 0006 are accepted.
+- [x] Studio span-event transport ADR 004 is revised for contract version 2.
+- [x] Studio Agent diagnostics ADR 007 is accepted.
+- [x] Agent ownership and non-ownership boundaries are explicit.
+- [x] State, dependency, ModelDriver, Tool, result, and terminal contracts are
+  defined.
+- [x] Workflow/Agent composition is explicit without premature adapters.
+- [x] Lifecycle refactoring scope and hook snapshot behavior are defined.
+- [x] Telemetry identities, operations, attributes, events, ordering, and
+  hierarchy are defined.
+- [x] Structural fingerprint and payload policy boundaries are defined.
+- [x] Deterministic contract fixtures and producer/consumer obligations are
+  specified.
+- [x] Studio query, state reconstruction, and UI expectations are specified.
+- [x] Canonical AI Chat acceptance scenarios and validation layers are agreed.
+
+Horizon 0 is complete. Horizon 1 may begin.

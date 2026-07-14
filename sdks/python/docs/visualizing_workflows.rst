@@ -4,7 +4,8 @@
 Visualizing AI Workflows
 ================================================
 
-Understanding the structure and execution flow of your AI workflows and agents is crucial for development, debugging, and optimization. 
+Understanding the structure and execution flow of your explicit graph
+Workflows is crucial for development, debugging, and optimization.
 
 This guide covers Junjo's built-in Graphviz and Mermaid integrations for
 generating static workflow diagrams as you code, and touches upon the dynamic
@@ -30,7 +31,15 @@ Complex AI systems, especially those involving multiple Large Language Model (LL
 * **Facilitate Collaboration:** Share clear diagrams with team members to ensure everyone understands the workflow.
 * **Improve Onboarding:** New developers can grasp the system's design much faster.
 * **Support Eval-Driven Development:** Visual feedback complements testing by showing *how* data and control flow through the system during different evaluation scenarios.
-* **Understand Agentic Behavior:** For more autonomous agents, visualizing the graph (even if parts are dynamically determined) helps in analyzing decision-making processes.
+* **Analyze Model-Assisted Paths:** When model output updates state used by an edge condition, compare the path a run took with the graph's declared possible paths. The model does not dynamically rewrite the Workflow graph.
+
+.. note::
+   Graphviz and Mermaid visualize Junjo's current explicit Workflow graphs.
+   Junjo's accepted architecture defines a separate future ``Agent`` runtime
+   whose model and tool operations form a realized execution trace rather than
+   a static graph. That Agent runtime is not implemented in the current Python
+   SDK and will require execution-focused telemetry views instead of a
+   fabricated Workflow diagram.
 
 Generating Workflow Diagrams with Graphviz
 ------------------------------------------

@@ -3,15 +3,15 @@
 ## Status
 
 Planning document. This roadmap records the current product and architecture
-direction for adding autonomous agent execution to Junjo. It is not an accepted
-API design or a substitute for focused ADRs.
+direction for adding autonomous Agent execution to Junjo. Accepted ADRs, not
+this roadmap, own runtime and telemetry contracts.
 
-Horizon 0 is active. The monorepo consolidation and production cutover are
-complete. [ADR 0003](../adr/0003-agent-execution-model.md) proposes the Agent
-execution model for review; the model/Tool boundary, composition, telemetry,
-and Studio diagnostics decisions remain before runtime implementation begins.
+Horizon 0 is complete as of 2026-07-13. Root ADRs 0003 through 0006 and Studio
+ADRs 004 and 007 are accepted. Horizon 1, the deterministic Agent kernel and
+complete evidence path, is next. No Agent runtime implementation is claimed by
+Horizon 0.
 
-The detailed Horizon 0 architecture and telemetry plan lives in
+The completed Horizon 0 decision and sequencing record lives in
 [AGENT_LAYER_PHASE_0.md](AGENT_LAYER_PHASE_0.md).
 
 Before a horizon changes a strategic runtime contract, write or update the
@@ -94,8 +94,10 @@ interfaces.
 
 Do not replace reliable Junjo workflows with a universal agent.
 
-- A workflow declares the path and allows models to perform bounded steps.
-- An agent determines the path at runtime from its available capabilities.
+- A Workflow declares possible Graph paths and traverses one while models
+  perform bounded steps.
+- An Agent chooses the next capability at runtime and realizes an ordered
+  operation sequence rather than a Graph path.
 - An agent may call a workflow as a reliable tool.
 - A workflow may execute an agent inside an explicitly bounded step.
 
@@ -107,7 +109,7 @@ behavior into a structured workflow when the required procedure becomes known.
 Junjo should not rebuild the OpenAI Agents SDK, PydanticAI, or every model
 provider client.
 
-Junjo should own execution semantics and accept an injected model driver that
+Junjo should own execution semantics and accept an injected ModelDriver that
 translates between provider-specific APIs and Junjo's agent execution contract.
 The application remains in control of provider selection and provider-specific
 configuration.
@@ -184,29 +186,31 @@ The existing message workflow in
 provides the baseline. Its fixed directive classification and response branches
 provide a clear comparison with autonomous capability selection.
 
-## Candidate Runtime Concepts
+## Accepted Runtime Responsibilities
 
-These are conceptual responsibilities, not approved public names or signatures.
+ADRs 0003 through 0006 accept these responsibility boundaries. Exact Python
+module layout and signatures remain Horizon 1 implementation choices.
 
 ### Agent Definition
 
 Reusable configuration describing:
 
+- stable application-owned key
 - name
 - instructions
 - declared input type
-- model driver
+- ModelDriver binding
 - available tools
 - structured output type
 - execution limits
-- optional lifecycle observers
+- optional nonstructural lifecycle observer registry
 
 ### Agent Run Context
 
-Run-local dependencies and execution information made available to model calls,
-tools, and lifecycle dispatch without mutating the Agent definition.
+Read-only run identity and application dependencies made available to Tool
+services without exposing or mutating private Agent state.
 
-### Model Driver
+### ModelDriver
 
 Injected boundary responsible for:
 
@@ -233,26 +237,23 @@ execution result or telemetry hierarchy.
 ### Agent Execution Result
 
 A frozen, detached post-run result consistent with the role of
-`ExecutionResult`. It should provide enough evidence for application logic,
-tests, and evals without exposing a live run container.
+`ExecutionResult`. ADRs 0003 and 0004 require:
 
-Potential result information includes:
+- Agent key, definition identity, structural identity, and run identity
+- validated final typed output
+- detached normalized transcript
+- normalized provider-reported model usage
+- model-request count and requested, admitted, started, and completed Tool-call
+  counts
+- `final_output` termination reason
 
-- run identifier
-- final typed output
-- final agent identity when delegation is introduced
-- model and tool usage totals
-- bounded execution-step summaries
-- termination reason
-
-ADR 0003 proposes the detached, typed result and terminal-outcome boundary. ADR
-0004 will supply the exact normalized transcript and usage types it contains.
+Failure and cancellation do not return an output-less success.
 
 ## Testing And Evaluation Model
 
 ### Layer 1: Junjo Runtime Tests
 
-SDK tests under `sdks/python/tests` use a scripted fake model driver and
+SDK tests under `sdks/python/tests` use a scripted ModelDriver and
 deterministic Tools.
 
 They should cover at least:
@@ -279,7 +280,7 @@ These tests run in the normal Junjo CI gate.
 
 ### Layer 2: Deterministic AI Chat Integration Tests
 
-The `ai_chat` backend uses the scripted model driver, temporary persistence, and
+The `ai_chat` backend uses the scripted ModelDriver, temporary persistence, and
 mocked external services to prove application composition.
 
 These tests should verify end-to-end behavior such as:
@@ -334,22 +335,25 @@ The telemetry contract should preserve the hierarchy of a hybrid run:
 
 ```text
 Workflow span
-  -> Node or Agent execution span
-      -> Model span
-      -> Tool span
-          -> Nested Workflow span
-              -> Node spans
-      -> Model span
+  -> Node span
+      -> Agent span
+          -> Model operation span
+          -> Tool operation span
+              -> Nested Workflow span
+                  -> Node spans
+          -> Model operation span
 ```
 
-The first telemetry ADR must decide whether agent, model, and tool operations
-need new `junjo.span_type` values or separate semantic attributes. Studio
-consumer compatibility must be verified against canonical fixtures and contract
-tests before affected component releases.
+ADR 0006 accepts telemetry contract version 2: Agent is an executable with
+`junjo.span_type = "agent"`, while model and Tool spans are ordered operations
+identified by `junjo.agent.operation_type`. Store transitions gain monotonic
+sequence and revision fields. Canonical fixtures, the SDK producer, and Studio
+ingestion/backend/frontend consumers change atomically.
 
-Payload inclusion policy should remain an explicit seam in the telemetry
-contract. Production privacy and retention work can wait until the core
-mechanics prove value.
+Payload modes are an explicit contract seam in ADR 0006. The Horizon 1 Python
+producer uses the built-in `junjo.full.v1` policy for Workflow and Agent
+evidence; custom selection plus production privacy and retention policy remain
+deferred until the core mechanics prove value.
 
 ## Horizons
 
@@ -358,6 +362,8 @@ not advance merely because the previous horizon has code; it should advance
 when the previous horizon's exit criteria are satisfied.
 
 ### Horizon 0: Architecture And Contract Decisions
+
+Status: Complete.
 
 #### Objective
 
@@ -381,31 +387,40 @@ Junjo execution concepts.
 
 #### Exit criteria
 
-- Relevant ADRs are accepted before implementation.
-- The initial public surface and explicit non-goals are understood.
-- Shared telemetry-contract and Studio consumer impact is documented.
-- The `ai_chat` acceptance scenarios are defined.
+- [x] Root ADRs 0003 through 0006 and Studio ADRs 004 and 007 are accepted.
+- [x] The initial public surface and explicit non-goals are understood.
+- [x] Shared telemetry-contract and Studio consumer impact is documented.
+- [x] The `ai_chat` acceptance scenarios are defined.
 
-### Horizon 1: Deterministic Agent Kernel
+### Horizon 1: Deterministic Agent Kernel And Evidence Path
 
 #### Objective
 
-Implement a single-agent tool loop as a normal Junjo runtime capability.
+Implement a single-Agent Tool loop and its complete shared diagnostic path as
+normal Junjo platform capabilities.
 
 #### Scope
 
 - reusable Agent definition
 - isolated run execution
-- injected model driver
-- typed function tools
+- injected ModelDriver
+- typed application Tools
 - structured final output
 - bounded model requests and Tool calls
 - usage accounting
 - typed input validation
 - cancellation and failures
 - detached execution result
-- lifecycle dispatch and telemetry
-- scripted fake model driver for tests
+- lifecycle identity and snapshotted observer dispatch
+- Workflow -> Node -> Agent and Agent -> Tool -> Workflow composition
+- scripted ModelDriver for tests
+- telemetry contract version 2 schemas and canonical fixtures
+- Agent and Store-revision telemetry producer conformance
+- Studio ingestion preservation and semantic Agent queries
+- Studio backend Store reconstruction and evidence integrity
+- Studio dynamic Agent timeline and verified state navigation
+- public Agent docstrings and Sphinx concepts/API documentation
+- deterministic testing and telemetry conformance guidance
 
 #### Explicit non-goals
 
@@ -423,7 +438,18 @@ Implement a single-agent tool loop as a normal Junjo runtime capability.
   `sdks/python/tests`.
 - Concurrent executions demonstrate state isolation.
 - Failure and cancellation behavior is explicit and observable.
-- No external service is required to run the test suite.
+- Both composition directions prove success, failure, cancellation, independent
+  Stores and limits, and truthful parentage.
+- Contract version 2 producer fixtures prove SDK conformance; all valid and
+  invalid fixture sets prove Studio consumer behavior.
+- Studio reconstructs standalone and hybrid Agent executions without a fake
+  Graph.
+- Public docs explain construction, execution, composition, deterministic
+  testing, failure/cancellation, and telemetry without calling an Agent a
+  dynamic Graph.
+- The greenfield release runbook deploys strict Studio version 2, publishes the
+  SDK second, and upgrades emitters without dual support.
+- No model provider or external service is required to run validation.
 
 ### Horizon 2: AI Chat Hybrid Execution Proof
 
@@ -442,13 +468,15 @@ Prove that the Agent layer composes cleanly with a realistic Junjo application.
 
 #### Exit criteria
 
-- General chat, deterministic query, and workflow-tool scenarios work.
-- The same scenarios pass with a scripted model driver.
+- All nine canonical
+  [Initial AI Chat Acceptance Scenarios](#initial-ai-chat-acceptance-scenarios)
+  pass.
+- The scenarios pass with a scripted ModelDriver.
 - The example uses only public Junjo runtime APIs.
 - The example no longer relies on timing sleeps or untracked execution for its
   canonical agent path.
 
-### Horizon 3: Live Evals And Shared Telemetry Conformance
+### Horizon 3: Live Evals And Measurement
 
 #### Objective
 
@@ -459,18 +487,18 @@ Make autonomous behavior measurable without weakening deterministic CI.
 - opt-in live evaluation layout
 - initial tool-selection and response-quality datasets
 - model and prompt comparison workflow
-- in-memory SDK telemetry assertions
-- canonical shared fixtures with SDK producer and Studio consumer assertions
-- Studio visualization for dynamic agent runs and nested workflow tools
+- deterministic score and report helpers where possible
+- links from evaluation results to exact execution and artifact evidence
+- explicit cost, latency, and quality comparison reports
 
 #### Exit criteria
 
 - Live evals require explicit invocation and credentials.
 - Deterministic tests and probabilistic evals have separate commands and
   documentation.
-- Studio can reconstruct a complete hybrid execution.
-- the shared telemetry contract has SDK producer and Studio consumer
-  compatibility coverage.
+- Evaluation results identify the exact Agent structural ID, service version,
+  model identity, and dataset version.
+- Probabilistic results never become a required default CI gate.
 
 ### Horizon 4: Agent-Queryable Evidence Plane
 
