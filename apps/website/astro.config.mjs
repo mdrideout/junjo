@@ -6,14 +6,9 @@ import tailwindcss from "@tailwindcss/vite";
 // https://astro.build/config
 export default defineConfig({
   site: "https://junjo.ai",
-  redirects: {
-    "/guides/example/": "/docs/guides/getting-started/",
-    "/reference/example/": "/docs/reference/platform/",
-  },
   integrations: [
     starlight({
       title: "Junjo AI",
-      disable404Route: true,
       social: [
         {
           icon: "github",
@@ -29,16 +24,12 @@ export default defineConfig({
       customCss: ["./src/styles/global.css"],
       sidebar: [
         {
-          label: "Documentation",
-          link: "/docs/",
-        },
-        {
           label: "Guides",
-          items: [{ autogenerate: { directory: "docs/guides" } }],
+          items: [{ label: "Example Guide", slug: "guides/example" }],
         },
         {
           label: "Reference",
-          items: [{ autogenerate: { directory: "docs/reference" } }],
+          items: [{ autogenerate: { directory: "reference" } }],
         },
       ],
     }),

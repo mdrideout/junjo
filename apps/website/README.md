@@ -1,9 +1,8 @@
 # Junjo website
 
 This directory owns the public Junjo website at
-[junjo.ai](https://junjo.ai/), including the platform landing page and concise
-product documentation. It is an independent Astro and Starlight application
-inside the Junjo platform repository.
+[junjo.ai](https://junjo.ai/). It is an independent Astro and Starlight
+application inside the Junjo platform repository.
 
 The website explains how the platform components fit together. Detailed Python
 SDK API and implementation documentation remains owned by `sdks/python/docs`
@@ -46,8 +45,8 @@ with `npm ci` from this directory and publish only `apps/website/dist`.
 
 ## Content ownership
 
-- `src/pages/index.astro` owns the platform landing page.
-- `src/content/docs` owns the Starlight pages routed beneath `/docs/`.
+- `src/content/docs/index.mdx` owns the Starlight splash page at `/`.
+- `src/content/docs` owns the remaining Starlight documentation pages.
 - `src/assets` owns source-controlled images processed by Astro.
 - `public` owns files copied directly into the built site.
 
