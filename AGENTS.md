@@ -73,9 +73,11 @@ Run the full validation owned by every changed area. At minimum:
   archive contents, and generated-mirror equivalence for every changed
   distribution.
 - Website: `npm ci` and `npm run build` from `apps/website`.
-- Shared contracts: `python3
-  contracts/telemetry/compatibility/validate_contract.py`, plus producer and
-  consumer conformance tests.
+- Shared contracts: regenerate with `python3
+  contracts/telemetry/compatibility/generate_v2_fixtures.py`, validate with
+  `python3 contracts/telemetry/compatibility/validate_contract.py`, prove the
+  generated contract tree is unchanged, and run producer and consumer
+  conformance tests.
 
 Do not treat one component's green build as proof that a cross-component change
 is compatible.

@@ -1,0 +1,667 @@
+{
+  "v": 1,
+  "profile": "junjo.generated-json-schema.v1",
+  "vectors": [
+    {
+      "name": "renamed_nested_definitions",
+      "inputs": [
+        {
+          "title": "Root",
+          "$defs": {
+            "Outer": {
+              "title": "Outer",
+              "type": "object",
+              "required": [
+                "nested"
+              ],
+              "properties": {
+                "nested": {
+                  "$ref": "#/$defs/Inner"
+                }
+              }
+            },
+            "Inner": {
+              "title": "Inner",
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "title": "Value annotation",
+                  "type": "string"
+                }
+              }
+            },
+            "Unreachable": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/$defs/Outer"
+        },
+        {
+          "$ref": "#/definitions/Container",
+          "definitions": {
+            "UnusedRenamed": {
+              "type": "integer"
+            },
+            "Payload": {
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "title": "Different annotation"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "type": "object",
+              "title": "Renamed payload"
+            },
+            "Container": {
+              "properties": {
+                "nested": {
+                  "$ref": "#/definitions/Payload"
+                }
+              },
+              "required": [
+                "nested"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      ],
+      "normalized": {
+        "$ref": "#/$defs/d0",
+        "$defs": {
+          "d0": {
+            "additionalProperties": false,
+            "properties": {
+              "nested": {
+                "$ref": "#/$defs/d1"
+              }
+            },
+            "required": [
+              "nested"
+            ],
+            "type": "object"
+          },
+          "d1": {
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "recursive_definitions",
+      "inputs": [
+        {
+          "$defs": {
+            "Node": {
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "children": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Node"
+                  }
+                }
+              }
+            }
+          },
+          "$ref": "#/$defs/Node"
+        },
+        {
+          "$ref": "#/definitions/Tree",
+          "definitions": {
+            "Tree": {
+              "properties": {
+                "children": {
+                  "items": {
+                    "$ref": "#/definitions/Tree"
+                  },
+                  "type": "array"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      ],
+      "normalized": {
+        "$ref": "#/$defs/d0",
+        "$defs": {
+          "d0": {
+            "additionalProperties": false,
+            "properties": {
+              "children": {
+                "items": {
+                  "$ref": "#/$defs/d0"
+                },
+                "type": "array"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "discriminator_mapping",
+      "inputs": [
+        {
+          "$defs": {
+            "Dog": {
+              "type": "object",
+              "required": [
+                "kind",
+                "title"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "dog"
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            },
+            "Cat": {
+              "type": "object",
+              "required": [
+                "title",
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "cat"
+                },
+                "title": {
+                  "title": "Application title annotation",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "type": "object",
+          "required": [
+            "pet"
+          ],
+          "properties": {
+            "pet": {
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "dog": "#/$defs/Dog",
+                  "cat": "#/$defs/Cat"
+                }
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Cat"
+                },
+                {
+                  "$ref": "#/$defs/Dog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "pet": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/RenamedCat"
+                },
+                {
+                  "$ref": "#/definitions/RenamedDog"
+                }
+              ],
+              "discriminator": {
+                "mapping": {
+                  "cat": "#/definitions/RenamedCat",
+                  "dog": "#/definitions/RenamedDog"
+                },
+                "propertyName": "kind"
+              }
+            }
+          },
+          "required": [
+            "pet"
+          ],
+          "type": "object",
+          "definitions": {
+            "RenamedCat": {
+              "type": "object",
+              "required": [
+                "title",
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "cat"
+                },
+                "title": {
+                  "title": "Application title annotation",
+                  "type": "string"
+                }
+              }
+            },
+            "RenamedDog": {
+              "type": "object",
+              "required": [
+                "kind",
+                "title"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "dog"
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "normalized": {
+        "additionalProperties": false,
+        "properties": {
+          "pet": {
+            "discriminator": {
+              "mapping": {
+                "cat": "#/$defs/d0",
+                "dog": "#/$defs/d1"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/d0"
+              },
+              {
+                "$ref": "#/$defs/d1"
+              }
+            ]
+          }
+        },
+        "required": [
+          "pet"
+        ],
+        "type": "object",
+        "$defs": {
+          "d0": {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "cat",
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "title"
+            ],
+            "type": "object"
+          },
+          "d1": {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "dog",
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "title"
+            ],
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "application_property_named_title",
+      "inputs": [
+        {
+          "title": "Presentation-only root name",
+          "type": "object",
+          "required": [
+            "title"
+          ],
+          "properties": {
+            "title": {
+              "title": "Presentation-only field name",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "properties": {
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "type": "object",
+          "title": "Different presentation-only root name"
+        }
+      ],
+      "normalized": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "object_insertion_and_set_order",
+      "inputs": [
+        {
+          "type": "object",
+          "required": [
+            "second",
+            "first"
+          ],
+          "properties": {
+            "second": {
+              "enum": [
+                "beta",
+                "alpha"
+              ]
+            },
+            "first": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "dependentRequired": {
+            "second": [
+              "first",
+              "third"
+            ],
+            "first": [
+              "second"
+            ]
+          },
+          "examples": [
+            {
+              "second": "beta"
+            },
+            {
+              "second": "alpha"
+            }
+          ],
+          "oneOf": [
+            {
+              "required": [
+                "first"
+              ]
+            },
+            {
+              "required": [
+                "second"
+              ]
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "required": [
+                "first"
+              ]
+            },
+            {
+              "required": [
+                "second"
+              ]
+            }
+          ],
+          "examples": [
+            {
+              "second": "beta"
+            },
+            {
+              "second": "alpha"
+            }
+          ],
+          "dependentRequired": {
+            "first": [
+              "second"
+            ],
+            "second": [
+              "third",
+              "first"
+            ]
+          },
+          "properties": {
+            "first": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "second": {
+              "enum": [
+                "alpha",
+                "beta"
+              ]
+            }
+          },
+          "required": [
+            "first",
+            "second"
+          ],
+          "type": "object"
+        }
+      ],
+      "normalized": {
+        "additionalProperties": false,
+        "dependentRequired": {
+          "first": [
+            "second"
+          ],
+          "second": [
+            "first",
+            "third"
+          ]
+        },
+        "examples": [
+          {
+            "second": "beta"
+          },
+          {
+            "second": "alpha"
+          }
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "first"
+            ]
+          },
+          {
+            "required": [
+              "second"
+            ]
+          }
+        ],
+        "properties": {
+          "first": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "second": {
+            "enum": [
+              "alpha",
+              "beta"
+            ]
+          }
+        },
+        "required": [
+          "first",
+          "second"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "open_dictionary_schema",
+      "inputs": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        {
+          "additionalProperties": {
+            "title": "Dictionary value",
+            "type": "integer"
+          },
+          "type": "object"
+        }
+      ],
+      "normalized": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "duplicate_required_member",
+      "input": {
+        "type": "object",
+        "required": [
+          "value",
+          "value"
+        ]
+      },
+      "expected_error": "duplicate_set_member"
+    },
+    {
+      "name": "duplicate_type_member",
+      "input": {
+        "type": [
+          "null",
+          "string",
+          "null"
+        ]
+      },
+      "expected_error": "duplicate_set_member"
+    },
+    {
+      "name": "duplicate_enum_member",
+      "input": {
+        "enum": [
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          }
+        ]
+      },
+      "expected_error": "duplicate_set_member"
+    },
+    {
+      "name": "duplicate_dependent_required_member",
+      "input": {
+        "type": "object",
+        "dependentRequired": {
+          "source": [
+            "target",
+            "target"
+          ]
+        }
+      },
+      "expected_error": "duplicate_set_member"
+    },
+    {
+      "name": "null_additional_properties",
+      "input": {
+        "type": "object",
+        "additionalProperties": null
+      },
+      "expected_error": "invalid_schema_profile"
+    },
+    {
+      "name": "numeric_additional_properties",
+      "input": {
+        "type": "object",
+        "additionalProperties": 0
+      },
+      "expected_error": "invalid_schema_profile"
+    },
+    {
+      "name": "open_structured_object",
+      "input": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "expected_error": "invalid_schema_profile"
+    }
+  ]
+}

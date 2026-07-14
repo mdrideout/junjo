@@ -399,6 +399,7 @@ class UnifiedSpanQuery:
         service_name: str | None = None,
         root_only: bool = False,
         workflow_only: bool = False,
+        agent_only: bool = False,
         order_by: str = "start_time DESC",
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
@@ -411,6 +412,7 @@ class UnifiedSpanQuery:
             service_name: Filter by service name
             root_only: Only return root spans (no parent)
             workflow_only: Only return workflow spans (post-filter)
+            agent_only: Only return Agent executable spans (post-filter)
             order_by: SQL ORDER BY clause
             limit: Maximum rows to return
 
@@ -443,6 +445,8 @@ class UnifiedSpanQuery:
             # Ingestion serializes attributes via serde_json::to_string() (compact JSON),
             # so a substring match is stable and avoids needing JSON functions in DataFusion.
             where_clauses.append('attributes LIKE \'%"junjo.span_type":"workflow"%\'')
+        if agent_only:
+            where_clauses.append('attributes LIKE \'%"junjo.span_type":"agent"%\'')
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -463,6 +467,12 @@ class UnifiedSpanQuery:
                     r
                     for r in rows
                     if r.get("attributes_json", {}).get("junjo.span_type") == "workflow"
+                ]
+            if agent_only:
+                rows = [
+                    r
+                    for r in rows
+                    if r.get("attributes_json", {}).get("junjo.span_type") == "agent"
                 ]
 
             return rows
@@ -490,7 +500,14 @@ class UnifiedSpanQuery:
             status_message,
             attributes,
             events,
-            resource_attributes"""
+            links,
+            trace_flags,
+            trace_state,
+            dropped_attributes_count,
+            dropped_events_count,
+            dropped_links_count,
+            resource_attributes,
+            resource_dropped_attributes_count"""
 
         if self._cold_registered:
             tier_queries.append(f"""
@@ -538,7 +555,14 @@ class UnifiedSpanQuery:
                 status_message,
                 attributes,
                 events,
-                resource_attributes
+                links,
+                trace_flags,
+                trace_state,
+                dropped_attributes_count,
+                dropped_events_count,
+                dropped_links_count,
+                resource_attributes,
+                resource_dropped_attributes_count
             FROM {table_name}
             WHERE {where_sql}
             ORDER BY {order_by.replace("start_time", "start_time_ns")}
@@ -579,7 +603,14 @@ class UnifiedSpanQuery:
             status_message,
             attributes,
             events,
-            resource_attributes
+            links,
+            trace_flags,
+            trace_state,
+            dropped_attributes_count,
+            dropped_events_count,
+            dropped_links_count,
+            resource_attributes,
+            resource_dropped_attributes_count
         FROM ranked
         WHERE _rn = 1
         ORDER BY {order_by.replace("start_time", "start_time_ns")}
@@ -619,10 +650,14 @@ def _convert_row_to_api_format(table: dict[str, list], idx: int) -> dict[str, An
     status_message = table["status_message"][idx]
     attributes_str = table["attributes"][idx]
     events_str = table["events"][idx]
+    links_str = table["links"][idx]
+    resource_attributes_str = table["resource_attributes"][idx]
 
     # Parse JSON fields
     attributes = _parse_json_safe(attributes_str, {})
     events = _parse_json_safe(events_str, [])
+    links = _parse_json_safe(links_str, [])
+    resource_attributes = _parse_json_safe(resource_attributes_str, {})
 
     # Format timestamps
     start_time_str = _format_timestamp_ns(start_time_ns)
@@ -645,9 +680,14 @@ def _convert_row_to_api_format(table: dict[str, list], idx: int) -> dict[str, An
         "status_message": status_message or "",
         "attributes_json": attributes,
         "events_json": events,
-        "links_json": [],
-        "trace_flags": 0,
-        "trace_state": None,
+        "links_json": links,
+        "trace_flags": table["trace_flags"][idx],
+        "trace_state": table["trace_state"][idx],
+        "dropped_attributes_count": table["dropped_attributes_count"][idx],
+        "dropped_events_count": table["dropped_events_count"][idx],
+        "dropped_links_count": table["dropped_links_count"][idx],
+        "resource_attributes_json": resource_attributes,
+        "resource_dropped_attributes_count": table["resource_dropped_attributes_count"][idx],
     }
 
 

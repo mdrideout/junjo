@@ -12,6 +12,23 @@ export enum NodeEventType {
   SET_STATE = 'set_state',
 }
 
+const SpanEventAttributesSchema = z.record(z.unknown())
+
+export const OtelNanosecondsSchema = z
+  .string()
+  .regex(/^(?:0|[1-9][0-9]{0,19})$/, 'OTLP nanoseconds must be canonical decimal text')
+  .refine((value) => BigInt(value) <= 18_446_744_073_709_551_615n, {
+    message: 'OTLP nanoseconds must fit the uint64 domain',
+  })
+
+export const OtelSpanEventSchema = z.object({
+  name: z.string().min(1),
+  timeUnixNano: OtelNanosecondsSchema,
+  attributes: SpanEventAttributesSchema,
+  droppedAttributesCount: z.number().int().nonnegative().safe(),
+})
+export type OtelSpanEvent = z.infer<typeof OtelSpanEventSchema>
+
 export const OtelSpanSchema = z.object({
   span_id: z.string(),
   trace_id: z.string(),
@@ -19,7 +36,7 @@ export const OtelSpanSchema = z.object({
   attributes_json: z.record(z.any()),
   start_time: z.string().datetime({ offset: true }),
   end_time: z.string().datetime({ offset: true }),
-  events_json: z.array(z.record(z.any())),
+  events_json: z.array(OtelSpanEventSchema),
   kind: z.string(),
   links_json: z.array(z.record(z.any())),
   name: z.string(),
@@ -39,15 +56,6 @@ export const WorkflowSpansE2EResponseSchema = z.object({
 })
 export type WorkflowSpansE2EResponse = z.infer<typeof WorkflowSpansE2EResponseSchema>
 
-const SpanEventAttributesSchema = z.record(z.unknown())
-
-export const OtelSpanEventSchema = z.object({
-  name: z.string(),
-  timeUnixNano: z.number(),
-  attributes: SpanEventAttributesSchema,
-})
-export type OtelSpanEvent = z.infer<typeof OtelSpanEventSchema>
-
 // Define the schema for events_json set_state events
 export const NodeSetStateAttributesSchema = z.object({
   id: z.string(),
@@ -55,6 +63,7 @@ export const NodeSetStateAttributesSchema = z.object({
   'junjo.store.action': z.string(),
   'junjo.store.name': z.string(),
   'junjo.store.id': z.string(),
+  'junjo.store.transition.sequence': z.number().int().positive().safe(),
 })
 
 export const JunjoSetStateEventSchema = OtelSpanEventSchema.extend({

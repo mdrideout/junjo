@@ -15,7 +15,7 @@ const contractDir = path.resolve(
   '../../../../../contracts/telemetry',
 )
 const fixtureDir = path.join(contractDir, 'fixtures/workflow')
-const activeContractVersion = Number.parseInt(
+export const activeJunjoTransportContractVersion = Number.parseInt(
   fs.readFileSync(path.join(contractDir, 'VERSION'), 'utf-8').trim(),
   10,
 )
@@ -24,9 +24,9 @@ export function loadJunjoTransportFixtureCase(caseName: string): JunjoTransportF
   const fixturePath = path.join(fixtureDir, `${caseName}.json`)
   const fixtureText = fs.readFileSync(fixturePath, 'utf-8')
   const fixture = JSON.parse(fixtureText) as JunjoTransportFixture
-  if (fixture.contract_version !== activeContractVersion) {
+  if (fixture.contract_version !== activeJunjoTransportContractVersion) {
     throw new Error(
-      `Fixture ${caseName} targets telemetry contract ${fixture.contract_version}; expected ${activeContractVersion}`,
+      `Fixture ${caseName} targets telemetry contract ${fixture.contract_version}; expected ${activeJunjoTransportContractVersion}`,
     )
   }
   return fixture

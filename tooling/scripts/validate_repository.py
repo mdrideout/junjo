@@ -64,6 +64,7 @@ REQUIRED_PATHS = (
     ".github/dependabot.yml",
     ".github/workflows/platform-gate.yml",
     ".github/workflows/python-ci.yml",
+    ".github/workflows/python-examples-smoke.yml",
     ".github/workflows/python-publish.yml",
     ".github/workflows/studio-deployments.yml",
     ".github/workflows/studio-docker-publish.yml",
@@ -73,11 +74,16 @@ REQUIRED_PATHS = (
     "tooling/scripts/export_studio_distribution.py",
     "tooling/scripts/publish_studio_distribution.py",
     "tooling/scripts/smoke_studio_distribution.py",
+    "tooling/scripts/validate_agent_studio_e2e.py",
+    "tooling/scripts/validate_ai_chat_studio_e2e.py",
+    "apps/studio/frontend/e2e/live-ai-chat-agent.mjs",
     "tooling/scripts/validate_studio_deployments.py",
     "tooling/scripts/validate_studio_artifact_licenses.py",
     "tooling/scripts/validate_studio_release_policy.py",
     "tooling/scripts/validate_studio_runtime.py",
     "tooling/studio_release_contract.json",
+    "tooling/tests/test_agent_studio_e2e.py",
+    "tooling/tests/test_ai_chat_studio_e2e.py",
     "tooling/tests/test_ci_release_tools.py",
     "tooling/tests/test_studio_artifact_licenses.py",
     "tooling/tests/test_studio_deployment_tools.py",
@@ -351,16 +357,16 @@ def validate_website_build_contract() -> None:
         scripts.get("validate:build") == "node scripts/validate-build.mjs",
         "the website must expose its generated-build validator as validate:build",
     )
-    website_ci = (
-        PLATFORM_ROOT / ".github/workflows/website-ci.yml"
-    ).read_text(encoding="utf-8")
+    website_ci = (PLATFORM_ROOT / ".github/workflows/website-ci.yml").read_text(
+        encoding="utf-8"
+    )
     require(
         "npm run validate:build" in website_ci,
         "website CI must validate generated internal links and source references",
     )
-    validator = (
-        PLATFORM_ROOT / "apps/website/scripts/validate-build.mjs"
-    ).read_text(encoding="utf-8")
+    validator = (PLATFORM_ROOT / "apps/website/scripts/validate-build.mjs").read_text(
+        encoding="utf-8"
+    )
     require(
         "relative(outputRoot, resolvedTarget)" in validator
         and "!isAbsolute(outputRelativeTarget)" in validator,
@@ -371,25 +377,22 @@ def validate_website_build_contract() -> None:
 def validate_python_support_policy() -> None:
     """Keep the SDK development runtime and published compatibility explicit."""
     sdk_root = PLATFORM_ROOT / "sdks/python"
-    development_version = (sdk_root / ".python-version").read_text(
-        encoding="utf-8"
-    ).strip()
+    development_version = (
+        (sdk_root / ".python-version").read_text(encoding="utf-8").strip()
+    )
     require(
         development_version == "3.13",
         "the Python SDK development and documentation version must be 3.13",
     )
 
-    pyproject = tomllib.loads(
-        (sdk_root / "pyproject.toml").read_text(encoding="utf-8")
-    )
+    pyproject = tomllib.loads((sdk_root / "pyproject.toml").read_text(encoding="utf-8"))
     project = pyproject["project"]
     require(
         project["requires-python"] == ">=3.11",
         "the Python SDK compatibility floor must remain Python 3.11",
     )
     expected_classifiers = {
-        f"Programming Language :: Python :: 3.{minor}"
-        for minor in range(11, 15)
+        f"Programming Language :: Python :: 3.{minor}" for minor in range(11, 15)
     }
     require(
         expected_classifiers.issubset(set(project["classifiers"])),
@@ -403,19 +406,24 @@ def validate_python_support_policy() -> None:
     workflow_root = PLATFORM_ROOT / ".github/workflows"
     python_ci = (workflow_root / "python-ci.yml").read_text(encoding="utf-8")
     require(
-        'name: Primary health (Python 3.13)' in python_ci
+        "name: Primary health (Python 3.13)" in python_ci
         and 'python-version: "3.13"' in python_ci
         and 'python-version: ["3.11", "3.12", "3.14"]' in python_ci
         and "UV_PYTHON: ${{ matrix.python-version }}" in python_ci,
         "Python CI must pair the 3.13 primary job with the supported compatibility matrix",
     )
-    python_publish = (workflow_root / "python-publish.yml").read_text(
+    python_publish = (workflow_root / "python-publish.yml").read_text(encoding="utf-8")
+    python_examples = (workflow_root / "python-examples-smoke.yml").read_text(
         encoding="utf-8"
     )
     require(
         "uses: ./.github/workflows/python-ci.yml" in python_publish
-        and "needs: [sdk-validation, build-release]" in python_publish,
-        "PyPI publication must wait for reusable SDK validation and one release build",
+        and "uses: ./.github/workflows/python-examples-smoke.yml" in python_publish
+        and "needs: [sdk-validation, examples-validation, build-release]"
+        in python_publish
+        and "workflow_call:" in python_examples
+        and "Run all deterministic AI chat scenarios" in python_examples,
+        "PyPI publication must wait for reusable SDK, AI Chat, and release-build validation",
     )
 
 
@@ -426,16 +434,20 @@ def validate_release_routing() -> None:
     studio_publish = (workflow_root / "studio-docker-publish.yml").read_text(
         encoding="utf-8"
     )
-    studio_validation = (
-        workflow_root / "studio-release-validation.yml"
-    ).read_text(encoding="utf-8")
+    studio_validation = (workflow_root / "studio-release-validation.yml").read_text(
+        encoding="utf-8"
+    )
+    studio_deployments = (workflow_root / "studio-deployments.yml").read_text(
+        encoding="utf-8"
+    )
     distribution_publisher = (
         PLATFORM_ROOT / "tooling/scripts/publish_studio_distribution.py"
     ).read_text(encoding="utf-8")
     platform_gate = (workflow_root / "platform-gate.yml").read_text(encoding="utf-8")
     evidence_upload = studio_publish[
-        studio_publish.index("- name: Upload release and mirror evidence") :
-        studio_publish.index("\n  promote_floating_tags:")
+        studio_publish.index(
+            "- name: Upload release and mirror evidence"
+        ) : studio_publish.index("\n  promote_floating_tags:")
     ]
 
     require(
@@ -472,8 +484,7 @@ def validate_release_routing() -> None:
         "Studio release transactions must never cancel an in-progress release",
     )
     require(
-        "python3 tooling/scripts/validate_studio_release_policy.py"
-        in studio_validation
+        "python3 tooling/scripts/validate_studio_release_policy.py" in studio_validation
         and "--existing-releases" in studio_validation
         and "--existing-tags" in studio_validation
         and 'gh release view "$GITHUB_REF_NAME"' in studio_validation
@@ -495,6 +506,13 @@ def validate_release_routing() -> None:
         and "workflow_call:" not in studio_publish
         and "permissions:\n      contents: write" in studio_publish,
         "read-only release validation and write-capable publication must remain separate",
+    )
+    require(
+        "run_live_smoke:" in studio_deployments
+        and "if: github.event_name == 'workflow_dispatch' || inputs.run_live_smoke"
+        in studio_deployments
+        and "run_live_smoke: true" in studio_validation,
+        "heavy local-image telemetry smoke must be manual or release-routed, never a master-push default",
     )
     require(
         "environment: studio-dockerhub-production" in studio_publish,
@@ -527,8 +545,17 @@ def validate_release_routing() -> None:
     require(
         "tooling/scripts/smoke_studio_distribution.py" in studio_publish
         and "--image-source registry" in studio_publish
-        and "--expected-image" in studio_publish,
-        "Studio releases must smoke exact registry images through real telemetry",
+        and "--expected-image" in studio_publish
+        and "--evidence-directory /tmp/studio-h2-evidence/registry" in studio_publish
+        and "test:e2e:ai-chat-live"
+        in (PLATFORM_ROOT / "tooling/scripts/smoke_studio_distribution.py").read_text(
+            encoding="utf-8"
+        )
+        and "validate_ai_chat_studio_e2e.py"
+        in (PLATFORM_ROOT / "tooling/scripts/smoke_studio_distribution.py").read_text(
+            encoding="utf-8"
+        ),
+        "Studio releases must smoke exact images through live AI Chat telemetry and browser diagnostics",
     )
     require(
         'for tag in "$VERSION" "$SOURCE_REVISION"' in studio_publish
@@ -539,9 +566,8 @@ def validate_release_routing() -> None:
         "${{ github.run_attempt }}" not in studio_publish
         and "candidate-${SOURCE_REVISION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
         in studio_publish
-        and studio_publish.count("overwrite: true") == 3
-        and "run_attempt: ${{ steps.attempt.outputs.run_attempt }}"
-        in studio_validation
+        and studio_publish.count("overwrite: true") == 4
+        and "run_attempt: ${{ steps.attempt.outputs.run_attempt }}" in studio_validation
         and studio_publish.count("Reject partial production rerun") == 7
         and studio_publish.count(
             "ADMITTED_RUN_ATTEMPT: ${{ needs.validation.outputs.run_attempt }}"
@@ -624,8 +650,8 @@ def validate_release_routing() -> None:
         "pull requests must not run component or release validation workflows",
     )
     require(
-        'refs/tags/${REF_NAME}^{commit}' in studio_validation
-        and 'refs/tags/${GITHUB_REF_NAME}^{commit}' in studio_publish
+        "refs/tags/${REF_NAME}^{commit}" in studio_validation
+        and "refs/tags/${GITHUB_REF_NAME}^{commit}" in studio_publish
         and "Release tag $GITHUB_REF_NAME moved" in studio_publish,
         "Studio release admission and finalization must bind the live tag target",
     )

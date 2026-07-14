@@ -13,6 +13,19 @@ import { API_BASE, server } from './mock-server'
 
 window.runtimeConfig = { API_HOST: API_BASE }
 
+if (window.matchMedia === undefined) {
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  })
+}
+
 // Start MSW server before all tests
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' })

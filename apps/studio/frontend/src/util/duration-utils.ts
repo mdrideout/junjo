@@ -81,11 +81,32 @@ function formatDurationMicro(durationMicro: number): string {
   }
 }
 
-/**
- * Nanoseconds to Microseconds
- */
-export function nanoSecondsToMicrosecons(nanoseconds: number): number {
-  return nanoseconds / 1000
+/** Convert an exact decimal OTLP nanosecond timestamp to safe epoch microseconds. */
+export function nanosecondsStringToMicroseconds(nanoseconds: string): number {
+  const microseconds = BigInt(nanoseconds) / 1000n
+  const result = Number(microseconds)
+  if (!Number.isSafeInteger(result)) {
+    throw new Error('Nanosecond timestamp cannot be represented as safe epoch microseconds.')
+  }
+  return result
+}
+
+/** Compare exact decimal OTLP nanosecond timestamps without Number coercion. */
+export function compareNanosecondTimestamps(left: string, right: string): number {
+  const leftValue = BigInt(left)
+  const rightValue = BigInt(right)
+  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0
+}
+
+/** Compare an exact OTLP timestamp with safe epoch microseconds. */
+export function nanosecondsBeforeMicroseconds(
+  nanoseconds: string,
+  microseconds: number,
+): boolean {
+  if (!Number.isSafeInteger(microseconds)) {
+    throw new Error('Epoch microseconds must be a safe integer.')
+  }
+  return BigInt(nanoseconds) < BigInt(microseconds) * 1000n
 }
 
 /**

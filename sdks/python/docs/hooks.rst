@@ -4,12 +4,13 @@ Hooks
 =====
 
 .. meta::
-   :description: Observe Junjo workflow lifecycle events with optional in-process Python hook callbacks for workflows, subflows, nodes, and state changes.
+   :description: Observe Junjo Workflow and Agent lifecycle events with optional in-process Python hook callbacks.
    :keywords: junjo, python, hooks, lifecycle events, callbacks, workflow observability, state changes
 
-Junjo hooks are optional, in-process Python callbacks for observing workflow
-lifecycle events. Hooks do not control workflow execution, and they are separate
-from OpenTelemetry, which stays active whether or not you register hooks.
+Junjo hooks are optional, in-process Python callbacks for observing Workflow
+and Agent lifecycle events. Hooks do not control execution, and they are
+separate from OpenTelemetry, which stays active whether or not you register
+hooks.
 
 Simple completion logging
 -------------------------
@@ -84,10 +85,13 @@ Hook callbacks receive one immutable event object. Every hook event includes:
 * ``event.hook_name``: the lifecycle hook name such as ``workflow_completed``
 * ``event.executable_runtime_id``: the runtime id of the executable that fired the hook
 * ``event.executable_structural_id``: the stable structural id of the executable that fired the hook
-* ``event.enclosing_graph_structural_id``: the stable structural id of the graph enclosing the executable
 * ``event.parent_executable_runtime_id`` / ``event.parent_executable_structural_id``: parent executable identities when the hook fires inside a nested execution scope
 * ``event.span_type``: the Junjo span type of the executable that fired the hook
 * ``event.trace_id`` / ``event.span_id``: OpenTelemetry correlation ids
+
+Workflow, subflow, Node, concurrent, and state-change events also include
+``event.enclosing_graph_structural_id``. It identifies the explicit Graph that
+encloses that executable. Agent events do not expose this Graph-only field.
 
 Additional hook fields
 ----------------------
@@ -98,6 +102,13 @@ Different lifecycle events carry additional fields for the specific event type:
 * Workflow and subflow completion events include ``event.store_id`` and ``event.result``. Use ``event.result.state`` to inspect the final state snapshot.
 * Failure events include ``event.error``. Workflow and subflow failure events also include ``event.state``.
 * Cancellation events include ``event.reason``. Workflow and subflow cancellation events also include ``event.state``.
+* Agent lifecycle uses ``on_agent_started``, ``on_agent_completed``,
+  ``on_agent_failed``, and ``on_agent_cancelled``. Agent events contain truthful
+  common executable identity plus Agent key and Store ID, without fabricated
+  Graph fields. Completion includes a detached result; failure and cancellation
+  include detached diagnostic state.
+* Callback membership is snapshotted when an execution is admitted. Registering
+  or unsubscribing during a run affects future runs only.
 * Node and run-concurrent lifecycle events include ``event.store_id`` and ``event.parent_executable_definition_id``. They do not include final state snapshots.
 * State-change events include ``event.store_id``, ``event.store_name``, ``event.action_name``, ``event.patch``, ``event.state``, and ``event.parent_executable_definition_id``.
 

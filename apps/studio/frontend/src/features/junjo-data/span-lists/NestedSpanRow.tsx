@@ -43,7 +43,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                   className={`cursor-pointer text-left hover:underline`}
                   onClick={() => {
                     dispatch(WorkflowDetailStateActions.setActiveSpan(span))
-                    dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+                    dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                     // Preserve existing params and set the new spanId
                     const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
@@ -62,7 +62,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 className={`cursor-pointer text-left hover:underline`}
                 onClick={() => {
                   dispatch(WorkflowDetailStateActions.setActiveSpan(span))
-                  dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+                  dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                   // Preserve existing params and set the new spanId
                   const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
@@ -84,7 +84,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 onClick={() => {
                   // Set this span as the active span
                   dispatch(WorkflowDetailStateActions.setActiveSpan(span))
-                  dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+                  dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                   // Preserve existing params and set the new spanId
                   const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`

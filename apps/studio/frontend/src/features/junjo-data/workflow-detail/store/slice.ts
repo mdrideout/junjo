@@ -1,18 +1,22 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { JunjoSetStateEvent, OtelSpan } from '../../../traces/schemas/schemas'
+import { OtelSpan } from '../../../traces/schemas/schemas'
+import type {
+  StateEventIdentity,
+  StateEventSelection,
+} from '../state-event-identity'
 
 interface WorkflowDetailState {
   activeSpan: OtelSpan | null
-  activeSetStateEvent: JunjoSetStateEvent | null
-  scrollToStateEventId: string | null
+  activeStateEvent: StateEventSelection | null
+  stateEventScrollTarget: StateEventIdentity | null
   openFailuresTrigger: number | null
 }
 
 const initialState: WorkflowDetailState = {
   activeSpan: null,
-  activeSetStateEvent: null,
-  scrollToStateEventId: null,
+  activeStateEvent: null,
+  stateEventScrollTarget: null,
   openFailuresTrigger: null,
 }
 
@@ -23,11 +27,18 @@ export const otelSlice = createSlice({
     setActiveSpan: (state, action: PayloadAction<OtelSpan | null>) => {
       state.activeSpan = action.payload
     },
-    setActiveSetStateEvent: (state, action: PayloadAction<JunjoSetStateEvent | null>) => {
-      state.activeSetStateEvent = action.payload
+    initializeWorkflowRoute: (state, action: PayloadAction<OtelSpan | null>) => {
+      state.activeSpan = action.payload
+      state.activeStateEvent = null
+      state.stateEventScrollTarget = null
+      state.openFailuresTrigger = null
     },
-    setScrollToStateEventId: (state, action: PayloadAction<string | null>) => {
-      state.scrollToStateEventId = action.payload
+    setActiveStateEvent: (state, action: PayloadAction<StateEventSelection | null>) => {
+      state.activeStateEvent = action.payload
+      state.stateEventScrollTarget = null
+    },
+    setStateEventScrollTarget: (state, action: PayloadAction<StateEventIdentity | null>) => {
+      state.stateEventScrollTarget = action.payload
     },
     setOpenFailuresTrigger: (state) => {
       state.openFailuresTrigger = Date.now()

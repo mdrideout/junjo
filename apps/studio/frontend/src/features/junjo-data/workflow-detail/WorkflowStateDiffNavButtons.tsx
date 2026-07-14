@@ -1,97 +1,99 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
+import { useMemo } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { RootState } from '../../../root-store/store'
-import { useEffect } from 'react'
+import type { RootState } from '../../../root-store/store'
+import type { StoreTransition } from '../../store-diagnostics/schemas/store-diagnostics'
+import { JunjoSetStateEventSchema } from '../../traces/schemas/schemas'
+import { selectTraceSpansForTraceId } from '../../traces/store/selectors'
 import { WorkflowDetailStateActions } from './store/slice'
-import { selectAllWorkflowStateEvents, selectStateEventParentSpan } from '../../traces/store/selectors'
+import {
+  rawStateEventIdentity,
+  stateEventIdentityKey,
+  transitionStateEventIdentity,
+} from './state-event-identity'
 
 interface WorkflowStateEventNavButtonsProps {
   traceId: string
-  workflowSpanId: string
+  storeId: string | null
+  transitions: StoreTransition[]
 }
 
-export default function WorkflowStateEventNavButtons(props: WorkflowStateEventNavButtonsProps) {
-  const { traceId, workflowSpanId } = props
+export default function WorkflowStateEventNavButtons({
+  traceId,
+  storeId,
+  transitions,
+}: WorkflowStateEventNavButtonsProps) {
   const dispatch = useAppDispatch()
-
-  const workflowStateEvents = useAppSelector((state: RootState) =>
-    selectAllWorkflowStateEvents(state, {
-      traceId,
-      spanId: workflowSpanId,
-    }),
+  const activeStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
-
-  const activeSetStateEvent = useAppSelector(
-    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  const traceSpans = useAppSelector((state: RootState) =>
+    selectTraceSpansForTraceId(state, { traceId }),
   )
-
-  // Get the span that contains this workflow state event
-  const eventSpan = useAppSelector((state: RootState) =>
-    selectStateEventParentSpan(state, {
-      traceId,
-      stateEventId: activeSetStateEvent?.attributes.id,
-    }),
+  const orderedTransitions = useMemo(
+    () => [...transitions].sort((left, right) => left.sequence - right.sequence),
+    [transitions],
   )
-
-  // Get the index of the active patch
-  const activePatchIndex = workflowStateEvents.findIndex(
-    (patch) => patch.attributes.id === activeSetStateEvent?.attributes.id,
-  )
-
-  const disablePrev = !activeSetStateEvent || activePatchIndex === 0
-  const disableNext = !activeSetStateEvent || activePatchIndex + 1 === workflowStateEvents.length
-
-  // Effect to update the active span when the activeSetStateEvent changes
-  useEffect(() => {
-    if (eventSpan) {
-      dispatch(WorkflowDetailStateActions.setActiveSpan(eventSpan))
-    }
-  }, [eventSpan, dispatch])
-
-  const handleNextPatchClick = () => {
-    if (activeSetStateEvent) {
-      const nextPatchIndex = activePatchIndex + 1
-      if (nextPatchIndex < workflowStateEvents.length) {
-        const nextPatch = workflowStateEvents[nextPatchIndex]
-        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(nextPatch))
-        dispatch(WorkflowDetailStateActions.setScrollToStateEventId(nextPatch.attributes.id))
+  const rawEventsByIdentity = useMemo(() => {
+    const events = new Map<string, ReturnType<typeof JunjoSetStateEventSchema.parse>>()
+    for (const span of traceSpans) {
+      for (const event of span.events_json) {
+        const parsed = JunjoSetStateEventSchema.safeParse(event)
+        if (parsed.success) {
+          events.set(
+            stateEventIdentityKey(rawStateEventIdentity(span.span_id, parsed.data)),
+            parsed.data,
+          )
+        }
       }
     }
-  }
+    return events
+  }, [traceSpans])
+  const spansById = useMemo(
+    () => new Map(traceSpans.map((span) => [span.span_id, span])),
+    [traceSpans],
+  )
+  const activeTransitionIndex = orderedTransitions.findIndex(
+    (transition) => storeId !== null
+      && activeStateEvent !== null
+      && stateEventIdentityKey(transitionStateEventIdentity(storeId, transition))
+      === stateEventIdentityKey(activeStateEvent),
+  )
+  const hasActiveTransition = activeTransitionIndex >= 0
+  const disablePrev = !hasActiveTransition || activeTransitionIndex === 0
+  const disableNext = !hasActiveTransition || activeTransitionIndex + 1 === orderedTransitions.length
 
-  const handlePrevPatchClick = () => {
-    if (activeSetStateEvent) {
-      const prevPatchIndex = activePatchIndex - 1
-      if (prevPatchIndex >= 0) {
-        const prevPatch = workflowStateEvents[prevPatchIndex]
-        dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(prevPatch))
-        console.log(`Scrolling to span ID: ${prevPatch.attributes.id}`)
-        dispatch(WorkflowDetailStateActions.setScrollToStateEventId(prevPatch.attributes.id))
-      }
-    }
+  const selectTransition = (transition: StoreTransition) => {
+    if (storeId === null) return
+    const identity = transitionStateEventIdentity(storeId, transition)
+    const event = rawEventsByIdentity.get(stateEventIdentityKey(identity))
+    const span = spansById.get(transition.span_id)
+    if (event === undefined || span === undefined) return
+
+    dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+    dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
+    dispatch(WorkflowDetailStateActions.setStateEventScrollTarget(identity))
   }
 
   return (
-    <div className={'flex gap-x-2 -mt-[1px]'}>
-      {activeSetStateEvent && (
+    <div className="flex gap-x-2 -mt-[1px]">
+      {hasActiveTransition && (
         <div>
-          ({activePatchIndex + 1} / {workflowStateEvents.length}){' '}
+          ({activeTransitionIndex + 1} / {orderedTransitions.length}){' '}
         </div>
       )}
       <button
-        className={
-          'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'
-        }
-        onClick={handlePrevPatchClick}
+        aria-label="Previous Store transition"
+        className="border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20"
+        onClick={() => selectTransition(orderedTransitions[activeTransitionIndex - 1])}
         disabled={disablePrev}
       >
         <ArrowLeftIcon />
       </button>
       <button
-        className={
-          'border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20'
-        }
-        onClick={handleNextPatchClick}
+        aria-label="Next Store transition"
+        className="border border-zinc-300 rounded-md p-[0px] hover:bg-zinc-300 cursor-pointer disabled:opacity-20"
+        onClick={() => selectTransition(orderedTransitions[activeTransitionIndex + 1])}
         disabled={disableNext}
       >
         <ArrowRightIcon />

@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { loadJunjoTransportFixtureCase } from '../../../test-utils/junjo-fixture-loader'
 import { store, RootState } from '../../../root-store/store'
-import { JunjoSetStateEvent, JunjoSetStateEventSchema, OtelSpan, OtelSpanSchema } from '../schemas/schemas'
+import { JunjoSetStateEventSchema, OtelSpan, OtelSpanSchema } from '../schemas/schemas'
+import {
+  rawStateEventIdentity,
+  type StateEventSelection,
+} from '../../junjo-data/workflow-detail/state-event-identity'
 import {
   identifySpanWorkflowChain,
   selectActiveStoreID,
-  selectStateEventsByJunjoStoreId,
   selectTraceFailureSpans,
   selectWorkflowSpanByStoreId,
 } from './selectors'
@@ -24,12 +27,15 @@ function findSpan(spans: OtelSpan[], spanId: string): OtelSpan {
   return span
 }
 
-function findSetStateEvent(spans: OtelSpan[], eventId: string): JunjoSetStateEvent {
+function findSetStateEvent(spans: OtelSpan[], eventId: string): StateEventSelection {
   for (const span of spans) {
     for (const event of span.events_json) {
       const parsed = JunjoSetStateEventSchema.safeParse(event)
       if (parsed.success && parsed.data.attributes.id === eventId) {
-        return parsed.data
+        return {
+          ...rawStateEventIdentity(span.span_id, parsed.data),
+          event: parsed.data,
+        }
       }
     }
   }
@@ -40,11 +46,11 @@ function findSetStateEvent(spans: OtelSpan[], eventId: string): JunjoSetStateEve
 function buildState({
   spans,
   activeSpanId,
-  activeSetStateEventId,
+  activeStateEventId,
 }: {
   spans: OtelSpan[]
   activeSpanId?: string
-  activeSetStateEventId?: string
+  activeStateEventId?: string
 }): RootState {
   const baseState = store.getState()
   const traceId = spans[0]?.trace_id
@@ -58,7 +64,8 @@ function buildState({
     workflowDetailState: {
       ...baseState.workflowDetailState,
       activeSpan: activeSpanId ? findSpan(spans, activeSpanId) : null,
-      activeSetStateEvent: activeSetStateEventId ? findSetStateEvent(spans, activeSetStateEventId) : null,
+      activeStateEvent: activeStateEventId ? findSetStateEvent(spans, activeStateEventId) : null,
+      stateEventScrollTarget: null,
       openFailuresTrigger: null,
     },
   }
@@ -127,22 +134,9 @@ describe('trace selectors', () => {
     const state = buildState({
       spans,
       activeSpanId: '2222222222222223',
-      activeSetStateEventId: 'state-event-subflow-01',
+      activeStateEventId: 'state-event-subflow-01',
     })
 
     expect(selectActiveStoreID(state)).toBe('store-subflow-child-01')
-  })
-
-  it('selects state events by junjo.store.id using the current event contract', () => {
-    const spans = loadFixtureSpans('basic_workflow_success')
-    const state = buildState({ spans })
-
-    const events = selectStateEventsByJunjoStoreId(state, {
-      traceId: spans[0].trace_id,
-      spanId: '1111111111111111',
-      storeId: 'store-basic-01',
-    })
-
-    expect(events.map((event) => event.attributes.id)).toEqual(['state-event-basic-01', 'state-event-basic-02'])
   })
 })

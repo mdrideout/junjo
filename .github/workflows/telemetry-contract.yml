@@ -5,12 +5,50 @@ on:
     branches: [master]
     paths:
       - "contracts/telemetry/**"
+      - "sdks/python/src/junjo/agent/**"
+      - "sdks/python/src/junjo/_identity.py"
+      - "sdks/python/src/junjo/_json.py"
+      - "sdks/python/src/junjo/_lifecycle.py"
+      - "sdks/python/src/junjo/_terminal.py"
+      - "sdks/python/src/junjo/__init__.py"
+      - "sdks/python/src/junjo/hooks.py"
+      - "sdks/python/src/junjo/node.py"
+      - "sdks/python/src/junjo/run_concurrent.py"
+      - "sdks/python/src/junjo/store.py"
       - "sdks/python/src/junjo/telemetry/**"
       - "sdks/python/src/junjo/graph.py"
       - "sdks/python/src/junjo/workflow.py"
+      - "sdks/python/pyproject.toml"
+      - "sdks/python/uv.lock"
+      - "sdks/python/tests/test_agent_*.py"
+      - "sdks/python/tests/typing/**"
+      - "sdks/python/tests/test_hooks.py"
+      - "sdks/python/tests/test_store_state_serialization.py"
+      - "sdks/python/tests/test_store_telemetry_v2.py"
+      - "sdks/python/tests/test_telemetry_contract.py"
       - "apps/studio/ingestion/**"
+      - "apps/studio/backend/app/db_sqlite/metadata/**"
+      - "apps/studio/backend/app/features/agent_diagnostics/**"
       - "apps/studio/backend/app/features/otel_spans/**"
+      - "apps/studio/backend/app/features/store_diagnostics/**"
+      - "apps/studio/backend/app/features/telemetry_contract/**"
+      - "apps/studio/backend/app/features/workflow_diagnostics/**"
+      - "apps/studio/backend/tests/generated/**"
+      - "apps/studio/backend/tests/generate_agent_semantic_projections.py"
+      - "apps/studio/backend/tests/test_agent_semantic_projections.py"
+      - "apps/studio/backend/tests/test_store_reconstruction.py"
+      - "apps/studio/backend/tests/test_workflow_store_diagnostics.py"
+      - "apps/studio/backend/tests/test_datafusion_query.py"
+      - "apps/studio/backend/pyproject.toml"
+      - "apps/studio/backend/uv.lock"
+      - "apps/studio/frontend/src/features/agent-executions/**"
+      - "apps/studio/frontend/src/features/store-diagnostics/**"
+      - "apps/studio/frontend/src/features/telemetry-contract/**"
       - "apps/studio/frontend/src/features/traces/**"
+      - "apps/studio/frontend/src/features/workflow-executions/**"
+      - "apps/studio/frontend/backend/openapi.json"
+      - "apps/studio/frontend/package.json"
+      - "apps/studio/frontend/package-lock.json"
       - ".github/workflows/telemetry-contract.yml"
   workflow_dispatch:
   workflow_call:
@@ -26,8 +64,12 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+      - name: Regenerate canonical fixtures
+        run: python3 contracts/telemetry/compatibility/generate_v2_fixtures.py
       - name: Validate schemas and fixtures
         run: python3 contracts/telemetry/compatibility/validate_contract.py
+      - name: Prove canonical generation is current
+        run: git diff --exit-code -- contracts/telemetry
 
   python-producer:
     runs-on: ubuntu-latest
@@ -40,9 +82,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: Install uv
         uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
         with:
@@ -51,7 +93,42 @@ jobs:
       - name: Sync
         run: uv sync --frozen --package junjo --extra dev
       - name: Run Python conformance checks
-        run: uv run pytest -q tests/test_telemetry_contract.py tests/test_hooks.py tests/test_store_state_serialization.py
+        run: |
+          uv run pytest -q \
+            tests/test_agent_*.py \
+            tests/test_telemetry_contract.py \
+            tests/test_hooks.py \
+            tests/test_store_state_serialization.py \
+            tests/test_store_telemetry_v2.py
+
+  studio-semantic-projection:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/studio/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/backend/uv.lock"
+      - name: Sync Studio backend dependencies
+        run: uv sync --all-extras --locked
+      - name: Prove canonical semantic projection and Parquet transport
+        run: |
+          uv run pytest -q \
+            tests/test_agent_semantic_projections.py \
+            tests/test_store_reconstruction.py \
+            tests/test_workflow_store_diagnostics.py \
+            tests/test_datafusion_query.py
 
   studio-consumers:
     runs-on: ubuntu-latest
@@ -74,7 +151,10 @@ jobs:
       - name: Run normalized telemetry consumer tests
         run: |
           npm run test:run -- \
+            src/features/agent-executions \
+            src/features/store-diagnostics \
             src/features/traces/schemas/junjo-transport-contract.test.ts \
             src/features/traces/store/selectors.test.ts \
+            src/features/workflow-executions \
             src/junjo-graph/junjo-graph.test.ts \
             src/mermaidjs/junjo-graph-span-matching.test.ts

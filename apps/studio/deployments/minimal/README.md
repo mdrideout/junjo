@@ -4,10 +4,9 @@
 > [`apps/studio/deployments/minimal`](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/minimal)
 > in the Junjo platform monorepo. The standalone
 > [`junjo-ai-studio-minimal-build`](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
-> repository is the designated release mirror for convenient cloning. Its
-> first monorepo-driven refresh remains a cutover gate. Submit changes to the
-> canonical source; direct mirror changes will be overwritten after that
-> publication path is active.
+> repository is the generated release mirror for convenient cloning. Submit
+> changes to the canonical source; direct mirror changes are overwritten by
+> the release publication workflow.
 
 A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
 

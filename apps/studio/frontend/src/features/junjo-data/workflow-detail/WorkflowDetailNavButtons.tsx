@@ -35,7 +35,7 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
     if (!disablePrev) {
       // Clear the activeSpan
       dispatch(WorkflowDetailStateActions.setActiveSpan(null))
-      dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+      dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
       // Navigate
       navigate(
@@ -48,7 +48,7 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
     if (!disableNext) {
       // Clear the activeSpan
       dispatch(WorkflowDetailStateActions.setActiveSpan(null))
-      dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+      dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
       // Navigate
       navigate(

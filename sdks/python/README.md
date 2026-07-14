@@ -2,9 +2,12 @@
 
 > 順序 (junjo): order, sequence, procedure
 
-Junjo is a modern Python library for designing, executing, testing, and debugging complex, graph-based AI workflows.
+Junjo is a modern Python library for designing, executing, testing, and
+debugging explicit graph Workflows and bounded, provider-neutral Agents.
 
-Whether you’re building a simple chatbot, a complex data manipulation pipeline, or a sophisticated workflow with dynamic branching and concurrent execution, Junjo provides the tools to define and debug your logic as a clear graph of nodes, edges, and state updates.
+Use a Workflow when the application knows the possible procedure in advance,
+and an Agent when a model must choose among an explicit set of typed Tools at
+runtime. Both execution modes remain isolated, testable, and observable.
 
 #### Docs
 
@@ -20,6 +23,7 @@ Junjo requires Python 3.11 or newer. Development and documentation use Python
 #### Benefits:
 
 - ✨ Visualize your AI workflows
+- 🧭 Inspect dynamic Agent model and Tool operation timelines
 - 🧠 Redux inspired state management and state debugging tools
 - ⚡️ Concurrency and type safety native with asyncio and pydantic
 - 🔗 Organize conditional chains of LLM calls into observable graph workflows
@@ -54,7 +58,9 @@ Continue using [google-genai](https://github.com/googleapis/python-genai), [open
 
 Junjo remains decoupled from LLM providers. There are no proprietary implementations, no hijacking of python docstrings, no confusing or obfuscating decorators, and no middleman proxies.
 
-Junjo simply helps you organize your python functions (whether they be logic, LLM calls, RAG retrieval, REST API calls, etc.) into a clean organized graph structure with predictable, testable, and observable execution.
+Junjo helps you organize Python functions—whether they perform logic, model
+calls, retrieval, or application I/O—into predictable, testable, and
+observable Workflow and Agent executions.
 
 #### 🥧 Conventional
 
@@ -64,19 +70,26 @@ concurrent subflows. A Workflow declares its possible graph paths before
 execution; model calls inside Nodes may update state used by edge conditions,
 but they do not dynamically create or rewrite the graph.
 
-Junjo's accepted architecture also defines a future first-class `Agent`
-execution model for the complementary case where a model chooses the next
-capability at runtime from an explicit set of tools. That Agent runtime is not
-implemented in the current Python SDK, and an Agent will be a sibling to
-`Workflow`, not a dynamically generated graph or a special kind of Workflow.
+Junjo also provides a first-class `Agent` execution model for the complementary
+case where a model chooses the next capability at runtime from an explicit set
+of typed Tools. An Agent is a sibling to `Workflow`, not a dynamically
+generated graph or a special kind of Workflow.
 
-Junjo uses conventional Pythonic architecture. Rather than obfuscating, proprietary decorators or runtime scripts that hijack execution, Junjo graph workflows are constructed conventionally with python classes and generics, and Pydantic models for type safe immutable state.
+Junjo uses conventional Pythonic architecture. Rather than obfuscating,
+proprietary decorators or runtime scripts that hijack execution, Workflows use
+explicit Python Graph primitives and Agents use ordinary typed definitions,
+bindings, and Tools. Pydantic owns the declared data boundaries.
 
 State is modeled after the conventional [Elm Architecture](https://guide.elm-lang.org/architecture/), and inspired by [Redux](https://redux.js.org/) for clean separation of concerns, concurrency safety, and debuggability.
 
-This helps your language server auto-complete methods and properties, and makes it easy for AI Coding agents to scaffold and understand massive Junjo workflows without needing to learn proprietary, library-specific logic patterns.
+This helps language servers and coding agents understand large Junjo
+applications without learning proprietary, hidden execution patterns.
 
-Junjo organizes conventional OpenTelemetry spans into easy to understand groups. Your existing OpenTelemetry provider will continue to work, now with enhanced span organization. [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) is a companion OpenTelemetry platform with enhanced visuals and debugging tools for Junjo workflows.
+Junjo organizes conventional OpenTelemetry spans into understandable execution
+evidence. Your existing OpenTelemetry provider continues to work, while
+[Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio)
+adds specialized Workflow graphs, Agent timelines, Store reconstruction, and
+evidence-integrity diagnostics.
 
 #### 🤝 Compatible
 
@@ -91,7 +104,7 @@ You can execute autonomous agent capabilities from other libraries inside a Junj
 
 _**Find several example Junjo applications inside the [examples](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples) directory in this repository.**_
 
-- [AI Chat](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat) - a full featured chat application that can spawn new personas to chat with. This includes a react frontend and a FastAPI backend.
+- [AI Chat](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat) - a credential-free FastAPI and React acceptance application proving Workflow-to-Agent and Agent-to-Workflow composition.
 - [Getting Started](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/getting_started) - the basis of our getting started documentation
 - [Base Example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base) - a minimal python example showcasing several Junjo patterns
 
@@ -229,10 +242,11 @@ The current Workflow runtime supports structures such as:
 - Conditional branches and loops over declared edges
 - Concurrent node groups and nested subflows
 
-The accepted future Junjo Agent model covers runtime tool selection without
-pretending that the realized sequence of model and tool operations is a static
-or dynamically generated Workflow graph. It is a separate first-class
-execution model and is not yet part of the released Python runtime.
+The Junjo Agent runtime covers bounded runtime Tool selection without
+pretending that the realized sequence of model and Tool operations is a static
+or dynamically generated Workflow graph. Workflows and Agents compose through
+ordinary application Nodes and Tools while retaining independent state,
+limits, and diagnostics.
 
 ## Junjo AI Studio
 
@@ -256,10 +270,10 @@ docker compose up -d
 
 **Features:**
 - Interactive graph visualization with execution path tracking
-- State step debugging - see every state change in chronological order
-- LLM decision tracking and trace timeline
+- Dynamic Agent operation timelines with normalized model and Tool evidence
+- Verified Workflow and Agent Store state navigation
+- Evidence-integrity diagnostics and nested executable navigation
 - Multi-execution comparison
-- Built specifically for graph-based AI workflows
 
 **Architecture:** Three-service Docker setup (backend, ingestion service, frontend) that runs on minimal resources (1GB RAM, shared vCPU).
 

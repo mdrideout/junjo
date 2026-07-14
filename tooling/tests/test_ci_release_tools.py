@@ -84,9 +84,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
             "studio-v0.40",
             "studio-v0.42",
         ]
-        self.assertEqual(
-            self.contract["imported_two_part_studio_tags"], imported_tags
-        )
+        self.assertEqual(self.contract["imported_two_part_studio_tags"], imported_tags)
         outputs = self.validate(
             existing_tags=[
                 *imported_tags,
@@ -272,13 +270,15 @@ class StudioReleasePolicyTests(unittest.TestCase):
         )
 
     def test_dockerhub_controls_require_exact_live_rules_for_every_image(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="junjo-dockerhub-settings-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="junjo-dockerhub-settings-"
+        ) as temporary:
             settings_directory = Path(temporary)
             expected_rules = self.contract["dockerhub_immutable_tag_rules"]
             for service in release_policy.EXPECTED_SERVICES:
-                namespace, name = self.contract["images"][service][
-                    "repository"
-                ].split("/", maxsplit=1)
+                namespace, name = self.contract["images"][service]["repository"].split(
+                    "/", maxsplit=1
+                )
                 (settings_directory / f"{service}.json").write_text(
                     json.dumps(
                         {
@@ -307,7 +307,9 @@ class StudioReleasePolicyTests(unittest.TestCase):
             (settings_directory / "frontend.json").write_text(
                 json.dumps(frontend), encoding="utf-8"
             )
-            with self.assertRaisesRegex(RuntimeError, "frontend Docker Hub immutable rules"):
+            with self.assertRaisesRegex(
+                RuntimeError, "frontend Docker Hub immutable rules"
+            ):
                 release_policy.validate_dockerhub_controls(
                     contract=self.contract,
                     settings_directory=settings_directory,
@@ -323,6 +325,9 @@ class StudioReleasePolicyTests(unittest.TestCase):
         platform_gate = (
             REPOSITORY_ROOT / ".github/workflows/platform-gate.yml"
         ).read_text(encoding="utf-8")
+        deployment_workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-deployments.yml"
+        ).read_text(encoding="utf-8")
         self.assertNotIn("workflow_call:", release_workflow)
         self.assertIn("workflow_call:", validation_workflow)
         self.assertNotIn("contents: write", validation_workflow)
@@ -330,13 +335,16 @@ class StudioReleasePolicyTests(unittest.TestCase):
             "uses: ./.github/workflows/studio-release-validation.yml",
             release_workflow,
         )
-        self.assertIn(
-            "uses: ./.github/workflows/platform-integrity.yml", platform_gate
-        )
+        self.assertIn("uses: ./.github/workflows/platform-integrity.yml", platform_gate)
         self.assertNotIn("name: required", platform_gate)
         self.assertNotIn("PLATFORM_RESULT", platform_gate)
         self.assertNotIn("studio-release-validation.yml", platform_gate)
         self.assertNotIn("detect_ci_changes", platform_gate)
+        self.assertIn(
+            "if: github.event_name == 'workflow_dispatch' || inputs.run_live_smoke",
+            deployment_workflow,
+        )
+        self.assertIn("run_live_smoke: true", validation_workflow)
         for workflow in (
             "python-ci.yml",
             "studio-backend-tests.yml",
@@ -369,7 +377,9 @@ class StudioReleasePolicyTests(unittest.TestCase):
             workflow,
             r"(?:studio-digest|studio-image-evidence|studio-distributions)-[^\n]*run_attempt",
         )
-        self.assertEqual(workflow.count("overwrite: true"), 3)
+        self.assertEqual(workflow.count("overwrite: true"), 4)
+        self.assertIn("--evidence-directory /tmp/studio-h2-evidence/registry", workflow)
+        self.assertIn("studio-exact-ai-chat-proof", workflow)
 
         production_jobs = (
             "dockerhub_controls",
@@ -421,8 +431,9 @@ class StudioReleasePolicyTests(unittest.TestCase):
         self.assertLess(authorized_preflight, first_publish)
 
         evidence_upload = workflow[
-            workflow.index("- name: Upload release and mirror evidence") :
-            workflow.index("\n  promote_floating_tags:")
+            workflow.index(
+                "- name: Upload release and mirror evidence"
+            ) : workflow.index("\n  promote_floating_tags:")
         ]
         self.assertNotIn("/tmp/junjo-release/*.json", evidence_upload)
         for filename in (
@@ -440,9 +451,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
             REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
         ).read_text(encoding="utf-8")
         self.assertIn("for attempt in $(seq 1 15)", workflow)
-        self.assertIn(
-            'if [ "$PROMOTED_DIGEST" = "$VERSION_DIGEST" ]; then', workflow
-        )
+        self.assertIn('if [ "$PROMOTED_DIGEST" = "$VERSION_DIGEST" ]; then', workflow)
         self.assertIn("sleep 2", workflow)
 
     def test_immutable_tag_publication_retries_transient_registry_failures(
@@ -452,11 +461,11 @@ class StudioReleasePolicyTests(unittest.TestCase):
             REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            'Waiting for immutable tag $IMAGE:$tag to publish (attempt $attempt/15).',
+            "Waiting for immutable tag $IMAGE:$tag to publish (attempt $attempt/15).",
             workflow,
         )
         self.assertIn(
-            'Could not publish immutable tag $IMAGE:$tag after 15 attempts.', workflow
+            "Could not publish immutable tag $IMAGE:$tag after 15 attempts.", workflow
         )
         self.assertIn(
             'if [ "$PUBLISHED_DIGEST" != "$CANDIDATE_DIGEST" ]; then', workflow
@@ -657,7 +666,9 @@ class MirrorPublicationTests(unittest.TestCase):
                 )
         self.assertEqual(mocked_run.call_count, 1)
 
-    def test_all_destinations_are_validated_together_before_authentication(self) -> None:
+    def test_all_destinations_are_validated_together_before_authentication(
+        self,
+    ) -> None:
         responses = [
             json.dumps(
                 {

@@ -35,10 +35,9 @@ Complex AI systems, especially those involving multiple Large Language Model (LL
 
 .. note::
    Graphviz and Mermaid visualize Junjo's current explicit Workflow graphs.
-   Junjo's accepted architecture defines a separate future ``Agent`` runtime
-   whose model and tool operations form a realized execution trace rather than
-   a static graph. That Agent runtime is not implemented in the current Python
-   SDK and will require execution-focused telemetry views instead of a
+   Junjo's separate ``Agent`` runtime records model and Tool operations as a
+   realized execution trace rather than a static graph. Inspect those runs in
+   Junjo AI Studio's Agent diagnostics; an Agent is never rendered as a
    fabricated Workflow diagram.
 
 Generating Workflow Diagrams with Graphviz

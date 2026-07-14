@@ -2,6 +2,64 @@
 
 All notable changes to Junjo will be documented in this file.
 
+## FUTURE RELEASE
+
+### Breaking Changes
+
+- Replaced the telemetry contract with strict contract version 2 across the
+  Python producer, canonical language-independent schemas, and Junjo AI Studio
+  consumers. Version 1 emitters and consumers are intentionally not supported
+  by this greenfield contract.
+- Store evidence now uses explicit monotonic transition sequences, revisions,
+  event identities, reconstruction claims, and versioned payload envelopes.
+
+### Library
+
+- Added a first-class, reusable `Agent` definition with isolated per-run state,
+  an injected provider-neutral `ModelDriver`, typed application `Tool`s,
+  structured output, explicit limits, usage accounting, and detached execution
+  results.
+- Added deterministic `ScriptedModelDriver` support and complete failure,
+  malformed-input, limit, cancellation, composition, concurrency, and typing
+  coverage.
+- Added truthful composition in both directions: an Agent can invoke a fresh
+  Workflow through a typed Tool, and a Workflow Node can execute an Agent while
+  preserving independent Stores and execution identities.
+- Unified Workflow, Node, concurrent, and Agent lifecycle preparation around
+  explicit internal identity, terminal-state, cancellation, and observer
+  boundaries without introducing a universal executable abstraction.
+
+### Telemetry
+
+- Added semantic Agent spans, ordered model and Tool operation spans, normalized
+  model request/response and usage payloads, limit/cancellation/error evidence,
+  and declared semantic-parent links alongside physical OpenTelemetry
+  parentage.
+- Added canonical valid, invalid, fingerprint, Store-patch, Agent-producer, and
+  Workflow-producer fixtures plus exact SDK producer conformance tests.
+- Added verified Store reconstruction and semantic Agent/Workflow diagnostics
+  to the paired Studio evidence path, including loss and integrity signals.
+
+### Docs and Examples
+
+- Added Agent concepts, API, deterministic testing, composition, failure,
+  cancellation, telemetry, and Studio evidence documentation.
+- Rebuilt `examples/ai_chat` as the credential-free Horizon 2 acceptance
+  application: a deterministic three-step Workflow shell executes a bounded
+  chat Agent whose typed image Tool invokes a fresh two-node Workflow, while
+  application-owned persistence remains outside the Agent.
+- Added a strict synchronous chat API and small React client that directly
+  displays persisted responses and their Workflow and Agent run identities.
+
+### Tooling and CI
+
+- Added path-scoped AI Chat backend and frontend validation with all nine
+  deterministic Horizon 2 scenarios, lint, type checks, tests, and production
+  frontend build; unrelated pull requests do not run this gate.
+- Added live SDK/application-to-OTLP-to-Studio validators that authenticate
+  against a disposable local Studio, verify raw and semantic hierarchy, and
+  independently replay Agent and Workflow Store evidence.
+
 ## 0.64.0 - 2026-07-13
 
 ### Telemetry

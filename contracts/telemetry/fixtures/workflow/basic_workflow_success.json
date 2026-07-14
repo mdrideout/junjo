@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 2,
   "scenario": "basic_workflow_success",
   "trace_id": "11111111111111111111111111111111",
   "service_name": "svc-junjo-phase0-basic",
@@ -19,17 +19,35 @@
         "junjo.workflow.state.start": "{\"input\":\"hello\",\"output\":null}",
         "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-basic-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.basic.fetch_input\",\"nodeStructuralId\":\"struct-basic-fetch\",\"nodeType\":\"Node\",\"nodeLabel\":\"fetch_input\"},{\"nodeRuntimeId\":\"node.basic.transform_output\",\"nodeStructuralId\":\"struct-basic-transform\",\"nodeType\":\"Node\",\"nodeLabel\":\"transform_output\"}],\"edges\":[{\"edgeStructuralId\":\"edge-basic-fetch-transform\",\"tailNodeRuntimeId\":\"node.basic.fetch_input\",\"tailNodeStructuralId\":\"struct-basic-fetch\",\"headNodeRuntimeId\":\"node.basic.transform_output\",\"headNodeStructuralId\":\"struct-basic-transform\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
         "junjo.workflow.store.id": "store-basic-01",
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.basic",
         "junjo.executable_runtime_id": "run-basic-01",
         "junjo.executable_structural_id": "graph-basic-01",
-        "junjo.enclosing_graph_structural_id": "graph-basic-01"
+        "junjo.enclosing_graph_structural_id": "graph-basic-01",
+        "junjo.workflow.state.start.mode": "full",
+        "junjo.workflow.state.start.policy": "junjo.full.v1",
+        "junjo.workflow.state.end": "{\"input\":\"hello\",\"output\":\"HELLO\"}",
+        "junjo.workflow.state.end.mode": "full",
+        "junjo.workflow.state.end.policy": "junjo.full.v1",
+        "junjo.store.revision.start": 0,
+        "junjo.store.revision.end": 1,
+        "junjo.store.transition.count": 2,
+        "junjo.store.reconstructable": true
       },
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-basic",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "11111111111111111111111111111111",
@@ -43,7 +61,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.basic.fetch_input",
         "junjo.parent_executable_definition_id": "workflow.basic",
@@ -56,19 +74,34 @@
       "events_json": [
         {
           "name": "set_state",
-          "timeUnixNano": 1775390400060000000,
+          "timeUnixNano": "1775390400060000000",
           "attributes": {
             "id": "state-event-basic-01",
             "junjo.store.name": "BasicWorkflowState",
             "junjo.store.id": "store-basic-01",
             "junjo.store.action": "set_input",
-            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/input\",\"value\":\"hello\"}]"
-          }
+            "junjo.state_json_patch": "[]",
+            "junjo.store.transition.sequence": 1,
+            "junjo.store.revision.before": 0,
+            "junjo.store.revision.after": 0,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1"
+          },
+          "droppedAttributesCount": 0
         }
       ],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-basic",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "11111111111111111111111111111111",
@@ -82,7 +115,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.basic.transform_output",
         "junjo.parent_executable_definition_id": "workflow.basic",
@@ -95,19 +128,34 @@
       "events_json": [
         {
           "name": "set_state",
-          "timeUnixNano": 1775390400180000000,
+          "timeUnixNano": "1775390400180000000",
           "attributes": {
             "id": "state-event-basic-02",
             "junjo.store.name": "BasicWorkflowState",
             "junjo.store.id": "store-basic-01",
             "junjo.store.action": "set_output",
-            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/output\",\"value\":\"HELLO\"}]"
-          }
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/output\",\"value\":\"HELLO\"}]",
+            "junjo.store.transition.sequence": 2,
+            "junjo.store.revision.before": 0,
+            "junjo.store.revision.after": 1,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1"
+          },
+          "droppedAttributesCount": 0
         }
       ],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-basic",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     }
   ]
 }

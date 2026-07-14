@@ -40,14 +40,22 @@ async def test_session_cookie_tampering():
         # Get valid session cookie
         session_cookie = sign_in_response.cookies["session"]
 
-        # Tamper with the cookie (change one character)
-        tampered_cookie = session_cookie[:-1] + ("a" if session_cookie[-1] != "a" else "b")
-
-        # Try to access protected endpoint with tampered cookie
-        response = await client.get(
-            "/auth-test",
-            cookies={"session": tampered_cookie},
+        # Change a non-padding character so the decoded authenticated value must
+        # differ; changing the final base64 character can alter only ignored
+        # padding bits and leave the decoded bytes unchanged.
+        tamper_index = len(session_cookie) // 2
+        replacement = "a" if session_cookie[tamper_index] != "a" else "b"
+        tampered_cookie = (
+            session_cookie[:tamper_index]
+            + replacement
+            + session_cookie[tamper_index + 1 :]
         )
+
+        # Replace the client's valid cookie instead of sending two cookies with
+        # the same name and relying on ambiguous duplicate-cookie selection.
+        client.cookies.clear()
+        client.cookies.set("session", tampered_cookie)
+        response = await client.get("/auth-test")
 
         # Should reject tampered cookie
         assert response.status_code == 401

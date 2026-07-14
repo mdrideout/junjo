@@ -1,34 +1,64 @@
-import ChatForm from './components/ChatForm'
-import ChatHeader from './components/ChatHeader'
-import ChatSidebar from './components/sidebar/ChatSidebar'
-import ChatWindow from './components/ChatWindow'
-import { useParams } from 'react-router'
-import { useEffect } from 'react'
-import { useChatReadStateStore } from './api/chat/read-store'
+import { ConversationList } from './components/ConversationList'
+import { MessageList } from './components/MessageList'
+import { TurnForm } from './components/TurnForm'
+import { useChat } from './hooks/useChat'
 
-function App() {
-  const { chat_id } = useParams()
-  const markChatRead = useChatReadStateStore((state) => state.markChatRead)
-
-  useEffect(() => {
-    if (!chat_id) return
-    markChatRead(chat_id)
-  }, [chat_id, markChatRead])
+export default function App() {
+  const chat = useChat()
+  const selectedConversation = chat.conversations.find(
+    (conversation) => conversation.id === chat.selectedConversationId,
+  )
 
   return (
-    <div className={'h-dvh w-dvw p-5'}>
-      <div className={'w-full h-full max-w-5xl flex gap-x-5 m-auto'}>
-        <div className="bg-zinc-700 rounded-3xl p-3 overflow-y-scroll w-xs min-w-2xs">
-          <ChatSidebar />
-        </div>
-        <div className="bg-zinc-700 rounded-3xl grow flex flex-col border-l border-r border-zinc-700">
-          <ChatHeader chat_id={chat_id} />
-          <ChatWindow chat_id={chat_id} />
-          <ChatForm chat_id={chat_id} />
-        </div>
-      </div>
+    <div className="app-shell">
+      <ConversationList
+        conversations={chat.conversations}
+        selectedConversationId={chat.selectedConversationId}
+        loading={chat.loadingConversations}
+        disabled={chat.sending}
+        onSelect={chat.selectConversation}
+      />
+      <main className="chat-panel">
+        <header className="chat-heading">
+          <div>
+            <span className="eyebrow">Deterministic execution evidence</span>
+            <h2>{selectedConversation?.title ?? 'Conversation'}</h2>
+          </div>
+          {chat.selectedConversationId !== null && (
+            <code>{chat.selectedConversationId}</code>
+          )}
+        </header>
+        {chat.error !== null && (
+          <div className="error-banner" role="alert">
+            <p>{chat.error.message}</p>
+            {chat.error.agentRunId !== null && chat.error.terminationReason !== null && (
+              <dl aria-label="Failed Agent execution evidence">
+                <div>
+                  <dt>Agent run</dt>
+                  <dd>{chat.error.agentRunId}</dd>
+                </div>
+                <div>
+                  <dt>Reason</dt>
+                  <dd>{chat.error.terminationReason}</dd>
+                </div>
+              </dl>
+            )}
+          </div>
+        )}
+        <section className="message-panel" aria-label="Active conversation">
+          <MessageList
+            messages={chat.messages}
+            evidenceByTurnId={chat.evidenceByTurnId}
+            loading={chat.loadingMessages}
+            hasConversation={chat.selectedConversationId !== null}
+          />
+        </section>
+        <TurnForm
+          disabled={chat.selectedConversationId === null || chat.loadingMessages}
+          sending={chat.sending}
+          onSubmit={chat.sendTurn}
+        />
+      </main>
     </div>
   )
 }
-
-export default App

@@ -1,0 +1,731 @@
+{
+  "v": 1,
+  "vectors": [
+    {
+      "name": "plain",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {}
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "answer"
+          ],
+          "properties": {
+            "answer": {
+              "type": "string"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:355a6391a8e34b5c4745536b911105618e4e47d82bf490c39222a8c835adc841"
+    },
+    {
+      "name": "safe_integer_boundaries",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {
+            "min": -9007199254740991,
+            "max": 9007199254740991
+          }
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "answer"
+          ],
+          "properties": {
+            "answer": {
+              "type": "string"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"max\":9007199254740991,\"min\":-9007199254740991}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:b7c9b326e77c499c0a5ec3ccf4d1220a28a8eb254bd5b86284e8dcf04a9d0d9f"
+    },
+    {
+      "name": "negative_zero",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {
+            "value": -0.0
+          }
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "answer"
+          ],
+          "properties": {
+            "answer": {
+              "type": "string"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":0}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:431fe05366b4bf4eab3d3b9a758db045d25203e4f8943d5dd883e80ef4ceaf98"
+    },
+    {
+      "name": "exponent",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {
+            "large": 1e+30,
+            "small": 1e-07
+          }
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "answer"
+          ],
+          "properties": {
+            "answer": {
+              "type": "string"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"large\":1e+30,\"small\":1e-7}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:b40fddcdb44163030d47d5548995205b161788636bf72cd19da9685b14eb60b8"
+    },
+    {
+      "name": "unicode_composed",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {
+            "value": "é"
+          }
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "answer"
+          ],
+          "properties": {
+            "answer": {
+              "type": "string"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":\"é\"}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:05ac23f6309dc9884692ee98433f71ed30ee171c9e18144fb3b30923899c345c"
+    },
+    {
+      "name": "unicode_decomposed",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {
+            "value": "é"
+          }
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "answer"
+          ],
+          "properties": {
+            "answer": {
+              "type": "string"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":\"é\"}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:313c05736b8a3c7f174d64cb7946853d4a38fc694deaedfc8cb2fccb45af2b0d"
+    },
+    {
+      "name": "tool_plain",
+      "kind": "tool",
+      "material": {
+        "v": 1,
+        "name": "lookup",
+        "description": "Run lookup",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "query"
+          ],
+          "properties": {
+            "query": {
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "canonical": "{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"},\"v\":1}",
+      "structural_id": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab"
+    },
+    {
+      "name": "agent_normalized_schema_profile",
+      "kind": "agent",
+      "material": {
+        "v": 1,
+        "agentKey": "fingerprint_agent",
+        "instructions": "Answer with deterministic fixture evidence.",
+        "inputSchema": {
+          "$ref": "#/$defs/d0",
+          "$defs": {
+            "d0": {
+              "additionalProperties": false,
+              "properties": {
+                "nested": {
+                  "$ref": "#/$defs/d1"
+                }
+              },
+              "required": [
+                "nested"
+              ],
+              "type": "object"
+            },
+            "d1": {
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "model": {
+          "driverKey": "scripted",
+          "provider": "junjo",
+          "model": "scripted-v1",
+          "settings": {
+            "profile": "normalized-schema"
+          }
+        },
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "Run lookup",
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "type": "object"
+            },
+            "outputSchema": {
+              "additionalProperties": false,
+              "dependentRequired": {
+                "first": [
+                  "second"
+                ],
+                "second": [
+                  "first",
+                  "third"
+                ]
+              },
+              "examples": [
+                {
+                  "second": "beta"
+                },
+                {
+                  "second": "alpha"
+                }
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "first"
+                  ]
+                },
+                {
+                  "required": [
+                    "second"
+                  ]
+                }
+              ],
+              "properties": {
+                "first": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "second": {
+                  "enum": [
+                    "alpha",
+                    "beta"
+                  ]
+                }
+              },
+              "required": [
+                "first",
+                "second"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "outputSchema": {
+          "$ref": "#/$defs/d0",
+          "$defs": {
+            "d0": {
+              "additionalProperties": false,
+              "properties": {
+                "children": {
+                  "items": {
+                    "$ref": "#/$defs/d0"
+                  },
+                  "type": "array"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "limits": {
+          "modelRequests": 4,
+          "toolCalls": 4
+        }
+      },
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"nested\":{\"$ref\":\"#/$defs/d1\"}},\"required\":[\"nested\"],\"type\":\"object\"},\"d1\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}},\"$ref\":\"#/$defs/d0\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"profile\":\"normalized-schema\"}},\"outputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"children\":{\"items\":{\"$ref\":\"#/$defs/d0\"},\"type\":\"array\"},\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}},\"$ref\":\"#/$defs/d0\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"title\":{\"type\":\"string\"}},\"required\":[\"title\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"dependentRequired\":{\"first\":[\"second\"],\"second\":[\"first\",\"third\"]},\"examples\":[{\"second\":\"beta\"},{\"second\":\"alpha\"}],\"oneOf\":[{\"required\":[\"first\"]},{\"required\":[\"second\"]}],\"properties\":{\"first\":{\"type\":[\"null\",\"string\"]},\"second\":{\"enum\":[\"alpha\",\"beta\"]}},\"required\":[\"first\",\"second\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:68f4664de288c762b7f2e312af736931ef9fb39d80e4a3ad7f76b173e0c20638"
+    },
+    {
+      "name": "tool_normalized_schema_profile",
+      "kind": "tool",
+      "material": {
+        "v": 1,
+        "name": "pet",
+        "description": "Discriminated pet contract.",
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "pet": {
+              "discriminator": {
+                "mapping": {
+                  "cat": "#/$defs/d0",
+                  "dog": "#/$defs/d1"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/d0"
+                },
+                {
+                  "$ref": "#/$defs/d1"
+                }
+              ]
+            }
+          },
+          "required": [
+            "pet"
+          ],
+          "type": "object",
+          "$defs": {
+            "d0": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "cat",
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "title"
+              ],
+              "type": "object"
+            },
+            "d1": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "dog",
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "title"
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "type": "object"
+        }
+      },
+      "canonical": "{\"description\":\"Discriminated pet contract.\",\"inputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"kind\":{\"const\":\"cat\",\"type\":\"string\"},\"title\":{\"type\":\"string\"}},\"required\":[\"kind\",\"title\"],\"type\":\"object\"},\"d1\":{\"additionalProperties\":false,\"properties\":{\"kind\":{\"const\":\"dog\",\"type\":\"string\"},\"title\":{\"type\":\"string\"}},\"required\":[\"kind\",\"title\"],\"type\":\"object\"}},\"additionalProperties\":false,\"properties\":{\"pet\":{\"discriminator\":{\"mapping\":{\"cat\":\"#/$defs/d0\",\"dog\":\"#/$defs/d1\"},\"propertyName\":\"kind\"},\"oneOf\":[{\"$ref\":\"#/$defs/d0\"},{\"$ref\":\"#/$defs/d1\"}]}},\"required\":[\"pet\"],\"type\":\"object\"},\"name\":\"pet\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"},\"v\":1}",
+      "structural_id": "tool_sha256:76f33bc1c63144439629046181f84cce99d8cb8933285cb7dbaa821f908afa4b"
+    }
+  ]
+}

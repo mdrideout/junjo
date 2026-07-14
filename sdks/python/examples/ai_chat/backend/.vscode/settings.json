@@ -11,7 +11,7 @@
   },
   "ruff.enable": true,
   "python.defaultInterpreterPath": ".venv/bin/python",
-  "python.testing.pytestArgs": ["./src"],
+  "python.testing.pytestArgs": ["./tests"],
   "python.analysis.extraPaths": ["./src"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,

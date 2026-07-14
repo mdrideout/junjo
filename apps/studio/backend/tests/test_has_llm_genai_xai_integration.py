@@ -24,9 +24,9 @@ from opentelemetry.proto.resource.v1 import resource_pb2
 from opentelemetry.proto.trace.v1 import trace_pb2
 
 from app.config.settings import settings
+from app.db_sqlite.metadata import indexer as sqlite_indexer
 from app.db_sqlite.metadata import init_metadata_db
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
-from app.db_sqlite.metadata import indexer as sqlite_indexer
 from app.features.span_ingestion.ingestion_client import IngestionClient
 
 pytestmark = [pytest.mark.requires_ingestion_service, pytest.mark.integration]

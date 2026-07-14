@@ -16,6 +16,10 @@ jobs:
     if: startsWith(github.event.release.tag_name, 'sdk-python-v')
     uses: ./.github/workflows/python-ci.yml
 
+  examples-validation:
+    if: startsWith(github.event.release.tag_name, 'sdk-python-v')
+    uses: ./.github/workflows/python-examples-smoke.yml
+
   build-release:
     if: startsWith(github.event.release.tag_name, 'sdk-python-v')
     runs-on: ubuntu-latest
@@ -73,7 +77,7 @@ jobs:
 
   publish:
     if: startsWith(github.event.release.tag_name, 'sdk-python-v')
-    needs: [sdk-validation, build-release]
+    needs: [sdk-validation, examples-validation, build-release]
     runs-on: ubuntu-latest
     environment:
       name: pypi

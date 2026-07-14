@@ -1,0 +1,463 @@
+[
+  {
+    "case_name": "basic_workflow_success:1111111111111111",
+    "detail": {
+      "executable_type": "workflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "basic_workflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "input": "hello",
+            "output": "HELLO"
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 1,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "input": "hello",
+            "output": null
+          }
+        },
+        "store_id": "store-basic-01",
+        "transition_count": 2,
+        "transitions": [
+          {
+            "action": "set_input",
+            "after": {
+              "input": "hello",
+              "output": null
+            },
+            "before": {
+              "input": "hello",
+              "output": null
+            },
+            "event_id": "state-event-basic-01",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": []
+            },
+            "revision_after": 0,
+            "revision_before": 0,
+            "sequence": 1,
+            "span_id": "1111111111111112"
+          },
+          {
+            "action": "set_output",
+            "after": {
+              "input": "hello",
+              "output": "HELLO"
+            },
+            "before": {
+              "input": "hello",
+              "output": null
+            },
+            "event_id": "state-event-basic-02",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "/output",
+                  "value": "HELLO"
+                }
+              ]
+            },
+            "revision_after": 1,
+            "revision_before": 0,
+            "sequence": 2,
+            "span_id": "1111111111111113"
+          }
+        ]
+      },
+      "trace_id": "11111111111111111111111111111111",
+      "workflow_span_id": "1111111111111111"
+    }
+  },
+  {
+    "case_name": "cancelled_executable:5555555555555551",
+    "detail": {
+      "executable_type": "workflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "cancelled_workflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "cancelled": false
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 0,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "cancelled": false
+          }
+        },
+        "store_id": "store-cancelled-01",
+        "transition_count": 0,
+        "transitions": []
+      },
+      "trace_id": "55555555555555555555555555555555",
+      "workflow_span_id": "5555555555555551"
+    }
+  },
+  {
+    "case_name": "failed_executable_with_error_type:4444444444444441",
+    "detail": {
+      "executable_type": "workflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "failure_workflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "validated": false
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 0,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "validated": false
+          }
+        },
+        "store_id": "store-failure-01",
+        "transition_count": 0,
+        "transitions": []
+      },
+      "trace_id": "44444444444444444444444444444444",
+      "workflow_span_id": "4444444444444441"
+    }
+  },
+  {
+    "case_name": "hook_failure_on_surrounding_span:6666666666666661",
+    "detail": {
+      "executable_type": "workflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "hook_failure_workflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "hook_state": "starting"
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 0,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "hook_state": "starting"
+          }
+        },
+        "store_id": "store-hook-failure-01",
+        "transition_count": 0,
+        "transitions": []
+      },
+      "trace_id": "66666666666666666666666666666666",
+      "workflow_span_id": "6666666666666661"
+    }
+  },
+  {
+    "case_name": "run_concurrent_success:3333333333333331",
+    "detail": {
+      "executable_type": "workflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "concurrent_workflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "fanout_complete": true
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 1,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "fanout_complete": false
+          }
+        },
+        "store_id": "store-run-concurrent-01",
+        "transition_count": 1,
+        "transitions": [
+          {
+            "action": "mark_fanout_complete",
+            "after": {
+              "fanout_complete": true
+            },
+            "before": {
+              "fanout_complete": false
+            },
+            "event_id": "state-event-concurrent-01",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "/fanout_complete",
+                  "value": true
+                }
+              ]
+            },
+            "revision_after": 1,
+            "revision_before": 0,
+            "sequence": 1,
+            "span_id": "3333333333333335"
+          }
+        ]
+      },
+      "trace_id": "33333333333333333333333333333333",
+      "workflow_span_id": "3333333333333331"
+    }
+  },
+  {
+    "case_name": "subflow_with_parent_store:2222222222222221",
+    "detail": {
+      "executable_type": "workflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "parent_workflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "parent_ready": false
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 0,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "parent_ready": false
+          }
+        },
+        "store_id": "store-subflow-parent-01",
+        "transition_count": 0,
+        "transitions": []
+      },
+      "trace_id": "22222222222222222222222222222222",
+      "workflow_span_id": "2222222222222221"
+    }
+  },
+  {
+    "case_name": "subflow_with_parent_store:2222222222222223",
+    "detail": {
+      "executable_type": "subflow",
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "name": "child_subflow",
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "child_ready": true
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 1,
+        "revision_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "child_ready": false
+          }
+        },
+        "store_id": "store-subflow-child-01",
+        "transition_count": 1,
+        "transitions": [
+          {
+            "action": "mark_child_ready",
+            "after": {
+              "child_ready": true
+            },
+            "before": {
+              "child_ready": false
+            },
+            "event_id": "state-event-subflow-01",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "/child_ready",
+                  "value": true
+                }
+              ]
+            },
+            "revision_after": 1,
+            "revision_before": 0,
+            "sequence": 1,
+            "span_id": "2222222222222224"
+          }
+        ]
+      },
+      "trace_id": "22222222222222222222222222222222",
+      "workflow_span_id": "2222222222222223"
+    }
+  }
+]

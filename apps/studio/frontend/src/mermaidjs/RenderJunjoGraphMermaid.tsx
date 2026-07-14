@@ -71,7 +71,7 @@ export default function RenderJunjoGraphMermaid(props: RenderJunjoGraphMermaidPr
         const clickedSpan = findSpanForGraphNodeId(graphNodeId)
         if (clickedSpan) {
           dispatch(WorkflowDetailStateActions.setActiveSpan(clickedSpan))
-          dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+          dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
           // Preserve existing params and set the new spanId
           const newPath = `/workflows/${serviceName}/${traceIdParam}/${workflowSpanId}/${clickedSpan.span_id}`

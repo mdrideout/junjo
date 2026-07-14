@@ -8,12 +8,15 @@ Accepted
 
 2026-07-13
 
+Last clarified: 2026-07-14
+
 ## Context
 
-Junjo AI Studio currently interprets Graph-based Workflow telemetry. Its
-backend has Workflow-oriented query behavior, and its frontend matches spans to
-serialized Graph nodes. An Agent instead produces a dynamic sequence of model
-and Tool operations, sometimes containing nested Workflows.
+When this decision was accepted, Junjo AI Studio interpreted Graph-based
+Workflow telemetry only. Its backend had Workflow-oriented query behavior, and
+its frontend matched spans to serialized Graph nodes. An Agent instead produces
+a dynamic sequence of model and Tool operations, sometimes containing nested
+Workflows.
 
 Studio must provide complete Agent diagnostics without fabricating a Graph,
 moving product semantics into ingestion, exposing physical telemetry storage to
@@ -99,16 +102,20 @@ contains:
 - ordered model and Tool operations;
 - Store start, end, revisions, transitions, and reconstruction status;
 - owning errors or cancellation;
-- nested Workflow references;
+- a typed semantic parent executable reference when one exists;
+- nested Workflow or Agent references, including the owning Tool operation
+  sequence and span when a Tool caused the child execution;
 - contract-evidence integrity status, diagnostic reasons, OTLP loss counters,
   and payload modes.
 
 Integrity status is `complete` or `partial` for the supported contract. It is
 `complete` only when required slots and terminal facts exist, owner counts
 reconcile with contiguous operation and transition sequences, Store replay is
-verified when reconstructable is claimed, and all preserved contract-relevant
-drop counters are zero. `partial` includes stable diagnostic reason codes. This
-status covers Junjo contract evidence, not arbitrary provider child spans.
+independently verified whenever complete original evidence is available, every
+producer reconstructability claim agrees with that verification, and all
+preserved contract-relevant drop counters are zero. `partial` includes stable
+diagnostic reason codes. This status covers Junjo contract evidence, not
+arbitrary provider child spans.
 
 The backend:
 
@@ -132,6 +139,18 @@ The backend:
 - preserves explicit full, redacted, excluded, and reference payload modes;
 - distinguishes absent evidence caused by failure from policy-transformed
   evidence;
+- validates each inspectable candidate, requested, normalized, and committed
+  payload against its own schema; candidates and validated values are not
+  required to be equal because declared validation may normalize or apply
+  defaults;
+- validates exact cross-evidence correspondences for owner and operation
+  identity, requested Tool call ID/name/ordinal, operation and transition
+  counts, Store revision continuity and causal action ownership, terminal
+  outcome/reason, and conditional candidate/response/result occurrence;
+- never treats transformed, referenced, or excluded content as the hidden
+  original;
+- treats response occurrence, response type, and normalized usage as semantic
+  facts independent from whether response content is inspectable;
 - returns typed semantic data rather than storage-shaped rows.
 
 Timestamps remain available for display and duration. They are not used to
@@ -142,6 +161,13 @@ but raw storage-shaped evidence is not embedded in `AgentExecutionDetail`. A
 secondary raw panel fetches the raw trace separately using identities from the
 semantic detail. The Agent frontend does not infer product behavior by scanning
 those rows.
+
+The HTTP boundary keeps caller validation and stored-evidence interpretation
+separate. FastAPI request and path validation exclusively owns status 422 and
+its `HTTPValidationError` envelope. A valid request whose stored Agent or
+Workflow evidence cannot be interpreted returns the typed semantic evidence
+error at status 409. Frontends parse semantic diagnostics only for 409; they do
+not reinterpret a transport-validation response as execution evidence.
 
 ### Frontend renders realized execution, not a Graph
 
@@ -159,7 +185,13 @@ feature state. The primary view contains:
   validated results;
 - state revisions with before, after, patch, and full-state views;
 - failure or cancellation at the operation that owns it;
-- nested Workflow navigation.
+- parent executable navigation and causally placed nested Workflow or Agent
+  navigation under the Tool operation that started the child.
+
+Whole-batch admission and operation start are separate facts. An admitted Tool
+call can truthfully have no Tool span when an earlier call in the sequential
+batch fails or is cancelled. The frontend shows that state as "admitted, not
+started" and never fabricates an operation.
 
 The Agent timeline is not rendered through Mermaid and has no static Graph
 snapshot. A nested Workflow links to the existing Workflow detail and Graph
@@ -186,6 +218,23 @@ owns one generic Store reconstruction and integrity utility that:
 - produces typed before, after, patch, and detailed state projections plus
   diagnostic reason codes.
 
+The reconstruction result has four explicit states:
+
+- `verified`: all replay-required inline evidence was inspectable and
+  independent replay exactly matched the emitted end state, even when one
+  coherent redacted projection was used or the producer made the conservative
+  claim `reconstructable=false`;
+- `policy_unavailable`: replay was not possible because an explicit excluded,
+  referenced, or content-withholding redacted payload policy withheld required
+  content;
+- `failed`: replay was claimed or inspectable evidence was supplied, but the
+  sequence, revisions, patch application, or end-state comparison failed; and
+- `not_applicable`: the invocation never admitted a Store.
+
+Only `failed` is corruption. Intentional policy transformation is not mislabeled
+as a patch replay mismatch, while missing required evidence still cannot become
+`policy_unavailable` without an explicit payload mode.
+
 Feature selection and presentation remain separate:
 
 - Workflow backend services select Workflow evidence;
@@ -193,23 +242,31 @@ Feature selection and presentation remain separate:
 - the shared backend utility performs only Store reconstruction and integrity
   verification.
 
-The frontend may apply already verified patches for interactive navigation, but
-it consumes the backend's reconstructability and integrity result. It does not
-publish a competing semantic verdict. Frontend projection tests are generated
-from canonical backend results.
+The existing Workflow detail and the Agent detail both consume these typed
+backend projections. The Workflow Store route is addressed by trace and
+Workflow-or-Subflow span identity; it returns the shared Store detail and
+evidence-integrity envelope. Agent detail embeds the same Store types in its
+larger semantic result. Neither frontend replays raw event patches. Interactive
+navigation selects the backend-projected transition `before`, `after`, and
+patch values and exposes state tabs only for a `verified` reconstruction.
+`policy_unavailable`, `failed`, and `not_applicable` remain visibly distinct.
+Frontend projection tests are generated from canonical backend results.
 
 ### Active contract support is strict
 
-Studio supports the active telemetry contract version 2 when the Agent runtime
-lands. Unsupported or malformed Agent evidence is explicitly rejected or
-labelled unsupported. There is no compatibility parser, guessed fallback, or
-silent coercion.
+Studio supports the active telemetry contract version 2. Unsupported or
+malformed Agent evidence is explicitly rejected or labelled unsupported. There
+is no compatibility parser, guessed fallback, or silent coercion.
 
 The contract version, schemas, fixtures, SDK producer, ingestion preservation,
-backend interpretation, and frontend consumer change atomically as required by
-ADR 0006. After that merge, Studio version 2 is deployed before the SDK is
-published; Studio immediately rejects version 1 semantic evidence. No dual
-parser or cutover fallback is introduced.
+backend interpretation, and frontend consumer form the atomic implementation
+required by ADR 0006. Source compatibility merges atomically. The greenfield
+artifact cutover publishes Python SDK `0.65.0` first, accepts that version 2
+semantic diagnostics are unavailable on the deployed version 1 Studio during
+the short gap, then publishes Studio `0.82.0` or newer with canonical
+deployment pins and generated mirrors bound to that installable SDK. The new
+Studio rejects version 1 semantic evidence. No dual parser or cutover fallback
+is introduced.
 
 ## Boundaries
 
@@ -252,6 +309,12 @@ Canonical Agent fixtures must prove:
   rewriting the committed Agent outcome;
 - cancellation remains distinct from failure;
 - payload modes remain distinct from empty values;
+- admitted-but-unstarted Tool calls remain visible without fabricated spans;
+- parent executable type and identity match the referenced span, and nested
+  children match both their semantic Agent owner and physical owning Tool
+  operation;
+- internal admission, execution, and terminal-commit failures remain distinct
+  from application/model/Tool errors and expose only verified Store facts;
 - resource service scope and version remain queryable across releases;
 - dropped-evidence counters survive ingestion and force partial integrity;
 - frontend schemas and views accept every supported scenario.

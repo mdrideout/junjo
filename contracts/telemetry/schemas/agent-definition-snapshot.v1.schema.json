@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/agent-definition-snapshot.v1.schema.json",
+  "title": "Junjo Agent definition snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "agentKey", "name", "instructions", "inputSchema", "model", "tools", "outputSchema", "limits", "structuralId"],
+  "properties": {
+    "v": {"const": 1},
+    "agentKey": {"type": "string", "minLength": 1},
+    "name": {"type": "string", "minLength": 1},
+    "instructions": {"type": "string"},
+    "inputSchema": {"type": "object"},
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["driverKey", "provider", "model", "settings"],
+      "properties": {
+        "driverKey": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "settings": {"type": "object"}
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description", "structuralId", "inputSchema", "outputSchema"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "description": {"type": "string"},
+          "structuralId": {"type": "string", "pattern": "^tool_sha256:[0-9a-f]{64}$"},
+          "inputSchema": {"type": "object"},
+          "outputSchema": {"type": "object"}
+        }
+      }
+    },
+    "outputSchema": {"type": "object"},
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modelRequests", "toolCalls"],
+      "properties": {
+        "modelRequests": {"type": "integer", "minimum": 1},
+        "toolCalls": {"type": "integer", "minimum": 1}
+      }
+    },
+    "structuralId": {"type": "string", "pattern": "^agent_sha256:[0-9a-f]{64}$"}
+  }
+}

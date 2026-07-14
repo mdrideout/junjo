@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-13
+- Last clarified: 2026-07-14
 - Owners: Junjo platform
 
 ## Context
@@ -202,6 +203,12 @@ rejection are `AgentInvocationError` values because no run-local Store or
 public lifecycle has started. Failures after admission are
 `AgentExecutionError` values.
 
+Unexpected Junjo-owned machinery is also typed at the boundary where it
+occurs. `AgentAdmissionError` is an invocation error when validated admission
+preparation fails before Store availability is published. `AgentInternalError`
+is an execution error after admission. Raw internal exceptions never escape
+the public Agent API; the original exception remains the typed error's cause.
+
 Limit exhaustion is specifically `AgentLimitExceededError`. It identifies the
 model-request or Tool-call budget, the positive effective limit, and the
 attempted next count or requested batch that could not be admitted.
@@ -227,6 +234,13 @@ dispatching started or failed public hooks. No executable run was admitted.
 An admitted execution failure closes or drains Agent-owned work, records the
 failed state and span, dispatches exactly one failed lifecycle event, and
 raises. No Agent-owned background task may survive a terminal outcome.
+
+The selected terminal state transaction is cancellation-shielded and drained
+before returning control. If that transaction itself fails, one
+`AgentInternalError` with termination reason `internal_error` supersedes the
+pending success, failure, or cancellation. It retains the superseded outcome
+for diagnostics and exposes only last-known verified Store facts; the runtime
+does not retry through the same failed Store path or invent a complete state.
 
 ### Cancellation is distinct from failure
 
@@ -289,6 +303,8 @@ Horizon 1 must prove this decision with deterministic SDK tests for:
 - ModelDriver, Tool, malformed-response, and output-validation failures;
 - cancellation during model, Tool, and nested Workflow execution;
 - detached successful and failed diagnostic snapshots;
+- typed admission, admitted-runtime, and terminal-commit internal failures;
+- repeated cancellation while the one selected terminal transaction drains;
 - repeated and concurrent execution of one Agent definition;
 - shared-safe and per-run collaborator construction;
 - lifecycle-observer snapshot isolation;

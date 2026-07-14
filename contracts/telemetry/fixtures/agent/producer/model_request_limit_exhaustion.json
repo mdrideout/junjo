@@ -1,0 +1,290 @@
+{
+  "contract_version": 2,
+  "scenario": "model_request_limit_exhaustion",
+  "trace_id": "eb7654f050d548652d6c6527ec8ff11e",
+  "service_name": "svc-agent-model-request-limit-exhaustion",
+  "spans": [
+    {
+      "trace_id": "eb7654f050d548652d6c6527ec8ff11e",
+      "span_id": "2fbe5db0c507463d",
+      "parent_span_id": null,
+      "service_name": "svc-agent-model-request-limit-exhaustion",
+      "resource_attributes_json": {
+        "service.name": "svc-agent-model-request-limit-exhaustion",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "name": "Fixture Agent",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.000000+00:00",
+      "end_time": "2026-07-13T12:00:00.000500+00:00",
+      "status_code": "2",
+      "status_message": "model_requests",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 2,
+        "junjo.span_type": "agent",
+        "junjo.executable_definition_id": "definition-0a2747d3be224a3d",
+        "junjo.executable_runtime_id": "run-0a2747d3be224a3d943f",
+        "junjo.executable_structural_id": "agent_sha256:3d6c28189567f7edaaaf2d4176f36d129ef57f481e7605b68ad7feb07ff2521f",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.name": "Fixture Agent",
+        "junjo.agent.runtime_id": "run-0a2747d3be224a3d943f",
+        "junjo.agent.state.available": true,
+        "junjo.agent.store.id": "store-0a2747d3be224a3d",
+        "junjo.agent.limit.model_requests": 1,
+        "junjo.agent.limit.tool_calls": 4,
+        "junjo.agent.operation.count": 2,
+        "junjo.agent.model_request.count": 1,
+        "junjo.agent.tool_call.requested_count": 1,
+        "junjo.agent.tool_call.admitted_count": 1,
+        "junjo.agent.tool_call.started_count": 1,
+        "junjo.agent.tool_call.completed_count": 1,
+        "junjo.agent.usage": "{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}}",
+        "junjo.agent.outcome": "failed",
+        "junjo.agent.termination_reason": "limit_exceeded",
+        "junjo.store.revision.start": 0,
+        "junjo.store.revision.end": 6,
+        "junjo.store.transition.count": 6,
+        "junjo.store.reconstructable": true,
+        "junjo.agent.definition_snapshot.mode": "full",
+        "junjo.agent.definition_snapshot.policy": "junjo.full.v1",
+        "junjo.agent.definition_snapshot": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"name\":\"Fixture Agent\",\"instructions\":\"Answer with deterministic fixture evidence.\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"question\"],\"properties\":{\"question\":{\"type\":\"string\"}}},\"model\":{\"driverKey\":\"scripted\",\"provider\":\"junjo\",\"model\":\"scripted-v1\",\"settings\":{}},\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"structuralId\":\"tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}},\"limits\":{\"modelRequests\":1,\"toolCalls\":4},\"structuralId\":\"agent_sha256:3d6c28189567f7edaaaf2d4176f36d129ef57f481e7605b68ad7feb07ff2521f\"}",
+        "junjo.agent.input.mode": "full",
+        "junjo.agent.input.policy": "junjo.full.v1",
+        "junjo.agent.input": "{\"question\":\"fixture?\"}",
+        "junjo.agent.state.start.mode": "full",
+        "junjo.agent.state.start.policy": "junjo.full.v1",
+        "junjo.agent.state.start": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":0,\"model_request_count\":0,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}",
+        "junjo.agent.state.end.mode": "full",
+        "junjo.agent.state.end.policy": "junjo.full.v1",
+        "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":\"limit_exceeded\"}",
+        "junjo.agent.limit.exceeded": "model_requests",
+        "junjo.agent.limit.attempted_count": 2,
+        "error.type": "AgentLimitExceededError"
+      },
+      "events_json": [
+        {
+          "name": "exception",
+          "timeUnixNano": "1783944000000000000",
+          "attributes": {
+            "exception.type": "junjo.agent.errors.AgentLimitExceededError",
+            "exception.message": "Agent model-request limit was exhausted before another request could start.",
+            "exception.stacktrace": "junjo.agent.errors.AgentLimitExceededError: Agent model-request limit was exhausted before another request could start."
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000003",
+          "attributes": {
+            "id": "event-2a56321adb65",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-0a2747d3be224a3d",
+            "junjo.store.action": "admit_tool_batch",
+            "junjo.store.transition.sequence": 3,
+            "junjo.store.revision.before": 2,
+            "junjo.store.revision.after": 3,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[\"call-1\"],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000006",
+          "attributes": {
+            "id": "event-09e58f847924",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-0a2747d3be224a3d",
+            "junjo.store.action": "set_terminal_reason",
+            "junjo.store.transition.sequence": 6,
+            "junjo.store.revision.before": 5,
+            "junjo.store.revision.after": 6,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":\"limit_exceeded\"}}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 1,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
+    },
+    {
+      "trace_id": "eb7654f050d548652d6c6527ec8ff11e",
+      "span_id": "470b4d4e8c47eaf9",
+      "parent_span_id": "2fbe5db0c507463d",
+      "service_name": "svc-agent-model-request-limit-exhaustion",
+      "resource_attributes_json": {
+        "service.name": "svc-agent-model-request-limit-exhaustion",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "name": "model request 1",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.001000+00:00",
+      "end_time": "2026-07-13T12:00:00.001500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 2,
+        "junjo.agent.operation_type": "model_request",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.runtime_id": "run-0a2747d3be224a3d943f",
+        "junjo.agent.operation.sequence": 1,
+        "junjo.agent.model_request.ordinal": 1,
+        "junjo.agent.model_request.state_revision": 1,
+        "junjo.agent.model.driver_key": "scripted",
+        "junjo.agent.model.provider": "junjo",
+        "junjo.agent.model.name": "scripted-v1",
+        "junjo.agent.model.response_candidate.available": true,
+        "junjo.agent.model.response_type": "tool_calls",
+        "junjo.agent.model.usage": "{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}",
+        "junjo.agent.model.request.mode": "full",
+        "junjo.agent.model.request.policy": "junjo.full.v1",
+        "junjo.agent.model.request": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"runId\":\"run-0a2747d3be224a3d943f\",\"ordinal\":1,\"instructions\":\"Answer with deterministic fixture evidence.\",\"messages\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}}}",
+        "junjo.agent.model.response_candidate.mode": "full",
+        "junjo.agent.model.response_candidate.policy": "junjo.full.v1",
+        "junjo.agent.model.response_candidate": "{\"v\":1,\"type\":\"tool_calls\",\"assistantText\":\"Using tools\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}",
+        "junjo.agent.model.response.mode": "full",
+        "junjo.agent.model.response.policy": "junjo.full.v1",
+        "junjo.agent.model.response": "{\"v\":1,\"type\":\"tool_calls\",\"assistantText\":\"Using tools\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000001",
+          "attributes": {
+            "id": "event-60352eefdb4e",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-0a2747d3be224a3d",
+            "junjo.store.action": "record_model_start",
+            "junjo.store.transition.sequence": 1,
+            "junjo.store.revision.before": 0,
+            "junjo.store.revision.after": 1,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000002",
+          "attributes": {
+            "id": "event-c0341f719fd6",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-0a2747d3be224a3d",
+            "junjo.store.action": "record_model_response",
+            "junjo.store.transition.sequence": 2,
+            "junjo.store.revision.before": 1,
+            "junjo.store.revision.after": 2,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 1,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
+    },
+    {
+      "trace_id": "eb7654f050d548652d6c6527ec8ff11e",
+      "span_id": "e9d728a8234746c5",
+      "parent_span_id": "2fbe5db0c507463d",
+      "service_name": "svc-agent-model-request-limit-exhaustion",
+      "resource_attributes_json": {
+        "service.name": "svc-agent-model-request-limit-exhaustion",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "name": "tool lookup",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.002000+00:00",
+      "end_time": "2026-07-13T12:00:00.002500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 2,
+        "junjo.agent.operation_type": "tool",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.runtime_id": "run-0a2747d3be224a3d943f",
+        "junjo.agent.operation.sequence": 2,
+        "junjo.agent.tool_call.id": "call-1",
+        "junjo.agent.tool_call.ordinal": 1,
+        "junjo.agent.tool.name": "lookup",
+        "junjo.agent.tool.structural_id": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab",
+        "junjo.agent.tool.state_revision.before": 3,
+        "junjo.agent.tool.state_revision.after": 5,
+        "junjo.agent.tool.result_candidate.available": true,
+        "junjo.agent.tool.requested_arguments.mode": "full",
+        "junjo.agent.tool.requested_arguments.policy": "junjo.full.v1",
+        "junjo.agent.tool.requested_arguments": "{\"query\":\"q1\"}",
+        "junjo.agent.tool.arguments.mode": "full",
+        "junjo.agent.tool.arguments.policy": "junjo.full.v1",
+        "junjo.agent.tool.arguments": "{\"query\":\"q1\"}",
+        "junjo.agent.tool.result_candidate.mode": "full",
+        "junjo.agent.tool.result_candidate.policy": "junjo.full.v1",
+        "junjo.agent.tool.result_candidate": "{\"value\":\"result-1\"}",
+        "junjo.agent.tool.result.mode": "full",
+        "junjo.agent.tool.result.policy": "junjo.full.v1",
+        "junjo.agent.tool.result": "{\"value\":\"result-1\"}"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000004",
+          "attributes": {
+            "id": "event-f540fa144237",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-0a2747d3be224a3d",
+            "junjo.store.action": "record_tool_started",
+            "junjo.store.transition.sequence": 4,
+            "junjo.store.revision.before": 3,
+            "junjo.store.revision.after": 4,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[\"call-1\"],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000005",
+          "attributes": {
+            "id": "event-7d36a4bf786f",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-0a2747d3be224a3d",
+            "junjo.store.action": "record_tool_result",
+            "junjo.store.transition.sequence": 5,
+            "junjo.store.revision.before": 4,
+            "junjo.store.revision.after": 5,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 1,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
+    }
+  ]
+}

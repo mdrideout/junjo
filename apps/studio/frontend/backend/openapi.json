@@ -872,6 +872,329 @@
         }
       }
     },
+    "/api/v1/agent-executions": {
+      "get": {
+        "tags": [
+          "agent-executions"
+        ],
+        "summary": "List Agent Executions",
+        "description": "List strict active-contract Agent executions in one service scope.",
+        "operationId": "list_agent_executions",
+        "parameters": [
+          {
+            "name": "service_namespace",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Exact service.namespace; empty is explicit",
+              "title": "Service Namespace"
+            },
+            "description": "Exact service.namespace; empty is explicit"
+          },
+          {
+            "name": "service_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact service.name",
+              "title": "Service Name"
+            },
+            "description": "Exact service.name"
+          },
+          {
+            "name": "agent_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Key"
+            }
+          },
+          {
+            "name": "structural_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Structural Id"
+            }
+          },
+          {
+            "name": "service_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Version"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "completed",
+                    "failed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome"
+            }
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time"
+            }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 250,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentExecutionSummary"
+                  },
+                  "title": "Response List Agent Executions"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentEvidenceErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agent-executions/{trace_id}/{agent_span_id}": {
+      "get": {
+        "tags": [
+          "agent-executions"
+        ],
+        "summary": "Get Agent Execution Detail",
+        "description": "Get one typed Agent execution detail by OTLP identity.",
+        "operationId": "get_agent_execution_detail",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "title": "Trace Id"
+            }
+          },
+          {
+            "name": "agent_span_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$",
+              "title": "Agent Span Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentExecutionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent execution not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentEvidenceErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow-executions/{trace_id}/{workflow_span_id}/store": {
+      "get": {
+        "tags": [
+          "workflow-executions"
+        ],
+        "summary": "Get Workflow Store Diagnostic",
+        "description": "Get backend-authoritative Store reconstruction for one Workflow owner.",
+        "operationId": "get_workflow_store_diagnostic",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "title": "Trace Id"
+            }
+          },
+          {
+            "name": "workflow_span_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$",
+              "title": "Workflow Span Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowStoreDiagnostic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workflow execution not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowEvidenceErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -984,6 +1307,361 @@
         "title": "APIKeyRead",
         "description": "Schema for reading an API key.\n\nAttributes:\n    id: Unique identifier\n    key: API key value (64-char alphanumeric)\n    name: Human-readable name\n    created_at: Timestamp when key was created"
       },
+      "AgentCounts": {
+        "properties": {
+          "operations": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Operations"
+          },
+          "model_requests": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Model Requests"
+          },
+          "tool_calls": {
+            "$ref": "#/components/schemas/ToolCallCounts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operations",
+          "model_requests",
+          "tool_calls"
+        ],
+        "title": "AgentCounts"
+      },
+      "AgentEvidenceErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "unsupported_contract",
+              "unidentifiable_agent"
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceDiagnostic"
+            },
+            "type": "array",
+            "title": "Diagnostics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "AgentEvidenceErrorResponse"
+      },
+      "AgentExecutionDetail": {
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/AgentExecutionSummary"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/PayloadEvidence"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input_candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandidateEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history_candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandidateEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ModelOperation"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOperation"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "operation_type",
+                "mapping": {
+                  "model_request": "#/components/schemas/ModelOperation",
+                  "tool": "#/components/schemas/ToolOperation"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Operations"
+          },
+          "state": {
+            "$ref": "#/components/schemas/StoreDetail"
+          },
+          "parent_executable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParentExecutableReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nested_executables": {
+            "items": {
+              "$ref": "#/components/schemas/NestedExecutableReference"
+            },
+            "type": "array",
+            "title": "Nested Executables"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancellation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancellationEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "integrity": {
+            "$ref": "#/components/schemas/EvidenceIntegrity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "summary",
+          "definition",
+          "operations",
+          "state",
+          "nested_executables",
+          "integrity"
+        ],
+        "title": "AgentExecutionDetail"
+      },
+      "AgentExecutionSummary": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id"
+          },
+          "agent_span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Agent Span Id"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceIdentity"
+          },
+          "agent_key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Agent Key"
+          },
+          "agent_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Agent Name"
+          },
+          "structural_id": {
+            "type": "string",
+            "pattern": "^agent_sha256:[0-9a-f]{64}$",
+            "title": "Structural Id"
+          },
+          "definition_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Definition Id"
+          },
+          "runtime_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Runtime Id"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Time"
+          },
+          "duration_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Duration Ns"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Outcome"
+          },
+          "termination_reason": {
+            "type": "string",
+            "enum": [
+              "final_output",
+              "input_validation_error",
+              "history_validation_error",
+              "limit_exceeded",
+              "model_error",
+              "model_response_error",
+              "unknown_tool",
+              "tool_input_validation_error",
+              "tool_error",
+              "tool_output_validation_error",
+              "output_validation_error",
+              "cancelled",
+              "internal_error"
+            ],
+            "title": "Termination Reason"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AgentLimits"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/AgentCounts"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AgentUsage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "agent_span_id",
+          "service",
+          "agent_key",
+          "agent_name",
+          "structural_id",
+          "definition_id",
+          "runtime_id",
+          "start_time",
+          "end_time",
+          "duration_ns",
+          "outcome",
+          "termination_reason",
+          "limits",
+          "counts",
+          "usage"
+        ],
+        "title": "AgentExecutionSummary"
+      },
+      "AgentLimits": {
+        "properties": {
+          "model_requests": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Model Requests"
+          },
+          "tool_calls": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Tool Calls"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model_requests",
+          "tool_calls"
+        ],
+        "title": "AgentLimits"
+      },
+      "AgentUsage": {
+        "properties": {
+          "model_responses": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Model Responses"
+          },
+          "fields": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/UsageAggregate"
+            },
+            "propertyNames": {
+              "enum": [
+                "inputTokens",
+                "outputTokens",
+                "cachedInputTokens",
+                "reasoningTokens",
+                "totalTokens"
+              ]
+            },
+            "type": "object",
+            "title": "Fields"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model_responses",
+          "fields"
+        ],
+        "title": "AgentUsage"
+      },
       "AuthTestResponse": {
         "properties": {
           "user_email": {
@@ -998,6 +1676,64 @@
         ],
         "title": "AuthTestResponse",
         "description": "Response for auth-test endpoint."
+      },
+      "CancellationEvidence": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "CancellationEvidence"
+      },
+      "CandidateEvidence": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "cancelled",
+                  "not_returned",
+                  "not_invoked",
+                  "service_failed",
+                  "not_json_serializable",
+                  "contract_evidence_missing"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "CandidateEvidence"
       },
       "Choice": {
         "properties": {
@@ -1107,6 +1843,147 @@
         ],
         "title": "DbHasUsersResponse",
         "description": "Response for db-has-users check."
+      },
+      "EvidenceDiagnostic": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Code"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Path"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "path",
+          "message"
+        ],
+        "title": "EvidenceDiagnostic",
+        "description": "Stable machine-readable evidence problem."
+      },
+      "EvidenceIntegrity": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "partial"
+            ],
+            "title": "Status"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceDiagnostic"
+            },
+            "type": "array",
+            "title": "Diagnostics"
+          },
+          "loss_counts": {
+            "$ref": "#/components/schemas/EvidenceLossCounts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "diagnostics",
+          "loss_counts"
+        ],
+        "title": "EvidenceIntegrity",
+        "description": "Backend-owned verdict for required semantic evidence."
+      },
+      "EvidenceLossCounts": {
+        "properties": {
+          "resource_dropped_attributes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Resource Dropped Attributes"
+          },
+          "span_dropped_attributes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Span Dropped Attributes"
+          },
+          "span_dropped_events": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Span Dropped Events"
+          },
+          "span_dropped_links": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Span Dropped Links"
+          },
+          "event_dropped_attributes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Event Dropped Attributes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resource_dropped_attributes",
+          "span_dropped_attributes",
+          "span_dropped_events",
+          "span_dropped_links",
+          "event_dropped_attributes"
+        ],
+        "title": "EvidenceLossCounts",
+        "description": "Preserved OTLP loss counters relevant to one semantic projection."
+      },
+      "ExecutionError": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Type"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "stacktrace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stacktrace"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "ExecutionError"
       },
       "FlushWALResponse": {
         "properties": {
@@ -1439,6 +2316,237 @@
         "title": "ModelInfo",
         "description": "Model information."
       },
+      "ModelOperation": {
+        "properties": {
+          "operation_type": {
+            "type": "string",
+            "const": "model_request",
+            "title": "Operation Type"
+          },
+          "sequence": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Sequence"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Time"
+          },
+          "duration_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Duration Ns"
+          },
+          "ordinal": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Ordinal"
+          },
+          "state_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "State Revision"
+          },
+          "driver_key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Driver Key"
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Provider"
+          },
+          "model_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model Name"
+          },
+          "request": {
+            "$ref": "#/components/schemas/PayloadEvidence"
+          },
+          "response_candidate": {
+            "$ref": "#/components/schemas/CandidateEvidence"
+          },
+          "response_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "final_output",
+                  "tool_calls"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Type"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelUsage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requested_tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/RequestedToolCall"
+            },
+            "type": "array",
+            "title": "Requested Tool Calls"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Outcome"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancellation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancellationEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_type",
+          "sequence",
+          "span_id",
+          "start_time",
+          "end_time",
+          "duration_ns",
+          "ordinal",
+          "state_revision",
+          "driver_key",
+          "provider",
+          "model_name",
+          "request",
+          "response_candidate",
+          "outcome"
+        ],
+        "title": "ModelOperation"
+      },
+      "ModelUsage": {
+        "properties": {
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "cached_input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached Input Tokens"
+          },
+          "reasoning_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Tokens"
+          },
+          "total_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Tokens"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ModelUsage"
+      },
       "ModelsResponse": {
         "properties": {
           "models": {
@@ -1455,6 +2563,305 @@
         ],
         "title": "ModelsResponse",
         "description": "Model listing response."
+      },
+      "NestedExecutableReference": {
+        "properties": {
+          "executable_type": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "agent"
+            ],
+            "title": "Executable Type"
+          },
+          "parent_operation_sequence": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Parent Operation Sequence"
+          },
+          "parent_operation_span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Parent Operation Span Id"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceIdentity"
+          },
+          "definition_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Definition Id"
+          },
+          "runtime_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Runtime Id"
+          },
+          "structural_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Structural Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "executable_type",
+          "parent_operation_sequence",
+          "parent_operation_span_id",
+          "trace_id",
+          "span_id",
+          "service",
+          "definition_id",
+          "runtime_id",
+          "structural_id",
+          "name"
+        ],
+        "title": "NestedExecutableReference"
+      },
+      "ParentExecutableReference": {
+        "properties": {
+          "executable_type": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "subflow",
+              "node",
+              "run_concurrent",
+              "agent"
+            ],
+            "title": "Executable Type"
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id"
+          },
+          "physical_parent_span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Physical Parent Span Id"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceIdentity"
+          },
+          "definition_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Definition Id"
+          },
+          "runtime_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Runtime Id"
+          },
+          "structural_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Structural Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "executable_type",
+          "trace_id",
+          "physical_parent_span_id",
+          "span_id",
+          "service",
+          "definition_id",
+          "runtime_id",
+          "structural_id",
+          "name"
+        ],
+        "title": "ParentExecutableReference"
+      },
+      "PayloadEvidence": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "redacted",
+              "excluded",
+              "reference",
+              "missing"
+            ],
+            "title": "Mode"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy"
+          },
+          "value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "PayloadEvidence",
+        "description": "One emitted payload slot or explicit forensic absence."
+      },
+      "RequestedToolCall": {
+        "properties": {
+          "call_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Call Id"
+          },
+          "ordinal": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Ordinal"
+          },
+          "tool_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Tool Name"
+          },
+          "observed_tool_operation": {
+            "type": "boolean",
+            "title": "Observed Tool Operation"
+          },
+          "admission": {
+            "type": "string",
+            "enum": [
+              "admitted",
+              "not_admitted",
+              "unknown"
+            ],
+            "title": "Admission"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "execution_interrupted",
+                  "store_evidence_unavailable",
+                  "tool_input_validation_error",
+                  "unknown_tool",
+                  "limit_exceeded",
+                  "batch_preflight_rejected"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "call_id",
+          "ordinal",
+          "tool_name",
+          "observed_tool_operation",
+          "admission"
+        ],
+        "title": "RequestedToolCall"
+      },
+      "ServiceIdentity": {
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "title": "Namespace"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "namespace",
+          "name"
+        ],
+        "title": "ServiceIdentity"
       },
       "SignInRequest": {
         "properties": {
@@ -1475,6 +2882,384 @@
         ],
         "title": "SignInRequest",
         "description": "Schema for sign-in request."
+      },
+      "StoreDetail": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "store_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Id"
+          },
+          "revision_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Start"
+          },
+          "revision_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision End"
+          },
+          "transition_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Transition Count",
+            "default": 0
+          },
+          "reconstructable_claimed": {
+            "type": "boolean",
+            "title": "Reconstructable Claimed",
+            "default": false
+          },
+          "reconstructable": {
+            "type": "boolean",
+            "title": "Reconstructable"
+          },
+          "reconstruction_status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "policy_unavailable",
+              "failed",
+              "not_applicable"
+            ],
+            "title": "Reconstruction Status"
+          },
+          "reconstruction_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconstruction Reason"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transitions": {
+            "items": {
+              "$ref": "#/components/schemas/StoreTransition"
+            },
+            "type": "array",
+            "title": "Transitions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "available",
+          "reconstructable",
+          "reconstruction_status"
+        ],
+        "title": "StoreDetail",
+        "description": "Owner-scoped Store evidence and the backend's reconstruction verdict."
+      },
+      "StoreTransition": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Sequence"
+          },
+          "revision_before": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision Before"
+          },
+          "revision_after": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision After"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          },
+          "event_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Event Id"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Action"
+          },
+          "patch": {
+            "$ref": "#/components/schemas/PayloadEvidence"
+          },
+          "before": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence",
+          "revision_before",
+          "revision_after",
+          "span_id",
+          "event_id",
+          "action",
+          "patch"
+        ],
+        "title": "StoreTransition",
+        "description": "One ordered Store transition and its verified projections."
+      },
+      "ToolCallCounts": {
+        "properties": {
+          "requested": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested"
+          },
+          "admitted": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Admitted"
+          },
+          "started": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Started"
+          },
+          "completed": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Completed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "requested",
+          "admitted",
+          "started",
+          "completed"
+        ],
+        "title": "ToolCallCounts"
+      },
+      "ToolOperation": {
+        "properties": {
+          "operation_type": {
+            "type": "string",
+            "const": "tool",
+            "title": "Operation Type"
+          },
+          "sequence": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Sequence"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Time"
+          },
+          "duration_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Duration Ns"
+          },
+          "call_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Call Id"
+          },
+          "ordinal": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Ordinal"
+          },
+          "tool_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Tool Name"
+          },
+          "tool_structural_id": {
+            "type": "string",
+            "pattern": "^tool_sha256:[0-9a-f]{64}$",
+            "title": "Tool Structural Id"
+          },
+          "state_revision_before": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "State Revision Before"
+          },
+          "state_revision_after": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Revision After"
+          },
+          "requested_arguments": {
+            "$ref": "#/components/schemas/PayloadEvidence"
+          },
+          "arguments": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_candidate": {
+            "$ref": "#/components/schemas/CandidateEvidence"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Outcome"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancellation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancellationEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_type",
+          "sequence",
+          "span_id",
+          "start_time",
+          "end_time",
+          "duration_ns",
+          "call_id",
+          "ordinal",
+          "tool_name",
+          "tool_structural_id",
+          "state_revision_before",
+          "requested_arguments",
+          "result_candidate",
+          "outcome"
+        ],
+        "title": "ToolOperation"
       },
       "Usage": {
         "properties": {
@@ -1499,6 +3284,29 @@
         ],
         "title": "Usage",
         "description": "Token usage information."
+      },
+      "UsageAggregate": {
+        "properties": {
+          "sum": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Sum"
+          },
+          "observations": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Observations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sum",
+          "observations"
+        ],
+        "title": "UsageAggregate"
       },
       "UserRead": {
         "properties": {
@@ -1603,6 +3411,83 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkflowEvidenceErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "unsupported_contract",
+              "unidentifiable_workflow"
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceDiagnostic"
+            },
+            "type": "array",
+            "title": "Diagnostics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "WorkflowEvidenceErrorResponse",
+        "description": "Typed rejection of unsupported or unidentifiable Workflow evidence."
+      },
+      "WorkflowStoreDiagnostic": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id"
+          },
+          "workflow_span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Workflow Span Id"
+          },
+          "executable_type": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "subflow"
+            ],
+            "title": "Executable Type"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "state": {
+            "$ref": "#/components/schemas/StoreDetail"
+          },
+          "integrity": {
+            "$ref": "#/components/schemas/EvidenceIntegrity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "workflow_span_id",
+          "executable_type",
+          "name",
+          "state",
+          "integrity"
+        ],
+        "title": "WorkflowStoreDiagnostic",
+        "description": "Backend-authoritative Store projection for one Workflow executable."
       }
     }
   }

@@ -64,7 +64,7 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
                 className={'font-bold cursor-pointer text-left hover:underline'}
                 onClick={() => {
                   dispatch(WorkflowDetailStateActions.setActiveSpan(span))
-                  dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+                  dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
                   dispatch(WorkflowDetailStateActions.setOpenFailuresTrigger())
                 }}
               >

@@ -5,10 +5,13 @@ Junjo AI Studio Intro
 ##############################################################
 
 .. meta::
-   :description: Debug and visualize Junjo AI workflows with Junjo AI Studio's interactive telemetry platform. Step through LLM decisions, trace state changes, and understand agentic behavior.
-   :keywords: junjo ai studio, workflow debugging, AI observability, LLM tracing, state machine debugging, workflow visualization, opentelemetry
+   :description: Debug Junjo Workflow graphs and dynamic Agent executions with Junjo AI Studio's interactive telemetry platform.
+   :keywords: junjo ai studio, workflow debugging, agent debugging, AI observability, LLM tracing, state machine debugging, workflow visualization, opentelemetry
 
-Junjo AI Studio is a free, open-source telemetry visualization platform built specifically for debugging graph-based AI workflows. It ingests OpenTelemetry traces from your Junjo workflows and provides interactive tools to understand exactly what your LLMs are doing and why.
+Junjo AI Studio is a free, open-source telemetry visualization platform for
+debugging explicit Junjo Workflows and bounded Agents. It ingests OpenTelemetry
+traces and presents each execution model truthfully: declared Graph paths for
+Workflows and realized model/Tool operation timelines for Agents.
 
 What is Junjo AI Studio?
 =========================
@@ -16,7 +19,9 @@ What is Junjo AI Studio?
 **Key Capabilities:**
 
 - **Interactive Graph Exploration:** Click through your workflow's execution path
+- **Dynamic Agent Diagnostics:** Inspect ordered model and Tool operations without a fabricated Graph
 - **State Machine Step Debugging:** See every single state change, in order
+- **Evidence Integrity:** Distinguish verified state, partial evidence, payload policy, and loss signals
 - **LLM Decision Tracking:** Understand which conditions evaluated true/false
 - **Trace Timeline:** Visualize concurrent execution and performance bottlenecks
 - **Multi-Execution Comparison:** Compare different runs to identify issues
@@ -52,10 +57,10 @@ Junjo AI Studio is composed of three Docker services that work together:
 .. note::
 
     **Version Compatibility:** Junjo SDK and Junjo AI Studio releases are
-    paired around a shared telemetry contract. When versions are mixed across
-    a contract change, ingestion and workflow listing still work, but graph
-    rendering and span matching degrade ("Graph structure not available").
-    Upgrade the SDK and AI Studio together.
+    paired around a shared telemetry contract. Raw spans may still arrive from
+    a mismatched SDK, but Studio has no fallback semantic parser. Workflow
+    graphs, Agent diagnostics, and verified Store reconstruction require the
+    active contract. Upgrade the SDK and AI Studio together.
 
 Quick Start Options
 -------------------
@@ -336,7 +341,24 @@ The graph shows the actual path taken during execution, making it easy to unders
    :align: center
    :width: 800px
 
-2. State Step Debugging
+2. Agent Execution Diagnostics
+------------------------------
+
+An Agent detail page presents the realized execution sequence rather than a
+static diagram:
+
+- owner identity, outcome, termination reason, limits, counts, usage, and duration
+- normalized model requests, response candidates, and validated responses
+- requested and validated Tool arguments plus candidate and validated results
+- admitted-but-unstarted Tool calls without fabricated operation spans
+- semantic parent navigation and causally nested Workflow or Agent executions
+- evidence-integrity status and backend-verified Store transitions
+
+Nested Workflows retain their normal Graph view. Missing, redacted, excluded,
+referenced, and genuinely empty evidence remain visibly distinct. See
+:doc:`opentelemetry` for the producer-side Agent hierarchy and evidence model.
+
+3. State Step Debugging
 ------------------------
 
 The state timeline shows every state update in chronological order:
@@ -353,7 +375,7 @@ This is **critical** for understanding:
 - Where unexpected state mutations occur
 - LLM decision-making patterns
 
-3. Trace Exploration
+4. Trace Exploration
 --------------------
 
 Full OpenTelemetry trace view with:
@@ -363,7 +385,7 @@ Full OpenTelemetry trace view with:
 - LLM call details (when using OpenInference)
 - Custom attributes from your code
 
-4. Multi-Execution Comparison
+5. Multi-Execution Comparison
 ------------------------------
 
 Compare executions side-by-side:
@@ -412,6 +434,17 @@ error fields alongside the Junjo-specific attributes below:
 
 Ordinary cancellations stay classified as cancellations rather than errors.
 
+Agent Spans
+-----------
+
+An Agent owner span uses ``junjo.span_type = "agent"``. Its model and Tool
+children are ordered operations identified by
+``junjo.agent.operation_type`` and do not receive fake Graph identity. Studio
+uses the active telemetry contract to assemble normalized payloads, usage,
+limits, Store evidence, and nested executable references. The full public
+producer explanation lives in :doc:`opentelemetry`; the language-independent
+contract under ``contracts/telemetry`` owns exact attribute and payload names.
+
 Workflow Spans
 --------------
 
@@ -451,25 +484,31 @@ Junjo AI Studio uses explicit executable identities from spans and the
 execution graph snapshot to connect trace data back to workflow graph
 structure.
 
-The identity fields have distinct meanings:
+The identity fields have distinct meanings across both execution models:
 
-- ``junjo.executable_definition_id`` identifies the reusable workflow, subflow,
-  node, or concurrent executable definition.
+- ``junjo.executable_definition_id`` identifies one reusable Workflow, Subflow,
+  Node, concurrent, or Agent definition object.
 - ``junjo.executable_runtime_id`` identifies the executable instance for one
   execution.
-- ``junjo.executable_structural_id`` identifies the stable graph-shape position
-  for cross-run correlation.
-- ``junjo.enclosing_graph_structural_id`` identifies the compiled graph that
-  contains the executable.
+- ``junjo.executable_structural_id`` identifies deterministic structural
+  material: a Graph position for Graph executables or the declared Agent
+  behavior fingerprint for an Agent owner.
+- ``junjo.enclosing_graph_structural_id`` identifies the compiled Graph that
+  contains a Graph executable. Agents never fabricate this field.
 
 OpenTelemetry parent span relationships remain the source of truth for the
-trace tree. Junjo parent executable fields add workflow graph semantics for
-features that need to understand the parent workflow, subflow, or concurrent
-execution boundary:
+physical trace tree. Junjo parent executable fields add a typed semantic owner
+reference for features that need to understand a Workflow, Subflow, Node,
+concurrent, or Agent execution boundary:
 
 - ``junjo.parent_executable_definition_id``
 - ``junjo.parent_executable_runtime_id``
 - ``junjo.parent_executable_structural_id``
+- ``junjo.parent_executable_type``
+
+The four fields are all present or all absent. A Tool operation can physically
+sit between an Agent and a nested Workflow while the Workflow's semantic parent
+remains the owning Agent.
 
 Execution Graph Snapshot Contract
 ---------------------------------

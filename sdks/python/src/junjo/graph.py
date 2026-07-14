@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import html
-import json
 import re
 import subprocess
 from collections.abc import Mapping
@@ -10,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
+from ._json import JsonBoundaryError, json_dumps
 from .edge import Edge
 from .node import Node
 from .run_concurrent import RunConcurrent
@@ -284,11 +284,12 @@ class Graph:
 
     @staticmethod
     def _hash_structural_descriptor(prefix: str, payload: dict) -> str:
-        serialized = json.dumps(
-            payload,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
+        try:
+            serialized = json_dumps(payload).encode("utf-8")
+        except JsonBoundaryError as exc:
+            raise GraphCompilationError(
+                "Graph structural metadata must be portable JSON."
+            ) from exc
         digest = hashlib.sha256(serialized).hexdigest()[:32]
         return f"{prefix}_{digest}"
 
@@ -878,8 +879,8 @@ class Graph:
 
         try:
             # Serialize the dictionary to a JSON string
-            return json.dumps(graph_dict, indent=2)
-        except TypeError as e:
+            return json_dumps(graph_dict)
+        except (JsonBoundaryError, TypeError) as e:
             raise GraphSerializationError(
                 f"Failed to serialize graph to JSON: {e}"
             ) from e

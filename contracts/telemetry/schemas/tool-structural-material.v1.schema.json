@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/tool-structural-material.v1.schema.json",
+  "title": "Junjo Tool structural material v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "name", "description", "inputSchema", "outputSchema"],
+  "properties": {
+    "v": {"const": 1},
+    "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,63}$"},
+    "description": {"type": "string"},
+    "inputSchema": {"type": "object"},
+    "outputSchema": {"type": "object"}
+  }
+}

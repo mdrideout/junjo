@@ -111,7 +111,14 @@ class TestPrepareHotSnapshotWithData:
                 "status_message",
                 "attributes",
                 "events",
+                "links",
+                "trace_flags",
+                "trace_state",
+                "dropped_attributes_count",
+                "dropped_events_count",
+                "dropped_links_count",
                 "resource_attributes",
+                "resource_dropped_attributes_count",
             }
             actual_columns = set(table.column_names)
             assert expected_columns.issubset(actual_columns), (

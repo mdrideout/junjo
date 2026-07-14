@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-13
+- Last clarified: 2026-07-14
 - Owners: Junjo platform
 
 ## Context
@@ -35,9 +36,9 @@ contract change. The first Horizon 1 implementation must atomically:
 6. update Studio ingestion, backend, and frontend consumers;
 7. validate canonical producer and consumer conformance in the same change.
 
-This accepted ADR does not bump the active contract before those producers and
-consumers exist. Contract version 1 remains the truthful active contract until
-the atomic implementation lands.
+The accepted sequencing did not bump the active contract before those producers
+and consumers existed. The atomic Horizon 1 implementation now makes contract
+version 2 the truthful active source contract.
 
 During greenfield development, SDK and Studio support only the active contract
 version. No compatibility fallback or dual-emission path is added.
@@ -102,8 +103,23 @@ The Agent span uses existing generic executable attributes:
 - `junjo.executable_definition_id` for one in-process Agent definition object;
 - `junjo.executable_runtime_id` for one Agent run;
 - `junjo.executable_structural_id` for the deterministic Agent fingerprint;
-- existing parent executable definition, runtime, and structural attributes
-  when the applicable parent identity exists.
+- `junjo.parent_executable_definition_id`,
+  `junjo.parent_executable_runtime_id`, and
+  `junjo.parent_executable_structural_id` when a semantic parent executable
+  exists; and
+- `junjo.parent_executable_type` alongside those parent identity fields, with
+  exactly one of `workflow`, `subflow`, `node`, `run_concurrent`, or `agent`.
+
+The four parent fields form one all-or-none semantic reference and must match
+the referenced executable span. Physical OpenTelemetry parentage may include a
+Tool operation between an Agent and a nested Workflow; the semantic parent in
+that case is still the owning Agent. The type field is required for truthful
+cross-domain navigation and is not inferred from identifier formats.
+
+Physical OpenTelemetry parentage alone does not create a semantic executable
+parent. For example, an Agent started inside an HTTP server span retains that
+physical `parent_span_id` but emits none of the four
+`junjo.parent_executable_*` fields unless a Junjo executable is active.
 
 It also carries:
 
@@ -191,6 +207,40 @@ safe-integer range, and strings containing lone Unicode surrogates. Unicode is
 preserved without normalization. Fingerprint fixtures cover safe numeric
 boundaries, exponent and negative-zero serialization, and canonically distinct
 composed and decomposed Unicode.
+
+ADR 0004 applies that portable value domain to every normalized Agent JSON
+boundary. Contract version 2 telemetry producers and consumers enforce the
+same rule for every Agent and Workflow payload—including Store start, candidate
+state, transition patch, and end state—and for normalized usage, counts,
+limits, identifiers, and text rather than only for structural material. Store
+validation occurs before tracker mutation or live-state commit so telemetry
+portability failure cannot leave a committed state without its required
+transition evidence. A producer must reject a nonportable value before
+emission. A consumer that receives nonportable or duplicate-name JSON reports
+typed partial or invalid evidence; it never repairs the value, silently drops
+one attribute while retaining `mode=full`, or raises an untyped server error.
+
+Decoded contract JSON has a maximum nesting depth of 128. Producers reject a
+deeper value at the boundary, and consumers report
+`payload_nesting_too_deep` without recursively walking until the process
+stack fails. The same bound applies to Agent, Workflow, and Store payload
+slots; it is a transport-safety limit, not an application-state model.
+
+The JSON Schemas embedded in structural material and normalized requests use
+ADR 0004's generated-schema profile: presentation `title` annotations are
+removed; set-valued `required`, `dependentRequired`, array-valued `type`, and
+`enum` members are canonicalized; object schemas with declared `properties`
+are closed with `additionalProperties: false`, while explicitly open
+structured objects are rejected; property-less dictionary schemas may retain
+an explicit boolean or schema-valued `additionalProperties`; reachable local
+definitions are deterministically renamed under `$defs`; local references and
+discriminator mappings are rewritten; and unreachable definitions are
+omitted. Contract fingerprint vectors include renamed nested definitions,
+recursive definitions, discriminator mappings, closed structured objects, an
+explicit open dictionary, an application property named `title`, field-order
+and object-order variations. SDK and Studio fingerprint implementations must
+compare the resulting structural IDs exactly; conformance tests may not
+normalize those IDs away.
 
 The emitted Agent structural ID is
 `agent_sha256:<64 lowercase hexadecimal characters>`. Tool structural material
@@ -321,6 +371,27 @@ corresponding payload slot is required. Otherwise availability is false and
 the adjacent unavailable reason is `not_json_serializable`. Candidate evidence
 is diagnostic only and never enters Agent state.
 
+Candidate and validated payloads are independently meaningful. A candidate is
+the portable value returned to a normalization boundary; a validated payload
+is the detached value after declared schema validation and normalization,
+including defaults. Therefore both slots obey their own schemas and transport
+conditions, but the contract does not require their JSON values to be equal.
+
+The owner conditional matrix is normative:
+
+| Condition | Required evidence | Forbidden evidence |
+| --- | --- | --- |
+| `outcome = completed` | `termination_reason = final_output`, exactly one owner-scoped model response typed `final_output`, and the Agent output payload slot | failure or cancellation terminal transport |
+| `outcome = failed` | any allowed non-success, non-cancellation termination reason and matching error/exception transport | Agent output payload slot |
+| `outcome = cancelled` | `termination_reason = cancelled` and cancellation transport | error transport and Agent output payload slot |
+| `state.available = false` | boundary input/history rejection, or `internal_error` with `AgentAdmissionError`; zero operation and Tool counts; empty aggregate usage | input, Store identity, Store revisions, Store transitions, state start/end, and operation activity |
+| boundary input/history rejection | exactly the corresponding input or history candidate availability fact and conditional candidate slot | the other boundary candidate and all state/Store evidence |
+| requested Tool count above the effective Tool limit | `limit_exceeded` with exceeded kind `tool_calls` | any other terminal reason |
+
+`state.available = true` does not promise successful completion; it means the
+Store boundary was admitted and its available evidence must satisfy the Store
+contract. Owner output is present if and only if completion succeeded.
+
 `junjo.agent.model_request.count` is the number of ModelDriver operations
 started. Tool-call counts mean:
 
@@ -424,7 +495,18 @@ validation, including responses with no usage object. Each field's
 - `tool_error`;
 - `tool_output_validation_error`;
 - `output_validation_error`;
+- `internal_error`;
 - `cancelled`.
+
+`internal_error` is reserved for unexpected Junjo-owned runtime machinery,
+not ModelDriver, Tool, validation, or application failures. An
+`AgentAdmissionError` uses it before Store availability is published; an
+admitted `AgentInternalError` uses it with only the Store facts that were
+successfully verified. If the one selected success, failure, or cancellation
+terminal transaction itself cannot commit, the terminal-commit internal error
+supersedes that selected outcome and records the superseded outcome for
+diagnosis. Studio must not fabricate a coherent Store end state to hide that
+partial evidence.
 
 When termination reason is `limit_exceeded`, the Agent span also requires
 `junjo.agent.limit.exceeded` (`model_requests` or `tool_calls`) and
@@ -492,6 +574,25 @@ fails. Otherwise availability is false and
 `not_returned`. A validated response remains distinct from its diagnostic
 candidate and from a response slot whose payload mode is `excluded`.
 
+The model-operation conditional matrix is normative:
+
+- candidate availability true requires the candidate payload slot and forbids
+  an unavailable reason;
+- candidate availability false forbids every member of the candidate payload
+  slot and requires exactly one allowed unavailable reason;
+- the validated response payload slot is present if and only if
+  `junjo.agent.model.response_type` is present;
+- a completed model operation has a validated response and an available
+  candidate; a failed or cancelled operation has neither validated response
+  nor normalized usage;
+- `cancelled` is the candidate unavailable reason if and only if the operation
+  itself is cancelled before a candidate is available; and
+- normalized operation usage can exist only with a validated response and,
+  when both values are inspectable, matches that response's usage field.
+
+These are occurrence, identity, and terminal correspondences. They do not
+assert raw candidate JSON equals normalized response JSON.
+
 ### Tool operation contract
 
 A Tool operation span requires:
@@ -543,6 +644,28 @@ one of `not_invoked`, `service_failed`, `cancelled`, or
 `not_json_serializable`. A preflight validation or factory failure uses
 `not_invoked`.
 
+The Tool-operation conditional matrix is normative:
+
+- candidate availability true requires the result-candidate payload slot and
+  forbids an unavailable reason;
+- candidate availability false forbids every member of that slot and requires
+  exactly one allowed unavailable reason;
+- a Tool is considered started when a candidate is available or its unavailable
+  reason is not `not_invoked`; started evidence requires validated arguments;
+- a Tool-input validation failure forbids validated arguments;
+- the validated result payload slot is present if and only if
+  `junjo.agent.tool.state_revision.after` is present;
+- a completed Tool has validated arguments, an available candidate, a validated
+  result, and the committed after-revision; failed or cancelled Tools have no
+  validated result or after-revision; and
+- `cancelled` is the candidate unavailable reason if and only if the operation
+  itself is cancelled before a candidate is available.
+
+Requested arguments correspond to the normalized requested call, while
+validated arguments and results are independently schema-validated values.
+Defaults or other declared normalization may make a validated value differ
+from its diagnostic candidate.
+
 Preflight examines calls in model order. Only the first declared Tool with
 invalid arguments receives a preflight diagnostic Tool span and operation
 sequence. Valid calls in that rejected batch receive no Tool spans, no service
@@ -575,6 +698,13 @@ emits a `set_state` event with:
 - `junjo.store.revision.before`;
 - `junjo.store.revision.after`;
 - the payload slot rooted at `junjo.state_json_patch`.
+
+Event ID, Store name, Store ID, and action are nonempty portable text. One
+Store ID has one stable Store name for its full trace. A producer derives that
+name from the Store definition, never from whichever executable or helper
+happened to call the transition; the action continues to identify that caller.
+The event ID and action are never synthesized by consumers from event order or
+span identity.
 
 Every successful transition requires the patch slot's `.mode` and `.policy`.
 Only content or reference is conditional on mode. An absent slot is missing
@@ -638,6 +768,12 @@ Each state event is attached to the causal active span. Model-operation
 bookkeeping and response commits belong to the model span; Tool start and
 result commits belong to the Tool span; run admission, rejected-batch, and
 terminal commits without a narrower operation owner belong to the Agent span.
+The allowed action correspondence is exact: model spans own
+`record_model_start` and `record_model_response`; Tool spans own
+`record_tool_started` and `record_tool_result`; and the Agent owner span owns
+`admit_tool_batch`, `commit_success`, and `set_terminal_reason`. A matching
+Store event attached to any other span is out-of-scope evidence and is not
+replayed.
 
 ### Contract evidence loss is observable
 
@@ -650,12 +786,24 @@ event JSON shape owned by Studio ADR 004. SDK producer fixtures use zero unless
 a loss scenario is intentional; ingestion must preserve the values without
 interpreting them.
 
+The canonical event timestamp `timeUnixNano` is an exact unsigned 64-bit
+decimal string, not a JSON number. This preserves the full OTLP nanosecond
+domain across Rust, Python, JSON, and TypeScript. Its lexical form is
+`0|[1-9][0-9]*`, its numeric value cannot exceed `2^64-1`, and consumers must
+use exact integer comparison. Operation sequence and Store transition sequence
+remain the semantic ordering authorities; the exact timestamp is preserved for
+transport fidelity and display.
+
 Service namespace, name, and version come from the normalized resource object,
 not duplicated Agent attributes. A nonzero loss counter, a missing required
 slot, a sequence/count mismatch, or a failed Store reconstruction makes the
 retrieved contract evidence partial. Zero counters alone do not claim that
 arbitrary provider instrumentation was preserved; the integrity assessment is
 limited to evidence owned by this contract.
+
+Every normalized span interval is non-inverted: `end_time` is greater than or
+equal to `start_time`. Consumers report `invalid_span_interval` rather than
+coercing a negative duration.
 
 ### Failure and cancellation retain ownership
 
@@ -666,6 +814,19 @@ its own propagated failure according to the existing contract.
 Execution cancellation uses `junjo.cancelled = true` and
 `junjo.cancelled_reason` on each active owning span. Cancellation is not marked
 as an error solely because it was cancelled.
+
+Exception, cancellation, and Hook diagnostics cross one shared non-throwing
+text projection before they reach span status, attributes, or events. This is
+an observability projection, not an application-data repair boundary. A lone
+Unicode surrogate is replaced with U+FFFD while the rest of the diagnostic is
+preserved. If arbitrary `__str__`, callback-identity lookup, or traceback
+formatting raises, the producer emits a stable portable fallback instead. The
+SDK constructs standard OpenTelemetry exception event fields from that
+projection rather than delegating untrusted formatting to `record_exception`.
+Every emitted diagnostic string is therefore strict UTF-8, while the original
+exception or `CancelledError` remains the execution value that is propagated.
+Telemetry formatting can neither replace an already selected outcome nor turn
+a Hook observer failure into an execution failure.
 
 Task cancellation delivered during terminal observer dispatch occurs after the
 executable outcome is committed and is not execution cancellation. The owning
@@ -694,37 +855,53 @@ Together they cover:
 
 1. direct typed completion;
 2. ordered multiple Tools;
-3. Tool invoking a nested Workflow;
-4. Agent invoked inside a Workflow Node;
-5. nested Workflow failure propagation;
-6. Agent failure inside a Workflow Node;
-7. Agent cancellation inside a Workflow Node;
-8. input and history boundary rejection with no Store or operations;
-9. unknown Tool with no Tool span;
-10. malformed Tool arguments with one preflight diagnostic Tool span;
-11. malformed normalized model response with a serializable response candidate;
-12. a non-serializable model response candidate;
-13. ModelDriver failure;
-14. Tool service failure;
-15. Tool output validation failure with a serializable result candidate;
-16. a non-serializable Tool result candidate;
-17. Agent final-output validation failure;
-18. an over-budget Tool batch with no admission, service, or side effect;
-19. model-request limit exhaustion before another driver operation starts;
-20. cancellation during a model request;
-21. cancellation during a direct Tool service;
-22. cancellation during a Workflow-backed Tool with nested Workflow evidence;
-23. concurrent run isolation;
-24. a true no-op Store transition;
-25. consumer-only explicit non-full payload modes, including a live revision
-    hidden by one coherent telemetry projection;
+3. first-Tool failure after whole-batch admission, with later admitted calls
+   truthfully never started;
+4. first-Tool cancellation after whole-batch admission, with later admitted
+   calls truthfully never started;
+5. Tool invoking a nested Workflow;
+6. Agent invoked inside a Workflow Node;
+7. nested Workflow failure propagation;
+8. Agent failure inside a Workflow Node;
+9. Agent cancellation inside a Workflow Node;
+10. input and history boundary rejection with no Store or operations;
+11. unknown Tool with no Tool span;
+12. malformed Tool arguments with one preflight diagnostic Tool span;
+13. malformed normalized model response with a serializable response candidate;
+14. a non-serializable model response candidate;
+15. ModelDriver failure;
+16. Tool service failure;
+17. Tool output validation failure with a serializable result candidate;
+18. a non-serializable Tool result candidate;
+19. Agent final-output validation failure;
+20. an over-budget Tool batch with no admission, service, or side effect;
+21. model-request limit exhaustion before another driver operation starts;
+22. cancellation during a model request;
+23. cancellation during a direct Tool service;
+24. cancellation during a Workflow-backed Tool with nested Workflow evidence;
+25. concurrent run isolation;
 26. absent versus reported-zero model usage;
 27. non-terminal hook failure followed by successful completion;
-28. consumer-only explicit OTLP dropped-evidence counters producing partial
-    evidence status;
-29. cancellation during a terminal observer after a completed Agent outcome;
-30. `Agent -> Tool -> Workflow -> Node -> Agent` with both Agent operation
-    sequences restarting at 1 to prove owner-scoped assembly.
+28. cancellation during a terminal observer after a completed Agent outcome;
+29. `Agent -> Tool -> Workflow -> Node -> Agent` with both Agent operation
+    sequences restarting at 1 to prove owner-scoped assembly;
+30. an internal admission failure before a Store becomes public evidence;
+31. an internal terminal-commit failure with explicit, truthful partial Store
+    evidence;
+32. an unexpected internal execution failure after admission;
+33. standalone Agent execution beneath a non-Junjo ambient span without a
+    fabricated semantic executable parent;
+34. consumer-only explicit non-full payload modes, including redacted
+    operation content and a live revision hidden by one coherent telemetry
+    projection;
+35. consumer-only explicit OTLP dropped-evidence counters producing partial
+    evidence status; and
+36. consumer-only Store policy-unavailable evidence that remains distinct from
+    failed verification and not-applicable state.
+
+A true no-op Store transition is a generic Store-v2 concern rather than a
+fabricated Agent behavior. It is proved by a canonical Workflow transition and
+the language-independent RFC 6902 Store replay vectors.
 
 Fixtures prove hierarchy, identity, operation sequence, Store revision
 reconstruction, payload modes, status ownership, terminal attributes, and
@@ -746,6 +923,10 @@ and duplicate or mismatched Tool call ID/ordinal. These are not valid producer
 fixtures. The contract validator and Studio backend tests must reject each
 derivative with its declared diagnostic.
 
+The invalid set also includes raw duplicate-name JSON and unsafe-number or
+invalid-Unicode cases. Those cases exercise strict decoding before an ordinary
+language mapping can erase the defect.
+
 SDK producer tests generate evidence semantically equivalent to every producer
 fixture only. All valid producer and consumer fixtures directly drive ingestion
 preservation and backend semantic assembly tests. Frontend tests consume the
@@ -763,13 +944,18 @@ through coordinated, independently versioned SDK and Studio releases.
 The greenfield cutover order is explicit:
 
 1. merge the atomic repository change after all producer and consumer gates pass;
-2. publish and deploy Studio with strict version 2 ingestion and diagnostics;
-3. publish the version 2 Python SDK;
-4. upgrade application emitters to that SDK.
+2. publish Python SDK `0.65.0`, the first version 2 producer;
+3. prepare Studio `0.82.0` or newer by updating the canonical deployment SDK
+   pin and compatibility statements to the now-installable `0.65.0` release,
+   then publish the strict Studio images and generated deployment mirrors in
+   one release transaction;
+4. upgrade other application emitters and deploy the paired documentation.
 
-Studio rejects version 1 Junjo semantic evidence after step 2. The temporary
-gap before emitters upgrade is accepted; no dual parser, dual emission,
-fallback, or production-availability mechanism is added.
+Between steps 2 and 3, the deployed version 1 Studio is not a semantic consumer
+for version 2 evidence. That temporary telemetry-diagnostics outage is accepted
+for this greenfield cutover. After step 3, Studio rejects version 1 Junjo
+semantic evidence. No dual parser, dual emission, fallback, or
+production-availability mechanism is added.
 
 Ingestion preserves the fields owned by this shared contract; this ADR does not
 claim that Studio preserves every possible OTLP field. Studio interpretation is
@@ -822,3 +1008,10 @@ explicit future privacy and size boundary without weakening the proof.
 - [ADR 0005: Agent and Workflow composition](0005-agent-workflow-composition.md)
 - [Studio ADR 004: Span Events JSON Contract](../../apps/studio/docs/adr/004-events-json-contract.md)
 - [Studio ADR 007: Agent execution diagnostics](../../apps/studio/docs/adr/007-agent-execution-diagnostics.md)
+
+## Revision history
+
+- 2026-07-14: Clarified portable JSON and generated-schema normalization across
+  producer and consumer boundaries, added ambient non-Junjo parentage and
+  Store-policy consumer scenarios, required typed handling of malformed raw
+  JSON, and defined exact decimal-string OTLP event timestamps.

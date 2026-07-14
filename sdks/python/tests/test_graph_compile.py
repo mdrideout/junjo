@@ -12,6 +12,7 @@ from junjo import (
     Node,
     RunConcurrent,
     Subflow,
+    Workflow,
 )
 
 
@@ -42,6 +43,15 @@ class MiddleNode(Node[ChildStore]):
 
 
 class EndNode(Node[ChildStore]):
+    async def service(self, store: ChildStore) -> None:
+        return
+
+
+class InvalidLabelNode(Node[ChildStore]):
+    @property
+    def name(self) -> str:
+        return "\ud800"
+
     async def service(self, store: ChildStore) -> None:
         return
 
@@ -499,3 +509,33 @@ def test_run_concurrent_node_structural_ids_are_stable_across_repeated_factory_c
         first_concurrent_node.node_structural_id
         == second_concurrent_node.node_structural_id
     )
+
+
+@pytest.mark.asyncio
+async def test_workflow_rejects_nonportable_graph_label_before_store_or_run_side_effects() -> None:
+    store_factory_called = False
+
+    def graph_factory() -> Graph:
+        node = InvalidLabelNode()
+        return Graph(source=node, sinks=[node], edges=[])
+
+    def store_factory() -> ChildStore:
+        nonlocal store_factory_called
+        store_factory_called = True
+        return ChildStore(ChildState())
+
+    workflow = Workflow(
+        name="Portable graph labels",
+        graph_factory=graph_factory,
+        store_factory=store_factory,
+    )
+
+    with pytest.raises(GraphCompilationError, match="portable JSON"):
+        await workflow.execute()
+
+    assert store_factory_called is False
+
+
+def test_run_concurrent_rejects_nonportable_display_name_at_construction() -> None:
+    with pytest.raises(ValueError):
+        RunConcurrent(name="\ud800", items=[StartNode()])

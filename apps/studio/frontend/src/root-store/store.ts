@@ -11,6 +11,8 @@ import workflowSpanListSlice from '../features/junjo-data/list-spans-workflow/st
 import { workflowExecutionsListenerMiddleware } from '../features/junjo-data/list-spans-workflow/store/listeners'
 import tracesSlice from '../features/traces/store/slice'
 import { otelStateListenerMiddleware as tracesStateListenerMiddleware } from '../features/traces/store/listeners'
+import { agentExecutionsReducer } from '../features/agent-executions/store/slice'
+import { agentExecutionsListenerMiddleware } from '../features/agent-executions/store/listeners'
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +23,7 @@ export const store = configureStore({
     promptPlaygroundState: promptPlaygroundSlice,
     workflowSpanListState: workflowSpanListSlice,
     tracesState: tracesSlice,
+    agentExecutionsState: agentExecutionsReducer,
   },
 
   middleware: (getDefaultMiddleware) =>
@@ -32,6 +35,7 @@ export const store = configureStore({
         settingsStateListenerMiddleware.middleware,
         workflowExecutionsListenerMiddleware.middleware,
         tracesStateListenerMiddleware.middleware,
+        agentExecutionsListenerMiddleware.middleware,
       ),
 })
 

@@ -1,64 +1,34 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
-import traceback
 from collections.abc import Mapping
-from contextlib import contextmanager
-from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeVar
 
 from opentelemetry import trace
 
 from . import hooks as hook_events
-from .telemetry.otel_schema import JunjoOtelSpanTypes
+from ._identity import ExecutableType
+from .telemetry.diagnostics import (
+    callable_identity,
+    cancellation_reason,
+    error_type,
+    exception_message,
+    exception_stacktrace,
+    portable_diagnostic_text,
+)
 
 if TYPE_CHECKING:
+    from .agent.errors import AgentExecutionError
+    from .agent.result import AgentExecutionResult
+    from .agent.state import AgentStateSnapshot
     from .hooks import Hooks
     from .state import BaseState
     from .workflow import ExecutionResult
 
 
 StateT = TypeVar("StateT", bound="BaseState")
-_ACTIVE_EXECUTABLE_STACK: ContextVar[tuple[ActiveExecutableIdentity, ...]] = ContextVar(
-    "junjo_active_executable_stack",
-    default=(),
-)
-
-
-@dataclass(frozen=True, slots=True)
-class ActiveExecutableIdentity:
-    executable_definition_id: str
-    executable_name: str
-    span_type: JunjoOtelSpanTypes
-    executable_runtime_id: str
-    executable_structural_id: str
-
-
-@contextmanager
-def active_executable_identity(
-    identity: ActiveExecutableIdentity,
-):
-    stack = _ACTIVE_EXECUTABLE_STACK.get()
-    token = _ACTIVE_EXECUTABLE_STACK.set((*stack, identity))
-    try:
-        yield
-    finally:
-        _ACTIVE_EXECUTABLE_STACK.reset(token)
-
-
-def get_active_executable_identity() -> ActiveExecutableIdentity | None:
-    stack = _ACTIVE_EXECUTABLE_STACK.get()
-    if not stack:
-        return None
-    return stack[-1]
-
-
-def get_parent_active_executable_identity() -> ActiveExecutableIdentity | None:
-    stack = _ACTIVE_EXECUTABLE_STACK.get()
-    if len(stack) < 2:
-        return None
-    return stack[-2]
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,13 +37,31 @@ class PreparedHookEvent:
     event: hook_events.LifecycleEvent
 
 
+@dataclass(frozen=True, slots=True)
+class AgentLifecycleIdentity:
+    """Run-local identity required by every public Agent lifecycle event."""
+
+    run_id: str
+    executable_definition_id: str
+    name: str
+    agent_key: str
+    store_id: str
+    trace_id: str
+    span_id: str
+    executable_structural_id: str
+    parent_executable_definition_id: str | None
+    parent_executable_runtime_id: str | None
+    parent_executable_structural_id: str | None
+    parent_executable_type: ExecutableType | None
+
+
 @dataclass(slots=True)
-class StoreLifecycleContext:
+class GraphStoreLifecycleContext:
     dispatcher: LifecycleDispatcher
     run_id: str
     executable_definition_id: str
     name: str
-    span_type: JunjoOtelSpanTypes
+    executable_type: ExecutableType
     executable_runtime_id: str
     executable_structural_id: str
     enclosing_graph_structural_id: str
@@ -82,17 +70,31 @@ class StoreLifecycleContext:
 
 class LifecycleDispatcher:
     def __init__(self, hooks: Hooks | None) -> None:
-        self._hooks = hooks
+        self._callbacks = hooks._snapshot() if hooks is not None else {}
 
-    async def dispatch(self, prepared: PreparedHookEvent | None) -> None:
-        if prepared is None or self._hooks is None:
+    async def dispatch(
+        self,
+        prepared: PreparedHookEvent | None,
+        *,
+        terminal: bool = False,
+    ) -> None:
+        if prepared is None:
             return
 
-        for callback in self._hooks._callbacks_for(prepared.event_name):
+        task = asyncio.current_task()
+        cancellation_count_at_start = task.cancelling() if task is not None else 0
+        for callback in self._callbacks.get(prepared.event_name, ()):
             try:
                 result = callback(prepared.event)
                 if inspect.isawaitable(result):
                     await result
+            except asyncio.CancelledError as exc:
+                current_count = task.cancelling() if task is not None else 0
+                if current_count > cancellation_count_at_start:
+                    if terminal:
+                        self._record_hook_delivery_cancelled(prepared.event_name, callback, exc)
+                    raise
+                self._record_hook_error(prepared.event_name, callback, exc)
             except Exception as exc:
                 self._record_hook_error(prepared.event_name, callback, exc)
 
@@ -102,7 +104,7 @@ class LifecycleDispatcher:
         run_id: str,
         executable_definition_id: str,
         name: str,
-        span_type: JunjoOtelSpanTypes,
+        span_type: ExecutableType,
         store_id: str,
         graph_json: str,
         trace_id: str,
@@ -110,28 +112,32 @@ class LifecycleDispatcher:
         executable_runtime_id: str,
         executable_structural_id: str,
         enclosing_graph_structural_id: str,
+        parent_executable_definition_id: str | None,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> None:
-        event_name = "subflow_started" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_started"
+        event_name = "subflow_started" if span_type is ExecutableType.SUBFLOW else "workflow_started"
         event_kwargs = {
             "run_id": run_id,
             "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
-            "span_type": span_type,
+            "executable_type": span_type,
             "store_id": store_id,
             "graph_json": graph_json,
             "executable_runtime_id": executable_runtime_id,
             "executable_structural_id": executable_structural_id,
             "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_definition_id": parent_executable_definition_id,
             "parent_executable_runtime_id": parent_executable_runtime_id,
             "parent_executable_structural_id": parent_executable_structural_id,
+            "parent_executable_type": parent_executable_type,
         }
         event = (
             hook_events.SubflowStartedEvent(**event_kwargs)
-            if span_type is JunjoOtelSpanTypes.SUBFLOW
+            if span_type is ExecutableType.SUBFLOW
             else hook_events.WorkflowStartedEvent(**event_kwargs)
         )
         await self.dispatch(PreparedHookEvent(event_name, event))
@@ -142,7 +148,7 @@ class LifecycleDispatcher:
         run_id: str,
         executable_definition_id: str,
         name: str,
-        span_type: JunjoOtelSpanTypes,
+        span_type: ExecutableType,
         result: ExecutionResult[StateT],
         store_id: str,
         trace_id: str,
@@ -150,30 +156,34 @@ class LifecycleDispatcher:
         executable_runtime_id: str,
         executable_structural_id: str,
         enclosing_graph_structural_id: str,
+        parent_executable_definition_id: str | None,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
-        event_name = "subflow_completed" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_completed"
+        event_name = "subflow_completed" if span_type is ExecutableType.SUBFLOW else "workflow_completed"
         event_kwargs = {
             "run_id": run_id,
             "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
-            "span_type": span_type,
+            "executable_type": span_type,
             "result": result,
             "store_id": store_id,
             "executable_runtime_id": executable_runtime_id,
             "executable_structural_id": executable_structural_id,
             "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_definition_id": parent_executable_definition_id,
             "parent_executable_runtime_id": parent_executable_runtime_id,
             "parent_executable_structural_id": parent_executable_structural_id,
+            "parent_executable_type": parent_executable_type,
         }
         event = (
             hook_events.SubflowCompletedEvent(**event_kwargs)
-            if span_type is JunjoOtelSpanTypes.SUBFLOW
+            if span_type is ExecutableType.SUBFLOW
             else hook_events.WorkflowCompletedEvent(**event_kwargs)
         )
         return PreparedHookEvent(event_name, event)
@@ -184,7 +194,7 @@ class LifecycleDispatcher:
         run_id: str,
         executable_definition_id: str,
         name: str,
-        span_type: JunjoOtelSpanTypes,
+        span_type: ExecutableType,
         error: Exception,
         state: StateT,
         store_id: str,
@@ -193,31 +203,35 @@ class LifecycleDispatcher:
         executable_runtime_id: str,
         executable_structural_id: str,
         enclosing_graph_structural_id: str,
+        parent_executable_definition_id: str | None,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
-        event_name = "subflow_failed" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_failed"
+        event_name = "subflow_failed" if span_type is ExecutableType.SUBFLOW else "workflow_failed"
         event_kwargs = {
             "run_id": run_id,
             "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
-            "span_type": span_type,
+            "executable_type": span_type,
             "error": error,
             "state": state,
             "store_id": store_id,
             "executable_runtime_id": executable_runtime_id,
             "executable_structural_id": executable_structural_id,
             "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_definition_id": parent_executable_definition_id,
             "parent_executable_runtime_id": parent_executable_runtime_id,
             "parent_executable_structural_id": parent_executable_structural_id,
+            "parent_executable_type": parent_executable_type,
         }
         event = (
             hook_events.SubflowFailedEvent(**event_kwargs)
-            if span_type is JunjoOtelSpanTypes.SUBFLOW
+            if span_type is ExecutableType.SUBFLOW
             else hook_events.WorkflowFailedEvent(**event_kwargs)
         )
         return PreparedHookEvent(event_name, event)
@@ -228,7 +242,7 @@ class LifecycleDispatcher:
         run_id: str,
         executable_definition_id: str,
         name: str,
-        span_type: JunjoOtelSpanTypes,
+        span_type: ExecutableType,
         reason: str,
         state: StateT,
         store_id: str,
@@ -237,31 +251,35 @@ class LifecycleDispatcher:
         executable_runtime_id: str,
         executable_structural_id: str,
         enclosing_graph_structural_id: str,
+        parent_executable_definition_id: str | None,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
-        event_name = "subflow_cancelled" if span_type is JunjoOtelSpanTypes.SUBFLOW else "workflow_cancelled"
+        event_name = "subflow_cancelled" if span_type is ExecutableType.SUBFLOW else "workflow_cancelled"
         event_kwargs = {
             "run_id": run_id,
             "executable_definition_id": executable_definition_id,
             "name": name,
             "trace_id": trace_id,
             "span_id": span_id,
-            "span_type": span_type,
+            "executable_type": span_type,
             "reason": reason,
             "state": state,
             "store_id": store_id,
             "executable_runtime_id": executable_runtime_id,
             "executable_structural_id": executable_structural_id,
             "enclosing_graph_structural_id": enclosing_graph_structural_id,
+            "parent_executable_definition_id": parent_executable_definition_id,
             "parent_executable_runtime_id": parent_executable_runtime_id,
             "parent_executable_structural_id": parent_executable_structural_id,
+            "parent_executable_type": parent_executable_type,
         }
         event = (
             hook_events.SubflowCancelledEvent(**event_kwargs)
-            if span_type is JunjoOtelSpanTypes.SUBFLOW
+            if span_type is ExecutableType.SUBFLOW
             else hook_events.WorkflowCancelledEvent(**event_kwargs)
         )
         return PreparedHookEvent(event_name, event)
@@ -281,6 +299,7 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> None:
         await self.dispatch(
             PreparedHookEvent(
@@ -291,7 +310,7 @@ class LifecycleDispatcher:
                     name=name,
                     trace_id=trace_id,
                     span_id=span_id,
-                    span_type=JunjoOtelSpanTypes.NODE,
+                    executable_type=ExecutableType.NODE,
                     parent_executable_definition_id=parent_executable_definition_id,
                     store_id=store_id,
                     executable_runtime_id=executable_runtime_id,
@@ -299,6 +318,7 @@ class LifecycleDispatcher:
                     enclosing_graph_structural_id=enclosing_graph_structural_id,
                     parent_executable_runtime_id=parent_executable_runtime_id,
                     parent_executable_structural_id=parent_executable_structural_id,
+                    parent_executable_type=parent_executable_type,
                 ),
             )
         )
@@ -318,8 +338,9 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
         return PreparedHookEvent(
             "node_completed",
@@ -329,7 +350,7 @@ class LifecycleDispatcher:
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
-                span_type=JunjoOtelSpanTypes.NODE,
+                executable_type=ExecutableType.NODE,
                 parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 executable_runtime_id=executable_runtime_id,
@@ -337,6 +358,7 @@ class LifecycleDispatcher:
                 enclosing_graph_structural_id=enclosing_graph_structural_id,
                 parent_executable_runtime_id=parent_executable_runtime_id,
                 parent_executable_structural_id=parent_executable_structural_id,
+                parent_executable_type=parent_executable_type,
             ),
         )
 
@@ -356,8 +378,9 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
         return PreparedHookEvent(
             "node_failed",
@@ -367,7 +390,7 @@ class LifecycleDispatcher:
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
-                span_type=JunjoOtelSpanTypes.NODE,
+                executable_type=ExecutableType.NODE,
                 parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 error=error,
@@ -376,6 +399,7 @@ class LifecycleDispatcher:
                 enclosing_graph_structural_id=enclosing_graph_structural_id,
                 parent_executable_runtime_id=parent_executable_runtime_id,
                 parent_executable_structural_id=parent_executable_structural_id,
+                parent_executable_type=parent_executable_type,
             ),
         )
 
@@ -395,8 +419,9 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
         return PreparedHookEvent(
             "node_cancelled",
@@ -406,7 +431,7 @@ class LifecycleDispatcher:
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
-                span_type=JunjoOtelSpanTypes.NODE,
+                executable_type=ExecutableType.NODE,
                 parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 reason=reason,
@@ -415,6 +440,7 @@ class LifecycleDispatcher:
                 enclosing_graph_structural_id=enclosing_graph_structural_id,
                 parent_executable_runtime_id=parent_executable_runtime_id,
                 parent_executable_structural_id=parent_executable_structural_id,
+                parent_executable_type=parent_executable_type,
             ),
         )
 
@@ -433,6 +459,7 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> None:
         await self.dispatch(
             PreparedHookEvent(
@@ -443,7 +470,7 @@ class LifecycleDispatcher:
                     name=name,
                     trace_id=trace_id,
                     span_id=span_id,
-                    span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
+                    executable_type=ExecutableType.RUN_CONCURRENT,
                     parent_executable_definition_id=parent_executable_definition_id,
                     store_id=store_id,
                     executable_runtime_id=executable_runtime_id,
@@ -451,6 +478,7 @@ class LifecycleDispatcher:
                     enclosing_graph_structural_id=enclosing_graph_structural_id,
                     parent_executable_runtime_id=parent_executable_runtime_id,
                     parent_executable_structural_id=parent_executable_structural_id,
+                    parent_executable_type=parent_executable_type,
                 ),
             )
         )
@@ -470,8 +498,9 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
         return PreparedHookEvent(
             "run_concurrent_completed",
@@ -481,7 +510,7 @@ class LifecycleDispatcher:
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
-                span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
+                executable_type=ExecutableType.RUN_CONCURRENT,
                 parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 executable_runtime_id=executable_runtime_id,
@@ -489,6 +518,7 @@ class LifecycleDispatcher:
                 enclosing_graph_structural_id=enclosing_graph_structural_id,
                 parent_executable_runtime_id=parent_executable_runtime_id,
                 parent_executable_structural_id=parent_executable_structural_id,
+                parent_executable_type=parent_executable_type,
             ),
         )
 
@@ -508,8 +538,9 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
         return PreparedHookEvent(
             "run_concurrent_failed",
@@ -519,7 +550,7 @@ class LifecycleDispatcher:
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
-                span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
+                executable_type=ExecutableType.RUN_CONCURRENT,
                 parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 error=error,
@@ -528,6 +559,7 @@ class LifecycleDispatcher:
                 enclosing_graph_structural_id=enclosing_graph_structural_id,
                 parent_executable_runtime_id=parent_executable_runtime_id,
                 parent_executable_structural_id=parent_executable_structural_id,
+                parent_executable_type=parent_executable_type,
             ),
         )
 
@@ -547,8 +579,9 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> PreparedHookEvent | None:
-        if self._hooks is None:
+        if not self._callbacks:
             return None
         return PreparedHookEvent(
             "run_concurrent_cancelled",
@@ -558,7 +591,7 @@ class LifecycleDispatcher:
                 name=name,
                 trace_id=trace_id,
                 span_id=span_id,
-                span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
+                executable_type=ExecutableType.RUN_CONCURRENT,
                 parent_executable_definition_id=parent_executable_definition_id,
                 store_id=store_id,
                 reason=reason,
@@ -567,6 +600,7 @@ class LifecycleDispatcher:
                 enclosing_graph_structural_id=enclosing_graph_structural_id,
                 parent_executable_runtime_id=parent_executable_runtime_id,
                 parent_executable_structural_id=parent_executable_structural_id,
+                parent_executable_type=parent_executable_type,
             ),
         )
 
@@ -576,7 +610,7 @@ class LifecycleDispatcher:
         run_id: str,
         executable_definition_id: str,
         name: str,
-        span_type: JunjoOtelSpanTypes,
+        span_type: ExecutableType,
         store_id: str,
         store_name: str,
         action_name: str,
@@ -590,6 +624,7 @@ class LifecycleDispatcher:
         enclosing_graph_structural_id: str,
         parent_executable_runtime_id: str | None,
         parent_executable_structural_id: str | None,
+        parent_executable_type: ExecutableType | None,
     ) -> None:
         await self.dispatch(
             PreparedHookEvent(
@@ -600,7 +635,7 @@ class LifecycleDispatcher:
                     name=name,
                     trace_id=trace_id,
                     span_id=span_id,
-                    span_type=span_type,
+                    executable_type=span_type,
                     store_id=store_id,
                     store_name=store_name,
                     action_name=action_name,
@@ -612,31 +647,173 @@ class LifecycleDispatcher:
                     enclosing_graph_structural_id=enclosing_graph_structural_id,
                     parent_executable_runtime_id=parent_executable_runtime_id,
                     parent_executable_structural_id=parent_executable_structural_id,
+                    parent_executable_type=parent_executable_type,
                 ),
             )
+        )
+
+    async def agent_started(self, identity: AgentLifecycleIdentity) -> None:
+        """Dispatch the admitted Agent start event from common identity fields."""
+
+        await self.dispatch(
+            PreparedHookEvent(
+                "agent_started",
+                hook_events.AgentStartedEvent(
+                    run_id=identity.run_id,
+                    executable_definition_id=identity.executable_definition_id,
+                    name=identity.name,
+                    trace_id=identity.trace_id,
+                    span_id=identity.span_id,
+                    executable_type=ExecutableType.AGENT,
+                    executable_runtime_id=identity.run_id,
+                    executable_structural_id=identity.executable_structural_id,
+                    parent_executable_definition_id=identity.parent_executable_definition_id,
+                    parent_executable_runtime_id=identity.parent_executable_runtime_id,
+                    parent_executable_structural_id=identity.parent_executable_structural_id,
+                    parent_executable_type=identity.parent_executable_type,
+                    agent_key=identity.agent_key,
+                    store_id=identity.store_id,
+                ),
+            )
+        )
+
+    def agent_completed(
+        self,
+        *,
+        identity: AgentLifecycleIdentity,
+        result: AgentExecutionResult,
+    ) -> PreparedHookEvent | None:
+        if not self._callbacks:
+            return None
+        return PreparedHookEvent(
+            "agent_completed",
+            hook_events.AgentCompletedEvent(
+                run_id=identity.run_id,
+                executable_definition_id=identity.executable_definition_id,
+                name=identity.name,
+                trace_id=identity.trace_id,
+                span_id=identity.span_id,
+                executable_type=ExecutableType.AGENT,
+                executable_runtime_id=identity.run_id,
+                executable_structural_id=identity.executable_structural_id,
+                parent_executable_definition_id=identity.parent_executable_definition_id,
+                parent_executable_runtime_id=identity.parent_executable_runtime_id,
+                parent_executable_structural_id=identity.parent_executable_structural_id,
+                parent_executable_type=identity.parent_executable_type,
+                agent_key=identity.agent_key,
+                store_id=identity.store_id,
+                result=result,
+            ),
+        )
+
+    def agent_failed(
+        self,
+        *,
+        identity: AgentLifecycleIdentity,
+        error: AgentExecutionError,
+        state: AgentStateSnapshot,
+    ) -> PreparedHookEvent | None:
+        if not self._callbacks:
+            return None
+        return PreparedHookEvent(
+            "agent_failed",
+            hook_events.AgentFailedEvent(
+                run_id=identity.run_id,
+                executable_definition_id=identity.executable_definition_id,
+                name=identity.name,
+                trace_id=identity.trace_id,
+                span_id=identity.span_id,
+                executable_type=ExecutableType.AGENT,
+                executable_runtime_id=identity.run_id,
+                executable_structural_id=identity.executable_structural_id,
+                parent_executable_definition_id=identity.parent_executable_definition_id,
+                parent_executable_runtime_id=identity.parent_executable_runtime_id,
+                parent_executable_structural_id=identity.parent_executable_structural_id,
+                parent_executable_type=identity.parent_executable_type,
+                agent_key=identity.agent_key,
+                store_id=identity.store_id,
+                error=error,
+                state=state,
+            ),
+        )
+
+    def agent_cancelled(
+        self,
+        *,
+        identity: AgentLifecycleIdentity,
+        reason: str,
+        state: AgentStateSnapshot,
+    ) -> PreparedHookEvent | None:
+        if not self._callbacks:
+            return None
+        return PreparedHookEvent(
+            "agent_cancelled",
+            hook_events.AgentCancelledEvent(
+                run_id=identity.run_id,
+                executable_definition_id=identity.executable_definition_id,
+                name=identity.name,
+                trace_id=identity.trace_id,
+                span_id=identity.span_id,
+                executable_type=ExecutableType.AGENT,
+                executable_runtime_id=identity.run_id,
+                executable_structural_id=identity.executable_structural_id,
+                parent_executable_definition_id=identity.parent_executable_definition_id,
+                parent_executable_runtime_id=identity.parent_executable_runtime_id,
+                parent_executable_structural_id=identity.parent_executable_structural_id,
+                parent_executable_type=identity.parent_executable_type,
+                agent_key=identity.agent_key,
+                store_id=identity.store_id,
+                reason=reason,
+                state=state,
+            ),
         )
 
     def _record_hook_error(
         self,
         event_name: str,
         callback,
-        exc: Exception,
+        exc: BaseException,
     ) -> None:
         span = trace.get_current_span()
         if not span.is_recording():
             return
 
-        callback_name = getattr(callback, "__qualname__", callback.__class__.__qualname__)
-        callback_module = getattr(callback, "__module__", callback.__class__.__module__)
+        portable_event_name = portable_diagnostic_text(
+            event_name,
+            fallback="unknown_hook_event",
+            nonempty=True,
+        )
+        message = exception_message(exc)
         error_attributes: dict[str, str] = {
-            "junjo.hook.event": event_name,
-            "junjo.hook.callback": f"{callback_module}.{callback_name}",
-            "junjo.hook.error.type": type(exc).__name__,
-            "junjo.hook.error.message": str(exc),
-            "exception.type": type(exc).__name__,
-            "exception.message": str(exc),
-            "exception.stacktrace": "".join(
-                traceback.format_exception(type(exc), exc, exc.__traceback__)
-            ),
+            "junjo.hook.event": portable_event_name,
+            "junjo.hook.callback": callable_identity(callback),
+            "junjo.hook.error.type": error_type(exc),
+            "junjo.hook.error.message": message,
+            "exception.type": error_type(exc),
+            "exception.message": message,
+            "exception.stacktrace": exception_stacktrace(exc),
         }
         span.add_event("junjo.hook_error", error_attributes)
+
+    def _record_hook_delivery_cancelled(
+        self,
+        event_name: str,
+        callback,
+        exc: asyncio.CancelledError,
+    ) -> None:
+        span = trace.get_current_span()
+        if not span.is_recording():
+            return
+
+        span.add_event(
+            "junjo.hook_delivery_cancelled",
+            {
+                "junjo.hook.event": portable_diagnostic_text(
+                    event_name,
+                    fallback="unknown_hook_event",
+                    nonempty=True,
+                ),
+                "junjo.hook.callback": callable_identity(callback),
+                "junjo.hook.delivery.cancelled_reason": cancellation_reason(exc),
+            },
+        )

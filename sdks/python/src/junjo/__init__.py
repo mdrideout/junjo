@@ -1,14 +1,26 @@
-"""
-Junjo: A python library for building and managing complex Graph Workflows.
+"""Typed, observable execution for explicit Workflows and bounded Agents.
 
-This library provides the building blocks and tools for wrapping python functions into
-nodes, edges, and graphs that can be executed by a workflow.
-
-This library also produces annotated Opentelemetry Spans to help make sense of
-execution telemetry.
+Junjo provides Graph primitives for deterministic Workflow traversal and a
+provider-neutral Agent kernel for bounded runtime Tool selection. Both
+executables emit structured OpenTelemetry evidence and return detached typed
+results.
 """
 import logging
 
+from .agent import (
+    Agent,
+    AgentConfigurationError,
+    AgentError,
+    AgentExecutionError,
+    AgentExecutionResult,
+    AgentLimits,
+    AgentRunContext,
+    AgentStateSnapshot,
+    ModelDriver,
+    ModelDriverBinding,
+    ModelDriverDescriptor,
+    Tool,
+)
 from .condition import Condition
 from .edge import Edge
 from .graph import (
@@ -37,6 +49,14 @@ from .workflow import (
 logging.getLogger("junjo").addHandler(logging.NullHandler())
 
 __all__ = [
+    "Agent",
+    "AgentConfigurationError",
+    "AgentError",
+    "AgentExecutionError",
+    "AgentExecutionResult",
+    "AgentLimits",
+    "AgentRunContext",
+    "AgentStateSnapshot",
     "Condition",
     "Graph",
     "CompiledGraph",
@@ -47,11 +67,15 @@ __all__ = [
     "GraphSerializationError",
     "GraphRenderError",
     "Hooks",
+    "ModelDriver",
+    "ModelDriverBinding",
+    "ModelDriverDescriptor",
     "GraphFactory",
     "StoreFactory",
     "ExecutionResult",
     "Workflow",
     "Subflow",
+    "Tool",
     "Node",
     "RunConcurrent",
     "BaseState",

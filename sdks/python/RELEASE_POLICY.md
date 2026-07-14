@@ -33,9 +33,16 @@ library itself.
 
 ## Examples
 
-- Example applications under `sdks/python/examples` are best-effort reference apps.
-- Example smoke validation is manual and non-blocking.
-- Example health does not replace the required Python SDK library-health checks.
+- `examples/ai_chat` is the canonical Agent and Workflow composition acceptance
+  application. Changes to that example, the Agent runtime it exercises, or its
+  workspace inputs trigger its path-scoped backend and frontend checks.
+- The AI Chat gate runs all nine deterministic scenarios, backend lint and type
+  checks, and frontend tests, lint, and production build. It uses no provider
+  credentials and is not a required check for unrelated pull requests.
+- Other example applications remain best-effort references with manual smoke
+  validation.
+- Example health supplements; it never replaces the Python SDK library-health
+  checks.
 
 ## Changelog
 
@@ -66,12 +73,32 @@ Junjo SDK and Junjo AI Studio releases pair around the explicit contract under
 `contracts/telemetry`. The deployment sources under `apps/studio/deployments`
 are the canonical record of the supported SDK and Studio pair. The standalone
 deployment repositories are generated mirrors and must not be updated
-manually. Release in this order:
+manually.
 
-1. Cut the `junjo` SDK version and finalize `CHANGELOG.md`.
-2. Release Junjo AI Studio (version bump + Docker Hub images) with the matching contract.
-3. Validate the canonical minimal and VM/Caddy distributions against the exact
-   release pair, then publish their one-way generated mirrors as part of the
-   Studio release.
-4. Publish `junjo` to PyPI via GitHub release publication.
-5. Deploy the docs site last. Docs describe the paired releases, and the docs deploy is not wired to the release workflow.
+For an ordinary SDK release that does not change the shared contract, use the
+normal SDK release flow above. For an intentional breaking telemetry-contract
+release, source compatibility still merges atomically, but independently
+versioned artifacts are cut in a deliberate producer-first sequence. A
+temporary semantic-telemetry outage is accepted during this greenfield
+cutover; there is no dual-version compatibility mode:
+
+1. Merge the atomic contract, canonical fixtures, producer conformance tests,
+   and strict consumer implementation.
+2. Cut and publish the new `junjo` SDK through GitHub release publication.
+   Contract-aware Studio diagnostics may be unavailable until the matching
+   Studio release is deployed; raw telemetry availability is not a compatibility
+   guarantee.
+3. Prepare the matching Studio release only after that SDK is publicly
+   installable. Update every canonical deployment SDK pin and compatibility
+   statement, then validate ingestion, backend, frontend, exact images, and
+   generated distributions against the published pair.
+4. Publish Studio images and the generated deployment mirrors in one Studio
+   release transaction. Upgrade other emitters after that cutover; old emitters
+   are retired rather than retained behind fallbacks.
+5. Deploy documentation last so public guidance describes the released pair.
+
+For telemetry contract version 2, the producer release is `junjo` `0.65.0` and
+the first matching Studio release must be `0.82.0` or newer. Release preparation
+updates the VM/Caddy example pin and both deployment compatibility statements
+from their currently released pair to those versions. The Agent implementation
+branch does not pre-pin an SDK version that PyPI cannot yet install.

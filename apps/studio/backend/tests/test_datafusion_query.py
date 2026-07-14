@@ -14,19 +14,28 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+from app.features.agent_diagnostics.assembler import assemble_agent_detail
 from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
 from tests.helpers.junjo_fixture_loader import (
     list_junjo_fixture_case_names,
+    list_valid_transport_fixture_ids,
     load_junjo_fixture_case,
+    load_valid_transport_fixture,
 )
 from tests.helpers.junjo_transport_builders import (
     SPAN_SCHEMA,
+    agent_spans_for_case,
     api_span_to_parquet_row,
     normalize_api_spans,
     workflow_spans_for_case,
 )
 
 JUNJO_FIXTURE_CASE_NAMES = list_junjo_fixture_case_names()
+AGENT_FIXTURE_IDS = [
+    fixture_id
+    for fixture_id in list_valid_transport_fixture_ids()
+    if fixture_id.startswith("agent/")
+]
 
 
 def _ns_now() -> int:
@@ -68,7 +77,14 @@ def create_test_span(
         "status_message": None,
         "attributes": json.dumps(attributes or {}),
         "events": json.dumps(events or []),
+        "links": "[]",
+        "trace_flags": 0,
+        "trace_state": None,
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
         "resource_attributes": json.dumps({"service.name": service_name}),
+        "resource_dropped_attributes_count": 0,
     }
 
 
@@ -273,7 +289,7 @@ def test_parses_attributes_and_events_json(temp_parquet_dir):
                 trace_id=trace_id,
                 service_name="svc",
                 attributes={"junjo.span_type": "workflow", "other": "value"},
-                events=[{"name": "set_state", "timeUnixNano": 123, "attributes": {"a": 1}}],
+                events=[{"name": "set_state", "timeUnixNano": "123", "attributes": {"a": 1}}],
             )
         ],
         file_path,
@@ -285,6 +301,7 @@ def test_parses_attributes_and_events_json(temp_parquet_dir):
     assert results[0]["attributes_json"]["junjo.span_type"] == "workflow"
     assert results[0]["attributes_json"]["other"] == "value"
     assert results[0]["events_json"][0]["name"] == "set_state"
+    assert results[0]["events_json"][0]["timeUnixNano"] == "123"
 
 
 def test_register_cold_skips_empty_parquet_files(temp_parquet_dir):
@@ -376,3 +393,34 @@ def test_workflow_only_query_finds_current_junjo_workflow_spans(temp_parquet_dir
         order_by="start_time ASC",
     )
     assert normalize_api_spans(results) == normalize_api_spans(workflow_spans_for_case(case))
+
+
+@pytest.mark.parametrize("fixture_id", AGENT_FIXTURE_IDS)
+def test_agent_fixture_round_trips_and_assembles_from_parquet(temp_parquet_dir, fixture_id):
+    case = load_valid_transport_fixture(fixture_id)
+    file_path = os.path.join(temp_parquet_dir, f"{fixture_id.replace('/', '_')}.parquet")
+    write_spans_to_parquet([api_span_to_parquet_row(span) for span in case["spans"]], file_path)
+
+    query = UnifiedSpanQuery()
+    query.register_cold([file_path])
+    trace_results = query.query_spans_two_tier(
+        trace_id=case["trace_id"],
+        order_by="start_time ASC",
+    )
+    agent_results = query.query_spans_two_tier(
+        service_name=case["service_name"],
+        agent_only=True,
+        order_by="start_time ASC",
+    )
+    assert normalize_api_spans(trace_results) == normalize_api_spans(case["spans"])
+    assert normalize_api_spans(agent_results) == normalize_api_spans(agent_spans_for_case(case))
+
+    expected = [
+        assemble_agent_detail(owner, case["spans"]).model_dump(mode="json")
+        for owner in sorted(agent_spans_for_case(case), key=lambda span: span["span_id"])
+    ]
+    observed = [
+        assemble_agent_detail(owner, trace_results).model_dump(mode="json")
+        for owner in sorted(agent_results, key=lambda span: span["span_id"])
+    ]
+    assert observed == expected

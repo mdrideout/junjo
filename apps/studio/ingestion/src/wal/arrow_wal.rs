@@ -6,6 +6,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use arrow::array::{
     ArrayRef, Int64Array, Int8Array, RecordBatch, StringArray, TimestampNanosecondArray,
+    UInt32Array,
 };
 use arrow::ipc::reader::StreamReader;
 use arrow::ipc::writer::StreamWriter;
@@ -461,9 +462,28 @@ impl ArrowWal {
             .map(|r| Some(r.attributes.as_str()))
             .collect();
         let events: StringArray = records.iter().map(|r| Some(r.events.as_str())).collect();
+        let links: StringArray = records.iter().map(|r| Some(r.links.as_str())).collect();
+        let trace_flags: UInt32Array = records.iter().map(|r| Some(r.trace_flags)).collect();
+        let trace_states: StringArray = records.iter().map(|r| r.trace_state.as_deref()).collect();
+        let dropped_attributes_counts: UInt32Array = records
+            .iter()
+            .map(|r| Some(r.dropped_attributes_count))
+            .collect();
+        let dropped_events_counts: UInt32Array = records
+            .iter()
+            .map(|r| Some(r.dropped_events_count))
+            .collect();
+        let dropped_links_counts: UInt32Array = records
+            .iter()
+            .map(|r| Some(r.dropped_links_count))
+            .collect();
         let resource_attrs: StringArray = records
             .iter()
             .map(|r| Some(r.resource_attributes.as_str()))
+            .collect();
+        let resource_dropped_attributes_counts: UInt32Array = records
+            .iter()
+            .map(|r| Some(r.resource_dropped_attributes_count))
             .collect();
 
         let columns: Vec<ArrayRef> = vec![
@@ -480,7 +500,14 @@ impl ArrowWal {
             Arc::new(status_messages),
             Arc::new(attributes),
             Arc::new(events),
+            Arc::new(links),
+            Arc::new(trace_flags),
+            Arc::new(trace_states),
+            Arc::new(dropped_attributes_counts),
+            Arc::new(dropped_events_counts),
+            Arc::new(dropped_links_counts),
             Arc::new(resource_attrs),
+            Arc::new(resource_dropped_attributes_counts),
         ];
 
         let batch = RecordBatch::try_new(SPAN_SCHEMA.clone(), columns)?;
@@ -508,7 +535,14 @@ mod tests {
             status_message: None,
             attributes: "{}".to_string(),
             events: "[]".to_string(),
+            links: "[]".to_string(),
+            trace_flags: 0,
+            trace_state: None,
+            dropped_attributes_count: 0,
+            dropped_events_count: 0,
+            dropped_links_count: 0,
             resource_attributes: "{}".to_string(),
+            resource_dropped_attributes_count: 0,
         }
     }
 

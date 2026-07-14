@@ -10,27 +10,35 @@ from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast
 
 from opentelemetry import trace
 
-from ._lifecycle import (
+from ._identity import (
     ActiveExecutableIdentity,
-    LifecycleDispatcher,
-    StoreLifecycleContext,
+    ExecutableType,
     active_executable_identity,
     get_active_executable_identity,
 )
+from ._json import require_ijson_text
+from ._lifecycle import (
+    GraphStoreLifecycleContext,
+    LifecycleDispatcher,
+)
+from ._terminal import drain_terminal_work
 from .hooks import Hooks
 from .node import Node
 from .run_concurrent import RunConcurrent
 from .store import BaseStore, ParentStateT, ParentStoreT, StateT, StoreT
+from .telemetry.diagnostics import cancellation_reason
 from .telemetry.otel_schema import (
     JUNJO_OTEL_MODULE_NAME,
     JUNJO_TELEMETRY_CONTRACT_VERSION,
-    JunjoOtelSpanTypes,
 )
+from .telemetry.payload import set_full_payload
 from .telemetry.span_lifecycle import (
     get_span_identifiers,
     mark_span_cancelled,
     mark_span_failed,
+    record_span_exception,
 )
+from .telemetry.store_evidence import StoreOwnerEvidence
 from .util import generate_safe_id
 
 if TYPE_CHECKING:
@@ -114,6 +122,16 @@ class ExecutionResult(Generic[StateT]):
     node_execution_counts: Mapping[str, int]
 
 
+async def _collect_workflow_terminal_evidence(
+    store: BaseStore[StateT],
+) -> tuple[StateT, StoreOwnerEvidence]:
+    """Collect the two terminal Store snapshots as one owned async unit."""
+
+    state = await store.get_state()
+    evidence = await store._get_store_owner_evidence()
+    return state, evidence
+
+
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
     Shared execution implementation for :class:`Workflow` and :class:`Subflow`.
@@ -130,6 +148,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         hooks: Hooks | None = None,
         name: str | None = None,
     ):
+        if name is not None:
+            name = require_ijson_text(name, "Workflow name", nonempty=True)
         self._id = generate_safe_id()
         self._name = name
         self.max_iterations = max_iterations
@@ -150,11 +170,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         return self.__class__.__name__
 
     @property
-    def span_type(self) -> JunjoOtelSpanTypes:
+    def span_type(self) -> ExecutableType:
         """Returns the OpenTelemetry span type for this executable."""
         if isinstance(self, Subflow):
-            return JunjoOtelSpanTypes.SUBFLOW
-        return JunjoOtelSpanTypes.WORKFLOW
+            return ExecutableType.SUBFLOW
+        return ExecutableType.WORKFLOW
 
     async def execute(  # noqa: C901
         self,
@@ -196,12 +216,12 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             dispatcher=LifecycleDispatcher(self.hooks),
         )
         ctx.store._set_lifecycle_context(
-            StoreLifecycleContext(
+            GraphStoreLifecycleContext(
                 dispatcher=ctx.dispatcher,
                 run_id=ctx.run_id,
                 executable_definition_id=self.id,
                 name=self.name,
-                span_type=self.span_type,
+                executable_type=self.span_type,
                 executable_runtime_id=ctx.run_id,
                 executable_structural_id=ctx.compiled_graph.graph_structural_id,
                 enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
@@ -220,6 +240,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         result: ExecutionResult[StateT] | None = None
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
+        terminal_delivery_cancellation: asyncio.CancelledError | None = None
         workflow_log_extra = {
             "run_id": ctx.run_id,
             "executable_definition_id": self.id,
@@ -236,9 +257,15 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
         with tracer.start_as_current_span(self.name) as span:
             try:
-                span.set_attribute(
+                initial_store_evidence = await ctx.store._get_store_owner_evidence()
+                set_full_payload(
+                    span,
                     "junjo.workflow.state.start",
-                    await ctx.store.get_state_json(),
+                    initial_store_evidence.state_start,
+                )
+                span.set_attribute(
+                    "junjo.store.revision.start",
+                    initial_store_evidence.revision_start,
                 )
                 span.set_attribute("junjo.workflow.execution_graph_snapshot", graph_json)
                 span.set_attribute("junjo.workflow.store.id", ctx.store.id)
@@ -259,12 +286,20 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
                 if parent_active_identity is not None:
                     span.set_attribute(
+                        "junjo.parent_executable_definition_id",
+                        parent_active_identity.executable_definition_id,
+                    )
+                    span.set_attribute(
                         "junjo.parent_executable_runtime_id",
                         parent_active_identity.executable_runtime_id,
                     )
                     span.set_attribute(
                         "junjo.parent_executable_structural_id",
                         parent_active_identity.executable_structural_id,
+                    )
+                    span.set_attribute(
+                        "junjo.parent_executable_type",
+                        parent_active_identity.executable_type,
                     )
 
                 if parent_store is not None and parent_store.id is not None:
@@ -274,7 +309,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     ActiveExecutableIdentity(
                         executable_definition_id=self.id,
                         executable_name=self.name,
-                        span_type=self.span_type,
+                        executable_type=self.span_type,
                         executable_runtime_id=ctx.run_id,
                         executable_structural_id=ctx.compiled_graph.graph_structural_id,
                     )
@@ -292,6 +327,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         executable_runtime_id=ctx.run_id,
                         executable_structural_id=ctx.compiled_graph.graph_structural_id,
                         enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                         parent_executable_runtime_id=(
                             parent_active_identity.executable_runtime_id
                             if parent_active_identity is not None
@@ -299,6 +339,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
                             if parent_active_identity is not None
                             else None
                         ),
@@ -415,17 +460,35 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     extra=workflow_log_extra,
                 )
                 mark_span_failed(span, exc)
-                span.record_exception(exc)
+                record_span_exception(span, exc)
                 failure = exc
 
             finally:
                 execution_sum = sum(ctx.node_execution_counter.values())
-                final_state = await ctx.store.get_state()
+                (
+                    (final_state, final_store_evidence),
+                    finalization_cancellation,
+                ) = await drain_terminal_work(
+                    _collect_workflow_terminal_evidence(ctx.store)
+                )
                 trace_id, span_id = get_span_identifiers(span)
 
-                span.set_attribute(
+                set_full_payload(
+                    span,
                     "junjo.workflow.state.end",
-                    final_state.model_dump_json(),
+                    final_store_evidence.state_end,
+                )
+                span.set_attribute(
+                    "junjo.store.revision.end",
+                    final_store_evidence.revision_end,
+                )
+                span.set_attribute(
+                    "junjo.store.transition.count",
+                    final_store_evidence.transition_count,
+                )
+                span.set_attribute(
+                    "junjo.store.reconstructable",
+                    final_store_evidence.reconstructable,
                 )
                 span.set_attribute("junjo.workflow.node.count", execution_sum)
 
@@ -451,6 +514,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         executable_runtime_id=ctx.run_id,
                         executable_structural_id=ctx.compiled_graph.graph_structural_id,
                         enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                         parent_executable_runtime_id=(
                             parent_active_identity.executable_runtime_id
                             if parent_active_identity is not None
@@ -458,6 +526,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
                             if parent_active_identity is not None
                             else None
                         ),
@@ -468,7 +541,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         executable_definition_id=self.id,
                         name=self.name,
                         span_type=self.span_type,
-                        reason=str(cancellation.args[0]) if cancellation.args else "cancelled",
+                        reason=cancellation_reason(cancellation),
                         state=final_state,
                         store_id=ctx.store.id,
                         trace_id=trace_id,
@@ -476,6 +549,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         executable_runtime_id=ctx.run_id,
                         executable_structural_id=ctx.compiled_graph.graph_structural_id,
                         enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                         parent_executable_runtime_id=(
                             parent_active_identity.executable_runtime_id
                             if parent_active_identity is not None
@@ -483,6 +561,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
                             if parent_active_identity is not None
                             else None
                         ),
@@ -501,6 +584,11 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         executable_runtime_id=ctx.run_id,
                         executable_structural_id=ctx.compiled_graph.graph_structural_id,
                         enclosing_graph_structural_id=ctx.compiled_graph.graph_structural_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else None
+                        ),
                         parent_executable_runtime_id=(
                             parent_active_identity.executable_runtime_id
                             if parent_active_identity is not None
@@ -511,10 +599,22 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             if parent_active_identity is not None
                             else None
                         ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
-                await ctx.dispatcher.dispatch(prepared_terminal_event)
+                try:
+                    await ctx.dispatcher.dispatch(prepared_terminal_event, terminal=True)
+                except asyncio.CancelledError as exc:
+                    terminal_delivery_cancellation = exc
+                if terminal_delivery_cancellation is None:
+                    terminal_delivery_cancellation = finalization_cancellation
 
+        if terminal_delivery_cancellation is not None:
+            raise terminal_delivery_cancellation
         if cancellation is not None:
             raise cancellation
         if failure is not None:

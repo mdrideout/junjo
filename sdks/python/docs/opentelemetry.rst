@@ -16,6 +16,8 @@ How Junjo Uses OpenTelemetry
 **What Gets Traced Automatically:**
 
 - Workflow execution (start state, end state, graph structure)
+- Agent execution (definition, normalized model/Tool operations, state,
+  usage, limits, and terminal outcome)
 - Individual node execution
 - Subflow execution with parent relationships
 - RunConcurrent concurrent execution
@@ -49,11 +51,88 @@ When you execute a workflow, Junjo creates a hierarchy of OpenTelemetry spans:
 
 Each span includes Junjo-specific attributes that provide workflow context.
 
+Agent hierarchy and ownership
+-----------------------------
+
+An Agent is an executable owner span, not a synthetic Workflow. Model requests
+and Tool calls are ordered operation spans owned by that Agent run:
+
+.. code-block:: text
+
+    Agent
+    ├── model request 1
+    ├── tool lookup
+    │   └── Workflow                 (when the Tool invokes a Workflow)
+    │       └── Node
+    └── model request 2
+
+An Agent invoked by a Workflow Node is physically and semantically nested
+under that Node. A standalone Agent under a non-Junjo server span preserves the
+physical OpenTelemetry parent but does not fabricate Junjo semantic-parent
+attributes. Nested Agent owners each restart their own operation sequence,
+Store revisions, usage aggregate, limits, and terminal evidence.
+
+Owner spans distinguish definition, run, and structural identity:
+
+* ``junjo.executable_definition_id`` identifies the definition object;
+* ``junjo.executable_runtime_id`` and ``junjo.agent.runtime_id`` identify the
+  current run;
+* ``junjo.executable_structural_id`` is the deterministic ``agent_sha256``
+  behavior fingerprint.
+
+``junjo.parent_executable_*`` records the nearest semantic Junjo owner when
+one exists. Those values intentionally may skip an operation span: a Workflow
+physically started inside a Tool is semantically parented by the Agent because
+the Tool is not an executable definition owner.
+
 Every Junjo executable span includes
 ``junjo.telemetry.contract_version``. This integer identifies the
 language-independent contract used by SDK emitters and Studio consumers; it is
 separate from the Python package version and from payload-specific schema
 versions such as the execution graph snapshot's ``v`` field.
+
+Agent evidence and Store replay
+-------------------------------
+
+The Agent owner contains its definition snapshot, normalized input, start/end
+state, aggregate usage, exact limits and counters, output when successful, and
+one terminal outcome. Model operation spans contain the immutable request,
+raw portable response candidate when available, validated normalized response,
+descriptor identity, usage, ordinal, operation sequence, and state revision.
+Tool operation spans similarly distinguish requested arguments, admitted
+validated arguments, service result candidate, validated result, call identity,
+ordinal, sequence, and before/after revisions.
+
+Agent state transitions use the same observable Store protocol as Workflows.
+Each ``set_state`` event includes:
+
+* ``junjo.store.action`` and a contiguous transition sequence;
+* before/after revisions (no-op transitions do not advance revision);
+* a portable RFC 6902 patch and its payload mode/policy;
+* the owner Store identity.
+
+Studio and conformance consumers collect events across the owner and its
+operation spans, order them by transition sequence, replay from
+``junjo.agent.state.start``, and require the result to equal
+``junjo.agent.state.end``. The Agent action grammar exposes model start and
+response, whole-batch admission, Tool start/result, and one terminal commit.
+``junjo.store.reconstructable`` is false only when complete replay cannot be
+claimed, such as a failed terminal Store commit.
+
+All contract payload slots explicitly report ``.mode`` and ``.policy``. The
+SDK's core policy is ``full`` / ``junjo.full.v1``; absence is never silently
+interpreted as redaction. Unavailable model or Tool candidates instead carry
+an explicit availability flag and reason such as ``not_returned``,
+``not_json_serializable``, ``not_invoked``, or ``cancelled``. Every full JSON
+payload obeys the portable I-JSON boundary described in :doc:`agents`.
+
+In Junjo AI Studio, begin diagnosis at the Agent owner: verify outcome,
+termination reason, evidence completeness, and Store reconstruction. Then
+follow operation sequence to the first failed/cancelled Model or Tool span and
+inspect candidate-versus-validated payload slots. Semantic parent identities
+show whether the Agent was invoked directly, by a Workflow Node, or around a
+nested Workflow. Evidence-loss counters and non-full payload policies must be
+shown as diagnostic limitations rather than treated as application behavior.
 
 Provider Lifecycle
 ==================
@@ -262,14 +341,15 @@ Junjo's Custom Span Attributes
 
 Junjo adds workflow-specific attributes to all spans. These work with any OTLP exporter:
 
-Failed workflow, subflow, node, and concurrent-execution spans also follow the
-standard OpenTelemetry error contract in addition to the Junjo-specific fields
-below:
+Failed Workflow, Subflow, Node, concurrent-execution, Agent, model-request, and
+Tool spans also follow the standard OpenTelemetry error contract in addition
+to the Junjo-specific fields below:
 
 - ``error.type`` is set to the exception class name on failed spans.
 - span status is set to ``Error``.
-- the standard ``exception`` span event is recorded via OpenTelemetry's
-  exception recording support.
+- Junjo constructs the standard ``exception`` span event fields from its
+  non-throwing portable diagnostic projection, so hostile exception formatting
+  cannot replace the execution outcome or produce invalid telemetry text.
 
 Cancelled spans use Junjo-specific cancellation attributes instead of the
 standard error fields:

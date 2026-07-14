@@ -39,6 +39,14 @@ npm run lint
 npm run build
 ```
 
+The production release smoke also runs `npm run test:e2e:ai-chat-live` against
+the exact Studio images. It signs in with an ephemeral smoke identity, opens a
+live AI Chat Agent execution, verifies its operation and nested Workflow Store
+diagnostics, and retains a full-page screenshot. Credentials are accepted only
+through `JUNJO_STUDIO_E2E_EXISTING_EMAIL` and
+`JUNJO_STUDIO_E2E_EXISTING_PASSWORD`; the evidence JSON contains only runtime
+and span identities.
+
 ## Notes
 
 - Browser API requests are explicit and cross-origin in development. The frontend talks to the backend URL directly.

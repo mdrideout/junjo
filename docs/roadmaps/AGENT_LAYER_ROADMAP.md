@@ -2,14 +2,17 @@
 
 ## Status
 
-Planning document. This roadmap records the current product and architecture
-direction for adding autonomous Agent execution to Junjo. Accepted ADRs, not
-this roadmap, own runtime and telemetry contracts.
+Strategy and implementation record. This roadmap records the current product
+and architecture direction for autonomous Agent execution in Junjo. Accepted
+ADRs, not this roadmap, own runtime and telemetry contracts.
 
-Horizon 0 is complete as of 2026-07-13. Root ADRs 0003 through 0006 and Studio
-ADRs 004 and 007 are accepted. Horizon 1, the deterministic Agent kernel and
-complete evidence path, is next. No Agent runtime implementation is claimed by
-Horizon 0.
+Horizon 0 is complete as of 2026-07-13. Horizon 1's deterministic Agent kernel
+and complete evidence path and Horizon 2's AI Chat proof are implementation
+complete and merge-ready as of 2026-07-14. Their acceptance evidence is
+recorded below. The separately versioned production cutover remains pending
+after merge: publish Python SDK `0.65.0` first, then Studio `0.82.0` or newer
+with canonical deployment pins and mirrors bound to that published SDK.
+Horizon 3 is next after those release gates are closed.
 
 The completed Horizon 0 decision and sequencing record lives in
 [AGENT_LAYER_PHASE_0.md](AGENT_LAYER_PHASE_0.md).
@@ -54,13 +57,13 @@ unrelated orchestration systems.
 `sdks/python/examples/ai_chat` is the first framework proving ground and
 canonical teaching application for the Agent layer.
 
-It should prove that the public Junjo primitives are:
+It proves that the public Junjo primitives are:
 
 - useful in a realistic application
 - deterministic to test without a live model
 - observable through the Junjo telemetry contract
 - understandable from public code and documentation
-- compatible with structured workflows, subflows, and concurrency
+- compatible with structured Workflows and concurrent executions
 
 Agent runtime behavior must be implemented in `sdks/python/src/junjo`, not
 hidden inside the example. The example is an acceptance application for public
@@ -70,9 +73,9 @@ SDK behavior.
 
 Junjo AI Studio is the evidence and control plane.
 
-It should first visualize and query agent execution evidence. Later it should
-support evaluation datasets, experiments, comparisons, failure analysis, and
-governed improvement proposals.
+It now visualizes and queries Agent execution evidence. Later horizons add
+evaluation datasets, experiments, comparisons, failure analysis, and governed
+improvement proposals.
 
 Agent telemetry is part of the shared telemetry contract. Changes to span
 semantics must update the SDK producer, canonical contract, and Studio consumer
@@ -136,9 +139,9 @@ hidden inside prompts.
 A workflow has a predeclared graph. An agent produces a dynamic sequence of
 model decisions and tool calls.
 
-Do not misrepresent an agent run as a static workflow graph. Junjo AI Studio
-should be able to show a dynamic agent decision timeline or tree, while nested
-Junjo workflows retain their normal graph visualization.
+Do not misrepresent an Agent run as a static Workflow Graph. Junjo AI Studio
+shows a dynamic Agent operation timeline, while nested Junjo Workflows retain
+their normal Graph visualization.
 
 ### Deterministic Tests And Live Evals Are Separate
 
@@ -156,15 +159,14 @@ job execution, or automatic system modification.
 
 ## Target Composition Model
 
-The initial `ai_chat` proof should preserve a deterministic workflow shell:
+The implemented `ai_chat` proof preserves a deterministic Workflow shell:
 
 ```text
 Receive message
   -> persist the input
-  -> load application context
-  -> execute the chat agent
+  -> load application context and execute the chat agent
   -> persist the result
-  -> return or stream the result
+  -> return the committed result
 ```
 
 The chat agent may:
@@ -181,15 +183,16 @@ Workflow -> Agent
 Agent -> Workflow Tool
 ```
 
-The existing message workflow in
-`sdks/python/examples/ai_chat/backend/src/app/workflows/handle_message`
-provides the baseline. Its fixed directive classification and response branches
-provide a clear comparison with autonomous capability selection.
+The proof lives under
+`sdks/python/examples/ai_chat/backend/src/ai_chat/application`. Its exact
+three-Node turn Workflow and fresh two-Node image Workflow keep deterministic
+procedure ownership visible around autonomous capability selection.
 
 ## Accepted Runtime Responsibilities
 
-ADRs 0003 through 0006 accept these responsibility boundaries. Exact Python
-module layout and signatures remain Horizon 1 implementation choices.
+ADRs 0003 through 0006 accept these responsibility boundaries. Horizon 1
+implements them in the public Python Agent API; public docstrings and the
+Sphinx API reference own exact signatures.
 
 ### Agent Definition
 
@@ -283,7 +286,7 @@ These tests run in the normal Junjo CI gate.
 The `ai_chat` backend uses the scripted ModelDriver, temporary persistence, and
 mocked external services to prove application composition.
 
-These tests should verify end-to-end behavior such as:
+These tests verify end-to-end behavior such as:
 
 - a general message produces and persists an answer
 - a history question calls the expected query tool
@@ -321,7 +324,7 @@ results. This layer is not required for the first Agent proof.
 
 ## Telemetry Direction
 
-The Agent layer should produce enough semantic telemetry to reconstruct:
+The Agent layer produces enough semantic telemetry to reconstruct:
 
 - the overall agent run
 - each model request and response boundary
@@ -394,6 +397,9 @@ Junjo execution concepts.
 
 ### Horizon 1: Deterministic Agent Kernel And Evidence Path
 
+Status: Complete and merge-ready as of 2026-07-14. The independently versioned
+production cutover remains pending after merge.
+
 #### Objective
 
 Implement a single-Agent Tool loop and its complete shared diagnostic path as
@@ -434,24 +440,33 @@ normal Junjo platform capabilities.
 
 #### Exit criteria
 
-- All runtime behavior is covered by deterministic SDK-owned tests under
+- [x] All runtime behavior is covered by deterministic SDK-owned tests under
   `sdks/python/tests`.
-- Concurrent executions demonstrate state isolation.
-- Failure and cancellation behavior is explicit and observable.
-- Both composition directions prove success, failure, cancellation, independent
+- [x] Concurrent executions demonstrate state isolation.
+- [x] Failure and cancellation behavior is explicit and observable.
+- [x] Both composition directions prove success, failure, cancellation, independent
   Stores and limits, and truthful parentage.
-- Contract version 2 producer fixtures prove SDK conformance; all valid and
+- [x] Contract version 2 producer fixtures prove SDK conformance; all valid and
   invalid fixture sets prove Studio consumer behavior.
-- Studio reconstructs standalone and hybrid Agent executions without a fake
+- [x] Studio reconstructs standalone and hybrid Agent executions without a fake
   Graph.
-- Public docs explain construction, execution, composition, deterministic
+- [x] Public docs explain construction, execution, composition, deterministic
   testing, failure/cancellation, and telemetry without calling an Agent a
   dynamic Graph.
-- The greenfield release runbook deploys strict Studio version 2, publishes the
-  SDK second, and upgrades emitters without dual support.
-- No model provider or external service is required to run validation.
+- [x] The greenfield release runbook defines the intentional producer-first
+  cutover and temporary semantic-diagnostics outage without dual support.
+- [x] No model provider or external service is required to run validation.
+
+#### Production cutover gate
+
+- [ ] Publish Python SDK `0.65.0`, then Studio `0.82.0` or newer with the
+  canonical VM/Caddy SDK pin and both deployment compatibility statements
+  updated to `0.65.0`; publish generated mirrors in that Studio release.
 
 ### Horizon 2: AI Chat Hybrid Execution Proof
+
+Status: Complete and merge-ready as of 2026-07-14. Deterministic application
+tests and the live application-to-Studio evidence proof pass.
 
 #### Objective
 
@@ -468,13 +483,63 @@ Prove that the Agent layer composes cleanly with a realistic Junjo application.
 
 #### Exit criteria
 
-- All nine canonical
+- [x] All nine canonical
   [Initial AI Chat Acceptance Scenarios](#initial-ai-chat-acceptance-scenarios)
   pass.
-- The scenarios pass with a scripted ModelDriver.
-- The example uses only public Junjo runtime APIs.
-- The example no longer relies on timing sleeps or untracked execution for its
+- [x] The scenarios pass with a scripted ModelDriver.
+- [x] The example uses only public Junjo runtime APIs.
+- [x] The example no longer relies on timing sleeps or untracked execution for its
   canonical agent path.
+
+### Horizon 1 And 2 Acceptance Evidence — 2026-07-14
+
+The merge-ready source tree passed the complete validation owned by every
+changed layer:
+
+- The Python SDK passed lock validation, Ruff, ty, Sphinx with warnings as
+  errors, package build, and Twine validation. Its 314 deterministic tests
+  passed independently on Python 3.11, 3.12, 3.13, and 3.14: 1,256 test
+  executions in the compatibility matrix.
+- Telemetry contract version 2 passed canonical generation and compatibility
+  validation across 9 schemas, 6 Workflow producer cases, 33 Agent producer
+  cases, 4 Agent consumer cases, 41 invalid cases, 22 fingerprint vectors, 7
+  RFC 6902 vectors, and 570 malformed-scalar mutations. Regeneration was
+  idempotent across 103 generated files with tree digest
+  `c4f9319ef00bcbc9c5561d50866c128715956438933ced3020e5cecb735561f9`.
+- Studio passed its backend unit, integration, and gRPC suites; ingestion unit
+  and integration suites; 194 frontend component tests; frontend lint and
+  production build; OpenAPI synchronization; protobuf regeneration; and
+  shared-contract consumer tests.
+- The AI Chat proof passed 31 backend tests and 17 frontend tests for all nine
+  canonical scenarios, in addition to its type, lint, and production-build
+  gates.
+- Repository-wide validation passed 107 tooling tests, workflow security,
+  secret scanning, license inventories, deterministic deployment exports,
+  generated-mirror equivalence, Caddy validation, action pinning, and archive
+  checks.
+
+The final runtime proof used an isolated VM/Caddy deployment with exact
+`linux/amd64` Studio production images and random host ports. It proved:
+
+- a standalone public-SDK Agent execution reached OTLP ingestion, raw storage,
+  the Studio semantic Agent API, and backend-verified Agent and Workflow Store
+  replay
+- the AI Chat FastAPI and SQLite application emitted the exact 11-span hybrid
+  hierarchy, including the outer Workflow, Agent, Model -> Tool -> Model
+  sequence, and nested image Workflow, with three independent Store replays
+- the production Studio frontend signed in against the isolated backend,
+  rendered complete evidence and dynamic Agent state, inspected requested and
+  validated Tool evidence, navigated to the exact nested Workflow, and showed
+  backend-verified Store replay
+- the browser proof produced a screenshot and checksummed evidence manifest,
+  and the harness removed its user, API key, containers, volume, and network
+
+The reusable acceptance entry points are
+`tooling/scripts/validate_agent_studio_e2e.py`,
+`tooling/scripts/validate_ai_chat_studio_e2e.py`, and
+`tooling/scripts/smoke_studio_distribution.py`. This evidence completes the
+source horizons; it does not mark the separate production cutover gate as
+complete.
 
 ### Horizon 3: Live Evals And Measurement
 

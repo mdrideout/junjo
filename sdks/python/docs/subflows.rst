@@ -31,7 +31,6 @@ Examples
 Check out the following example applications for subflow implementations.
 
 - `Base Example Graph With Subflow <https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/base/src/base/sample_workflow/graph.py>`_
-- `AI Chat with multiple layers of Subflows <https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/ai_chat/backend/src/app/workflows/handle_message/graph.py>`_
 
 
 Implementing a Subflow

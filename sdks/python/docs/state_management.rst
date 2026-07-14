@@ -45,7 +45,7 @@ for OpenTelemetry state payloads, implement that at the state model layer.
     from junjo import BaseState
 
 
-    class AgentState(BaseState):
+    class ChatWorkflowState(BaseState):
         prompt: str
         provider_api_key: str | None = Field(default=None, exclude=True)
 

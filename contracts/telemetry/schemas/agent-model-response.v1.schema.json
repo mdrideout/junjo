@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/agent-model-response.v1.schema.json",
+  "title": "Junjo normalized Agent model response v1",
+  "oneOf": [
+    {"$ref": "#/$defs/finalOutput"},
+    {"$ref": "#/$defs/toolCalls"}
+  ],
+  "$defs": {
+    "usage": {"$ref": "model-usage.v1.schema.json"},
+    "toolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "arguments"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "arguments": {"type": "object"}
+      }
+    },
+    "finalOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "output"],
+      "properties": {
+        "v": {"const": 1},
+        "type": {"const": "final_output"},
+        "output": true,
+        "usage": {"$ref": "#/$defs/usage"}
+      }
+    },
+    "toolCalls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "type", "calls"],
+      "properties": {
+        "v": {"const": 1},
+        "type": {"const": "tool_calls"},
+        "assistantText": {"type": ["string", "null"]},
+        "calls": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/toolCall"}
+        },
+        "usage": {"$ref": "#/$defs/usage"}
+      }
+    }
+  }
+}

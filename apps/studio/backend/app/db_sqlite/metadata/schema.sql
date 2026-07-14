@@ -93,6 +93,19 @@ CREATE INDEX IF NOT EXISTS idx_workflow_files_service
     ON workflow_files(service_name);
 
 -- ============================================================================
+-- agent_files: Agent file optimization
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS agent_files (
+    service_name TEXT NOT NULL,
+    file_id INTEGER NOT NULL,
+    PRIMARY KEY (service_name, file_id),
+    FOREIGN KEY (file_id) REFERENCES parquet_files(file_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_files_service
+    ON agent_files(service_name);
+
+-- ============================================================================
 -- failed_parquet_files: Error tracking
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS failed_parquet_files (
