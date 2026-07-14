@@ -445,10 +445,11 @@ Horizon 1 adds the provider-neutral protocols, normalized types, and a
 deterministic scripted ModelDriver test utility. It does not add a provider SDK
 dependency to Junjo core.
 
-The `ai_chat` proof uses an application-local deterministic ModelDriver with no
-provider SDK or live provider call. An official adapter or optional provider
-package is considered only after the normalized contract is proven by more
-than one real use.
+The `ai_chat` application uses application-local Gemini and Grok adapters to
+prove the provider-neutral Agent contract against real providers. Those
+adapters remain example-owned: Junjo core does not depend on provider SDKs or
+own a general provider abstraction. `ScriptedModelDriver` remains an SDK test
+utility and does not define application behavior.
 
 ## Implementation requirements
 

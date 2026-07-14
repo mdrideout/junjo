@@ -104,7 +104,7 @@ You can execute autonomous agent capabilities from other libraries inside a Junj
 
 _**Find several example Junjo applications inside the [examples](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples) directory in this repository.**_
 
-- [AI Chat](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat) - a credential-free FastAPI and React acceptance application proving Workflow-to-Agent and Agent-to-Workflow composition.
+- [AI Chat](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat) - a live-model FastAPI and React application demonstrating model-powered Workflows, bounded Agents, versioned persistence, Studio diagnostics, and eval-driven development.
 - [Getting Started](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/getting_started) - the basis of our getting started documentation
 - [Base Example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base) - a minimal python example showcasing several Junjo patterns
 

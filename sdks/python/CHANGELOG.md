@@ -28,6 +28,9 @@ All notable changes to Junjo will be documented in this file.
 - Unified Workflow, Node, concurrent, and Agent lifecycle preparation around
   explicit internal identity, terminal-state, cancellation, and observer
   boundaries without introducing a universal executable abstraction.
+- Added `evaluate_node()` as a one-shot, normally instrumented Node-eval
+  envelope that preserves Node, Store, trace, and application-correlation
+  evidence without making Junjo own datasets or judges.
 
 ### Telemetry
 
@@ -44,21 +47,24 @@ All notable changes to Junjo will be documented in this file.
 
 - Added Agent concepts, API, deterministic testing, composition, failure,
   cancellation, telemetry, and Studio evidence documentation.
-- Rebuilt `examples/ai_chat` as the credential-free Horizon 2 acceptance
-  application: a deterministic three-step Workflow shell executes a bounded
-  chat Agent whose typed image Tool invokes a fresh two-node Workflow, while
-  application-owned persistence remains outside the Agent.
-- Added a strict synchronous chat API and small React client that directly
-  displays persisted responses and their Workflow and Agent run identities.
+- Restored `examples/ai_chat` as a live AI application: model-powered Contact,
+  avatar, directive, work, date, image, and persona behaviors run inside
+  explicit Workflows, while a bounded Agent handles the open-ended general
+  path and can invoke the shared image Workflow through a typed Tool.
+- Added server-owned versioned Turn/Contact/Conversation JSON persistence,
+  background execution, the original React chat experience, optional Studio
+  deep links, and colocated live biography/directive eval datasets.
+- Updated the explicit Gemini and xAI defaults to current supported text and
+  image/editing models; provider identifiers remain environment-overridable.
 
 ### Tooling and CI
 
-- Added path-scoped AI Chat backend and frontend validation with all nine
-  deterministic Horizon 2 scenarios, lint, type checks, tests, and production
-  frontend build; unrelated pull requests do not run this gate.
-- Added live SDK/application-to-OTLP-to-Studio validators that authenticate
-  against a disposable local Studio, verify raw and semantic hierarchy, and
-  independently replay Agent and Workflow Store evidence.
+- Added path-scoped AI Chat backend/frontend validation for deterministic
+  application infrastructure. Credentialed product-quality evals remain
+  explicit development experiments rather than ordinary CI gates.
+- Added a provider-free public-SDK-to-OTLP-to-Studio release validator that
+  authenticates against a disposable local Studio, verifies raw and semantic
+  hierarchy, and independently replays Agent and Workflow Store evidence.
 
 ## 0.64.0 - 2026-07-13
 

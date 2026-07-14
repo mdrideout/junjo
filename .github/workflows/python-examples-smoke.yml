@@ -54,7 +54,7 @@ jobs:
         run: uv run --package junjo-ai-chat-example ruff check examples/ai_chat/backend
       - name: Type-check AI chat backend
         run: uv run --package junjo-ai-chat-example ty check --error-on-warning examples/ai_chat/backend/src
-      - name: Run all deterministic AI chat scenarios
+      - name: Run AI Chat infrastructure tests
         run: uv run --package junjo-ai-chat-example pytest -q examples/ai_chat/backend/tests
 
   ai-chat-frontend:

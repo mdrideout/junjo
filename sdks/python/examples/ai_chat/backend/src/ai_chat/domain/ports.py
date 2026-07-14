@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
-from typing import Protocol
+from typing import Protocol, TypeVar
+
+from pydantic import BaseModel
 
 from .models import (
     ChatAgentOutput,
@@ -15,6 +17,7 @@ from .models import (
     ConversationOverview,
     HistoryMatch,
     ImageArtifact,
+    ImageEditResult,
     Turn,
     TurnFailure,
     TurnStatus,
@@ -22,6 +25,7 @@ from .models import (
 
 IdFactory = Callable[[], str]
 Clock = Callable[[], datetime]
+StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
 
 
 class ConversationReader(Protocol):
@@ -94,8 +98,31 @@ class TurnRepository(Protocol):
     async def list_turns(self, conversation_id: str) -> tuple[Turn, ...]: ...
 
 
-class ImageRenderer(Protocol):
-    async def render(self, *, prompt: str, alt_text: str) -> ImageArtifact: ...
+class LanguageModel(Protocol):
+    """Bounded text capabilities used by application Workflow Nodes."""
+
+    async def generate_text(self, *, prompt: str) -> str: ...
+
+    async def generate_structured(
+        self,
+        *,
+        prompt: str,
+        output_type: type[StructuredOutput],
+    ) -> StructuredOutput: ...
+
+
+class ImageModel(Protocol):
+    """Application image generation and avatar-conditioned editing capability."""
+
+    async def generate(self, *, prompt: str, alt_text: str) -> ImageArtifact: ...
+
+    async def edit(
+        self,
+        *,
+        source: ImageArtifact,
+        prompt: str,
+        alt_text: str,
+    ) -> ImageEditResult: ...
 
 
 class ApplicationStore(

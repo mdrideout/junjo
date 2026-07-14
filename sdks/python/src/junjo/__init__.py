@@ -24,6 +24,7 @@ from .agent import (
 from .condition import Condition
 from .correlation import ExecutionCorrelation
 from .edge import Edge
+from .eval import NodeEvaluationResult, evaluate_node
 from .graph import (
     CompiledEdge,
     CompiledGraph,
@@ -75,6 +76,8 @@ __all__ = [
     "StoreFactory",
     "ExecutionResult",
     "ExecutionCorrelation",
+    "NodeEvaluationResult",
+    "evaluate_node",
     "Workflow",
     "Subflow",
     "Tool",

@@ -1,24 +1,46 @@
-"""Focused persistence, renderer, and deterministic demo-driver adapter tests."""
+"""Focused persistence tests for versioned application objects and Turns."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
-from conftest import SequenceClock, SequenceIds, make_harness
+from PIL import Image
 
-from ai_chat.adapters.images import SvgImageRenderer
-from ai_chat.adapters.model import demo_model_binding
+from ai_chat.adapters.images import GrokImageModel
 from ai_chat.adapters.persistence import SqliteChatStore
 from ai_chat.domain.errors import TurnInProgressError
 from ai_chat.domain.models import (
     ChatAgentOutput,
     ContextPolicyReference,
+    Conversation,
     ImageArtifact,
     MessageRole,
     TurnFailure,
     TurnStatus,
 )
+from conftest import SequenceClock, SequenceIds, sample_contact
+
+
+class FakeGrokImageResponse:
+    def __init__(self, image_bytes: bytes) -> None:
+        self._image_bytes = image_bytes
+
+    @property
+    async def image(self) -> bytes:
+        return self._image_bytes
+
+
+class FakeGrokImageClient:
+    def __init__(self, image_bytes: bytes) -> None:
+        self.image = self
+        self._image_bytes = image_bytes
+        self.requests: list[dict[str, Any]] = []
+
+    async def sample(self, **request: Any) -> FakeGrokImageResponse:
+        self.requests.append(request)
+        return FakeGrokImageResponse(self._image_bytes)
 
 
 @pytest.mark.asyncio
@@ -31,6 +53,11 @@ async def test_sqlite_store_round_trips_versioned_turns_search_and_image_artifac
         clock=SequenceClock(),
     )
     await store.initialize()
+    contact = sample_contact()
+    await store.create_contact(
+        contact=contact,
+        conversation=Conversation(id="demo", title=contact.display_name, contact_id=contact.id),
+    )
     artifact = ImageArtifact(
         id="image",
         url="/api/images/image.svg",
@@ -65,8 +92,10 @@ async def test_sqlite_store_round_trips_versioned_turns_search_and_image_artifac
     completed = await store.recent_completed_turns("demo", current.sequence, 8)
     matches = await store.search_history("demo", current.sequence, "project", 5)
 
-    assert [(item.conversation.id, item.conversation.title) for item in conversations] == [("demo", "Junjo Agent Demo")]
+    assert [(item.conversation.id, item.conversation.title) for item in conversations] == [("demo", "Junjo Guide")]
     assert contact.display_name == "Junjo Guide"
+    assert contact.object_type == "ai_chat.contact"
+    assert contact.personality.openness == 0.8
     assert turns == (completed_turn, current)
     assert turns[0].object_type == "ai_chat.turn"
     assert turns[0].schema_version == 1
@@ -96,6 +125,11 @@ async def test_sqlite_recent_context_skips_terminal_failures_before_applying_lim
         clock=SequenceClock(),
     )
     await store.initialize()
+    contact = sample_contact()
+    await store.create_contact(
+        contact=contact,
+        conversation=Conversation(id="demo", title=contact.display_name, contact_id=contact.id),
+    )
     first = await store.admit_turn(
         conversation_id="demo",
         turn_id="completed",
@@ -136,44 +170,32 @@ async def test_sqlite_recent_context_skips_terminal_failures_before_applying_lim
 
 
 @pytest.mark.asyncio
-async def test_svg_renderer_writes_one_explicit_application_artifact(
+async def test_grok_image_adapter_awaits_and_persists_sdk_image_response(
     tmp_path: Path,
 ) -> None:
-    renderer = SvgImageRenderer(directory=tmp_path, id_factory=SequenceIds("image"))
-
-    artifact = await renderer.render(prompt="A Junjo graph", alt_text="A graph illustration")
-
-    assert artifact == ImageArtifact(
-        id="image-1",
-        url="/api/images/image-1.svg",
-        alt_text="A graph illustration",
+    source_path = tmp_path / "fixture.png"
+    Image.new("RGB", (2, 2), color="purple").save(source_path, format="PNG")
+    image_bytes = source_path.read_bytes()
+    client = FakeGrokImageClient(image_bytes)
+    images = GrokImageModel(
+        api_key="test-key",
+        model="grok-imagine-image-quality",
+        directory=tmp_path / "images",
+        id_factory=SequenceIds("grok-image"),
     )
-    content = (tmp_path / "image-1.svg").read_text(encoding="utf-8")
-    assert "A Junjo graph" in content
-    assert "<svg" in content
+    images._client = client  # type: ignore[assignment]
 
-
-@pytest.mark.asyncio
-async def test_default_demo_driver_runs_direct_history_contact_and_image_paths_without_credentials(
-    tmp_path: Path,
-) -> None:
-    harness = make_harness(tmp_path, binding=demo_model_binding())
-
-    direct = await harness.turns.submit(conversation_id="demo", text="hello")
-    history = await harness.turns.submit(conversation_id="demo", text="Remember hello")
-    contact = await harness.turns.submit(conversation_id="demo", text="Show the contact profile")
-    image = await harness.turns.submit(
-        conversation_id="demo",
-        text="Make a graph visual",
+    generated = await images.generate(prompt="portrait", alt_text="Generated portrait")
+    edited = await images.edit(
+        source=generated,
+        prompt="new setting",
+        alt_text="Edited portrait",
     )
 
-    assert direct.assistant_message is not None
-    assert direct.assistant_message.content == "Deterministic reply: hello"
-    assert history.assistant_message is not None
-    assert "hello" in history.assistant_message.content
-    assert contact.assistant_message is not None
-    assert "Junjo Guide" in contact.assistant_message.content
-    assert image.assistant_message is not None
-    assert image.assistant_message.image is not None
-    assert image.execution_references.agent_run_id is not None
-    assert len(harness.renderer.calls) == 1
+    assert generated.url.endswith(".png")
+    assert edited.artifact.url.endswith(".png")
+    assert (tmp_path / "images" / f"{generated.id}.png").is_file()
+    assert (tmp_path / "images" / f"{edited.artifact.id}.png").is_file()
+    assert client.requests[0]["image_format"] == "base64"
+    assert client.requests[0]["aspect_ratio"] == "1:1"
+    assert client.requests[1]["image_url"].startswith("data:image/png;base64,")

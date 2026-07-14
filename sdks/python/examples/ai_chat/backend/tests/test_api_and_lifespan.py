@@ -11,7 +11,6 @@ from pathlib import Path
 
 import httpx
 import pytest
-from conftest import make_harness
 from junjo.agent import (
     AgentAdmissionError,
     FinalOutputResponse,
@@ -24,6 +23,7 @@ from ai_chat.api.schemas import MessageResponse
 from ai_chat.bootstrap import ChatApplication
 from ai_chat.config import ModelProvider, Settings, TelemetrySettings
 from ai_chat.telemetry import TelemetryRuntime
+from conftest import make_harness
 
 
 @pytest.mark.asyncio
@@ -47,15 +47,30 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
                         "id": "demo",
                         "title": "Demo conversation",
                         "contact": {
+                            "object_type": "ai_chat.contact",
+                            "schema_version": 1,
                             "id": "contact-1",
                             "first_name": "Junjo",
                             "last_name": "Guide",
                             "sex": "female",
                             "age": 31,
+                            "personality": {
+                                "openness": 0.8,
+                                "conscientiousness": 0.6,
+                                "extraversion": 0.7,
+                                "agreeableness": 0.8,
+                                "neuroticism": 0.2,
+                                "intelligence": 0.8,
+                                "religiousness": 0.1,
+                                "attractiveness": 0.8,
+                                "trauma": 0.2,
+                            },
+                            "latitude": 40.6782,
+                            "longitude": -73.9442,
                             "city": "Brooklyn",
                             "state": "NY",
                             "bio": "A deterministic application contact.",
-                            "avatar_url": "/api/images/avatar-1.svg",
+                            "avatar_url": "/api/images/avatar-1.png",
                         },
                         "last_message_at": None,
                     }
@@ -590,6 +605,7 @@ def test_telemetry_boolean_and_port_accept_explicit_valid_values(
     monkeypatch.setenv("JUNJO_AI_STUDIO_API_KEY", "key")
     monkeypatch.setenv("JUNJO_AI_STUDIO_INSECURE", "false")
     monkeypatch.setenv("JUNJO_AI_STUDIO_PORT", "443")
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
     settings = Settings.from_environment()
     assert settings.telemetry is not None
     assert settings.telemetry.insecure is False
@@ -612,15 +628,17 @@ def test_live_provider_selection_requires_its_own_key(
         Settings.from_environment()
 
 
-def test_demo_provider_is_the_explicit_credential_free_default(
+def test_gemini_is_the_explicit_default_and_requires_its_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("AI_CHAT_MODEL_PROVIDER", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("XAI_API_KEY", raising=False)
 
-    settings = Settings.from_environment()
+    with pytest.raises(ValueError, match="GEMINI_API_KEY"):
+        Settings.from_environment()
 
-    assert settings.model_provider is ModelProvider.DEMO
-    assert settings.gemini_api_key is None
-    assert settings.xai_api_key is None
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
+    settings = Settings.from_environment()
+    assert settings.model_provider is ModelProvider.GEMINI
+    assert settings.gemini_api_key == "gemini-key"

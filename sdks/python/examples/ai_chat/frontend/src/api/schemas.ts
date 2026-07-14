@@ -10,11 +10,28 @@ export type ContactSex = z.infer<typeof ContactSexSchema>
 
 export const ContactSchema = z
   .object({
+    object_type: z.literal('ai_chat.contact'),
+    schema_version: z.literal(1),
     id: IdentifierSchema,
     first_name: NonEmptyTextSchema,
     last_name: NonEmptyTextSchema,
     sex: ContactSexSchema,
     age: z.number().int().min(18).max(100),
+    personality: z
+      .object({
+        openness: z.number().min(0).max(1),
+        conscientiousness: z.number().min(0).max(1),
+        extraversion: z.number().min(0).max(1),
+        agreeableness: z.number().min(0).max(1),
+        neuroticism: z.number().min(0).max(1),
+        intelligence: z.number().min(0).max(1),
+        religiousness: z.number().min(0).max(1),
+        attractiveness: z.number().min(0).max(1),
+        trauma: z.number().min(0).max(1),
+      })
+      .strict(),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
     city: NonEmptyTextSchema,
     state: NonEmptyTextSchema,
     bio: NonEmptyTextSchema,

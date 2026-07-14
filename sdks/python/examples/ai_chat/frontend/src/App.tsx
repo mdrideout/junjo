@@ -10,7 +10,23 @@ export default function App() {
   const { chat_id: chatId } = useParams()
   const navigate = useNavigate()
   const chat = useChat(chatId)
-  const [lastReadAtByChatId, setLastReadAtByChatId] = useState<Record<string, number>>({})
+  const [lastReadAtByChatId, setLastReadAtByChatId] = useState<Record<string, number>>(() => {
+    try {
+      const stored = window.localStorage.getItem('ai-chat:last-read-at')
+      if (stored === null) return {}
+      const parsed: unknown = JSON.parse(stored)
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}
+      return Object.fromEntries(
+        Object.entries(parsed).filter((entry): entry is [string, number] => typeof entry[1] === 'number'),
+      )
+    } catch {
+      return {}
+    }
+  })
+
+  useEffect(() => {
+    window.localStorage.setItem('ai-chat:last-read-at', JSON.stringify(lastReadAtByChatId))
+  }, [lastReadAtByChatId])
 
   useEffect(() => {
     if (chatId === undefined && chat.selectedConversationId !== null) {

@@ -9,8 +9,9 @@ ADRs, not this roadmap, own runtime and telemetry contracts.
 Horizon 0 is complete as of 2026-07-13. The Horizon 1 Agent kernel, telemetry
 contract version 2, and cohesive Studio trace-evidence path are implemented.
 Horizon 2 remains in progress: its Turn, correlation, diagnostics, persistence,
-and composition foundations exist, but the real AI-powered application and its
-eval-driven-development loop have not been faithfully restored.
+composition, real AI-powered application, and initial eval-development loop are
+implemented. Credentialed live eval and end-to-end Studio evidence validation
+remain before Horizon 2 can be declared complete.
 
 The remaining application work is governed by the
 [AI Chat Product Restoration And Eval-Driven Development Plan](AI_CHAT_PRODUCT_RESTORATION_AND_EVAL_DRIVEN_DEVELOPMENT.md).

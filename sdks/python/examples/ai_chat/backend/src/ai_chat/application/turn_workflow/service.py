@@ -20,7 +20,8 @@ from ai_chat.domain.ports import (
     ContactReader,
     HistoryReader,
     IdFactory,
-    ImageRenderer,
+    ImageModel,
+    LanguageModel,
     TurnRepository,
 )
 
@@ -37,13 +38,15 @@ class ChatTurnService:
         turns: TurnRepository,
         history: HistoryReader,
         contacts: ContactReader,
-        images: ImageRenderer,
+        language: LanguageModel,
+        images: ImageModel,
         id_factory: IdFactory,
     ) -> None:
         self._agent = agent
         self._turns = turns
         self._history = history
         self._contacts = contacts
+        self._language = language
         self._images = images
         self._id_factory = id_factory
 
@@ -73,6 +76,7 @@ class ChatTurnService:
                 turns=self._turns,
                 history=self._history,
                 contacts=self._contacts,
+                language=self._language,
                 images=self._images,
             )
             result = await workflow.execute(correlation=ExecutionCorrelation(type="ai_chat.turn", id=turn.id))

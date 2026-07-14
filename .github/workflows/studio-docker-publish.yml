@@ -438,8 +438,8 @@ jobs:
         uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
         with:
           enable-cache: false
-      - name: Sync the exact AI Chat proof runtime
-        run: uv sync --frozen --project sdks/python --package junjo-ai-chat-example
+      - name: Sync the exact public SDK proof runtime
+        run: uv sync --frozen --project sdks/python
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -473,10 +473,10 @@ jobs:
             --image-source registry \
             --evidence-directory /tmp/studio-h2-evidence/registry \
             "${EXPECTED_IMAGES[@]}"
-      - name: Upload exact-image AI Chat Studio proof
+      - name: Upload exact-image Agent Studio proof
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: studio-exact-ai-chat-proof-${{ needs.validation.outputs.version }}
+          name: studio-exact-agent-proof-${{ needs.validation.outputs.version }}
           path: /tmp/studio-h2-evidence/registry/**
           if-no-files-found: error
           overwrite: true

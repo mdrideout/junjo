@@ -1,6 +1,6 @@
 # AI Chat Product Restoration And Eval-Driven Development Plan
 
-- Status: Planned
+- Status: Implemented; credentialed live eval and Studio evidence proof pending
 - Date: 2026-07-14
 - Owners: Junjo platform
 - Functional baseline: commit `255f69d`
@@ -400,6 +400,31 @@ Product restoration is complete only when:
 
 Passing scripted-driver tests, fixed-string assertions, or a credential-free
 demo does not satisfy these criteria.
+
+## Implementation record
+
+Implemented on the Agent Horizon branch:
+
+- explicit Gemini/Grok language, image generation, image editing, and Agent
+  driver adapters with no runtime demo or fallback path;
+- full versioned Contact/Conversation objects and document-oriented SQLite
+  persistence in the new `chat-v3.sqlite3` store;
+- model-powered contact facts, biography, name, avatar inspiration, and avatar
+  Subflow;
+- model-powered directive, work, date, and avatar-conditioned image paths;
+- persona-aware general Agent with older-history and shared image-Workflow
+  Tools;
+- restored frontend behavior, background refresh, persisted unread state, and
+  optional Turn diagnostics;
+- public `evaluate_node()` execution, ADR 0010, and live biography/directive
+  eval datasets with exact run correlation;
+- conventional backend integration and frontend validation without duplicate
+  Agent runtime scenario matrices.
+
+The repository has no provider credential. The final real contact, all live
+message branches, live eval judge results, and resulting Studio views must be
+exercised once a local `GEMINI_API_KEY` or `XAI_API_KEY` is supplied. This is a
+validation dependency, not a reason to add simulated product behavior.
 
 ## Explicit non-goals
 

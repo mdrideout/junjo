@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
 
 import aiosqlite
 from pydantic import ValidationError
@@ -22,12 +21,10 @@ from ai_chat.domain.models import (
     ChatMessage,
     CompletedTurn,
     ContactProfile,
-    ContactSex,
     ContextPolicyReference,
     Conversation,
     ConversationOverview,
     HistoryMatch,
-    ImageArtifact,
     MessageRole,
     Turn,
     TurnFailure,
@@ -39,21 +36,12 @@ _SCHEMA = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS contacts (
     id TEXT PRIMARY KEY,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    sex TEXT NOT NULL CHECK (sex IN ('male', 'female')),
-    age INTEGER NOT NULL,
-    city TEXT NOT NULL,
-    state TEXT NOT NULL,
-    bio TEXT NOT NULL,
-    avatar_id TEXT NOT NULL,
-    avatar_url TEXT NOT NULL,
-    avatar_alt_text TEXT NOT NULL
+    document_json TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS conversations (
     id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    contact_id TEXT NOT NULL REFERENCES contacts(id)
+    contact_id TEXT NOT NULL REFERENCES contacts(id),
+    document_json TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS turns (
     id TEXT PRIMARY KEY,
@@ -76,43 +64,15 @@ class SqliteChatStore:
         path: Path,
         id_factory: IdFactory,
         clock: Clock,
-        seed_demo: bool = True,
     ) -> None:
         self._path = path
         self._id_factory = id_factory
         self._clock = clock
-        self._seed_demo = seed_demo
 
     async def initialize(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         async with self._connection() as database:
             await database.executescript(_SCHEMA)
-            if self._seed_demo:
-                await database.execute(
-                    """
-                    INSERT OR IGNORE INTO contacts(
-                        id, first_name, last_name, sex, age, city, state, bio,
-                        avatar_id, avatar_url, avatar_alt_text
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        "demo-contact",
-                        "Junjo",
-                        "Guide",
-                        "female",
-                        31,
-                        "Brooklyn",
-                        "NY",
-                        "A deterministic contact used by the Junjo hybrid execution example.",
-                        "demo-avatar",
-                        "/api/images/demo-avatar.svg",
-                        "Portrait of Junjo Guide",
-                    ),
-                )
-                await database.execute(
-                    "INSERT OR IGNORE INTO conversations(id, title, contact_id) VALUES (?, ?, ?)",
-                    ("demo", "Junjo Agent Demo", "demo-contact"),
-                )
             await database.commit()
 
     async def close(self) -> None:
@@ -123,10 +83,8 @@ class SqliteChatStore:
             rows = await _rows(
                 database,
                 """
-                SELECT conversations.id, conversations.title, conversations.contact_id,
-                       contacts.first_name, contacts.last_name, contacts.sex,
-                       contacts.age, contacts.city, contacts.state, contacts.bio,
-                       contacts.avatar_id, contacts.avatar_url, contacts.avatar_alt_text,
+                SELECT conversations.document_json AS conversation_json,
+                       contacts.document_json AS contact_json,
                        MAX(json_extract(turns.document_json, '$.updated_at')) AS last_message_at
                 FROM conversations
                 JOIN contacts ON contacts.id = conversations.contact_id
@@ -137,11 +95,7 @@ class SqliteChatStore:
             )
         return tuple(
             ConversationOverview(
-                conversation=Conversation(
-                    id=_text(row, "id"),
-                    title=_text(row, "title"),
-                    contact_id=_text(row, "contact_id"),
-                ),
+                conversation=_conversation_from_row(row),
                 contact=_contact_from_row(row),
                 last_message_at=row["last_message_at"],
             )
@@ -160,29 +114,12 @@ class SqliteChatStore:
             await database.execute("BEGIN IMMEDIATE")
             try:
                 await database.execute(
-                    """
-                    INSERT INTO contacts(
-                        id, first_name, last_name, sex, age, city, state, bio,
-                        avatar_id, avatar_url, avatar_alt_text
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        contact.id,
-                        contact.first_name,
-                        contact.last_name,
-                        contact.sex.value,
-                        contact.age,
-                        contact.city,
-                        contact.state,
-                        contact.bio,
-                        contact.avatar.id,
-                        contact.avatar.url,
-                        contact.avatar.alt_text,
-                    ),
+                    "INSERT INTO contacts(id, document_json) VALUES (?, ?)",
+                    (contact.id, contact.model_dump_json()),
                 )
                 await database.execute(
-                    "INSERT INTO conversations(id, title, contact_id) VALUES (?, ?, ?)",
-                    (conversation.id, conversation.title, conversation.contact_id),
+                    "INSERT INTO conversations(id, contact_id, document_json) VALUES (?, ?, ?)",
+                    (conversation.id, conversation.contact_id, conversation.model_dump_json()),
                 )
                 await database.commit()
             except BaseException:
@@ -199,7 +136,7 @@ class SqliteChatStore:
             row = await _row(
                 database,
                 """
-                SELECT contacts.*
+                SELECT contacts.document_json AS contact_json
                 FROM conversations
                 JOIN contacts ON contacts.id = conversations.contact_id
                 WHERE conversations.id = ?
@@ -500,30 +437,21 @@ async def _rows(
     return list(await cursor.fetchall())
 
 
-def _text(row: aiosqlite.Row, name: str) -> str:
-    value: Any = row[name]
-    if not isinstance(value, str):
-        raise TurnPersistenceError(f"Expected text column {name}.")
-    return value
-
-
 def _contact_from_row(row: aiosqlite.Row) -> ContactProfile:
+    raw = row["contact_json"]
+    if not isinstance(raw, str):
+        raise TurnPersistenceError("Stored Contact document is not JSON text.")
     try:
-        age = int(row["age"])
-    except (TypeError, ValueError) as error:
-        raise TurnPersistenceError("Expected integer column age.") from error
-    return ContactProfile(
-        id=_text(row, "contact_id") if "contact_id" in row.keys() else _text(row, "id"),
-        first_name=_text(row, "first_name"),
-        last_name=_text(row, "last_name"),
-        sex=ContactSex(_text(row, "sex")),
-        age=age,
-        city=_text(row, "city"),
-        state=_text(row, "state"),
-        bio=_text(row, "bio"),
-        avatar=ImageArtifact(
-            id=_text(row, "avatar_id"),
-            url=_text(row, "avatar_url"),
-            alt_text=_text(row, "avatar_alt_text"),
-        ),
-    )
+        return ContactProfile.model_validate_json(raw)
+    except ValidationError as error:
+        raise TurnPersistenceError("Stored Contact document violates schema version 1.") from error
+
+
+def _conversation_from_row(row: aiosqlite.Row) -> Conversation:
+    raw = row["conversation_json"]
+    if not isinstance(raw, str):
+        raise TurnPersistenceError("Stored Conversation document is not JSON text.")
+    try:
+        return Conversation.model_validate_json(raw)
+    except ValidationError as error:
+        raise TurnPersistenceError("Stored Conversation document violates schema version 1.") from error

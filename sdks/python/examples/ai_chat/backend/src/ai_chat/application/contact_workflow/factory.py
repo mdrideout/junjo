@@ -3,7 +3,7 @@
 from junjo import Workflow
 
 from ai_chat.domain.models import ContactSex
-from ai_chat.domain.ports import ContactWriter, ImageRenderer
+from ai_chat.domain.ports import ContactWriter, ImageModel, LanguageModel
 
 from .graph import create_contact_graph
 from .state import ContactWorkflowState, ContactWorkflowStore
@@ -15,11 +15,12 @@ def create_contact_workflow(
     conversation_id: str,
     sex: ContactSex,
     contacts: ContactWriter,
-    images: ImageRenderer,
+    language: LanguageModel,
+    images: ImageModel,
 ) -> Workflow[ContactWorkflowState, ContactWorkflowStore]:
     return Workflow(
         name="Create Contact Workflow",
-        graph_factory=lambda: create_contact_graph(contacts=contacts, images=images),
+        graph_factory=lambda: create_contact_graph(contacts=contacts, language=language, images=images),
         store_factory=lambda: ContactWorkflowStore(
             initial_state=ContactWorkflowState(
                 contact_id=contact_id,

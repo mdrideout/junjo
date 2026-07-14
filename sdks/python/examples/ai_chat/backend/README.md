@@ -6,8 +6,9 @@ telemetry configuration, and acceptance scenarios live in the
 [example README](../README.md).
 
 The package intentionally contains only application-owned domain,
-orchestration, adapter, and HTTP layers. Junjo owns Agent and Workflow
-execution; the application owns persistence, transport, and image rendering.
+orchestration, provider/persistence adapter, eval, and HTTP layers. Junjo owns
+Agent and Workflow execution; the application owns prompts, providers,
+persistence, transport, image artifacts, and product-quality evaluation.
 
 The canonical full-stack development environment is the two-service
 `compose.yaml` in the parent directory. This backend image is built from the

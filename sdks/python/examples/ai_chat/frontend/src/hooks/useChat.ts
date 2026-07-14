@@ -76,11 +76,17 @@ export function useChat(routeConversationId?: string): ChatState {
 
   useEffect(() => {
     const controller = new AbortController()
-    void Promise.all([getPublicConfig(controller.signal), getConversations(controller.signal)])
-      .then(([receivedConfig, { conversations: received }]) => {
+    const loadConversations = (showLoading: boolean) => {
+      if (showLoading) setLoadingConversations(true)
+      return getConversations(controller.signal)
+        .then(({ conversations: received }) => {
+          setConversations(received)
+          setSelectedConversationId((current) => current ?? received[0]?.id ?? null)
+        })
+    }
+    void Promise.all([getPublicConfig(controller.signal), loadConversations(true)])
+      .then(([receivedConfig]) => {
         setConfig(receivedConfig)
-        setConversations(received)
-        setSelectedConversationId((current) => current ?? received[0]?.id ?? null)
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) setError(failureFrom(reason))
@@ -88,7 +94,15 @@ export function useChat(routeConversationId?: string): ChatState {
       .finally(() => {
         if (!controller.signal.aborted) setLoadingConversations(false)
       })
-    return () => controller.abort()
+    const interval = window.setInterval(() => {
+      void loadConversations(false).catch((reason: unknown) => {
+        if (!controller.signal.aborted) setError(failureFrom(reason))
+      })
+    }, 7500)
+    return () => {
+      window.clearInterval(interval)
+      controller.abort()
+    }
   }, [])
 
   useEffect(() => {
@@ -104,15 +118,23 @@ export function useChat(routeConversationId?: string): ChatState {
     const controller = new AbortController()
     setLoadingTurns(true)
     setError(null)
-    void getConversationTurns(selectedConversationId, controller.signal)
+    const loadTurns = (showLoading: boolean) => {
+      if (showLoading) setLoadingTurns(true)
+      return getConversationTurns(selectedConversationId, controller.signal)
       .then(({ turns: received }) => setTurns(received))
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) setError(failureFrom(reason))
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoadingTurns(false)
+        if (showLoading && !controller.signal.aborted) setLoadingTurns(false)
       })
-    return () => controller.abort()
+    }
+    void loadTurns(true)
+    const interval = window.setInterval(() => void loadTurns(false), 2000)
+    return () => {
+      window.clearInterval(interval)
+      controller.abort()
+    }
   }, [selectedConversationId])
 
   const selectConversation = useCallback((conversationId: string) => {

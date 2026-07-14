@@ -7,7 +7,7 @@ Studio under `/Users/matt/repos/junjo/apps/studio`.
 Public behavior, examples, and conceptual explanations live in:
 
 - public class and function docstrings
-- Sphinx docs under `/Users/matt/repos/junjo/sdks/python/docs`
+- source-owned docs and exports under `/Users/matt/repos/junjo/sdks/python/docs`
 - runnable examples under `/Users/matt/repos/junjo/sdks/python/examples`
 
 ## Developer Philosophy
@@ -87,7 +87,7 @@ Whenever behavior or public APIs change, update all of the following together:
 2. runtime code
 3. tests
 4. public docstrings
-5. Sphinx docs
+5. Python docs source, the Sphinx migration build, and the generated Starlight export
 6. examples
 
 Be comprehensive so that we avoid documentation drift, or potential LLM context poison from outdated materials.
@@ -100,6 +100,8 @@ For meaningful public-surface changes, run:
 - `uv run pytest -q`
 - `uv run ty check --error-on-warning src`
 - `uv run sphinx-build -b html docs docs/_build/html`
+- the Python documentation export and parity validation commands documented in
+  `sdks/python/docs/README.md`
 
 If Sphinx warnings appear, do not ignore them by default. Check whether they
 were pre-existing or introduced by the change. Suggest the fixes.

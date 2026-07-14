@@ -3,7 +3,7 @@
 from junjo import ExecutionCorrelation
 
 from ai_chat.domain.models import ContactSex, ConversationOverview
-from ai_chat.domain.ports import ContactWriter, IdFactory, ImageRenderer
+from ai_chat.domain.ports import ContactWriter, IdFactory, ImageModel, LanguageModel
 
 from .factory import create_contact_workflow
 
@@ -13,10 +13,12 @@ class ContactCreationService:
         self,
         *,
         contacts: ContactWriter,
-        images: ImageRenderer,
+        language: LanguageModel,
+        images: ImageModel,
         id_factory: IdFactory,
     ) -> None:
         self._contacts = contacts
+        self._language = language
         self._images = images
         self._id_factory = id_factory
 
@@ -28,6 +30,7 @@ class ContactCreationService:
             conversation_id=conversation_id,
             sex=sex,
             contacts=self._contacts,
+            language=self._language,
             images=self._images,
         )
         result = await workflow.execute(correlation=ExecutionCorrelation(type="ai_chat.contact", id=contact_id))

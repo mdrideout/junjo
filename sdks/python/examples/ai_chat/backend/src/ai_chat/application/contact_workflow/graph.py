@@ -2,28 +2,35 @@
 
 from junjo import Edge, Graph, RunConcurrent
 
-from ai_chat.domain.ports import ContactWriter, ImageRenderer
+from ai_chat.domain.ports import ContactWriter, ImageModel, LanguageModel
 
 from .avatar_state import AvatarWorkflowState, AvatarWorkflowStore
 from .avatar_subflow import AvatarSubflow, create_avatar_graph
 from .nodes import (
-    CreateIdentityNode,
+    CreateBioNode,
+    CreateNameNode,
+    CreatePersonalityNode,
     PersistContactNode,
     SelectAgeNode,
     SelectLocationNode,
-    SelectPersonalityNode,
 )
 
 
-def create_contact_graph(*, contacts: ContactWriter, images: ImageRenderer) -> Graph:
+def create_contact_graph(
+    *,
+    contacts: ContactWriter,
+    language: LanguageModel,
+    images: ImageModel,
+) -> Graph:
     initial_data = RunConcurrent(
         name="Create Initial Contact Data",
-        items=[SelectAgeNode(), SelectLocationNode(), SelectPersonalityNode()],
+        items=[SelectAgeNode(), SelectLocationNode(language), CreatePersonalityNode()],
     )
-    identity = CreateIdentityNode()
+    bio = CreateBioNode(language)
+    name = CreateNameNode(language)
     avatar = AvatarSubflow(
         name="Create Contact Avatar Subflow",
-        graph_factory=lambda: create_avatar_graph(images),
+        graph_factory=lambda: create_avatar_graph(language=language, images=images),
         store_factory=lambda: AvatarWorkflowStore(initial_state=AvatarWorkflowState()),
         max_iterations=1,
     )
@@ -32,8 +39,9 @@ def create_contact_graph(*, contacts: ContactWriter, images: ImageRenderer) -> G
         source=initial_data,
         sinks=[persist],
         edges=[
-            Edge(tail=initial_data, head=identity),
-            Edge(tail=identity, head=avatar),
+            Edge(tail=initial_data, head=bio),
+            Edge(tail=bio, head=name),
+            Edge(tail=name, head=avatar),
             Edge(tail=avatar, head=persist),
         ],
     )

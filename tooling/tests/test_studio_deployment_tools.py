@@ -459,7 +459,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
             evidence_directory=Path("/tmp/junjo-studio-smoke-tests"),
         )
 
-    def test_horizon_2_proof_keeps_credentials_out_of_commands_and_artifacts(
+    def test_agent_studio_proof_keeps_credentials_out_of_commands_and_artifacts(
         self,
     ) -> None:
         runner = self.smoke_runner()
@@ -474,10 +474,10 @@ class DistributionSmokeContractTests(unittest.TestCase):
             command: list[str], **kwargs: object
         ) -> subprocess.CompletedProcess[str]:
             calls.append((command, kwargs))
-            if any(item.endswith("validate_ai_chat_studio_e2e.py") for item in command):
+            if any(item.endswith("validate_agent_studio_e2e.py") for item in command):
                 output = Path(command[command.index("--evidence-output") + 1])
                 output.write_text('{"schema_version": 1}\n', encoding="utf-8")
-            if "test:e2e:ai-chat-live" in command:
+            if "test:e2e:agent-live" in command:
                 output = Path(command[command.index("--screenshot") + 1])
                 output.write_bytes(b"png fixture")
             return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
@@ -485,7 +485,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="junjo-h2-smoke-") as directory:
             runner.evidence_directory = Path(directory)
             with mock.patch.object(smoke, "run_command", side_effect=run):
-                runner.run_horizon_2_proof(identity)
+                runner.run_agent_studio_proof(identity)
             manifest = json.loads(
                 (runner.evidence_directory / "manifest.json").read_text(
                     encoding="utf-8"
@@ -506,7 +506,8 @@ class DistributionSmokeContractTests(unittest.TestCase):
                 },
             )
         self.assertEqual(
-            set(manifest["artifacts"]), {"ai-chat-evidence.json", "ai-chat-agent.png"}
+            set(manifest["artifacts"]),
+            {"agent-evidence.json", "agent-diagnostics.png"},
         )
 
     @contextlib.contextmanager
@@ -525,7 +526,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
                 "wait_for_core_services",
                 "start_demo_application",
                 "wait_for_example_workflow",
-                "run_horizon_2_proof",
+                "run_agent_studio_proof",
             ):
                 stack.enter_context(mock.patch.object(runner, method_name))
             stack.enter_context(

@@ -11,14 +11,10 @@ import { describeActionableRequestFailure } from './request-failure-policy.mjs'
 
 const EVIDENCE_FIELDS = new Set([
   'schema_version',
-  'turn_id',
   'service_namespace',
   'service_name',
   'service_version',
   'trace_id',
-  'outer_workflow_name',
-  'outer_workflow_run_id',
-  'outer_workflow_span_id',
   'agent_name',
   'agent_run_id',
   'agent_span_id',
@@ -54,7 +50,7 @@ function requiredText(value, name) {
 function readEvidence(value) {
   assert.ok(value !== null && typeof value === 'object' && !Array.isArray(value), 'evidence must be an object')
   assert.deepEqual(new Set(Object.keys(value)), EVIDENCE_FIELDS, 'evidence fields are incorrect')
-  assert.equal(value.schema_version, 2, 'evidence schema version is incorrect')
+  assert.equal(value.schema_version, 1, 'evidence schema version is incorrect')
   for (const name of EVIDENCE_FIELDS) {
     if (name !== 'schema_version' && name !== 'tool_operation_sequence') requiredText(value[name], name)
   }
@@ -207,4 +203,4 @@ try {
   await browser.close()
 }
 
-console.log(`Studio live AI Chat visual proof passed; screenshot: ${screenshotPath}`)
+console.log(`Studio live Agent visual proof passed; screenshot: ${screenshotPath}`)

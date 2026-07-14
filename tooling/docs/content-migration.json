@@ -1,0 +1,1827 @@
+{
+  "version": 1,
+  "pages": [
+    {
+      "source_path": "sdks/python/docs/index.rst",
+      "source_hash": "sha256:ec65754d16af245057495b2cd94631176509bd375a7d33ec8c3b389c6803d6da",
+      "source_lines": 160,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/index.md",
+      "target_route": "/docs/python/",
+      "target_hash": "sha256:c22667b1a9e922e97ab05842da0e797c8656e4c6592199315e446999ef9a82aa",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Junjo Python SDK Documentation",
+          "level": 1,
+          "source_line": 48
+        },
+        {
+          "title": "Benefits",
+          "level": 2,
+          "source_line": 69
+        },
+        {
+          "title": "Junjo's Philosophy",
+          "level": 2,
+          "source_line": 88
+        },
+        {
+          "title": "Getting Started",
+          "level": 2,
+          "source_line": 147
+        },
+        {
+          "title": "API Reference",
+          "level": 2,
+          "source_line": 152
+        },
+        {
+          "title": "Eval-Driven Development",
+          "level": 2,
+          "source_line": 157
+        }
+      ],
+      "anchors": [],
+      "directive_counts": {
+        "image": 1,
+        "toctree": 4
+      },
+      "code_blocks": [],
+      "images": [
+        "_static/junjo-screenshot.png"
+      ],
+      "roles": [
+        {
+          "role": "doc",
+          "target": "getting_started"
+        },
+        {
+          "role": "doc",
+          "target": "api"
+        },
+        {
+          "role": "doc",
+          "target": "eval_driven_dev"
+        }
+      ],
+      "outbound_links": [
+        "https://github.com/BerriAI/litellm",
+        "https://github.com/anthropics/anthropic-sdk-python",
+        "https://github.com/googleapis/python-genai",
+        "https://github.com/huggingface/smolagents",
+        "https://github.com/mdrideout/junjo",
+        "https://github.com/mdrideout/junjo/tree/master/apps/studio",
+        "https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat",
+        "https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base",
+        "https://github.com/openai/openai-python",
+        "https://github.com/xai-org/xai-sdk-python",
+        "https://guide.elm-lang.org/architecture/",
+        "https://pypi.org/project/junjo/",
+        "https://redux.js.org/"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/getting_started.rst",
+      "source_hash": "sha256:457b15516ca53dca2c05633f35cd0d0f68c54eec1cc64980128310ab2e5ef379",
+      "source_lines": 145,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/get-started.md",
+      "target_route": "/docs/python/get-started/",
+      "target_hash": "sha256:c10f884fe0224734dbbc8b7db2bb808bc1d1990a1c0c15843b3c1ba697bbbd8e",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Getting Started",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "Installation",
+          "level": 2,
+          "source_line": 7
+        },
+        {
+          "title": "Basic Usage",
+          "level": 2,
+          "source_line": 23
+        }
+      ],
+      "anchors": [
+        "getting_started"
+      ],
+      "directive_counts": {
+        "code-block": 2,
+        "image": 1
+      },
+      "code_blocks": [
+        "sha256:ca758d446cdac9a08e073293c55a024b42f3be7b4a95c279d1bb5cc0f22a440d",
+        "sha256:48a830c665bd1e173e70969b847903b2c758e1fd4e16d48f3a6550585e714824"
+      ],
+      "images": [
+        "_static/junjo-base-example-screenshot.png"
+      ],
+      "roles": [],
+      "outbound_links": [
+        "https://github.com/mdrideout/junjo/tree/master/sdks/python/examples"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/tutorial.rst",
+      "source_hash": "sha256:b715d834046f0cca702ce82242af173865d9dfc0eea0dbf3147ef16a4f877658",
+      "source_lines": 162,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/tutorial.md",
+      "target_route": "/docs/python/tutorial/",
+      "target_hash": "sha256:1726df48c7f68045e8e22aa726c8aa393a0875dc3a34431c1291562a69178cc0",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Tutorial: Building Your First Workflow",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "Step 1: Define the State",
+          "level": 2,
+          "source_line": 13
+        },
+        {
+          "title": "Step 2: Create the Store",
+          "level": 2,
+          "source_line": 26
+        },
+        {
+          "title": "Step 3: Create the Nodes",
+          "level": 2,
+          "source_line": 39
+        },
+        {
+          "title": "Step 4: Create the Condition",
+          "level": 2,
+          "source_line": 78
+        },
+        {
+          "title": "Step 5: Assemble the Graph in a Factory",
+          "level": 2,
+          "source_line": 94
+        },
+        {
+          "title": "Step 6: Create and Execute the Workflow",
+          "level": 2,
+          "source_line": 129
+        }
+      ],
+      "anchors": [
+        "tutorial"
+      ],
+      "directive_counts": {
+        "code-block": 6,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:7d45cc5c41fcc07c62e66447e0bd211ebb30d633544f674fcc19b01d20c3283b",
+        "sha256:3e0443e7e38e7d77e3b244ddab8e5c0cc601375350865adbc407138ef99f9f91",
+        "sha256:d7d4bbfba49d500279656e9def6cf358c97b3981a30c5c922e4e2c39ab605996",
+        "sha256:39e500d7b94d9ce1ef9560f4e250a0928ee29126f0ef55e4a2616ba7c01c94d1",
+        "sha256:ca052bced1dac6aae60528a416deca048d3f95a6afef1090b61e5f593410db24",
+        "sha256:838a8ee1e625bd3f656d1ed3a620ca83e7e3c55a2f48d62fa656d1bbaf063dc3"
+      ],
+      "images": [],
+      "roles": [
+        {
+          "role": "doc",
+          "target": "getting_started"
+        }
+      ],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/agents.rst",
+      "source_hash": "sha256:f85c88429ba31eb96d804feb3ee8e201dd954ed956dd287f64cfdb272d3c888f",
+      "source_lines": 163,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/agents/index.md",
+      "target_route": "/docs/python/agents/",
+      "target_hash": "sha256:f9305914e5eb68e12002e512cf9a9d495888a0e405207d6a25e331838eda4c07",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Agents",
+          "level": 1,
+          "source_line": 1
+        },
+        {
+          "title": "Minimal definition",
+          "level": 2,
+          "source_line": 21
+        },
+        {
+          "title": "Tools and dependencies",
+          "level": 2,
+          "source_line": 78
+        },
+        {
+          "title": "Limits and errors",
+          "level": 2,
+          "source_line": 90
+        },
+        {
+          "title": "Portable boundaries and deterministic identity",
+          "level": 2,
+          "source_line": 105
+        },
+        {
+          "title": "Typed results and diagnostic state",
+          "level": 2,
+          "source_line": 146
+        }
+      ],
+      "anchors": [],
+      "directive_counts": {
+        "code-block": 1
+      },
+      "code_blocks": [
+        "sha256:18a48ae2be3623533cfdc17b8c381293bb32cd41d76fe2ef6820e7ed9f9b3a57"
+      ],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/agent_testing.rst",
+      "source_hash": "sha256:ec80b2fba8806eb857737acac1119961cdc6aebd56560f4db1ef966ab357f565",
+      "source_lines": 79,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/agents/testing.md",
+      "target_route": "/docs/python/agents/testing/",
+      "target_hash": "sha256:582cbfa6b23005d6bb91e5cd9f2792c79ce392d755a8e84e0146acd1b8f2c89e",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Testing Agents",
+          "level": 1,
+          "source_line": 1
+        },
+        {
+          "title": "Shared producer conformance",
+          "level": 2,
+          "source_line": 43
+        }
+      ],
+      "anchors": [],
+      "directive_counts": {
+        "code-block": 3
+      },
+      "code_blocks": [
+        "sha256:61152d64df0daa9055e94221736d93c83ce1a6aa470b09529f19f17ec323781d",
+        "sha256:c692eb93550bcb6a623f52b45460deb913f4305f921bb4aeb21b741dc7d1c05d",
+        "sha256:dc4d618fc791957fd213f584dc50b84428823494475c595ba5a83d92eb214773"
+      ],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/agent_composition.rst",
+      "source_hash": "sha256:92ae576db0f9cb3a53dec43f255875ad261c9af661eb137ffd60f3eb420aa699",
+      "source_lines": 34,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/agents/composition.md",
+      "target_route": "/docs/python/agents/composition/",
+      "target_hash": "sha256:ca30c34425b5488ff826faabea02acab5b9d1659ca9a186f4c19902141baf3d4",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Agent and Workflow Composition",
+          "level": 1,
+          "source_line": 1
+        },
+        {
+          "title": "Workflow to Agent",
+          "level": 2,
+          "source_line": 7
+        },
+        {
+          "title": "Agent to Workflow",
+          "level": 2,
+          "source_line": 15
+        },
+        {
+          "title": "Failure and cancellation",
+          "level": 2,
+          "source_line": 24
+        }
+      ],
+      "anchors": [],
+      "directive_counts": {},
+      "code_blocks": [],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/core_concepts.rst",
+      "source_hash": "sha256:49c6bd1e74ab3036eebe96b4752af0e0d0b5c9048ea854be90a440cae7ef35af",
+      "source_lines": 294,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/concepts.md",
+      "target_route": "/docs/python/concepts/",
+      "target_hash": "sha256:44cdb7e9900587fb1d4c872772ecf16899e179c93e42972ed9bb7a7bd725003b",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Core Concepts",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "State",
+          "level": 2,
+          "source_line": 13
+        },
+        {
+          "title": "Store",
+          "level": 2,
+          "source_line": 32
+        },
+        {
+          "title": "Node",
+          "level": 2,
+          "source_line": 54
+        },
+        {
+          "title": "Edge",
+          "level": 2,
+          "source_line": 76
+        },
+        {
+          "title": "Condition",
+          "level": 2,
+          "source_line": 92
+        },
+        {
+          "title": "Graph",
+          "level": 2,
+          "source_line": 112
+        },
+        {
+          "title": "Compiled Graph Snapshot",
+          "level": 3,
+          "source_line": 142
+        },
+        {
+          "title": "Runtime Identity vs Structural Identity",
+          "level": 3,
+          "source_line": 190
+        },
+        {
+          "title": "Workflow",
+          "level": 2,
+          "source_line": 219
+        }
+      ],
+      "anchors": [
+        "core_concepts"
+      ],
+      "directive_counts": {
+        "code-block": 10,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:f2356772378fcd82c01629abe4231cd59706f3f765e77050415e5120e9c856a5",
+        "sha256:48f7e22e5a1d6feeaa3eb8e899bc0be417271df9092ed52d39607cfb29c5017e",
+        "sha256:895eae83dcacf7afbe691d98966fb35a5da5586d946b826713d21524db813d66",
+        "sha256:c63eba27310eafee9d19f4d767796892ec47461b1123189c78a5e42db53d4d58",
+        "sha256:50adba1408f87a1606d18606ebbf6c378847c9f65340aecfd0e9962c3f54bb98",
+        "sha256:6d7f43c33deec38aa716e91bd17835cb6aec2859af02d7990eb63752288aff95",
+        "sha256:a90ddaa275cc48b2169ca9a1cc48d1b8eccdc181a3f653aeb832b7a08d276a81",
+        "sha256:bb8f01c7db962007c4f4d505d2f6ef82773c761f8560dda163561da67f9af95b",
+        "sha256:08d8240732052ba85c6af1d781d360c53783f7273cb0a8d949e7d10a35050f37",
+        "sha256:624edf933a04c3e0c8c376e7e4e8dee1af22c3ce82582fb1bc908de317307d05"
+      ],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/state_management.rst",
+      "source_hash": "sha256:61e738adc3fa58ce2f2b616edb27647a7758bf66b8b46915fadfc7a10e11347f",
+      "source_lines": 125,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/workflows/state.md",
+      "target_route": "/docs/python/workflows/state/",
+      "target_hash": "sha256:8e0a596fcebdb92008e7e3a566f0c7d01052438952594883ec5d9dac2f079c07",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "State Management",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "The Core Principles",
+          "level": 2,
+          "source_line": 13
+        },
+        {
+          "title": "BaseState: Defining Your State's Shape",
+          "level": 2,
+          "source_line": 20
+        },
+        {
+          "title": "BaseStore: Managing Your State",
+          "level": 2,
+          "source_line": 69
+        },
+        {
+          "title": "The `set_state` Method",
+          "level": 3,
+          "source_line": 92
+        },
+        {
+          "title": "Using the Store in a Node",
+          "level": 2,
+          "source_line": 103
+        }
+      ],
+      "anchors": [
+        "state_management"
+      ],
+      "directive_counts": {
+        "code-block": 4,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:81bf2c73e60612a59d1ab55e7267b34ad401ae9ed0208a925eefe3b9e8d567ae",
+        "sha256:cbc6700a7f67a05cc1817999d31a140004f03e6ecd2ed1b8f243140d005bb301",
+        "sha256:d78dffdaa010de1ca0513a9833cabc4f2d991c2440de085b07b0d99a5db9d6ba",
+        "sha256:f5a8221277506182adbb7193ce03864bdeb8720fefd66a12415f0fc9044bfd90"
+      ],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/concurrency.rst",
+      "source_hash": "sha256:4c735f32174f03a137694d8b18faae97dd767ac4d67d735fa1de8c32f877ead7",
+      "source_lines": 182,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/workflows/concurrency.md",
+      "target_route": "/docs/python/workflows/concurrency/",
+      "target_hash": "sha256:5233b93815661b15da328489494d7ea778fed86b3a9070fc8ef66eb45703f6f2",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Concurrency",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "Asyncio Native: The Core of Junjo's Performance",
+          "level": 2,
+          "source_line": 17
+        },
+        {
+          "title": "Example: `RunConcurrent()`",
+          "level": 3,
+          "source_line": 26
+        },
+        {
+          "title": "Immutable State: Ensuring Concurrency Safety",
+          "level": 2,
+          "source_line": 88
+        },
+        {
+          "title": "Benefits of Junjo's Approach to Concurrency",
+          "level": 2,
+          "source_line": 158
+        },
+        {
+          "title": "Best Practices for Designing Concurrent Junjo Workflows",
+          "level": 2,
+          "source_line": 168
+        },
+        {
+          "title": "Conclusion",
+          "level": 2,
+          "source_line": 179
+        }
+      ],
+      "anchors": [
+        "concurrency"
+      ],
+      "directive_counts": {
+        "code-block": 2,
+        "image": 1,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:e6f4b19487a098742f8cbd9f216ec3cea716c4ad4bf6b0b71e9256d1e758d67c",
+        "sha256:da80de4d8cbd91c6455f32a8d77fb6897578505c9550ad3cfedee454a737af9e"
+      ],
+      "images": [
+        "_static/concurrent-visual.png"
+      ],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/subflows.rst",
+      "source_hash": "sha256:1e93d04f819f9c6b52bd594c655bb337cdf8fb63d58d47a30b0c9ea6e79681b8",
+      "source_lines": 247,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/workflows/subflows.md",
+      "target_route": "/docs/python/workflows/subflows/",
+      "target_hash": "sha256:12e2d328b10120b061877f6e74dd50f75b937edae715ccb128daccd0aee16376",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Subflows",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "What is a Subflow?",
+          "level": 2,
+          "source_line": 15
+        },
+        {
+          "title": "Examples",
+          "level": 2,
+          "source_line": 28
+        },
+        {
+          "title": "Implementing a Subflow",
+          "level": 2,
+          "source_line": 36
+        },
+        {
+          "title": "Key Components:",
+          "level": 3,
+          "source_line": 41
+        },
+        {
+          "title": "Example Subflow Definition:",
+          "level": 3,
+          "source_line": 47
+        },
+        {
+          "title": "Integrating Subflows into a Parent Workflow's Graph",
+          "level": 2,
+          "source_line": 166
+        },
+        {
+          "title": "Example Parent Workflow Graph with a Subflow:",
+          "level": 3,
+          "source_line": 171
+        },
+        {
+          "title": "Visualizing Subflows",
+          "level": 2,
+          "source_line": 212
+        },
+        {
+          "title": "Subflows on Junjo AI Studio",
+          "level": 2,
+          "source_line": 230
+        },
+        {
+          "title": "Conclusion",
+          "level": 2,
+          "source_line": 240
+        }
+      ],
+      "anchors": [
+        "subflows"
+      ],
+      "directive_counts": {
+        "code-block": 3,
+        "image": 2,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:913f2967c488fa5e438b0560e11a5f634b7b642cdc69b0e989f96d01cefc4027",
+        "sha256:88038b74d99c9db590cc5e1f385b0d089b9e4e9281ec88da04250efdc22b8ae1",
+        "sha256:0cd8a6491c496a9a6bc78604b22a9351a2f529a5d6f2a96514da7f57bebfd3e2"
+      ],
+      "images": [
+        "_static/subflow-graphviz-visual.png",
+        "_static/subflow-junjo-ai-studio-visual.png"
+      ],
+      "roles": [],
+      "outbound_links": [
+        "https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/base/src/base/sample_workflow/graph.py",
+        "https://github.com/mdrideout/junjo/tree/master/apps/studio"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/hooks.rst",
+      "source_hash": "sha256:d4fdd8e32222a2df8291d4694a51d8a802ed11890a30f29dd043719a5f4d255a",
+      "source_lines": 150,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/hooks.md",
+      "target_route": "/docs/python/hooks/",
+      "target_hash": "sha256:c64c7b31572cdf906ab258a3590c5ee9dbe74f7a0ee9e1335bf2c4aca9100437",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Hooks",
+          "level": 1,
+          "source_line": 3
+        },
+        {
+          "title": "Simple completion logging",
+          "level": 2,
+          "source_line": 15
+        },
+        {
+          "title": "Shared hook fields",
+          "level": 2,
+          "source_line": 78
+        },
+        {
+          "title": "Additional hook fields",
+          "level": 2,
+          "source_line": 96
+        },
+        {
+          "title": "Registering and unsubscribing",
+          "level": 2,
+          "source_line": 115
+        },
+        {
+          "title": "Base example",
+          "level": 2,
+          "source_line": 140
+        }
+      ],
+      "anchors": [
+        "hooks"
+      ],
+      "directive_counts": {
+        "code-block": 2,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:f8ab90b02b7967313aa1743c5dcaf99daf1f1dbe84c00675b89c31f9dc1105e3",
+        "sha256:44e88897cb2af0113333641c3ccf204bee20069a4c82b451c3a92476cc73f191"
+      ],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/visualizing_workflows.rst",
+      "source_hash": "sha256:5f931e46628ab252e251f0a6d3563b189d46904926c6fc14f6e35e9eeadc36bd",
+      "source_lines": 204,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/workflows/visualization.md",
+      "target_route": "/docs/python/workflows/visualization/",
+      "target_hash": "sha256:487659def1b78abacedc51ea20a172ed379b962f4aa07d7bbba87d81a4a77c7d",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Visualizing AI Workflows",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "Why Visualize Your AI Workflows?",
+          "level": 2,
+          "source_line": 21
+        },
+        {
+          "title": "Generating Workflow Diagrams with Graphviz",
+          "level": 2,
+          "source_line": 43
+        },
+        {
+          "title": "Prerequisites",
+          "level": 3,
+          "source_line": 50
+        },
+        {
+          "title": "Generating Assets",
+          "level": 3,
+          "source_line": 78
+        },
+        {
+          "title": "Example Usage",
+          "level": 3,
+          "source_line": 101
+        },
+        {
+          "title": "Generating Mermaid Flowcharts",
+          "level": 2,
+          "source_line": 133
+        },
+        {
+          "title": "Example Usage",
+          "level": 3,
+          "source_line": 150
+        },
+        {
+          "title": "Dynamic Telemetry with Junjo AI Studio",
+          "level": 2,
+          "source_line": 174
+        }
+      ],
+      "anchors": [
+        "visualizing_workflows"
+      ],
+      "directive_counts": {
+        "code-block": 4,
+        "image": 2,
+        "note": 2
+      },
+      "code_blocks": [
+        "sha256:69314e92de3b76e8a1bd8d2f40b7d723e6499de72dddd1dae98acedbaeaf0a0c",
+        "sha256:a2e2358d20e28c8563c423c961d712ad001a3798817b7f16ce63b2991cb8d01d",
+        "sha256:2643f23ab9f891ab2c2835be64976034432f33fda7ac8d17b24be1e09919a4e8",
+        "sha256:8c3a8e2cb3ce495d324d53e31e053d17e284f5e7dbfbd9c767b51b9d7d5adad0"
+      ],
+      "images": [
+        "_static/junjo-screenshot-graphviz.png",
+        "_static/junjo-screenshot.png"
+      ],
+      "roles": [
+        {
+          "role": "doc",
+          "target": "getting_started"
+        },
+        {
+          "role": "doc",
+          "target": "api"
+        },
+        {
+          "role": "doc",
+          "target": "eval_driven_dev"
+        },
+        {
+          "role": "doc",
+          "target": "junjo_ai_studio"
+        }
+      ],
+      "outbound_links": [
+        "https://github.com/mdrideout/junjo/tree/master/apps/studio",
+        "https://graphviz.org/download/"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/eval_driven_dev.rst",
+      "source_hash": "sha256:86b355297840f3d79ccab212f3e01dc7c3110d01ea7b271d810be5f8a6708255",
+      "source_lines": 114,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/python/testing/eval-driven-development.md",
+      "target_route": "/docs/python/testing/eval-driven-development/",
+      "target_hash": "sha256:c059825971080bf43a31d634659b210a5f8d647662fe7bf7c2831508004db95c",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Eval-Driven Development",
+          "level": 1,
+          "source_line": 3
+        },
+        {
+          "title": "Powered by pytest",
+          "level": 2,
+          "source_line": 17
+        },
+        {
+          "title": "Prerequisites",
+          "level": 2,
+          "source_line": 34
+        },
+        {
+          "title": "Library Example",
+          "level": 2,
+          "source_line": 41
+        },
+        {
+          "title": "Testing Model Changes",
+          "level": 2,
+          "source_line": 111
+        }
+      ],
+      "anchors": [
+        "eval_driven_dev"
+      ],
+      "directive_counts": {
+        "code-block": 2,
+        "image": 1
+      },
+      "code_blocks": [
+        "sha256:c795c7eb1f0acc5e5c30603b0304fb27e5c10a852f31903385fddfe86e888370",
+        "sha256:53beb88c430019c6897444a0f5416be0300601db70b837dda92ee1fcc658d26a"
+      ],
+      "images": [
+        "_static/pytest-eval-driven-development-example.gif"
+      ],
+      "roles": [
+        {
+          "role": "func",
+          "target": "junjo.evaluate_node"
+        },
+        {
+          "role": "code",
+          "target": "examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test"
+        }
+      ],
+      "outbound_links": [
+        "https://github.com/mdrideout/junjo",
+        "https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base/src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/api.rst",
+      "source_hash": "sha256:845c0a051eea45fe820552ba6f0c6542de5e4ac0efdbbf75e5ca378f802406b4",
+      "source_lines": 86,
+      "owner": "python",
+      "disposition": "generated",
+      "target_path": null,
+      "target_route": "/docs/python/api/",
+      "target_hash": null,
+      "status": "awaiting-api-generation",
+      "headings": [
+        {
+          "title": "API Reference",
+          "level": 1,
+          "source_line": 3
+        },
+        {
+          "title": "Core API",
+          "level": 2,
+          "source_line": 6
+        },
+        {
+          "title": "Agent API",
+          "level": 2,
+          "source_line": 18
+        },
+        {
+          "title": "Hooks API",
+          "level": 2,
+          "source_line": 71
+        },
+        {
+          "title": "Telemetry API",
+          "level": 2,
+          "source_line": 80
+        }
+      ],
+      "anchors": [
+        "api"
+      ],
+      "directive_counts": {
+        "automodule": 12
+      },
+      "code_blocks": [],
+      "images": [],
+      "roles": [],
+      "outbound_links": []
+    },
+    {
+      "source_path": "sdks/python/docs/junjo_ai_studio.rst",
+      "source_hash": "sha256:e17e6e7f057096780f2e503fd6bf28f33391c3271b70ab0b1ef73e80f740c9e5",
+      "source_lines": 687,
+      "owner": "studio",
+      "disposition": "migrated",
+      "target_path": "apps/studio/docs/public/docs/studio/overview.md",
+      "target_route": "/docs/studio/overview/",
+      "target_hash": "sha256:8fcd8b593b28fd45d9cc80d0ff4de93f69ad1084fb44c6c70fe0200d920b12b3",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Junjo AI Studio Intro",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "What is Junjo AI Studio?",
+          "level": 2,
+          "source_line": 16
+        },
+        {
+          "title": "Why Use Junjo AI Studio for AI Workflows?",
+          "level": 2,
+          "source_line": 29
+        },
+        {
+          "title": "Installation & Setup",
+          "level": 2,
+          "source_line": 48
+        },
+        {
+          "title": "Quick Start Options",
+          "level": 3,
+          "source_line": 65
+        },
+        {
+          "title": "Option 1: Use the Minimal Build Template (Recommended)",
+          "level": 4,
+          "source_line": 68
+        },
+        {
+          "title": "Option 2: Create Your Own Docker Compose File",
+          "level": 4,
+          "source_line": 91
+        },
+        {
+          "title": "Resource Requirements",
+          "level": 3,
+          "source_line": 190
+        },
+        {
+          "title": "Configuration",
+          "level": 2,
+          "source_line": 201
+        },
+        {
+          "title": "Step 1: Generate an API Key",
+          "level": 3,
+          "source_line": 204
+        },
+        {
+          "title": "Step 2: Configure OpenTelemetry in Your Application",
+          "level": 3,
+          "source_line": 212
+        },
+        {
+          "title": "Step 3: Initialize Telemetry in Your Application",
+          "level": 3,
+          "source_line": 293
+        },
+        {
+          "title": "Normal Lifecycle vs Manual Flush",
+          "level": 2,
+          "source_line": 311
+        },
+        {
+          "title": "Key Features Deep Dive",
+          "level": 2,
+          "source_line": 324
+        },
+        {
+          "title": "1. Interactive Graph Visualization",
+          "level": 3,
+          "source_line": 327
+        },
+        {
+          "title": "2. Agent Execution Diagnostics",
+          "level": 3,
+          "source_line": 344
+        },
+        {
+          "title": "3. State Step Debugging",
+          "level": 3,
+          "source_line": 361
+        },
+        {
+          "title": "4. Trace Exploration",
+          "level": 3,
+          "source_line": 378
+        },
+        {
+          "title": "5. Multi-Execution Comparison",
+          "level": 3,
+          "source_line": 388
+        },
+        {
+          "title": "Using with OpenInference for LLM Tracing",
+          "level": 2,
+          "source_line": 398
+        },
+        {
+          "title": "Junjo-Specific Telemetry Attributes",
+          "level": 2,
+          "source_line": 423
+        },
+        {
+          "title": "Agent Spans",
+          "level": 3,
+          "source_line": 437
+        },
+        {
+          "title": "Workflow Spans",
+          "level": 3,
+          "source_line": 448
+        },
+        {
+          "title": "Node Spans",
+          "level": 3,
+          "source_line": 462
+        },
+        {
+          "title": "Subflow Spans",
+          "level": 3,
+          "source_line": 474
+        },
+        {
+          "title": "AI Studio Identity Contract",
+          "level": 3,
+          "source_line": 480
+        },
+        {
+          "title": "Execution Graph Snapshot Contract",
+          "level": 3,
+          "source_line": 513
+        },
+        {
+          "title": "Graph Node To Span Matching",
+          "level": 3,
+          "source_line": 560
+        },
+        {
+          "title": "Complete Example",
+          "level": 2,
+          "source_line": 576
+        },
+        {
+          "title": "Using Other OpenTelemetry Platforms",
+          "level": 2,
+          "source_line": 584
+        },
+        {
+          "title": "Architecture Details",
+          "level": 2,
+          "source_line": 612
+        },
+        {
+          "title": "Troubleshooting",
+          "level": 2,
+          "source_line": 643
+        },
+        {
+          "title": "No data appearing in Junjo AI Studio",
+          "level": 3,
+          "source_line": 646
+        },
+        {
+          "title": "Missing LLM data",
+          "level": 3,
+          "source_line": 655
+        },
+        {
+          "title": "Performance issues",
+          "level": 3,
+          "source_line": 662
+        },
+        {
+          "title": "Docker Compose not starting",
+          "level": 3,
+          "source_line": 670
+        },
+        {
+          "title": "Next Steps",
+          "level": 2,
+          "source_line": 681
+        }
+      ],
+      "anchors": [
+        "junjo_ai_studio"
+      ],
+      "directive_counts": {
+        "code-block": 11,
+        "image": 2,
+        "meta": 1,
+        "note": 1,
+        "warning": 1
+      },
+      "code_blocks": [
+        "sha256:eb5d119b9085ad2ceaec69c132e9e05b856fd46a18f0efd30080c50fd6272849",
+        "sha256:876f3c8dcfec038c508699b3b22754819c1a66d836f4b3724c14b84d1fbee2e4",
+        "sha256:8634065dcca8030e25a1480e75fda90066548a379c98d98cb0bfa7d153ab9171",
+        "sha256:24438ad8c10ac59d3fde2d8310573fff3e61890c8fd5a1bc63f8cf54aaa0ca11",
+        "sha256:e844699795d9a34852927d406aefacfa968a931a65525713b1973a4ca14e7b7b",
+        "sha256:55a7dccc4ad38a4a71b18038a61e8236733d431cdc5597397396df3824c830bb",
+        "sha256:18f70b6df65104da5c0bb1643298a1231a6bb92495fef43780cf866021e2bf6a",
+        "sha256:3af59106c0db8417a737437a1ba3169a78093599f1d758a1abd5ca8758454143",
+        "sha256:59009de567a0d2f8ece1d9214e4562b49f7e3c4b79f4f694f0859fcd6782e7be",
+        "sha256:cedbcbecc86d671507a1a99646ae3b9cc2d3abe90431e47538411dc75c6eac9c",
+        "sha256:91fc4805e62b9ced95041abd40c4be655e8993e6c3d177ee1ea7198bcf9f0a25"
+      ],
+      "images": [
+        "_static/junjo-screenshot.png",
+        "_static/junjo-screenshot.png"
+      ],
+      "roles": [
+        {
+          "role": "doc",
+          "target": "deployment"
+        },
+        {
+          "role": "doc",
+          "target": "docker_reference"
+        },
+        {
+          "role": "doc",
+          "target": "opentelemetry"
+        },
+        {
+          "role": "doc",
+          "target": "opentelemetry"
+        },
+        {
+          "role": "doc",
+          "target": "opentelemetry"
+        },
+        {
+          "role": "doc",
+          "target": "visualizing_workflows"
+        },
+        {
+          "role": "doc",
+          "target": "eval_driven_dev"
+        },
+        {
+          "role": "doc",
+          "target": "concurrency"
+        }
+      ],
+      "outbound_links": [
+        "http://jaeger:4317\")",
+        "http://localhost:26151",
+        "http://localhost:26153",
+        "http://localhost:26153;",
+        "https://github.com/mdrideout/junjo-ai-studio-minimal-build",
+        "https://github.com/mdrideout/junjo-ai-studio-minimal-build.git",
+        "https://github.com/mdrideout/junjo/tree/master/apps/studio",
+        "https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat",
+        "https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/docker_reference.rst",
+      "source_hash": "sha256:f47f389bb891dea24407ef87ba571bf1a7a28f9da1b221da75590a6179dd651c",
+      "source_lines": 482,
+      "owner": "studio",
+      "disposition": "migrated",
+      "target_path": "apps/studio/docs/public/docs/studio/docker-reference.md",
+      "target_route": "/docs/studio/docker-reference/",
+      "target_hash": "sha256:14d540dc4e9d26dc4661ffa91d6c1502cf6d6b06c8416fd4178f80414b0a1318",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Docker Reference",
+          "level": 1,
+          "source_line": 1
+        },
+        {
+          "title": "Docker Images",
+          "level": 2,
+          "source_line": 8
+        },
+        {
+          "title": "Backend Service",
+          "level": 3,
+          "source_line": 11
+        },
+        {
+          "title": "Ingestion Service",
+          "level": 3,
+          "source_line": 30
+        },
+        {
+          "title": "Frontend Service",
+          "level": 3,
+          "source_line": 49
+        },
+        {
+          "title": "Complete Docker Compose Configuration",
+          "level": 2,
+          "source_line": 67
+        },
+        {
+          "title": "Minimal Build Configuration",
+          "level": 3,
+          "source_line": 70
+        },
+        {
+          "title": "Production Deployment",
+          "level": 2,
+          "source_line": 161
+        },
+        {
+          "title": "Environment Variables Reference",
+          "level": 2,
+          "source_line": 172
+        },
+        {
+          "title": "Common Configuration",
+          "level": 3,
+          "source_line": 177
+        },
+        {
+          "title": "Security (Backend)",
+          "level": 3,
+          "source_line": 192
+        },
+        {
+          "title": "Database Storage",
+          "level": 3,
+          "source_line": 207
+        },
+        {
+          "title": "Logging",
+          "level": 3,
+          "source_line": 216
+        },
+        {
+          "title": "Production URLs (Required for Production)",
+          "level": 3,
+          "source_line": 230
+        },
+        {
+          "title": "AI Service Keys (Optional)",
+          "level": 3,
+          "source_line": 244
+        },
+        {
+          "title": "Volume Mounts",
+          "level": 2,
+          "source_line": 253
+        },
+        {
+          "title": "Local Directory Structure",
+          "level": 3,
+          "source_line": 258
+        },
+        {
+          "title": "Block Storage (Production)",
+          "level": 3,
+          "source_line": 280
+        },
+        {
+          "title": "Port Mappings",
+          "level": 2,
+          "source_line": 303
+        },
+        {
+          "title": "Internal Communication",
+          "level": 3,
+          "source_line": 306
+        },
+        {
+          "title": "External Access",
+          "level": 3,
+          "source_line": 320
+        },
+        {
+          "title": "Resource Requirements",
+          "level": 2,
+          "source_line": 346
+        },
+        {
+          "title": "Network Configuration",
+          "level": 2,
+          "source_line": 357
+        },
+        {
+          "title": "Docker Network",
+          "level": 3,
+          "source_line": 360
+        },
+        {
+          "title": "Production Deployment",
+          "level": 2,
+          "source_line": 387
+        },
+        {
+          "title": "Reverse Proxy Setup",
+          "level": 3,
+          "source_line": 390
+        },
+        {
+          "title": "Scaling Considerations",
+          "level": 2,
+          "source_line": 433
+        },
+        {
+          "title": "Vertical Scaling",
+          "level": 3,
+          "source_line": 436
+        },
+        {
+          "title": "Troubleshooting",
+          "level": 2,
+          "source_line": 446
+        },
+        {
+          "title": "Service Won't Start",
+          "level": 3,
+          "source_line": 449
+        },
+        {
+          "title": "API Errors",
+          "level": 3,
+          "source_line": 467
+        },
+        {
+          "title": "Next Steps",
+          "level": 2,
+          "source_line": 477
+        }
+      ],
+      "anchors": [],
+      "directive_counts": {
+        "code-block": 10
+      },
+      "code_blocks": [
+        "sha256:8c6b032bc83a680d8dd811adfa44c972015a5c64a1645dff0a3b8e0d5a82178a",
+        "sha256:a393e41df8b00872d3972419e20c2a51c10f0c1005ad7051f988335fcb3705eb",
+        "sha256:46420f5e25d021127488d258d45508f5f9d5bb346e08e16869a6dc6b728d8a5e",
+        "sha256:407a0feafde78a31230abf3c30a0f29e2e915eb15ef7f6fc8635f6d3fcb02962",
+        "sha256:98dff5461659f15209f5801e74e88bb4abd5a5b5afdf1532c46781c3e6ad0aed",
+        "sha256:57087dfaf3d803df208e983dbc8f0d510d82c791418e77308121ba9688cabb1f",
+        "sha256:de1fd4f2fa246f49ee02de259c5463bb47f0483e42ea8908fb4274ea843419fe",
+        "sha256:4e7cbbb4620014df66aa3b49841f9b5f606157423b0b58712b8c136a4b393535",
+        "sha256:efe08c1b1f68cd614a590b53894a401a82f817a6c838eed527c4d65b8ad13ca2",
+        "sha256:897821b3697392512273a3765a86731769c878f00a8cb5e878ac954c2781f04d"
+      ],
+      "images": [],
+      "roles": [
+        {
+          "role": "doc",
+          "target": "deployment"
+        },
+        {
+          "role": "doc",
+          "target": "deployment"
+        },
+        {
+          "role": "doc",
+          "target": "junjo_ai_studio"
+        },
+        {
+          "role": "doc",
+          "target": "deployment"
+        },
+        {
+          "role": "doc",
+          "target": "opentelemetry"
+        }
+      ],
+      "outbound_links": [
+        "http://localhost:26151",
+        "http://localhost:26151,http://localhost:26153",
+        "http://localhost:26153",
+        "https://api.example.com",
+        "https://api.junjo.example.com",
+        "https://app.example.com",
+        "https://github.com/mdrideout/junjo-ai-studio-deployment-example",
+        "https://github.com/mdrideout/junjo-ai-studio-minimal-build",
+        "https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend",
+        "https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend",
+        "https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion",
+        "https://ingestion.example.com",
+        "https://junjo.example.com"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/deployment.rst",
+      "source_hash": "sha256:85252c1f4ea56080a20d0b20803dfd09abc6e58560852704ab980851de3daca9",
+      "source_lines": 68,
+      "owner": "studio",
+      "disposition": "migrated",
+      "target_path": "apps/studio/docs/public/docs/studio/deployment.md",
+      "target_route": "/docs/studio/deployment/",
+      "target_hash": "sha256:f6e88d056aa645c7b94e93dfb72d513a003eb0096edb78a2063fe6b5a33a6ee2",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "Junjo AI Studio Deployment",
+          "level": 1,
+          "source_line": 1
+        },
+        {
+          "title": "Minimal Build Template (Recommended Starting Point)",
+          "level": 2,
+          "source_line": 6
+        },
+        {
+          "title": "Digital Ocean VM Deployment Example",
+          "level": 2,
+          "source_line": 44
+        }
+      ],
+      "anchors": [],
+      "directive_counts": {
+        "code-block": 1
+      },
+      "code_blocks": [
+        "sha256:c5c137b95df28e7d761f68553d12f85a1fb206cbd5e101a89778b1817a4bc16d"
+      ],
+      "images": [],
+      "roles": [],
+      "outbound_links": [
+        "http://localhost:26153",
+        "https://api.junjo.example.com",
+        "https://github.com/mdrideout/junjo-ai-studio-deployment-example",
+        "https://github.com/mdrideout/junjo-ai-studio-minimal-build",
+        "https://github.com/mdrideout/junjo-ai-studio-minimal-build.git",
+        "https://ingestion.junjo.example.com",
+        "https://junjo.example.com"
+      ]
+    },
+    {
+      "source_path": "sdks/python/docs/opentelemetry.rst",
+      "source_hash": "sha256:4259e6339a291bc04bd394ad87b7d9e81a8eb369c729ecd98f60d1a8e1ff4513",
+      "source_lines": 731,
+      "owner": "python",
+      "disposition": "migrated",
+      "target_path": "sdks/python/docs/content/docs/observability/opentelemetry.md",
+      "target_route": "/docs/observability/opentelemetry/",
+      "target_hash": "sha256:4ade32549a5b9207491666ef7ed5b2cb7ea11bc89a2edc0df793d428e36442ae",
+      "status": "converted",
+      "headings": [
+        {
+          "title": "OpenTelemetry Integration",
+          "level": 1,
+          "source_line": 4
+        },
+        {
+          "title": "How Junjo Uses OpenTelemetry",
+          "level": 2,
+          "source_line": 13
+        },
+        {
+          "title": "Automatic Span Creation",
+          "level": 2,
+          "source_line": 37
+        },
+        {
+          "title": "Agent hierarchy and ownership",
+          "level": 3,
+          "source_line": 54
+        },
+        {
+          "title": "Application execution correlation",
+          "level": 3,
+          "source_line": 94
+        },
+        {
+          "title": "Agent evidence and Store replay",
+          "level": 3,
+          "source_line": 127
+        },
+        {
+          "title": "Provider Lifecycle",
+          "level": 2,
+          "source_line": 170
+        },
+        {
+          "title": "Library Logging",
+          "level": 2,
+          "source_line": 191
+        },
+        {
+          "title": "Choosing an OpenTelemetry Exporter",
+          "level": 2,
+          "source_line": 241
+        },
+        {
+          "title": "1. Junjo AI Studio (Recommended for AI Workflows)",
+          "level": 3,
+          "source_line": 246
+        },
+        {
+          "title": "2. Jaeger",
+          "level": 3,
+          "source_line": 287
+        },
+        {
+          "title": "3. Grafana/Tempo",
+          "level": 3,
+          "source_line": 303
+        },
+        {
+          "title": "4. Honeycomb, Datadog, New Relic, etc.",
+          "level": 3,
+          "source_line": 319
+        },
+        {
+          "title": "Using Multiple Exporters",
+          "level": 2,
+          "source_line": 336
+        },
+        {
+          "title": "Junjo's Custom Span Attributes",
+          "level": 2,
+          "source_line": 372
+        },
+        {
+          "title": "State Serialization And Telemetry",
+          "level": 2,
+          "source_line": 396
+        },
+        {
+          "title": "Controlling Telemetry State Payloads",
+          "level": 3,
+          "source_line": 424
+        },
+        {
+          "title": "Hook Events Use Copied State Objects",
+          "level": 3,
+          "source_line": 466
+        },
+        {
+          "title": "Workflow/Subflow Span Attributes",
+          "level": 3,
+          "source_line": 477
+        },
+        {
+          "title": "Node Span Attributes",
+          "level": 3,
+          "source_line": 501
+        },
+        {
+          "title": "RunConcurrent Span Attributes",
+          "level": 3,
+          "source_line": 517
+        },
+        {
+          "title": "Complete Configuration Example",
+          "level": 2,
+          "source_line": 540
+        },
+        {
+          "title": "Production Junjo AI Studio Exporter",
+          "level": 2,
+          "source_line": 611
+        },
+        {
+          "title": "Advanced Configuration",
+          "level": 2,
+          "source_line": 626
+        },
+        {
+          "title": "Sampling",
+          "level": 3,
+          "source_line": 629
+        },
+        {
+          "title": "Custom Resource Attributes",
+          "level": 3,
+          "source_line": 644
+        },
+        {
+          "title": "Context Propagation",
+          "level": 3,
+          "source_line": 659
+        },
+        {
+          "title": "What You See in Your Platform",
+          "level": 2,
+          "source_line": 672
+        },
+        {
+          "title": "Troubleshooting",
+          "level": 2,
+          "source_line": 697
+        },
+        {
+          "title": "No spans appearing",
+          "level": 3,
+          "source_line": 700
+        },
+        {
+          "title": "Missing Junjo attributes",
+          "level": 3,
+          "source_line": 711
+        },
+        {
+          "title": "Performance impact",
+          "level": 3,
+          "source_line": 718
+        },
+        {
+          "title": "Next Steps",
+          "level": 2,
+          "source_line": 725
+        }
+      ],
+      "anchors": [
+        "opentelemetry"
+      ],
+      "directive_counts": {
+        "code-block": 23,
+        "meta": 1
+      },
+      "code_blocks": [
+        "sha256:e59210cd957991120f087181ac25583c33680181eb3a4f2d289790dfcf5cccc5",
+        "sha256:a12caf5b56218a64a0d13ebdb9b55f49457bb55eae40743c7423b43fb09495d8",
+        "sha256:3c43615326b2c7ad7789a0e863f5505ff958b5639449c7e58089b9fcca56d917",
+        "sha256:ca50013c8bc07a9c1b7122028ba6f2b3ebd8b1ce52cd3f4ecb070f3d7e8aed26",
+        "sha256:47e58bdc33ad5a3d6bc029c9e3a797840f87ae282e28d33e339160c963790612",
+        "sha256:49ca7863b7cdf11672a1586bbde30aeb2899180630ee9a2b9e65467e65234638",
+        "sha256:8e781c7369b85339213731599f290987aa911e030f9dc2d11b17657657813073",
+        "sha256:034999ea79667f57a368d1c0a5ac4dcc97d03dfdb0c534e2330396f2b2b08a33",
+        "sha256:3e2de6bfdc0a520aa35cb3892917bc8818d9c45b0cc964135fd63b1c92e8a74f",
+        "sha256:db953efca03299b2ecbd2eaf5cc4bd4b49d7bb44683bb8b349310f98467c287d",
+        "sha256:3109bcdb27d2f18678e6412bb0a37a24210c4d65d7af0d0479630eaefb91c3a3",
+        "sha256:59965a31fa5882ce4e2b626108661c6e30b933d4c22026ffdb2ced00811d3fcc",
+        "sha256:1baa6c903ab2e7ef99169983e60bc98917d7eda4e7b663cc27d54bb658853813",
+        "sha256:d82eec30a1fa1e476b203eab8ff4a649cb1a5808c0a9b5714967bc7517b5f8f5",
+        "sha256:0515a6333fe4f35765d208ac4761d89b07dcbbe9f5cdacd6e71e766d7c1d6dd5",
+        "sha256:3923df3e4d334e6c011a72ec5de373c1649831697af04af244438fc2cde00f12",
+        "sha256:2c35af564ae2a764924fd29d1ae60145215626344cee050a6de428712512d6b0",
+        "sha256:f950126277afc2c337a638d61b4e039e039301fb48a85c7778c940b2ad1c1d70",
+        "sha256:990c1d1e309d4094fcc210d54082ae1c4ebc7bd113b045b3478295c99063dc35",
+        "sha256:33cfc8def076c8bc358fb8cd5bd1fbc7f46c3c0bf37a51b6a9c10111f1b22a1a",
+        "sha256:a6e577512f776412d4d088331de807085dc86b9a64d9a93f157100ca56f8a10e",
+        "sha256:90f9b6287fcaabf463c2cb233b405db4a0b27bbef648d314988e894364e86451",
+        "sha256:e43175a00d64b74e946e4e7b5e02eeada23d32729e2cfeec1d67746d1390a95f"
+      ],
+      "images": [],
+      "roles": [
+        {
+          "role": "class",
+          "target": "~junjo.correlation.ExecutionCorrelation"
+        },
+        {
+          "role": "doc",
+          "target": "agents"
+        },
+        {
+          "role": "doc",
+          "target": "junjo_ai_studio"
+        },
+        {
+          "role": "doc",
+          "target": "junjo_ai_studio"
+        },
+        {
+          "role": "doc",
+          "target": "junjo_ai_studio"
+        },
+        {
+          "role": "doc",
+          "target": "visualizing_workflows"
+        },
+        {
+          "role": "doc",
+          "target": "concurrency"
+        },
+        {
+          "role": "doc",
+          "target": "eval_driven_dev"
+        }
+      ],
+      "outbound_links": [
+        "http://jaeger:4317\")",
+        "http://jaeger:4317\",",
+        "http://tempo:4318/v1/traces\",",
+        "https://api.honeycomb.io/v1/traces\","
+      ]
+    }
+  ],
+  "repository_sources": [
+    {
+      "source_path": "apps/website/src/content/docs/index.mdx",
+      "source_hash": "sha256:08015a69b0639d45716488e64f68def25bc1abf67788ab88338c9cd52f6efa17",
+      "source_lines": 41,
+      "owner": "website",
+      "disposition": "retained",
+      "target_route": "/",
+      "corrections": [
+        "Replaced obsolete junjo-server links with the canonical monorepo Studio path.",
+        "Replaced the separate Python-docs call to action with the unified /docs/ route."
+      ],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "apps/website/src/content/docs/guides/example.md",
+      "source_hash": "sha256:515d9abd750ee638417af4bd384e0da8a506fb0b8dfe495c0d7bfc4ea7bb71e0",
+      "source_lines": 11,
+      "owner": "website",
+      "disposition": "retained",
+      "target_route": "/guides/example/",
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "apps/website/src/content/docs/reference/example.md",
+      "source_hash": "sha256:f8934524ab1ed892e08c8b462c9965554a04f04634ea3992de134a2d0027b162",
+      "source_lines": 11,
+      "owner": "website",
+      "disposition": "retained",
+      "target_route": "/reference/example/",
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "sdks/python/README.md",
+      "source_hash": "sha256:a2847dae207bc7b225acb02d31c4a06315bc19f32f8d5255fa14a349de662091",
+      "source_lines": 367,
+      "owner": "python",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "sdks/python/examples/getting_started/README.md",
+      "source_hash": "sha256:d60fd308794d3d7cf37ea1a721f19d011b2709858d1011e9a75d6596bc5aa946",
+      "source_lines": 21,
+      "owner": "python",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "sdks/python/examples/base/README.md",
+      "source_hash": "sha256:79bc31755a5b2303b5c327ed71c9a7d2d3b23fcb3305c6ff69394211357b847f",
+      "source_lines": 95,
+      "owner": "python",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "sdks/python/examples/ai_chat/README.md",
+      "source_hash": "sha256:87e48444359bbd9da1dd592a2cdf11d788cf795ed7aad64c2f44baed626068e6",
+      "source_lines": 220,
+      "owner": "python",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "sdks/python/examples/ai_chat/backend/README.md",
+      "source_hash": "sha256:814e06a55249c8c9f637b5e9a95c0f28119ca845591e4e1420860676da52e166",
+      "source_lines": 21,
+      "owner": "python",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "sdks/python/examples/ai_chat/frontend/README.md",
+      "source_hash": "sha256:fde0eb1fcb0f1cd8a3beb87101e6bcb28542c1d7676b2c63e5a7011d967698dd",
+      "source_lines": 70,
+      "owner": "python",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "apps/studio/README.md",
+      "source_hash": "sha256:36e089264112ab572644b456f9b7d2383ca232047d5a738718822efe1c57b160",
+      "source_lines": 817,
+      "owner": "studio",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "apps/studio/deployments/minimal/README.md",
+      "source_hash": "sha256:30801546e82626757931171ac766fee3205cabb602cb45f0c7feee10c297c366",
+      "source_lines": 470,
+      "owner": "studio",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "apps/studio/deployments/vm-caddy/README.md",
+      "source_hash": "sha256:2d72fe906a6d81ba39f8e147d4347c7a1b0dfd22fa6ec9659e3ce50aa2b01789",
+      "source_lines": 566,
+      "owner": "studio",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    },
+    {
+      "source_path": "contracts/telemetry/README.md",
+      "source_hash": "sha256:57c5e8dc52082bf985fd819eb2fb646d5b0fbd51c9c9266ed99c4a73353aa3ef",
+      "source_lines": 99,
+      "owner": "telemetry",
+      "disposition": "canonical-linked",
+      "target_route": null,
+      "corrections": [],
+      "status": "accounted-for"
+    }
+  ]
+}

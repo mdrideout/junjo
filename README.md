@@ -63,15 +63,7 @@ repository root, run the provider-free Horizon 1 Agent proof with:
 uv run --project sdks/python python tooling/scripts/validate_agent_studio_e2e.py
 ```
 
-After syncing the `junjo-ai-chat-example` workspace package, run the Horizon 2
-application-boundary proof with:
-
-```bash
-uv run --project sdks/python --package junjo-ai-chat-example \
-  python tooling/scripts/validate_ai_chat_studio_e2e.py
-```
-
-Both validators create and remove an isolated test identity and API key. If the
+The validator creates and removes an isolated test identity and API key. If the
 local Studio already contains users, provide the existing administrator
 credentials through `JUNJO_STUDIO_E2E_EXISTING_EMAIL` and
 `JUNJO_STUDIO_E2E_EXISTING_PASSWORD`; the values are never accepted as command

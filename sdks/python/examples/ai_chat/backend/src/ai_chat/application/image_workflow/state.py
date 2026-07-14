@@ -1,23 +1,21 @@
-"""Private state and actions for one image Workflow execution."""
+"""Private state for the shared avatar-conditioned image-response Workflow."""
 
 from junjo import BaseState, BaseStore
 
-from ai_chat.domain.models import ImageArtifact
+from ai_chat.domain.models import ChatAgentOutput, CompletedTurn, ContactProfile
 
 
 class ImageWorkflowState(BaseState):
-    prompt: str
-    prepared_prompt: str | None = None
-    alt_text: str | None = None
-    artifact: ImageArtifact | None = None
+    request: str = ""
+    contact: ContactProfile | None = None
+    recent_turns: tuple[CompletedTurn, ...] = ()
+    inspiration: str | None = None
+    output: ChatAgentOutput | None = None
 
 
 class ImageWorkflowStore(BaseStore[ImageWorkflowState]):
-    async def set_prompt(self, prompt: str) -> None:
-        await self.set_state({"prompt": prompt})
+    async def set_inspiration(self, inspiration: str) -> None:
+        await self.set_state({"inspiration": inspiration})
 
-    async def set_prepared_prompt(self, *, prompt: str, alt_text: str) -> None:
-        await self.set_state({"prepared_prompt": prompt, "alt_text": alt_text})
-
-    async def set_artifact(self, artifact: ImageArtifact) -> None:
-        await self.set_state({"artifact": artifact})
+    async def set_output(self, output: ChatAgentOutput) -> None:
+        await self.set_state({"output": output})

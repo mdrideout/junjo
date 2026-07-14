@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
 from opentelemetry import metrics, trace
 from opentelemetry.metrics import _internal as metrics_internal
 from opentelemetry.sdk.metrics import MeterProvider
@@ -108,5 +109,7 @@ def start_telemetry(settings: TelemetrySettings) -> TelemetryRuntime:
                 ],
             ) from None
         raise RuntimeError("OpenTelemetry providers are already installed")
+
+    GoogleGenAIInstrumentor().instrument(tracer_provider=trace_provider)
 
     return runtime

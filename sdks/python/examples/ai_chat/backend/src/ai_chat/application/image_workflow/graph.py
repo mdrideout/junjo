@@ -1,17 +1,13 @@
-"""Fresh image Workflow Graph construction."""
+"""Fresh shared image-response Graph construction."""
 
 from junjo import Edge, Graph
 
-from ai_chat.domain.ports import ImageRenderer
+from ai_chat.domain.ports import ImageModel, LanguageModel
 
-from .nodes import PrepareImagePromptNode, RenderImageNode
+from .nodes import CreateImageInspirationNode, CreateImageResponseNode
 
 
-def create_image_graph(renderer: ImageRenderer) -> Graph:
-    prepare = PrepareImagePromptNode()
-    render = RenderImageNode(renderer)
-    return Graph(
-        source=prepare,
-        sinks=[render],
-        edges=[Edge(tail=prepare, head=render)],
-    )
+def create_image_graph(*, language: LanguageModel, images: ImageModel) -> Graph:
+    inspire = CreateImageInspirationNode(language)
+    create = CreateImageResponseNode(language=language, images=images)
+    return Graph(source=inspire, sinks=[create], edges=[Edge(tail=inspire, head=create)])

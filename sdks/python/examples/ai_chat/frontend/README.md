@@ -23,6 +23,10 @@ Turn text is limited to 2,500 characters. A message image must include nonempty
 `image_alt` text, and conversation selection remains fixed while a turn runs so
 that the response cannot be applied to a different conversation.
 
+Conversation summaries and the selected conversation's Turns refresh in the
+background. Last-read timestamps persist in browser storage, so unread state
+survives reload without becoming server-owned product data.
+
 An admitted execution failure is a typed problem containing the terminal Turn.
 The client keeps that durable failure and its known runtime identities visible
 after reload. When the backend enables debug presentation, the diagnostics

@@ -1,11 +1,8 @@
-"""Application-owned image rendering adapters."""
+"""Application-owned live image adapters."""
 
-from .live import GeminiImageRenderer, GrokImageRenderer
-from .svg import SvgImageRenderer, ensure_seed_avatar
+from .live import GeminiImageModel, GrokImageModel
 
 __all__ = [
-    "GeminiImageRenderer",
-    "GrokImageRenderer",
-    "SvgImageRenderer",
-    "ensure_seed_avatar",
+    "GeminiImageModel",
+    "GrokImageModel",
 ]

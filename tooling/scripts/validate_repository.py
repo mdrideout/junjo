@@ -78,15 +78,13 @@ REQUIRED_PATHS = (
     "tooling/scripts/publish_studio_distribution.py",
     "tooling/scripts/smoke_studio_distribution.py",
     "tooling/scripts/validate_agent_studio_e2e.py",
-    "tooling/scripts/validate_ai_chat_studio_e2e.py",
-    "apps/studio/frontend/e2e/live-ai-chat-agent.mjs",
+    "apps/studio/frontend/e2e/live-agent.mjs",
     "tooling/scripts/validate_studio_deployments.py",
     "tooling/scripts/validate_studio_artifact_licenses.py",
     "tooling/scripts/validate_studio_release_policy.py",
     "tooling/scripts/validate_studio_runtime.py",
     "tooling/studio_release_contract.json",
     "tooling/tests/test_agent_studio_e2e.py",
-    "tooling/tests/test_ai_chat_studio_e2e.py",
     "tooling/tests/test_ci_release_tools.py",
     "tooling/tests/test_studio_artifact_licenses.py",
     "tooling/tests/test_studio_deployment_tools.py",
@@ -425,7 +423,7 @@ def validate_python_support_policy() -> None:
         and "needs: [sdk-validation, examples-validation, build-release]"
         in python_publish
         and "workflow_call:" in python_examples
-        and "Run all deterministic AI chat scenarios" in python_examples,
+        and "Run AI Chat infrastructure tests" in python_examples,
         "PyPI publication must wait for reusable SDK, AI Chat, and release-build validation",
     )
 
@@ -550,15 +548,15 @@ def validate_release_routing() -> None:
         and "--image-source registry" in studio_publish
         and "--expected-image" in studio_publish
         and "--evidence-directory /tmp/studio-h2-evidence/registry" in studio_publish
-        and "test:e2e:ai-chat-live"
+        and "test:e2e:agent-live"
         in (PLATFORM_ROOT / "tooling/scripts/smoke_studio_distribution.py").read_text(
             encoding="utf-8"
         )
-        and "validate_ai_chat_studio_e2e.py"
+        and "validate_agent_studio_e2e.py"
         in (PLATFORM_ROOT / "tooling/scripts/smoke_studio_distribution.py").read_text(
             encoding="utf-8"
         ),
-        "Studio releases must smoke exact images through live AI Chat telemetry and browser diagnostics",
+        "Studio releases must smoke exact images through public Agent telemetry and browser diagnostics",
     )
     require(
         'for tag in "$VERSION" "$SOURCE_REVISION"' in studio_publish

@@ -133,8 +133,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "sdks/python/uv.lock"
-      - name: Sync the exact AI Chat proof runtime
-        run: uv sync --frozen --project sdks/python --package junjo-ai-chat-example
+      - name: Sync the exact public SDK proof runtime
+        run: uv sync --frozen --project sdks/python
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -154,10 +154,10 @@ jobs:
             --image-source local \
             --platform linux/amd64 \
             --evidence-directory /tmp/studio-h2-evidence/local
-      - name: Upload live AI Chat Studio proof
+      - name: Upload live Agent Studio proof
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: studio-local-ai-chat-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          name: studio-local-agent-proof-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/studio-h2-evidence/local/**
           if-no-files-found: error
           retention-days: 14

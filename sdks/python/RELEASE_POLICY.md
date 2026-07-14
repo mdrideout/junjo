@@ -16,6 +16,7 @@ the Python SDK primary library-health checks from `sdks/python` on Python 3.13:
 - `uv run pytest -q`
 - `uv run ty check --error-on-warning src`
 - `uv run sphinx-build -W -b html docs docs/_build/html`
+- `uv run python docs/export_api.py baseline-check --inventory docs/_build/html/objects.inv`
 - `uv run python -m build`
 - `uv run twine check dist/*`
 
@@ -36,9 +37,11 @@ library itself.
 - `examples/ai_chat` is the canonical Agent and Workflow composition acceptance
   application. Changes to that example, the Agent runtime it exercises, or its
   workspace inputs trigger its path-scoped backend and frontend checks.
-- The AI Chat gate runs all nine deterministic scenarios, backend lint and type
-  checks, and frontend tests, lint, and production build. It uses no provider
-  credentials and is not a required check for unrelated pull requests.
+- The AI Chat gate runs backend infrastructure tests, lint and type checks, and
+  frontend tests, lint, and production build. It does not pretend scripted
+  outputs validate probabilistic product quality. Credentialed live evals are
+  deliberate development/release evidence and are not required on unrelated
+  pull requests.
 - Other example applications remain best-effort references with manual smoke
   validation.
 - Example health supplements; it never replaces the Python SDK library-health
@@ -62,7 +65,7 @@ When public behavior changes, keep these surfaces aligned:
 1. runtime code
 2. tests
 3. public docstrings
-4. Sphinx docs
+4. Sphinx migration sources and their mechanically converted Starlight content
 5. examples
 
 Release-ready code should not leave public docs or examples teaching stale behavior.
@@ -95,7 +98,10 @@ cutover; there is no dual-version compatibility mode:
 4. Publish Studio images and the generated deployment mirrors in one Studio
    release transaction. Upgrade other emitters after that cutover; old emitters
    are retired rather than retained behind fallbacks.
-5. Deploy documentation last so public guidance describes the released pair.
+5. Assemble and validate the unified Starlight artifact, then deploy
+   documentation last so public guidance describes the released pair. During
+   the migration, the warning-strict Sphinx build and its API inventory remain
+   required parity gates; they are not the production renderer.
 
 For telemetry contract version 2, the producer release is `junjo` `0.65.0` and
 the first matching Studio release must be `0.82.0` or newer. Release preparation

@@ -71,6 +71,12 @@ instance/
 # Sphinx documentation
 **/docs/_build/
 
+# Unified documentation assembly output
+apps/website/src/content/docs/generated/
+apps/website/public/docs-assets/generated/
+apps/website/public/docs-manifests/generated/
+apps/website/.docs-assembly/
+
 # PyBuilder
 .pybuilder/
 target/

@@ -30,12 +30,14 @@ import json
 import os
 import secrets
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, TypeVar
 
 SERVICE_NAMESPACE = "junjo.e2e"
@@ -1052,6 +1054,58 @@ def assert_raw_hierarchy(
     )
 
 
+def build_browser_evidence(
+    *,
+    summary: Mapping[str, object],
+    expectations: ExecutionExpectations,
+    trace_id: str,
+    workflow_span_id: str,
+    tool_span_id: str,
+) -> dict[str, object]:
+    """Build the credential-free identity handoff for the Studio browser proof."""
+
+    agent_span_id = summary.get("span_id")
+    require(isinstance(agent_span_id, str), "Agent summary span ID is missing")
+    return {
+        "schema_version": 1,
+        "service_namespace": SERVICE_NAMESPACE,
+        "service_name": expectations.service_name,
+        "service_version": SERVICE_VERSION,
+        "trace_id": trace_id,
+        "agent_name": AGENT_NAME,
+        "agent_run_id": expectations.agent_runtime_id,
+        "agent_span_id": agent_span_id,
+        "tool_name": "run_normalization_workflow",
+        "tool_operation_sequence": 2,
+        "tool_span_id": tool_span_id,
+        "nested_workflow_name": WORKFLOW_NAME,
+        "nested_workflow_span_id": workflow_span_id,
+    }
+
+
+def write_browser_evidence(path: Path, evidence: Mapping[str, object]) -> None:
+    """Atomically publish evidence only after the cross-layer proof succeeds."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            json.dump(evidence, temporary, indent=2, sort_keys=True)
+            temporary.write("\n")
+            temporary_path = Path(temporary.name)
+        temporary_path.replace(path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
+
+
 def fetch_agent_projection(
     client: JsonClient,
     *,
@@ -1116,6 +1170,7 @@ def run(args: argparse.Namespace) -> None:
         interval_seconds=args.poll_interval_seconds,
     )
     identity: TestIdentity | None = None
+    browser_evidence: dict[str, object] | None = None
     primary_error: BaseException | None = None
     try:
         identity = provision_test_identity(backend)
@@ -1172,6 +1227,13 @@ def run(args: argparse.Namespace) -> None:
             tool_span_id=tool_span_id,
             expectations=expectations,
         )
+        browser_evidence = build_browser_evidence(
+            summary=summary,
+            expectations=expectations,
+            trace_id=trace_id,
+            workflow_span_id=workflow_span_id,
+            tool_span_id=tool_span_id,
+        )
     except BaseException as error:
         primary_error = error
     cleanup_error: BaseException | None = None
@@ -1189,6 +1251,9 @@ def run(args: argparse.Namespace) -> None:
         raise primary_error
     if cleanup_error is not None:
         raise cleanup_error
+    if args.evidence_output is not None:
+        require(browser_evidence is not None, "browser evidence was not produced")
+        write_browser_evidence(args.evidence_output, browser_evidence)
     print(
         "Agent Studio E2E passed: real public SDK composition reached OTLP, raw "
         "Studio storage, Agent semantics, and verified Agent/Workflow Store replay.",
@@ -1218,6 +1283,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--timeout-seconds", type=float, default=180.0)
     parser.add_argument("--poll-interval-seconds", type=float, default=0.5)
+    parser.add_argument(
+        "--evidence-output",
+        type=Path,
+        help="Optional credential-free JSON identity handoff for a browser proof.",
+    )
     return parser
 
 

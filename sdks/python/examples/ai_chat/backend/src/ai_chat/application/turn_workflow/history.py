@@ -2,10 +2,13 @@
 
 from junjo.agent import AgentInputMessage, AgentMessage, AssistantOutputMessage
 
-from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput, CompletedTurn
+from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput, CompletedTurn, ContactProfile
 
 
-def agent_history(turns: tuple[CompletedTurn, ...]) -> tuple[AgentMessage, ...]:
+def agent_history(
+    turns: tuple[CompletedTurn, ...],
+    contact: ContactProfile,
+) -> tuple[AgentMessage, ...]:
     """Map only complete persisted exchanges into the closed Agent grammar."""
 
     messages: list[AgentMessage] = []
@@ -15,6 +18,7 @@ def agent_history(turns: tuple[CompletedTurn, ...]) -> tuple[AgentMessage, ...]:
                 ChatAgentInput(
                     conversation_id=turn.user.conversation_id,
                     turn_id=turn.user.turn_id,
+                    contact=contact,
                     message=turn.user.content,
                 ).model_dump(mode="json")
             )

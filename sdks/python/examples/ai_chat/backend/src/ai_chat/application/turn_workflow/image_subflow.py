@@ -1,12 +1,8 @@
-"""Explicit parent/child handoff for the known image-response branch."""
+"""Explicit parent/child handoff for the shared image-response Workflow."""
 
 from junjo import Subflow
 
-from ai_chat.application.image_workflow.state import (
-    ImageWorkflowState,
-    ImageWorkflowStore,
-)
-from ai_chat.domain.models import ChatAgentOutput
+from ai_chat.application.image_workflow.state import ImageWorkflowState, ImageWorkflowStore
 
 from .state import TurnWorkflowState, TurnWorkflowStore
 
@@ -24,20 +20,23 @@ class ImageResponseSubflow(
         parent_store: TurnWorkflowStore,
         subflow_store: ImageWorkflowStore,
     ) -> None:
-        parent_state = await parent_store.get_state()
-        await subflow_store.set_prompt(parent_state.turn.user_message.content)
+        parent = await parent_store.get_state()
+        if parent.contact is None:
+            raise RuntimeError("Contact must be loaded before the image-response Subflow.")
+        await subflow_store.set_state(
+            {
+                "request": parent.turn.user_message.content,
+                "contact": parent.contact,
+                "recent_turns": parent.recent_turns,
+            }
+        )
 
     async def post_run_actions(
         self,
         parent_store: TurnWorkflowStore,
         subflow_store: ImageWorkflowStore,
     ) -> None:
-        subflow_state = await subflow_store.get_state()
-        if subflow_state.artifact is None:
-            raise RuntimeError("The image response Subflow produced no artifact.")
-        await parent_store.set_response(
-            ChatAgentOutput(
-                message="I made this image for you.",
-                image=subflow_state.artifact,
-            )
-        )
+        child = await subflow_store.get_state()
+        if child.output is None:
+            raise RuntimeError("The image-response Subflow produced no output.")
+        await parent_store.set_response(child.output)

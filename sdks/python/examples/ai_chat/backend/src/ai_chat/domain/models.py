@@ -47,6 +47,8 @@ class MessageDirective(StrEnum):
 
 
 class Conversation(DomainModel):
+    object_type: Literal["ai_chat.conversation"] = "ai_chat.conversation"
+    schema_version: Literal[1] = 1
     id: str
     title: str
     contact_id: str
@@ -58,12 +60,38 @@ class ImageArtifact(DomainModel):
     alt_text: str = Field(min_length=1)
 
 
+class ImageEditResult(DomainModel):
+    """Image artifact and optional provider-authored accompanying text."""
+
+    artifact: ImageArtifact
+    text: str | None = None
+
+
+class PersonalityTraits(DomainModel):
+    """Normalized traits used to create and preserve one contact persona."""
+
+    openness: float = Field(ge=0.0, le=1.0)
+    conscientiousness: float = Field(ge=0.0, le=1.0)
+    extraversion: float = Field(ge=0.0, le=1.0)
+    agreeableness: float = Field(ge=0.0, le=1.0)
+    neuroticism: float = Field(ge=0.0, le=1.0)
+    intelligence: float = Field(ge=0.0, le=1.0)
+    religiousness: float = Field(ge=0.0, le=1.0)
+    attractiveness: float = Field(ge=0.0, le=1.0)
+    trauma: float = Field(ge=0.0, le=1.0)
+
+
 class ContactProfile(DomainModel):
+    object_type: Literal["ai_chat.contact"] = "ai_chat.contact"
+    schema_version: Literal[1] = 1
     id: str
     first_name: str
     last_name: str
     sex: ContactSex
     age: int = Field(ge=18, le=100)
+    personality: PersonalityTraits
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)
     city: str
     state: str
     bio: str
@@ -245,6 +273,7 @@ class Turn(DomainModel):
 class ChatAgentInput(DomainModel):
     conversation_id: str
     turn_id: str
+    contact: ContactProfile
     message: str = Field(min_length=1, max_length=2_500)
 
 
@@ -266,15 +295,6 @@ class HistoryMatch(DomainModel):
 
 class SearchHistoryOutput(DomainModel):
     matches: tuple[HistoryMatch, ...]
-
-
-class ContactProfileInput(DomainModel):
-    include_bio: bool = True
-
-
-class ContactProfileOutput(DomainModel):
-    display_name: str
-    bio: str | None
 
 
 class CreateImageInput(DomainModel):

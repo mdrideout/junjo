@@ -7,7 +7,8 @@ from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput, Turn
 from ai_chat.domain.ports import (
     ContactReader,
     HistoryReader,
-    ImageRenderer,
+    ImageModel,
+    LanguageModel,
     TurnRepository,
 )
 
@@ -22,7 +23,8 @@ def create_turn_workflow(
     turns: TurnRepository,
     history: HistoryReader,
     contacts: ContactReader,
-    images: ImageRenderer,
+    language: LanguageModel,
+    images: ImageModel,
 ) -> Workflow[TurnWorkflowState, TurnWorkflowStore]:
     return Workflow(
         name="Chat Turn Workflow",
@@ -31,6 +33,7 @@ def create_turn_workflow(
             turns=turns,
             history=history,
             contacts=contacts,
+            language=language,
             images=images,
         ),
         store_factory=lambda: TurnWorkflowStore(initial_state=TurnWorkflowState(turn=turn)),

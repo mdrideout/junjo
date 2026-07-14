@@ -1,6 +1,6 @@
 # AI Chat Turn Persistence And Studio Diagnostics Plan
 
-- Status: Infrastructure implemented; product integration incomplete
+- Status: Infrastructure and product integration implemented; live proof pending
 - Date: 2026-07-14
 - Owners: Junjo platform
 
@@ -33,7 +33,7 @@ HTTP request
        -> assess known message directive
        -> work, date, image Subflow, or general response branch
        -> general branch invokes the AI Chat Agent
-            -> optional history or contact Tool
+            -> optional older-history Tool
             -> optional create-image Tool -> Create Chat Image Workflow
        -> PersistOutcomeNode
   -> ChatTurnService records terminal status and execution references

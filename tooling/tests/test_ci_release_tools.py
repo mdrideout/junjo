@@ -379,7 +379,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
         )
         self.assertEqual(workflow.count("overwrite: true"), 4)
         self.assertIn("--evidence-directory /tmp/studio-h2-evidence/registry", workflow)
-        self.assertIn("studio-exact-ai-chat-proof", workflow)
+        self.assertIn("studio-exact-agent-proof", workflow)
 
         production_jobs = (
             "dockerhub_controls",

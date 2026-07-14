@@ -1,10 +1,45 @@
 # Unified Documentation Portal Migration Strategy And Implementation Plan
 
-- Status: Final strategy; implementation is gated on the required ADR approval
+- Status: Cutover-ready implementation; production parallel-run and retirement
+  gates remain open
 - Date: 2026-07-14
 - Owners: Junjo platform, Python SDK, Studio, website, and future SDK owners
-- Decision authority: accepted ADRs remain authoritative; approve the boundary
-  changes described here before implementation
+- Decision authority: ADR 0009 accepts the unified publishing boundary; the
+  production and Sphinx-retirement gates in this document remain authoritative
+
+## Implementation Record
+
+The repository implementation was created on
+`codex/unified-docs-migration`. It deliberately stops before production DNS,
+Cloudflare, or legacy-domain cutover.
+
+Implemented:
+
+- accepted ADR 0009 and updated component ownership instructions;
+- a machine-readable ledger for all 18 RST sources, retained documentation
+  sources, content units, corrections, legacy routes, and target hashes;
+- isolated, locked mechanical RST conversion with deterministic check mode;
+- a warning-strict Sphinx inventory baseline and deterministic Griffe export;
+- one Starlight navigation, search index, sitemap, and API deep-link surface;
+- source-owned Python and Studio content assembly without shared runtime locks;
+- a client-side compatibility map for legacy API fragments;
+- build validation for every migrated route, API route/anchor, baseline symbol,
+  internal link, search artifact, sitemap, and unconverted markup token; and
+- a path-routed GitHub Actions workflow that uploads the exact validated static
+  artifact while retaining Sphinx as a parity gate.
+
+The original audit contained 4,094 RST lines. Source work that landed during
+implementation expanded the live corpus to 4,113 lines and the Sphinx API
+inventory from 418 to 424 objects. The converter and baseline were refreshed
+from the newer source; no content was frozen at the older counts.
+
+Still gated by production evidence:
+
+- publish the validated artifact to the production preview/parallel surface;
+- configure and exercise the `python-api.junjo.ai` compatibility redirects;
+- monitor production routes, search, fragments, canonical metadata, and 404s
+  for the agreed window; and
+- retire Sphinx only after those observations and rollback checks pass.
 
 ## Objective
 
@@ -153,7 +188,9 @@ npm run validate:build
 
 ### Python Sphinx Site
 
-`sdks/python/docs` contains 18 RST pages and 4,094 lines. It is currently the
+`sdks/python/docs` contained 18 RST pages and 4,094 lines at the initial audit;
+the live migration ledger now records 4,113 lines after concurrent source
+work. It is currently the
 substantial public documentation corpus for the Python SDK and also contains
 Studio, Docker, deployment, and OpenTelemetry material.
 
@@ -677,7 +714,8 @@ reviewed against the original.
 
 Exit gate:
 
-- all 4,094 baseline RST lines are represented by verified content units or
+- all 4,094 initial baseline RST lines and all additions represented by the
+  current 4,113-line ledger are represented by verified content units or
   separately recorded corrections;
 - no code block, image, warning, link, or named anchor is unmapped; and
 - the Starlight corpus passes its full build and content checks.
@@ -821,7 +859,8 @@ The migration is complete only when all of the following are true:
 
 - the architecture and build-boundary ADR change is accepted;
 - every current documentation source has an approved final disposition;
-- all 18 Sphinx pages and all 4,094 baseline lines have section-level coverage;
+- all 18 Sphinx pages, the 4,094 initial baseline lines, and the current
+  4,113-line corpus have section-level coverage;
 - every original code block, image, caption, admonition, link, and named anchor
   is mapped;
 - every intended public Python symbol is generated and no private symbol leaks;

@@ -1,0 +1,58 @@
+"""Small high-variance dataset for biography prompt iteration."""
+
+BIOGRAPHY_CASES = (
+    {
+        "id": "mesa-high-extraversion",
+        "age": 24,
+        "city": "Mesa",
+        "state": "AZ",
+        "sex": "female",
+        "personality": {
+            "openness": 0.50,
+            "conscientiousness": 0.43,
+            "extraversion": 0.96,
+            "agreeableness": 0.03,
+            "neuroticism": 0.82,
+            "intelligence": 0.55,
+            "religiousness": 0.96,
+            "attractiveness": 0.12,
+            "trauma": 0.04,
+        },
+    },
+    {
+        "id": "wisconsin-midlife-complex-history",
+        "age": 55,
+        "city": "Madison",
+        "state": "WI",
+        "sex": "male",
+        "personality": {
+            "openness": 0.29,
+            "conscientiousness": 0.63,
+            "extraversion": 0.68,
+            "agreeableness": 0.29,
+            "neuroticism": 0.71,
+            "intelligence": 0.94,
+            "religiousness": 0.83,
+            "attractiveness": 0.91,
+            "trauma": 0.85,
+        },
+    },
+    {
+        "id": "boulder-young-adult",
+        "age": 18,
+        "city": "Boulder",
+        "state": "CO",
+        "sex": "female",
+        "personality": {
+            "openness": 0.40,
+            "conscientiousness": 0.95,
+            "extraversion": 0.96,
+            "agreeableness": 0.03,
+            "neuroticism": 0.82,
+            "intelligence": 0.55,
+            "religiousness": 0.96,
+            "attractiveness": 0.12,
+            "trauma": 0.04,
+        },
+    },
+)

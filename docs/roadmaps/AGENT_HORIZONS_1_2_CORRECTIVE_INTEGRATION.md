@@ -261,10 +261,9 @@ Restore:
 - background Turn execution and frontend refresh behavior unless an accepted
   Turn invariant requires a documented change.
 
-Keep the deterministic ModelDriver as an explicitly selected test/demo
-adapter. It must not silently replace live application behavior. Runtime
-provider selection is explicit composition-root configuration, not a fallback
-chain.
+Keep `ScriptedModelDriver` in Junjo's SDK-owned tests. The application runtime
+uses an explicitly selected live provider and has no deterministic demo or
+fallback chain.
 
 ### 6. Integrate Turn persistence and Agent composition without replacement
 
@@ -289,9 +288,10 @@ Application admits Turn
   -> application reconciles terminal Turn state and execution references
 ```
 
-The general response branch is the primary Workflow-to-Agent proof. The Agent
-may use narrow application Tools for conversation search and contact lookup.
-It may invoke the existing structured image Workflow through a Tool for an
+The general response branch is the primary Workflow-to-Agent proof. The
+Workflow supplies mandatory contact and recent-history context. The Agent may
+use a narrow Tool for older conversation search. It may invoke the existing
+structured image Workflow through a Tool for an
 open-ended request that reaches the Agent, proving Agent-to-Workflow
 composition without creating a duplicate image procedure.
 

@@ -2,18 +2,25 @@
 
 from junjo import BaseState, BaseStore
 
-from ai_chat.domain.models import ImageArtifact
+from ai_chat.domain.models import ContactSex, ImageArtifact, PersonalityTraits
 
 
 class AvatarWorkflowState(BaseState):
-    prompt: str = ""
-    alt_text: str = ""
+    personality: PersonalityTraits | None = None
+    bio: str | None = None
+    city: str | None = None
+    state: str | None = None
+    sex: ContactSex | None = None
+    age: int | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    inspiration: str | None = None
     artifact: ImageArtifact | None = None
 
 
 class AvatarWorkflowStore(BaseStore[AvatarWorkflowState]):
-    async def set_request(self, *, prompt: str, alt_text: str) -> None:
-        await self.set_state({"prompt": prompt, "alt_text": alt_text})
+    async def set_inspiration(self, inspiration: str) -> None:
+        await self.set_state({"inspiration": inspiration})
 
     async def set_artifact(self, artifact: ImageArtifact) -> None:
         await self.set_state({"artifact": artifact})

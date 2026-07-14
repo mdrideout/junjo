@@ -5,8 +5,6 @@ from junjo import AgentRunContext, Tool
 from ai_chat.application.dependencies import ChatDependencies
 from ai_chat.application.image_workflow import create_image_workflow
 from ai_chat.domain.models import (
-    ContactProfileInput,
-    ContactProfileOutput,
     CreateImageInput,
     CreateImageOutput,
     SearchHistoryInput,
@@ -29,35 +27,27 @@ class SearchConversationHistoryService:
         return SearchHistoryOutput(matches=matches)
 
 
-class GetContactProfileService:
-    async def __call__(
-        self,
-        input: ContactProfileInput,
-        context: AgentRunContext[ChatDependencies],
-    ) -> ContactProfileOutput:
-        contact = await context.dependencies.contacts.get_contact_for_conversation(context.dependencies.conversation_id)
-        return ContactProfileOutput(
-            display_name=contact.display_name,
-            bio=contact.bio if input.include_bio else None,
-        )
-
-
 class CreateImageWorkflowService:
     async def __call__(
         self,
         input: CreateImageInput,
         context: AgentRunContext[ChatDependencies],
     ) -> CreateImageOutput:
-        workflow = create_image_workflow(input, context.dependencies.images)
+        workflow = create_image_workflow(
+            input,
+            contact=context.dependencies.contact,
+            recent_turns=context.dependencies.recent_turns,
+            language=context.dependencies.language,
+            images=context.dependencies.images,
+        )
         result = await workflow.execute()
-        if result.state.artifact is None:
+        if result.state.output is None or result.state.output.image is None:
             raise RuntimeError("The image Workflow completed without an artifact.")
-        return CreateImageOutput(artifact=result.state.artifact)
+        return CreateImageOutput(artifact=result.state.output.image)
 
 
 def create_chat_tools() -> tuple[
     Tool[SearchHistoryInput, SearchHistoryOutput, ChatDependencies]
-    | Tool[ContactProfileInput, ContactProfileOutput, ChatDependencies]
     | Tool[CreateImageInput, CreateImageOutput, ChatDependencies],
     ...,
 ]:
@@ -70,13 +60,6 @@ def create_chat_tools() -> tuple[
         output_type=SearchHistoryOutput,
         shared_service=SearchConversationHistoryService(),
     )
-    contact = Tool[ContactProfileInput, ContactProfileOutput, ChatDependencies](
-        name="get_contact_profile",
-        description="Read the profile associated with this conversation.",
-        input_type=ContactProfileInput,
-        output_type=ContactProfileOutput,
-        shared_service=GetContactProfileService(),
-    )
     image = Tool[CreateImageInput, CreateImageOutput, ChatDependencies](
         name="create_image",
         description="Run the structured image Workflow and return its artifact.",
@@ -84,4 +67,4 @@ def create_chat_tools() -> tuple[
         output_type=CreateImageOutput,
         shared_service=CreateImageWorkflowService(),
     )
-    return (history, contact, image)
+    return (history, image)

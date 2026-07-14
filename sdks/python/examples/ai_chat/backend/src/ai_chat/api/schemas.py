@@ -21,12 +21,29 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class PersonalityResponse(ApiModel):
+    openness: float
+    conscientiousness: float
+    extraversion: float
+    agreeableness: float
+    neuroticism: float
+    intelligence: float
+    religiousness: float
+    attractiveness: float
+    trauma: float
+
+
 class ContactResponse(ApiModel):
+    object_type: Literal["ai_chat.contact"]
+    schema_version: Literal[1]
     id: str
     first_name: str
     last_name: str
     sex: Literal["male", "female"]
     age: int
+    personality: PersonalityResponse
+    latitude: float
+    longitude: float
     city: str
     state: str
     bio: str
@@ -35,11 +52,16 @@ class ContactResponse(ApiModel):
     @classmethod
     def from_domain(cls, contact: ContactProfile) -> ContactResponse:
         return cls(
+            object_type=contact.object_type,
+            schema_version=contact.schema_version,
             id=contact.id,
             first_name=contact.first_name,
             last_name=contact.last_name,
             sex=contact.sex.value,
             age=contact.age,
+            personality=PersonalityResponse(**contact.personality.model_dump()),
+            latitude=contact.latitude,
+            longitude=contact.longitude,
             city=contact.city,
             state=contact.state,
             bio=contact.bio,

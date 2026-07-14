@@ -16,7 +16,6 @@ STUDIO_SERVICE_NAME = "ai-chat"
 class ModelProvider(StrEnum):
     """Explicit runtime adapter selected at the composition root."""
 
-    DEMO = "demo"
     GEMINI = "gemini"
     GROK = "grok"
 
@@ -44,13 +43,13 @@ class Settings:
     cors_origins: tuple[str, ...]
     telemetry: TelemetrySettings | None
     debug: DebugSettings = DebugSettings(enabled=False, studio_ui_url=None)
-    model_provider: ModelProvider = ModelProvider.DEMO
+    model_provider: ModelProvider = ModelProvider.GEMINI
     gemini_api_key: str | None = None
     xai_api_key: str | None = None
-    gemini_text_model: str = "gemini-3-flash-preview"
-    gemini_image_model: str = "gemini-3.1-flash-image-preview"
-    grok_text_model: str = "grok-4-fast"
-    grok_image_model: str = "grok-imagine-image"
+    gemini_text_model: str = "gemini-3.5-flash"
+    gemini_image_model: str = "gemini-3.1-flash-image"
+    grok_text_model: str = "grok-4.3"
+    grok_image_model: str = "grok-imagine-image-quality"
 
     @classmethod
     def from_environment(cls) -> Settings:
@@ -81,7 +80,7 @@ class Settings:
                 os.getenv("AI_CHAT_STUDIO_UI_URL", "http://localhost:26153"),
                 "AI_CHAT_STUDIO_UI_URL",
             )
-        provider = ModelProvider(os.getenv("AI_CHAT_MODEL_PROVIDER", ModelProvider.DEMO.value).casefold())
+        provider = ModelProvider(os.getenv("AI_CHAT_MODEL_PROVIDER", ModelProvider.GEMINI.value).casefold())
         gemini_api_key = _optional_secret("GEMINI_API_KEY")
         xai_api_key = _optional_secret("XAI_API_KEY")
         if provider is ModelProvider.GEMINI and gemini_api_key is None:
@@ -89,7 +88,7 @@ class Settings:
         if provider is ModelProvider.GROK and xai_api_key is None:
             raise ValueError("XAI_API_KEY is required for the grok provider.")
         return cls(
-            database_path=data_directory / "chat-v2.sqlite3",
+            database_path=data_directory / "chat-v3.sqlite3",
             image_directory=data_directory / "images",
             cors_origins=origins,
             telemetry=telemetry,
@@ -100,10 +99,10 @@ class Settings:
             model_provider=provider,
             gemini_api_key=gemini_api_key,
             xai_api_key=xai_api_key,
-            gemini_text_model=os.getenv("AI_CHAT_GEMINI_TEXT_MODEL", "gemini-3-flash-preview"),
-            gemini_image_model=os.getenv("AI_CHAT_GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image-preview"),
-            grok_text_model=os.getenv("AI_CHAT_GROK_TEXT_MODEL", "grok-4-fast"),
-            grok_image_model=os.getenv("AI_CHAT_GROK_IMAGE_MODEL", "grok-imagine-image"),
+            gemini_text_model=os.getenv("AI_CHAT_GEMINI_TEXT_MODEL", "gemini-3.5-flash"),
+            gemini_image_model=os.getenv("AI_CHAT_GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"),
+            grok_text_model=os.getenv("AI_CHAT_GROK_TEXT_MODEL", "grok-4.3"),
+            grok_image_model=os.getenv("AI_CHAT_GROK_IMAGE_MODEL", "grok-imagine-image-quality"),
         )
 
 

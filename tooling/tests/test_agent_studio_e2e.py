@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from types import ModuleType
@@ -205,6 +206,32 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
                 apply_patch=apply_fixture_patch,
             )
 
+    def test_browser_evidence_contains_only_resolvable_execution_identity(self) -> None:
+        expectations = validator.ExecutionExpectations(
+            service_name="agent-proof",
+            agent_runtime_id="agent-runtime",
+            agent_definition_id="agent-definition",
+            agent_structural_id="agent-structural",
+            workflow_runtime_id="workflow-runtime",
+            workflow_definition_id="workflow-definition",
+            workflow_start={"value": "start"},
+            workflow_end={"value": "end"},
+        )
+        evidence = validator.build_browser_evidence(
+            summary={"span_id": "a" * 16},
+            expectations=expectations,
+            trace_id="b" * 32,
+            workflow_span_id="c" * 16,
+            tool_span_id="d" * 16,
+        )
+
+        self.assertEqual(evidence["agent_run_id"], "agent-runtime")
+        self.assertEqual(evidence["nested_workflow_span_id"], "c" * 16)
+        self.assertNotIn("api_key", evidence)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "evidence.json"
+            validator.write_browser_evidence(output, evidence)
+            self.assertIn('"service_name": "agent-proof"', output.read_text(encoding="utf-8"))
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from junjo import AgentError
 from junjo.agent import AgentModelError
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from ai_chat.bootstrap import ChatApplication
 from ai_chat.config import TelemetrySettings
@@ -69,6 +70,7 @@ def create_app(
             await _close_lifespan_resources(application, telemetry_runtime)
 
     app = FastAPI(title="Junjo AI Chat Example", lifespan=lifespan)
+    FastAPIInstrumentor.instrument_app(app)
     app.state.chat_application = application
     app.include_router(router)
     app.mount("/api/images", StaticFiles(directory=application.image_directory), name="images")

@@ -6,7 +6,7 @@ from ai_chat.application.dependencies import ChatDependencies
 from ai_chat.application.image_workflow.graph import create_image_graph
 from ai_chat.application.image_workflow.state import ImageWorkflowState, ImageWorkflowStore
 from ai_chat.domain.models import ChatAgentInput, ChatAgentOutput, MessageDirective
-from ai_chat.domain.ports import ContactReader, HistoryReader, ImageRenderer, TurnRepository
+from ai_chat.domain.ports import ContactReader, HistoryReader, ImageModel, LanguageModel, TurnRepository
 
 from .conditions import DirectiveIs
 from .image_subflow import ImageResponseSubflow
@@ -27,25 +27,26 @@ def create_turn_graph(
     turns: TurnRepository,
     history: HistoryReader,
     contacts: ContactReader,
-    images: ImageRenderer,
+    language: LanguageModel,
+    images: ImageModel,
 ) -> Graph:
     initial_data = RunConcurrent(
         name="Load Turn Context",
         items=[LoadRecentContextNode(history), LoadContactNode(contacts)],
     )
-    assess = AssessMessageDirectiveNode()
-    work_response = CreateWorkResponseNode()
-    date_response = CreateDateIdeaResponseNode()
+    assess = AssessMessageDirectiveNode(language)
+    work_response = CreateWorkResponseNode(language)
+    date_response = CreateDateIdeaResponseNode(language)
     image_response = ImageResponseSubflow(
         name="Create Image Response Subflow",
-        graph_factory=lambda: create_image_graph(images),
-        store_factory=lambda: ImageWorkflowStore(initial_state=ImageWorkflowState(prompt="")),
+        graph_factory=lambda: create_image_graph(language=language, images=images),
+        store_factory=lambda: ImageWorkflowStore(initial_state=ImageWorkflowState()),
         max_iterations=1,
     )
     general_response = CreateGeneralAgentResponseNode(
         agent=agent,
         history=history,
-        contacts=contacts,
+        language=language,
         images=images,
     )
     persist = PersistOutcomeNode(turns)

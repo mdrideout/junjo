@@ -62,8 +62,16 @@ const conversation = {
   id: 'conversation-1',
   title: 'Evidence chat',
   contact: {
+    object_type: 'ai_chat.contact' as const, schema_version: 1 as const,
     id: 'contact-1', first_name: 'Junjo', last_name: 'Guide', sex: 'female' as const,
-    age: 31, city: 'Brooklyn', state: 'NY', bio: 'A useful profile.',
+    age: 31,
+    personality: {
+      openness: 0.8, conscientiousness: 0.6, extraversion: 0.7,
+      agreeableness: 0.8, neuroticism: 0.2, intelligence: 0.8,
+      religiousness: 0.1, attractiveness: 0.8, trauma: 0.2,
+    },
+    latitude: 40.6782, longitude: -73.9442,
+    city: 'Brooklyn', state: 'NY', bio: 'A useful profile.',
     avatar_url: '/api/images/avatar.svg',
   },
   last_message_at: null,

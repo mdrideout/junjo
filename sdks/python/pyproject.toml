@@ -46,6 +46,7 @@ Repository = "https://github.com/mdrideout/junjo"
 dev = [
     "sphinx",
     "furo",
+    "griffe>=2.1,<3",
     "pytest",
     "pytest-asyncio",
     "ruff~=0.15.0",

@@ -1,14 +1,13 @@
-"""Application-local deterministic ModelDriver implementations."""
+"""Explicit live provider adapters for the AI Chat application."""
 
-from .demo import DemoModelDriver, demo_model_binding
-from .gemini import GeminiModelDriver, gemini_model_binding
-from .grok import GrokModelDriver, grok_model_binding
+from .gemini import GeminiLanguageModel, GeminiModelDriver, gemini_model_binding
+from .grok import GrokLanguageModel, GrokModelDriver, grok_model_binding
 
 __all__ = [
-    "DemoModelDriver",
+    "GeminiLanguageModel",
     "GeminiModelDriver",
+    "GrokLanguageModel",
     "GrokModelDriver",
-    "demo_model_binding",
     "gemini_model_binding",
     "grok_model_binding",
 ]

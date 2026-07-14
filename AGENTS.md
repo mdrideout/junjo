@@ -15,15 +15,16 @@ the nearest scoped `AGENTS.md` before changing a component.
 
 ## Repository ownership
 
-- `sdks/python`: Python SDK, public API, tests, docs, and examples. Follow
+- `sdks/python`: Python SDK, public API, tests, source-owned docs exports, and examples. Follow
   `sdks/python/AGENTS.md`.
 - `apps/studio`: Studio backend, frontend, ingestion, deployment, and internal
   contracts. Follow `apps/studio/AGENTS.md`.
 - `apps/studio/deployments`: canonical source for supported Studio deployment
   distributions. Standalone deployment repositories are generated release
   mirrors and are never a second source of truth.
-- `apps/website`: Astro/Starlight product and documentation website. It keeps
-  its own JavaScript dependency lock, build, and deployment lifecycle. Follow
+- `apps/website`: Astro/Starlight product and unified documentation renderer.
+  It keeps its own JavaScript dependency lock; the production artifact is
+  assembled from source-owned documentation exports. Follow
   `apps/website/AGENTS.md`.
 - `contracts/telemetry`: language-independent schemas, versions, and fixtures.
 - `docs/adr`: cross-platform architectural decisions.
@@ -71,7 +72,8 @@ Run the full validation owned by every changed area. At minimum:
 - Studio deployment distributions: validate Compose rendering, setup scripts,
   archive contents, and generated-mirror equivalence for every changed
   distribution.
-- Website: `npm ci` and `npm run build` from `apps/website`.
+- Website: `npm ci` and `npm run build` from `apps/website`, plus the root
+  documentation assembly and parity validation when public docs inputs change.
 - Shared contracts: regenerate with `python3
   contracts/telemetry/compatibility/generate_v2_fixtures.py`, validate with
   `python3 contracts/telemetry/compatibility/validate_contract.py`, prove the

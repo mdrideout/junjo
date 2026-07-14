@@ -821,15 +821,15 @@ class StudioDistributionSmoke:
             "the real example workflow did not become queryable before timeout"
         )
 
-    def run_horizon_2_proof(self, identity: SmokeIdentity) -> None:
-        """Prove live AI Chat semantics and the exact Studio browser projection."""
+    def run_agent_studio_proof(self, identity: SmokeIdentity) -> None:
+        """Prove the public Agent stack and exact Studio browser projection."""
 
         require(
             self.evidence_directory.is_dir(),
             "smoke evidence directory has not been prepared",
         )
-        evidence = self.evidence_directory / "ai-chat-evidence.json"
-        screenshot = self.evidence_directory / "ai-chat-agent.png"
+        evidence = self.evidence_directory / "agent-evidence.json"
+        screenshot = self.evidence_directory / "agent-diagnostics.png"
         credentials = {
             "JUNJO_STUDIO_E2E_EXISTING_EMAIL": identity.email,
             "JUNJO_STUDIO_E2E_EXISTING_PASSWORD": identity.password,
@@ -840,10 +840,8 @@ class StudioDistributionSmoke:
                 "run",
                 "--project",
                 "sdks/python",
-                "--package",
-                "junjo-ai-chat-example",
                 "python",
-                "tooling/scripts/validate_ai_chat_studio_e2e.py",
+                "tooling/scripts/validate_agent_studio_e2e.py",
                 "--backend-url",
                 f"http://127.0.0.1:{self.backend_port}",
                 "--ingestion-host",
@@ -862,7 +860,7 @@ class StudioDistributionSmoke:
         )
         require(
             evidence.is_file() and evidence.stat().st_size > 0,
-            "AI Chat evidence is missing",
+            "Agent evidence is missing",
         )
         run_command(
             [
@@ -870,7 +868,7 @@ class StudioDistributionSmoke:
                 "--prefix",
                 "apps/studio/frontend",
                 "run",
-                "test:e2e:ai-chat-live",
+                "test:e2e:agent-live",
                 "--",
                 "--frontend-url",
                 f"http://127.0.0.1:{self.frontend_port}",
@@ -890,7 +888,7 @@ class StudioDistributionSmoke:
         )
         require(
             screenshot.is_file() and screenshot.stat().st_size > 0,
-            "Studio AI Chat visual proof screenshot is missing",
+            "Studio Agent visual proof screenshot is missing",
         )
         manifest = {
             "schema_version": 1,
@@ -993,7 +991,7 @@ class StudioDistributionSmoke:
                 identity = self.create_identity()
                 self.start_demo_application(identity.api_key)
                 self.wait_for_example_workflow()
-                self.run_horizon_2_proof(identity)
+                self.run_agent_studio_proof(identity)
             except BaseException as error:
                 primary_error = error
                 try:
@@ -1023,7 +1021,7 @@ class StudioDistributionSmoke:
             if cleanup_error is not None:
                 raise cleanup_error
             print(
-                "Studio distribution smoke passed: the example Workflow, AI Chat "
+                "Studio distribution smoke passed: the example Workflow, Agent "
                 "semantic telemetry, and Studio browser diagnostics are verified; "
                 "all smoke resources were cleaned up.",
                 flush=True,
