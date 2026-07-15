@@ -26,7 +26,10 @@ Powered by pytest
 - Use tools like pytest-harvest to gather and track test results
 - No proprietary tools or testing platforms are required - everything happens directly in your codebase
 
-Pytest executions can initialize an input state for the node, and analyze the results after the node executes its set_state updates.
+Pytest executions can initialize an input state for the node, execute the real
+Node through Junjo's normal lifecycle, and analyze the detached resulting
+state. Use :func:`junjo.evaluate_node` for Node-level evals; do not call
+``Node.service()`` directly.
 
 Prerequisites
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,6 +58,8 @@ The following is a condensed version of the eval test in `test_node.py`. Each te
 
     import pytest
 
+    from junjo import ExecutionCorrelation, evaluate_node
+
     from base.sample_workflow.sample_subflow.nodes.create_joke_node.node import CreateJokeNode
     from base.sample_workflow.sample_subflow.nodes.create_joke_node.test.test_cases import test_cases
     from base.sample_workflow.sample_subflow.nodes.create_joke_node.test.test_service import eval_create_joke_node
@@ -69,12 +74,20 @@ The following is a condensed version of the eval test in `test_node.py`. Each te
         assert initial_state.items is not None
         store = SampleSubflowStore(initial_state=initial_state)
 
-        # Execute the node service
+        # Execute the real Node through a one-Node evaluation Workflow. This
+        # preserves Node, Store, trace, and correlation evidence.
         node = CreateJokeNode()
-        await node.service(store)
+        execution = await evaluate_node(
+            node=node,
+            store=store,
+            correlation=ExecutionCorrelation(
+                type="base.eval_case",
+                id="|".join(test_case["items"]),
+            ),
+        )
 
         # Assert against the resulting state
-        state_result = await store.get_state()
+        state_result = execution.state
         assert state_result.joke
 
         # Evaluate the joke - run the LLM evaluator service
@@ -88,6 +101,12 @@ Run the sample eval from ``examples/base``:
     uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
 
 On mission critical workflows, this setup can be used to orchestrate hundreds or thousands of test inputs against a prompt to ensure it covers all use cases well.
+
+The generated evaluation Workflow is intentional evidence. Junjo AI Studio
+shows it as a one-Node Graph, and ``execution.run_id`` identifies the exact run
+for a judge result. Junjo does not own the dataset, judge, rubric, score,
+threshold, or report. Evaluate full Workflows and Agents through their normal
+``execute()`` methods.
 
 Testing Model Changes
 ~~~~~~~~~~~~~~~~~~~~~~~

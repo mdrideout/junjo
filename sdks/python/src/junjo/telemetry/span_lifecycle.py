@@ -5,26 +5,47 @@ import asyncio
 from opentelemetry import trace
 from opentelemetry.trace import Span
 
+from .diagnostics import (
+    cancellation_reason,
+    error_type,
+    exception_event_type,
+    exception_message,
+    exception_stacktrace,
+)
 
-def mark_span_failed(span: Span, exc: Exception) -> None:
+
+def mark_span_failed(span: Span, exc: BaseException) -> None:
     """Annotate a span as failed using standard OpenTelemetry error fields."""
 
     span.set_attribute("error.type", get_error_type(exc))
-    span.set_status(trace.StatusCode.ERROR, str(exc))
+    span.set_status(trace.StatusCode.ERROR, exception_message(exc))
 
 
 def mark_span_cancelled(span: Span, exc: asyncio.CancelledError) -> None:
     """Annotate a span as cancelled without treating cancellation as an error."""
 
-    reason = str(exc.args[0]) if exc.args else "cancelled"
     span.set_attribute("junjo.cancelled", True)
-    span.set_attribute("junjo.cancelled_reason", reason)
+    span.set_attribute("junjo.cancelled_reason", cancellation_reason(exc))
 
 
 def get_error_type(exc: BaseException) -> str:
     """Return the stable OpenTelemetry ``error.type`` value for an exception."""
 
-    return type(exc).__name__
+    return error_type(exc)
+
+
+def record_span_exception(span: Span, exc: BaseException) -> None:
+    """Record a standard exception event without trusting ``exc.__str__``."""
+
+    span.add_event(
+        "exception",
+        attributes={
+            "exception.type": exception_event_type(exc),
+            "exception.message": exception_message(exc),
+            "exception.stacktrace": exception_stacktrace(exc),
+            "exception.escaped": "False",
+        },
+    )
 
 
 def get_span_identifiers(span: Span) -> tuple[str, str]:

@@ -24,6 +24,10 @@ describe('AppShell', () => {
       'page',
     )
     expect(within(desktopNavigation).getByRole('link', { name: 'Users' })).toBeInTheDocument()
+    expect(within(desktopNavigation).getByRole('link', { name: 'Agents' })).toHaveAttribute(
+      'href',
+      '/agents',
+    )
     expect(within(desktopNavigation).queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
   })
 

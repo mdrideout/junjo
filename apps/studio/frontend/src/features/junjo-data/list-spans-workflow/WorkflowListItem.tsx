@@ -23,7 +23,7 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
   const destination = `/workflows/${workflowSpan.service_name}/${workflowSpan.trace_id}/${workflowSpan.span_id}`
 
   const handleLinkClick = () => {
-    dispatch(WorkflowDetailStateActions.setActiveSpan(null))
+    dispatch(WorkflowDetailStateActions.selectSpan(null))
   }
 
   return (

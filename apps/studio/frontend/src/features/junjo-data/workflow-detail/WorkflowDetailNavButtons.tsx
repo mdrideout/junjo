@@ -34,8 +34,8 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
   const handlePrevClick = () => {
     if (!disablePrev) {
       // Clear the activeSpan
-      dispatch(WorkflowDetailStateActions.setActiveSpan(null))
-      dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+      dispatch(WorkflowDetailStateActions.selectSpan(null))
+      dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
       // Navigate
       navigate(
@@ -47,8 +47,8 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
   const handleNextClick = () => {
     if (!disableNext) {
       // Clear the activeSpan
-      dispatch(WorkflowDetailStateActions.setActiveSpan(null))
-      dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(null))
+      dispatch(WorkflowDetailStateActions.selectSpan(null))
+      dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
       // Navigate
       navigate(

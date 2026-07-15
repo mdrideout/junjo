@@ -1,20 +1,21 @@
 import { createSelector, createSelectorCreator, lruMemoize } from '@reduxjs/toolkit'
 import { RootState } from '../../../root-store/store'
+import { JunjoSpanType, OtelSpan } from '../../traces/schemas/schemas'
 import {
-  JunjoSetStateEvent,
-  JunjoSetStateEventSchema,
-  JunjoSpanType,
-  OtelSpan,
-} from '../../traces/schemas/schemas'
-import { isoStringToMicrosecondsSinceEpoch } from '../../../util/duration-utils'
-import {
-  selectActiveSetStateEvent,
+  selectActiveStateEvent,
   selectWorkflowDetailActiveSpan,
 } from '../../junjo-data/workflow-detail/store/selectors'
 import { wrapSpan } from '../utils/span-accessor'
+import type { ExecutableAnnotation, StoreAnnotation, TraceEvidence } from '../schemas/trace-evidence'
 
 export const selectTracesState = (state: RootState) => state.tracesState
-export const selectTraceSpans = (state: RootState) => state.tracesState.traceSpans
+export const selectTraceEvidence = (state: RootState) => state.tracesState.traceEvidence
+export const selectTraceSpans = createSelector(
+  [selectTraceEvidence],
+  (evidenceByTraceId): Record<string, OtelSpan[]> => Object.fromEntries(
+    Object.entries(evidenceByTraceId).map(([traceId, evidence]) => [traceId, evidence.spans]),
+  ),
+)
 export const selectTracesLoading = (state: RootState) => state.tracesState.loading
 export const selectTracesError = (state: RootState) => state.tracesState.error
 
@@ -23,13 +24,42 @@ export const selectServiceNamesLoading = (state: RootState) => state.tracesState
 export const selectServiceNamesError = (state: RootState) => state.tracesState.serviceNames.error
 export const selectServiceNames = (state: RootState) => state.tracesState.serviceNames.data
 
+export const selectTraceEvidenceForTraceId = createSelector(
+  [
+    selectTraceEvidence,
+    (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
+  ],
+  (evidenceByTraceId, traceId): TraceEvidence | undefined =>
+    traceId === undefined ? undefined : evidenceByTraceId[traceId],
+)
+
+export const selectExecutableBySpanId = createSelector(
+  [
+    selectTraceEvidenceForTraceId,
+    (_state: RootState, props: { spanId: string | undefined }) => props.spanId,
+  ],
+  (evidence, spanId): ExecutableAnnotation | undefined =>
+    evidence === undefined || spanId === undefined
+      ? undefined
+      : evidence.executables_by_span_id[spanId],
+)
+
+export const selectStoreById = createSelector(
+  [
+    selectTraceEvidenceForTraceId,
+    (_state: RootState, props: { storeId: string | undefined }) => props.storeId,
+  ],
+  (evidence, storeId): StoreAnnotation | undefined =>
+    evidence === undefined || storeId === undefined ? undefined : evidence.stores_by_id[storeId],
+)
+
 /**
  * Selector: Select Span By Id
  * Given a traceId and spanId, return the span with that id
  */
 export const selectSpanById = createSelector(
   [
-    (state: RootState) => state.tracesState.traceSpans,
+    selectTraceSpans,
     (_state: RootState, props: { traceId: string | undefined; spanId: string | undefined }) => props.traceId,
     (_state: RootState, props: { traceId: string | undefined; spanId: string | undefined }) => props.spanId,
   ],
@@ -51,7 +81,7 @@ export const selectSpanById = createSelector(
  */
 export const selectTraceSpansForTraceId = createSelector(
   [
-    (state: RootState) => state.tracesState.traceSpans,
+    selectTraceSpans,
     (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
   ],
   (traceSpans, traceId): OtelSpan[] => {
@@ -105,7 +135,7 @@ const createWorkflowChainSelector = createSelectorCreator(lruMemoize, workflowCh
  */
 export const identifySpanWorkflowChain = createWorkflowChainSelector(
   [
-    (state: RootState) => state.tracesState.traceSpans,
+    selectTraceSpans,
     (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
     (_state: RootState, props: { workflowSpanId: string | undefined }) => props.workflowSpanId,
     selectWorkflowDetailActiveSpan,
@@ -318,70 +348,6 @@ export const selectTraceFailureSpans = createSelector(
 )
 
 /**
- * Select Junjo set_state events by the Junjo Workflow's Store ID
- * (The unique  instance of the store for that workflow execution)
- */
-export const selectStateEventsByJunjoStoreId = createSelector(
-  [selectSpanAndChildren, (_state: RootState, props: { storeId: string | undefined }) => props.storeId],
-  (spans, storeId): JunjoSetStateEvent[] => {
-    const junjoSetStateEvents: JunjoSetStateEvent[] = []
-    if (!storeId) return junjoSetStateEvents
-
-    spans.forEach((span) => {
-      // Basic check if events_json exists and is an array
-      if (Array.isArray(span.events_json)) {
-        span.events_json.forEach((event) => {
-          try {
-            // Assuming JunjoSetStateEventSchema.parse returns a newly parsed object
-            const parsedEvent = JunjoSetStateEventSchema.parse(event)
-            if (parsedEvent.attributes['junjo.store.id'] === storeId) {
-              junjoSetStateEvents.push(parsedEvent)
-            }
-          } catch {
-            // Ignore non-Junjo events.
-          }
-        })
-      }
-    })
-
-    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-    // createSelector memoizes this returned reference
-    return junjoSetStateEvents
-  },
-)
-
-/**
- * Select: Before Span State Event In Workflow
- * This selector finds the last set_state event before the current span starts in the same workflow
- *
- * 1. Find all set_state events that operate on the same store ID (meaning, we know the workflow is the same)
- * 2. Find the last set_state event before the active span starts
- *
- * @returns {JunjoSetStateEvent | undefined}
- */
-export const selectBeforeSpanStateEventInWorkflow = createSelector(
-  [selectWorkflowDetailActiveSpan, selectStateEventsByJunjoStoreId],
-  (activeSpan, storeStateEvents): JunjoSetStateEvent | undefined => {
-    if (!activeSpan) return undefined
-
-    // Sort the store events by their timeUnixNano in ascending order
-    const sortedEvents = [...storeStateEvents].sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-
-    // compute active span start in nanoseconds
-    const spanStartTimeMicro = isoStringToMicrosecondsSinceEpoch(activeSpan.start_time)
-    const spanStartTimeNano = spanStartTimeMicro * 1000
-
-    // walk from the end (because in ascending order) to find the greatest event that is < spanStartTimeNano
-    for (let i = sortedEvents.length - 1; i >= 0; i--) {
-      if (sortedEvents[i].timeUnixNano < spanStartTimeNano) {
-        return sortedEvents[i]
-      }
-    }
-    return undefined
-  },
-)
-
-/**
  * Select: Active Store ID
  * This selector finds the store ID of the store that the current span acts on.
  *
@@ -389,70 +355,17 @@ export const selectBeforeSpanStateEventInWorkflow = createSelector(
  * Otherwise, default to the selected workflow or subflow span's own store.
  */
 export const selectActiveStoreID = createSelector(
-  [selectActiveSetStateEvent, selectWorkflowDetailActiveSpan, selectActiveSpanJunjoWorkflow],
-  (activeSetStateEvent, activeSpan, activeWorkflowSpan): string | undefined => {
+  [selectActiveStateEvent, selectWorkflowDetailActiveSpan, selectActiveSpanJunjoWorkflow],
+  (activeStateEvent, activeSpan, activeWorkflowSpan): string | undefined => {
     if (!activeSpan) return undefined
     if (!activeWorkflowSpan) return undefined
 
     // If there is an active set_state event, return its store ID
-    if (activeSetStateEvent) {
-      return activeSetStateEvent.attributes['junjo.store.id']
+    if (activeStateEvent) {
+      return activeStateEvent.storeId
     }
 
     // Otherwise, default to the active workflow or subflow span's own store.
     return activeWorkflowSpan ? wrapSpan(activeWorkflowSpan).workflowStoreId : undefined
-  },
-)
-
-/**
- * Select State Event's Parent Span
- * @returns {OtelSpan | undefined}
- */
-export const selectStateEventParentSpan = createSelector(
-  [
-    selectTraceSpansForTraceId,
-    (_state: RootState, props: { stateEventId: string | undefined }) => props.stateEventId,
-  ],
-  (childSpans, stateEventId): OtelSpan | undefined => {
-    if (!stateEventId) return undefined
-
-    // Find the span that contains this state event
-    const span = childSpans.find((span) => {
-      // Check if the span's events_json array contains an event with the matching id
-      const hasEvent = span.events_json.some((event) => event.attributes?.id === stateEventId)
-      return hasEvent
-    })
-    return span
-  },
-)
-
-/**
- * Select All Workflow State Events
- * Given a traceId and workflowSpanId, this selector finds all state events
- * operating on the same store as the workflowSpan.
- *
- * @returns {JunjoSetStateEvent[]} sorted by their timeUnixNano
- */
-export const selectAllWorkflowStateEvents = createSelector(
-  [selectSpanAndChildren],
-  (spans): JunjoSetStateEvent[] => {
-    const junjoSetStateEvents: JunjoSetStateEvent[] = []
-
-    spans.forEach((span) => {
-      // Basic check if events_json exists and is an array
-      if (Array.isArray(span.events_json)) {
-        span.events_json.forEach((event) => {
-          try {
-            const parsedEvent = JunjoSetStateEventSchema.parse(event)
-            junjoSetStateEvents.push(parsedEvent)
-          } catch {
-            // Ignore non-Junjo events.
-          }
-        })
-      }
-    })
-
-    junjoSetStateEvents.sort((a, b) => a.timeUnixNano - b.timeUnixNano)
-    return junjoSetStateEvents
   },
 )

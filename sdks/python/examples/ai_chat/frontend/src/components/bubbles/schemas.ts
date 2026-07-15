@@ -1,5 +1,7 @@
-import { MessageRead } from '../../api/message/schemas'
+import type { Message, PublicConfig, Turn } from '../../api/schemas'
 
 export interface ChatBubbleProps {
-  message: MessageRead
+  message: Message
+  turn?: Turn
+  config?: PublicConfig | null
 }

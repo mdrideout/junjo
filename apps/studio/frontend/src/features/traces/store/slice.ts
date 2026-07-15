@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { OtelSpan } from '../../traces/schemas/schemas'
+import type { TraceEvidence } from '../schemas/trace-evidence'
 
 interface TracesState {
   serviceNames: {
@@ -8,8 +8,8 @@ interface TracesState {
     loading: boolean
     error: boolean
   }
-  traceSpans: {
-    [traceId: string]: OtelSpan[]
+  traceEvidence: {
+    [traceId: string]: TraceEvidence
   }
   loading: boolean
   error: boolean
@@ -21,7 +21,7 @@ const initialState: TracesState = {
     loading: false,
     error: false,
   },
-  traceSpans: {},
+  traceEvidence: {},
   loading: false,
   error: false,
 }
@@ -31,7 +31,7 @@ export const tracesSlice = createSlice({
   initialState,
   reducers: {
     // Listener Middleware Triggers
-    fetchSpansByTraceId: {
+    fetchTraceEvidence: {
       reducer: () => {
         // Handled by listener middleware
       },
@@ -53,8 +53,8 @@ export const tracesSlice = createSlice({
     },
 
     // Traces Data Actions
-    setTracesData: (state, action: PayloadAction<{ traceId: string; data: OtelSpan[] }>) => {
-      state.traceSpans[action.payload.traceId] = action.payload.data
+    setTraceEvidenceData: (state, action: PayloadAction<{ traceId: string; data: TraceEvidence }>) => {
+      state.traceEvidence[action.payload.traceId] = action.payload.data
     },
     setTracesLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload

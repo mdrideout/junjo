@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 2,
   "scenario": "run_concurrent_success",
   "trace_id": "33333333333333333333333333333333",
   "service_name": "svc-junjo-phase0-run-concurrent",
@@ -19,17 +19,35 @@
         "junjo.workflow.state.start": "{\"fanout_complete\":false}",
         "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-run-concurrent-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.concurrent.prepare\",\"nodeStructuralId\":\"struct-concurrent-prepare\",\"nodeType\":\"Node\",\"nodeLabel\":\"prepare\"},{\"nodeRuntimeId\":\"run.concurrent.fanout\",\"nodeStructuralId\":\"struct-concurrent-fanout\",\"nodeType\":\"RunConcurrent\",\"nodeLabel\":\"fanout\",\"isConcurrentSubgraph\":true,\"childNodeRuntimeIds\":[\"node.concurrent.branch_a\",\"node.concurrent.branch_b\"]},{\"nodeRuntimeId\":\"node.concurrent.branch_a\",\"nodeStructuralId\":\"struct-concurrent-branch-a\",\"nodeType\":\"Node\",\"nodeLabel\":\"branch_a\"},{\"nodeRuntimeId\":\"node.concurrent.branch_b\",\"nodeStructuralId\":\"struct-concurrent-branch-b\",\"nodeType\":\"Node\",\"nodeLabel\":\"branch_b\"}],\"edges\":[{\"edgeStructuralId\":\"edge-concurrent-prepare-fanout\",\"tailNodeRuntimeId\":\"node.concurrent.prepare\",\"tailNodeStructuralId\":\"struct-concurrent-prepare\",\"headNodeRuntimeId\":\"run.concurrent.fanout\",\"headNodeStructuralId\":\"struct-concurrent-fanout\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
         "junjo.workflow.store.id": "store-run-concurrent-01",
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.concurrent",
         "junjo.executable_runtime_id": "run-concurrent-01",
         "junjo.executable_structural_id": "graph-run-concurrent-01",
-        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01"
+        "junjo.enclosing_graph_structural_id": "graph-run-concurrent-01",
+        "junjo.workflow.state.start.mode": "full",
+        "junjo.workflow.state.start.policy": "junjo.full.v1",
+        "junjo.workflow.state.end": "{\"fanout_complete\":true}",
+        "junjo.workflow.state.end.mode": "full",
+        "junjo.workflow.state.end.policy": "junjo.full.v1",
+        "junjo.store.revision.start": 0,
+        "junjo.store.revision.end": 1,
+        "junjo.store.transition.count": 1,
+        "junjo.store.reconstructable": true
       },
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-run-concurrent",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "33333333333333333333333333333333",
@@ -43,7 +61,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.concurrent.prepare",
         "junjo.parent_executable_definition_id": "workflow.concurrent",
@@ -56,7 +74,16 @@
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-run-concurrent",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "33333333333333333333333333333333",
@@ -70,7 +97,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "run_concurrent",
         "junjo.executable_definition_id": "run.concurrent.fanout",
         "junjo.parent_executable_definition_id": "workflow.concurrent",
@@ -83,7 +110,16 @@
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-run-concurrent",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "33333333333333333333333333333333",
@@ -97,7 +133,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.concurrent.branch_a",
         "junjo.parent_executable_definition_id": "run.concurrent.fanout",
@@ -110,7 +146,16 @@
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-run-concurrent",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "33333333333333333333333333333333",
@@ -124,7 +169,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.concurrent.branch_b",
         "junjo.parent_executable_definition_id": "run.concurrent.fanout",
@@ -137,19 +182,34 @@
       "events_json": [
         {
           "name": "set_state",
-          "timeUnixNano": 1775391000180000000,
+          "timeUnixNano": "1775391000180000000",
           "attributes": {
             "id": "state-event-concurrent-01",
             "junjo.store.name": "ConcurrentWorkflowState",
             "junjo.store.id": "store-run-concurrent-01",
             "junjo.store.action": "mark_fanout_complete",
-            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/fanout_complete\",\"value\":true}]"
-          }
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/fanout_complete\",\"value\":true}]",
+            "junjo.store.transition.sequence": 1,
+            "junjo.store.revision.before": 0,
+            "junjo.store.revision.after": 1,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1"
+          },
+          "droppedAttributesCount": 0
         }
       ],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-run-concurrent",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     }
   ]
 }

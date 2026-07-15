@@ -7,12 +7,21 @@ import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { TracesStateActions } from './store/slice'
 import { selectTraceSpansForTraceId, selectTracesError, selectTracesLoading } from './store/selectors'
 
-export default function TraceDetails() {
-  const { traceId, serviceName, spanId } = useParams<{
+interface TraceDetailsProps {
+  routeIdentity?: {
+    traceId: string
+    serviceName: string
+    spanId?: string
+  }
+}
+
+export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) {
+  const routeParameters = useParams<{
     traceId: string
     serviceName: string
     spanId?: string
   }>()
+  const { traceId, serviceName, spanId } = routeIdentity ?? routeParameters
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const spans: OtelSpan[] = useAppSelector((state) => selectTraceSpansForTraceId(state, { traceId }))
@@ -25,7 +34,7 @@ export default function TraceDetails() {
     if (!traceId) return
     if (spans.length > 0) return
     if (requestedTraceId === traceId) return
-    dispatch(TracesStateActions.fetchSpansByTraceId({ traceId }))
+    dispatch(TracesStateActions.fetchTraceEvidence({ traceId }))
     setRequestedTraceId(traceId)
   }, [dispatch, traceId, spans.length, requestedTraceId])
 
@@ -39,12 +48,12 @@ export default function TraceDetails() {
   }, [spanId, spans])
 
   useEffect(() => {
-    if (selectedSpan) {
+    if (selectedSpan && routeIdentity === undefined) {
       navigate(`/traces/${serviceName}/${traceId}/${selectedSpan.span_id}`, {
         replace: true,
       })
     }
-  }, [selectedSpan, navigate, serviceName, traceId])
+  }, [selectedSpan, navigate, routeIdentity, serviceName, traceId])
 
   if (!traceId || !serviceName) {
     return <div>Invalid trace URL.</div>

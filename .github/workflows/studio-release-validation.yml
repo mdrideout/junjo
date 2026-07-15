@@ -160,6 +160,8 @@ jobs:
     name: Studio deployment distributions
     needs: prepare
     uses: ./.github/workflows/studio-deployments.yml
+    with:
+      run_live_smoke: true
 
   dry_build:
     if: needs.prepare.outputs.production == 'false'

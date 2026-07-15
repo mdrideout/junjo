@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://junjo.ai/contracts/telemetry/telemetry-fixture.v1.schema.json",
+  "$id": "https://junjo.ai/contracts/telemetry/telemetry-fixture.v2.schema.json",
   "title": "Junjo normalized telemetry fixture",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract_version", "scenario", "trace_id", "service_name", "spans"],
   "properties": {
-    "contract_version": {"const": 1},
+    "contract_version": {"const": 2},
     "scenario": {"type": "string", "minLength": 1},
     "trace_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
     "service_name": {"type": "string", "minLength": 1},
@@ -17,6 +17,17 @@
     }
   },
   "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "timeUnixNano", "attributes", "droppedAttributesCount"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "timeUnixNano": {"type": "string", "pattern": "^(?:0|[1-9][0-9]{0,19})$"},
+        "attributes": {"type": "object"},
+        "droppedAttributesCount": {"type": "integer", "minimum": 0}
+      }
+    },
     "span": {
       "type": "object",
       "additionalProperties": false,
@@ -25,6 +36,8 @@
         "span_id",
         "parent_span_id",
         "service_name",
+        "resource_attributes_json",
+        "resource_dropped_attributes_count",
         "name",
         "kind",
         "start_time",
@@ -35,24 +48,52 @@
         "events_json",
         "links_json",
         "trace_flags",
-        "trace_state"
+        "trace_state",
+        "dropped_attributes_count",
+        "dropped_events_count",
+        "dropped_links_count"
       ],
       "properties": {
         "trace_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
         "span_id": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
-        "parent_span_id": {"type": ["string", "null"]},
+        "parent_span_id": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+            {"type": "null"}
+          ]
+        },
         "service_name": {"type": "string", "minLength": 1},
+        "resource_attributes_json": {"type": "object"},
+        "resource_dropped_attributes_count": {"type": "integer", "minimum": 0},
         "name": {"type": "string", "minLength": 1},
-        "kind": {"type": "string"},
-        "start_time": {"type": "string"},
-        "end_time": {"type": "string"},
+        "kind": {"enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"]},
+        "start_time": {"type": "string", "format": "date-time"},
+        "end_time": {"type": "string", "format": "date-time"},
         "status_code": {"type": "string"},
         "status_message": {"type": "string"},
-        "attributes_json": {"type": "object"},
-        "events_json": {"type": "array"},
-        "links_json": {"type": "array"},
-        "trace_flags": {"type": "integer"},
-        "trace_state": {"type": ["string", "null"]}
+        "attributes_json": {
+          "type": "object",
+          "properties": {
+            "junjo.parent_executable_type": {
+              "enum": ["workflow", "subflow", "node", "run_concurrent", "agent"]
+            },
+            "junjo.parent_executable_definition_id": {"type": "string", "minLength": 1},
+            "junjo.parent_executable_runtime_id": {"type": "string", "minLength": 1},
+            "junjo.parent_executable_structural_id": {"type": "string", "minLength": 1},
+            "junjo.correlation.type": {"type": "string", "minLength": 1},
+            "junjo.correlation.id": {"type": "string", "minLength": 1}
+          }
+        },
+        "events_json": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/event"}
+        },
+        "links_json": {"type": "array", "items": {"type": "object"}},
+        "trace_flags": {"type": "integer", "minimum": 0},
+        "trace_state": {"type": ["string", "null"]},
+        "dropped_attributes_count": {"type": "integer", "minimum": 0},
+        "dropped_events_count": {"type": "integer", "minimum": 0},
+        "dropped_links_count": {"type": "integer", "minimum": 0}
       }
     }
   }

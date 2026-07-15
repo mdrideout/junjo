@@ -36,6 +36,8 @@ dependencies = [
     "pyarrow>=22.0.0",
     "pytz>=2025.2",
     "datafusion>=50.1.0",
+    "jsonpatch>=1.33",
+    "rfc8785>=0.1.4",
 ]
 
 [project.optional-dependencies]

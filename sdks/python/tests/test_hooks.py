@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import importlib
 import json
@@ -11,7 +12,17 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
 )
 from opentelemetry.trace import StatusCode
 
-from junjo import BaseState, BaseStore, Graph, Hooks, Node, RunConcurrent, Subflow, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Graph,
+    Hooks,
+    Node,
+    RunConcurrent,
+    Subflow,
+    Workflow,
+    WorkflowExecutionError,
+)
 
 
 class HookState(BaseState):
@@ -106,6 +117,207 @@ async def test_hooks_dispatch_in_order_and_unsubscribe() -> None:
     await create_simple_workflow(hooks=hooks).execute()
 
     assert calls == ["sync", "async", "last"]
+
+
+@pytest.mark.asyncio
+async def test_hook_membership_is_snapshotted_for_each_workflow_run() -> None:
+    hooks = Hooks()
+    calls: list[str] = []
+
+    def register_late(event) -> None:
+        hooks.on_node_completed(lambda node_event: calls.append(node_event.name))
+
+    hooks.on_workflow_started(register_late)
+    workflow = create_simple_workflow(hooks=hooks)
+
+    await workflow.execute()
+    assert calls == []
+
+    await workflow.execute()
+    assert calls == ["HookNode"]
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_during_run_affects_only_future_runs() -> None:
+    hooks = Hooks()
+    calls: list[str] = []
+    unsubscribe = hooks.on_node_completed(lambda event: calls.append(event.name))
+    hooks.on_workflow_started(lambda event: unsubscribe())
+    workflow = create_simple_workflow(hooks=hooks)
+
+    await workflow.execute()
+    await workflow.execute()
+
+    assert calls == ["HookNode"]
+
+
+@pytest.mark.asyncio
+async def test_callback_raised_cancelled_error_is_isolated_as_observer_failure(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    hooks = Hooks()
+    calls: list[str] = []
+
+    async def directly_cancelled(event) -> None:
+        raise asyncio.CancelledError("observer-only")
+
+    hooks.on_workflow_started(directly_cancelled)
+    hooks.on_workflow_started(lambda event: calls.append("continued"))
+
+    result = await create_simple_workflow(hooks=hooks).execute()
+
+    assert result.state.steps == ["HookNode"]
+    assert calls == ["continued"]
+    workflow_span = next(
+        span for span in span_exporter.get_finished_spans() if span.name == "Hook Workflow"
+    )
+    event = next(event for event in workflow_span.events if event.name == "junjo.hook_error")
+    assert event.attributes["junjo.hook.error.type"] == "CancelledError"
+
+
+@pytest.mark.asyncio
+async def test_task_cancellation_during_started_hook_uses_execution_cancellation_path() -> None:
+    hooks = Hooks()
+    callback_started = asyncio.Event()
+    cancelled_events: list[str] = []
+
+    async def block_started(event) -> None:
+        callback_started.set()
+        await asyncio.Future()
+
+    hooks.on_workflow_started(block_started)
+    hooks.on_workflow_cancelled(lambda event: cancelled_events.append(event.reason))
+    task = asyncio.create_task(create_simple_workflow(hooks=hooks).execute())
+    await asyncio.wait_for(callback_started.wait(), timeout=0.2)
+    task.cancel("caller_cancelled")
+
+    with pytest.raises(asyncio.CancelledError, match="caller_cancelled"):
+        await task
+
+    assert cancelled_events == ["caller_cancelled"]
+
+
+@pytest.mark.asyncio
+async def test_terminal_hook_task_cancellation_does_not_rewrite_committed_outcome(
+    span_exporter: InMemorySpanExporter,
+) -> None:
+    hooks = Hooks()
+    cancelled_events: list[str] = []
+    callbacks_after_cancel: list[str] = []
+
+    async def cancel_delivery(event) -> None:
+        task = asyncio.current_task()
+        assert task is not None
+        task.cancel("terminal_delivery_cancelled")
+        await asyncio.sleep(0)
+
+    hooks.on_workflow_completed(cancel_delivery)
+    hooks.on_workflow_completed(lambda event: callbacks_after_cancel.append("unexpected"))
+    hooks.on_workflow_cancelled(lambda event: cancelled_events.append(event.reason))
+
+    with pytest.raises(asyncio.CancelledError, match="terminal_delivery_cancelled"):
+        await create_simple_workflow(hooks=hooks).execute()
+
+    assert callbacks_after_cancel == []
+    assert cancelled_events == []
+    workflow_span = next(
+        span for span in span_exporter.get_finished_spans() if span.name == "Hook Workflow"
+    )
+    assert "junjo.cancelled" not in workflow_span.attributes
+    assert workflow_span.status.status_code is StatusCode.UNSET
+    events = [
+        event
+        for event in workflow_span.events
+        if event.name == "junjo.hook_delivery_cancelled"
+    ]
+    assert len(events) == 1
+    assert (
+        events[0].attributes["junjo.hook.delivery.cancelled_reason"]
+        == "terminal_delivery_cancelled"
+    )
+
+
+@pytest.mark.parametrize("selected_outcome", ["completed", "failed", "cancelled"])
+@pytest.mark.asyncio
+async def test_workflow_terminal_evidence_drains_under_repeated_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+    span_exporter: InMemorySpanExporter,
+    selected_outcome: str,
+) -> None:
+    terminal_entered = asyncio.Event()
+    release_terminal = asyncio.Event()
+    body_entered = asyncio.Event()
+    evidence_calls = 0
+    original_evidence = HookStore._get_store_owner_evidence
+
+    async def blocked_terminal_evidence(self):
+        nonlocal evidence_calls
+        evidence_calls += 1
+        evidence = await original_evidence(self)
+        if evidence_calls == 2:
+            terminal_entered.set()
+            await release_terminal.wait()
+        return evidence
+
+    monkeypatch.setattr(
+        HookStore,
+        "_get_store_owner_evidence",
+        blocked_terminal_evidence,
+    )
+    hooks = Hooks()
+    lifecycle: list[str] = []
+    hooks.on_workflow_completed(lambda event: lifecycle.append("completed"))
+    hooks.on_workflow_failed(lambda event: lifecycle.append("failed"))
+    hooks.on_workflow_cancelled(lambda event: lifecycle.append("cancelled"))
+
+    if selected_outcome == "failed":
+        node: Node[HookStore] = FailingNode()
+    elif selected_outcome == "cancelled":
+
+        class BlockingNode(Node[HookStore]):
+            async def service(self, store: HookStore) -> None:
+                body_entered.set()
+                await asyncio.Event().wait()
+
+        node = BlockingNode()
+    else:
+        node = HookNode()
+    workflow = Workflow[HookState, HookStore](
+        name=f"Terminal {selected_outcome} Workflow",
+        graph_factory=lambda: Graph(source=node, sinks=[node], edges=[]),
+        store_factory=lambda: HookStore(initial_state=HookState()),
+        hooks=hooks,
+    )
+    task = asyncio.create_task(workflow.execute())
+    if selected_outcome == "cancelled":
+        await body_entered.wait()
+        task.cancel("cancel workflow body")
+    await terminal_entered.wait()
+    task.cancel("cancel terminal evidence once")
+    await asyncio.sleep(0)
+    task.cancel("cancel terminal evidence twice")
+    release_terminal.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert lifecycle == [selected_outcome]
+    owner = next(
+        span
+        for span in span_exporter.get_finished_spans()
+        if span.name == f"Terminal {selected_outcome} Workflow"
+    )
+    assert owner.attributes["junjo.store.reconstructable"] is True
+    assert "junjo.workflow.state.end" in owner.attributes
+    if selected_outcome == "completed":
+        assert "junjo.cancelled" not in owner.attributes
+        assert owner.status.status_code is StatusCode.UNSET
+    elif selected_outcome == "failed":
+        assert "junjo.cancelled" not in owner.attributes
+        assert owner.status.status_code is StatusCode.ERROR
+    else:
+        assert owner.attributes["junjo.cancelled"] is True
+        assert owner.status.status_code is StatusCode.UNSET
 
 
 @pytest.mark.asyncio
@@ -273,7 +485,7 @@ async def test_on_state_changed_delivers_patch_and_detached_snapshot() -> None:
     assert event.executable_definition_id != result.definition_id
     assert event.executable_definition_id == event.executable_runtime_id
     assert event.name == "HookNode"
-    assert event.span_type == "node"
+    assert event.executable_type == "node"
     assert event.store_name == "HookStore"
     assert event.action_name == "append_step"
     assert event.patch != "{}"
@@ -313,7 +525,7 @@ async def test_state_changed_in_run_concurrent_uses_active_child_node_identity()
     event = state_events[0]
     assert event.executable_definition_id == child_node.id
     assert event.name == child_node.name
-    assert event.span_type == "node"
+    assert event.executable_type == "node"
     assert event.executable_runtime_id == child_node.id
     assert event.executable_structural_id.startswith("node_")
     assert event.parent_executable_definition_id != workflow.id
@@ -357,7 +569,7 @@ async def test_state_changed_in_subflow_uses_child_node_identity_and_subflow_par
     assert len(child_events) == 1
     event = child_events[0]
     assert event.name == child_node.name
-    assert event.span_type == "node"
+    assert event.executable_type == "node"
     assert event.executable_runtime_id == child_node.id
     assert event.executable_structural_id.startswith("node_")
     assert event.parent_executable_definition_id == subflow.id
@@ -402,8 +614,8 @@ async def test_spans_emit_explicit_runtime_and_structural_identity_attributes(
     assert "junjo.parent_id" not in node_span.attributes
     assert "junjo.workflow.graph_structure" not in workflow_span.attributes
     assert "junjo.workflow.execution_graph_snapshot" in workflow_span.attributes
-    assert workflow_span.attributes["junjo.telemetry.contract_version"] == 1
-    assert node_span.attributes["junjo.telemetry.contract_version"] == 1
+    assert workflow_span.attributes["junjo.telemetry.contract_version"] == 2
+    assert node_span.attributes["junjo.telemetry.contract_version"] == 2
 
     assert workflow_span.attributes["junjo.executable_runtime_id"] == result.run_id
     assert (
@@ -570,8 +782,10 @@ async def test_failed_workflow_and_node_spans_emit_standard_error_type(
         store_factory=lambda: HookStore(initial_state=HookState()),
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute()
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value.__cause__) == "boom"
 
     spans = {span.name: span for span in span_exporter.get_finished_spans()}
     workflow_span = spans["Failing Workflow"]

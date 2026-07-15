@@ -2,6 +2,80 @@
 
 All notable changes to Junjo will be documented in this file.
 
+## FUTURE RELEASE
+
+### Breaking Changes
+
+- Replaced the telemetry contract with strict contract version 2 across the
+  Python producer, canonical language-independent schemas, and Junjo AI Studio
+  consumers. Version 1 emitters and consumers are intentionally not supported
+  by this greenfield contract.
+- Store evidence now uses explicit monotonic transition sequences, revisions,
+  event identities, reconstruction claims, and versioned payload envelopes.
+
+### Library
+
+- Added a first-class, reusable `Agent` definition with isolated per-run state,
+  an injected provider-neutral `ModelDriver`, typed application `Tool`s,
+  structured output, explicit limits, usage accounting, and detached execution
+  results.
+- Added deterministic `ScriptedModelDriver` support and complete failure,
+  malformed-input, limit, cancellation, composition, concurrency, and typing
+  coverage.
+- Added truthful composition in both directions: an Agent can invoke a fresh
+  Workflow through a typed Tool, and a Workflow Node can execute an Agent while
+  preserving independent Stores and execution identities.
+- Unified Workflow, Node, concurrent, and Agent lifecycle preparation around
+  explicit internal identity, terminal-state, cancellation, and observer
+  boundaries without introducing a universal executable abstraction.
+- Added typed `WorkflowExecutionError` and `WorkflowCancelledError` results for
+  admitted executions. They preserve the Workflow run identity, detached final
+  state, execution counts, original cause, cancellation semantics, and an
+  explicit completeness signal when terminal Store evidence itself fails.
+- Added `evaluate_node()` as a one-shot, normally instrumented Node-eval
+  envelope that preserves Node, Store, trace, and application-correlation
+  evidence without making Junjo own datasets or judges.
+
+### Telemetry
+
+- Added semantic Agent spans, ordered model and Tool operation spans, normalized
+  model request/response and usage payloads, limit/cancellation/error evidence,
+  and declared semantic-parent links alongside physical OpenTelemetry
+  parentage.
+- Added canonical valid, invalid, fingerprint, Store-patch, Agent-producer, and
+  Workflow-producer fixtures plus exact SDK producer conformance tests.
+- Added verified Store reconstruction and semantic Agent/Workflow diagnostics
+  to the paired Studio evidence path, including loss and integrity signals.
+
+### Docs and Examples
+
+- Added Agent concepts, API, deterministic testing, composition, failure,
+  cancellation, telemetry, and Studio evidence documentation.
+- Restored `examples/ai_chat` as a live AI application: model-powered Contact,
+  avatar, directive, work, date, image, and persona behaviors run inside
+  explicit Workflows, while a bounded Agent handles the open-ended general
+  path and can invoke the shared image Workflow through a typed Tool.
+- Added server-owned versioned Turn/Contact/Conversation JSON persistence,
+  background execution, the original React chat experience, optional Studio
+  deep links, transactional abandoned-Turn reconciliation, and colocated live
+  eval suites for biography, contact coherence, directives, response quality,
+  image quality, and Agent Tool policy. Portable JSON evidence records the
+  provider, model, judgment, latency, run identity, and Studio resolution URL.
+- Updated the explicit Gemini and xAI defaults to current supported text and
+  image/editing models; provider identifiers remain environment-overridable.
+
+### Tooling and CI
+
+- Added path-scoped AI Chat backend/frontend validation for deterministic
+  application infrastructure. Credentialed product-quality evals remain
+  explicit development experiments rather than ordinary CI gates.
+- Added a provider-call-free, clean-volume Compose startup smoke for both
+  configured providers; the longer container build remains outside required PR
+  checks.
+- Added a provider-free public-SDK-to-OTLP-to-Studio release validator that
+  authenticates against a disposable local Studio, verifies raw and semantic
+  hierarchy, and independently replays Agent and Workflow Store evidence.
+
 ## 0.64.0 - 2026-07-13
 
 ### Telemetry

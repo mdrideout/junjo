@@ -45,6 +45,18 @@ def wait_for_port(port: int, timeout: float = 60.0) -> bool:
     return False
 
 
+def read_log_tail(path: Path, max_bytes: int = 64 * 1024) -> str:
+    """Read a bounded UTF-8-safe process log tail for failure diagnostics."""
+    try:
+        with path.open("rb") as log_file:
+            log_file.seek(0, os.SEEK_END)
+            size = log_file.tell()
+            log_file.seek(max(0, size - max_bytes))
+            return log_file.read().decode("utf-8", errors="replace")
+    except OSError as error:
+        return f"Unable to read ingestion log: {error}"
+
+
 @pytest.fixture(scope="module")
 def mock_backend_auth_server():
     """Start a tiny in-process backend auth gRPC server for ingestion tests.
@@ -109,7 +121,11 @@ def rust_ingestion_binary():
 
 
 @pytest.fixture(scope="module")
-def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
+def rust_ingestion_service(
+    rust_ingestion_binary,
+    mock_backend_auth_server,
+    request: pytest.FixtureRequest,
+):
     """Start the Rust ingestion service for integration tests.
 
     This fixture:
@@ -134,6 +150,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
     wal_dir = os.path.join(temp_dir, "wal")
     parquet_dir = os.path.join(temp_dir, "parquet")
     snapshot_path = os.path.join(temp_dir, "hot_snapshot.parquet")
+    log_path = Path(temp_dir) / "ingestion.log"
     os.makedirs(wal_dir, exist_ok=True)
     os.makedirs(parquet_dir, exist_ok=True)
 
@@ -157,34 +174,37 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
     })
 
     # Start the pre-built binary directly (much faster than cargo run)
+    log_file = log_path.open("w+b")
     process = subprocess.Popen(
         [str(rust_ingestion_binary)],
         cwd=INGESTION_DIR,
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
     )
 
     # Wait for internal service to be ready (should be fast since binary is pre-built)
     if not wait_for_port(ingestion_internal_port, timeout=10.0):
-        try:
-            stdout, stderr = process.communicate(timeout=5)
-            error_msg = f"stdout: {stdout.decode()}\nstderr: {stderr.decode()}"
-        except subprocess.TimeoutExpired:
+        if process.poll() is None:
             process.kill()
-            error_msg = "Process timed out"
-        pytest.fail(f"Rust ingestion service failed to start within 10s.\n{error_msg}")
+            process.wait(timeout=5)
+        log_file.flush()
+        log_file.close()
+        pytest.fail(
+            "Rust ingestion service failed to start within 10s.\n"
+            f"Log tail:\n{read_log_tail(log_path)}"
+        )
 
     # Also ensure the public OTLP port is ready (some tests ingest spans).
     if not wait_for_port(ingestion_public_port, timeout=10.0):
-        try:
-            stdout, stderr = process.communicate(timeout=5)
-            error_msg = f"stdout: {stdout.decode()}\nstderr: {stderr.decode()}"
-        except subprocess.TimeoutExpired:
+        if process.poll() is None:
             process.kill()
-            error_msg = "Process timed out"
+            process.wait(timeout=5)
+        log_file.flush()
+        log_file.close()
         pytest.fail(
-            f"Rust ingestion service OTLP port failed to start within 10s.\n{error_msg}"
+            "Rust ingestion service OTLP port failed to start within 10s.\n"
+            f"Log tail:\n{read_log_tail(log_path)}"
         )
 
     logger.info(
@@ -192,6 +212,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         f"(internal port: {ingestion_internal_port}, public port: {ingestion_public_port})"
     )
 
+    failures_before = request.session.testsfailed
     yield {
         "process": process,
         "temp_dir": temp_dir,
@@ -200,6 +221,7 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         "snapshot_path": snapshot_path,
         "internal_port": ingestion_internal_port,
         "public_port": ingestion_public_port,
+        "log_path": str(log_path),
     }
 
     # Cleanup
@@ -209,9 +231,17 @@ def rust_ingestion_service(rust_ingestion_binary, mock_backend_auth_server):
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         process.kill()
+        process.wait(timeout=5)
+    log_file.flush()
+    log_file.close()
 
-    # Clean up temp directory
-    try:
-        shutil.rmtree(temp_dir)
-    except Exception as e:
-        logger.warning(f"Failed to clean up temp dir: {e}")
+    if request.session.testsfailed > failures_before:
+        logger.error(
+            "Rust ingestion test module failed; preserving diagnostics at "
+            f"{temp_dir}\nLog tail:\n{read_log_tail(log_path)}"
+        )
+    else:
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception as e:
+            logger.warning(f"Failed to clean up temp dir: {e}")

@@ -14,8 +14,8 @@ components:
 - [`apps/website`](apps/website) — the Junjo product and documentation website.
 - [`apps/studio/deployments`](apps/studio/deployments) — canonical source for
   the minimal and VM/Caddy Studio distributions. Their standalone GitHub
-  repositories are designated one-way release mirrors, not separate sources
-  of truth; the first monorepo-driven publication remains a cutover gate.
+  repositories are generated one-way release mirrors, not separate sources of
+  truth.
 - [`contracts/telemetry`](contracts/telemetry) — language-independent telemetry
   schemas and conformance fixtures shared by SDK emitters and Studio consumers.
 - [`docs/roadmaps`](docs/roadmaps) — cross-platform product and implementation
@@ -48,11 +48,26 @@ cd apps/studio
 cd ../..
 
 # Shared telemetry contract
+python3 contracts/telemetry/compatibility/generate_v2_fixtures.py
 python3 contracts/telemetry/compatibility/validate_contract.py
+git diff --exit-code -- contracts/telemetry
 
 # Fast platform layout and release-routing invariants
 python3 tooling/scripts/validate_repository.py
 ```
+
+Live cross-layer validation uses a disposable local Studio instance. From the
+repository root, run the provider-free Horizon 1 Agent proof with:
+
+```bash
+uv run --project sdks/python python tooling/scripts/validate_agent_studio_e2e.py
+```
+
+The validator creates and removes an isolated test identity and API key. If the
+local Studio already contains users, provide the existing administrator
+credentials through `JUNJO_STUDIO_E2E_EXISTING_EMAIL` and
+`JUNJO_STUDIO_E2E_EXISTING_PASSWORD`; the values are never accepted as command
+arguments or written to output.
 
 See the scoped `AGENTS.md` and README in each component before changing it.
 Cross-system changes must update the canonical contract and validate every

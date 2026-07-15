@@ -1,6 +1,16 @@
 import pytest
 
-from junjo import BaseState, BaseStore, Edge, Graph, GraphValidationError, Node, Subflow, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Edge,
+    Graph,
+    GraphValidationError,
+    Node,
+    Subflow,
+    Workflow,
+    WorkflowExecutionError,
+)
 
 
 class ValidationState(BaseState):
@@ -215,8 +225,10 @@ async def test_workflow_execute_can_disable_graph_validation_per_run() -> None:
         store_factory=create_store,
     )
 
-    with pytest.raises(GraphValidationError, match="No resolved edges"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute(validate_graph=False)
+    assert isinstance(raised.value.__cause__, GraphValidationError)
+    assert "No resolved edges" in str(raised.value.__cause__)
 
     assert len(created_stores) == 1
     assert (await created_stores[0].get_state()).steps == ["start", "dead-end"]
@@ -247,5 +259,9 @@ async def test_workflow_execute_propagates_validate_graph_to_nested_subflows() -
     with pytest.raises(GraphValidationError, match="dead-ends without an outgoing edge"):
         await workflow.execute()
 
-    with pytest.raises(GraphValidationError, match="No resolved edges"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute(validate_graph=False)
+    child_error = raised.value.__cause__
+    assert isinstance(child_error, WorkflowExecutionError)
+    assert isinstance(child_error.__cause__, GraphValidationError)
+    assert "No resolved edges" in str(child_error.__cause__)

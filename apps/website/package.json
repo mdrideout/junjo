@@ -11,10 +11,12 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
+    "docs:assemble": "python3 ../../tooling/docs/assemble_public_docs.py --write",
+    "docs:check": "python3 ../../tooling/docs/assemble_public_docs.py --check",
     "check": "astro check",
     "build": "astro build",
     "validate:build": "node scripts/validate-build.mjs",
-    "validate": "npm run check && npm run build && npm run validate:build",
+    "validate": "npm run docs:assemble && npm run check && npm run build && npm run validate:build && npm run docs:check",
     "preview": "astro preview",
     "astro": "astro"
   },

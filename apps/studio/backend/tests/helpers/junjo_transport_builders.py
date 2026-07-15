@@ -28,7 +28,14 @@ SPAN_SCHEMA = pa.schema(
         pa.field("status_message", pa.string(), nullable=True),
         pa.field("attributes", pa.string(), nullable=False),
         pa.field("events", pa.string(), nullable=False),
+        pa.field("links", pa.string(), nullable=False),
+        pa.field("trace_flags", pa.uint32(), nullable=False),
+        pa.field("trace_state", pa.string(), nullable=True),
+        pa.field("dropped_attributes_count", pa.uint32(), nullable=False),
+        pa.field("dropped_events_count", pa.uint32(), nullable=False),
+        pa.field("dropped_links_count", pa.uint32(), nullable=False),
         pa.field("resource_attributes", pa.string(), nullable=False),
+        pa.field("resource_dropped_attributes_count", pa.uint32(), nullable=False),
     ]
 )
 
@@ -69,10 +76,17 @@ def api_span_to_parquet_row(span: dict[str, Any]) -> dict[str, Any]:
         "status_message": span["status_message"] or None,
         "attributes": json.dumps(span["attributes_json"], separators=(",", ":")),
         "events": json.dumps(span["events_json"], separators=(",", ":")),
+        "links": json.dumps(span["links_json"], separators=(",", ":")),
+        "trace_flags": span["trace_flags"],
+        "trace_state": span["trace_state"],
+        "dropped_attributes_count": span["dropped_attributes_count"],
+        "dropped_events_count": span["dropped_events_count"],
+        "dropped_links_count": span["dropped_links_count"],
         "resource_attributes": json.dumps(
-            {"service.name": span["service_name"]},
+            span["resource_attributes_json"],
             separators=(",", ":"),
         ),
+        "resource_dropped_attributes_count": span["resource_dropped_attributes_count"],
     }
 
 
@@ -106,10 +120,21 @@ def _key_value(key: str, value: Any) -> common_pb2.KeyValue:
 
 def _proto_event(event: dict[str, Any]) -> trace_pb2.Span.Event:
     return trace_pb2.Span.Event(
-        time_unix_nano=event["timeUnixNano"],
+        time_unix_nano=int(event["timeUnixNano"]),
         name=event["name"],
         attributes=[_key_value(key, value) for key, value in event["attributes"].items()],
-        dropped_attributes_count=0,
+        dropped_attributes_count=event["droppedAttributesCount"],
+    )
+
+
+def _proto_link(link: dict[str, Any]) -> trace_pb2.Span.Link:
+    return trace_pb2.Span.Link(
+        trace_id=bytes.fromhex(link["traceId"]),
+        span_id=bytes.fromhex(link["spanId"]),
+        trace_state=link.get("traceState", ""),
+        attributes=[_key_value(key, value) for key, value in link.get("attributes", {}).items()],
+        dropped_attributes_count=link.get("droppedAttributesCount", 0),
+        flags=link.get("flags", 0),
     )
 
 
@@ -128,6 +153,12 @@ def _proto_span(span: dict[str, Any]) -> trace_pb2.Span:
             _key_value(key, value) for key, value in span["attributes_json"].items()
         ],
         events=[_proto_event(event) for event in span["events_json"]],
+        links=[_proto_link(link) for link in span["links_json"]],
+        trace_state=span["trace_state"] or "",
+        flags=span["trace_flags"],
+        dropped_attributes_count=span["dropped_attributes_count"],
+        dropped_events_count=span["dropped_events_count"],
+        dropped_links_count=span["dropped_links_count"],
         status=trace_pb2.Status(
             code=int(span["status_code"]),
             message=span["status_message"],
@@ -137,19 +168,18 @@ def _proto_span(span: dict[str, Any]) -> trace_pb2.Span:
 
 def build_otlp_export_request(case: dict[str, Any]) -> trace_service_pb2.ExportTraceServiceRequest:
     """Convert one shared fixture case into an OTLP ExportTraceServiceRequest."""
-    spans_by_service: dict[str, list[trace_pb2.Span]] = {}
-    for span in case["spans"]:
-        spans_by_service.setdefault(span["service_name"], []).append(_proto_span(span))
-
     resource_spans: list[trace_pb2.ResourceSpans] = []
-    for service_name, spans in spans_by_service.items():
+    for span in case["spans"]:
         resource = resource_pb2.Resource(
-            attributes=[_key_value("service.name", service_name)]
+            attributes=[
+                _key_value(key, value) for key, value in span["resource_attributes_json"].items()
+            ],
+            dropped_attributes_count=span["resource_dropped_attributes_count"],
         )
         resource_spans.append(
             trace_pb2.ResourceSpans(
                 resource=resource,
-                scope_spans=[trace_pb2.ScopeSpans(spans=spans)],
+                scope_spans=[trace_pb2.ScopeSpans(spans=[_proto_span(span)])],
             )
         )
 
@@ -162,6 +192,15 @@ def workflow_spans_for_case(case: dict[str, Any]) -> list[dict[str, Any]]:
         span
         for span in case["spans"]
         if span["attributes_json"].get("junjo.span_type") == "workflow"
+    ]
+
+
+def agent_spans_for_case(case: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return only Agent executable owner spans from a fixture case."""
+    return [
+        span
+        for span in case["spans"]
+        if span["attributes_json"].get("junjo.span_type") == "agent"
     ]
 
 
@@ -179,7 +218,7 @@ def normalize_api_span(span: dict[str, Any]) -> dict[str, Any]:
     normalized["attributes_json"] = _normalize_graph_snapshot(normalized["attributes_json"])
     normalized["events_json"] = sorted(
         normalized["events_json"],
-        key=lambda event: (event["timeUnixNano"], event["name"]),
+        key=lambda event: (int(event["timeUnixNano"]), event["name"]),
     )
     return normalized
 

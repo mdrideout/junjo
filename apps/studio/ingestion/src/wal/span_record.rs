@@ -19,7 +19,14 @@ pub struct SpanRecord {
     pub status_message: Option<String>,
     pub attributes: String,
     pub events: String,
+    pub links: String,
+    pub trace_flags: u32,
+    pub trace_state: Option<String>,
+    pub dropped_attributes_count: u32,
+    pub dropped_events_count: u32,
+    pub dropped_links_count: u32,
     pub resource_attributes: String,
+    pub resource_dropped_attributes_count: u32,
 }
 
 impl SpanRecord {
@@ -61,9 +68,12 @@ impl SpanRecord {
 
         let attributes = serialize_attributes(&span.attributes);
         let events = serialize_events(&span.events);
+        let links = serialize_links(&span.links);
         let resource_attributes = resource
             .map(|r| serialize_attributes(&r.attributes))
             .unwrap_or_else(|| "{}".to_string());
+        let resource_dropped_attributes_count =
+            resource.map(|r| r.dropped_attributes_count).unwrap_or(0);
 
         SpanRecord {
             span_id,
@@ -79,7 +89,18 @@ impl SpanRecord {
             status_message,
             attributes,
             events,
+            links,
+            trace_flags: span.flags,
+            trace_state: if span.trace_state.is_empty() {
+                None
+            } else {
+                Some(span.trace_state.clone())
+            },
+            dropped_attributes_count: span.dropped_attributes_count,
+            dropped_events_count: span.dropped_events_count,
+            dropped_links_count: span.dropped_links_count,
             resource_attributes,
+            resource_dropped_attributes_count,
         }
     }
 }
@@ -120,8 +141,10 @@ fn serialize_events(events: &[opentelemetry_proto::tonic::trace::v1::span::Event
 
             json!({
                 "name": e.name,
-                "timeUnixNano": e.time_unix_nano,
+                // JSON numbers cannot preserve the full OTLP uint64 nanosecond domain.
+                "timeUnixNano": e.time_unix_nano.to_string(),
                 "attributes": attrs,
+                "droppedAttributesCount": e.dropped_attributes_count,
             })
         })
         .collect();
@@ -129,12 +152,38 @@ fn serialize_events(events: &[opentelemetry_proto::tonic::trace::v1::span::Event
     serde_json::to_string(&event_list).unwrap_or_else(|_| "[]".to_string())
 }
 
+fn serialize_links(links: &[opentelemetry_proto::tonic::trace::v1::span::Link]) -> String {
+    let link_list: Vec<JsonValue> = links
+        .iter()
+        .map(|link| {
+            let attrs: serde_json::Map<String, JsonValue> = link
+                .attributes
+                .iter()
+                .filter_map(|kv| {
+                    kv.value
+                        .as_ref()
+                        .map(|value| (kv.key.clone(), any_value_to_json(value)))
+                })
+                .collect();
+            json!({
+                "traceId": hex::encode(&link.trace_id),
+                "spanId": hex::encode(&link.span_id),
+                "traceState": link.trace_state,
+                "attributes": attrs,
+                "droppedAttributesCount": link.dropped_attributes_count,
+                "flags": link.flags,
+            })
+        })
+        .collect();
+    serde_json::to_string(&link_list).unwrap_or_else(|_| "[]".to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use opentelemetry_proto::tonic::common::v1::{any_value, AnyValue, KeyValue};
     use opentelemetry_proto::tonic::resource::v1::Resource;
-    use opentelemetry_proto::tonic::trace::v1::span::Event;
+    use opentelemetry_proto::tonic::trace::v1::span::{Event, Link};
     use opentelemetry_proto::tonic::trace::v1::{Span, Status};
 
     fn string_value(value: &str) -> AnyValue {
@@ -159,7 +208,7 @@ mod tests {
     #[test]
     fn test_serialize_events_uses_time_unix_nano_camel_case() {
         let event = Event {
-            time_unix_nano: 123,
+            time_unix_nano: u64::MAX,
             name: "set_state".to_string(),
             attributes: vec![],
             dropped_attributes_count: 0,
@@ -177,6 +226,7 @@ mod tests {
             .unwrap();
         assert!(event_obj.contains_key("timeUnixNano"));
         assert!(!event_obj.contains_key("time_unix_nano"));
+        assert_eq!(event_obj["timeUnixNano"], "18446744073709551615");
     }
 
     #[test]
@@ -206,7 +256,19 @@ mod tests {
                 key_value("junjo.cancelled", bool_value(true)),
             ],
             events: vec![],
-            links: vec![],
+            links: vec![Link {
+                trace_id: vec![0xaa; 16],
+                span_id: vec![0xbb; 8],
+                trace_state: "vendor=value".to_string(),
+                attributes: vec![key_value("link.key", string_value("link-value"))],
+                dropped_attributes_count: 4,
+                flags: 1,
+            }],
+            trace_state: "junjo=fixture".to_string(),
+            flags: 1,
+            dropped_attributes_count: 5,
+            dropped_events_count: 6,
+            dropped_links_count: 7,
             status: Some(Status {
                 code: 2,
                 message: "failed".to_string(),
@@ -215,7 +277,7 @@ mod tests {
         };
         let resource = Resource {
             attributes: vec![key_value("service.name", string_value("svc-phase0"))],
-            dropped_attributes_count: 0,
+            dropped_attributes_count: 3,
             entity_refs: vec![],
         };
 
@@ -223,6 +285,7 @@ mod tests {
         let attributes: serde_json::Value = serde_json::from_str(&record.attributes).unwrap();
         let resource_attributes: serde_json::Value =
             serde_json::from_str(&record.resource_attributes).unwrap();
+        let links: serde_json::Value = serde_json::from_str(&record.links).unwrap();
 
         assert_eq!(record.service_name, "svc-phase0");
         assert_eq!(
@@ -234,6 +297,15 @@ mod tests {
         assert_eq!(attributes["error.type"], "ValueError");
         assert_eq!(attributes["junjo.cancelled"], true);
         assert_eq!(resource_attributes["service.name"], "svc-phase0");
+        assert_eq!(record.resource_dropped_attributes_count, 3);
+        assert_eq!(record.dropped_attributes_count, 5);
+        assert_eq!(record.dropped_events_count, 6);
+        assert_eq!(record.dropped_links_count, 7);
+        assert_eq!(record.trace_flags, 1);
+        assert_eq!(record.trace_state.as_deref(), Some("junjo=fixture"));
+        assert_eq!(links[0]["traceId"], "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assert_eq!(links[0]["spanId"], "bbbbbbbbbbbbbbbb");
+        assert_eq!(links[0]["droppedAttributesCount"], 4);
     }
 
     #[test]
@@ -307,13 +379,14 @@ mod tests {
 
         assert_eq!(event_list.len(), 2);
         assert_eq!(event_list[0]["name"], "set_state");
-        assert_eq!(event_list[0]["timeUnixNano"], 400);
+        assert_eq!(event_list[0]["timeUnixNano"], "400");
+        assert_eq!(event_list[0]["droppedAttributesCount"], 0);
         assert_eq!(
             event_list[0]["attributes"]["junjo.store.id"],
             "store-01"
         );
         assert_eq!(event_list[1]["name"], "junjo.hook_error");
-        assert_eq!(event_list[1]["timeUnixNano"], 450);
+        assert_eq!(event_list[1]["timeUnixNano"], "450");
         assert_eq!(
             event_list[1]["attributes"]["junjo.hook.error.message"],
             "hook exploded"

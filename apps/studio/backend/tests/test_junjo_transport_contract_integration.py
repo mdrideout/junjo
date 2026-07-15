@@ -23,13 +23,14 @@ from app.config.settings import settings
 from app.db_sqlite.metadata import db as metadata_db
 from app.db_sqlite.metadata import indexer as sqlite_indexer
 from app.db_sqlite.metadata import init_metadata_db
+from app.features.agent_diagnostics.assembler import assemble_agent_detail
 from app.features.otel_spans import repository as spans_repo
 from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
 from app.features.parquet_indexer.parquet_reader import read_parquet_metadata
 from app.features.span_ingestion.ingestion_client import IngestionClient
 from tests.helpers.junjo_fixture_loader import (
-    list_junjo_fixture_case_names,
-    load_junjo_fixture_case,
+    list_valid_transport_fixture_ids,
+    load_valid_transport_fixture,
 )
 from tests.helpers.junjo_transport_builders import (
     build_otlp_export_request,
@@ -39,29 +40,41 @@ from tests.helpers.junjo_transport_builders import (
 
 pytestmark = [pytest.mark.requires_ingestion_service, pytest.mark.integration]
 
-JUNJO_FIXTURE_CASE_NAMES = list_junjo_fixture_case_names()
+VALID_TRANSPORT_FIXTURE_IDS = list_valid_transport_fixture_ids()
+
+
+def _agent_projections(spans: list[dict]) -> list[dict]:
+    owners = [
+        span for span in spans if span["attributes_json"].get("junjo.span_type") == "agent"
+    ]
+    return [
+        assemble_agent_detail(owner, spans).model_dump(mode="json")
+        for owner in sorted(owners, key=lambda span: span["span_id"])
+    ]
 
 
 def _all_parquet_paths(parquet_dir: str) -> set[str]:
     return {str(path) for path in Path(parquet_dir).rglob("*.parquet")}
 
 
-@pytest.mark.parametrize("case_name", JUNJO_FIXTURE_CASE_NAMES)
+@pytest.mark.parametrize("case_name", VALID_TRANSPORT_FIXTURE_IDS)
 @pytest.mark.asyncio
 async def test_current_junjo_payload_survives_hot_bridge_and_indexed_cold(
     rust_ingestion_service,
     case_name,
 ):
-    case = load_junjo_fixture_case(case_name)
+    case = load_valid_transport_fixture(case_name)
     expected_trace_spans = normalize_api_spans(case["spans"])
     expected_workflow_spans = normalize_api_spans(workflow_spans_for_case(case))
+    expected_agent_projections = _agent_projections(case["spans"])
 
     old_metadata_path = getattr(metadata_db, "_db_path", None)
     old_host = settings.span_ingestion.host
     old_port = settings.span_ingestion.port
     new_parquet_paths: list[str] = []
 
-    with tempfile.TemporaryDirectory(prefix=f"junjo_transport_{case_name}_") as temp_dir:
+    safe_case_name = case_name.replace("/", "_")
+    with tempfile.TemporaryDirectory(prefix=f"junjo_transport_{safe_case_name}_") as temp_dir:
         metadata_path = os.path.join(temp_dir, "metadata.db")
 
         metadata_db.close_connection()
@@ -101,6 +114,7 @@ async def test_current_junjo_payload_survives_hot_bridge_and_indexed_cold(
                     order_by="start_time ASC",
                 )
                 assert normalize_api_spans(snapshot_results) == expected_trace_spans
+                assert _agent_projections(snapshot_results) == expected_agent_projections
 
                 hot_trace_results = await spans_repo.get_fused_trace_spans(case["trace_id"])
                 assert normalize_api_spans(hot_trace_results) == expected_trace_spans
@@ -109,6 +123,14 @@ async def test_current_junjo_payload_survives_hot_bridge_and_indexed_cold(
                     case["service_name"]
                 )
                 assert normalize_api_spans(hot_workflow_results) == expected_workflow_spans
+                hot_agent_results = await spans_repo.get_fused_agent_spans(case["service_name"])
+                assert normalize_api_spans(hot_agent_results) == normalize_api_spans(
+                    [
+                        span
+                        for span in case["spans"]
+                        if span["attributes_json"].get("junjo.span_type") == "agent"
+                    ]
+                )
 
                 assert await ingestion_client.flush_wal() is True
 
@@ -124,6 +146,7 @@ async def test_current_junjo_payload_survives_hot_bridge_and_indexed_cold(
             await spans_repo._reset_ingestion_client()
             bridged_trace_results = await spans_repo.get_fused_trace_spans(case["trace_id"])
             assert normalize_api_spans(bridged_trace_results) == expected_trace_spans
+            assert _agent_projections(bridged_trace_results) == expected_agent_projections
 
             bridged_workflow_results = await spans_repo.get_fused_workflow_spans(
                 case["service_name"]
@@ -138,9 +161,18 @@ async def test_current_junjo_payload_survives_hot_bridge_and_indexed_cold(
             await spans_repo._reset_ingestion_client()
             cold_trace_results = await spans_repo.get_fused_trace_spans(case["trace_id"])
             assert normalize_api_spans(cold_trace_results) == expected_trace_spans
+            assert _agent_projections(cold_trace_results) == expected_agent_projections
 
             cold_workflow_results = await spans_repo.get_fused_workflow_spans(case["service_name"])
             assert normalize_api_spans(cold_workflow_results) == expected_workflow_spans
+            cold_agent_results = await spans_repo.get_fused_agent_spans(case["service_name"])
+            assert normalize_api_spans(cold_agent_results) == normalize_api_spans(
+                [
+                    span
+                    for span in case["spans"]
+                    if span["attributes_json"].get("junjo.span_type") == "agent"
+                ]
+            )
 
         finally:
             await spans_repo._reset_ingestion_client()

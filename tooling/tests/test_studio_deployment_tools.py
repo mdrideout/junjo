@@ -266,9 +266,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
             "mdrideout/junjo-ai-studio-frontend:latest"
         )
         with self.assertRaisesRegex(smoke.SmokeError, "must use exact image"):
-            smoke.assert_compose_images(
-                rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES
-            )
+            smoke.assert_compose_images(rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES)
 
     def test_registry_runtime_override_binds_digests_and_named_storage(self) -> None:
         digest = "sha256:" + ("c" * 64)
@@ -278,9 +276,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
             runner.runtime_root = Path(directory)
             runner.write_runtime_override()
             self.assertIsNotNone(runner.runtime_override)
-            override = json.loads(
-                runner.runtime_override.read_text(encoding="utf-8")
-            )
+            override = json.loads(runner.runtime_override.read_text(encoding="utf-8"))
             for service, compose_service in zip(
                 smoke.CORE_SERVICES, smoke.COMPOSE_CORE_SERVICES, strict=True
             ):
@@ -300,9 +296,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
             runner.runtime_root = Path(directory)
             runner.write_runtime_override()
             self.assertIsNotNone(runner.runtime_override)
-            override = json.loads(
-                runner.runtime_override.read_text(encoding="utf-8")
-            )
+            override = json.loads(runner.runtime_override.read_text(encoding="utf-8"))
             smoke.assert_smoke_named_storage(override, runner.data_volume_name)
             self.assertTrue(
                 all(
@@ -310,6 +304,67 @@ class DistributionSmokeContractTests(unittest.TestCase):
                     for service in smoke.COMPOSE_DATA_SERVICES
                 )
             )
+
+    def test_runtime_override_routes_browser_inside_the_isolated_stack(self) -> None:
+        runner = self.smoke_runner()
+        frontend_origin = f"http://127.0.0.1:{runner.frontend_port}"
+        backend_origin = f"http://127.0.0.1:{runner.backend_port}"
+        ingestion_url = f"http://127.0.0.1:{runner.ingestion_port}"
+        with tempfile.TemporaryDirectory(prefix="junjo-routing-smoke-") as directory:
+            runner.runtime_root = Path(directory)
+            runner.write_runtime_override()
+            self.assertIsNotNone(runner.runtime_override)
+            override = json.loads(runner.runtime_override.read_text(encoding="utf-8"))
+
+        smoke.assert_smoke_runtime_routing(
+            override,
+            frontend_origin=frontend_origin,
+            backend_origin=backend_origin,
+            ingestion_url=ingestion_url,
+        )
+        backend_environment = override["services"]["junjo-ai-studio-backend"][
+            "environment"
+        ]
+        frontend_environment = override["services"]["junjo-ai-studio-frontend"][
+            "environment"
+        ]
+        self.assertEqual(backend_environment["JUNJO_ENV"], "development")
+        self.assertEqual(backend_environment["JUNJO_ALLOW_ORIGINS"], frontend_origin)
+        self.assertEqual(frontend_environment["JUNJO_ENV"], "production")
+        self.assertEqual(frontend_environment["JUNJO_PROD_BACKEND_URL"], backend_origin)
+
+    def test_live_runtime_routing_checks_served_config_and_cors(self) -> None:
+        runner = self.smoke_runner()
+        frontend_origin = f"http://127.0.0.1:{runner.frontend_port}"
+        backend_origin = f"http://127.0.0.1:{runner.backend_port}"
+        config_response = mock.MagicMock()
+        config_response.__enter__.return_value = config_response
+        config_response.read.return_value = (
+            f'window.runtimeConfig = {{ API_HOST: "{backend_origin}" }};\n'.encode()
+        )
+        cors_response = mock.MagicMock()
+        cors_response.__enter__.return_value = cors_response
+        cors_response.headers = {
+            "Access-Control-Allow-Origin": frontend_origin,
+            "Access-Control-Allow-Credentials": "true",
+        }
+
+        with mock.patch.object(
+            smoke.urllib.request,
+            "urlopen",
+            side_effect=[config_response, cors_response],
+        ) as urlopen:
+            runner.assert_live_runtime_routing()
+
+        self.assertEqual(
+            urlopen.call_args_list[0].args[0], f"{frontend_origin}/config.js"
+        )
+        preflight = urlopen.call_args_list[1].args[0]
+        self.assertIsInstance(preflight, smoke.urllib.request.Request)
+        self.assertEqual(preflight.full_url, f"{backend_origin}/health")
+        self.assertEqual(preflight.get_method(), "OPTIONS")
+        self.assertEqual(preflight.get_header("Origin"), frontend_origin)
+        self.assertEqual(preflight.get_header("Access-control-request-method"), "GET")
 
     def test_registry_pull_uses_evidence_digest_instead_of_version_tag(self) -> None:
         digest = "sha256:" + ("d" * 64)
@@ -319,7 +374,9 @@ class DistributionSmokeContractTests(unittest.TestCase):
 
         def run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
             commands.append(command)
-            stdout = f"Name: fixture\nDigest: {digest}\n" if "imagetools" in command else ""
+            stdout = (
+                f"Name: fixture\nDigest: {digest}\n" if "imagetools" in command else ""
+            )
             return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr="")
 
         with mock.patch.object(smoke, "run_command", side_effect=run):
@@ -358,8 +415,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="junjo-smoke-env-test-") as directory:
             environment = Path(directory) / ".env"
             environment.write_text(
-                "JUNJO_ENV=development\n"
-                "JUNJO_AI_STUDIO_API_KEY=placeholder\n",
+                "JUNJO_ENV=development\nJUNJO_AI_STUDIO_API_KEY=placeholder\n",
                 encoding="utf-8",
             )
             smoke.update_environment_value(
@@ -372,37 +428,86 @@ class DistributionSmokeContractTests(unittest.TestCase):
     def smoke_runner(self) -> Any:
         return smoke.StudioDistributionSmoke(
             repository_root=REPOSITORY_ROOT,
-            studio_version=(
-                REPOSITORY_ROOT / "apps/studio/VERSION"
-            ).read_text(encoding="utf-8").strip(),
+            studio_version=(REPOSITORY_ROOT / "apps/studio/VERSION")
+            .read_text(encoding="utf-8")
+            .strip(),
             image_source="local",
             platform="linux/amd64",
             expected_images={},
             image_repositories=SMOKE_IMAGE_REPOSITORIES,
             timeout_seconds=1,
+            evidence_directory=Path("/tmp/junjo-studio-smoke-tests"),
         )
 
-    def expected_registry_images(
-        self, digest: str
-    ) -> dict[str, smoke.PublishedImage]:
+    def expected_registry_images(self, digest: str) -> dict[str, smoke.PublishedImage]:
         return {
             service: smoke.PublishedImage(service, repository, digest)
             for service, repository in SMOKE_IMAGE_REPOSITORIES.items()
         }
 
-    def registry_runner(
-        self, expected_images: dict[str, smoke.PublishedImage]
-    ) -> Any:
+    def registry_runner(self, expected_images: dict[str, smoke.PublishedImage]) -> Any:
         return smoke.StudioDistributionSmoke(
             repository_root=REPOSITORY_ROOT,
-            studio_version=(
-                REPOSITORY_ROOT / "apps/studio/VERSION"
-            ).read_text(encoding="utf-8").strip(),
+            studio_version=(REPOSITORY_ROOT / "apps/studio/VERSION")
+            .read_text(encoding="utf-8")
+            .strip(),
             image_source="registry",
             platform="linux/amd64",
             expected_images=expected_images,
             image_repositories=SMOKE_IMAGE_REPOSITORIES,
             timeout_seconds=1,
+            evidence_directory=Path("/tmp/junjo-studio-smoke-tests"),
+        )
+
+    def test_agent_studio_proof_keeps_credentials_out_of_commands_and_artifacts(
+        self,
+    ) -> None:
+        runner = self.smoke_runner()
+        identity = smoke.SmokeIdentity(
+            email="smoke-user@example.com",
+            password="smoke-password-with-entropy",
+            api_key="k" * 40,
+        )
+        calls: list[tuple[list[str], dict[str, object]]] = []
+
+        def run(
+            command: list[str], **kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            calls.append((command, kwargs))
+            if any(item.endswith("validate_agent_studio_e2e.py") for item in command):
+                output = Path(command[command.index("--evidence-output") + 1])
+                output.write_text('{"schema_version": 1}\n', encoding="utf-8")
+            if "test:e2e:agent-live" in command:
+                output = Path(command[command.index("--screenshot") + 1])
+                output.write_bytes(b"png fixture")
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory(prefix="junjo-h2-smoke-") as directory:
+            runner.evidence_directory = Path(directory)
+            with mock.patch.object(smoke, "run_command", side_effect=run):
+                runner.run_agent_studio_proof(identity)
+            manifest = json.loads(
+                (runner.evidence_directory / "manifest.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        self.assertEqual(len(calls), 2)
+        for command, kwargs in calls:
+            rendered = " ".join(command)
+            self.assertNotIn(identity.email, rendered)
+            self.assertNotIn(identity.password, rendered)
+            self.assertNotIn(identity.api_key, rendered)
+            self.assertEqual(
+                kwargs["environment"],
+                {
+                    "JUNJO_STUDIO_E2E_EXISTING_EMAIL": identity.email,
+                    "JUNJO_STUDIO_E2E_EXISTING_PASSWORD": identity.password,
+                },
+            )
+        self.assertEqual(
+            set(manifest["artifacts"]),
+            {"agent-evidence.json", "agent-diagnostics.png"},
         )
 
     @contextlib.contextmanager
@@ -421,10 +526,19 @@ class DistributionSmokeContractTests(unittest.TestCase):
                 "wait_for_core_services",
                 "start_demo_application",
                 "wait_for_example_workflow",
+                "run_agent_studio_proof",
             ):
                 stack.enter_context(mock.patch.object(runner, method_name))
             stack.enter_context(
-                mock.patch.object(runner, "create_api_key", return_value="test-key")
+                mock.patch.object(
+                    runner,
+                    "create_identity",
+                    return_value=smoke.SmokeIdentity(
+                        email="smoke@example.com",
+                        password="test-password",
+                        api_key="test-key",
+                    ),
+                )
             )
             cleanup = stack.enter_context(
                 mock.patch.object(runner, "cleanup", return_value=cleanup_error)
@@ -464,9 +578,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
         cleanup_error = smoke.SmokeError("sanitized cleanup failure")
         diagnostics = io.StringIO()
         with (
-            mock.patch.object(
-                runner, "prepare_runtime", side_effect=primary_error
-            ),
+            mock.patch.object(runner, "prepare_runtime", side_effect=primary_error),
             mock.patch.object(runner, "print_failure_logs"),
             mock.patch.object(runner, "cleanup", return_value=cleanup_error) as cleanup,
             contextlib.redirect_stderr(diagnostics),
@@ -522,8 +634,10 @@ class DistributionExportTests(unittest.TestCase):
             REPOSITORY_ROOT / "apps/studio/deployments/minimal/docker-compose.yml"
         ).read_text(encoding="utf-8")
         current_studio_version = (
-            REPOSITORY_ROOT / "apps/studio/VERSION"
-        ).read_text(encoding="utf-8").strip()
+            (REPOSITORY_ROOT / "apps/studio/VERSION")
+            .read_text(encoding="utf-8")
+            .strip()
+        )
         self.write(
             "apps/studio/deployments/minimal/docker-compose.yml",
             compose.replace(current_studio_version, "1.2.3"),

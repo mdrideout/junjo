@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 2,
   "scenario": "cancelled_executable",
   "trace_id": "55555555555555555555555555555555",
   "service_name": "svc-junjo-phase0-cancelled",
@@ -19,17 +19,35 @@
         "junjo.workflow.state.start": "{\"cancelled\":false}",
         "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-cancelled-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.cancelled.primary\",\"nodeStructuralId\":\"struct-cancelled-primary\",\"nodeType\":\"Node\",\"nodeLabel\":\"primary\"}],\"edges\":[]}",
         "junjo.workflow.store.id": "store-cancelled-01",
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.cancelled",
         "junjo.executable_runtime_id": "run-cancelled-01",
         "junjo.executable_structural_id": "graph-cancelled-01",
-        "junjo.enclosing_graph_structural_id": "graph-cancelled-01"
+        "junjo.enclosing_graph_structural_id": "graph-cancelled-01",
+        "junjo.workflow.state.start.mode": "full",
+        "junjo.workflow.state.start.policy": "junjo.full.v1",
+        "junjo.workflow.state.end": "{\"cancelled\":false}",
+        "junjo.workflow.state.end.mode": "full",
+        "junjo.workflow.state.end.policy": "junjo.full.v1",
+        "junjo.store.revision.start": 0,
+        "junjo.store.revision.end": 0,
+        "junjo.store.transition.count": 0,
+        "junjo.store.reconstructable": true
       },
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-cancelled",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     },
     {
       "trace_id": "55555555555555555555555555555555",
@@ -43,7 +61,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 1,
+        "junjo.telemetry.contract_version": 2,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.cancelled.primary",
         "junjo.parent_executable_definition_id": "workflow.cancelled",
@@ -58,7 +76,16 @@
       "events_json": [],
       "links_json": [],
       "trace_flags": 0,
-      "trace_state": null
+      "trace_state": null,
+      "resource_attributes_json": {
+        "service.name": "svc-junjo-phase0-cancelled",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0,
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0
     }
   ]
 }

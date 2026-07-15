@@ -99,13 +99,20 @@ mod schema_tests {
             Field::new("status_message", DataType::Utf8, true),
             Field::new("attributes", DataType::Utf8, false),
             Field::new("events", DataType::Utf8, false),
+            Field::new("links", DataType::Utf8, false),
+            Field::new("trace_flags", DataType::UInt32, false),
+            Field::new("trace_state", DataType::Utf8, true),
+            Field::new("dropped_attributes_count", DataType::UInt32, false),
+            Field::new("dropped_events_count", DataType::UInt32, false),
+            Field::new("dropped_links_count", DataType::UInt32, false),
             Field::new("resource_attributes", DataType::Utf8, false),
+            Field::new("resource_dropped_attributes_count", DataType::UInt32, false),
         ];
 
         let schema = Schema::new(expected_fields);
 
         // Verify field count
-        assert_eq!(schema.fields().len(), 14);
+        assert_eq!(schema.fields().len(), 21);
 
         // Verify key fields exist
         assert!(schema.field_with_name("span_id").is_ok());
@@ -133,7 +140,9 @@ mod schema_tests {
 
 /// Test module for Parquet file operations
 mod parquet_tests {
-    use arrow::array::{Int64Array, Int8Array, StringArray, TimestampNanosecondArray};
+    use arrow::array::{
+        Int64Array, Int8Array, StringArray, TimestampNanosecondArray, UInt32Array,
+    };
     use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use arrow::record_batch::RecordBatch;
     use parquet::arrow::ArrowWriter;
@@ -171,7 +180,14 @@ mod parquet_tests {
             Field::new("status_message", DataType::Utf8, true),
             Field::new("attributes", DataType::Utf8, false),
             Field::new("events", DataType::Utf8, false),
+            Field::new("links", DataType::Utf8, false),
+            Field::new("trace_flags", DataType::UInt32, false),
+            Field::new("trace_state", DataType::Utf8, true),
+            Field::new("dropped_attributes_count", DataType::UInt32, false),
+            Field::new("dropped_events_count", DataType::UInt32, false),
+            Field::new("dropped_links_count", DataType::UInt32, false),
             Field::new("resource_attributes", DataType::Utf8, false),
+            Field::new("resource_dropped_attributes_count", DataType::UInt32, false),
         ]));
 
         // Create test data
@@ -194,7 +210,14 @@ mod parquet_tests {
                 Arc::new(StringArray::from(vec![None::<&str>])),
                 Arc::new(StringArray::from(vec!["{}"])),
                 Arc::new(StringArray::from(vec!["[]"])),
+                Arc::new(StringArray::from(vec!["[]"])),
+                Arc::new(UInt32Array::from(vec![1u32])),
+                Arc::new(StringArray::from(vec![Some("junjo=fixture")])),
+                Arc::new(UInt32Array::from(vec![0u32])),
+                Arc::new(UInt32Array::from(vec![0u32])),
+                Arc::new(UInt32Array::from(vec![0u32])),
                 Arc::new(StringArray::from(vec!["{}"])),
+                Arc::new(UInt32Array::from(vec![0u32])),
             ],
         )
         .unwrap();

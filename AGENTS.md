@@ -6,25 +6,25 @@ the nearest scoped `AGENTS.md` before changing a component.
 ## Developer philosophy
 
 - Be grug brained: prefer simple, explicit code and contracts.
-- Everything is greenfield. Intentional breaking changes are allowed, but they
-  must be documented and coordinated across every affected component.
-- Do complete, well-architected work. Do not add compatibility fallbacks or
-  abstractions that hide ownership.
+- Everything is greenfield. Intentional breaking changes are allowed, but they must be documented and coordinated across every affected component.
+- Do complete, well-architected work. Do not add compatibility fallbacks or abstractions that hide ownership.
 - Follow single responsibility and separation of concerns.
 - Ground plans and reviews in current code and accepted ADRs.
 - Avoid scope creep and preserve unrelated user work.
+- Do not engage in scope creep. Do not take liberties to refactor or change things that do not need to change beyond the requested implementations and ideas. Keep existing user-interfaces, styles, contracts, integrations, system -> system mechanics as they are unless it's required to change them as part of new feature implementation. Keep changes necessary and required. As much as needed, as little as possible.
 
 ## Repository ownership
 
-- `sdks/python`: Python SDK, public API, tests, docs, and examples. Follow
+- `sdks/python`: Python SDK, public API, tests, source-owned docs exports, and examples. Follow
   `sdks/python/AGENTS.md`.
 - `apps/studio`: Studio backend, frontend, ingestion, deployment, and internal
   contracts. Follow `apps/studio/AGENTS.md`.
 - `apps/studio/deployments`: canonical source for supported Studio deployment
   distributions. Standalone deployment repositories are generated release
   mirrors and are never a second source of truth.
-- `apps/website`: Astro/Starlight product and documentation website. It keeps
-  its own JavaScript dependency lock, build, and deployment lifecycle. Follow
+- `apps/website`: Astro/Starlight product and unified documentation renderer.
+  It keeps its own JavaScript dependency lock; the production artifact is
+  assembled from source-owned documentation exports. Follow
   `apps/website/AGENTS.md`.
 - `contracts/telemetry`: language-independent schemas, versions, and fixtures.
 - `docs/adr`: cross-platform architectural decisions.
@@ -72,10 +72,13 @@ Run the full validation owned by every changed area. At minimum:
 - Studio deployment distributions: validate Compose rendering, setup scripts,
   archive contents, and generated-mirror equivalence for every changed
   distribution.
-- Website: `npm ci` and `npm run build` from `apps/website`.
-- Shared contracts: `python3
-  contracts/telemetry/compatibility/validate_contract.py`, plus producer and
-  consumer conformance tests.
+- Website: `npm ci` and `npm run build` from `apps/website`, plus the root
+  documentation assembly and parity validation when public docs inputs change.
+- Shared contracts: regenerate with `python3
+  contracts/telemetry/compatibility/generate_v2_fixtures.py`, validate with
+  `python3 contracts/telemetry/compatibility/validate_contract.py`, prove the
+  generated contract tree is unchanged, and run producer and consumer
+  conformance tests.
 
 Do not treat one component's green build as proof that a cross-component change
 is compatible.

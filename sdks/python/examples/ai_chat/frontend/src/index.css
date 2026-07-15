@@ -8,79 +8,47 @@
 html,
 body {
   @apply bg-zinc-100 dark:bg-zinc-900;
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  @apply font-semibold;
-  margin-bottom: 0.5rem;
-}
+* { box-sizing: border-box; }
 
-h1 {
-  @apply text-4xl;
-}
-h2 {
-  @apply text-3xl;
-}
-h3 {
-  @apply text-2xl;
-}
-h4 {
-  @apply text-xl;
-}
-h5 {
-  @apply text-lg;
-}
-h6 {
-  @apply text-base font-semibold;
-}
+h1, h2, h3, h4, h5, h6 { @apply font-semibold; margin-bottom: 0.5rem; }
+h1 { @apply text-4xl; }
+h2 { @apply text-3xl; }
+h3 { @apply text-2xl; }
+h4 { @apply text-xl; }
+h5 { @apply text-lg; }
+h6 { @apply text-base font-semibold; }
 
-ol,
-ul {
-  @apply pl-4;
-}
+ol, ul { @apply pl-4; }
+ol { @apply list-decimal; }
+ul { @apply list-disc; }
+ol ol, ul ul, ol ul, ul ol { @apply ml-4; }
+li { @apply mb-2; }
 
-ol {
-  @apply list-decimal;
-}
-
-ul {
-  @apply list-disc;
-}
-
-ol ol,
-ul ul,
-ol ul,
-ul ol {
-  @apply ml-4;
-}
-
-li {
-  @apply mb-2;
-}
-
-/* Animations */
 @keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.animate-rotate {
-  animation: rotate 1s linear infinite; /* Linear for constant speed */
-}
+.animate-rotate { animation: rotate 1s linear infinite; }
+.safe-word-break { word-break: break-word; }
 
-.safe-word-break {
-  word-break: break-word;
+.turn-diagnostics {
+  margin-top: .75rem;
+  padding-top: .5rem;
+  border-top: 1px solid rgb(255 255 255 / 20%);
+  font-size: .7rem;
 }
+.turn-diagnostics summary { cursor: pointer; font-weight: 700; }
+.turn-diagnostics dl { display: grid; gap: .25rem; margin: .5rem 0 0; }
+.turn-diagnostics dl div { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: .5rem; }
+.turn-diagnostics dd { margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, monospace; }
+.turn-diagnostics a { color: #bbf7d0; text-decoration: underline; }

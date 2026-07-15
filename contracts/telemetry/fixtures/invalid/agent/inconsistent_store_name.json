@@ -1,0 +1,180 @@
+{
+  "expected_diagnostic": "invalid_store_name",
+  "fixture": {
+    "contract_version": 2,
+    "scenario": "inconsistent_store_name",
+    "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
+    "service_name": "svc-agent-direct-typed-completion",
+    "spans": [
+      {
+        "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
+        "span_id": "4bc42f40551fd3b6",
+        "parent_span_id": null,
+        "service_name": "svc-agent-direct-typed-completion",
+        "resource_attributes_json": {
+          "service.name": "svc-agent-direct-typed-completion",
+          "service.namespace": "junjo.contract",
+          "service.version": "2.0.0"
+        },
+        "resource_dropped_attributes_count": 0,
+        "name": "Fixture Agent",
+        "kind": "INTERNAL",
+        "start_time": "2026-07-13T12:00:00.000000+00:00",
+        "end_time": "2026-07-13T12:00:00.000500+00:00",
+        "status_code": "0",
+        "status_message": "",
+        "attributes_json": {
+          "junjo.telemetry.contract_version": 2,
+          "junjo.span_type": "agent",
+          "junjo.executable_definition_id": "definition-84b91bd2c2e69bf4",
+          "junjo.executable_runtime_id": "run-84b91bd2c2e69bf49c5a",
+          "junjo.executable_structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "junjo.agent.key": "fixture_agent",
+          "junjo.agent.name": "Fixture Agent",
+          "junjo.agent.runtime_id": "run-84b91bd2c2e69bf49c5a",
+          "junjo.agent.state.available": true,
+          "junjo.agent.store.id": "store-84b91bd2c2e69bf4",
+          "junjo.agent.limit.model_requests": 4,
+          "junjo.agent.limit.tool_calls": 4,
+          "junjo.agent.operation.count": 1,
+          "junjo.agent.model_request.count": 1,
+          "junjo.agent.tool_call.requested_count": 0,
+          "junjo.agent.tool_call.admitted_count": 0,
+          "junjo.agent.tool_call.started_count": 0,
+          "junjo.agent.tool_call.completed_count": 0,
+          "junjo.agent.usage": "{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}}",
+          "junjo.agent.outcome": "completed",
+          "junjo.agent.termination_reason": "final_output",
+          "junjo.store.revision.start": 0,
+          "junjo.store.revision.end": 3,
+          "junjo.store.transition.count": 3,
+          "junjo.store.reconstructable": true,
+          "junjo.agent.definition_snapshot.mode": "full",
+          "junjo.agent.definition_snapshot.policy": "junjo.full.v1",
+          "junjo.agent.definition_snapshot": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"name\":\"Fixture Agent\",\"instructions\":\"Answer with deterministic fixture evidence.\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"question\"],\"properties\":{\"question\":{\"type\":\"string\"}}},\"model\":{\"driverKey\":\"scripted\",\"provider\":\"junjo\",\"model\":\"scripted-v1\",\"settings\":{}},\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"structuralId\":\"tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}},\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"structuralId\":\"agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923\"}",
+          "junjo.agent.input.mode": "full",
+          "junjo.agent.input.policy": "junjo.full.v1",
+          "junjo.agent.input": "{\"question\":\"fixture?\"}",
+          "junjo.agent.state.start.mode": "full",
+          "junjo.agent.state.start.policy": "junjo.full.v1",
+          "junjo.agent.state.start": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":0,\"model_request_count\":0,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}",
+          "junjo.agent.state.end.mode": "full",
+          "junjo.agent.state.end.policy": "junjo.full.v1",
+          "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}",
+          "junjo.agent.output.mode": "full",
+          "junjo.agent.output.policy": "junjo.full.v1",
+          "junjo.agent.output": "{\"answer\":\"done\"}"
+        },
+        "events_json": [
+          {
+            "name": "set_state",
+            "timeUnixNano": "1783944000000000003",
+            "attributes": {
+              "id": "event-b7fc6dbd8f2f",
+              "junjo.store.name": "AgentStore",
+              "junjo.store.id": "store-84b91bd2c2e69bf4",
+              "junjo.store.action": "commit_success",
+              "junjo.store.transition.sequence": 3,
+              "junjo.store.revision.before": 2,
+              "junjo.store.revision.after": 3,
+              "junjo.state_json_patch.mode": "full",
+              "junjo.state_json_patch.policy": "junjo.full.v1",
+              "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}}]"
+            },
+            "droppedAttributesCount": 0
+          }
+        ],
+        "links_json": [],
+        "trace_flags": 1,
+        "trace_state": "junjo=fixture",
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0
+      },
+      {
+        "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
+        "span_id": "260e2cca6821ea5a",
+        "parent_span_id": "4bc42f40551fd3b6",
+        "service_name": "svc-agent-direct-typed-completion",
+        "resource_attributes_json": {
+          "service.name": "svc-agent-direct-typed-completion",
+          "service.namespace": "junjo.contract",
+          "service.version": "2.0.0"
+        },
+        "resource_dropped_attributes_count": 0,
+        "name": "model request 1",
+        "kind": "INTERNAL",
+        "start_time": "2026-07-13T12:00:00.001000+00:00",
+        "end_time": "2026-07-13T12:00:00.001500+00:00",
+        "status_code": "0",
+        "status_message": "",
+        "attributes_json": {
+          "junjo.telemetry.contract_version": 2,
+          "junjo.agent.operation_type": "model_request",
+          "junjo.agent.key": "fixture_agent",
+          "junjo.agent.runtime_id": "run-84b91bd2c2e69bf49c5a",
+          "junjo.agent.operation.sequence": 1,
+          "junjo.agent.model_request.ordinal": 1,
+          "junjo.agent.model_request.state_revision": 1,
+          "junjo.agent.model.driver_key": "scripted",
+          "junjo.agent.model.provider": "junjo",
+          "junjo.agent.model.name": "scripted-v1",
+          "junjo.agent.model.response_candidate.available": true,
+          "junjo.agent.model.response_type": "final_output",
+          "junjo.agent.model.usage": "{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}",
+          "junjo.agent.model.request.mode": "full",
+          "junjo.agent.model.request.policy": "junjo.full.v1",
+          "junjo.agent.model.request": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"runId\":\"run-84b91bd2c2e69bf49c5a\",\"ordinal\":1,\"instructions\":\"Answer with deterministic fixture evidence.\",\"messages\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}}}",
+          "junjo.agent.model.response_candidate.mode": "full",
+          "junjo.agent.model.response_candidate.policy": "junjo.full.v1",
+          "junjo.agent.model.response_candidate": "{\"v\":1,\"type\":\"final_output\",\"output\":{\"answer\":\"done\"},\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}",
+          "junjo.agent.model.response.mode": "full",
+          "junjo.agent.model.response.policy": "junjo.full.v1",
+          "junjo.agent.model.response": "{\"v\":1,\"type\":\"final_output\",\"output\":{\"answer\":\"done\"},\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}"
+        },
+        "events_json": [
+          {
+            "name": "set_state",
+            "timeUnixNano": "1783944000000000001",
+            "attributes": {
+              "id": "event-d893e839c35e",
+              "junjo.store.name": "DifferentStore",
+              "junjo.store.id": "store-84b91bd2c2e69bf4",
+              "junjo.store.action": "record_model_start",
+              "junjo.store.transition.sequence": 1,
+              "junjo.store.revision.before": 0,
+              "junjo.store.revision.after": 1,
+              "junjo.state_json_patch.mode": "full",
+              "junjo.state_json_patch.policy": "junjo.full.v1",
+              "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+            },
+            "droppedAttributesCount": 0
+          },
+          {
+            "name": "set_state",
+            "timeUnixNano": "1783944000000000002",
+            "attributes": {
+              "id": "event-6e5bb3ce5c36",
+              "junjo.store.name": "AgentStore",
+              "junjo.store.id": "store-84b91bd2c2e69bf4",
+              "junjo.store.action": "record_model_response",
+              "junjo.store.transition.sequence": 2,
+              "junjo.store.revision.before": 1,
+              "junjo.store.revision.after": 2,
+              "junjo.state_json_patch.mode": "full",
+              "junjo.state_json_patch.policy": "junjo.full.v1",
+              "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+            },
+            "droppedAttributesCount": 0
+          }
+        ],
+        "links_json": [],
+        "trace_flags": 1,
+        "trace_state": "junjo=fixture",
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0
+      }
+    ]
+  }
+}

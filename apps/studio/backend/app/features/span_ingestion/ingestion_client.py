@@ -49,15 +49,20 @@ class IngestionClient:
         self,
         host: str | None = None,
         port: int | None = None,
+        rpc_timeout_seconds: float = 30.0,
     ):
         """Initialize ingestion client.
 
         Args:
             host: Ingestion service hostname (default from settings)
             port: Ingestion service port (default from settings)
+            rpc_timeout_seconds: Hard deadline for each internal RPC
         """
+        if rpc_timeout_seconds <= 0:
+            raise ValueError("rpc_timeout_seconds must be positive")
         self.host = host or settings.span_ingestion.host
         self.port = port or settings.span_ingestion.port
+        self.rpc_timeout_seconds = rpc_timeout_seconds
         self.address = f"{self.host}:{self.port}"
         self.channel: grpc.aio.Channel | None = None
         self.stub: ingestion_pb2_grpc.InternalIngestionServiceStub | None = None
@@ -114,7 +119,10 @@ class IngestionClient:
         request = ingestion_pb2.PrepareHotSnapshotRequest()
 
         try:
-            response = await self.stub.PrepareHotSnapshot(request)
+            response = await self.stub.PrepareHotSnapshot(
+                request,
+                timeout=self.rpc_timeout_seconds,
+            )
 
             result = HotSnapshotResult(
                 snapshot_path=response.snapshot_path,
@@ -168,7 +176,10 @@ class IngestionClient:
         request = ingestion_pb2.FlushWALRequest()
 
         try:
-            response = await self.stub.FlushWAL(request)
+            response = await self.stub.FlushWAL(
+                request,
+                timeout=self.rpc_timeout_seconds,
+            )
 
             if response.success:
                 logger.info("WAL flush completed successfully")

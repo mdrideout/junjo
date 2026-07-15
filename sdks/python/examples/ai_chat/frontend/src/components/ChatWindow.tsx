@@ -1,71 +1,45 @@
-import { useEffect, useRef } from 'react'
-import { useMessagesStore } from '../api/message/store'
+import { useEffect, useMemo, useRef } from 'react'
+import type { PublicConfig, Turn } from '../api/schemas'
 import ChatReceiveBubble from './bubbles/ChatReceiveBubble'
 import ChatReceiveImageBubble from './bubbles/ChatReceiveImageBubble'
 import ChatSendBubble from './bubbles/ChatSendBubble'
-import useGetMessages from '../api/message/hooks/get-messages-hook'
-import { useChatReadStateStore } from '../api/chat/read-store'
 
 interface ChatWindowProps {
-  chat_id: string | undefined
+  chatId: string | undefined
+  turns: Turn[]
+  config: PublicConfig | null
+  loading: boolean
 }
 
-export default function ChatWindow(props: ChatWindowProps) {
-  const { chat_id } = props
-  const chatWindowRef = useRef<HTMLDivElement>(null)
-  const { getChatMessages, pollForNewerMessages } = useGetMessages()
-  const markChatRead = useChatReadStateStore((state) => state.markChatRead)
-  const messages = useMessagesStore((state) => state.messages[chat_id ?? ''])
-  const messagesList = Object.values(messages ?? {})
-  const sortedMessagesList = [...messagesList].sort((a, b) => a.created_at.getTime() - b.created_at.getTime())
+export default function ChatWindow({ chatId, turns, config, loading }: ChatWindowProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const messages = useMemo(() => turns.flatMap((turn) => [
+    { message: turn.user_message, turn },
+    ...(turn.assistant_message === null ? [] : [{ message: turn.assistant_message, turn }]),
+  ]).sort((left, right) => Date.parse(left.message.created_at) - Date.parse(right.message.created_at)), [turns])
 
-  // Latest message
-  const latestMessageId = sortedMessagesList[sortedMessagesList.length - 1]?.id ?? null
-
-  // Automatically fetch initial round of messages if there are none
   useEffect(() => {
-    if (!chat_id) return
-    getChatMessages(chat_id)
-  }, [chat_id])
+    ref.current?.scrollTo({ top: ref.current.scrollHeight })
+  }, [messages.length])
 
-  // If there are messages, activate the poll
-  useEffect(() => {
-    if (!chat_id) return
-    if (!latestMessageId) return
-
-    if (sortedMessagesList.length > 0) {
-      pollForNewerMessages(chat_id, latestMessageId)
-    }
-  }, [latestMessageId])
-
-  // While viewing a chat, treat any incoming messages as read
-  useEffect(() => {
-    if (!chat_id) return
-    if (sortedMessagesList.length === 0) return
-    const latestReadAt = sortedMessagesList[sortedMessagesList.length - 1].created_at.getTime()
-    markChatRead(chat_id, latestReadAt)
-  }, [chat_id, latestMessageId, sortedMessagesList.length, markChatRead])
-
-  // Reverse the messages list to show the newest at the bottom
-  const reversedList = [...sortedMessagesList].reverse()
+  if (chatId === undefined) {
+    return <div className="grow bg-zinc-900 grid place-items-center text-zinc-500">Select or create a chat.</div>
+  }
+  if (loading && messages.length === 0) {
+    return <div className="grow bg-zinc-900 grid place-items-center text-zinc-500">Loading...</div>
+  }
 
   return (
-    <div ref={chatWindowRef} className="grow overflow-y-scroll bg-zinc-900 flex flex-col-reverse gap-y-5">
-      <div className={'h-1'}></div>
-      {reversedList.map((message) => {
-        const isSender = message.contact_id === null
-
-        if (isSender) {
+    <div ref={ref} className="grow overflow-y-scroll bg-zinc-900 flex flex-col gap-y-5 py-1">
+      {messages.map(({ message, turn }) => {
+        if (message.role === 'user') {
           return <ChatSendBubble key={message.id} message={message} />
-        } else {
-          if (message.image_id) {
-            return <ChatReceiveImageBubble key={message.id} message={message} />
-          } else {
-            return <ChatReceiveBubble key={message.id} message={message} />
-          }
         }
+        if (message.image_url !== null) {
+          return <ChatReceiveImageBubble key={message.id} message={message} turn={turn} config={config} />
+        }
+        return <ChatReceiveBubble key={message.id} message={message} turn={turn} config={config} />
       })}
-      <div className={'h-1'}></div>
     </div>
   )
 }

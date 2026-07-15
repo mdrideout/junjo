@@ -1,54 +1,70 @@
-# React + TypeScript + Vite
+# Junjo Agent chat frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the intentionally small browser client for the `ai_chat` Horizon 2
+example. It demonstrates server-admitted background Turns while keeping
+execution and telemetry ownership in the Python backend.
 
-Currently, two official plugins are available:
+The frontend has six API reads/writes:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `GET /api/config`
+- `GET /api/conversations`
+- `GET /api/conversations/{conversation_id}/turns`
+- `GET /api/turns/{turn_id}`
+- `POST /api/contacts`
+- `POST /api/conversations/{conversation_id}/turns` with `{ "text": "..." }`
 
-## Expanding the ESLint configuration
+Every response is validated at the API boundary with a strict Zod schema. The
+Turn response is the persisted, schema-versioned application aggregate. It
+contains lifecycle status, messages, context-policy identity, failure evidence,
+and Workflow/Agent run references. The POST returns the durable admitted Turn;
+the browser shows it immediately, then polls only that server-owned identity
+until it reaches a terminal state.
+Turn text is limited to 2,500 characters. A message image must include nonempty
+`image_alt` text, and conversation selection remains fixed while a turn runs so
+that the response cannot be applied to a different conversation.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Conversation summaries and the selected conversation's Turns refresh in the
+background. Last-read timestamps persist in browser storage, so unread state
+survives reload without becoming server-owned product data.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+An admitted execution failure is a typed problem containing the terminal Turn.
+The client keeps that durable failure and its known runtime identities visible
+after reload. When the backend enables debug presentation, the diagnostics
+panel links those identities through Studio's authenticated resolver; no Studio
+credential is exposed to this application. Relative image paths are resolved
+against the same API origin used for JSON requests.
+
+## Run
+
+The canonical full stack starts from the parent directory with
+`docker compose up --build`. It exposes this Vite server at
+`http://localhost:26251` and FastAPI at `http://localhost:26252`. The frontend
+directory is bind-mounted and Chokidar polling is enabled, so Vite HMR applies
+source changes through Docker Desktop. Dependency changes require a rebuild.
+
+For native component development, use Node.js 22 or newer, start the backend
+on port `26252`, then:
+
+```bash
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The browser calls `http://localhost:26252` directly by default; Vite does not
+proxy API traffic. Set `VITE_API_BASE_URL` only when the exposed API origin is
+different. Its value must be an absolute HTTP origin such as
+`https://chat-api.example.com`; paths, query strings, embedded credentials,
+and fragments are rejected.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Validate
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+npm test
+npm run lint
+npm run build
 ```
+
+The tests lock the JSON contracts and prove that admitted, completed, and
+failed Turns retain execution references, contact creation and the restored UI
+remain available, and debug-only controls construct exact Studio resolver
+links.

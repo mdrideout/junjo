@@ -1,13 +1,11 @@
-export interface ChatHeaderProps {
-  chat_id: string | undefined
+interface ChatHeaderProps {
+  title: string | undefined
 }
 
-export default function ChatHeader(props: ChatHeaderProps) {
-  const { chat_id } = props
-
-  const title = chat_id ?? 'No chat selected'
-
+export default function ChatHeader({ title }: ChatHeaderProps) {
   return (
-    <div className="rounded-t-3xl p-2 text-sm font-bold bg-zinc-700 text-zinc-100 flex justify-center">{title}</div>
+    <div className="rounded-t-3xl p-2 text-sm font-bold bg-zinc-700 text-zinc-100 flex justify-center">
+      {title ?? 'No chat selected'}
+    </div>
   )
 }

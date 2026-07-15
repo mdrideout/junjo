@@ -28,6 +28,11 @@ function createWorkflowSpan(attributes: Record<string, unknown> = {}): OtelSpan 
     links_json: [],
     trace_flags: 0,
     trace_state: null,
+    dropped_attributes_count: 0,
+    dropped_events_count: 0,
+    dropped_links_count: 0,
+    resource_attributes_json: { 'service.name': 'test-service' },
+    resource_dropped_attributes_count: 0,
   }
 }
 

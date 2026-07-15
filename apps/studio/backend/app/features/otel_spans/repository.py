@@ -417,6 +417,75 @@ async def get_fused_workflow_spans(service_name: str, limit: int = 500) -> list[
     return results
 
 
+async def get_fused_agent_spans(service_name: str) -> list[dict]:
+    """Get Agent executable owner spans for a service from both storage tiers."""
+    hot_snapshot_path, recent_cold_paths = await _get_ingestion_query_context()
+    # Agent semantic filters are not part of the physical metadata index. Scan every
+    # Agent-containing file in the requested service so filtering never returns false
+    # negatives due to heuristic prefetch limits.
+    cold_file_paths = metadata_repo.get_agent_file_paths(service_name)
+    cold_file_paths = _augment_with_recent_cold_files(
+        cold_file_paths,
+        recent_cold_paths,
+        limit=len(recent_cold_paths),
+    )
+
+    query = UnifiedSpanQuery()
+    query.register_cold(cold_file_paths)
+    query.register_hot(hot_snapshot_path)
+    results = query.query_spans_two_tier(
+        service_name=service_name,
+        agent_only=True,
+    )
+    logger.debug(
+        "Two-tier Agent owner query",
+        extra={
+            "service_name": service_name,
+            "cold_files": len(cold_file_paths),
+            "hot_snapshot": hot_snapshot_path is not None,
+            "result_count": len(results),
+        },
+    )
+    return results
+
+
+async def get_fused_executable_spans(
+    *,
+    service_name: str,
+    executable_type: str,
+    runtime_id: str,
+) -> list[dict]:
+    """Select exact executable owner candidates without interpreting evidence."""
+    hot_snapshot_path, recent_cold_paths = await _get_ingestion_query_context()
+    cold_file_paths = metadata_repo.get_file_paths_for_service(service_name, limit=None)
+    cold_file_paths = _augment_with_recent_cold_files(
+        cold_file_paths,
+        recent_cold_paths,
+        limit=len(recent_cold_paths),
+    )
+
+    query = UnifiedSpanQuery()
+    query.register_cold(cold_file_paths)
+    query.register_hot(hot_snapshot_path)
+    results = query.query_spans_two_tier(
+        service_name=service_name,
+        executable_type=executable_type,
+        executable_runtime_id=runtime_id,
+    )
+    logger.debug(
+        "Two-tier executable identity query",
+        extra={
+            "service_name": service_name,
+            "executable_type": executable_type,
+            "runtime_id": runtime_id,
+            "cold_files": len(cold_file_paths),
+            "hot_snapshot": hot_snapshot_path is not None,
+            "result_count": len(results),
+        },
+    )
+    return results
+
+
 async def get_fused_trace_spans(trace_id: str) -> list[dict]:
     """Get all spans for a specific trace from both tiers.
 

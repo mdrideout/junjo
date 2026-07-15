@@ -36,6 +36,12 @@ on:
       - ".github/workflows/studio-deployments.yml"
   workflow_dispatch:
   workflow_call:
+    inputs:
+      run_live_smoke:
+        description: Run the release-grade local-image telemetry and browser proof
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -108,6 +114,7 @@ jobs:
           retention-days: 14
 
   local_images_and_telemetry:
+    if: github.event_name == 'workflow_dispatch' || inputs.run_live_smoke
     name: Local images and telemetry smoke
     needs: validate
     runs-on: ubuntu-latest
@@ -121,10 +128,36 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "sdks/python/uv.lock"
+      - name: Sync the exact public SDK proof runtime
+        run: uv sync --frozen --project sdks/python
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/studio/frontend/package-lock.json
+      - name: Install Studio frontend proof dependencies
+        working-directory: apps/studio/frontend
+        run: |
+          npm ci
+          npm exec playwright install --with-deps chromium
       - name: Build exact local images and prove example telemetry
         run: |
           STUDIO_VERSION="$(tr -d '[:space:]' < apps/studio/VERSION)"
           python3 tooling/scripts/smoke_studio_distribution.py \
             --studio-version "$STUDIO_VERSION" \
             --image-source local \
-            --platform linux/amd64
+            --platform linux/amd64 \
+            --evidence-directory /tmp/studio-h2-evidence/local
+      - name: Upload live Agent Studio proof
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: studio-local-agent-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/studio-h2-evidence/local/**
+          if-no-files-found: error
+          retention-days: 14

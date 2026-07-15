@@ -4,10 +4,9 @@
 > [`apps/studio/deployments/vm-caddy`](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/vm-caddy)
 > in the Junjo platform monorepo. The standalone
 > [`junjo-ai-studio-deployment-example`](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
-> repository is the designated release mirror for convenient cloning. Its
-> first monorepo-driven refresh remains a cutover gate. Submit changes to the
-> canonical source; direct mirror changes will be overwritten after that
-> publication path is active.
+> repository is the generated release mirror for convenient cloning. Submit
+> changes to the canonical source; direct mirror changes are overwritten by
+> the release publication workflow.
 
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 

@@ -3,57 +3,57 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "app"
+name = "junjo-ai-chat-example"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered Junjo Workflow, Agent, telemetry, and eval application"
+readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
 dependencies = [
     "aiosqlite>=0.21.0",
     "fastapi[standard]>=0.115.10",
     "google-genai>=1.3.0",
-    "greenlet>=3.1.1",
-    "load-dotenv>=0.1.0",
-    "loguru>=0.7.3",
-    "nanoid>=2.0.0",
-    "sqlalchemy>=2.0.38",
-    "opentelemetry-instrumentation-sqlalchemy>=0.52b0",
-    "opentelemetry-api>=1.31.0",
-    "opentelemetry-sdk>=1.31.0",
-    "opentelemetry-instrumentation-fastapi>=0.52b0",
-    "pytest>=8.3.4",
-    "pytest-asyncio>=0.25.3",
-    "pytest-dotenv",
     "junjo",
+    "openinference-instrumentation-google-genai>=0.1.6",
+    "opentelemetry-instrumentation-fastapi>=0.59b0",
+    "opentelemetry-sdk>=1.37.0",
     "pillow>=11.3.0",
-    "openinference-instrumentation-google-genai>=0.1.1",
+    "pydantic>=2.12.0",
     "xai-sdk>=1.6.1",
 ]
 
-[tool.ruff]
-# https://docs.astral.sh/ruff/settings/
-line-length = 120        # Default, compatible with Black
-target-version = "py311" # Preserve minimum supported Python syntax
-indent-width = 4         # Default, compatible with Black
-
-# Formatting options (optional - Ruff's formatter is Black-compatible by default)
-[tool.ruff.format]
-quote-style = "double" # Or "single"
-indent-style = "space"
-line-ending = "lf"
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "C", "B"]
-ignore = ["B006"]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/junjo/test_*.py" = ["D", "F401"] # ignore docstring rules in tests
-"**/node.py" = ["C901"]                 # allow higher complexity in workflow node services
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "ruff~=0.15.0",
+    "ty",
+]
 
 [tool.uv.sources]
 junjo = { workspace = true }
 
-[dependency-groups]
-dev = ["ruff>=0.15.0"]
-
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["live_eval: credentialed model-quality evaluation excluded from ordinary tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "C", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/nodes.py" = ["C901"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

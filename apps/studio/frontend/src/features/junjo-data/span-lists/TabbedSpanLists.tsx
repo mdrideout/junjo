@@ -6,6 +6,7 @@ import { selectTraceFailureSpans } from '../../traces/store/selectors'
 import { useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
 import SpanFailuresList from '../workflow-detail/SpanFailuresList'
+import type { WorkflowStoreDiagnosticRequest } from '../../workflow-executions/hooks/use-workflow-store-diagnostic'
 
 enum TabOptions {
   NESTED = 'Workflow Spans',
@@ -16,6 +17,7 @@ enum TabOptions {
 interface TabbedSpanListsProps {
   traceId: string
   workflowSpanId: string
+  storeDiagnosticRequest: WorkflowStoreDiagnosticRequest
 }
 
 /**
@@ -44,7 +46,7 @@ const TabButton = ({
 }
 
 export default function TabbedSpanLists(props: TabbedSpanListsProps) {
-  const { traceId, workflowSpanId } = props
+  const { traceId, workflowSpanId, storeDiagnosticRequest } = props
   const [activeTab, setActiveTab] = useState<TabOptions>(TabOptions.NESTED)
 
   const failureSpans = useAppSelector((state: RootState) =>
@@ -68,7 +70,11 @@ export default function TabbedSpanLists(props: TabbedSpanListsProps) {
           <NestedWorkflowSpans traceId={traceId} workflowSpanId={workflowSpanId} />
         )}
         {activeTab === TabOptions.FLAT && (
-          <FlatStateEventsList traceId={traceId} workflowSpanId={workflowSpanId} />
+          <FlatStateEventsList
+            traceId={traceId}
+            workflowSpanId={workflowSpanId}
+            storeDiagnosticRequest={storeDiagnosticRequest}
+          />
         )}
         {activeTab === TabOptions.FAILURES && <SpanFailuresList spans={failureSpans} />}
       </div>

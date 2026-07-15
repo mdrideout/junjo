@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/agent-structural-material.v1.schema.json",
+  "title": "Junjo Agent structural material v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "agentKey", "instructions", "inputSchema", "model", "tools", "outputSchema", "limits"],
+  "properties": {
+    "v": {"const": 1},
+    "agentKey": {"type": "string", "minLength": 1},
+    "instructions": {"type": "string"},
+    "inputSchema": {"type": "object"},
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["driverKey", "provider", "model", "settings"],
+      "properties": {
+        "driverKey": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "settings": {"type": "object"}
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description", "inputSchema", "outputSchema"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,63}$"},
+          "description": {"type": "string"},
+          "inputSchema": {"type": "object"},
+          "outputSchema": {"type": "object"}
+        }
+      }
+    },
+    "outputSchema": {"type": "object"},
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modelRequests", "toolCalls"],
+      "properties": {
+        "modelRequests": {"type": "integer", "minimum": 1},
+        "toolCalls": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

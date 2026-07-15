@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "source_document": "index.rst",
+      "source_routes": [
+        "/",
+        "/index",
+        "/index.html"
+      ],
+      "target_route": "/docs/python/",
+      "legacy_anchors": [],
+      "status": "mapped"
+    },
+    {
+      "source_document": "getting_started.rst",
+      "source_routes": [
+        "/getting_started",
+        "/getting_started.html"
+      ],
+      "target_route": "/docs/python/get-started/",
+      "legacy_anchors": [
+        "getting_started"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "tutorial.rst",
+      "source_routes": [
+        "/tutorial",
+        "/tutorial.html"
+      ],
+      "target_route": "/docs/python/tutorial/",
+      "legacy_anchors": [
+        "tutorial"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "agents.rst",
+      "source_routes": [
+        "/agents",
+        "/agents.html"
+      ],
+      "target_route": "/docs/python/agents/",
+      "legacy_anchors": [],
+      "status": "mapped"
+    },
+    {
+      "source_document": "agent_testing.rst",
+      "source_routes": [
+        "/agent_testing",
+        "/agent_testing.html"
+      ],
+      "target_route": "/docs/python/agents/testing/",
+      "legacy_anchors": [],
+      "status": "mapped"
+    },
+    {
+      "source_document": "agent_composition.rst",
+      "source_routes": [
+        "/agent_composition",
+        "/agent_composition.html"
+      ],
+      "target_route": "/docs/python/agents/composition/",
+      "legacy_anchors": [],
+      "status": "mapped"
+    },
+    {
+      "source_document": "core_concepts.rst",
+      "source_routes": [
+        "/core_concepts",
+        "/core_concepts.html"
+      ],
+      "target_route": "/docs/python/concepts/",
+      "legacy_anchors": [
+        "core_concepts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "state_management.rst",
+      "source_routes": [
+        "/state_management",
+        "/state_management.html"
+      ],
+      "target_route": "/docs/python/workflows/state/",
+      "legacy_anchors": [
+        "state_management"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "concurrency.rst",
+      "source_routes": [
+        "/concurrency",
+        "/concurrency.html"
+      ],
+      "target_route": "/docs/python/workflows/concurrency/",
+      "legacy_anchors": [
+        "concurrency"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "subflows.rst",
+      "source_routes": [
+        "/subflows",
+        "/subflows.html"
+      ],
+      "target_route": "/docs/python/workflows/subflows/",
+      "legacy_anchors": [
+        "subflows"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "hooks.rst",
+      "source_routes": [
+        "/hooks",
+        "/hooks.html"
+      ],
+      "target_route": "/docs/python/hooks/",
+      "legacy_anchors": [
+        "hooks"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "visualizing_workflows.rst",
+      "source_routes": [
+        "/visualizing_workflows",
+        "/visualizing_workflows.html"
+      ],
+      "target_route": "/docs/python/workflows/visualization/",
+      "legacy_anchors": [
+        "visualizing_workflows"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "eval_driven_dev.rst",
+      "source_routes": [
+        "/eval_driven_dev",
+        "/eval_driven_dev.html"
+      ],
+      "target_route": "/docs/python/testing/eval-driven-development/",
+      "legacy_anchors": [
+        "eval_driven_dev"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "api.rst",
+      "source_routes": [
+        "/api",
+        "/api.html"
+      ],
+      "target_route": "/docs/python/api/",
+      "legacy_anchors": [
+        "api"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "junjo_ai_studio.rst",
+      "source_routes": [
+        "/junjo_ai_studio",
+        "/junjo_ai_studio.html"
+      ],
+      "target_route": "/docs/studio/overview/",
+      "legacy_anchors": [
+        "junjo_ai_studio"
+      ],
+      "status": "mapped"
+    },
+    {
+      "source_document": "docker_reference.rst",
+      "source_routes": [
+        "/docker_reference",
+        "/docker_reference.html"
+      ],
+      "target_route": "/docs/studio/docker-reference/",
+      "legacy_anchors": [],
+      "status": "mapped"
+    },
+    {
+      "source_document": "deployment.rst",
+      "source_routes": [
+        "/deployment",
+        "/deployment.html"
+      ],
+      "target_route": "/docs/studio/deployment/",
+      "legacy_anchors": [],
+      "status": "mapped"
+    },
+    {
+      "source_document": "opentelemetry.rst",
+      "source_routes": [
+        "/opentelemetry",
+        "/opentelemetry.html"
+      ],
+      "target_route": "/docs/observability/opentelemetry/",
+      "legacy_anchors": [
+        "opentelemetry"
+      ],
+      "status": "mapped"
+    }
+  ]
+}

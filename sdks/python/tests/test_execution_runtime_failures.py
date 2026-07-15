@@ -3,7 +3,17 @@ import builtins
 
 import pytest
 
-from junjo import BaseState, BaseStore, Edge, Graph, Node, RunConcurrent, Subflow, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Edge,
+    Graph,
+    Node,
+    RunConcurrent,
+    Subflow,
+    Workflow,
+    WorkflowExecutionError,
+)
 
 
 class RuntimeState(BaseState):
@@ -247,8 +257,10 @@ async def test_subflow_loops_are_stopped_by_max_iterations(
         max_iterations=1,
     )
 
-    with pytest.raises(ValueError, match="exceeded maximum execution count"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await asyncio.wait_for(workflow.execute(validate_graph=False), timeout=0.1)
+    assert isinstance(raised.value.__cause__, ValueError)
+    assert "exceeded maximum execution count" in str(raised.value.__cause__)
 
 
 class ConcurrentState(BaseState):
@@ -303,8 +315,10 @@ async def test_run_concurrent_cancels_siblings_on_failure(
         store_factory=create_store,
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute()
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value.__cause__) == "boom"
 
     assert len(created_stores) == 1
     await asyncio.wait_for(sibling_cancelled.wait(), timeout=0.2)

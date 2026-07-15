@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/model-usage.v1.schema.json",
+  "title": "Junjo normalized model usage v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v"],
+  "properties": {
+    "v": {"const": 1},
+    "inputTokens": {"type": "integer", "minimum": 0},
+    "outputTokens": {"type": "integer", "minimum": 0},
+    "cachedInputTokens": {"type": "integer", "minimum": 0},
+    "reasoningTokens": {"type": "integer", "minimum": 0},
+    "totalTokens": {"type": "integer", "minimum": 0}
+  }
+}

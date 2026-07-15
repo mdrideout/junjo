@@ -1,9 +1,12 @@
 import { Fragment } from 'react/jsx-runtime'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { RootState } from '../../../root-store/store'
-import { isoStringToMicrosecondsSinceEpoch, nanoSecondsToMicrosecons } from '../../../util/duration-utils'
+import {
+  isoStringToMicrosecondsSinceEpoch,
+  nanosecondsStringToMicroseconds,
+} from '../../../util/duration-utils'
 import { JSX, useEffect, useRef } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import {
   NodeEventType,
   JunjoSetStateEvent,
@@ -11,10 +14,19 @@ import {
   OtelSpan,
 } from '../../traces/schemas/schemas'
 import { PlayIcon } from '@heroicons/react/24/solid'
-import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import {
+  spanSelection,
+  WorkflowDetailStateActions,
+} from '../workflow-detail/store/slice'
+import { selectWorkflowDetailActiveSpan } from '../workflow-detail/store/selectors'
+import {
+  rawStateEventIdentity,
+  stateEventIdentityKey,
+} from '../workflow-detail/state-event-identity'
 import NestedSpanRow from './NestedSpanRow'
 import { selectSpanAndChildren } from '../../traces/store/selectors'
 import { wrapSpan } from '../../traces/utils/span-accessor'
+import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 
 interface NestedWorkflowSpansProps {
   traceId: string
@@ -30,16 +42,20 @@ interface NestedWorkflowSpansProps {
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { traceId, workflowSpanId } = props
   const dispatch = useAppDispatch()
-  const { serviceName } = useParams()
+  const navigate = useNavigate()
+  const route = useWorkflowDetailRoute()
+  const { serviceName } = route
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
+  const spanRowRefs = useRef(new Map<string, HTMLDivElement>())
+  const stateEventRowRefs = useRef(new Map<string, HTMLDivElement>())
 
-  const activeSetStateEvent = useAppSelector(
-    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  const activeStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
-  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
   const activeSpanId = activeSpan ? activeSpan.span_id : null
-  const scrollToStateEventId = useAppSelector(
-    (state: RootState) => state.workflowDetailState.scrollToStateEventId,
+  const stateEventScrollTarget = useAppSelector(
+    (state: RootState) => state.workflowDetailState.stateEventScrollTarget,
   )
 
   // Get the workflow span and its children
@@ -64,10 +80,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   // Scroll To Span
   useEffect(() => {
     if (activeSpanId && scrollableContainerRef.current) {
-      const targetSpanId = `#nested-span-${activeSpanId}`
-
-      // console.log(`Scrolling to span: ${targetSpanId}`)
-      const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
+      const targetElement = spanRowRefs.current.get(activeSpanId)
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
@@ -80,9 +93,10 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
   // Scroll To State Event
   useEffect(() => {
-    if (scrollToStateEventId && scrollableContainerRef.current) {
-      const targetStateEventId = `#nested-state-patch-${scrollToStateEventId}`
-      const targetElement = scrollableContainerRef.current.querySelector(targetStateEventId)
+    if (stateEventScrollTarget && scrollableContainerRef.current) {
+      const targetElement = stateEventRowRefs.current.get(
+        stateEventIdentityKey(stateEventScrollTarget),
+      )
       if (targetElement) {
         targetElement.scrollIntoView({
           behavior: 'smooth',
@@ -91,7 +105,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
         })
       }
     }
-  }, [scrollToStateEventId])
+  }, [stateEventScrollTarget])
 
   // Stop the recursion when there are no more children
   if (!spans || spans.length === 0) {
@@ -142,7 +156,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       childRows.push({
         type: RowType.STATE,
         data: validated.data,
-        time: nanoSecondsToMicrosecons(validated.data.timeUnixNano),
+        time: nanosecondsStringToMicroseconds(validated.data.timeUnixNano),
         parentSpan: parentSpan,
       })
     })
@@ -192,7 +206,11 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
       return (
         <Fragment key={`nested-span-${row.data.span_id}-${layer}`}>
           <div
-            id={`nested-span-${row.data.span_id}`}
+            ref={(element) => {
+              if (element === null) spanRowRefs.current.delete(row.data.span_id)
+              else spanRowRefs.current.set(row.data.span_id, element)
+            }}
+            data-span-id={row.data.span_id}
             className={`rounded-md ${!spanTypeOther ? 'pb-2 last-of-type:pb-0' : ''} ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActiveSpan ? 'bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-50 dark:to-zinc-900' : ''}`}
           >
             <NestedSpanRow span={row.data} isActiveSpan={isActiveSpan} />
@@ -218,19 +236,32 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
     /** Render State Row **/
     if (row.type === RowType.STATE) {
-      const isActivePatch = row.data.attributes.id === activeSetStateEvent?.attributes.id
+      const identity = rawStateEventIdentity(row.parentSpan.span_id, row.data)
+      const identityKey = stateEventIdentityKey(identity)
+      const isActivePatch = activeStateEvent !== null
+        && identityKey === stateEventIdentityKey(activeStateEvent)
 
       return (
-        <Fragment key={`state-${row.data.attributes.id}-${layer}`}>
+        <Fragment key={`state-${identityKey}-${layer}`}>
           <div
-            id={`nested-state-patch-${row.data.attributes.id}`}
+            ref={(element) => {
+              if (element === null) stateEventRowRefs.current.delete(identityKey)
+              else stateEventRowRefs.current.set(identityKey, element)
+            }}
+            data-state-event-id={identity.eventId}
+            data-state-event-span-id={identity.spanId}
+            data-state-event-sequence={identity.sequence}
             className={`p-1 cursor-pointer border-b last:border-0 border-zinc-200 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
             onClick={() => {
               // Set the active span that this state event belongs to
-              dispatch(WorkflowDetailStateActions.setActiveSpan(row.parentSpan))
+              dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(row.parentSpan)))
 
               // Set the active set state event
-              dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(row.data))
+              dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event: row.data }))
+              navigate(
+                `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${row.parentSpan.span_id}`,
+                { replace: true },
+              )
             }}
           >
             <div className={'flex gap-x-2 items-start'}>

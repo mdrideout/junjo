@@ -1,0 +1,275 @@
+import type {
+  AgentExecutionDetail,
+  CandidateEvidence,
+  PayloadEvidence,
+} from '../schemas/agent-execution'
+import type { TraceEvidence } from '../../traces/schemas/trace-evidence'
+
+const fullEvidence = (value: unknown): PayloadEvidence => ({
+  mode: 'full',
+  policy: 'full',
+  value,
+  reference: null,
+  reason: null,
+})
+
+const availableCandidate = (value: unknown): CandidateEvidence => ({
+  available: true,
+  payload: fullEvidence(value),
+  unavailable_reason: null,
+})
+
+export function makeAgentExecutionDetailFixture(): AgentExecutionDetail {
+  return {
+    summary: {
+      trace_id: '11111111111111111111111111111111',
+      agent_span_id: 'aaaaaaaaaaaaaaaa',
+      service: {
+        namespace: 'junjo.examples',
+        name: 'ai-chat',
+        version: '0.1.0',
+      },
+      agent_key: 'chat-agent',
+      agent_name: 'Chat Agent',
+      structural_id: `agent_sha256:${'a'.repeat(64)}`,
+      definition_id: 'agent_definition_sha256:fixture-definition-id',
+      runtime_id: 'agent_run_01JFIXTURE',
+      start_time: '2026-07-14T12:00:00.000Z',
+      end_time: '2026-07-14T12:00:00.020Z',
+      duration_ns: 20_000_000,
+      outcome: 'completed',
+      termination_reason: 'final_output',
+      limits: {
+        model_requests: 3,
+        tool_calls: 2,
+      },
+      counts: {
+        operations: 2,
+        model_requests: 1,
+        tool_calls: {
+          requested: 2,
+          admitted: 1,
+          started: 1,
+          completed: 1,
+        },
+      },
+      usage: {
+        model_responses: 1,
+        fields: {
+          inputTokens: { sum: 24, observations: 1 },
+          outputTokens: { sum: 11, observations: 1 },
+          totalTokens: { sum: 35, observations: 1 },
+        },
+      },
+    },
+    definition: fullEvidence({
+      key: 'chat-agent',
+      model_driver: 'fixture-driver',
+      tools: ['remember_name'],
+    }),
+    input: fullEvidence({ message: 'Remember that my name is Matt.' }),
+    output: fullEvidence({ message: 'I will remember your name.' }),
+    input_candidate: null,
+    history_candidate: null,
+    operations: [
+      {
+        operation_type: 'model_request',
+        sequence: 1,
+        span_id: 'bbbbbbbbbbbbbbbb',
+        start_time: '2026-07-14T12:00:00.002Z',
+        end_time: '2026-07-14T12:00:00.009Z',
+        duration_ns: 7_000_000,
+        outcome: 'completed',
+        error: null,
+        cancellation: null,
+        ordinal: 1,
+        state_revision: 0,
+        driver_key: 'fixture-driver',
+        provider: 'fixture',
+        model_name: 'deterministic-chat',
+        request: fullEvidence({ messages: [{ role: 'user', content: 'Remember that my name is Matt.' }] }),
+        response_candidate: availableCandidate({
+          tool_calls: [
+            { call_id: 'call-remember', name: 'remember_name', arguments: { name: 'Matt' } },
+            { call_id: 'call-unknown', name: 'delete_everything', arguments: {} },
+          ],
+        }),
+        response_type: 'tool_calls',
+        response: fullEvidence({
+          tool_calls: [
+            { call_id: 'call-remember', name: 'remember_name', arguments: { name: 'Matt' } },
+            { call_id: 'call-unknown', name: 'delete_everything', arguments: {} },
+          ],
+        }),
+        usage: {
+          input_tokens: 24,
+          output_tokens: 11,
+          cached_input_tokens: null,
+          reasoning_tokens: null,
+          total_tokens: 35,
+        },
+        requested_tool_calls: [
+          {
+            call_id: 'call-remember',
+            ordinal: 1,
+            tool_name: 'remember_name',
+            observed_tool_operation: true,
+            admission: 'admitted',
+            reason: null,
+          },
+          {
+            call_id: 'call-unknown',
+            ordinal: 2,
+            tool_name: 'delete_everything',
+            observed_tool_operation: false,
+            admission: 'not_admitted',
+            reason: 'unknown_tool',
+          },
+        ],
+      },
+      {
+        operation_type: 'tool',
+        sequence: 2,
+        span_id: 'cccccccccccccccc',
+        start_time: '2026-07-14T12:00:00.010Z',
+        end_time: '2026-07-14T12:00:00.014Z',
+        duration_ns: 4_000_000,
+        outcome: 'completed',
+        error: null,
+        cancellation: null,
+        call_id: 'call-remember',
+        ordinal: 1,
+        tool_name: 'remember_name',
+        tool_structural_id: `tool_sha256:${'c'.repeat(64)}`,
+        state_revision_before: 0,
+        state_revision_after: 1,
+        requested_arguments: fullEvidence({ name: 'Matt' }),
+        arguments: fullEvidence({ name: 'Matt' }),
+        result_candidate: availableCandidate({ remembered: true }),
+        result: fullEvidence({ remembered: true }),
+      },
+    ],
+    state: {
+      available: true,
+      store_id: 'store_01JFIXTURE',
+      revision_start: 0,
+      revision_end: 1,
+      transition_count: 1,
+      reconstructable_claimed: true,
+      reconstructable: true,
+      reconstruction_status: 'verified',
+      reconstruction_reason: null,
+      start: fullEvidence({ remembered_name: null }),
+      end: fullEvidence({ remembered_name: 'Matt' }),
+      transitions: [
+        {
+          sequence: 1,
+          revision_before: 0,
+          revision_after: 1,
+          span_id: 'cccccccccccccccc',
+          event_id: 'event-remember-name',
+          action: 'remember_name',
+          patch: fullEvidence([{ op: 'replace', path: '/remembered_name', value: 'Matt' }]),
+          before: { remembered_name: null },
+          after: { remembered_name: 'Matt' },
+        },
+      ],
+    },
+    parent_executable: {
+      executable_type: 'node',
+      trace_id: '11111111111111111111111111111111',
+      physical_parent_span_id: 'eeeeeeeeeeeeeeee',
+      span_id: 'eeeeeeeeeeeeeeee',
+      service: {
+        namespace: 'junjo.examples',
+        name: 'ai-chat',
+        version: '0.1.0',
+      },
+      definition_id: 'node-definition-fixture',
+      runtime_id: 'node-runtime-fixture',
+      structural_id: 'node-structural-fixture',
+      name: 'Invoke Chat Agent',
+    },
+    nested_executables: [
+      {
+        executable_type: 'workflow',
+        parent_operation_sequence: 2,
+        parent_operation_span_id: 'cccccccccccccccc',
+        trace_id: '11111111111111111111111111111111',
+        span_id: 'dddddddddddddddd',
+        service: {
+          namespace: 'junjo.examples',
+          name: 'ai-chat',
+          version: '0.1.0',
+        },
+        definition_id: 'workflow_definition_sha256:fixture',
+        runtime_id: 'workflow_run_01JFIXTURE',
+        structural_id: 'workflow_sha256:fixture',
+        name: 'Persist Conversation',
+      },
+    ],
+    error: null,
+    cancellation: null,
+    integrity: {
+      status: 'complete',
+      diagnostics: [],
+      loss_counts: {
+        resource_dropped_attributes: 0,
+        span_dropped_attributes: 0,
+        span_dropped_events: 0,
+        span_dropped_links: 0,
+        event_dropped_attributes: 0,
+      },
+    },
+  }
+}
+
+export function makeAgentTraceEvidenceFixture(): TraceEvidence {
+  const detail = makeAgentExecutionDetailFixture()
+  const storeId = detail.state.store_id
+  if (storeId === null) throw new Error('Expected admitted Agent fixture Store')
+  return {
+    trace_id: detail.summary.trace_id,
+    spans: [],
+    executables_by_span_id: {
+      [detail.summary.agent_span_id]: {
+        executable_type: 'agent',
+        owner_span_id: detail.summary.agent_span_id,
+        runtime_id: detail.summary.runtime_id,
+        store_id: storeId,
+        unavailable_store: null,
+        summary: detail.summary,
+        definition: detail.definition,
+        input: detail.input,
+        output: detail.output,
+        input_candidate: detail.input_candidate,
+        history_candidate: detail.history_candidate,
+        error: detail.error,
+        cancellation: detail.cancellation,
+        integrity: detail.integrity,
+      },
+    },
+    operations_by_owner_runtime_id: {
+      [detail.summary.runtime_id]: Object.fromEntries(
+        detail.operations.map((operation) => [operation.span_id, operation]),
+      ),
+    },
+    stores_by_id: {
+      [storeId]: {
+        store_id: storeId,
+        owner_span_id: detail.summary.agent_span_id,
+        owner_runtime_id: detail.summary.runtime_id,
+        owner_executable_type: 'agent',
+        detail: detail.state,
+        integrity: detail.integrity,
+      },
+    },
+    relationships_by_owner_span_id: {
+      [detail.summary.agent_span_id]: {
+        parent: detail.parent_executable,
+        nested: detail.nested_executables,
+      },
+    },
+    diagnostics: [],
+  }
+}

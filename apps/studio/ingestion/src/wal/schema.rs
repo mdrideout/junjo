@@ -17,6 +17,13 @@ lazy_static::lazy_static! {
         Field::new("status_message", DataType::Utf8, true),
         Field::new("attributes", DataType::Utf8, false),
         Field::new("events", DataType::Utf8, false),
+        Field::new("links", DataType::Utf8, false),
+        Field::new("trace_flags", DataType::UInt32, false),
+        Field::new("trace_state", DataType::Utf8, true),
+        Field::new("dropped_attributes_count", DataType::UInt32, false),
+        Field::new("dropped_events_count", DataType::UInt32, false),
+        Field::new("dropped_links_count", DataType::UInt32, false),
         Field::new("resource_attributes", DataType::Utf8, false),
+        Field::new("resource_dropped_attributes_count", DataType::UInt32, false),
     ]));
 }

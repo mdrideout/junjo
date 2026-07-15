@@ -14,6 +14,7 @@ from loguru import logger
 
 from app.db_sqlite.metadata.db import get_connection
 from app.db_sqlite.metadata.repository import (
+    add_agent_file,
     add_llm_traces,
     add_service_mapping,
     add_trace_mappings,
@@ -120,6 +121,16 @@ def index_parquet_file(file_data: ParquetFileData) -> int:
 
         for svc_name in has_workflow:
             add_workflow_file(svc_name, file_id)
+
+        # 6. Check for Agent executable spans. This is file-level selection metadata only;
+        # Agent keys and semantic diagnostics remain in Parquet and the Agent service.
+        has_agent: dict[str, bool] = {}
+        for span in file_data.spans:
+            if span.junjo_span_type == "agent":
+                has_agent[span.service_name] = True
+
+        for svc_name in has_agent:
+            add_agent_file(svc_name, file_id)
 
         # Commit transaction
         conn.commit()

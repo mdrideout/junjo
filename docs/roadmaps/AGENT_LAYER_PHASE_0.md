@@ -7,11 +7,12 @@ Complete as of 2026-07-13.
 Root ADRs 0003 through 0006 and Studio ADRs 004 and 007 are accepted and
 normative. This document remains the Horizon 0 traceability and
 implementation-sequencing record. All Horizon 0 exit criteria are satisfied,
-and Horizon 1 may begin.
+and its Horizon 1 and Horizon 2 implementation outcomes are linked below.
 
-Horizon 0 produced architectural decisions only. It does not claim that an
-Agent runtime, telemetry contract version 2, or Studio Agent view is currently
-implemented.
+Horizon 0 produced architectural decisions only. At its completion it did not
+claim an implemented Agent runtime, telemetry contract version 2, or Studio
+Agent view. The current implementation status lives in
+[AGENT_LAYER_ROADMAP.md](AGENT_LAYER_ROADMAP.md).
 
 ## Objective
 
@@ -146,8 +147,9 @@ The governing rule is:
 
 ## Contract rollout boundary
 
-The active telemetry contract remains version 1 until implementation exists.
-The Horizon 1 contract change is one atomic platform change containing:
+Horizon 0 required telemetry contract version 1 to remain active until the
+complete producer and consumer implementation existed. Horizon 1 fulfilled
+that requirement as one atomic version 2 platform change containing:
 
 1. telemetry contract version 2 and schemas;
 2. updated Workflow fixtures, payload slots, and Store producer behavior;
@@ -159,11 +161,15 @@ The Horizon 1 contract change is one atomic platform change containing:
 8. Studio frontend Agent diagnostics;
 9. cross-component validation.
 
-These pieces may be developed incrementally on one branch. They may not merge
-or release as incompatible producer-only or consumer-only states. After the
-atomic merge, deploy Studio version 2 first, publish the SDK second, and then
-upgrade emitters. Version 1 is rejected after Studio cutover; no fallback is
-added.
+These pieces were developed incrementally on one branch and must merge as one
+compatible source state rather than as producer-only or consumer-only changes.
+Their independently versioned artifacts then follow one coordinated greenfield
+cutover: publish Python SDK `0.65.0` first, accept a temporary
+semantic-diagnostics outage, and publish Studio `0.82.0` or newer with its
+canonical deployment pins and generated mirrors bound to that installable SDK.
+Version 1 is rejected after the Studio cutover; no fallback is added. Version
+and deployment-pin changes happen during release preparation, not on this
+implementation branch.
 
 ## Post-Horizon-0 implementation sequence
 
@@ -173,11 +179,15 @@ Complete. ADRs 0003 through 0006 and Studio ADRs 004 and 007 are accepted.
 
 ### Work package 2: lifecycle preparation
 
+Complete in Horizon 1.
+
 Separate common executable identity from Graph-only identity, snapshot Hooks per
 run, and preserve existing Workflow behavior except for the accepted
 callback-membership snapshot change before adding Agent behavior.
 
 ### Work package 3: deterministic Agent kernel
+
+Complete in Horizon 1.
 
 Implement public typed definitions and contracts plus the private isolated
 model/Tool loop, Store, limits, result, failures, cancellation, and scripted
@@ -185,17 +195,23 @@ ModelDriver support.
 
 ### Work package 4: telemetry contract version 2
 
+Complete in Horizon 1.
+
 Implement Store revisions and owner counts, Agent and operation spans, the
 built-in full payload policy, canonical valid and invalid fixtures, structural
 fingerprint conformance, and SDK producer tests with the kernel.
 
 ### Work package 5: Studio consumer support
 
+Complete in Horizon 1.
+
 Implement ingestion preservation tests, typed backend Agent queries and shared
 Store integrity, frontend schemas and dynamic execution diagnostics, and
 canonical consumer conformance.
 
 ### Work package 6: public Agent teaching surfaces
+
+Complete in Horizon 1.
 
 Ship complete public API docstrings, Sphinx concept and API documentation,
 deterministic scripted-testing guidance, composition examples, and telemetry
@@ -210,9 +226,13 @@ cross the merge boundary together.
 
 ### Work package 7: AI Chat proof
 
-Use the public Agent API in `sdks/python/examples/ai_chat` with an
-application-local provider adapter, deterministic integration tests, a
-conversation query Tool, and a structured Workflow Tool. This is Horizon 2.
+Complete in Horizon 2.
+
+Use the public Agent API in `sdks/python/examples/ai_chat` with explicit live
+Gemini and Grok adapters, application-owned integration checks, a conversation
+query Tool, and a structured Workflow Tool. Scripted drivers remain SDK-test
+infrastructure and are never treated as AI Chat product behavior. This is
+complete in Horizon 2.
 
 The canonical acceptance cases are the nine
 [Initial AI Chat Acceptance Scenarios](AGENT_LAYER_ROADMAP.md#initial-ai-chat-acceptance-scenarios)
@@ -220,9 +240,10 @@ in the strategy roadmap.
 
 ### Work package 8: live evaluations
 
-Add explicit opt-in datasets and commands only after the deterministic kernel
-and AI Chat proof are stable. Live credentials and probabilistic evals remain
-outside default CI. This is Horizon 3.
+Horizon 2 adds application-owned opt-in datasets and commands after the
+deterministic kernel is stable. Live credentials and probabilistic evals remain
+outside default CI. Horizon 3 builds Studio measurement and comparison on top
+of this proven application eval loop.
 
 ## Horizon 1 validation gates
 
@@ -305,4 +326,5 @@ it becomes current.
 - [x] Studio query, state reconstruction, and UI expectations are specified.
 - [x] Canonical AI Chat acceptance scenarios and validation layers are agreed.
 
-Horizon 0 is complete. Horizon 1 may begin.
+Horizon 0 is complete. Horizon 1 and Horizon 2 implementation outcomes are
+recorded in the strategy roadmap.

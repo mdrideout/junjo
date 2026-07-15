@@ -147,6 +147,15 @@ def add_workflow_file(service_name: str, file_id: int) -> None:
     )
 
 
+def add_agent_file(service_name: str, file_id: int) -> None:
+    """Record that a Parquet file contains Agent executable spans."""
+    conn = get_connection()
+    conn.execute(
+        "INSERT OR IGNORE INTO agent_files (service_name, file_id) VALUES (?, ?)",
+        [service_name, file_id],
+    )
+
+
 def record_failed_file(
     file_path: str,
     error_type: str,
@@ -403,6 +412,24 @@ def get_workflow_file_paths(service_name: str, limit: int = 500) -> list[str]:
         """,
         [service_name, limit],
     ).fetchall()
+    return [row[0] for row in result]
+
+
+def get_agent_file_paths(service_name: str, limit: int | None = None) -> list[str]:
+    """Get recent Parquet file paths containing Agent executable spans."""
+    conn = get_connection()
+    sql = """
+        SELECT pf.file_path
+        FROM agent_files af
+        JOIN parquet_files pf ON af.file_id = pf.file_id
+        WHERE af.service_name = ?
+        ORDER BY pf.max_time DESC
+    """
+    parameters: list[str | int] = [service_name]
+    if limit is not None:
+        sql += " LIMIT ?"
+        parameters.append(limit)
+    result = conn.execute(sql, parameters).fetchall()
     return [row[0] for row in result]
 
 

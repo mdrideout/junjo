@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/agent-model-request.v1.schema.json",
+  "title": "Junjo normalized Agent model request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "agentKey", "runId", "ordinal", "instructions", "messages", "tools", "outputSchema"],
+  "properties": {
+    "v": {"const": 1},
+    "agentKey": {"type": "string", "minLength": 1},
+    "runId": {"type": "string", "minLength": 1},
+    "ordinal": {"type": "integer", "minimum": 1},
+    "instructions": {"type": "string"},
+    "messages": {"type": "array", "items": {"$ref": "#/$defs/message"}},
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description", "inputSchema", "outputSchema"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "description": {"type": "string"},
+          "inputSchema": {"type": "object"},
+          "outputSchema": {"type": "object"}
+        }
+      }
+    },
+    "outputSchema": {"type": "object"}
+  },
+  "$defs": {
+    "toolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "arguments"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "arguments": {"type": "object"}
+      }
+    },
+    "message": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "input"],
+          "properties": {"type": {"const": "agent_input"}, "input": true}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "output"],
+          "properties": {"type": {"const": "assistant_output"}, "output": true}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "calls"],
+          "properties": {
+            "type": {"const": "assistant_tool_calls"},
+            "assistantText": {"type": ["string", "null"]},
+            "calls": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/toolCall"}}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "callId", "toolName", "result"],
+          "properties": {
+            "type": {"const": "tool_result"},
+            "callId": {"type": "string", "minLength": 1},
+            "toolName": {"type": "string", "minLength": 1},
+            "result": true
+          }
+        }
+      ]
+    }
+  }
+}

@@ -15,9 +15,11 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 ### Key Features
 
 - 🔍 **Real-time LLM Decision Visibility** - See every decision your LLM makes and the data it uses
+- 🧭 **Agent Execution Diagnostics** - Inspect ordered model and Tool operations without fabricating a Graph
 - 🔀 **Transparent Concurrency** - Debug state changes from concurrently executed AI workflow steps
 - 📊 **OpenTelemetry Native** - Standards-based telemetry ingestion via gRPC
 - 🎯 **Workflow Debugging Interface** - Visual step-by-step debugging of AI graph workflows
+- 🧾 **Evidence Integrity** - Verify Store reconstruction, payload availability, loss signals, and nested execution parentage
 - 🪶 **Prompt Playground** - Experiment with different models and prompt tweaks while you debug
 - 🔒 **Production-Ready Security** - Authentication, user accounts, and encrypted sessions
 - 🚀 **Low Resource, High-Performance Ingestion** - Designed for high-throughput in low resource environments
@@ -45,10 +47,9 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 
 Canonical deployment source lives under [`deployments/`](deployments/) in this
 monorepo. Standalone deployment repositories are designated one-way release
-mirrors so operators can clone a small focused repository. The first
-monorepo-driven publication remains a cutover gate. Deployment changes must be
-contributed to the canonical directories here; direct mirror changes will be
-overwritten after that publication path is active.
+mirrors so operators can clone a small focused repository. Deployment changes
+must be contributed to the canonical directories here; direct mirror changes
+are overwritten by the release publication workflow.
 
 If you want to use Junjo AI Studio rather than modify its source code, start
 with the generated **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)**
@@ -140,7 +141,11 @@ docker compose down -v
 
 Configure your [Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python) application using the setup and endpoint guidance from the minimal build repository.
 
-**Version compatibility:** Junjo AI Studio and the Junjo Python Library must run releases that share the same telemetry contract. Mismatched pairings can still ingest spans, but Junjo AI Studio will not be able to render workflow graphs or match spans to their nodes. When upgrading one, upgrade the other to a matching release.
+**Version compatibility:** Junjo AI Studio and the Junjo Python Library must run
+releases that share the same telemetry contract. A mismatched SDK may still send
+raw spans, but Studio does not apply a fallback semantic parser: Workflow graphs,
+Agent diagnostics, and verified Store reconstruction require the active
+contract. Upgrade the paired releases together.
 
 This repository contains the complete open source Junjo AI Studio codebase. If you want to run or modify the source code in this repository, see [Source Development](#source-development) below.
 
@@ -186,9 +191,12 @@ For service-specific development notes, see [backend/README.md](./backend/README
 ### What Can You Do With Junjo AI Studio?
 
 **Observability & Debugging:**
-- View complete execution traces of AI workflows
-- Inspect LLM prompts, responses, and reasoning
-- Track state changes across workflow nodes
+- View complete Workflow and Agent execution traces
+- Explore declared Workflow Graph paths and realized Agent operation timelines
+- Inspect normalized model requests/responses and Tool arguments/results
+- Navigate backend-verified Workflow and Agent Store transitions
+- Diagnose partial evidence, payload policy, and OTLP loss signals
+- Follow semantic parents and causally nested Workflows or Agents
 - Monitor performance and latency
 
 **LLM Playground:**
@@ -219,6 +227,8 @@ The Junjo AI Studio is composed of three primary services:
   - User authentication & session management
   - LLM playground
   - Span querying & analytics
+  - Semantic Workflow and Agent diagnostics
+  - Shared Store reconstruction and evidence-integrity verification
 
 ### 2. Ingestion Service (`ingestion`)
 - **Tech Stack**: Rust, gRPC (tonic), Arrow IPC, Parquet
@@ -232,7 +242,9 @@ The Junjo AI Studio is composed of three primary services:
 ### 3. Frontend (`frontend`)
 - **Tech Stack**: React, TypeScript
 - **Responsibilities**:
-  - Web UI for workflow visualization
+  - Web UI for Workflow Graph visualization
+  - Dynamic Agent operation timelines and evidence inspection
+  - Verified Store state navigation and nested executable links
   - LLM playground interface
   - User management
 
@@ -444,8 +456,7 @@ If you route directly to this source repository's Compose services, target `fron
 ### Supported Deployment Distributions
 
 The paths below are canonical. The linked standalone repositories are the
-designated release distributions for operator use, not contribution targets;
-their first monorepo-driven refresh remains a cutover gate.
+generated release distributions for operator use, not contribution targets.
 
 #### Junjo AI Studio Minimal Build
 
@@ -497,6 +508,26 @@ Junjo AI Studio is designed to be low resource:
 ---
 
 ## Advanced Topics
+
+### Stable execution links
+
+Applications should persist Junjo Workflow or Agent runtime IDs, not
+OpenTelemetry trace/span IDs. A signed-in Studio user can follow a stable
+frontend link of this form:
+
+```text
+/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=agent&runtime_id=<run-id>&destination=detail
+```
+
+The authenticated frontend renders the semantic execution page immediately.
+While telemetry is still arriving, it shows an in-context pending message and
+continues exact resolution with capped backoff. When the execution becomes
+available, the ordinary Agent, Workflow, or full-trace detail renders in place
+without replacing the stable URL. Resolution requires service namespace,
+service name, executable type, and runtime ID. Multiple matching owner spans
+are an explicit conflict and Studio never selects the newest match.
+Applications do not receive a Studio API credential to construct or follow
+these links.
 
 ### Database & Storage Access
 
@@ -756,7 +787,7 @@ docker compose up --build
 ## Resources
 
 ### Documentation
-- **[Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python)** - AI Graph Workflow framework
+- **[Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python)** - explicit Workflow and bounded Agent execution framework
 
 ### Deployment Distributions
 
@@ -778,7 +809,7 @@ docker compose up --build
 
 ---
 
-**Junjo AI Studio** - Making AI workflows transparent and understandable.
+**Junjo AI Studio** - Making AI Workflow and Agent executions transparent and understandable.
 
 Copyright (C) 2025 Matthew Rideout
 

@@ -1,11 +1,9 @@
-from enum import StrEnum
+from .._identity import ExecutableType
 
 JUNJO_OTEL_MODULE_NAME = "junjo"
-JUNJO_TELEMETRY_CONTRACT_VERSION = 1
+JUNJO_TELEMETRY_CONTRACT_VERSION = 2
 
-class JunjoOtelSpanTypes(StrEnum):
-    """The type of Junjo opentelemetry spans."""
-    WORKFLOW = "workflow"
-    SUBFLOW = "subflow"
-    NODE = "node"
-    RUN_CONCURRENT = "run_concurrent"
+def span_type_value(executable_type: ExecutableType) -> str:
+    """Map a lifecycle executable kind to its OpenTelemetry string value."""
+
+    return executable_type.value

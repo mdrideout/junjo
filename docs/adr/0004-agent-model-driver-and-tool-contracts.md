@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-13
+- Last clarified: 2026-07-14
 - Owners: Junjo platform
 
 ## Context
@@ -35,6 +36,14 @@ value. Tool input must produce an object-root JSON Schema because portable
 provider Tool calls use named argument objects. A scalar Tool argument requires
 an explicit object wrapper with a named field.
 
+“Object-root” is semantic rather than a requirement for a literal top-level
+`type: "object"`. Core accepts a direct object schema, a local root-reference
+chain that resolves to an object schema, an object-only `oneOf` or `anyOf`, or
+an `allOf` with an object-valued constraint. It rejects nullable,
+unconstrained, boolean, or mixed scalar/object roots. This permits recursive
+models and discriminated unions without moving provider-specific schema
+encoding rules into core.
+
 This permits Pydantic models, dataclasses, typed containers, and appropriate
 simple scalar outputs without requiring every boundary value to subclass one
 base model.
@@ -53,6 +62,91 @@ the language-independent diagnostic and driver boundary.
 
 Input and history validation happens after the run identity and Agent span
 exist so rejection is observable. It starts no ModelDriver or Tool operation.
+
+### Normalized JSON is a portable owned boundary
+
+Every value Junjo accepts into the normalized Agent model must remain exact
+when it crosses Python, OpenTelemetry, JSON Schema, Studio's Rust and Python
+services, and the TypeScript frontend. The owned JSON boundary therefore uses
+the interoperable RFC 8785/I-JSON value domain everywhere, not only while
+computing structural fingerprints:
+
+- object names are strings and raw JSON with duplicate object names is
+  rejected before it becomes a mapping;
+- integers are limited to `[-(2^53-1), 2^53-1]`;
+- floating-point values are finite binary64 values;
+- strings and object names contain Unicode scalar values and no lone
+  surrogates; and
+- no implicit coercion, truncation, Unicode normalization, or last-name-wins
+  parsing repairs an invalid value.
+
+This rule covers application inputs and outputs, transcript content, Tool
+arguments and results, ModelDriver settings and responses, usage facts, and
+all normalized identifiers or text copied into requests or telemetry. A value
+that cannot cross the boundary exactly is rejected at the earliest owned
+constructor or validation boundary. Diagnostic candidate capture may report
+that rejection, but it must not label missing or lossy content as full
+evidence.
+
+Declared validation has two explicit paths. A concrete JSON value is captured
+once, validated in strict JSON mode, and must retain every supplied value; a
+declared default may add a missing member. A non-JSON typed Python value is
+validated with strict Python semantics, serialized through the declared
+adapter, and must retain its exact type and compare equal after strict JSON
+detachment. Both paths accept only the schema's external aliases, recursively
+forbid undeclared members on structured objects, and require a stable second
+round trip.
+
+A raw numeric string therefore cannot become a number, a validator cannot
+silently trim or case-fold supplied JSON, and a typed redacting or transforming
+serializer cannot replace content while presenting the operation as lossless.
+An explicitly declared typed `datetime`, UUID, or path remains valid when its
+detached typed value is equal, but none can project into an unrelated string
+boundary. Diagnostic evidence for a typed candidate is marked available only
+after this losslessness proof; an invalid or lossy typed value has no truthful
+full JSON candidate.
+
+Junjo's schema profile closes structured object schemas with
+`additionalProperties: false`. Open data is represented explicitly by a
+`dict[str, T]` field or boundary, never by a structured model that silently
+ignores or admits undeclared members. JSON object names map directly to Python
+`str` keys. Set, frozenset, generator, and other one-shot iterable declarations
+are unsupported because their deduplication, ordering, or consumption cannot
+preserve concrete JSON-array semantics.
+
+### Generated JSON Schema has one language-neutral profile
+
+Declared adapters may generate equivalent schemas with language- or
+class-specific presentation names. Before a schema enters a request,
+definition snapshot, Tool or Agent fingerprint, Junjo normalizes it as
+follows. Normalized validation and serialization schemas must first be
+identical; asymmetric boundary schemas are a construction error.
+
+1. close structured object schemas while preserving explicit `dict[str, T]`
+   mapping schemas;
+2. remove the JSON Schema `title` annotation from every schema object while
+   preserving an application property whose name is literally `title`;
+3. treat `$defs` and legacy `definitions` as the same local-definition
+   facility;
+4. canonicalize set-valued arrays: require uniqueness and sort property names
+   in `required` and `dependentRequired`, strings in array-valued `type`, and
+   `enum` values by their RFC 8785 encoding;
+5. traverse schema object members in lexical order and order-sensitive schema
+   arrays in their declared order, assigning reachable local definitions `d0`,
+   `d1`, and so on when first referenced;
+6. rewrite local `$ref`, local `$dynamicRef`, and discriminator mapping
+   targets to those canonical `#/$defs/dN` names, including recursive and
+   mutually recursive definitions; and
+7. omit unreachable local definitions.
+
+All other keywords and values remain part of the schema. This is normalization
+of generated representation, not a general JSON Schema optimizer: Junjo does
+not reorder applicator arrays such as `oneOf`, `anyOf`, or `allOf`, positional
+arrays such as `prefixItems`, or presentation arrays such as `examples`. It
+does not infer broader semantic equivalence or erase descriptions, defaults,
+examples, constraints, discriminator data, or application property names. A
+dangling local definition reference or duplicate member in a set-valued array
+is a construction error.
 
 ### The transcript is provider-neutral and closed
 
@@ -295,8 +389,12 @@ Construction validates:
 - schema generation and object-root Tool input;
 - exactly one shared instance or factory per binding;
 - complete ModelDriver descriptor and all other structural material within ADR
-  0006's canonicalizable I-JSON domain;
-- declarative compatibility between Tool names and the selected driver binding.
+  0006's canonicalizable I-JSON domain.
+
+The provider-neutral Agent contract owns the Tool-name grammar. A provider
+adapter may reject a name it cannot encode when translating a request, but the
+core does not add a second driver-specific construction contract or advertise
+provider-specific Tool-name compatibility through `ModelDriverBinding`.
 
 `AgentConfigurationError` is the separate construction-error root;
 `ModelDriverConfigurationError` and `ToolConfigurationError` specialize it at
@@ -309,6 +407,8 @@ availability are not construction checks.
 
 The initial public error hierarchy distinguishes:
 
+- `AgentAdmissionError` for unexpected Junjo-owned preparation failure before
+  Store availability is published;
 - `AgentInputValidationError`;
 - `AgentHistoryValidationError`;
 - `AgentLimitExceededError` for model-request or Tool-call budget exhaustion;
@@ -318,13 +418,15 @@ The initial public error hierarchy distinguishes:
 - `AgentToolInputValidationError`;
 - `AgentToolError` for a Tool service exception;
 - `AgentToolOutputValidationError`;
-- `AgentOutputValidationError`.
+- `AgentOutputValidationError`;
+- `AgentInternalError` for unexpected Junjo-owned machinery after admission,
+  including a failed terminal state transaction.
 
-Input and history errors are `AgentInvocationError` values. The remaining
-errors are `AgentExecutionError` values. Both derive from `AgentError` and
-follow ADR 0003's detached diagnostic contract. When an underlying exception
-exists, it is retained as the cause. Tool-related errors include Tool name and
-call identity.
+Admission, input, and history errors are `AgentInvocationError` values. The
+remaining errors are `AgentExecutionError` values. Both derive from
+`AgentError` and follow ADR 0003's detached diagnostic contract. When an
+underlying exception exists, it is retained as the cause. Tool-related errors
+include Tool name and call identity.
 
 `AgentLimitExceededError` carries the exhausted limit kind, positive effective
 limit, attempted next count, and the requested Tool-batch size when a whole
@@ -343,9 +445,11 @@ Horizon 1 adds the provider-neutral protocols, normalized types, and a
 deterministic scripted ModelDriver test utility. It does not add a provider SDK
 dependency to Junjo core.
 
-The `ai_chat` proof uses a thin application-local provider adapter. An official
-adapter or optional provider package is considered only after the normalized
-contract is proven by more than one real use.
+The `ai_chat` application uses application-local Gemini and Grok adapters to
+prove the provider-neutral Agent contract against real providers. Those
+adapters remain example-owned: Junjo core does not depend on provider SDKs or
+own a general provider abstraction. `ScriptedModelDriver` remains an SDK test
+utility and does not define application behavior.
 
 ## Implementation requirements
 
@@ -409,3 +513,13 @@ per-run.
 - [ADR 0003: Agent execution model](0003-agent-execution-model.md)
 - [ADR 0005: Agent and Workflow composition](0005-agent-workflow-composition.md)
 - [ADR 0006: Agent telemetry contract](0006-agent-telemetry-contract.md)
+
+## Revision history
+
+- 2026-07-14: Clarified the portable JSON domain for every normalized Agent
+  boundary and specified deterministic language-neutral JSON Schema
+  normalization for structural identity and ModelDriver requests.
+- 2026-07-14: Removed the unimplemented requirement for declarative
+  driver-specific Tool-name compatibility. The shared Tool-name grammar remains
+  the construction contract; provider encoding errors remain at the provider
+  adapter boundary.

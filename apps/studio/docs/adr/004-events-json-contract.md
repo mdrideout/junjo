@@ -26,17 +26,23 @@ A regression occurred when ingestion serialized event timestamps using the OTLP 
 Define the canonical JSON shape for event objects stored in Parquet and returned by the backend:
 
 - `name`: string
-- `timeUnixNano`: number
+- `timeUnixNano`: canonical unsigned 64-bit decimal string
 - `attributes`: JSON object mapping string keys to JSON values
 - `droppedAttributesCount`: non-negative integer
 
-The fourth field becomes active with telemetry contract version 2 in the
-atomic rollout required by root ADR 0006. Until then, version 1 remains the
-truthful implemented contract.
+The fourth field is active in telemetry contract version 2 following the
+atomic rollout required by root ADR 0006. Studio supports only the active
+contract; version 1 is unsupported after the greenfield cutover.
 
 Specifically:
 
 - The timestamp field name MUST be `timeUnixNano` (camelCase).
+- The timestamp value MUST be decimal text matching `0|[1-9][0-9]*` and no
+  greater than `18446744073709551615`. It is text because OTLP's unsigned
+  64-bit nanosecond domain cannot be represented exactly by JavaScript JSON
+  numbers. Ingestion performs the integer-to-decimal encoding once; raw APIs
+  preserve it; semantic consumers validate it; and frontend ordering uses
+  exact integer comparison rather than `Number` coercion.
 - The OTLP Event `dropped_attributes_count` field MUST be stored and returned as
   `droppedAttributesCount` (camelCase). Telemetry contract version 2 requires
   this field, including zero, so loss is distinguishable from an old or
@@ -54,7 +60,9 @@ Specifically:
   change for previously written Parquet files. The greenfield cutover adds no
   compatibility coercion.
 - Ingestion unit tests enforce both camelCase keys and exact counter
-  preservation.
+  preservation, including exact serialization of the unsigned 64-bit maximum.
+- Frontend contract and ordering tests cover adjacent timestamps above the
+  JavaScript safe-integer boundary.
 - Contract fixtures and backend tests prove that a nonzero dropped-attribute
   count produces partial evidence integrity rather than silently complete
   diagnostics.

@@ -7,18 +7,29 @@ from typing import TYPE_CHECKING
 
 from opentelemetry import trace
 
-from ._lifecycle import ActiveExecutableIdentity, active_executable_identity, get_active_executable_identity
+from ._identity import (
+    ActiveExecutableIdentity,
+    ExecutableType,
+    active_executable_identity,
+    get_active_executable_identity,
+)
+from ._json import require_ijson_text
+from .correlation import (
+    _get_active_execution_correlation,
+    _set_correlation_span_attributes,
+)
 from .node import Node
 from .store import BaseStore
+from .telemetry.diagnostics import cancellation_reason
 from .telemetry.otel_schema import (
     JUNJO_OTEL_MODULE_NAME,
     JUNJO_TELEMETRY_CONTRACT_VERSION,
-    JunjoOtelSpanTypes,
 )
 from .telemetry.span_lifecycle import (
     get_span_identifiers,
     mark_span_cancelled,
     mark_span_failed,
+    record_span_exception,
 )
 from .util import generate_safe_id
 
@@ -68,6 +79,7 @@ class RunConcurrent(Node):
                 items=[node_1, node_2, node_3],
             )
         """
+        name = require_ijson_text(name, "RunConcurrent name", nonempty=True)
         super().__init__()
         self._items = tuple(items)
         self._id = generate_safe_id()
@@ -190,6 +202,7 @@ class RunConcurrent(Node):
         prepared_terminal_event = None
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
+        terminal_delivery_cancellation: asyncio.CancelledError | None = None
         parent_active_identity = get_active_executable_identity()
         run_id = lifecycle_context.run_id if lifecycle_context is not None else None
         run_concurrent_structural_id = (
@@ -214,6 +227,10 @@ class RunConcurrent(Node):
                 span.set_attribute("junjo.executable_definition_id", self.id)
                 span.set_attribute("junjo.parent_executable_definition_id", parent_id)
                 span.set_attribute("junjo.executable_runtime_id", self.id)
+                _set_correlation_span_attributes(
+                    span,
+                    _get_active_execution_correlation(),
+                )
                 if run_concurrent_structural_id is not None:
                     span.set_attribute(
                         "junjo.executable_structural_id",
@@ -241,7 +258,11 @@ class RunConcurrent(Node):
                         run_id=lifecycle_context.run_id,
                         executable_definition_id=self.id,
                         name=self.name,
-                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else lifecycle_context.executable_definition_id
+                        ),
                         store_id=store.id,
                         trace_id=trace_id,
                         span_id=span_id,
@@ -260,6 +281,11 @@ class RunConcurrent(Node):
                             if parent_active_identity is not None
                             else None
                         ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
                 if run_concurrent_structural_id is None:
@@ -269,7 +295,7 @@ class RunConcurrent(Node):
                         ActiveExecutableIdentity(
                             executable_definition_id=self.id,
                             executable_name=self.name,
-                            span_type=JunjoOtelSpanTypes.RUN_CONCURRENT,
+                            executable_type=ExecutableType.RUN_CONCURRENT,
                             executable_runtime_id=self.id,
                             executable_structural_id=run_concurrent_structural_id,
                         )
@@ -283,7 +309,9 @@ class RunConcurrent(Node):
                                 executable_definition_id=self.id,
                                 name=self.name,
                                 parent_executable_definition_id=(
-                                    lifecycle_context.executable_definition_id
+                                    parent_active_identity.executable_definition_id
+                                    if parent_active_identity is not None
+                                    else lifecycle_context.executable_definition_id
                                 ),
                                 store_id=store.id,
                                 trace_id=trace_id,
@@ -303,6 +331,11 @@ class RunConcurrent(Node):
                                     if parent_active_identity is not None
                                     else None
                                 ),
+                                parent_executable_type=(
+                                    parent_active_identity.executable_type
+                                    if parent_active_identity is not None
+                                    else None
+                                ),
                             )
 
             except asyncio.CancelledError as exc:
@@ -315,9 +348,13 @@ class RunConcurrent(Node):
                         run_id=lifecycle_context.run_id,
                         executable_definition_id=self.id,
                         name=self.name,
-                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else lifecycle_context.executable_definition_id
+                        ),
                         store_id=store.id,
-                        reason=str(exc.args[0]) if exc.args else "cancelled",
+                        reason=cancellation_reason(exc),
                         trace_id=trace_id,
                         span_id=span_id,
                         executable_runtime_id=self.id,
@@ -335,6 +372,11 @@ class RunConcurrent(Node):
                             if parent_active_identity is not None
                             else None
                         ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
             except Exception as exc:
@@ -346,7 +388,7 @@ class RunConcurrent(Node):
                         extra=run_concurrent_log_extra,
                     )
                 mark_span_failed(span, exc)
-                span.record_exception(exc)
+                record_span_exception(span, exc)
                 failure = exc
                 if lifecycle_context is not None:
                     assert run_concurrent_structural_id is not None
@@ -355,7 +397,11 @@ class RunConcurrent(Node):
                         run_id=lifecycle_context.run_id,
                         executable_definition_id=self.id,
                         name=self.name,
-                        parent_executable_definition_id=lifecycle_context.executable_definition_id,
+                        parent_executable_definition_id=(
+                            parent_active_identity.executable_definition_id
+                            if parent_active_identity is not None
+                            else lifecycle_context.executable_definition_id
+                        ),
                         store_id=store.id,
                         error=exc,
                         trace_id=trace_id,
@@ -375,11 +421,24 @@ class RunConcurrent(Node):
                             if parent_active_identity is not None
                             else None
                         ),
+                        parent_executable_type=(
+                            parent_active_identity.executable_type
+                            if parent_active_identity is not None
+                            else None
+                        ),
                     )
 
             if lifecycle_context is not None:
-                await lifecycle_context.dispatcher.dispatch(prepared_terminal_event)
+                try:
+                    await lifecycle_context.dispatcher.dispatch(
+                        prepared_terminal_event,
+                        terminal=True,
+                    )
+                except asyncio.CancelledError as exc:
+                    terminal_delivery_cancellation = exc
 
+        if terminal_delivery_cancellation is not None:
+            raise terminal_delivery_cancellation
         if cancellation is not None:
             raise cancellation
         if failure is not None:

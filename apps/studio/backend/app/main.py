@@ -26,11 +26,14 @@ from app.config.deployment_validation import log_deployment_configuration
 from app.config.logger import setup_logging
 from app.config.settings import settings
 from app.features.admin.router import router as admin_router
+from app.features.agent_diagnostics.router import router as agent_diagnostics_router
 from app.features.api_keys.router import router as api_keys_router
 from app.features.auth.router import router as auth_router
 from app.features.config.router import router as config_router
+from app.features.execution_resolution.router import router as execution_resolution_router
 from app.features.llm_playground.router import router as llm_playground_router
 from app.features.otel_spans.router import router as otel_spans_router
+from app.features.trace_evidence.router import router as trace_evidence_router
 from app.grpc_server import start_grpc_server_background, stop_grpc_server
 
 # Set up logging before anything else
@@ -190,6 +193,9 @@ app.include_router(api_keys_router)
 app.include_router(config_router, prefix="/api")
 app.include_router(llm_playground_router, prefix="/llm", tags=["llm"])
 app.include_router(otel_spans_router, prefix="/api/v1/observability", tags=["observability"])
+app.include_router(agent_diagnostics_router, prefix="/api/v1")
+app.include_router(execution_resolution_router, prefix="/api/v1")
+app.include_router(trace_evidence_router, prefix="/api/v1")
 
 
 # Health check endpoints

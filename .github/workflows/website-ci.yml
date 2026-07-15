@@ -1,29 +1,82 @@
-name: Website
+name: Public Documentation
 
 on:
   push:
     branches: [master]
     paths:
       - "apps/website/**"
+      - "apps/studio/docs/**"
+      - "apps/studio/deployments/**"
+      - "sdks/python/**"
+      - "contracts/telemetry/README.md"
+      - "docs/adr/**"
+      - "docs/roadmaps/**"
+      - "tooling/docs/**"
+      - ".github/workflows/website-ci.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "apps/website/**"
+      - "apps/studio/docs/**"
+      - "apps/studio/deployments/**"
+      - "sdks/python/**"
+      - "contracts/telemetry/README.md"
+      - "docs/adr/**"
+      - "docs/roadmaps/**"
+      - "tooling/docs/**"
       - ".github/workflows/website-ci.yml"
   workflow_dispatch:
+    inputs:
+      documentation_channel:
+        description: Documentation release channel
+        required: true
+        default: next
+        type: choice
+        options: [next, stable]
   workflow_call:
+    inputs:
+      documentation_channel:
+        description: Build from a release checkout only when selecting stable
+        required: false
+        default: next
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   website:
+    name: Unified documentation artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: apps/website
+    timeout-minutes: 20
+    env:
+      JUNJO_DOCS_CHANNEL: ${{ inputs.documentation_channel || 'next' }}
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      - name: Sync locked Python SDK documentation dependencies
+        run: uv sync --frozen --package junjo --extra dev
+        working-directory: sdks/python
+      - name: Build warning-strict Sphinx migration source
+        run: uv run sphinx-build -W -b html docs docs/_build/html
+        working-directory: sdks/python
+      - name: Validate Sphinx API inventory baseline
+        run: uv run python docs/export_api.py baseline-check --inventory docs/_build/html/objects.inv
+        working-directory: sdks/python
+      - name: Sync locked narrative migration tooling
+        run: uv sync --frozen
+        working-directory: tooling/docs
+      - name: Validate narrative migration ledger
+        run: uv run python migrate_rst.py --check
+        working-directory: tooling/docs
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -32,11 +85,37 @@ jobs:
           cache-dependency-path: apps/website/package-lock.json
       - name: Install locked dependencies
         run: npm ci
+        working-directory: apps/website
+      - name: Assemble source-owned documentation
+        run: npm run docs:assemble
+        working-directory: apps/website
       - name: Check content and TypeScript
         run: npm run check
+        working-directory: apps/website
       - name: Build production site
         run: npm run build
-      - name: Validate internal links and canonical source terminology
+        working-directory: apps/website
+      - name: Validate migration parity, routes, anchors, search, and links
         run: npm run validate:build
+        working-directory: apps/website
+      - name: Prove documentation assembly is deterministic
+        run: npm run docs:check
+        working-directory: apps/website
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+        working-directory: apps/website
+      - name: Upload exact public documentation artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: public-documentation-${{ env.JUNJO_DOCS_CHANNEL }}-${{ github.sha }}
+          path: apps/website/dist
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload reversible legacy-domain redirect artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python-api-redirects-${{ github.sha }}
+          path: apps/website/.docs-assembly/python-api._redirects
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14

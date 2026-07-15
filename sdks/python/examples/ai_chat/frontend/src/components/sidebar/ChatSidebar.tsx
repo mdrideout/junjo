@@ -1,66 +1,51 @@
+import type { Conversation } from '../../api/schemas'
+import { formatDateForChat } from '../../util/date-utils'
 import SidebarAvatar from '../avatars/SidebarAvatar'
 import NewContactButton from './NewContactButton'
-import useGetChatsWithMembers from '../../api/chat/hook'
-import { useChatsWithMembersStore } from '../../api/chat/store'
-import useGetContacts from '../../api/contact/hooks/get-contacts-hook'
-import { useChatReadStateStore } from '../../api/chat/read-store'
-import { Link, useParams } from 'react-router'
-import { formatDateForChat } from '../../util/date-utils'
 
-/**
- * Chat Sidebar
- */
-export default function ChatSidebar() {
-  const { chat_id } = useParams()
-  const { error: contactsError, refetch: refetchContacts } = useGetContacts()
-  const { error: chatsWithMembersError, refetch: refetchChatsWithMembers } = useGetChatsWithMembers()
-  const { chats } = useChatsWithMembersStore()
-  const lastReadAtByChatId = useChatReadStateStore((state) => state.lastReadAtByChatId)
+interface ChatSidebarProps {
+  conversations: Conversation[]
+  activeChatId: string | undefined
+  loading: boolean
+  creatingContact: boolean
+  lastReadAtByChatId: Record<string, number>
+  onSelect: (conversationId: string) => void
+  onCreateContact: (sex: 'male' | 'female') => Promise<void>
+}
 
-  async function handleRefetch() {
-    await refetchContacts()
-    await refetchChatsWithMembers()
-  }
-
+export default function ChatSidebar({
+  conversations,
+  activeChatId,
+  loading,
+  creatingContact,
+  lastReadAtByChatId,
+  onSelect,
+  onCreateContact,
+}: ChatSidebarProps) {
   return (
     <>
-      <div className={'mb-6'}>
-        <NewContactButton />
+      <div className="mb-6">
+        <NewContactButton loading={creatingContact} onCreate={onCreateContact} />
       </div>
-
-      {(contactsError || chatsWithMembersError) && (
-        <div className={'mb-5'}>
-          <div className={'text-red-500 mb-1'}>Error fetching contacts.</div>
-          <button
-            className={'bg-blue-500 hover:bg-blue-700 text-white rounded-md px-3 py-1 leading-none cursor-pointer'}
-            onClick={handleRefetch}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-      {chats.length === 0 && <div className={'opacity-30 text-center'}>so lonely...</div>}
-      <div className={'flex flex-col gap-y-5'}>
-        {chats.map((chat) => {
-          // Create a human readable date
-          const lastMessageTime = new Date(chat.last_message_time)
-          const dateString = formatDateForChat(lastMessageTime)
-          const isActive = chat.id == chat_id
-          const lastReadAt = lastReadAtByChatId[chat.id]
-          const hasUnread = !isActive && lastReadAt != null && lastMessageTime.getTime() > lastReadAt
-
+      {loading && <div className="opacity-50 text-center">Loading...</div>}
+      {!loading && conversations.length === 0 && <div className="opacity-30 text-center">so lonely...</div>}
+      <div className="flex flex-col gap-y-5">
+        {conversations.map((conversation) => {
+          const lastMessageTime = conversation.last_message_at === null
+            ? null
+            : Date.parse(conversation.last_message_at)
+          const hasUnread = activeChatId !== conversation.id
+            && lastMessageTime !== null
+            && lastMessageTime > (lastReadAtByChatId[conversation.id] ?? 0)
           return (
-            <Link key={chat.id} to={`/${chat.id}`}>
-              {chat.members.map((member) => (
-                <SidebarAvatar
-                  key={chat.id}
-                  lastMessage={dateString}
-                  contact_id={member.contact_id}
-                  isActive={isActive}
-                  hasUnread={hasUnread}
-                />
-              ))}
-            </Link>
+            <div key={conversation.id} onClick={() => onSelect(conversation.id)}>
+              <SidebarAvatar
+                contact={conversation.contact}
+                lastMessage={lastMessageTime === null ? 'New conversation' : formatDateForChat(new Date(lastMessageTime))}
+                isActive={activeChatId === conversation.id}
+                hasUnread={hasUnread}
+              />
+            </div>
           )
         })}
       </div>

@@ -1,135 +1,172 @@
 import { PlayIcon } from '@heroicons/react/24/solid'
+import { useEffect, useMemo, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { RootState } from '../../../root-store/store'
-import { useEffect, useRef } from 'react'
-import { formatMicrosecondsSinceEpochToTime } from '../../../util/duration-utils'
+import type { RootState } from '../../../root-store/store'
+import {
+  formatMicrosecondsSinceEpochToTime,
+  nanosecondsStringToMicroseconds,
+} from '../../../util/duration-utils'
+import type { WorkflowStoreDiagnosticRequest } from '../../workflow-executions/hooks/use-workflow-store-diagnostic'
+import { JunjoSetStateEventSchema } from '../../traces/schemas/schemas'
+import { selectSpanAndChildren } from '../../traces/store/selectors'
+import {
+  spanSelection,
+  WorkflowDetailStateActions,
+} from '../workflow-detail/store/slice'
+import { selectWorkflowDetailActiveSpan } from '../workflow-detail/store/selectors'
+import {
+  rawStateEventIdentity,
+  stateEventIdentityKey,
+  transitionStateEventIdentity,
+} from '../workflow-detail/state-event-identity'
 import { SpanIconConstructor } from './determine-span-icon'
-import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
-import { selectAllWorkflowStateEvents, selectSpanAndChildren } from '../../traces/store/selectors'
+import { useNavigate } from 'react-router'
+import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 
 interface FlatStateEventsListProps {
   traceId: string
   workflowSpanId: string
+  storeDiagnosticRequest: WorkflowStoreDiagnosticRequest
 }
 
-export default function FlatStateEventsList(props: FlatStateEventsListProps) {
-  const { traceId, workflowSpanId } = props
+/** Render one Store owner's transitions in backend-verified sequence order. */
+export default function FlatStateEventsList({
+  traceId,
+  workflowSpanId,
+  storeDiagnosticRequest,
+}: FlatStateEventsListProps) {
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
+  const transitionRowRefs = useRef(new Map<string, HTMLButtonElement>())
   const dispatch = useAppDispatch()
-
-  const events = useAppSelector((state: RootState) =>
-    selectAllWorkflowStateEvents(state, {
-      traceId,
-      spanId: workflowSpanId,
-    }),
-  )
+  const navigate = useNavigate()
+  const route = useWorkflowDetailRoute()
   const spans = useAppSelector((state: RootState) =>
-    selectSpanAndChildren(state, {
-      traceId,
-      spanId: workflowSpanId,
-    }),
+    selectSpanAndChildren(state, { traceId, spanId: workflowSpanId }),
   )
-  const activeSetStateEvent = useAppSelector(
-    (state: RootState) => state.workflowDetailState.activeSetStateEvent,
+  const activeStateEvent = useAppSelector(
+    (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
-  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
-  const scrollToStateEventId = useAppSelector(
-    (state: RootState) => state.workflowDetailState.scrollToStateEventId,
+  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
+  const stateEventScrollTarget = useAppSelector(
+    (state: RootState) => state.workflowDetailState.stateEventScrollTarget,
   )
-
-  // Sort the events by timeUnixNano
-  events.sort((a, b) => {
-    const aTime = a.timeUnixNano
-    const bTime = b.timeUnixNano
-    return aTime - bTime
-  })
-
-  // Scroll To State Event
-  useEffect(() => {
-    if (scrollToStateEventId && scrollableContainerRef.current) {
-      const targetStateEventId = `#flat-state-patch-${scrollToStateEventId}`
-      const targetElement = scrollableContainerRef.current.querySelector(targetStateEventId)
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest',
-        })
+  const transitions = useMemo(
+    () => [...(storeDiagnosticRequest.data?.state.transitions ?? [])].sort(
+      (left, right) => left.sequence - right.sequence,
+    ),
+    [storeDiagnosticRequest.data],
+  )
+  const spansById = useMemo(
+    () => new Map(spans.map((span) => [span.span_id, span])),
+    [spans],
+  )
+  const rawEventsByIdentity = useMemo(() => {
+    const events = new Map<string, ReturnType<typeof JunjoSetStateEventSchema.parse>>()
+    for (const span of spans) {
+      for (const event of span.events_json) {
+        const parsed = JunjoSetStateEventSchema.safeParse(event)
+        if (parsed.success) {
+          events.set(
+            stateEventIdentityKey(rawStateEventIdentity(span.span_id, parsed.data)),
+            parsed.data,
+          )
+        }
       }
     }
-  }, [scrollToStateEventId])
+    return events
+  }, [spans])
 
-  // TODO: Update to match how the nested spans work.
-  // // Scroll To First Matching Node Span
-  // useEffect(() => {
-  //   if (scrollToSpanId && scrollableContainerRef.current) {
-  //     const targetSpanId = `.flat-span-${scrollToSpanId}`
-  //     console.log(`Scrolling to span: ${targetSpanId}`)
-  //     const targetElement = scrollableContainerRef.current.querySelector(targetSpanId)
-  //     if (targetElement) {
-  //       targetElement.scrollIntoView({
-  //         behavior: 'smooth',
-  //         block: 'nearest',
-  //         inline: 'nearest',
-  //       })
-  //     }
-  //   }
-  // }, [scrollToSpanId])
+  useEffect(() => {
+    if (stateEventScrollTarget === null || scrollableContainerRef.current === null) return
+    const target = transitionRowRefs.current.get(stateEventIdentityKey(stateEventScrollTarget))
+    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+  }, [stateEventScrollTarget])
+
+  if (storeDiagnosticRequest.loading) {
+    return <div className="px-2 py-3 text-sm text-zinc-500">Loading Store transitions…</div>
+  }
+  if (storeDiagnosticRequest.error !== null) {
+    return <div className="px-2 py-3 text-sm text-red-700">{storeDiagnosticRequest.error}</div>
+  }
+  if (transitions.length === 0) {
+    return <div className="px-2 py-3 text-sm text-zinc-500">No backend-projected Store transitions.</div>
+  }
 
   return (
-    <div ref={scrollableContainerRef} className={'flex flex-col text-sm'}>
-      {events.map((event) => {
-        const atts = event.attributes
-        const eventTime = formatMicrosecondsSinceEpochToTime(event.timeUnixNano / 1000)
-        const span = spans.find((span) => span.events_json.some((s) => s.attributes?.id === atts.id))
-        const isActivePatch = atts.id === activeSetStateEvent?.attributes.id
-        const isActiveSpan = (span && span.span_id === activeSpan?.span_id) ?? false
-        const spanClass = span ? `flat-span-${span.span_id}` : ''
-
-        function determineActiveStyle() {
-          if (isActivePatch) {
-            return 'bg-amber-100 dark:bg-amber-950'
-          } else if (isActiveSpan) {
-            return 'bg-zinc-100 dark:bg-zinc-800'
-          }
-          return ''
-        }
+    <div ref={scrollableContainerRef} className="flex flex-col text-sm">
+      {transitions.map((transition) => {
+        const storeId = storeDiagnosticRequest.data?.state.store_id
+        const identity = storeId === null || storeId === undefined
+          ? null
+          : transitionStateEventIdentity(storeId, transition)
+        const identityKey = identity === null ? null : stateEventIdentityKey(identity)
+        const event = identityKey === null ? undefined : rawEventsByIdentity.get(identityKey)
+        const span = spansById.get(transition.span_id)
+        const isActivePatch = identityKey !== null
+          && activeStateEvent !== null
+          && identityKey === stateEventIdentityKey(activeStateEvent)
+        const isActiveSpan = span?.span_id === activeSpan?.span_id
+        const eventTime = event === undefined
+          ? null
+          : formatMicrosecondsSinceEpochToTime(
+            nanosecondsStringToMicroseconds(event.timeUnixNano),
+          )
+        const storeLabel = event?.attributes['junjo.store.name']
+          ?? storeDiagnosticRequest.data?.state.store_id
+          ?? 'Store'
+        const selectable = event !== undefined && span !== undefined
+        const activeStyle = isActivePatch
+          ? 'bg-amber-100 dark:bg-amber-950'
+          : isActiveSpan
+            ? 'bg-zinc-100 dark:bg-zinc-800'
+            : ''
 
         return (
-          <div
-            key={atts.id}
-            id={`flat-state-patch-${atts.id}`}
-            className={`${spanClass} px-2 py-2 cursor-pointer flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 ${determineActiveStyle()}`}
+          <button
+            type="button"
+            key={identityKey ?? `${transition.span_id}:${transition.sequence}`}
+            ref={(element) => {
+              if (identityKey === null) return
+              if (element === null) transitionRowRefs.current.delete(identityKey)
+              else transitionRowRefs.current.set(identityKey, element)
+            }}
+            data-state-event-id={transition.event_id}
+            data-state-event-span-id={transition.span_id}
+            data-state-event-sequence={transition.sequence}
+            className={`flat-span-${transition.span_id} px-2 py-2 text-left flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 disabled:cursor-not-allowed ${selectable ? 'cursor-pointer' : ''} ${activeStyle}`}
+            disabled={!selectable}
             onClick={() => {
-              // Set the active span that this state event belongs to
-              if (span) {
-                dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+              if (event === undefined || span === undefined) return
+              dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
+              if (identity !== null) {
+                dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
               }
-
-              // Set the active set state event
-              dispatch(WorkflowDetailStateActions.setActiveSetStateEvent(event))
+              navigate(
+                `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${span.span_id}`,
+                { replace: true },
+              )
             }}
           >
-            <div className={'flex gap-x-1 items-start'}>
-              <div className={'mt-[1px]'}>
-                <SpanIconConstructor span={span} active={isActiveSpan} size={'size-3.5'} />
+            <div className="flex gap-x-1 items-start">
+              <div className="mt-[1px]">
+                <SpanIconConstructor span={span} active={isActiveSpan} size="size-3.5" />
               </div>
-
-              <div className={'font-normal text-xs'}>
-                <div className={'mb-0.5 font-bold'}>{span?.name}</div>
-                <div className={'flex gap-x-1 items-center'}>
-                  <PlayIcon className={'size-3.5 text-orange-300'} /> {atts['junjo.store.name']} &rarr;{' '}
-                  {atts['junjo.store.action']}
+              <div className="font-normal text-xs">
+                <div className="mb-0.5 font-bold">{span?.name}</div>
+                <div className="flex gap-x-1 items-center">
+                  <PlayIcon className="size-3.5 text-orange-300" />
+                  {transition.sequence}. {storeLabel} &rarr; {transition.action}
                 </div>
-
-                <div className={'opacity-50 text-xs pl-[18.5px]'}>{atts.id}</div>
+                <div className="opacity-50 text-xs pl-[18.5px]">{transition.event_id}</div>
               </div>
             </div>
-            <div className={'font-mono text-zinc-500 text-xs'}>{eventTime}</div>
-          </div>
+            {eventTime !== null && (
+              <div className="font-mono text-zinc-500 text-xs">{eventTime}</div>
+            )}
+          </button>
         )
       })}
-      <div className={'h-4'}></div>
+      <div className="h-4"></div>
     </div>
   )
 }

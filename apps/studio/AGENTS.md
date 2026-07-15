@@ -121,4 +121,11 @@ Utilize skills during implementation and plannning. AGENTS.md is for context tha
 
 - Check the worktree before destructive edits.
 - Do not revert unrelated user changes.
+- Changes to telemetry projections, Workflow selection, Mermaid rendering,
+  execution-detail routing, or the frontend dependency lock must run the
+  Workflow Graph/tree/state/URL interaction suite. Review transitive renderer
+  changes as behavior changes, not mechanical lockfile noise.
+- Before changing a shared selection or detail contract, inventory every
+  surface that projects it, including deep links and mixed Agent/Workflow
+  composition.
 - During procedural tasks, keep track of mistakes made (CLI misuse, etc.) and document what the correct implementation was to help future task runners avoid the same issue.

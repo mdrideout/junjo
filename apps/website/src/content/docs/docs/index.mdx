@@ -1,0 +1,27 @@
+---
+title: Junjo Documentation
+description: Unified documentation for Junjo SDKs, Junjo AI Studio, and OpenTelemetry observability.
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="Python SDK" icon="seti:python" link="/docs/python/">
+    Install Junjo, build explicit Workflows and bounded Agents, test behavior,
+    and instrument executions.
+  </Card>
+  <Card title="Python API" icon="document" link="/docs/python/api/">
+    Browse the versioned, Griffe-generated reference for every public Python
+    symbol.
+  </Card>
+  <Card title="Junjo AI Studio" icon="monitor" link="/docs/studio/overview/">
+    Deploy and use the open-source observability platform for Workflow and Agent
+    diagnostics.
+  </Card>
+  <Card title="OpenTelemetry" icon="seti:config" link="/docs/observability/opentelemetry/">
+    Understand Junjo's telemetry model and configure OTLP exporters.
+  </Card>
+</CardGrid>
+
+Python is the currently released SDK. Future language SDKs will appear as
+separate guide and API sections without replacing the Python documentation.
