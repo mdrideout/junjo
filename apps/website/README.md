@@ -55,8 +55,8 @@ On a successful `master` build, GitHub Actions downloads the exact retained
 artifacts and deploys `dist` to `junjo-website` before deploying the retirement
 artifact to `junjo-python-api`. The `public-documentation-production` GitHub
 environment owns the Cloudflare account ID and least-privilege Pages API token.
-Cloudflare automatic Git deployments are disabled after direct upload is
-activated; production is never rebuilt independently from source in two places.
+Cloudflare automatic Git deployments are disabled on both Pages projects;
+production is never rebuilt independently from source in two places.
 
 CI labels ordinary source builds as `next`. A caller may request the `stable`
 channel only from the exact released checkout; the channel, SDK version, and

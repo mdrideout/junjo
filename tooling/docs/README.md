@@ -59,9 +59,9 @@ with the global `301` redirect.
 
 The GitHub `public-documentation-production` environment owns
 `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. The token needs only
-Cloudflare Pages edit access for the owning account. Cloudflare's automatic Git
-deployments must be disabled when this pipeline is activated so a second build
-cannot overwrite the validated artifact.
+Cloudflare Pages edit access for the owning account. Automatic Git deployments
+are disabled on both Pages projects, so a second builder cannot overwrite the
+validated artifact.
 
 ## Language SDK artifact contract
 

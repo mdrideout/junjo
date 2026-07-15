@@ -25,26 +25,27 @@ Implemented:
 - source-owned Python and Studio content assembly without shared runtime locks;
 - a client-side compatibility map for legacy API fragments;
 - build validation for every migrated route, API route/anchor, baseline symbol,
-  internal link, search artifact, sitemap, and unconverted markup token; and
+  internal link, search artifact, sitemap, and unconverted markup token;
 - a path-routed GitHub Actions workflow that uploads the exact validated static
   `next` artifact while retaining Sphinx as a parity gate;
 - an explicit `next`/`stable` manifest and page label, with stable assembly
-  callable only from a release-selected checkout; and
-- a version-pinned Wrangler deployment job that publishes the retained site artifact
-  to `junjo-website`, then replaces the public Sphinx deployment on
-  `junjo-python-api` with a one-rule `301` redirect site.
+  callable only from a release-selected checkout;
+- a version-pinned Wrangler deployment job that publishes the retained site
+  artifact to `junjo-website`, then replaces the public Sphinx deployment on
+  `junjo-python-api` with a one-rule `301` redirect site; and
+- Cloudflare automatic production and preview deployments disabled on both
+  Pages projects without changing their current production deployments or
+  custom domains.
 
 The original audit contained 4,094 RST lines. Source work that landed during
 implementation expanded the live corpus to 4,113 lines and the Sphinx API
-inventory from 418 to 424 objects. The converter and baseline were refreshed
+inventory from 418 to 428 objects. The converter and baseline were refreshed
 from the newer source; no content was frozen at the older counts.
 
 Still gated by production evidence:
 
 - configure the `public-documentation-production` GitHub environment with the
   Cloudflare account ID and least-privilege Pages API token;
-- disable Cloudflare automatic Git deployments so GitHub Actions is the sole
-  production writer;
 - publish the validated artifact and global legacy-domain redirect; and
 - verify the unified routes, search, canonical metadata, and global redirect in
   production while retaining the final Sphinx artifact for rollback.
