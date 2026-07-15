@@ -180,6 +180,12 @@ The obsolete `publish.yml` publisher was removed.
   Actions validates pull-request source without retaining an artifact, and
   Cloudflare pulls validated `master`, repeats the version-controlled build,
   and deploys its own output. Cloudflare preview builds are disabled.
+- The unified-documentation cutover completed from protected `master` commit
+  `f2a19f1b9ef00a5c3935e83b37b1f8f8ffe81ab0`. Cloudflare source-built website
+  deployment `8fec9dd8-20cb-4acb-8801-b89de9dd35da` serves the unified portal,
+  and source-built legacy deployment `92eee7cb-c1bb-47d9-ae20-db5f9aa09868`
+  globally redirects `python-api.junjo.ai` to
+  `https://junjo.ai/docs/python/`.
 
 The restored site preserves the original Starlight homepage and documentation
 content. The temporary migration redesign, gradients, replacement copy, and
