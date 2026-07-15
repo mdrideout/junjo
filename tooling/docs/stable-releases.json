@@ -4,7 +4,7 @@
     "version": "0.64.0",
     "release_tag": "sdk-python-v0.64.0",
     "documentation_ref": "sdk-python-v0.64.0",
-    "content_format": "sphinx-rst",
+    "content_format": "legacy-rst",
     "migration_snapshot": false
   },
   "studio": {

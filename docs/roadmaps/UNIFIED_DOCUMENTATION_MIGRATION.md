@@ -1,7 +1,7 @@
 # Unified Documentation Portal Migration Strategy And Implementation Plan
 
-- Status: Unified source-build cutover and release-gated production policy
-  implemented; Sphinx cleanup remains separately gated
+- Status: Complete; unified source builds, release-gated production, legacy
+  redirect, and current-source Sphinx retirement are implemented
 - Date: 2026-07-15
 - Owners: Junjo platform, Python SDK, Studio, website, and future SDK owners
 - Decision authority: ADR 0009 accepts the unified publishing boundary; the
@@ -83,13 +83,14 @@ Release-gated control-plane evidence completed later on 2026-07-15:
   during this control-plane change. A future published release, not this
   migration merge, will trigger the first release-gated stable production build.
 
-The remaining work is the separately gated Sphinx lifecycle cleanup. Stable
-builds already regenerate the selected released Python API through the Griffe
-contract, including an explicit build-time RST conversion for the final
-pre-migration SDK release. Sphinx can leave active generation only when the
-Python release policy and CI no longer need that historical input. The Sphinx
-source and final artifact remain authoritative recovery inputs until those
-completion criteria pass.
+Current-source Sphinx retirement completed after the owner approved the final
+cleanup. The RST pages, configuration, themes, dependencies, active CI steps,
+starter Starlight pages, stale legacy-domain links, and obsolete favicon were
+removed. Griffe now consumes `api-public-surface.json` directly. The pinned
+Python 0.64.0 release remains reproducible through an immutable public-surface
+snapshot and an isolated RST-to-Markdown converter that does not install or run
+Sphinx. Repository history and Cloudflare's final legacy deployment retain the
+rollback evidence; the live legacy project serves only the global redirect.
 
 ## Objective
 
@@ -205,19 +206,18 @@ branch documentation may be published as an explicitly labeled `next` preview,
 but it must not silently replace the documentation for the latest released
 package.
 
-### Sphinx Remains Until Parity Is Proven
+### Historical Retirement Gate — Satisfied
 
-Sphinx remains buildable and deployable during migration. Its RST sources,
-configuration, dependencies, generated site, and existing public domain are not
-removed until all content, API, route, search, and release-parity gates in this
-plan pass.
+During migration, Sphinx remained buildable and deployable until all content,
+API, route, search, and release-parity gates passed. Current source no longer
+contains or runs that renderer.
 
-## Current Documentation Baseline
+## Historical Documentation Baseline
 
 ### Public Website
 
-`apps/website` is an Astro/Starlight application deployed at `junjo.ai`. It
-currently contains three content pages:
+At the initial audit, `apps/website` was an Astro/Starlight application with
+three content pages:
 
 - `src/content/docs/index.mdx`;
 - `src/content/docs/guides/example.md`; and
@@ -228,7 +228,7 @@ replacement for the existing SDK documentation. The homepage also contains
 known stale product and repository references. These require narrowly scoped
 accuracy corrections during migration.
 
-The current website validation succeeds with:
+The initial website validation succeeded with:
 
 ```text
 npm run check
@@ -239,15 +239,14 @@ npm run validate:build
 ### Python Sphinx Site
 
 `sdks/python/docs` contained 18 RST pages and 4,094 lines at the initial audit;
-the live migration ledger now records 4,113 lines after concurrent source
-work. It is currently the
-substantial public documentation corpus for the Python SDK and also contains
-Studio, Docker, deployment, and OpenTelemetry material.
+the final migration ledger records 4,113 lines after concurrent source work.
+That was the substantial public documentation corpus for the Python SDK and
+also contained Studio, Docker, deployment, and OpenTelemetry material.
 
-The warning-strict Sphinx build currently succeeds. This successful build is
-the functional baseline that the Starlight output must match before cutover.
+The warning-strict Sphinx build succeeded at audit time and served as the
+functional baseline that the Starlight output had to match before cutover.
 
-Sphinx currently supplies more than page rendering:
+The historical renderer supplied more than page rendering:
 
 - `autodoc` extraction;
 - Sphinx-, Google-, and NumPy-style docstring support through Napoleon;
@@ -426,8 +425,8 @@ preserving every content unit.
 | Current source | Disposition |
 | --- | --- |
 | `apps/website/src/content/docs/index.mdx` | Retain as the product landing source; correct obsolete links in separately identified corrections |
-| `apps/website/src/content/docs/guides/example.md` | Record as a placeholder, retain until real navigation is live, then mark `retired-placeholder` |
-| `apps/website/src/content/docs/reference/example.md` | Record as a placeholder, retain until generated reference is live, then mark `retired-placeholder` |
+| `apps/website/src/content/docs/guides/example.md` | `retired-placeholder`; removed after unified navigation went live |
+| `apps/website/src/content/docs/reference/example.md` | `retired-placeholder`; removed after generated reference went live |
 
 ### README And Example Matrix
 
@@ -521,14 +520,15 @@ this GitHub validator uploads nothing. Generated files are never hand-edited.
 
 ### API Parity Gates
 
-The generated API cannot replace Sphinx until:
+The generated API was not allowed to replace Sphinx until all of these gates
+passed:
 
 - every current Sphinx public symbol appears in the Griffe manifest or has an
   approved exclusion record;
 - every package export intended to be public is documented;
 - no private symbol is exposed accidentally;
 - function and method signatures match the documented release;
-- class and `__init__` content both render where Sphinx currently combines them;
+- class and `__init__` content both render where the legacy output combined them;
 - current warnings, examples, parameter descriptions, returns, and exceptions
   render without semantic loss;
 - cross-references resolve;
@@ -816,7 +816,7 @@ Exit gate:
 - production monitoring shows no unexplained content or link regressions; and
 - the retained static artifact can be redeployed as a rollback.
 
-### Work Package 7: Cutover And Sphinx Retirement
+### Work Package 7: Cutover And Sphinx Retirement — Completed
 
 Tasks:
 
@@ -936,6 +936,7 @@ The migration is complete only when all of the following are true:
 - the final migration record lists every correction and intentionally retired
   placeholder or Sphinx-only feature.
 
-Until every criterion passes, the work remains a migration in progress and the
-Sphinx sources and rollback artifact remain authoritative recovery inputs, not
-a second public documentation site.
+All criteria passed. Current documentation is owned Markdown plus generated
+Griffe API output. Repository history, immutable release snapshots, migration
+ledgers, and the final legacy deployment retain recovery evidence without
+maintaining a second public documentation site or active Sphinx toolchain.

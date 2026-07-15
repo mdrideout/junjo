@@ -8,7 +8,7 @@ The [Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/p
 
 Gain complete visibility to the state of the application, and every change LLMs make to the application state. Complex, mission critical AI workflows are made transparent and understandable with Junjo.
 
-<img src="https://python-api.junjo.ai/_images/junjo-screenshot.png" width="800" />
+<img src="https://junjo.ai/docs-assets/generated/python/junjo-screenshot.png" width="800" />
 
 _Junjo AI Studio Workflow Debugging Screenshot_
 

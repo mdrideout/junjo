@@ -99,17 +99,11 @@ jobs:
       - name: Sync locked Python SDK documentation dependencies
         run: uv sync --frozen --package junjo --extra dev
         working-directory: sdks/python
-      - name: Build warning-strict Sphinx migration source
-        run: uv run sphinx-build -W -b html docs docs/_build/html
+      - name: Validate Python API public surface
+        run: uv run python docs/export_api.py validate
         working-directory: sdks/python
-      - name: Validate Sphinx API inventory baseline
-        run: uv run python docs/export_api.py baseline-check --inventory docs/_build/html/objects.inv
-        working-directory: sdks/python
-      - name: Sync locked narrative migration tooling
+      - name: Sync locked legacy-release conversion tooling
         run: uv sync --frozen
-        working-directory: tooling/docs
-      - name: Validate narrative migration ledger
-        run: uv run python migrate_rst.py --check
         working-directory: tooling/docs
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

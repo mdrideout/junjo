@@ -15,8 +15,7 @@ the Python SDK primary library-health checks from `sdks/python` on Python 3.13:
 - `uv run ruff check .`
 - `uv run pytest -q`
 - `uv run ty check --error-on-warning src`
-- `uv run sphinx-build -W -b html docs docs/_build/html`
-- `uv run python docs/export_api.py baseline-check --inventory docs/_build/html/objects.inv`
+- `uv run python docs/export_api.py validate`
 - `uv run python -m build`
 - `uv run twine check dist/*`
 
@@ -65,7 +64,7 @@ When public behavior changes, keep these surfaces aligned:
 1. runtime code
 2. tests
 3. public docstrings
-4. Sphinx migration sources and their mechanically converted Starlight content
+4. source-owned Markdown and the generated Starlight API export
 5. examples
 
 Release-ready code should not leave public docs or examples teaching stale behavior.
@@ -99,9 +98,8 @@ cutover; there is no dual-version compatibility mode:
    release transaction. Upgrade other emitters after that cutover; old emitters
    are retired rather than retained behind fallbacks.
 5. Assemble and validate the unified Starlight artifact, then deploy
-   documentation last so public guidance describes the released pair. During
-   the migration, the warning-strict Sphinx build and its API inventory remain
-   required parity gates; they are not the production renderer.
+   documentation last so public guidance describes the released pair. The
+   Griffe public-surface contract is the Python API publication gate.
 
 For telemetry contract version 2, the producer release is `junjo` `0.65.0` and
 the first matching Studio release must be `0.82.0` or newer. Release preparation

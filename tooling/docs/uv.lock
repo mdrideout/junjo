@@ -33,7 +33,7 @@ wheels = [
 ]
 
 [[package]]
-name = "junjo-docs-migration-tooling"
+name = "junjo-legacy-docs-converter"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

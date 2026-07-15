@@ -38,8 +38,8 @@ npm run validate
 Python and Studio content. `npm run check` performs Astro content and TypeScript
 diagnostics. The static production site is written to `dist`. `npm run
 validate:build` rejects broken internal build references and obsolete
-source-repository URLs. It also proves migration-ledger routes, every Sphinx API
-object and anchor, Pagefind output, and sitemap output. `npm run validate` runs
+source-repository URLs. It also proves migration-ledger routes, every contracted
+Python API object and anchor, Pagefind output, and sitemap output. `npm run validate` runs
 assembly, all site checks, and an idempotence check. `npm run preview` serves
 the completed production build.
 

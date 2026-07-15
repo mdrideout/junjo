@@ -65,8 +65,8 @@ through public hooks or couple Studio to an SDK's internal lifecycle objects.
 
 Run the full validation owned by every changed area. At minimum:
 
-- Python SDK: Ruff, pytest, ty, Sphinx, package build, and Twine validation from
-  `sdks/python`.
+- Python SDK: Ruff, pytest, ty, Griffe public-surface validation, package build,
+  and Twine validation from `sdks/python`.
 - Studio: `apps/studio/run-all-tests.sh`, plus Compose and Docker validation
   when deployment inputs change.
 - Studio deployment distributions: validate Compose rendering, setup scripts,

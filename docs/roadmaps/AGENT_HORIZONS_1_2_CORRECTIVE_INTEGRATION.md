@@ -356,7 +356,7 @@ The corrective work is complete only when all of the following hold.
 
 ### Repository validation
 
-- Python SDK Ruff, pytest, ty, Sphinx, package build, and Twine checks pass.
+- Python SDK Ruff, pytest, ty, Griffe public-surface, package build, and Twine checks pass.
 - Telemetry fixtures regenerate idempotently and contract validation passes.
 - Studio backend, ingestion, frontend, OpenAPI, protobuf, Compose, and Docker
   validation pass for every changed area.
@@ -386,7 +386,7 @@ establish faithful AI Chat product restoration:
   changes; `getting_started`, `base`, AI Chat Compose rendering, 39 AI Chat
   backend tests, and 18 frontend tests all pass;
 - the Python SDK passes lock validation, Ruff, 320 tests, ty, warning-strict
-  Sphinx, package build, and Twine validation;
+  Griffe public-surface, package build, and Twine validation;
 - telemetry contract generation is idempotent and contract validation passes
   across 9 schemas, 6 Workflow producer fixtures, 33 Agent producer fixtures,
   4 Agent consumer fixtures, 41 invalid fixtures, 22 fingerprint vectors, 7

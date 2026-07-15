@@ -27,6 +27,7 @@ LEGACY_SITE_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api-site"
 LEGACY_SITE_SOURCE = WEBSITE_ROOT / "legacy-python-api"
 PYTHON_ROOT = REPOSITORY_ROOT / "sdks/python"
 STABLE_RELEASES = REPOSITORY_ROOT / "tooling/docs/stable-releases.json"
+RELEASE_SNAPSHOTS = REPOSITORY_ROOT / "tooling/docs/release-snapshots"
 DOCUMENTATION_CHANNEL = os.environ.get("JUNJO_DOCS_CHANNEL", "next")
 
 
@@ -131,15 +132,16 @@ def component_entry_fields(name: str, entry: object) -> tuple[str, str, str, str
         "migration_snapshot",
     }
     if set(entry) != required:
-        raise ValueError(
-            f"stable {name} entry must contain exactly {sorted(required)}"
-        )
+        raise ValueError(f"stable {name} entry must contain exactly {sorted(required)}")
     version = entry["version"]
     release_tag = entry["release_tag"]
     documentation_ref = entry["documentation_ref"]
     content_format = entry["content_format"]
     migration_snapshot = entry["migration_snapshot"]
-    if not all(isinstance(value, str) for value in (version, release_tag, documentation_ref, content_format)):
+    if not all(
+        isinstance(value, str)
+        for value in (version, release_tag, documentation_ref, content_format)
+    ):
         raise ValueError(f"stable {name} string fields are invalid")
     if not isinstance(migration_snapshot, bool):
         raise ValueError(f"stable {name} migration_snapshot must be boolean")
@@ -153,7 +155,7 @@ def component_entry_fields(name: str, entry: object) -> tuple[str, str, str, str
         )
     allowed_formats = {"owned-markdown"}
     if name == "python":
-        allowed_formats.add("sphinx-rst")
+        allowed_formats.add("legacy-rst")
     if content_format not in allowed_formats:
         raise ValueError(f"unsupported stable {name} content format: {content_format}")
     return version, release_tag, documentation_ref, content_format, migration_snapshot
@@ -173,7 +175,9 @@ def validate_component_entry(
             f"stable {name} documentation must come from its exact release tag"
         )
     if migration_snapshot:
-        git_output("merge-base", "--is-ancestor", release_revision, documentation_revision)
+        git_output(
+            "merge-base", "--is-ancestor", release_revision, documentation_revision
+        )
 
     checkout = checkout_root / name
     subprocess.run(
@@ -212,9 +216,13 @@ def stable_documentation_sources(checkout_root: Path) -> Iterator[DocumentationS
     manifest = load_stable_manifest()
     created: list[Path] = []
     try:
-        python = validate_component_entry("python", manifest.get("python"), checkout_root)
+        python = validate_component_entry(
+            "python", manifest.get("python"), checkout_root
+        )
         created.append(python.root)
-        studio = validate_component_entry("studio", manifest.get("studio"), checkout_root)
+        studio = validate_component_entry(
+            "studio", manifest.get("studio"), checkout_root
+        )
         created.append(studio.root)
         yield DocumentationSources(python=python, studio=studio)
     finally:
@@ -230,7 +238,7 @@ def run_python_api_export(
     output: Path,
     *,
     sdk_root: Path = PYTHON_ROOT,
-    baseline: Path | None = None,
+    surface: Path | None = None,
     revision: str | None = None,
 ) -> None:
     command = [
@@ -249,43 +257,12 @@ def run_python_api_export(
         "--channel",
         DOCUMENTATION_CHANNEL,
     ]
-    if baseline is not None:
-        command.extend(("--baseline", str(baseline)))
+    if surface is not None:
+        command.extend(("--surface", str(surface)))
     if revision is not None:
         command.extend(("--revision", revision))
     subprocess.run(
         command,
-        cwd=REPOSITORY_ROOT,
-        check=True,
-    )
-
-
-def build_release_sphinx_baseline(source: ComponentSource, output: Path) -> None:
-    sdk_root = source.root / "sdks/python"
-    subprocess.run(
-        ["uv", "sync", "--frozen", "--package", "junjo", "--extra", "dev"],
-        cwd=sdk_root,
-        check=True,
-    )
-    subprocess.run(
-        ["uv", "run", "sphinx-build", "-W", "-b", "html", "docs", "docs/_build/html"],
-        cwd=sdk_root,
-        check=True,
-    )
-    subprocess.run(
-        [
-            "uv",
-            "run",
-            "--project",
-            str(PYTHON_ROOT),
-            "python",
-            str(PYTHON_ROOT / "docs/export_api.py"),
-            "baseline",
-            "--inventory",
-            str(sdk_root / "docs/_build/html/objects.inv"),
-            "--output",
-            str(output),
-        ],
         cwd=REPOSITORY_ROOT,
         check=True,
     )
@@ -299,8 +276,7 @@ def export_release_rst(source: ComponentSource, output: Path) -> None:
             "--project",
             str(REPOSITORY_ROOT / "tooling/docs"),
             "python",
-            str(REPOSITORY_ROOT / "tooling/docs/migrate_rst.py"),
-            "--export-release",
+            str(REPOSITORY_ROOT / "tooling/docs/convert_legacy_rst.py"),
             "--source-docs",
             str(source.root / "sdks/python/docs"),
             "--output",
@@ -330,24 +306,34 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
         python_docs_root = REPOSITORY_ROOT / "sdks/python/docs"
         studio_root = REPOSITORY_ROOT
         copy_tree_without_overwrite(python_docs_root / "content", content)
-        python_baseline = python_docs_root / "api-sphinx-baseline.json"
+        python_surface = python_docs_root / "api-public-surface.json"
         python_revision = git_output("rev-parse", "HEAD")
     else:
         python_docs_root = sources.python.root / "sdks/python/docs"
         studio_root = sources.studio.root
         if sources.python.content_format == "owned-markdown":
             copy_tree_without_overwrite(python_docs_root / "content", content)
+            python_surface = python_docs_root / "api-public-surface.json"
         else:
             export_release_rst(sources.python, content)
-        python_baseline = root / "released-sphinx-api-baseline.json"
-        build_release_sphinx_baseline(sources.python, python_baseline)
+            python_surface = (
+                RELEASE_SNAPSHOTS
+                / "python"
+                / sources.python.version
+                / "api-public-surface.json"
+            )
+            if not python_surface.is_file():
+                raise FileNotFoundError(
+                    "missing immutable Python API surface for legacy release "
+                    f"{sources.python.version}: {python_surface}"
+                )
         python_revision = sources.python.documentation_revision
 
     copy_tree_without_overwrite(studio_root / "apps/studio/docs/public", content)
     run_python_api_export(
         api_export,
         sdk_root=python_docs_root.parent,
-        baseline=python_baseline,
+        surface=python_surface,
         revision=python_revision,
     )
     copy_tree_without_overwrite(api_export / "docs", content / "docs")
@@ -356,8 +342,8 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
     manifests.mkdir(parents=True, exist_ok=True)
     shutil.copy2(api_export / "api-manifest.json", manifests / "api-manifest.json")
     shutil.copy2(
-        python_baseline,
-        manifests / "sphinx-api-baseline.json",
+        python_surface,
+        manifests / "api-public-surface.json",
     )
     shutil.copy2(
         REPOSITORY_ROOT / "tooling/docs/content-migration.json",
@@ -373,20 +359,6 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
     api_manifest = json.loads(
         (manifests / "api-manifest.json").read_text(encoding="utf-8")
     )
-    legacy_api_map: dict[str, str] = {}
-    for symbol in api_manifest["symbols"]:
-        anchor = symbol["legacy_anchor"]
-        if not anchor:
-            continue
-        target = f"{symbol['target_route']}#{symbol['target_anchor']}"
-        previous = legacy_api_map.setdefault(anchor, target)
-        if previous != target:
-            raise ValueError(f"legacy API anchor {anchor} has conflicting targets")
-    (manifests / "legacy-api-map.json").write_text(
-        json.dumps({"version": 1, "symbols": legacy_api_map}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
     published_routes = sorted(
         documentation_route(path, content)
         for path in content.rglob("*.md")
@@ -537,7 +509,9 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="junjo-docs-assembly-") as directory:
         temporary = Path(directory)
         if DOCUMENTATION_CHANNEL == "stable":
-            with stable_documentation_sources(temporary / "source-checkouts") as sources:
+            with stable_documentation_sources(
+                temporary / "source-checkouts"
+            ) as sources:
                 build_assembly(temporary, sources)
                 return finish_assembly(temporary, args.write)
         if DOCUMENTATION_CHANNEL != "next":

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Do not retire the Sphinx site until the unified Python landing page is live.
+# Publish the legacy-domain redirect only after the unified landing page is live.
 unified_docs_url="${JUNJO_UNIFIED_PYTHON_DOCS_URL:-https://junjo.ai/docs/python/}"
 curl \
   --fail \

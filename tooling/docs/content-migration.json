@@ -10,7 +10,7 @@
       "target_path": "sdks/python/docs/content/docs/python/index.md",
       "target_route": "/docs/python/",
       "target_hash": "sha256:c22667b1a9e922e97ab05842da0e797c8656e4c6592199315e446999ef9a82aa",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Junjo Python SDK Documentation",
@@ -91,7 +91,7 @@
       "target_path": "sdks/python/docs/content/docs/python/get-started.md",
       "target_route": "/docs/python/get-started/",
       "target_hash": "sha256:c10f884fe0224734dbbc8b7db2bb808bc1d1990a1c0c15843b3c1ba697bbbd8e",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Getting Started",
@@ -137,7 +137,7 @@
       "target_path": "sdks/python/docs/content/docs/python/tutorial.md",
       "target_route": "/docs/python/tutorial/",
       "target_hash": "sha256:1726df48c7f68045e8e22aa726c8aa393a0875dc3a34431c1291562a69178cc0",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Tutorial: Building Your First Workflow",
@@ -208,7 +208,7 @@
       "target_path": "sdks/python/docs/content/docs/python/agents/index.md",
       "target_route": "/docs/python/agents/",
       "target_hash": "sha256:f9305914e5eb68e12002e512cf9a9d495888a0e405207d6a25e331838eda4c07",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Agents",
@@ -261,7 +261,7 @@
       "target_path": "sdks/python/docs/content/docs/python/agents/testing.md",
       "target_route": "/docs/python/agents/testing/",
       "target_hash": "sha256:582cbfa6b23005d6bb91e5cd9f2792c79ce392d755a8e84e0146acd1b8f2c89e",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Testing Agents",
@@ -296,7 +296,7 @@
       "target_path": "sdks/python/docs/content/docs/python/agents/composition.md",
       "target_route": "/docs/python/agents/composition/",
       "target_hash": "sha256:6dccf3fb891d3ff5cade3cfa11ebaaf72405e9336fb9140f4368a1b9d30e2964",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Agent and Workflow Composition",
@@ -335,7 +335,7 @@
       "target_path": "sdks/python/docs/content/docs/python/concepts.md",
       "target_route": "/docs/python/concepts/",
       "target_hash": "sha256:25b5962b60b3a8dbb0ec2531715b8b8965626f0fa9f69aa6d5e0eac1106e230f",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Core Concepts",
@@ -421,7 +421,7 @@
       "target_path": "sdks/python/docs/content/docs/python/workflows/state.md",
       "target_route": "/docs/python/workflows/state/",
       "target_hash": "sha256:8e0a596fcebdb92008e7e3a566f0c7d01052438952594883ec5d9dac2f079c07",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "State Management",
@@ -480,7 +480,7 @@
       "target_path": "sdks/python/docs/content/docs/python/workflows/concurrency.md",
       "target_route": "/docs/python/workflows/concurrency/",
       "target_hash": "sha256:5233b93815661b15da328489494d7ea778fed86b3a9070fc8ef66eb45703f6f2",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Concurrency",
@@ -545,7 +545,7 @@
       "target_path": "sdks/python/docs/content/docs/python/workflows/subflows.md",
       "target_route": "/docs/python/workflows/subflows/",
       "target_hash": "sha256:12e2d328b10120b061877f6e74dd50f75b937edae715ccb128daccd0aee16376",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Subflows",
@@ -635,7 +635,7 @@
       "target_path": "sdks/python/docs/content/docs/python/hooks.md",
       "target_route": "/docs/python/hooks/",
       "target_hash": "sha256:c64c7b31572cdf906ab258a3590c5ee9dbe74f7a0ee9e1335bf2c4aca9100437",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Hooks",
@@ -692,7 +692,7 @@
       "target_path": "sdks/python/docs/content/docs/python/workflows/visualization.md",
       "target_route": "/docs/python/workflows/visualization/",
       "target_hash": "sha256:487659def1b78abacedc51ea20a172ed379b962f4aa07d7bbba87d81a4a77c7d",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Visualizing AI Workflows",
@@ -790,7 +790,7 @@
       "target_path": "sdks/python/docs/content/docs/python/testing/eval-driven-development.md",
       "target_route": "/docs/python/testing/eval-driven-development/",
       "target_hash": "sha256:c059825971080bf43a31d634659b210a5f8d647662fe7bf7c2831508004db95c",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Eval-Driven Development",
@@ -856,7 +856,7 @@
       "target_path": null,
       "target_route": "/docs/python/api/",
       "target_hash": null,
-      "status": "awaiting-api-generation",
+      "status": "retired-source",
       "headings": [
         {
           "title": "API Reference",
@@ -904,7 +904,7 @@
       "target_path": "apps/studio/docs/public/docs/studio/overview.md",
       "target_route": "/docs/studio/overview/",
       "target_hash": "sha256:8fcd8b593b28fd45d9cc80d0ff4de93f69ad1084fb44c6c70fe0200d920b12b3",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Junjo AI Studio Intro",
@@ -1174,7 +1174,7 @@
       "target_path": "apps/studio/docs/public/docs/studio/docker-reference.md",
       "target_route": "/docs/studio/docker-reference/",
       "target_hash": "sha256:14d540dc4e9d26dc4661ffa91d6c1502cf6d6b06c8416fd4178f80414b0a1318",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Docker Reference",
@@ -1401,7 +1401,7 @@
       "target_path": "apps/studio/docs/public/docs/studio/deployment.md",
       "target_route": "/docs/studio/deployment/",
       "target_hash": "sha256:f6e88d056aa645c7b94e93dfb72d513a003eb0096edb78a2063fe6b5a33a6ee2",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "Junjo AI Studio Deployment",
@@ -1447,7 +1447,7 @@
       "target_path": "sdks/python/docs/content/docs/observability/opentelemetry.md",
       "target_route": "/docs/observability/opentelemetry/",
       "target_hash": "sha256:4ade32549a5b9207491666ef7ed5b2cb7ea11bc89a2edc0df793d428e36442ae",
-      "status": "converted",
+      "status": "retired-source",
       "headings": [
         {
           "title": "OpenTelemetry Integration",
@@ -1709,20 +1709,24 @@
       "source_hash": "sha256:515d9abd750ee638417af4bd384e0da8a506fb0b8dfe495c0d7bfc4ea7bb71e0",
       "source_lines": 11,
       "owner": "website",
-      "disposition": "retained",
-      "target_route": "/guides/example/",
-      "corrections": [],
-      "status": "accounted-for"
+      "disposition": "retired-placeholder",
+      "target_route": null,
+      "corrections": [
+        "Removed the Starlight starter placeholder after unified navigation and generated reference routes went live."
+      ],
+      "status": "retired"
     },
     {
       "source_path": "apps/website/src/content/docs/reference/example.md",
       "source_hash": "sha256:f8934524ab1ed892e08c8b462c9965554a04f04634ea3992de134a2d0027b162",
       "source_lines": 11,
       "owner": "website",
-      "disposition": "retained",
-      "target_route": "/reference/example/",
-      "corrections": [],
-      "status": "accounted-for"
+      "disposition": "retired-placeholder",
+      "target_route": null,
+      "corrections": [
+        "Removed the Starlight starter placeholder after unified navigation and generated reference routes went live."
+      ],
+      "status": "retired"
     },
     {
       "source_path": "sdks/python/README.md",

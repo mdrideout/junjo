@@ -1,4 +1,4 @@
-"""Offline invariants for the unified documentation migration."""
+"""Offline invariants for the completed unified documentation migration."""
 
 from __future__ import annotations
 
@@ -20,46 +20,40 @@ def file_hash(path: Path) -> str:
 
 
 class DocumentationMigrationTests(unittest.TestCase):
-    """Prove every legacy source and API object stays explicitly accounted for."""
+    """Prove retired sources and current public objects stay accounted for."""
 
     def setUp(self) -> None:
         self.ledger = load_json(DOCS_TOOLING / "content-migration.json")
         self.routes = load_json(DOCS_TOOLING / "legacy-routes.json")
-        self.baseline = load_json(REPOSITORY_ROOT / "sdks/python/docs/api-sphinx-baseline.json")
-
-    def assert_ledger_file_current(self, entry: dict[str, object]) -> None:
-        source = REPOSITORY_ROOT / str(entry["source_path"])
-        self.assertTrue(source.is_file(), source)
-        self.assertEqual(entry["source_hash"], file_hash(source), source)
-        self.assertEqual(
-            entry["source_lines"],
-            len(source.read_text(encoding="utf-8").splitlines()),
-            source,
+        self.surface = load_json(
+            REPOSITORY_ROOT / "sdks/python/docs/api-public-surface.json"
         )
 
-    def test_every_sphinx_source_is_in_the_content_ledger(self) -> None:
-        actual_sources = {
-            str(path.relative_to(REPOSITORY_ROOT)) for path in (REPOSITORY_ROOT / "sdks/python/docs").glob("*.rst")
-        }
+    def test_every_retired_rst_source_is_preserved_in_the_content_ledger(self) -> None:
+        self.assertEqual(list((REPOSITORY_ROOT / "sdks/python/docs").glob("*.rst")), [])
         ledger_pages = self.ledger["pages"]
-        ledger_sources = {entry["source_path"] for entry in ledger_pages}
-        self.assertEqual(actual_sources, ledger_sources)
         self.assertEqual(len(ledger_pages), 18)
 
         for entry in ledger_pages:
-            self.assert_ledger_file_current(entry)
+            source = REPOSITORY_ROOT / str(entry["source_path"])
+            self.assertFalse(source.exists(), source)
+            self.assertEqual(entry["status"], "retired-source")
             if entry["disposition"] != "migrated":
                 continue
             target = REPOSITORY_ROOT / str(entry["target_path"])
             self.assertTrue(target.is_file(), target)
             self.assertEqual(entry["target_hash"], file_hash(target), target)
 
-    def test_retained_repository_sources_are_current(self) -> None:
+    def test_repository_source_dispositions_are_final(self) -> None:
         repository_sources = self.ledger["repository_sources"]
         self.assertGreaterEqual(len(repository_sources), 1)
         for entry in repository_sources:
-            self.assert_ledger_file_current(entry)
-            self.assertEqual(entry["status"], "accounted-for")
+            if entry["disposition"] == "retired-placeholder":
+                self.assertFalse((REPOSITORY_ROOT / str(entry["source_path"])).exists())
+                self.assertEqual(entry["status"], "retired")
+            else:
+                self.assertTrue((REPOSITORY_ROOT / str(entry["source_path"])).is_file())
+                self.assertEqual(entry["status"], "accounted-for")
 
     def test_every_legacy_page_has_a_live_target_contract(self) -> None:
         pages = self.ledger["pages"]
@@ -69,18 +63,23 @@ class DocumentationMigrationTests(unittest.TestCase):
             {entry["source_document"] for entry in route_entries},
         )
         for entry in route_entries:
-            self.assertEqual(entry["status"], "mapped")
+            self.assertEqual(entry["status"], "globally-redirected")
             self.assertTrue(entry["source_routes"])
-            self.assertTrue(str(entry["target_route"]).startswith("/docs/"))
+            self.assertEqual(entry["target_route"], "/docs/python/")
 
-    def test_sphinx_api_baseline_is_complete_and_unique(self) -> None:
-        objects = self.baseline["objects"]
-        modules = self.baseline["module_allowlist"]
-        identities = {(entry["kind"], entry["name"], entry["legacy_uri"]) for entry in objects}
+    def test_python_api_public_surface_is_complete_and_unique(self) -> None:
+        self.assertEqual(self.surface["version"], 2)
+        objects = self.surface["objects"]
+        modules = self.surface["module_allowlist"]
+        identities = {
+            (entry["kind"], entry["public_name"], entry["anchor"]) for entry in objects
+        }
         self.assertEqual(len(modules), 12)
         self.assertEqual(len(objects), 428)
         self.assertEqual(len(identities), len(objects))
-        self.assertTrue(all(str(entry["kind"]).startswith("py:") for entry in objects))
+        self.assertTrue(
+            all(not str(entry["kind"]).startswith("py:") for entry in objects)
+        )
 
 
 if __name__ == "__main__":

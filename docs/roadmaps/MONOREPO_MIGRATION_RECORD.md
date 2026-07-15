@@ -156,9 +156,9 @@ both passed before merge.
   - `junjo-0.64.0.tar.gz`, SHA-256
     `4fe0963193125d7d95c396e2022cdf0fedff11437dfbbb641429bd71e936d103`.
 - Supported Python: 3.11 and newer; repository development version: 3.13
-- Historical Sphinx documentation deployment:
-  [python-api.junjo.ai](https://python-api.junjo.ai/), verified serving version
-  `0.64.0` before the unified-documentation cutover
+- Historical Python documentation deployment served version `0.64.0` at
+  `python-api.junjo.ai` before the unified-documentation cutover. That hostname
+  now serves only the approved global redirect.
 
 The sole PyPI trusted publisher is:
 
@@ -191,6 +191,12 @@ The obsolete `publish.yml` publisher was removed.
   and source-built legacy deployment `92eee7cb-c1bb-47d9-ae20-db5f9aa09868`
   globally redirects `python-api.junjo.ai` to
   `https://junjo.ai/docs/python/`.
+- Current-source renderer retirement removed the RST pages, Sphinx configuration
+  and dependencies, stale legacy-domain links, Starlight starter placeholders,
+  and the obsolete favicon. Griffe now validates the explicit
+  `api-public-surface.json` contract. The stable 0.64.0 selection remains
+  reproducible from an immutable public-surface snapshot without running
+  Sphinx.
 
 The restored site preserves the original Starlight homepage and documentation
 content. The temporary migration redesign, gradients, replacement copy, and
@@ -204,7 +210,7 @@ The completed platform passed:
   release-evidence validation;
 - strict Gitleaks scans of reachable history and the current tree;
 - Actionlint and workflow security validation;
-- Python SDK Ruff, pytest, ty, warning-free Sphinx, telemetry-contract,
+- Python SDK Ruff, pytest, ty, Griffe public-surface, telemetry-contract,
   package-build, and Twine checks;
 - Python compatibility tests on 3.11, 3.12, 3.13, and 3.14;
 - Studio backend, ingestion, frontend, protobuf, REST-contract, Compose,

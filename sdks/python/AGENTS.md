@@ -47,7 +47,8 @@ Public behavior, examples, and conceptual explanations live in:
 
 - Preserve verbose public docstrings.
 - If behavior changes, update the existing docstrings and examples instead of shrinking or deleting them.
-- Public runtime APIs should use Sphinx/reST-friendly docstrings.
+- Public runtime APIs should use Griffe-supported docstrings. Existing reST
+  field lists and Google- or NumPy-style docstrings are all supported.
 - Prefer `:param:` / `:type:` formatting in public API method docstrings.
 - Keep rich API docs on `__init__` when that improves generated docs and editor hover help.
 - Short class docstrings are fine, but do not move detailed constructor docs away from `__init__` unless explicitly asked.
@@ -87,7 +88,7 @@ Whenever behavior or public APIs change, update all of the following together:
 2. runtime code
 3. tests
 4. public docstrings
-5. Python docs source, the Sphinx migration build, and the generated Starlight export
+5. Python docs source, the public-surface contract, and the generated Starlight export
 6. examples
 
 Be comprehensive so that we avoid documentation drift, or potential LLM context poison from outdated materials.
@@ -99,12 +100,12 @@ For meaningful public-surface changes, run:
 - `uv run ruff check .`
 - `uv run pytest -q`
 - `uv run ty check --error-on-warning src`
-- `uv run sphinx-build -b html docs docs/_build/html`
+- `uv run python docs/export_api.py validate`
 - the Python documentation export and parity validation commands documented in
   `sdks/python/docs/README.md`
 
-If Sphinx warnings appear, do not ignore them by default. Check whether they
-were pre-existing or introduced by the change. Suggest the fixes.
+Treat Griffe diagnostics and documentation build failures as release errors;
+do not suppress unresolved public objects or broken generated links.
 
 ## File Map
 

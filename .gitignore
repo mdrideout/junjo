@@ -68,9 +68,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-**/docs/_build/
-
 # Unified documentation assembly output
 apps/website/src/content/docs/generated/
 apps/website/public/docs-assets/generated/

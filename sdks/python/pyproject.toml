@@ -37,21 +37,17 @@ dependencies = [
 ]
 
 [project.urls]
-Docs = "https://python-api.junjo.ai/"
+Docs = "https://junjo.ai/docs/python/"
 Repository = "https://github.com/mdrideout/junjo"
 "Bug Tracker" = "https://github.com/mdrideout/junjo/issues"
 "Telemetry + AI Studio" = "https://github.com/mdrideout/junjo/tree/master/apps/studio"
 
 [project.optional-dependencies]
 dev = [
-    "sphinx",
-    "furo",
     "griffe>=2.1,<3",
     "pytest",
     "pytest-asyncio",
     "ruff~=0.15.0",
-    "sphinx-rtd-theme",
-    "simple-sphinx-xml-sitemap",
     "ty",
     "build>=1.2.1",
     "twine>=6.1.0",

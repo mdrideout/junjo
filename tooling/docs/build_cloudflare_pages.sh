@@ -33,15 +33,12 @@ fi
 (
   cd sdks/python
   uv sync --frozen --package junjo --extra dev
-  uv run sphinx-build -W -b html docs docs/_build/html
-  uv run python docs/export_api.py baseline-check \
-    --inventory docs/_build/html/objects.inv
+  uv run python docs/export_api.py validate
 )
 
 (
   cd tooling/docs
   uv sync --frozen
-  uv run python migrate_rst.py --check
 )
 
 (

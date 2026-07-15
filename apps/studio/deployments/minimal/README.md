@@ -395,7 +395,7 @@ For a complete working example with Caddy bundled, see the [Junjo AI Studio Depl
 
 ## Junjo Application Telemetry Configuration
 
-[Junjo's python library](https://python-api.junjo.ai/) uses OpenTelemetry to send structured AI graph workflow execution spans to Junjo AI Studio or any other OpenTelemetry destination.
+[Junjo's Python library](https://junjo.ai/docs/python/) uses OpenTelemetry to send structured AI graph workflow execution spans to Junjo AI Studio or any other OpenTelemetry destination.
 
 The configuration differs based on your [deployment scenario](#deployment-scenarios). Choose the appropriate configuration below:
 

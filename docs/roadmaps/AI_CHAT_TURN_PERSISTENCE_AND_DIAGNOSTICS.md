@@ -129,7 +129,7 @@ The change is complete only when:
   telemetry tests pass;
 - AI Chat frontend schema, hook, component, lint, and production-build tests
   pass;
-- Python SDK Ruff, pytest, ty, Sphinx, package build, and Twine validation pass;
+- Python SDK Ruff, pytest, ty, Griffe public-surface, package build, and Twine validation pass;
 - telemetry fixtures regenerate idempotently and contract validation passes;
 - Studio backend tests, REST contract generation, frontend tests, lint, and
   production build pass; and
@@ -140,7 +140,7 @@ The change is complete only when:
 Validated on 2026-07-14 for the Turn, correlation, resolution, and diagnostic
 infrastructure. This does not establish faithful AI Chat product restoration.
 
-- The SDK passed Ruff, ty, 320 deterministic tests, warning-strict Sphinx,
+- The SDK passed Ruff, ty, 320 deterministic tests, Griffe public-surface validation,
   package build, and Twine validation.
 - AI Chat passed 39 backend tests and 18 frontend tests, plus backend type and
   lint checks and frontend lint and production build.

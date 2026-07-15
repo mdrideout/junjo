@@ -90,7 +90,7 @@ function Navigation({ isAuthenticated, onNavigate }: { isAuthenticated: boolean;
           Resources
         </p>
         <div className="flex flex-col gap-1">
-          <AppLink href="https://python-api.junjo.ai/" newTab appearance="navigation" onClick={onNavigate}>
+          <AppLink href="https://junjo.ai/docs/python/" newTab appearance="navigation" onClick={onNavigate}>
             <RocketIcon />
             <span className="flex items-center gap-2">
               SDK docs <ExternalLinkIcon />

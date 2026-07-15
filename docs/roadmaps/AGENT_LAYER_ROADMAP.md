@@ -202,7 +202,7 @@ Subflow or the specialized work and date paths.
 
 ADRs 0003 through 0006 accept these responsibility boundaries. Horizon 1
 implements them in the public Python Agent API; public docstrings and the
-Sphinx API reference own exact signatures.
+The generated Python API reference owns exact signatures.
 
 ### Agent Definition
 
@@ -434,7 +434,7 @@ normal Junjo platform capabilities.
 - Studio ingestion preservation and semantic Agent queries
 - Studio backend Store reconstruction and evidence integrity
 - Studio dynamic Agent timeline and verified state navigation
-- public Agent docstrings and Sphinx concepts/API documentation
+- public Agent docstrings, owned Markdown concepts, and generated API documentation
 - deterministic testing and telemetry conformance guidance
 
 #### Explicit non-goals

@@ -9,8 +9,8 @@ SDK, and Studio documentation according to ADR 0009.
 - Own platform narrative, product pages, navigation, and concise platform
   guides here.
 - Keep Python API and SDK implementation documentation canonical in
-  `sdks/python/docs`; stage its generated output instead of duplicating or
-  editing it here.
+  `sdks/python/docs`; stage its Griffe-generated output instead of duplicating
+  or editing it here.
 - Do not import Studio frontend runtime code or merge this package into the
   Studio frontend dependency graph.
 - Keep the website's `package.json` and `package-lock.json` independent. There

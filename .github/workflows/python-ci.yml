@@ -49,11 +49,8 @@ jobs:
       - name: Ty
         run: uv run ty check --error-on-warning src
 
-      - name: Sphinx
-        run: uv run sphinx-build -W -b html docs docs/_build/html
-
-      - name: Validate Sphinx API inventory baseline
-        run: uv run python docs/export_api.py baseline-check --inventory docs/_build/html/objects.inv
+      - name: Validate Python API public surface
+        run: uv run python docs/export_api.py validate
 
       - name: Validate shared telemetry contract
         run: python ../../contracts/telemetry/compatibility/validate_contract.py

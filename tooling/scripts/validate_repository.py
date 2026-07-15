@@ -76,8 +76,11 @@ REQUIRED_PATHS = (
     ".github/workflows/studio-release-validation.yml",
     ".github/workflows/website-ci.yml",
     "tooling/docs/promote_production_branch.py",
+    "tooling/docs/convert_legacy_rst.py",
+    "tooling/docs/release-snapshots/python/0.64.0/api-public-surface.json",
     "tooling/docs/stable-releases.json",
     "tooling/docs/validate_release_manifest.py",
+    "sdks/python/docs/api-public-surface.json",
     "tooling/scripts/build_studio_release_evidence.py",
     "tooling/scripts/export_studio_distribution.py",
     "tooling/scripts/publish_studio_distribution.py",
@@ -390,8 +393,7 @@ def validate_website_build_contract() -> None:
     required_cloudflare_build_contract = (
         'required_uv_version="0.11.7"',
         'python3 -m pip install --disable-pip-version-check "uv==${required_uv_version}"',
-        "uv run sphinx-build -W -b html docs docs/_build/html",
-        "uv run python migrate_rst.py --check",
+        "uv run python docs/export_api.py validate",
         "npm ci",
         "npm run docs:assemble",
         "npm run check",
@@ -445,7 +447,7 @@ def validate_website_build_contract() -> None:
     require(
         legacy_redirect.splitlines()
         == [
-            "# The Python Sphinx site is retired. All legacy requests enter the unified docs here.",
+            "# The former Python documentation site redirects to the unified docs.",
             "/* https://junjo.ai/docs/python/ 301",
         ],
         "the retired Python API domain must use one permanent global redirect",
@@ -466,6 +468,45 @@ def validate_website_build_contract() -> None:
         and "!isAbsolute(outputRelativeTarget)" in validator,
         "website link validation must reject targets outside generated output",
     )
+    python_docs_root = PLATFORM_ROOT / "sdks/python/docs"
+    require(
+        not list(python_docs_root.glob("*.rst"))
+        and not (python_docs_root / "conf.py").exists()
+        and not (python_docs_root / "requirements.txt").exists(),
+        "current Python documentation must not retain the retired RST renderer",
+    )
+    pyproject = tomllib.loads(
+        (PLATFORM_ROOT / "sdks/python/pyproject.toml").read_text(encoding="utf-8")
+    )
+    python_dev_dependencies = set(pyproject["project"]["optional-dependencies"]["dev"])
+    require(
+        not any(
+            "sphinx" in dependency.lower() for dependency in python_dev_dependencies
+        ),
+        "Python development dependencies must not retain Sphinx",
+    )
+    for retired_placeholder in (
+        "apps/website/src/content/docs/guides/example.md",
+        "apps/website/src/content/docs/reference/example.md",
+        "apps/website/public/favicon-old.svg",
+    ):
+        require(
+            not (PLATFORM_ROOT / retired_placeholder).exists(),
+            f"retired website placeholder must be absent: {retired_placeholder}",
+        )
+    for canonical_link_source in (
+        "sdks/python/pyproject.toml",
+        "sdks/python/README.md",
+        "apps/studio/README.md",
+        "apps/studio/deployments/minimal/README.md",
+        "apps/studio/frontend/src/components/layout/app-shell.tsx",
+        "apps/studio/frontend/src/features/api-keys/components/OtelExporterGuide.tsx",
+    ):
+        require(
+            "python-api.junjo.ai"
+            not in (PLATFORM_ROOT / canonical_link_source).read_text(encoding="utf-8"),
+            f"active source still links to the retired Python documentation domain: {canonical_link_source}",
+        )
 
 
 def validate_python_support_policy() -> None:

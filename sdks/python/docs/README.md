@@ -1,23 +1,18 @@
 # Python documentation ownership
 
 This directory is the canonical source for Python SDK documentation. The public
-site is rendered by Starlight, but Python narrative content, API extraction,
-examples, and migration evidence remain owned and validated here.
+site is rendered by Starlight, while Python narrative content, API extraction,
+examples, and the explicit public surface remain owned and validated here.
 
-This is a migration, not a rewrite:
-
-- `*.rst` remains the migration source until the unified site passes the
-  accepted cutover gates.
-- `content/` is a mechanical Markdown export. Do not edit it directly; change
-  the matching RST source and rerun the converter.
-- `api-sphinx-baseline.json` records the complete warning-strict Sphinx object
-  inventory.
-- `export_api.py` statically extracts the same public surface with Griffe's
-  automatic Sphinx/Google/NumPy docstring parsing and emits Starlight Markdown.
-  Generated API pages are staged outside this component and are never committed
+- `content/` is canonical Markdown owned by the Python SDK.
+- `api-public-surface.json` is the reviewed publication contract for modules,
+  symbols, members, routes, and anchors.
+- `export_api.py` resolves that contract with Griffe's automatic reST,
+  Google-, and NumPy-style docstring parsing and emits Starlight Markdown.
+- Generated API pages are staged outside this component and are never committed
   here.
-- Sphinx stays in CI until the legacy site is retired after measured parity and
-  rollback windows.
+- The retired RST source remains recoverable from repository history and the
+  immutable legacy-release snapshot; it is not an active current-source input.
 
 ## Local validation
 
@@ -25,33 +20,20 @@ From `sdks/python`:
 
 ```bash
 uv sync --frozen --extra dev
-uv run sphinx-build -W -b html docs docs/_build/html
-uv run python docs/export_api.py baseline-check \
-  --inventory docs/_build/html/objects.inv
+uv run python docs/export_api.py validate
 ```
 
-Only refresh the committed baseline after reviewing an intentional public API
-change:
-
-```bash
-uv run python docs/export_api.py baseline \
-  --inventory docs/_build/html/objects.inv \
-  --output docs/api-sphinx-baseline.json
-```
-
-From the repository root, validate the narrative migration and assemble the
-public site:
+From the repository root, assemble and validate the public site:
 
 ```bash
 uv sync --project tooling/docs --frozen
-uv run --project tooling/docs python tooling/docs/migrate_rst.py --check
 python3 tooling/docs/assemble_public_docs.py --write
 npm --prefix apps/website run validate
 ```
 
-Use `migrate_rst.py --write` only when the RST sources intentionally changed.
-The content ledger will update source and target hashes so review can prove
-that every source document remains accounted for.
+When an intentional public API change adds or removes a documented symbol,
+update `api-public-surface.json` in the same review. Validation fails if Griffe
+cannot resolve and render any contracted object.
 
 Assembly defaults to the `next` documentation channel and labels generated API
 pages as source previews. Build `stable` only from the exact released checkout:

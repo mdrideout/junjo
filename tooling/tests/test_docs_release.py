@@ -45,12 +45,28 @@ class DocumentationReleaseTests(unittest.TestCase):
             self.manifest["studio"]["release_tag"],
             f"studio-v{self.manifest['studio']['version']}",
         )
+        self.assertEqual(self.manifest["python"]["content_format"], "legacy-rst")
+
+    def test_legacy_python_release_has_an_immutable_public_surface(self) -> None:
+        version = self.manifest["python"]["version"]
+        surface = json.loads(
+            (
+                REPOSITORY_ROOT
+                / "tooling/docs/release-snapshots/python"
+                / version
+                / "api-public-surface.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(surface["version"], 2)
+        self.assertEqual(len(surface["objects"]), 202)
 
     def test_documentation_only_release_keeps_component_selection(self) -> None:
         self.validator.validate_release_tag("docs-release-20260715.1", self.manifest)
 
     def test_new_component_release_must_update_its_manifest_entry(self) -> None:
-        with self.assertRaisesRegex(ValueError, "update tooling/docs/stable-releases.json"):
+        with self.assertRaisesRegex(
+            ValueError, "update tooling/docs/stable-releases.json"
+        ):
             self.validator.validate_release_tag("sdk-python-v0.65.0", self.manifest)
 
     def test_production_promotion_accepts_only_owned_release_namespaces(self) -> None:

@@ -10,7 +10,7 @@
       ],
       "target_route": "/docs/python/",
       "legacy_anchors": [],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "getting_started.rst",
@@ -18,11 +18,11 @@
         "/getting_started",
         "/getting_started.html"
       ],
-      "target_route": "/docs/python/get-started/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "getting_started"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "tutorial.rst",
@@ -30,11 +30,11 @@
         "/tutorial",
         "/tutorial.html"
       ],
-      "target_route": "/docs/python/tutorial/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "tutorial"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "agents.rst",
@@ -42,9 +42,9 @@
         "/agents",
         "/agents.html"
       ],
-      "target_route": "/docs/python/agents/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "agent_testing.rst",
@@ -52,9 +52,9 @@
         "/agent_testing",
         "/agent_testing.html"
       ],
-      "target_route": "/docs/python/agents/testing/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "agent_composition.rst",
@@ -62,9 +62,9 @@
         "/agent_composition",
         "/agent_composition.html"
       ],
-      "target_route": "/docs/python/agents/composition/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "core_concepts.rst",
@@ -72,11 +72,11 @@
         "/core_concepts",
         "/core_concepts.html"
       ],
-      "target_route": "/docs/python/concepts/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "core_concepts"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "state_management.rst",
@@ -84,11 +84,11 @@
         "/state_management",
         "/state_management.html"
       ],
-      "target_route": "/docs/python/workflows/state/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "state_management"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "concurrency.rst",
@@ -96,11 +96,11 @@
         "/concurrency",
         "/concurrency.html"
       ],
-      "target_route": "/docs/python/workflows/concurrency/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "concurrency"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "subflows.rst",
@@ -108,11 +108,11 @@
         "/subflows",
         "/subflows.html"
       ],
-      "target_route": "/docs/python/workflows/subflows/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "subflows"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "hooks.rst",
@@ -120,11 +120,11 @@
         "/hooks",
         "/hooks.html"
       ],
-      "target_route": "/docs/python/hooks/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "hooks"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "visualizing_workflows.rst",
@@ -132,11 +132,11 @@
         "/visualizing_workflows",
         "/visualizing_workflows.html"
       ],
-      "target_route": "/docs/python/workflows/visualization/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "visualizing_workflows"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "eval_driven_dev.rst",
@@ -144,11 +144,11 @@
         "/eval_driven_dev",
         "/eval_driven_dev.html"
       ],
-      "target_route": "/docs/python/testing/eval-driven-development/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "eval_driven_dev"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "api.rst",
@@ -156,11 +156,11 @@
         "/api",
         "/api.html"
       ],
-      "target_route": "/docs/python/api/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "api"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "junjo_ai_studio.rst",
@@ -168,11 +168,11 @@
         "/junjo_ai_studio",
         "/junjo_ai_studio.html"
       ],
-      "target_route": "/docs/studio/overview/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "junjo_ai_studio"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "docker_reference.rst",
@@ -180,9 +180,9 @@
         "/docker_reference",
         "/docker_reference.html"
       ],
-      "target_route": "/docs/studio/docker-reference/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "deployment.rst",
@@ -190,9 +190,9 @@
         "/deployment",
         "/deployment.html"
       ],
-      "target_route": "/docs/studio/deployment/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [],
-      "status": "mapped"
+      "status": "globally-redirected"
     },
     {
       "source_document": "opentelemetry.rst",
@@ -200,11 +200,11 @@
         "/opentelemetry",
         "/opentelemetry.html"
       ],
-      "target_route": "/docs/observability/opentelemetry/",
+      "target_route": "/docs/python/",
       "legacy_anchors": [
         "opentelemetry"
       ],
-      "status": "mapped"
+      "status": "globally-redirected"
     }
   ]
 }

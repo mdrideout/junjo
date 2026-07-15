@@ -55,7 +55,7 @@ junjo/
 Ownership is explicit:
 
 - `sdks/python` owns the Python SDK, public API, examples, tests, package
-  metadata, and Python Sphinx documentation.
+  metadata, owned Python documentation, and its generated API contract.
 - `apps/studio` owns Studio backend, frontend, ingestion, internal protobufs,
   service documentation, supported deployment distributions, and Studio
   releases.

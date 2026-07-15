@@ -132,13 +132,13 @@ requireCondition(missing.length === 0, `website build has broken internal refere
 
 const manifestRoot = join(outputRoot, "docs-manifests/generated/python");
 const apiManifest = readJson(join(manifestRoot, "api-manifest.json"));
-const sphinxBaseline = readJson(join(manifestRoot, "sphinx-api-baseline.json"));
+const publicSurface = readJson(join(manifestRoot, "api-public-surface.json"));
 const contentMigration = readJson(join(manifestRoot, "content-migration.json"));
 const legacyRoutes = readJson(join(manifestRoot, "legacy-routes.json"));
-const legacyApiMap = readJson(join(manifestRoot, "legacy-api-map.json"));
 const publicationManifest = readJson(join(manifestRoot, "publication-manifest.json"));
 
-requireCondition(apiManifest.version === 1, "unsupported Python API manifest version");
+requireCondition(apiManifest.version === 2, "unsupported Python API manifest version");
+requireCondition(publicSurface.version === 2, "unsupported Python public-surface version");
 requireCondition(apiManifest.sdk === "python", "API manifest is not for the Python SDK");
 requireCondition(apiManifest.docstring_parser === "auto", "API manifest does not support automatic docstring styles");
 requireCondition(["next", "stable"].includes(apiManifest.channel), "API manifest has an invalid documentation channel");
@@ -177,7 +177,7 @@ requireCondition(
   apiManifest.symbol_page_count ===
     new Set(
       apiManifest.symbols
-        .filter((symbol) => symbol.kind !== "py:module")
+        .filter((symbol) => symbol.kind !== "module")
         .map((symbol) => symbol.target_route),
     ).size,
   "API symbol page count is inconsistent",
@@ -186,24 +186,32 @@ requireCondition(
   apiManifest.module_page_count ===
     new Set(
       apiManifest.symbols
-        .filter((symbol) => symbol.kind === "py:module")
+        .filter((symbol) => symbol.kind === "module")
         .map((symbol) => symbol.target_route),
     ).size,
   "API module page count is inconsistent",
 );
 requireCondition(existsSync(routeHtmlPath("/docs/python/api/")), "API index route is missing");
 
-const baselineObjects = new Set(
-  sphinxBaseline.objects.map((object) => `${object.kind}\0${object.name}\0${object.legacy_uri}`),
+const publicObjects = new Set(
+  publicSurface.objects.map(
+    (object) => `${object.kind}\0${object.public_name}\0${object.anchor}`,
+  ),
 );
 const exportedObjects = new Set(
-  apiManifest.symbols.map((symbol) => `${symbol.kind}\0${symbol.public_name}\0${symbol.legacy_uri}`),
+  apiManifest.symbols.map(
+    (symbol) => `${symbol.kind}\0${symbol.public_name}\0${symbol.target_anchor}`,
+  ),
 );
-requireCondition(baselineObjects.size === sphinxBaseline.objects.length, "Sphinx baseline contains duplicate objects");
+requireCondition(
+  publicObjects.size === publicSurface.objects.length,
+  "Python public-surface contract contains duplicate objects",
+);
 requireCondition(exportedObjects.size === apiManifest.symbols.length, "API manifest contains duplicate objects");
 requireCondition(
-  baselineObjects.size === exportedObjects.size && [...baselineObjects].every((object) => exportedObjects.has(object)),
-  "generated API manifest does not exactly cover the Sphinx API baseline",
+  publicObjects.size === exportedObjects.size &&
+    [...publicObjects].every((object) => exportedObjects.has(object)),
+  "generated API manifest does not exactly cover the Python public-surface contract",
 );
 
 const idCache = new Map();
@@ -228,28 +236,11 @@ if (apiManifest.channel === "next") {
   }
 }
 
-const expectedLegacyApiMap = new Map();
-for (const symbol of apiManifest.symbols) {
-  const target = `${symbol.target_route}#${symbol.target_anchor}`;
-  requireCondition(
-    !expectedLegacyApiMap.has(symbol.legacy_anchor) || expectedLegacyApiMap.get(symbol.legacy_anchor) === target,
-    `legacy API anchor has conflicting targets: ${symbol.legacy_anchor}`,
-  );
-  expectedLegacyApiMap.set(symbol.legacy_anchor, target);
-}
-requireCondition(
-  Object.keys(legacyApiMap.symbols).length === expectedLegacyApiMap.size,
-  "legacy API map does not cover every unique Sphinx anchor",
-);
-for (const [anchor, target] of expectedLegacyApiMap) {
-  requireCondition(legacyApiMap.symbols[anchor] === target, `legacy API mapping is stale: ${anchor}`);
-}
-
 const unconvertedMarkup = /\{(?:py|doc|ref|class|func|meth|attr):[^}]+\}|:::\s*\{(?:note|warning|toctree)/;
 for (const htmlPath of htmlFiles) {
   requireCondition(
     !unconvertedMarkup.test(readFileSync(htmlPath, "utf8")),
-    `${displayPath(htmlPath)} contains unconverted Sphinx/MyST markup`,
+    `${displayPath(htmlPath)} contains unconverted RST/MyST markup`,
   );
 }
 

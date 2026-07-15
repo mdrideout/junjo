@@ -98,7 +98,7 @@ export default function OtelExporterGuide() {
             {/* Links */}
             <div className="flex flex-col gap-2 text-sm">
               <a
-                href="https://python-api.junjo.ai/opentelemetry"
+                href="https://junjo.ai/docs/observability/opentelemetry/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:underline"

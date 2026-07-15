@@ -7,8 +7,8 @@ contracts.
 This repository contains independently built and independently versioned
 components:
 
-- [`sdks/python`](sdks/python) — the `junjo` Python SDK and its examples and
-  public Sphinx documentation.
+- [`sdks/python`](sdks/python) — the `junjo` Python SDK, examples, source-owned
+  guides, and Griffe API export contract.
 - [`apps/studio`](apps/studio) — Junjo AI Studio's backend, frontend, ingestion
   service, canonical deployment distributions, and service documentation.
 - [`apps/website`](apps/website) — the Junjo product and documentation website.
@@ -39,7 +39,7 @@ uv sync --frozen --package junjo --extra dev
 uv run ruff check .
 uv run pytest -q
 uv run ty check --error-on-warning src
-uv run sphinx-build -b html docs docs/_build/html
+uv run python docs/export_api.py validate
 cd ../..
 
 # Studio

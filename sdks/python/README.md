@@ -11,7 +11,7 @@ runtime. Both execution modes remain isolated, testable, and observable.
 
 #### Docs
 
-- [Python SDK Docs](https://python-api.junjo.ai/)
+- [Python SDK Docs](https://junjo.ai/docs/python/)
 - [PyPI](https://pypi.org/project/junjo/)
 
 #### Python support
@@ -277,7 +277,7 @@ docker compose up -d
 
 **Architecture:** Three-service Docker setup (backend, ingestion service, frontend) that runs on minimal resources (1GB RAM, shared vCPU).
 
-See the [Junjo AI Studio](https://python-api.junjo.ai/junjo_ai_studio.html) for complete setup and configuration.
+See the [Junjo AI Studio documentation](https://junjo.ai/docs/studio/overview/) for complete setup and configuration.
 
 **Example Repositories:**
 
@@ -348,15 +348,11 @@ This project utilizes [ruff](https://astral.sh/ruff) for linting and auto format
 
 - [Ruff VSCode Extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
 
-### Building The Sphinx Docs
+### Validating The API Documentation
 
 ```bash
-# 1. ensure optional development dependencies are installed (see above)
-# 2. ensure the virtual environment is activated (see above)
-
-# Execute the build command to preview the new docs.
-# They will appear in a .gitignored folder docs/_build
-$ uv run sphinx-build -b html docs docs/_build/html
+# Validate the explicit public surface and render it with Griffe.
+$ uv run python docs/export_api.py validate
 ```
 
 ### Tests

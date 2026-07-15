@@ -10,7 +10,6 @@ import html
 import io
 import json
 import os
-import posixpath
 import re
 import shutil
 import subprocess
@@ -26,7 +25,7 @@ import griffe
 
 SDK_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = SDK_ROOT.parents[1]
-DEFAULT_BASELINE = Path(__file__).with_name("api-sphinx-baseline.json")
+DEFAULT_SURFACE = Path(__file__).with_name("api-public-surface.json")
 API_PREFIX = "/docs/python/api"
 
 
@@ -115,96 +114,66 @@ def package_version(explicit: str | None, sdk_root: Path = SDK_ROOT) -> str:
     return str(project["version"])
 
 
-def sphinx_baseline_payload(inventory_path: Path) -> dict[str, Any]:
-    from sphinx.util.inventory import InventoryFile
-
-    inventory_bytes = inventory_path.read_bytes()
-    with inventory_path.open("rb") as stream:
-        inventory = InventoryFile.load(stream, "", posixpath.join)
-    objects: list[dict[str, str]] = []
-    for kind, entries in inventory.items():
-        if not kind.startswith("py:"):
-            continue
-        for name, item in entries.items():
-            uri = item[2]
-            anchor = uri.split("#", 1)[1] if "#" in uri else ""
-            objects.append(
-                {
-                    "kind": kind,
-                    "name": name,
-                    "legacy_uri": uri,
-                    "legacy_anchor": anchor,
-                }
-            )
-    documented_modules = {
-        entry["name"] for entry in objects if entry["kind"] == "py:module"
-    }
-    return {
-        "version": 1,
-        "source_inventory_hash": sha256_bytes(inventory_bytes),
-        "module_allowlist": [
-            section.module
-            for section in MODULE_SECTIONS
-            if section.module in documented_modules
-        ],
-        "objects": sorted(objects, key=lambda item: (item["kind"], item["name"])),
-    }
-
-
-def write_sphinx_baseline(inventory_path: Path, destination: Path) -> None:
-    payload = sphinx_baseline_payload(inventory_path)
-    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote Sphinx API baseline with {len(payload['objects'])} Python objects.")
-
-
-def check_sphinx_baseline(inventory_path: Path, baseline_path: Path) -> None:
-    current = sphinx_baseline_payload(inventory_path)
-    baseline = load_baseline(baseline_path)
-    if current["objects"] != baseline["objects"]:
-        current_objects = {(item["kind"], item["name"], item["legacy_anchor"]) for item in current["objects"]}
-        baseline_objects = {(item["kind"], item["name"], item["legacy_anchor"]) for item in baseline["objects"]}
-        added = sorted(current_objects - baseline_objects)
-        removed = sorted(baseline_objects - current_objects)
-        raise ValueError(f"Sphinx API baseline is stale; added={added}, removed={removed}")
-    print(f"Validated Sphinx API baseline with {len(current['objects'])} Python objects.")
-
-
-def load_baseline(path: Path) -> dict[str, Any]:
+def load_surface(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
-    documented_modules = {
-        entry["name"]
-        for entry in payload.get("objects", [])
-        if entry.get("kind") == "py:module"
+    if payload.get("version") != 2:
+        raise ValueError("unsupported Python API public-surface contract version")
+    objects = payload.get("objects")
+    if not isinstance(objects, list) or not objects:
+        raise ValueError("Python API public-surface contract has no objects")
+    allowed_kinds = {
+        "attribute",
+        "class",
+        "exception",
+        "function",
+        "method",
+        "module",
+        "property",
     }
+    identities: set[tuple[str, str, str]] = set()
+    for entry in objects:
+        if not isinstance(entry, dict) or set(entry) != {
+            "kind",
+            "public_name",
+            "anchor",
+        }:
+            raise ValueError("Python API public-surface object has invalid fields")
+        if entry["kind"] not in allowed_kinds:
+            raise ValueError(f"unsupported Python API object kind: {entry['kind']}")
+        identity = (entry["kind"], entry["public_name"], entry["anchor"])
+        if identity in identities:
+            raise ValueError(f"duplicate Python API public-surface object: {identity}")
+        identities.add(identity)
+    documented_modules = {entry["public_name"] for entry in objects if entry["kind"] == "module"}
     known_sections = {section.module: section for section in MODULE_SECTIONS}
     module_allowlist = payload.get("module_allowlist")
     if not isinstance(module_allowlist, list):
-        raise ValueError("Sphinx API baseline has no module allowlist")
+        raise ValueError("Python API public-surface contract has no module allowlist")
     if set(module_allowlist) != documented_modules:
-        raise ValueError("Sphinx API baseline module allowlist does not match its module inventory")
+        raise ValueError("Python API module allowlist does not match its module objects")
     unknown_modules = sorted(documented_modules - known_sections.keys())
     if unknown_modules:
-        raise ValueError(f"Sphinx API baseline contains unsupported modules: {unknown_modules}")
+        raise ValueError(f"Python API public-surface contract contains unsupported modules: {unknown_modules}")
     return payload
 
 
-def module_sections_for_baseline(baseline: dict[str, Any]) -> tuple[ModuleSection, ...]:
-    allowed = set(baseline["module_allowlist"])
+def module_sections_for_surface(surface: dict[str, Any]) -> tuple[ModuleSection, ...]:
+    allowed = set(surface["module_allowlist"])
     return tuple(section for section in MODULE_SECTIONS if section.module in allowed)
 
 
-def page_symbols(baseline: dict[str, Any]) -> list[str]:
-    page_kinds = {"py:class", "py:exception", "py:function"}
+def page_symbols(surface: dict[str, Any]) -> list[str]:
+    page_kinds = {"class", "exception", "function"}
     symbols = {
-        entry["legacy_anchor"]
-        for entry in baseline["objects"]
-        if entry["kind"] in page_kinds and entry["name"] == entry["legacy_anchor"]
+        entry["anchor"]
+        for entry in surface["objects"]
+        if entry["kind"] in page_kinds and entry["public_name"] == entry["anchor"]
     }
     return sorted(symbols)
 
 
 def page_for_entry(entry: dict[str, str], pages: list[str]) -> str | None:
-    anchor = entry["legacy_anchor"]
+    anchor = entry["anchor"]
     candidates = [page for page in pages if anchor == page or anchor.startswith(f"{page}.")]
     if not candidates:
         return None
@@ -468,7 +437,7 @@ def render_member(
     docs = render_docstring(getattr(member, "docstring", None), 4, page_path, symbol_links)
     if docs:
         output.append(docs)
-    elif kind in {"py:attribute", "py:property"}:
+    elif kind in {"attribute", "property"}:
         output.append("Public attribute.")
     else:
         output.append("Public member documented by its signature.")
@@ -487,21 +456,21 @@ def render_object_members(
     member_entries = [
         entry
         for entry in entries
-        if entry["legacy_anchor"].startswith(f"{public_path}.") and entry["name"] == entry["legacy_anchor"]
+        if entry["anchor"].startswith(f"{public_path}.") and entry["public_name"] == entry["anchor"]
     ]
     rendered_members: list[tuple[int, str, str]] = []
     for entry in member_entries:
-        member_name = entry["legacy_anchor"].removeprefix(f"{public_path}.").split(".", 1)[0]
+        member_name = entry["anchor"].removeprefix(f"{public_path}.").split(".", 1)[0]
         member = member_lookup(obj, member_name)
         if member is None:
-            raise ValueError(f"Griffe could not resolve Sphinx member {entry['legacy_anchor']}")
+            raise ValueError(f"Griffe could not resolve public member {entry['anchor']}")
         lineno = getattr(member, "lineno", sys.maxsize) or sys.maxsize
         rendered_members.append(
             (
                 lineno,
                 member_name,
                 render_member(
-                    entry["legacy_anchor"],
+                    entry["anchor"],
                     public_path,
                     member,
                     entry["kind"],
@@ -535,8 +504,8 @@ def render_object_page(
     symbol_links: dict[str, tuple[str, str]],
 ) -> str:
     title = public_path.rsplit(".", 1)[-1]
-    object_kind = next(entry["kind"] for entry in entries if entry["legacy_anchor"] == public_path)
-    kind_label = object_kind.removeprefix("py:").replace("exception", "exception class").title()
+    object_kind = next(entry["kind"] for entry in entries if entry["anchor"] == public_path)
+    kind_label = object_kind.replace("exception", "exception class").title()
     description = f"Python API reference for {public_path}."
     output = [
         "---",
@@ -663,33 +632,34 @@ def render_api_index(
 
 def generate_api(
     output: Path,
-    baseline_path: Path,
+    surface_path: Path,
     version: str,
     revision: str,
     channel: str,
     sdk_root: Path = SDK_ROOT,
 ) -> None:
-    baseline = load_baseline(baseline_path)
-    module_sections = module_sections_for_baseline(baseline)
+    surface = load_surface(surface_path)
+    module_sections = module_sections_for_surface(surface)
     repository_root = sdk_root.parents[1]
-    pages = page_symbols(baseline)
-    baseline_entries: list[dict[str, str]] = baseline["objects"]
+    pages = page_symbols(surface)
+    surface_entries: list[dict[str, str]] = surface["objects"]
     symbol_links: dict[str, tuple[str, str]] = {}
-    for entry in baseline_entries:
-        if entry["kind"] == "py:module":
-            symbol_links[entry["name"]] = (module_route(entry["name"]), entry["legacy_anchor"])
+    for entry in surface_entries:
+        if entry["kind"] == "module":
+            symbol_links[entry["public_name"]] = (
+                module_route(entry["public_name"]),
+                entry["anchor"],
+            )
             continue
         page = page_for_entry(entry, pages)
         if page is None:
             continue
-        link = (route_for_symbol(page), entry["legacy_anchor"])
-        symbol_links[entry["name"]] = link
-        symbol_links[entry["legacy_anchor"]] = link
+        link = (route_for_symbol(page), entry["anchor"])
+        symbol_links[entry["public_name"]] = link
+        symbol_links[entry["anchor"]] = link
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
-        package = griffe.load(
-            "junjo", search_paths=[sdk_root / "src"], docstring_parser="auto"
-        )
+        package = griffe.load("junjo", search_paths=[sdk_root / "src"], docstring_parser="auto")
 
     output.mkdir(parents=True, exist_ok=True)
     manifest_symbols: list[dict[str, str]] = []
@@ -699,7 +669,7 @@ def generate_api(
             page_content = render_object_page(
                 public_path,
                 obj,
-                baseline_entries,
+                surface_entries,
                 version,
                 revision,
                 channel,
@@ -730,61 +700,57 @@ def generate_api(
     index_path.write_text(render_api_index(sections, version, revision, channel), encoding="utf-8")
 
     unmapped: list[str] = []
-    for entry in baseline_entries:
-        if entry["kind"] == "py:module":
-            target_route = module_route(entry["name"])
-            target_anchor = entry["legacy_anchor"]
+    for entry in surface_entries:
+        if entry["kind"] == "module":
+            target_route = module_route(entry["public_name"])
+            target_anchor = entry["anchor"]
         else:
             page = page_for_entry(entry, pages)
             if page is None:
-                unmapped.append(f"{entry['kind']} {entry['name']} ({entry['legacy_anchor']})")
+                unmapped.append(f"{entry['kind']} {entry['public_name']} ({entry['anchor']})")
                 continue
             target_route = route_for_symbol(page)
-            target_anchor = entry["legacy_anchor"]
+            target_anchor = entry["anchor"]
         manifest_symbols.append(
             {
                 "kind": entry["kind"],
-                "public_name": entry["name"],
-                "legacy_anchor": entry["legacy_anchor"],
-                "legacy_uri": entry["legacy_uri"],
+                "public_name": entry["public_name"],
                 "target_route": target_route,
                 "target_anchor": target_anchor,
             }
         )
     if unmapped:
-        raise ValueError("Sphinx API objects have no generated page:\n" + "\n".join(unmapped))
+        raise ValueError("Python API public objects have no generated page:\n" + "\n".join(unmapped))
 
     module_page_count = len(sections)
     symbol_page_count = len(pages)
     page_count = symbol_page_count + module_page_count + 1
     manifest = {
-        "version": 1,
+        "version": 2,
         "sdk": "python",
         "sdk_version": version,
         "source_revision": revision,
         "channel": channel,
         "generator": f"griffe-{distribution_version('griffe')}",
         "docstring_parser": "auto",
-        "sphinx_baseline_hash": baseline["source_inventory_hash"],
+        "public_surface_hash": sha256_bytes(surface_path.read_bytes()),
         "page_count": page_count,
         "symbol_page_count": symbol_page_count,
         "module_page_count": module_page_count,
         "symbol_count": len(manifest_symbols),
         "symbols": manifest_symbols,
         "griffe_diagnostics": [
-            line.replace(f"{repository_root.resolve()}/", "")
-            for line in stderr.getvalue().splitlines()
-            if line.strip()
+            line.replace(f"{repository_root.resolve()}/", "") for line in stderr.getvalue().splitlines() if line.strip()
         ],
     }
     manifest_path = output / "api-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print(f"Generated {page_count} API pages covering {len(manifest_symbols)} Sphinx objects.")
+    print(f"Generated {page_count} API pages covering {len(manifest_symbols)} public Python objects.")
 
 
 def check_generation(
     output: Path,
-    baseline: Path,
+    surface: Path,
     version: str,
     revision: str,
     channel: str,
@@ -792,7 +758,7 @@ def check_generation(
 ) -> None:
     with tempfile_directory() as temporary:
         expected_root = temporary / "expected"
-        generate_api(expected_root, baseline, version, revision, channel, sdk_root)
+        generate_api(expected_root, surface, version, revision, channel, sdk_root)
         expected_files = {
             path.relative_to(expected_root): path.read_bytes() for path in expected_root.rglob("*") if path.is_file()
         }
@@ -819,20 +785,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    baseline_parser = subparsers.add_parser("baseline", help="capture the warning-strict Sphinx object inventory")
-    baseline_parser.add_argument("--inventory", type=Path, required=True)
-    baseline_parser.add_argument("--output", type=Path, default=DEFAULT_BASELINE)
-
-    baseline_check_parser = subparsers.add_parser(
-        "baseline-check",
-        help="verify that the committed baseline matches a current Sphinx inventory",
-    )
-    baseline_check_parser.add_argument("--inventory", type=Path, required=True)
-    baseline_check_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
-
     generate_parser = subparsers.add_parser("generate", help="generate Starlight Markdown API pages")
     generate_parser.add_argument("--output", type=Path, required=True)
-    generate_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
+    generate_parser.add_argument("--surface", type=Path, default=DEFAULT_SURFACE)
     generate_parser.add_argument("--version")
     generate_parser.add_argument("--revision")
     generate_parser.add_argument("--sdk-root", type=Path, default=SDK_ROOT)
@@ -843,7 +798,7 @@ def main() -> int:
 
     check_parser = subparsers.add_parser("check", help="verify an existing generated API export")
     check_parser.add_argument("--output", type=Path, required=True)
-    check_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
+    check_parser.add_argument("--surface", type=Path, default=DEFAULT_SURFACE)
     check_parser.add_argument("--version")
     check_parser.add_argument("--revision")
     check_parser.add_argument("--sdk-root", type=Path, default=SDK_ROOT)
@@ -851,14 +806,21 @@ def main() -> int:
         "--channel", choices=("next", "stable"), default=os.environ.get("JUNJO_DOCS_CHANNEL", "next")
     )
 
-    args = parser.parse_args()
-    if args.command == "baseline":
-        write_sphinx_baseline(args.inventory, args.output)
-        return 0
-    if args.command == "baseline-check":
-        check_sphinx_baseline(args.inventory, args.baseline)
-        return 0
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="validate the public-surface contract and render it in a temporary directory",
+    )
+    validate_parser.add_argument("--surface", type=Path, default=DEFAULT_SURFACE)
+    validate_parser.add_argument("--version")
+    validate_parser.add_argument("--revision")
+    validate_parser.add_argument("--sdk-root", type=Path, default=SDK_ROOT)
+    validate_parser.add_argument(
+        "--channel",
+        choices=("next", "stable"),
+        default=os.environ.get("JUNJO_DOCS_CHANNEL", "next"),
+    )
 
+    args = parser.parse_args()
     sdk_root = args.sdk_root.resolve()
     repository_root = sdk_root.parents[1]
     version = package_version(args.version, sdk_root)
@@ -868,16 +830,28 @@ def main() -> int:
             shutil.rmtree(args.output)
         generate_api(
             args.output,
-            args.baseline,
+            args.surface,
             version,
             revision,
             args.channel,
             sdk_root,
         )
         return 0
+    if args.command == "validate":
+        with tempfile_directory() as temporary:
+            generate_api(
+                temporary / "api",
+                args.surface,
+                version,
+                revision,
+                args.channel,
+                sdk_root,
+            )
+        print("Validated the Python API public-surface contract with Griffe.")
+        return 0
     check_generation(
         args.output,
-        args.baseline,
+        args.surface,
         version,
         revision,
         args.channel,

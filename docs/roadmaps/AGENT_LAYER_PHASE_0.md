@@ -155,7 +155,7 @@ that requirement as one atomic version 2 platform change containing:
 2. updated Workflow fixtures, payload slots, and Store producer behavior;
 3. canonical Agent producer, consumer, invalid, and fingerprint fixtures;
 4. SDK Agent runtime and telemetry producer conformance;
-5. public Agent docstrings, Sphinx teaching surfaces, and testing guidance;
+5. public Agent docstrings, owned Markdown teaching surfaces, and testing guidance;
 6. Studio resource and loss-signal preservation;
 7. Studio backend semantic Agent queries and Store integrity;
 8. Studio frontend Agent diagnostics;
@@ -213,7 +213,7 @@ canonical consumer conformance.
 
 Complete in Horizon 1.
 
-Ship complete public API docstrings, Sphinx concept and API documentation,
+Ship complete public API docstrings, owned Markdown concepts, generated API documentation,
 deterministic scripted-testing guidance, composition examples, and telemetry
 conformance guidance with the Horizon 1 runtime. These surfaces must state that
 an Agent is a first-class executable and never describe it as a generated
@@ -252,9 +252,9 @@ of this proven application eval loop.
 - Ruff;
 - deterministic pytest suite;
 - ty;
-- complete public Agent docstrings, Sphinx concepts/API pages, deterministic
+- complete public Agent docstrings, owned concepts/generated API pages, deterministic
   testing guidance, and telemetry conformance guidance;
-- Sphinx with warnings treated as failures;
+- Griffe public-surface and unified documentation failures treated as release errors;
 - package build and Twine validation;
 - repeated and concurrent Agent isolation;
 - complete terminal and cancellation coverage.

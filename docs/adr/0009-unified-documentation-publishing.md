@@ -2,18 +2,20 @@
 
 - Status: Accepted
 - Date: 2026-07-14
-- Amended: 2026-07-15 (release-gated production and legacy-domain retirement)
+- Amended: 2026-07-15 (release-gated production, legacy-domain retirement, and
+  current-source Sphinx retirement)
 - Owners: Junjo platform, SDKs, Studio, and website
 - Supersedes: the documentation publishing and isolated website-build clauses
   of [ADR 0001](0001-junjo-platform-monorepo.md)
 
 ## Context
 
-Junjo currently publishes a small Astro/Starlight website at `junjo.ai` and a
-substantial Python Sphinx site at `python-api.junjo.ai`. The Sphinx source also
-contains Studio, deployment, and observability material, while the website
-contains only a small platform shell. This divides navigation and search and
-puts product documentation under the Python SDK's publishing surface.
+Before this decision, Junjo published a small Astro/Starlight website at
+`junjo.ai` and a substantial Python Sphinx site at `python-api.junjo.ai`. The
+legacy source also contained Studio, deployment, and observability material,
+while the website contained only a small platform shell. That divided
+navigation and search and put product documentation under the Python SDK's
+publishing surface.
 
 Future language SDKs need one discoverable documentation portal without
 sharing runtime dependency graphs or creating manually maintained copies of
@@ -90,14 +92,14 @@ is proven by the cross-component assembly workflow.
 
 - Existing RST narrative content is converted mechanically to Markdown or MDX
   with section-level provenance and parity validation.
-- Existing Python docstrings are parsed as Sphinx style during migration; a
+- Existing reST field-list docstrings are parsed directly by Griffe; a
   docstring-style rewrite is a separate decision.
-- Sphinx remains warning-strict as a parity and rollback input until narrative,
-  API, route, anchor, search, version, and release parity are verified.
+- The warning-strict legacy renderer remains historical parity evidence only;
+  it is not part of current-source validation or publication.
 - `python-api.junjo.ai` becomes the approved global retirement redirect only
   after the unified Cloudflare source build passes its production gates.
-- Sphinx dependencies and sources are retired only in a later, explicit
-  cutover after the roadmap's completion criteria are satisfied.
+- Renderer dependencies and current RST sources are retired after the roadmap's
+  completion criteria are satisfied.
 
 ### Initial Production Cutover Amendment (2026-07-15)
 
@@ -117,10 +119,9 @@ initial compatibility plan:
 
 This amendment supersedes the roadmap's original page-level compatibility and
 parallel-publication requirements. It does not authorize deleting or rewriting
-the migrated content. The route ledger, API baseline, Sphinx source, and final
-Sphinx artifact remain as migration evidence and rollback inputs. Sphinx may
-continue to run as a warning-strict parity check until a separate cleanup
-removes that validation dependency.
+the migrated content. The route ledger, immutable public-surface snapshots,
+repository history, and final legacy artifact remain migration evidence and
+rollback inputs.
 
 ### Release-Gated Production Amendment (2026-07-15)
 
@@ -146,6 +147,28 @@ This amendment supersedes only the initial cutover's protected-`master`
 production signal. The source-build ownership, no-artifact rule, unified portal,
 content-preservation contract, and global legacy-domain redirect remain unchanged.
 
+### Current-Source Sphinx Retirement Amendment (2026-07-15)
+
+After the unified portal, global redirect, route parity, generated API parity,
+search, sitemap, and deterministic source builds were verified, the owner
+explicitly approved final cleanup:
+
+- current RST pages, renderer configuration, themes, and Python dependencies
+  are removed;
+- Python narrative documentation under `sdks/python/docs/content` becomes the
+  canonical owned Markdown source;
+- `api-public-surface.json` becomes the explicit Griffe publication contract,
+  replacing the renderer-generated inventory as an active input;
+- the pinned Python 0.64.0 stable selection uses a reviewed immutable
+  public-surface snapshot and an isolated RST-to-Markdown converter, so it can
+  still be published without installing or running Sphinx; and
+- the legacy Cloudflare Pages project remains intentionally active only as the
+  permanent global redirect. The final rendered legacy deployment remains in
+  Cloudflare history for rollback.
+
+This amendment completes the planned renderer retirement without deleting or
+rewriting migrated content.
+
 ## Consequences
 
 Junjo gains one public navigation, search index, visual system, and domain
@@ -158,9 +181,9 @@ alone; it is a static assembly of explicitly versioned inputs. That added build
 coordination is accepted because it prevents manually copied API reference and
 keeps stable docs aligned with released packages.
 
-The migration retains the Sphinx source and final static artifact as recovery
-inputs, but only the unified Starlight site remains a public documentation
-surface after cutover.
+Repository history and the final static legacy artifact remain recovery inputs,
+but only the unified Starlight site is a public documentation surface after
+cutover.
 
 ## Rejected Alternatives
 
