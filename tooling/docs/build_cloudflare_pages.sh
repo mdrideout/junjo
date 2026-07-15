@@ -8,6 +8,15 @@ required_uv_version="0.11.7"
 if ! command -v uv >/dev/null 2>&1 || \
   [[ "$(uv --version)" != "uv ${required_uv_version} "* ]]; then
   python3 -m pip install --disable-pip-version-check "uv==${required_uv_version}"
+
+  uv() {
+    python3 -m uv "$@"
+  }
+fi
+
+if [[ "$(uv --version)" != "uv ${required_uv_version} "* ]]; then
+  echo "Required uv ${required_uv_version} is unavailable" >&2
+  exit 1
 fi
 
 (
