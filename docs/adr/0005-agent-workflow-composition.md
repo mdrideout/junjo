@@ -55,10 +55,10 @@ parent executable for lifecycle identity. The Agent receives no fabricated
 Graph identity.
 
 An uncaught Agent execution error fails the Node and therefore the Workflow.
-The original Agent error remains the cause and retains its own diagnostic
-evidence. An application may catch a specific Agent error and commit an
-explicit recovery state, but that is application behavior rather than an
-implicit Junjo fallback.
+The caller receives a `WorkflowExecutionError`; the original Agent error
+remains its cause and retains its own diagnostic evidence under ADR 0011. An
+application may inspect and explicitly recover from that cause, but recovery
+is application behavior rather than an implicit Junjo fallback.
 
 ### Agent executes Workflow through an application Tool
 
@@ -86,10 +86,12 @@ parent executable recorded in lifecycle identity. The Workflow keeps and emits
 its normal Graph snapshot; that Graph is never copied into Agent state or Tool
 attributes.
 
-An uncaught Workflow exception fails the Tool service and becomes an
-`AgentToolError` with the Workflow exception preserved as its cause. A Tool may
-translate a known Workflow domain failure into a typed recoverable Tool result,
-but only through explicit application code.
+An uncaught admitted Workflow failure raises `WorkflowExecutionError`, fails
+the Tool service, and becomes an `AgentToolError` with that Workflow boundary
+error preserved as its cause. The original domain failure remains the next
+cause in the chain under ADR 0011. A Tool may translate a known Workflow domain
+failure into a typed recoverable Tool result, but only through explicit
+application code.
 
 ### State and limits remain independent
 
@@ -234,14 +236,17 @@ Failure is recorded by each boundary that owns the failing operation:
 
 Errors preserve their causes rather than being flattened into text.
 
-Cancellation propagates unchanged through:
+Cancellation propagates through:
 
 - Workflow to Node to Agent;
 - Agent to Tool to Workflow.
 
 Every active executable and operation records cancellation, begins no new work,
-drains its owned work, and re-raises `asyncio.CancelledError`. Cancellation is
-not converted to failure at a composition boundary.
+drains its owned work, and re-raises `asyncio.CancelledError`. An admitted
+Workflow boundary enriches cancellation with the
+`WorkflowCancelledError` subclass and run identity under ADR 0011 while
+preserving its reason and cancellation semantics. Cancellation is not converted
+to failure at a composition boundary.
 
 ### OpenTelemetry context establishes runtime parentage
 
@@ -325,3 +330,4 @@ repetition supplies evidence for any future adapter.
 - [ADR 0003: Agent execution model](0003-agent-execution-model.md)
 - [ADR 0004: Agent ModelDriver and Tool contracts](0004-agent-model-driver-and-tool-contracts.md)
 - [ADR 0006: Agent telemetry contract](0006-agent-telemetry-contract.md)
+- [ADR 0011: Workflow execution failure identity](0011-workflow-execution-failure-identity.md)

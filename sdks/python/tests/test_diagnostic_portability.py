@@ -25,6 +25,7 @@ from junjo import (
     Node,
     RunConcurrent,
     Workflow,
+    WorkflowExecutionError,
 )
 from junjo.agent import AgentModelError, FinalOutputResponse
 from junjo.agent.testing import ScriptedError, ScriptedModelDriver
@@ -192,10 +193,10 @@ async def test_workflow_node_and_run_concurrent_failure_diagnostics_are_portable
 
     try:
         await workflow.execute()
-    except Exception as caught:
-        assert caught is error
+    except WorkflowExecutionError as caught:
+        assert caught.__cause__ is error
     else:
-        pytest.fail("the original Node failure was not propagated")
+        pytest.fail("the typed Workflow failure was not propagated")
 
     spans = span_exporter.get_finished_spans()
     failed = [

@@ -1,6 +1,6 @@
 # Agent Horizons 1 And 2 Corrective Integration Plan
 
-- Status: Superseded as a completion record; corrective implementation incomplete
+- Status: Superseded historical record; corrective implementation was incomplete when recorded
 - Date: 2026-07-14
 - Owners: Junjo platform
 
@@ -397,7 +397,8 @@ establish faithful AI Chat product restoration:
 - the original two-panel AI Chat visual shell, reduced contact and image
   Subflow shapes, explicit demo/Gemini/Grok adapters, background Turn
   execution, persistence, debug links, and both composition directions are
-  present, but the historical live AI behavior is not restored;
+  present, but the historical live AI behavior was not restored at the time of
+  this record;
 - Docker bind mounts plus polling-backed FastAPI/watchfiles and Vite watchers
   were exercised with real source edits, proving backend reload and frontend
   HMR on ports 26252 and 26251;
@@ -408,5 +409,7 @@ establish faithful AI Chat product restoration:
   from the stable resolver into Agent and nested Workflow diagnostics.
 
 The Studio and Horizon 1 kernel/evidence validations remain useful. The AI Chat
-preservation and eval-driven-development exit criteria do not pass. Production
-publication remains the separate cutover gate recorded in the Agent roadmap.
+preservation and eval-driven-development exit criteria did not pass at the time
+of this record. Their later completion is recorded in the current restoration
+plan. Production publication remains the separate cutover gate recorded in the
+Agent roadmap.

@@ -7,8 +7,8 @@ services:
       dockerfile: examples/ai_chat/backend/Dockerfile
     init: true
     env_file:
-      - path: .env
-        required: false
+      - path: ${AI_CHAT_COMPOSE_ENV_FILE:-.env}
+        required: true
     environment:
       AI_CHAT_DATA_DIRECTORY: /data
       AI_CHAT_CORS_ORIGINS: http://localhost:${AI_CHAT_FRONTEND_PORT:-26251}
@@ -23,11 +23,12 @@ services:
     command:
       - fastapi
       - dev
+      - --entrypoint
+      - ai_chat.main:app
       - --host
       - 0.0.0.0
       - --port
       - ${AI_CHAT_BACKEND_PORT:-26252}
-      - examples/ai_chat/backend/src/ai_chat/main.py
     volumes:
       - ai-chat-data:/data
       - ../../src:/workspace/src

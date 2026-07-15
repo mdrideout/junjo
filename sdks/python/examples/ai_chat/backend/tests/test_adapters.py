@@ -154,6 +154,7 @@ async def test_sqlite_recent_context_skips_terminal_failures_before_applying_lim
         turn_id=failed.id,
         status=TurnStatus.FAILED,
         failure=TurnFailure(code="failed", detail="failed"),
+        workflow_run_id="failed-workflow-run",
         agent_run_id=None,
     )
     current = await store.admit_turn(
@@ -170,6 +171,83 @@ async def test_sqlite_recent_context_skips_terminal_failures_before_applying_lim
 
 
 @pytest.mark.asyncio
+async def test_sqlite_startup_reconciles_all_abandoned_turns_and_unblocks_conversations(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "chat.sqlite3"
+    store = SqliteChatStore(
+        path=database_path,
+        id_factory=SequenceIds("before-restart"),
+        clock=SequenceClock(),
+    )
+    await store.initialize()
+    first_contact = sample_contact()
+    second_contact = first_contact.model_copy(update={"id": "contact-2", "first_name": "Second"})
+    await store.create_contact(
+        contact=first_contact,
+        conversation=Conversation(
+            id="admitted-conversation",
+            title=first_contact.display_name,
+            contact_id=first_contact.id,
+        ),
+    )
+    await store.create_contact(
+        contact=second_contact,
+        conversation=Conversation(
+            id="running-conversation",
+            title=second_contact.display_name,
+            contact_id=second_contact.id,
+        ),
+    )
+    admitted = await store.admit_turn(
+        conversation_id="admitted-conversation",
+        turn_id="abandoned-admitted",
+        text="admitted",
+        context_policy=ContextPolicyReference(),
+    )
+    running = await store.admit_turn(
+        conversation_id="running-conversation",
+        turn_id="abandoned-running",
+        text="running",
+        context_policy=ContextPolicyReference(),
+    )
+    await store.start_turn(running.id)
+    await store.record_turn_outcome(
+        turn_id=running.id,
+        output=ChatAgentOutput(message="Persisted before interruption."),
+        agent_run_id="known-agent-run",
+    )
+    await store.close()
+
+    restarted = SqliteChatStore(
+        path=database_path,
+        id_factory=SequenceIds("after-restart"),
+        clock=SequenceClock(),
+    )
+    await restarted.initialize()
+
+    reconciled_admitted = await restarted.get_turn(admitted.id)
+    reconciled_running = await restarted.get_turn(running.id)
+    for turn in (reconciled_admitted, reconciled_running):
+        assert turn.status is TurnStatus.FAILED
+        assert turn.failure is not None
+        assert turn.failure.code == "turn_interrupted"
+        assert turn.failure.termination_reason == "process_interrupted"
+        assert turn.completed_at is not None
+    assert reconciled_running.execution_references.agent_run_id == "known-agent-run"
+    assert reconciled_running.assistant_message is not None
+
+    next_admitted = await restarted.admit_turn(
+        conversation_id="admitted-conversation",
+        turn_id="after-interruption",
+        text="The conversation is no longer blocked.",
+        context_policy=ContextPolicyReference(),
+    )
+    assert next_admitted.sequence == 2
+    await restarted.close()
+
+
+@pytest.mark.asyncio
 async def test_grok_image_adapter_awaits_and_persists_sdk_image_response(
     tmp_path: Path,
 ) -> None:
@@ -177,13 +255,15 @@ async def test_grok_image_adapter_awaits_and_persists_sdk_image_response(
     Image.new("RGB", (2, 2), color="purple").save(source_path, format="PNG")
     image_bytes = source_path.read_bytes()
     client = FakeGrokImageClient(image_bytes)
+    image_directory = tmp_path / "images"
+    image_directory.mkdir()
     images = GrokImageModel(
-        api_key="test-key",
+        client=client,  # type: ignore[arg-type]
         model="grok-imagine-image-quality",
-        directory=tmp_path / "images",
+        timeout_seconds=1,
+        directory=image_directory,
         id_factory=SequenceIds("grok-image"),
     )
-    images._client = client  # type: ignore[assignment]
 
     generated = await images.generate(prompt="portrait", alt_text="Generated portrait")
     edited = await images.edit(
@@ -194,8 +274,8 @@ async def test_grok_image_adapter_awaits_and_persists_sdk_image_response(
 
     assert generated.url.endswith(".png")
     assert edited.artifact.url.endswith(".png")
-    assert (tmp_path / "images" / f"{generated.id}.png").is_file()
-    assert (tmp_path / "images" / f"{edited.artifact.id}.png").is_file()
+    assert (image_directory / f"{generated.id}.png").is_file()
+    assert (image_directory / f"{edited.artifact.id}.png").is_file()
     assert client.requests[0]["image_format"] == "base64"
     assert client.requests[0]["aspect_ratio"] == "1:1"
     assert client.requests[1]["image_url"].startswith("data:image/png;base64,")

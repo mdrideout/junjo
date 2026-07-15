@@ -24,10 +24,14 @@ result; the Agent is its semantic parent executable.
 Failure and cancellation
 ------------------------
 
-An uncaught Agent error fails its Node and Workflow. An uncaught Workflow error
-fails its Tool and Agent, with the original cause preserved. Cancellation
-propagates unchanged through every active owner and operation. Parent and child
-limits are independent, and completed side effects are not rolled back.
+An uncaught Agent error fails its Node and Workflow. The caller receives a
+``WorkflowExecutionError`` with the Agent error retained as its cause. An
+uncaught admitted Workflow failure inside a Tool likewise retains its typed
+Workflow boundary error and original domain cause beneath ``AgentToolError``.
+Cancellation propagates through every active owner and operation;
+``WorkflowCancelledError`` remains an ``asyncio.CancelledError`` while adding
+the admitted Workflow run identity. Parent and child limits are independent,
+and completed side effects are not rolled back.
 
 Application code may explicitly catch a known typed failure and commit a domain
 recovery result. Junjo does not supply an implicit fallback, transaction,

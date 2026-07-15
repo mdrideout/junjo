@@ -83,6 +83,9 @@ Create the ignored local environment file and configure one live provider:
 cp .env.example .env
 ```
 
+This root `.env` is the single Compose environment file and is required. Do
+not create service-level environment files under `backend` or `frontend`.
+
 For Gemini (the default):
 
 ```dotenv
@@ -126,7 +129,7 @@ From `sdks/python`:
 ```bash
 uv sync --python 3.13 --package junjo-ai-chat-example --group dev
 uv run --env-file examples/ai_chat/.env --package junjo-ai-chat-example \
-  fastapi dev --port 26252 examples/ai_chat/backend/src/ai_chat/main.py
+  fastapi dev --entrypoint ai_chat.main:app --port 26252
 ```
 
 From `sdks/python/examples/ai_chat/frontend` in another terminal:
@@ -170,21 +173,40 @@ persistence, server-owned Turn lifecycle, HTTP/schema boundaries, configuration
 safety, frontend interactions, and telemetry lifetime. Junjo's SDK suite owns
 the Agent/Tool/runtime matrices.
 
-Live evals own product quality. Biography and directive datasets are colocated
-with their application capabilities and execute real Nodes through
-`junjo.evaluate_node()`, preserving normal Node/Store telemetry and exact run
-identity. Run them deliberately with the same provider environment:
+Live evals own product quality. Colocated suites cover biography quality,
+contact/profile/avatar coherence, directive selection, persona and history
+continuity, image relevance and visual identity, and Agent Tool policy. Node
+cases execute through `junjo.evaluate_node()`; Workflow, Turn, and Agent cases
+enter their normal public execution boundaries. Every case uses the selected
+live provider and preserves normal Junjo telemetry and exact run identity.
+Run them deliberately with the same provider environment:
 
 ```bash
 uv run --env-file examples/ai_chat/.env --package junjo-ai-chat-example \
   pytest -m live_eval \
   examples/ai_chat/backend/src/ai_chat/application/contact_workflow/evals \
-  examples/ai_chat/backend/src/ai_chat/application/turn_workflow/evals -v -s
+  examples/ai_chat/backend/src/ai_chat/application/turn_workflow/evals \
+  examples/ai_chat/backend/src/ai_chat/application/image_workflow/evals \
+  examples/ai_chat/backend/src/ai_chat/application/chat_agent/evals -v -s
 ```
 
-When the Studio variables are present, each eval run is exported and correlated
-as `ai_chat.eval_case`; failures include the exact run ID. The application owns
-its cases, rubrics, judges, and thresholds. A scripted model is never treated as
+Each completed quality judgment writes portable JSON evidence under
+`$AI_CHAT_DATA_DIRECTORY/eval-results` (or the default backend
+`runtime-data/eval-results` directory). Artifacts record provider, model,
+duration, judgment, available usage, executable type, run ID, and—when debug
+links are enabled—the Studio resolution URL. Studio exporter variables control
+trace export. Separately, `AI_CHAT_DEBUG=true` plus
+`AI_CHAT_STUDIO_UI_URL` adds resolver URLs without exposing the API key.
+
+Direct Node and Workflow evals use `ai_chat.eval_case` correlation; Turn evals
+retain the application's `ai_chat.turn` correlation. Direct Agent cases retain
+their exact Agent run identity without inventing an application correlation.
+Studio resolves each runtime ID to its physical trace and span. A failed
+quality judgment still writes a `passed=false` artifact with that resolver URL.
+Provider or runtime exceptions remain pytest failures and retain typed Junjo
+run identity plus Studio trace evidence when execution was admitted; they are
+not misrepresented as completed quality judgments. The application owns its
+cases, rubrics, judges, and thresholds. A scripted model is never treated as
 proof of AI product behavior.
 
 ## Conventional validation
@@ -204,6 +226,18 @@ npm test -- --run
 npm run lint
 npm run build
 ```
+
+The clean-volume Compose infrastructure smoke is intentionally separate from
+model-quality evaluation. It builds the real images, starts healthy backend and
+frontend services for both Gemini and Grok with synthetic non-secret
+credentials, checks their public HTTP surfaces, and makes no provider calls:
+
+```bash
+./scripts/validate-compose-startup.sh
+```
+
+Passing this smoke proves only container, configuration, lifecycle, storage,
+and HTTP wiring. Credentialed live evals remain the proof of AI behavior.
 
 ## HTTP contract
 

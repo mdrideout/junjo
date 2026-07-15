@@ -90,6 +90,7 @@ class TurnRepository(Protocol):
         turn_id: str,
         status: TurnStatus,
         failure: TurnFailure,
+        workflow_run_id: str | None,
         agent_run_id: str | None,
     ) -> Turn: ...
 

@@ -47,6 +47,7 @@ from .workflow import (
     Subflow,
     Workflow,
 )
+from .workflow_errors import WorkflowCancelledError, WorkflowExecutionError
 
 logging.getLogger("junjo").addHandler(logging.NullHandler())
 
@@ -79,6 +80,8 @@ __all__ = [
     "NodeEvaluationResult",
     "evaluate_node",
     "Workflow",
+    "WorkflowCancelledError",
+    "WorkflowExecutionError",
     "Subflow",
     "Tool",
     "Node",

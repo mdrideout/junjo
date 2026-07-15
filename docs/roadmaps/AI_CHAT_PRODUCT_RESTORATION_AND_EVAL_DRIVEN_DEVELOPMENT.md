@@ -1,7 +1,7 @@
 # AI Chat Product Restoration And Eval-Driven Development Plan
 
-- Status: Implemented; credentialed live eval and Studio evidence proof pending
-- Date: 2026-07-14
+- Status: Complete
+- Date: 2026-07-15
 - Owners: Junjo platform
 - Functional baseline: commit `255f69d`
 
@@ -238,9 +238,17 @@ Each eval case:
 4. applies deterministic assertions only to genuinely deterministic
    requirements;
 5. applies a model judge to qualitative requirements;
-6. records the result, reason, dataset case, prompt/artifact version, provider,
-   model, latency, usage, run identity, and trace identity;
+6. records each completed judgment's result, reason, dataset case,
+   prompt/artifact version, provider, model, latency, usage, run identity, and
+   Studio resolution URL;
 7. links failures to their exact Studio evidence.
+
+A failed qualitative judgment is a completed judgment and records
+`passed=false`. Provider, runtime, or judge exceptions remain experiment
+failures rather than fabricated judgments. Provider or runtime exceptions
+inside an admitted Junjo execution retain identity through the typed boundary
+and Studio telemetry. A judge exception happens after that subject execution;
+pytest identifies its dataset case, but no judgment artifact is fabricated.
 
 Restore the historical biography and directive datasets first. Treat them as
 the initial development evidence, not frozen golden truth. For example, the
@@ -394,7 +402,7 @@ Product restoration is complete only when:
 - complete application, provider, Workflow, Agent, Tool, Store, and persistence
   evidence is inspectable in Studio;
 - the restored live eval suites execute real application code and providers;
-- evaluation failures identify the exact application execution in Studio;
+- failed quality judgments identify the exact application execution in Studio;
 - deterministic SDK, application-infrastructure, frontend-build, shared
   contract, and Studio validations pass in their proper ownership boundaries.
 
@@ -416,15 +424,39 @@ Implemented on the Agent Horizon branch:
   Tools;
 - restored frontend behavior, background refresh, persisted unread state, and
   optional Turn diagnostics;
-- public `evaluate_node()` execution, ADR 0010, and live biography/directive
-  eval datasets with exact run correlation;
+- public `evaluate_node()` execution, ADR 0010, and live eval suites for
+  biography, contact/profile/avatar coherence, directive selection, response
+  quality, image relevance/identity, and Agent Tool policy;
+- portable application-owned JSON eval evidence with provider/model identity,
+  latency, available usage, judgment, exact executable run identity, and an
+  optional Studio resolver URL;
+- typed Workflow failure and cancellation results that preserve admitted run
+  identity and detached state, plus transactional startup reconciliation of
+  abandoned Turns;
 - conventional backend integration and frontend validation without duplicate
   Agent runtime scenario matrices.
 
-The repository has no provider credential. The final real contact, all live
-message branches, live eval judge results, and resulting Studio views must be
-exercised once a local `GEMINI_API_KEY` or `XAI_API_KEY` is supplied. This is a
-validation dependency, not a reason to add simulated product behavior.
+Credentialed acceptance completed on 2026-07-15 without committing provider or
+Studio credentials:
+
+- Gemini executed real contact creation and every Turn branch, including the
+  general Agent path, work/date paths, and avatar-conditioned image path;
+- Gemini passed all seventeen live quality cases across thirteen pytest items
+  after the Gemini adapter's strict Pydantic schemas were translated into the
+  provider-supported schema subset;
+- Grok executed real contact creation, general Agent, and image paths and
+  passed the same seventeen quality cases across thirteen pytest items through
+  the same application-owned suites;
+- exact Turn payloads, Workflow/Agent references, and generated images survived
+  backend restart;
+- Studio resolved completed and failed Gemini Workflow/Agent runs and completed
+  Grok Workflow/Agent/image runs through its live hot/cold query path;
+- reconstructed Workflow, Agent, and nested-Workflow Stores reported complete
+  integrity, correct physical hierarchy, and zero diagnostics.
+
+This record proves trace evidence, not OTLP metrics. Studio's current trace-only
+ingestion versus the SDK's metrics exporter remains a separate platform
+decision and does not weaken the accepted Agent trace path.
 
 ## Explicit non-goals
 

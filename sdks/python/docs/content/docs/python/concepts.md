@@ -2,7 +2,7 @@
 title: "Core Concepts"
 description: "Understand the core concepts of Junjo, including State, Store, Node, Edge, Condition, Graph, and Workflow. Learn how these components work together to build powerful and scalable Python workflows."
 ---
-<!-- migrated-from: sdks/python/docs/core_concepts.rst; source-hash: sha256:49c6bd1e74ab3036eebe96b4752af0e0d0b5c9048ea854be90a440cae7ef35af -->
+<!-- migrated-from: sdks/python/docs/core_concepts.rst; source-hash: sha256:9381d0b21cf813e37abc55e320f7454f7cdc8afa84de8690fa0d6a5329965cca -->
 <!-- migrated-keywords: junjo, python, workflow, state management, node, edge, graph, core concepts -->
 
 <a id="core-concepts"></a>
@@ -223,6 +223,15 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
 - **Manages Execution:** It traverses the graph, executing nodes and evaluating conditions, until one of the declared `sinks` is reached.
 - **Isolated Execution:** Each call to `execute` uses the provided factories to create a fresh `Graph` and `Store`, ensuring that each execution is isolated and concurrency-safe.
 - **Returns a Snapshot:** `execute` returns an `ExecutionResult` containing the final state and workflow-local execution counts for that run.
+- **Retains Failed Run Identity:** An admitted failure raises
+  `WorkflowExecutionError` with the run ID and detached terminal state. The
+  actual Node, Agent, or application failure remains `error.__cause__`.
+- **Reports Snapshot Completeness:** `error.state_is_terminal` distinguishes
+  a complete terminal Store snapshot from last-known recovery state. A separate
+  terminal evidence failure remains available as `error.terminalization_error`.
+- **Preserves Cancellation:** An admitted cancellation raises
+  `WorkflowCancelledError`. It contains the same run identity while remaining
+  an `asyncio.CancelledError`.
 
 ```python
 from junjo import Workflow
@@ -245,6 +254,19 @@ def create_workflow() -> Workflow[MyWorkflowState, MyWorkflowStore]:
 sample_workflow = create_workflow()
 result = await sample_workflow.execute()
 print(result.state.model_dump())
+```
+
+Application code can persist the exact failed run without installing a Hook or
+querying telemetry:
+
+```python
+from junjo import WorkflowExecutionError
+
+try:
+    result = await sample_workflow.execute()
+except WorkflowExecutionError as error:
+    persist_failed_run(error.run_id)
+    raise RuntimeError("Application workflow failed") from error
 ```
 
 By default, `Workflow.execute()` validates the freshly created graph before

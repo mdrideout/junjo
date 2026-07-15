@@ -11,6 +11,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from junjo import ModelDriverBinding
 from junjo.agent import (
     AgentAdmissionError,
     FinalOutputResponse,
@@ -20,10 +21,10 @@ from junjo.agent import (
 
 from ai_chat.api.app import create_app
 from ai_chat.api.schemas import MessageResponse
-from ai_chat.bootstrap import ChatApplication
+from ai_chat.bootstrap import ChatApplication, ProviderRuntime
 from ai_chat.config import ModelProvider, Settings, TelemetrySettings
 from ai_chat.telemetry import TelemetryRuntime
-from conftest import make_harness
+from conftest import make_harness, scripted_descriptor
 
 
 @pytest.mark.asyncio
@@ -32,7 +33,10 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
         tmp_path,
         script=[FinalOutputResponse(output={"message": "API response", "image": None})],
     )
-    app = create_app(application=harness.application)
+    app = create_app(
+        application_factory=lambda: harness.application,
+        image_directory=harness.application.image_directory,
+    )
 
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
@@ -171,7 +175,10 @@ async def test_background_agent_failure_is_persisted_and_pollable(
             )
         ],
     )
-    app = create_app(application=harness.application)
+    app = create_app(
+        application_factory=lambda: harness.application,
+        image_directory=harness.application.image_directory,
+    )
 
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
@@ -186,7 +193,7 @@ async def test_background_agent_failure_is_persisted_and_pollable(
             body = await _terminal_turn(client, admitted.json()["id"])
 
     assert body["status"] == "failed"
-    assert body["execution_references"]["workflow_run_id"] is None
+    assert body["execution_references"]["workflow_run_id"]
     assert body["execution_references"]["agent_run_id"]
     assert body["failure"]["termination_reason"] == "tool_input_validation_error"
     assert body["failure"]["code"] == "agent_execution_failed"
@@ -211,7 +218,10 @@ async def test_internal_agent_admission_failure_is_not_misclassified_as_http_inp
         )
 
     monkeypatch.setattr(harness.turns, "admit", fail_admission)
-    app = create_app(application=harness.application)
+    app = create_app(
+        application_factory=lambda: harness.application,
+        image_directory=harness.application.image_directory,
+    )
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
@@ -279,6 +289,8 @@ class RecordingApplication(ChatApplication):
             contacts=source.contacts,
             images=source.images,
             image_directory=source.image_directory,
+            provider_runtime=source.provider_runtime,
+            debug=source.debug,
         )
         self._events = events
 
@@ -303,6 +315,83 @@ class FailingCloseApplication(RecordingApplication):
     async def close(self) -> None:
         await super().close()
         raise RuntimeError("application close failed")
+
+
+@pytest.mark.asyncio
+async def test_application_factory_runs_inside_lifespan_and_closes_provider_once(
+    tmp_path: Path,
+) -> None:
+    events: list[str] = []
+    harness = make_harness(tmp_path)
+    assert harness.driver is not None
+
+    async def close_provider() -> None:
+        events.append("provider-close")
+
+    harness.application.provider_runtime = ProviderRuntime(
+        model=ModelDriverBinding.shared(
+            descriptor=scripted_descriptor(),
+            driver=harness.driver,
+        ),
+        language=harness.language,
+        images=harness.images,
+        _close_client=close_provider,
+    )
+    application = RecordingApplication(source=harness.application, events=events)
+
+    def application_factory() -> ChatApplication:
+        asyncio.get_running_loop()
+        events.append("application-factory")
+        return application
+
+    app = create_app(
+        application_factory=application_factory,
+        image_directory=application.image_directory,
+    )
+    assert events == []
+
+    async with app.router.lifespan_context(app):
+        assert events == ["application-factory", "application-initialize"]
+
+    assert events == [
+        "application-factory",
+        "application-initialize",
+        "application-close",
+        "provider-close",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_application_attempts_provider_cleanup_when_store_cleanup_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    harness = make_harness(tmp_path)
+    assert harness.driver is not None
+
+    async def fail_store_close() -> None:
+        events.append("store-close")
+        raise RuntimeError("store close failed")
+
+    async def close_provider() -> None:
+        events.append("provider-close")
+
+    monkeypatch.setattr(harness.store, "close", fail_store_close)
+    harness.application.provider_runtime = ProviderRuntime(
+        model=ModelDriverBinding.shared(
+            descriptor=scripted_descriptor(),
+            driver=harness.driver,
+        ),
+        language=harness.language,
+        images=harness.images,
+        _close_client=close_provider,
+    )
+
+    with pytest.raises(RuntimeError, match="store close failed"):
+        await harness.application.close()
+
+    assert events == ["store-close", "provider-close"]
 
 
 class RecordingProvider:
@@ -346,7 +435,11 @@ async def test_lifespan_starts_telemetry_explicitly_and_flushes_after_applicatio
         return FakeTelemetryRuntime(events)
 
     monkeypatch.setattr("ai_chat.api.app.start_telemetry", fake_start)
-    app = create_app(application=application, telemetry=settings)
+    app = create_app(
+        application_factory=lambda: application,
+        image_directory=application.image_directory,
+        telemetry=settings,
+    )
 
     async with app.router.lifespan_context(app):
         assert events == ["telemetry-start", "application-initialize"]
@@ -374,7 +467,11 @@ async def test_lifespan_shuts_down_telemetry_when_application_cleanup_fails(
         return FakeTelemetryRuntime(events)
 
     monkeypatch.setattr("ai_chat.api.app.start_telemetry", fake_start)
-    app = create_app(application=application, telemetry=settings)
+    app = create_app(
+        application_factory=lambda: application,
+        image_directory=application.image_directory,
+        telemetry=settings,
+    )
 
     with pytest.raises(RuntimeError, match="application close failed"):
         async with app.router.lifespan_context(app):
@@ -610,6 +707,18 @@ def test_telemetry_boolean_and_port_accept_explicit_valid_values(
     assert settings.telemetry is not None
     assert settings.telemetry.insecure is False
     assert settings.telemetry.port == 443
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "not-a-number"])
+def test_provider_timeout_rejects_non_positive_or_non_finite_values(
+    monkeypatch: pytest.MonkeyPatch,
+    value: str,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setenv("AI_CHAT_PROVIDER_TIMEOUT_SECONDS", value)
+
+    with pytest.raises(ValueError, match="AI_CHAT_PROVIDER_TIMEOUT_SECONDS"):
+        Settings.from_environment()
 
 
 @pytest.mark.parametrize(

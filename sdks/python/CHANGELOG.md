@@ -28,6 +28,10 @@ All notable changes to Junjo will be documented in this file.
 - Unified Workflow, Node, concurrent, and Agent lifecycle preparation around
   explicit internal identity, terminal-state, cancellation, and observer
   boundaries without introducing a universal executable abstraction.
+- Added typed `WorkflowExecutionError` and `WorkflowCancelledError` results for
+  admitted executions. They preserve the Workflow run identity, detached final
+  state, execution counts, original cause, cancellation semantics, and an
+  explicit completeness signal when terminal Store evidence itself fails.
 - Added `evaluate_node()` as a one-shot, normally instrumented Node-eval
   envelope that preserves Node, Store, trace, and application-correlation
   evidence without making Junjo own datasets or judges.
@@ -53,7 +57,10 @@ All notable changes to Junjo will be documented in this file.
   path and can invoke the shared image Workflow through a typed Tool.
 - Added server-owned versioned Turn/Contact/Conversation JSON persistence,
   background execution, the original React chat experience, optional Studio
-  deep links, and colocated live biography/directive eval datasets.
+  deep links, transactional abandoned-Turn reconciliation, and colocated live
+  eval suites for biography, contact coherence, directives, response quality,
+  image quality, and Agent Tool policy. Portable JSON evidence records the
+  provider, model, judgment, latency, run identity, and Studio resolution URL.
 - Updated the explicit Gemini and xAI defaults to current supported text and
   image/editing models; provider identifiers remain environment-overridable.
 
@@ -62,6 +69,9 @@ All notable changes to Junjo will be documented in this file.
 - Added path-scoped AI Chat backend/frontend validation for deterministic
   application infrastructure. Credentialed product-quality evals remain
   explicit development experiments rather than ordinary CI gates.
+- Added a provider-call-free, clean-volume Compose startup smoke for both
+  configured providers; the longer container build remains outside required PR
+  checks.
 - Added a provider-free public-SDK-to-OTLP-to-Studio release validator that
   authenticates against a disposable local Studio, verifies raw and semantic
   hierarchy, and independently replays Agent and Workflow Store evidence.

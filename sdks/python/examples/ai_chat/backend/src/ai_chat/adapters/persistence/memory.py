@@ -50,7 +50,19 @@ class InMemoryChatStore:
         self._lock = asyncio.Lock()
 
     async def initialize(self) -> None:
-        return None
+        async with self._lock:
+            if not any(
+                turn.status in {TurnStatus.ADMITTED, TurnStatus.RUNNING}
+                for turn in self._turns
+            ):
+                return
+            now = self._clock()
+            self._turns = [
+                _validated_turn(turn.interrupt(now=now))
+                if turn.status in {TurnStatus.ADMITTED, TurnStatus.RUNNING}
+                else turn
+                for turn in self._turns
+            ]
 
     async def close(self) -> None:
         return None
@@ -171,6 +183,7 @@ class InMemoryChatStore:
         turn_id: str,
         status: TurnStatus,
         failure: TurnFailure,
+        workflow_run_id: str | None,
         agent_run_id: str | None,
     ) -> Turn:
         if status not in {TurnStatus.FAILED, TurnStatus.CANCELLED}:
@@ -180,6 +193,7 @@ class InMemoryChatStore:
             lambda turn: turn.terminate(
                 status=status,
                 failure=failure,
+                workflow_run_id=workflow_run_id,
                 agent_run_id=agent_run_id,
                 now=self._clock(),
             ),

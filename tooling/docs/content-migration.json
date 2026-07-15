@@ -289,13 +289,13 @@
     },
     {
       "source_path": "sdks/python/docs/agent_composition.rst",
-      "source_hash": "sha256:92ae576db0f9cb3a53dec43f255875ad261c9af661eb137ffd60f3eb420aa699",
-      "source_lines": 34,
+      "source_hash": "sha256:b4fe3c29cc29a98d2e31611874ac7640dbf6a1703c6020807350d10f6395caf9",
+      "source_lines": 38,
       "owner": "python",
       "disposition": "migrated",
       "target_path": "sdks/python/docs/content/docs/python/agents/composition.md",
       "target_route": "/docs/python/agents/composition/",
-      "target_hash": "sha256:ca30c34425b5488ff826faabea02acab5b9d1659ca9a186f4c19902141baf3d4",
+      "target_hash": "sha256:6dccf3fb891d3ff5cade3cfa11ebaaf72405e9336fb9140f4368a1b9d30e2964",
       "status": "converted",
       "headings": [
         {
@@ -328,13 +328,13 @@
     },
     {
       "source_path": "sdks/python/docs/core_concepts.rst",
-      "source_hash": "sha256:49c6bd1e74ab3036eebe96b4752af0e0d0b5c9048ea854be90a440cae7ef35af",
-      "source_lines": 294,
+      "source_hash": "sha256:9381d0b21cf813e37abc55e320f7454f7cdc8afa84de8690fa0d6a5329965cca",
+      "source_lines": 317,
       "owner": "python",
       "disposition": "migrated",
       "target_path": "sdks/python/docs/content/docs/python/concepts.md",
       "target_route": "/docs/python/concepts/",
-      "target_hash": "sha256:44cdb7e9900587fb1d4c872772ecf16899e179c93e42972ed9bb7a7bd725003b",
+      "target_hash": "sha256:25b5962b60b3a8dbb0ec2531715b8b8965626f0fa9f69aa6d5e0eac1106e230f",
       "status": "converted",
       "headings": [
         {
@@ -392,7 +392,7 @@
         "core_concepts"
       ],
       "directive_counts": {
-        "code-block": 10,
+        "code-block": 11,
         "meta": 1
       },
       "code_blocks": [
@@ -404,6 +404,7 @@
         "sha256:6d7f43c33deec38aa716e91bd17835cb6aec2859af02d7990eb63752288aff95",
         "sha256:a90ddaa275cc48b2169ca9a1cc48d1b8eccdc181a3f653aeb832b7a08d276a81",
         "sha256:bb8f01c7db962007c4f4d505d2f6ef82773c761f8560dda163561da67f9af95b",
+        "sha256:d2e88473e20997f91738ee470b847c651aa2662b09b306085627b270e80bad36",
         "sha256:08d8240732052ba85c6af1d781d360c53783f7273cb0a8d949e7d10a35050f37",
         "sha256:624edf933a04c3e0c8c376e7e4e8dee1af22c3ce82582fb1bc908de317307d05"
       ],
@@ -1755,8 +1756,8 @@
     },
     {
       "source_path": "sdks/python/examples/ai_chat/README.md",
-      "source_hash": "sha256:87e48444359bbd9da1dd592a2cdf11d788cf795ed7aad64c2f44baed626068e6",
-      "source_lines": 220,
+      "source_hash": "sha256:a11db0dee22ce12c407dcc623b6d6adb0add3e9c23880b8693e861c2bc157d0b",
+      "source_lines": 254,
       "owner": "python",
       "disposition": "canonical-linked",
       "target_route": null,
@@ -1765,8 +1766,8 @@
     },
     {
       "source_path": "sdks/python/examples/ai_chat/backend/README.md",
-      "source_hash": "sha256:814e06a55249c8c9f637b5e9a95c0f28119ca845591e4e1420860676da52e166",
-      "source_lines": 21,
+      "source_hash": "sha256:d71d90d18ecb007436d51881b6db622d8f32d4c8e100e9041245c3084088f1d9",
+      "source_lines": 23,
       "owner": "python",
       "disposition": "canonical-linked",
       "target_route": null,

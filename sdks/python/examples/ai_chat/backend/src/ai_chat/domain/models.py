@@ -250,14 +250,19 @@ class Turn(DomainModel):
         *,
         status: Literal[TurnStatus.FAILED, TurnStatus.CANCELLED],
         failure: TurnFailure,
+        workflow_run_id: str | None,
         agent_run_id: str | None,
         now: datetime,
     ) -> Turn:
         if self.status not in {TurnStatus.ADMITTED, TurnStatus.RUNNING}:
             raise ValueError("Only an active Turn can terminate.")
         references = self.execution_references
-        if agent_run_id is not None:
-            references = references.model_copy(update={"agent_run_id": agent_run_id})
+        references = references.model_copy(
+            update={
+                "workflow_run_id": workflow_run_id or references.workflow_run_id,
+                "agent_run_id": agent_run_id or references.agent_run_id,
+            }
+        )
         return self.model_copy(
             update={
                 "revision": self.revision + 1,
@@ -267,6 +272,21 @@ class Turn(DomainModel):
                 "updated_at": now,
                 "completed_at": now,
             }
+        )
+
+    def interrupt(self, *, now: datetime) -> Turn:
+        """Reconcile an active Turn abandoned by an earlier process."""
+
+        return self.terminate(
+            status=TurnStatus.FAILED,
+            failure=TurnFailure(
+                code="turn_interrupted",
+                detail="Turn execution was interrupted before it reached a terminal state.",
+                termination_reason="process_interrupted",
+            ),
+            workflow_run_id=None,
+            agent_run_id=None,
+            now=now,
         )
 
 

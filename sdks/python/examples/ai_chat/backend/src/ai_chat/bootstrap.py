@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
+from google import genai
 from junjo import ModelDriverBinding
+from xai_sdk import AsyncClient
 
 from ai_chat.adapters.images import GeminiImageModel, GrokImageModel
 from ai_chat.adapters.model import (
@@ -26,6 +29,8 @@ from ai_chat.domain.errors import TurnExecutionError
 from ai_chat.domain.models import ConversationOverview, Turn
 from ai_chat.domain.ports import ApplicationStore, ImageModel, LanguageModel
 
+AsyncClose = Callable[[], Awaitable[None]]
+
 
 def new_id() -> str:
     return uuid4().hex
@@ -35,6 +40,19 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+@dataclass(frozen=True, slots=True)
+class ProviderRuntime:
+    """One application-owned provider client and its narrow capabilities."""
+
+    model: ModelDriverBinding
+    language: LanguageModel
+    images: ImageModel
+    _close_client: AsyncClose
+
+    async def close(self) -> None:
+        await self._close_client()
+
+
 @dataclass(slots=True)
 class ChatApplication:
     store: ApplicationStore
@@ -42,6 +60,7 @@ class ChatApplication:
     contacts: ContactCreationService
     images: ImageModel
     image_directory: Path
+    provider_runtime: ProviderRuntime | None = None
     debug: DebugSettings = DebugSettings(enabled=False, studio_ui_url=None)
     _turn_tasks: set[asyncio.Task[None]] = field(default_factory=set, init=False)
 
@@ -52,9 +71,25 @@ class ChatApplication:
     async def close(self) -> None:
         for task in tuple(self._turn_tasks):
             task.cancel("application_shutdown")
+        errors: list[BaseException] = []
         if self._turn_tasks:
-            await asyncio.gather(*self._turn_tasks, return_exceptions=True)
-        await self.store.close()
+            try:
+                await asyncio.gather(*self._turn_tasks, return_exceptions=True)
+            except BaseException as error:
+                errors.append(error)
+        try:
+            await self.store.close()
+        except BaseException as error:
+            errors.append(error)
+        try:
+            if self.provider_runtime is not None:
+                await self.provider_runtime.close()
+        except BaseException as error:
+            errors.append(error)
+        if len(errors) == 1:
+            raise errors[0]
+        if errors:
+            raise BaseExceptionGroup("application cleanup failed", errors)
 
     async def list_conversations(self) -> tuple[ConversationOverview, ...]:
         return await self.store.list_conversations()
@@ -93,6 +128,7 @@ def build_application(
         clock=utc_now,
     )
     supplied = (model, language, images)
+    provider_runtime: ProviderRuntime | None = None
     if all(value is not None for value in supplied):
         assert model is not None
         assert language is not None
@@ -103,7 +139,10 @@ def build_application(
     elif any(value is not None for value in supplied):
         raise ValueError("Tests must supply model, language, and images together.")
     else:
-        model_binding, language_model, image_model = _provider_bindings(settings)
+        provider_runtime = _provider_runtime(settings)
+        model_binding = provider_runtime.model
+        language_model = provider_runtime.language
+        image_model = provider_runtime.images
     agent = create_chat_agent(model_binding)
     turns = ChatTurnService(
         agent=agent,
@@ -126,45 +165,57 @@ def build_application(
         contacts=contacts,
         images=image_model,
         image_directory=settings.image_directory,
+        provider_runtime=provider_runtime,
         debug=settings.debug,
     )
 
 
-def _provider_bindings(
-    settings: Settings,
-) -> tuple[ModelDriverBinding, LanguageModel, ImageModel]:
+def _provider_runtime(settings: Settings) -> ProviderRuntime:
     if settings.model_provider is ModelProvider.GEMINI:
         assert settings.gemini_api_key is not None
-        return (
-            gemini_model_binding(
-                api_key=settings.gemini_api_key,
+        client = genai.Client(api_key=settings.gemini_api_key).aio
+        return ProviderRuntime(
+            model=gemini_model_binding(
+                client=client,
                 model=settings.gemini_text_model,
+                timeout_seconds=settings.provider_timeout_seconds,
             ),
-            GeminiLanguageModel(
-                api_key=settings.gemini_api_key,
+            language=GeminiLanguageModel(
+                client=client,
                 model=settings.gemini_text_model,
+                timeout_seconds=settings.provider_timeout_seconds,
             ),
-            GeminiImageModel(
-                api_key=settings.gemini_api_key,
+            images=GeminiImageModel(
+                client=client,
                 model=settings.gemini_image_model,
+                timeout_seconds=settings.provider_timeout_seconds,
                 directory=settings.image_directory,
                 id_factory=new_id,
             ),
+            _close_client=client.aclose,
         )
     assert settings.xai_api_key is not None
-    return (
-        grok_model_binding(
-            api_key=settings.xai_api_key,
+    client = AsyncClient(
+        api_key=settings.xai_api_key,
+        timeout=settings.provider_timeout_seconds,
+    )
+    return ProviderRuntime(
+        model=grok_model_binding(
+            client=client,
             model=settings.grok_text_model,
+            timeout_seconds=settings.provider_timeout_seconds,
         ),
-        GrokLanguageModel(
-            api_key=settings.xai_api_key,
+        language=GrokLanguageModel(
+            client=client,
             model=settings.grok_text_model,
+            timeout_seconds=settings.provider_timeout_seconds,
         ),
-        GrokImageModel(
-            api_key=settings.xai_api_key,
+        images=GrokImageModel(
+            client=client,
             model=settings.grok_image_model,
+            timeout_seconds=settings.provider_timeout_seconds,
             directory=settings.image_directory,
             id_factory=new_id,
         ),
+        _close_client=client.close,
     )

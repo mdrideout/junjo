@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 from enum import StrEnum
@@ -50,6 +51,7 @@ class Settings:
     gemini_image_model: str = "gemini-3.1-flash-image"
     grok_text_model: str = "grok-4.3"
     grok_image_model: str = "grok-imagine-image-quality"
+    provider_timeout_seconds: float = 120.0
 
     @classmethod
     def from_environment(cls) -> Settings:
@@ -103,6 +105,10 @@ class Settings:
             gemini_image_model=os.getenv("AI_CHAT_GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"),
             grok_text_model=os.getenv("AI_CHAT_GROK_TEXT_MODEL", "grok-4.3"),
             grok_image_model=os.getenv("AI_CHAT_GROK_IMAGE_MODEL", "grok-imagine-image-quality"),
+            provider_timeout_seconds=_positive_float(
+                os.getenv("AI_CHAT_PROVIDER_TIMEOUT_SECONDS", "120"),
+                "AI_CHAT_PROVIDER_TIMEOUT_SECONDS",
+            ),
         )
 
 
@@ -123,6 +129,16 @@ def _boolean(value: str, name: str) -> bool:
     if normalized == "false":
         return False
     raise ValueError(f"{name} must be exactly true or false.")
+
+
+def _positive_float(value: str, name: str) -> float:
+    try:
+        number = float(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a finite positive number.") from exc
+    if not math.isfinite(number) or number <= 0:
+        raise ValueError(f"{name} must be a finite positive number.")
+    return number
 
 
 def _http_origin(value: str, name: str) -> str:

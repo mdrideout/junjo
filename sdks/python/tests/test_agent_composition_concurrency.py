@@ -23,6 +23,7 @@ from junjo import (
     Node,
     Tool,
     Workflow,
+    WorkflowExecutionError,
 )
 from junjo.agent import (
     AgentExecutionResult,
@@ -237,13 +238,12 @@ async def test_nested_executable_cannot_replace_active_correlation() -> None:
         max_iterations=1,
     )
 
-    with pytest.raises(
-        ValueError,
-        match="cannot replace the active correlation",
-    ):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute(
             correlation=ExecutionCorrelation(type="test.turn", id="original")
         )
+    assert isinstance(raised.value.__cause__, ValueError)
+    assert "cannot replace the active correlation" in str(raised.value.__cause__)
 
 
 class ChildState(BaseState):
@@ -540,13 +540,15 @@ async def test_workflow_and_nested_agent_enforce_their_own_limits(
         max_iterations=7,
     )
 
-    with pytest.raises(AgentLimitExceededError) as raised:
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute()
 
-    assert raised.value.limit_kind == "model_requests"
-    assert raised.value.limit == 1
-    assert raised.value.state.model_request_count == 1
-    assert raised.value.state.tool_call_completed_count == 1
+    agent_error = raised.value.__cause__
+    assert isinstance(agent_error, AgentLimitExceededError)
+    assert agent_error.limit_kind == "model_requests"
+    assert agent_error.limit == 1
+    assert agent_error.state.model_request_count == 1
+    assert agent_error.state.tool_call_completed_count == 1
     spans = span_exporter.get_finished_spans()
     agent_span = next(span for span in spans if span.name == "Nested Limit Agent")
     workflow_span = next(
@@ -610,8 +612,10 @@ async def test_agent_and_workflow_tool_enforce_their_own_limits(
     with pytest.raises(AgentToolError) as raised:
         await agent.execute(AgentInput(value="child"), dependencies=None)
 
-    assert isinstance(raised.value.__cause__, ValueError)
-    assert "exceeded maximum execution count" in str(raised.value.__cause__)
+    workflow_error = raised.value.__cause__
+    assert isinstance(workflow_error, WorkflowExecutionError)
+    assert isinstance(workflow_error.__cause__, ValueError)
+    assert "exceeded maximum execution count" in str(workflow_error.__cause__)
     assert raised.value.state.model_request_count == 1
     assert raised.value.state.tool_call_admitted_count == 1
     assert raised.value.state.tool_call_started_count == 1
@@ -947,10 +951,12 @@ async def test_agent_failure_propagates_through_node_and_workflow_with_owned_spa
         max_iterations=7,
     )
 
-    with pytest.raises(AgentModelError) as raised:
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute()
 
-    assert raised.value.__cause__ is cause
+    agent_error = raised.value.__cause__
+    assert isinstance(agent_error, AgentModelError)
+    assert agent_error.__cause__ is cause
     spans = span_exporter.get_finished_spans()
     assert next(span for span in spans if span.name == "Failing Nested Agent").status.status_code.name == "ERROR"
     assert next(span for span in spans if span.name == "ExecuteAgentNode").status.status_code.name == "ERROR"
@@ -1016,8 +1022,10 @@ async def test_nested_workflow_failure_becomes_tool_error_with_original_cause(
     with pytest.raises(AgentToolError) as raised:
         await agent.execute(AgentInput(value="x"), dependencies=None)
 
-    assert isinstance(raised.value.__cause__, RuntimeError)
-    assert str(raised.value.__cause__) == "child workflow failed"
+    workflow_error = raised.value.__cause__
+    assert isinstance(workflow_error, WorkflowExecutionError)
+    assert isinstance(workflow_error.__cause__, RuntimeError)
+    assert str(workflow_error.__cause__) == "child workflow failed"
     spans = span_exporter.get_finished_spans()
     assert next(span for span in spans if span.name == "Failing Child Workflow").status.status_code.name == "ERROR"
     tool_span = next(

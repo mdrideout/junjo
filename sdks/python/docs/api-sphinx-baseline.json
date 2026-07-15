@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source_inventory_hash": "sha256:710eaedae0483e0f736d55c8fcff2bb2d4ee8e5fa3054ebf30584f9cb7347b1f",
+  "source_inventory_hash": "sha256:f461a894e5e788e1114e7b0c61b9d796cff16a21ddac8822cc9f30a6e7d598ef",
   "module_allowlist": [
     "junjo",
     "junjo.agent.definition",
@@ -1890,6 +1890,18 @@
     },
     {
       "kind": "py:exception",
+      "name": "junjo.WorkflowCancelledError",
+      "legacy_uri": "api.html#junjo.WorkflowCancelledError",
+      "legacy_anchor": "junjo.WorkflowCancelledError"
+    },
+    {
+      "kind": "py:exception",
+      "name": "junjo.WorkflowExecutionError",
+      "legacy_uri": "api.html#junjo.WorkflowExecutionError",
+      "legacy_anchor": "junjo.WorkflowExecutionError"
+    },
+    {
+      "kind": "py:exception",
       "name": "junjo.agent.errors.AgentAdmissionError",
       "legacy_uri": "api.html#junjo.agent.errors.AgentAdmissionError",
       "legacy_anchor": "junjo.agent.errors.AgentAdmissionError"
@@ -2019,6 +2031,18 @@
       "name": "junjo.graph.GraphValidationError",
       "legacy_uri": "api.html#junjo.GraphValidationError",
       "legacy_anchor": "junjo.GraphValidationError"
+    },
+    {
+      "kind": "py:exception",
+      "name": "junjo.workflow_errors.WorkflowCancelledError",
+      "legacy_uri": "api.html#junjo.WorkflowCancelledError",
+      "legacy_anchor": "junjo.WorkflowCancelledError"
+    },
+    {
+      "kind": "py:exception",
+      "name": "junjo.workflow_errors.WorkflowExecutionError",
+      "legacy_uri": "api.html#junjo.WorkflowExecutionError",
+      "legacy_anchor": "junjo.WorkflowExecutionError"
     },
     {
       "kind": "py:function",

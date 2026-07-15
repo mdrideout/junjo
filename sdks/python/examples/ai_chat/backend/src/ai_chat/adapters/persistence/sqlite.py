@@ -73,7 +73,28 @@ class SqliteChatStore:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         async with self._connection() as database:
             await database.executescript(_SCHEMA)
-            await database.commit()
+            await database.execute("BEGIN IMMEDIATE")
+            try:
+                active_rows = await _rows(
+                    database,
+                    """
+                    SELECT id, document_json FROM turns
+                    WHERE json_extract(document_json, '$.status') IN ('admitted', 'running')
+                    ORDER BY conversation_id, sequence
+                    """,
+                )
+                if active_rows:
+                    now = self._clock()
+                    for row in active_rows:
+                        interrupted = _validated_turn(_turn_from_row(row).interrupt(now=now))
+                        await database.execute(
+                            "UPDATE turns SET document_json = ? WHERE id = ?",
+                            (_turn_json(interrupted), interrupted.id),
+                        )
+                await database.commit()
+            except BaseException:
+                await database.rollback()
+                raise
 
     async def close(self) -> None:
         return None
@@ -251,6 +272,7 @@ class SqliteChatStore:
         turn_id: str,
         status: TurnStatus,
         failure: TurnFailure,
+        workflow_run_id: str | None,
         agent_run_id: str | None,
     ) -> Turn:
         if status not in {TurnStatus.FAILED, TurnStatus.CANCELLED}:
@@ -260,6 +282,7 @@ class SqliteChatStore:
             lambda turn: turn.terminate(
                 status=status,
                 failure=failure,
+                workflow_run_id=workflow_run_id,
                 agent_run_id=agent_run_id,
                 now=self._clock(),
             ),

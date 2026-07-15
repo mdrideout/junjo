@@ -15,6 +15,8 @@ The canonical full-stack development environment is the two-service
 `sdks/python` workspace context so it installs the exact local Junjo source and
 the AI Chat package from the same lockfile. Compose mounts its named data
 volume at `/data`; native execution uses `runtime-data` beside this package.
+The parent `.env` is the only Compose environment file and is required; do not
+create a second backend environment file.
 The SDK and backend source trees are bind-mounted, and watchfiles polling is
 enabled, so Python edits reload the running FastAPI process without rebuilding
 the image. Dependency changes still require a rebuild.

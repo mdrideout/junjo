@@ -8,10 +8,10 @@ ADRs, not this roadmap, own runtime and telemetry contracts.
 
 Horizon 0 is complete as of 2026-07-13. The Horizon 1 Agent kernel, telemetry
 contract version 2, and cohesive Studio trace-evidence path are implemented.
-Horizon 2 remains in progress: its Turn, correlation, diagnostics, persistence,
-composition, real AI-powered application, and initial eval-development loop are
-implemented. Credentialed live eval and end-to-end Studio evidence validation
-remain before Horizon 2 can be declared complete.
+Horizon 2 is complete as of 2026-07-15: Turn identity, correlation,
+diagnostics, persistence, both composition directions, the restored live
+AI-powered application, provider evals, and exact Studio evidence resolution
+have all passed their ownership-specific gates.
 
 The remaining application work is governed by the
 [AI Chat Product Restoration And Eval-Driven Development Plan](AI_CHAT_PRODUCT_RESTORATION_AND_EVAL_DRIVEN_DEVELOPMENT.md).
@@ -474,9 +474,7 @@ normal Junjo platform capabilities.
 
 ### Horizon 2: AI Chat Hybrid Execution Proof
 
-Status: In progress. Turn, correlation, persistence, Studio resolution, and
-composition foundations are implemented; faithful product restoration and the
-live eval-driven proof remain incomplete.
+Status: Complete as of 2026-07-15.
 
 #### Objective
 
@@ -495,18 +493,24 @@ Prove that the Agent layer composes cleanly with a realistic Junjo application.
 
 #### Exit criteria
 
-- [ ] All nine canonical
+- [x] All nine canonical
   [Initial AI Chat Acceptance Scenarios](#initial-ai-chat-acceptance-scenarios)
   pass with the restored live application behavior.
-- [ ] Contact, directive, persona, response, image, and Agent quality are
+- [x] Contact, directive, persona, response, image, and Agent quality are
   measured through real-provider evals.
-- [ ] The example uses only public Junjo runtime APIs, including a supported
+- [x] The example uses only public Junjo runtime APIs, including a supported
   Node eval execution surface.
 - [x] The example no longer relies on timing sleeps or untracked execution for its
   canonical agent path.
-- [ ] The
+- [x] The
   [product restoration plan](AI_CHAT_PRODUCT_RESTORATION_AND_EVAL_DRIVEN_DEVELOPMENT.md)
   passes in full.
+
+Scenarios 1 through 3 and 9 are proven through the restored live application,
+application-owned evals, persisted runtime identities, and exact Studio trace
+evidence. Scenarios 4 through 8 are runtime invariants owned and proven by the
+SDK's deterministic Agent/Workflow failure, limit, cancellation, and
+concurrency matrices. AI Chat does not duplicate those kernel tests.
 
 ### Horizon 3: Studio Eval Measurement And Comparison
 

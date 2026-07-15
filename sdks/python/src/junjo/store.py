@@ -98,6 +98,16 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         async with self._lock:
             return self._state.model_copy(deep=True)
 
+    def _get_last_known_state(self) -> StateT:
+        """Return a detached emergency snapshot without awaiting Store machinery.
+
+        Executable terminal recovery uses this only after owned runtime work has
+        drained and an ordinary terminal Store read has failed. It is not a
+        public read path and does not replace the locked :meth:`get_state` API.
+        """
+
+        return self._state.model_copy(deep=True)
+
     async def get_state_json(self) -> str:
         """
         Return the current state as a JSON string.

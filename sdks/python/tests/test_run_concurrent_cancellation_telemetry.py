@@ -10,7 +10,15 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
 )
 from opentelemetry.trace import StatusCode
 
-from junjo import BaseState, BaseStore, Graph, Node, RunConcurrent, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Graph,
+    Node,
+    RunConcurrent,
+    Workflow,
+    WorkflowExecutionError,
+)
 
 
 class TelemetryState(BaseState):
@@ -72,8 +80,10 @@ async def test_run_concurrent_marks_cancelled_sibling_spans(
         store_factory=lambda: TelemetryStore(initial_state=TelemetryState()),
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute()
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value.__cause__) == "boom"
 
     await asyncio.wait_for(sibling_cancelled.wait(), timeout=0.2)
 

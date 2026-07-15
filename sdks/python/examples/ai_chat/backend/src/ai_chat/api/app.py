@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,12 +30,13 @@ from .schemas import TurnProblemResponse, TurnResponse
 
 
 async def _close_lifespan_resources(
-    application: ChatApplication,
+    application: ChatApplication | None,
     telemetry_runtime: TelemetryRuntime | None,
 ) -> None:
     application_close_error: BaseException | None = None
     try:
-        await application.close()
+        if application is not None:
+            await application.close()
     except BaseException as error:
         application_close_error = error
 
@@ -54,26 +57,37 @@ async def _close_lifespan_resources(
 
 def create_app(
     *,
-    application: ChatApplication,
+    application_factory: Callable[[], ChatApplication],
+    image_directory: Path,
     cors_origins: tuple[str, ...] = (),
     telemetry: TelemetrySettings | None = None,
 ) -> FastAPI:
     @asynccontextmanager
-    async def lifespan(_: FastAPI):
+    async def lifespan(running_app: FastAPI):
         telemetry_runtime: TelemetryRuntime | None = None
+        application: ChatApplication | None = None
         try:
             if telemetry is not None:
                 telemetry_runtime = start_telemetry(telemetry)
+            application = application_factory()
+            running_app.state.chat_application = application
             await application.initialize()
             yield
         finally:
-            await _close_lifespan_resources(application, telemetry_runtime)
+            try:
+                await _close_lifespan_resources(application, telemetry_runtime)
+            finally:
+                running_app.state.chat_application = None
 
     app = FastAPI(title="Junjo AI Chat Example", lifespan=lifespan)
     FastAPIInstrumentor.instrument_app(app)
-    app.state.chat_application = application
+    app.state.chat_application = None
     app.include_router(router)
-    app.mount("/api/images", StaticFiles(directory=application.image_directory), name="images")
+    app.mount(
+        "/api/images",
+        StaticFiles(directory=image_directory, check_dir=False),
+        name="images",
+    )
     if cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -107,9 +121,10 @@ def create_app(
 
     @app.exception_handler(TurnExecutionError)
     async def turn_execution_failed(request: Request, error: TurnExecutionError) -> JSONResponse:
+        application = _application(request)
         turn = await application.store.get_turn(error.turn_id)
         cause = error.__cause__
-        status = 502 if isinstance(cause, AgentModelError) else 500
+        status = 502 if _cause_chain_contains(cause, AgentModelError) else 500
         return _problem(
             request=request,
             status=status,
@@ -132,6 +147,29 @@ def create_app(
         )
 
     return app
+
+
+def _cause_chain_contains(
+    error: BaseException | None,
+    error_type: type[BaseException],
+) -> bool:
+    """Inspect explicit exception ownership without flattening its boundaries."""
+
+    current = error
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        if isinstance(current, error_type):
+            return True
+        visited.add(id(current))
+        current = current.__cause__
+    return False
+
+
+def _application(request: Request) -> ChatApplication:
+    application = request.app.state.chat_application
+    if not isinstance(application, ChatApplication):
+        raise RuntimeError("Chat application state is not configured.")
+    return application
 
 
 def _problem(

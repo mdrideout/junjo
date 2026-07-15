@@ -3,7 +3,15 @@ import logging
 
 import pytest
 
-from junjo import BaseState, BaseStore, Graph, Node, RunConcurrent, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Graph,
+    Node,
+    RunConcurrent,
+    Workflow,
+    WorkflowExecutionError,
+)
 
 
 class LoggingState(BaseState):
@@ -85,8 +93,10 @@ async def test_node_failure_logs_exception_without_print(
     )
 
     with caplog.at_level(logging.ERROR, logger="junjo"):
-        with pytest.raises(RuntimeError, match="boom"):
+        with pytest.raises(WorkflowExecutionError) as raised:
             await workflow.execute()
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value.__cause__) == "boom"
 
     junjo_error_records = [
         record
@@ -123,8 +133,10 @@ async def test_run_concurrent_failure_emits_one_error_log_at_workflow_boundary(
     )
 
     with caplog.at_level(logging.ERROR, logger="junjo"):
-        with pytest.raises(RuntimeError, match="boom"):
+        with pytest.raises(WorkflowExecutionError) as raised:
             await workflow.execute()
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value.__cause__) == "boom"
 
     junjo_error_records = [
         record

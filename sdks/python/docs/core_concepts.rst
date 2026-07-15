@@ -223,10 +223,20 @@ Workflow
 A `Workflow` is the main executable component that takes a `graph_factory` and a `store_factory` and runs the defined process.
 
 **Key Characteristics:**
+
 - **Executable:** The `Workflow` class has an `execute` method that starts the workflow.
 - **Manages Execution:** It traverses the graph, executing nodes and evaluating conditions, until one of the declared ``sinks`` is reached.
 - **Isolated Execution:** Each call to `execute` uses the provided factories to create a fresh `Graph` and `Store`, ensuring that each execution is isolated and concurrency-safe.
 - **Returns a Snapshot:** `execute` returns an `ExecutionResult` containing the final state and workflow-local execution counts for that run.
+- **Retains Failed Run Identity:** An admitted failure raises
+  ``WorkflowExecutionError`` with the run ID and detached terminal state. The
+  actual Node, Agent, or application failure remains ``error.__cause__``.
+- **Reports Snapshot Completeness:** ``error.state_is_terminal`` distinguishes
+  a complete terminal Store snapshot from last-known recovery state. A separate
+  terminal evidence failure remains available as ``error.terminalization_error``.
+- **Preserves Cancellation:** An admitted cancellation raises
+  ``WorkflowCancelledError``. It contains the same run identity while remaining
+  an ``asyncio.CancelledError``.
 
 .. code-block:: python
 
@@ -250,6 +260,19 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
     sample_workflow = create_workflow()
     result = await sample_workflow.execute()
     print(result.state.model_dump())
+
+Application code can persist the exact failed run without installing a Hook or
+querying telemetry:
+
+.. code-block:: python
+
+    from junjo import WorkflowExecutionError
+
+    try:
+        result = await sample_workflow.execute()
+    except WorkflowExecutionError as error:
+        persist_failed_run(error.run_id)
+        raise RuntimeError("Application workflow failed") from error
 
 By default, ``Workflow.execute()`` validates the freshly created graph before
 execution begins. This catches invalid terminal topology, unreachable sinks,

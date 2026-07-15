@@ -22,4 +22,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 EXPOSE 26252
 
-CMD ["fastapi", "dev", "--host", "0.0.0.0", "--port", "26252", "examples/ai_chat/backend/src/ai_chat/main.py"]
+CMD ["fastapi", "dev", "--entrypoint", "ai_chat.main:app", "--host", "0.0.0.0", "--port", "26252"]

@@ -46,6 +46,7 @@ from .telemetry.span_lifecycle import (
 )
 from .telemetry.store_evidence import StoreOwnerEvidence
 from .util import generate_safe_id
+from .workflow_errors import WorkflowCancelledError, WorkflowExecutionError
 
 if TYPE_CHECKING:
     from .graph import CompiledGraph, Graph
@@ -138,6 +139,41 @@ async def _collect_workflow_terminal_evidence(
     return state, evidence
 
 
+@dataclass(frozen=True, slots=True)
+class _WorkflowTerminalEvidenceResult(Generic[StateT]):
+    """Value-form outcome so caller cancellation and evidence failure can coexist."""
+
+    state: StateT | None
+    evidence: StoreOwnerEvidence | None
+    error: BaseException | None
+
+    def __post_init__(self) -> None:
+        complete = self.state is not None and self.evidence is not None and self.error is None
+        failed = self.state is None and self.evidence is None and self.error is not None
+        if not (complete or failed):
+            raise ValueError("Workflow terminal evidence result must be complete or failed.")
+
+
+async def _capture_workflow_terminal_evidence(
+    store: BaseStore[StateT],
+) -> _WorkflowTerminalEvidenceResult[StateT]:
+    """Capture evidence failure as data while the drain retains caller cancellation."""
+
+    try:
+        state, evidence = await _collect_workflow_terminal_evidence(store)
+    except (asyncio.CancelledError, Exception) as error:
+        return _WorkflowTerminalEvidenceResult(
+            state=None,
+            evidence=None,
+            error=error,
+        )
+    return _WorkflowTerminalEvidenceResult(
+        state=state,
+        evidence=evidence,
+        error=None,
+    )
+
+
 class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
     """
     Shared execution implementation for :class:`Workflow` and :class:`Subflow`.
@@ -213,6 +249,10 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         :returns: A detached snapshot of the completed execution, including
             the final state and current-scope execution counts.
         :rtype: ExecutionResult[StateT]
+        :raises WorkflowExecutionError: If an admitted execution fails. The
+            original failure is available as ``error.__cause__``.
+        :raises WorkflowCancelledError: If an admitted execution is cancelled.
+            This remains an :class:`asyncio.CancelledError`.
         """
         effective_correlation = _resolve_execution_correlation(correlation)
         parent_active_identity = get_active_executable_identity()
@@ -253,6 +293,8 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None
         terminal_delivery_cancellation: asyncio.CancelledError | None = None
+        final_state: StateT | None = None
+        terminalization_error: BaseException | None = None
         workflow_log_extra = {
             "run_id": ctx.run_id,
             "executable_definition_id": self.id,
@@ -267,9 +309,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
             extra=workflow_log_extra,
         )
 
-        with _active_execution_correlation(effective_correlation), tracer.start_as_current_span(
-            self.name
-        ) as span:
+        with _active_execution_correlation(effective_correlation), tracer.start_as_current_span(self.name) as span:
             try:
                 initial_store_evidence = await ctx.store._get_store_owner_evidence()
                 set_full_payload(
@@ -348,9 +388,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_runtime_id=(
-                            parent_active_identity.executable_runtime_id
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_runtime_id if parent_active_identity is not None else None
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
@@ -358,17 +396,13 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_type=(
-                            parent_active_identity.executable_type
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_type if parent_active_identity is not None else None
                         ),
                     )
 
                     if isinstance(self, Subflow):
                         if parent_store is None:
-                            raise ValueError(
-                                "Subflow requires a parent store to execute pre_run_actions."
-                            )
+                            raise ValueError("Subflow requires a parent store to execute pre_run_actions.")
                         await cast(
                             "Subflow[StateT, StoreT, ParentStateT, ParentStoreT]",
                             self,
@@ -388,10 +422,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             ctx.node_execution_counter[current_executable.id] = (
                                 ctx.node_execution_counter.get(current_executable.id, 0) + 1
                             )
-                            if (
-                                ctx.node_execution_counter[current_executable.id]
-                                > self.max_iterations
-                            ):
+                            if ctx.node_execution_counter[current_executable.id] > self.max_iterations:
                                 raise ValueError(
                                     f"Node '{current_executable}' exceeded maximum execution count. "
                                     "Check for loops in your graph. Ensure it transitions to a declared sink."
@@ -402,9 +433,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
                             if isinstance(current_executable, RunConcurrent):
                                 for item in current_executable.items:
-                                    ctx.node_execution_counter[item.id] = (
-                                        ctx.node_execution_counter.get(item.id, 0) + 1
-                                    )
+                                    ctx.node_execution_counter[item.id] = ctx.node_execution_counter.get(item.id, 0) + 1
                                     if ctx.node_execution_counter[item.id] > self.max_iterations:
                                         raise ValueError(
                                             f"Node '{item}' exceeded maximum execution count. "
@@ -414,10 +443,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                                 ctx.node_execution_counter[current_executable.id] = (
                                     ctx.node_execution_counter.get(current_executable.id, 0) + 1
                                 )
-                                if (
-                                    ctx.node_execution_counter[current_executable.id]
-                                    > self.max_iterations
-                                ):
+                                if ctx.node_execution_counter[current_executable.id] > self.max_iterations:
                                     raise ValueError(
                                         f"Node '{current_executable}' exceeded maximum execution count. "
                                         "Check for loops in your graph. Ensure it transitions to a declared sink."
@@ -446,9 +472,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
                     if isinstance(self, Subflow):
                         if parent_store is None:
-                            raise ValueError(
-                                "Subflow requires a parent store to execute post_run_actions."
-                            )
+                            raise ValueError("Subflow requires a parent store to execute post_run_actions.")
                         logger.debug(
                             "Performing post-run actions for subflow %s (%s)",
                             self.name,
@@ -480,31 +504,48 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
 
             finally:
                 execution_sum = sum(ctx.node_execution_counter.values())
-                (
-                    (final_state, final_store_evidence),
-                    finalization_cancellation,
-                ) = await drain_terminal_work(
-                    _collect_workflow_terminal_evidence(ctx.store)
+                final_state = ctx.store._get_last_known_state()
+                final_store_evidence: StoreOwnerEvidence | None = None
+                finalization_cancellation: asyncio.CancelledError | None = None
+                evidence_result, finalization_cancellation = await drain_terminal_work(
+                    _capture_workflow_terminal_evidence(ctx.store)
                 )
+                if evidence_result.error is None:
+                    assert evidence_result.state is not None
+                    assert evidence_result.evidence is not None
+                    final_state = evidence_result.state
+                    final_store_evidence = evidence_result.evidence
+                else:
+                    terminalization_error = evidence_result.error
+                    record_span_exception(span, evidence_result.error)
+                    span.set_attribute("junjo.store.reconstructable", False)
+                    if cancellation is None and failure is None:
+                        if isinstance(evidence_result.error, Exception):
+                            failure = evidence_result.error
+                        else:
+                            failure = RuntimeError("Workflow terminal Store evidence collection was cancelled.")
+                            failure.__cause__ = evidence_result.error
+                        mark_span_failed(span, failure)
                 trace_id, span_id = get_span_identifiers(span)
 
-                set_full_payload(
-                    span,
-                    "junjo.workflow.state.end",
-                    final_store_evidence.state_end,
-                )
-                span.set_attribute(
-                    "junjo.store.revision.end",
-                    final_store_evidence.revision_end,
-                )
-                span.set_attribute(
-                    "junjo.store.transition.count",
-                    final_store_evidence.transition_count,
-                )
-                span.set_attribute(
-                    "junjo.store.reconstructable",
-                    final_store_evidence.reconstructable,
-                )
+                if final_store_evidence is not None:
+                    set_full_payload(
+                        span,
+                        "junjo.workflow.state.end",
+                        final_store_evidence.state_end,
+                    )
+                    span.set_attribute(
+                        "junjo.store.revision.end",
+                        final_store_evidence.revision_end,
+                    )
+                    span.set_attribute(
+                        "junjo.store.transition.count",
+                        final_store_evidence.transition_count,
+                    )
+                    span.set_attribute(
+                        "junjo.store.reconstructable",
+                        final_store_evidence.reconstructable,
+                    )
                 span.set_attribute("junjo.workflow.node.count", execution_sum)
 
                 if cancellation is None and failure is None:
@@ -513,9 +554,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                         definition_id=self.id,
                         name=self.name,
                         state=final_state,
-                        node_execution_counts=MappingProxyType(
-                            dict(ctx.node_execution_counter)
-                        ),
+                        node_execution_counts=MappingProxyType(dict(ctx.node_execution_counter)),
                     )
                     prepared_terminal_event = ctx.dispatcher.workflow_completed(
                         run_id=ctx.run_id,
@@ -535,9 +574,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_runtime_id=(
-                            parent_active_identity.executable_runtime_id
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_runtime_id if parent_active_identity is not None else None
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
@@ -545,9 +582,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_type=(
-                            parent_active_identity.executable_type
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_type if parent_active_identity is not None else None
                         ),
                     )
                 elif cancellation is not None:
@@ -570,9 +605,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_runtime_id=(
-                            parent_active_identity.executable_runtime_id
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_runtime_id if parent_active_identity is not None else None
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
@@ -580,9 +613,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_type=(
-                            parent_active_identity.executable_type
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_type if parent_active_identity is not None else None
                         ),
                     )
                 elif failure is not None:
@@ -605,9 +636,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_runtime_id=(
-                            parent_active_identity.executable_runtime_id
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_runtime_id if parent_active_identity is not None else None
                         ),
                         parent_executable_structural_id=(
                             parent_active_identity.executable_structural_id
@@ -615,9 +644,7 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                             else None
                         ),
                         parent_executable_type=(
-                            parent_active_identity.executable_type
-                            if parent_active_identity is not None
-                            else None
+                            parent_active_identity.executable_type if parent_active_identity is not None else None
                         ),
                     )
 
@@ -629,11 +656,41 @@ class _NestableWorkflow(Generic[StateT, StoreT, ParentStateT, ParentStoreT]):
                     terminal_delivery_cancellation = finalization_cancellation
 
         if terminal_delivery_cancellation is not None:
-            raise terminal_delivery_cancellation
+            assert final_state is not None
+            raise WorkflowCancelledError(
+                *terminal_delivery_cancellation.args,
+                run_id=ctx.run_id,
+                definition_id=self.id,
+                name=self.name,
+                state=final_state,
+                node_execution_counts=ctx.node_execution_counter,
+                state_is_terminal=terminalization_error is None,
+                terminalization_error=terminalization_error,
+            ) from terminal_delivery_cancellation
         if cancellation is not None:
-            raise cancellation
+            assert final_state is not None
+            raise WorkflowCancelledError(
+                *cancellation.args,
+                run_id=ctx.run_id,
+                definition_id=self.id,
+                name=self.name,
+                state=final_state,
+                node_execution_counts=ctx.node_execution_counter,
+                state_is_terminal=terminalization_error is None,
+                terminalization_error=terminalization_error,
+            ) from cancellation
         if failure is not None:
-            raise failure
+            assert final_state is not None
+            raise WorkflowExecutionError(
+                f"Workflow execution failed for {self.name}.",
+                run_id=ctx.run_id,
+                definition_id=self.id,
+                name=self.name,
+                state=final_state,
+                node_execution_counts=ctx.node_execution_counter,
+                state_is_terminal=terminalization_error is None,
+                terminalization_error=terminalization_error,
+            ) from failure
         assert result is not None
         return result
 

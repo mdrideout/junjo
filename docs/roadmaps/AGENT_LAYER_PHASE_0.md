@@ -228,9 +228,11 @@ cross the merge boundary together.
 
 Complete in Horizon 2.
 
-Use the public Agent API in `sdks/python/examples/ai_chat` with an
-application-local deterministic ModelDriver, integration tests, a
-conversation query Tool, and a structured Workflow Tool. This is Horizon 2.
+Use the public Agent API in `sdks/python/examples/ai_chat` with explicit live
+Gemini and Grok adapters, application-owned integration checks, a conversation
+query Tool, and a structured Workflow Tool. Scripted drivers remain SDK-test
+infrastructure and are never treated as AI Chat product behavior. This is
+complete in Horizon 2.
 
 The canonical acceptance cases are the nine
 [Initial AI Chat Acceptance Scenarios](AGENT_LAYER_ROADMAP.md#initial-ai-chat-acceptance-scenarios)
@@ -238,9 +240,10 @@ in the strategy roadmap.
 
 ### Work package 8: live evaluations
 
-Add explicit opt-in datasets and commands only after the deterministic kernel
-and AI Chat proof are stable. Live credentials and probabilistic evals remain
-outside default CI. This is Horizon 3.
+Horizon 2 adds application-owned opt-in datasets and commands after the
+deterministic kernel is stable. Live credentials and probabilistic evals remain
+outside default CI. Horizon 3 builds Studio measurement and comparison on top
+of this proven application eval loop.
 
 ## Horizon 1 validation gates
 

@@ -12,7 +12,17 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
 )
 from opentelemetry.trace import StatusCode
 
-from junjo import BaseState, BaseStore, Graph, Hooks, Node, RunConcurrent, Subflow, Workflow
+from junjo import (
+    BaseState,
+    BaseStore,
+    Graph,
+    Hooks,
+    Node,
+    RunConcurrent,
+    Subflow,
+    Workflow,
+    WorkflowExecutionError,
+)
 
 
 class HookState(BaseState):
@@ -772,8 +782,10 @@ async def test_failed_workflow_and_node_spans_emit_standard_error_type(
         store_factory=lambda: HookStore(initial_state=HookState()),
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
+    with pytest.raises(WorkflowExecutionError) as raised:
         await workflow.execute()
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert str(raised.value.__cause__) == "boom"
 
     spans = {span.name: span for span in span_exporter.get_finished_spans()}
     workflow_span = spans["Failing Workflow"]

@@ -1,4 +1,8 @@
-"""Live image capabilities with application-owned artifact persistence."""
+"""Live image capabilities with application-owned artifact persistence.
+
+Google calls use the installed Google GenAI instrumentation. The xAI SDK's
+``image.sample`` operation emits its own OpenTelemetry CLIENT span.
+"""
 
 from __future__ import annotations
 
@@ -6,11 +10,12 @@ import base64
 from io import BytesIO
 from pathlib import Path
 
-from google import genai
 from google.genai import types
+from google.genai.client import AsyncClient as GeminiAsyncClient
 from PIL import Image
 from xai_sdk import AsyncClient
 
+from ai_chat.adapters.provider_call import await_provider_call
 from ai_chat.domain.models import ImageArtifact, ImageEditResult
 from ai_chat.domain.ports import IdFactory
 
@@ -19,7 +24,6 @@ class _PngArtifactWriter:
     def __init__(self, *, directory: Path, id_factory: IdFactory) -> None:
         self._directory = directory
         self._id_factory = id_factory
-        self._directory.mkdir(parents=True, exist_ok=True)
 
     def write(self, *, image_bytes: bytes, alt_text: str) -> ImageArtifact:
         artifact_id = self._id_factory()
@@ -46,23 +50,28 @@ class GeminiImageModel:
     def __init__(
         self,
         *,
-        api_key: str,
+        client: GeminiAsyncClient,
         model: str,
+        timeout_seconds: float,
         directory: Path,
         id_factory: IdFactory,
     ) -> None:
-        self._client = genai.Client(api_key=api_key)
+        self._client = client
         self._model = model
+        self._timeout_seconds = timeout_seconds
         self._writer = _PngArtifactWriter(
             directory=directory,
             id_factory=id_factory,
         )
 
     async def generate(self, *, prompt: str, alt_text: str) -> ImageArtifact:
-        response = await self._client.aio.models.generate_content(
-            model=self._model,
-            contents=prompt,
-            config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+        response = await await_provider_call(
+            self._client.models.generate_content(
+                model=self._model,
+                contents=prompt,
+                config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+            ),
+            timeout_seconds=self._timeout_seconds,
         )
         for candidate in response.candidates or []:
             if candidate.content is None:
@@ -82,10 +91,13 @@ class GeminiImageModel:
         prompt: str,
         alt_text: str,
     ) -> ImageEditResult:
-        response = await self._client.aio.models.generate_content(
-            model=self._model,
-            contents=[prompt, self._writer.open(source)],
-            config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+        response = await await_provider_call(
+            self._client.models.generate_content(
+                model=self._model,
+                contents=[prompt, self._writer.open(source)],
+                config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+            ),
+            timeout_seconds=self._timeout_seconds,
         )
         image_bytes: bytes | None = None
         text_parts: list[str] = []
@@ -109,26 +121,25 @@ class GrokImageModel:
     def __init__(
         self,
         *,
-        api_key: str,
+        client: AsyncClient,
         model: str,
+        timeout_seconds: float,
         directory: Path,
         id_factory: IdFactory,
     ) -> None:
-        self._client = AsyncClient(api_key=api_key)
+        self._client = client
         self._model = model
+        self._timeout_seconds = timeout_seconds
         self._writer = _PngArtifactWriter(
             directory=directory,
             id_factory=id_factory,
         )
 
     async def generate(self, *, prompt: str, alt_text: str) -> ImageArtifact:
-        result = await self._client.image.sample(
-            model=self._model,
-            prompt=prompt,
-            image_format="base64",
-            aspect_ratio="1:1",
+        image_bytes = await await_provider_call(
+            self._sample_image(prompt=prompt),
+            timeout_seconds=self._timeout_seconds,
         )
-        image_bytes = await result.image
         if not image_bytes:
             raise ValueError("Grok returned no image artifact.")
         return self._writer.write(image_bytes=image_bytes, alt_text=alt_text)
@@ -144,6 +155,22 @@ class GrokImageModel:
         buffer = BytesIO()
         image.save(buffer, format="PNG")
         image_url = f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode('ascii')}"
+        image_bytes = await await_provider_call(
+            self._sample_image(prompt=prompt, image_url=image_url),
+            timeout_seconds=self._timeout_seconds,
+        )
+        if not image_bytes:
+            raise ValueError("Grok returned no edited image artifact.")
+        return ImageEditResult(
+            artifact=self._writer.write(image_bytes=image_bytes, alt_text=alt_text),
+        )
+
+    async def _sample_image(
+        self,
+        *,
+        prompt: str,
+        image_url: str | None = None,
+    ) -> bytes:
         result = await self._client.image.sample(
             model=self._model,
             image_url=image_url,
@@ -151,9 +178,4 @@ class GrokImageModel:
             image_format="base64",
             aspect_ratio="1:1",
         )
-        image_bytes = await result.image
-        if not image_bytes:
-            raise ValueError("Grok returned no edited image artifact.")
-        return ImageEditResult(
-            artifact=self._writer.write(image_bytes=image_bytes, alt_text=alt_text),
-        )
+        return await result.image
