@@ -1786,8 +1786,8 @@
     },
     {
       "source_path": "apps/studio/README.md",
-      "source_hash": "sha256:36e089264112ab572644b456f9b7d2383ca232047d5a738718822efe1c57b160",
-      "source_lines": 817,
+      "source_hash": "sha256:ecd771c8f5ed728f3a13eb27b57286eea991dcb9f680f3d28d2009949b143141",
+      "source_lines": 819,
       "owner": "studio",
       "disposition": "canonical-linked",
       "target_route": null,
