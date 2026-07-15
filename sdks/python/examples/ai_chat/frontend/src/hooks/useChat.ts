@@ -35,12 +35,9 @@ const TERMINAL_STATUSES = new Set<Turn['status']>(['completed', 'failed', 'cance
 
 async function waitForTerminalTurn(initial: Turn): Promise<Turn> {
   let current = initial
-  for (let attempt = 0; attempt < 120 && !TERMINAL_STATUSES.has(current.status); attempt += 1) {
+  while (!TERMINAL_STATUSES.has(current.status)) {
     await new Promise((resolve) => window.setTimeout(resolve, 250))
     current = await getTurn(current.id)
-  }
-  if (!TERMINAL_STATUSES.has(current.status)) {
-    throw new Error('Turn execution did not finish before the local polling deadline.')
   }
   return current
 }

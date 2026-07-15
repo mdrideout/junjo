@@ -12,7 +12,9 @@ export default function ChatForm({ chatId, sending, onSubmit }: ChatFormProps) {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (chatId === undefined || !message.trim() || sending) return
-    if (await onSubmit(message)) setMessage('')
+    const submittedMessage = message
+    setMessage('')
+    await onSubmit(submittedMessage)
   }
 
   return (

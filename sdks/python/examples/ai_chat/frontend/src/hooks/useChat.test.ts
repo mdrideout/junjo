@@ -122,6 +122,52 @@ describe('useChat', () => {
     expect(hook.result.current.config?.debug_enabled).toBe(true)
   })
 
+  it('keeps polling until the server reports a terminal Turn', async () => {
+    vi.mocked(createTurn).mockResolvedValue(admittedTurn)
+    let pollCount = 0
+    vi.mocked(getTurn).mockImplementation(async () => {
+      pollCount += 1
+      return pollCount <= 120 ? admittedTurn : completedTurn
+    })
+    const hook = await renderLoadedChat()
+    const timeout = vi.spyOn(window, 'setTimeout').mockImplementation((handler: TimerHandler) => {
+      if (typeof handler === 'function') handler()
+      return 1
+    })
+
+    let succeeded = false
+    try {
+      await act(async () => {
+        succeeded = await hook.result.current.sendTurn('Take as long as needed')
+      })
+    } finally {
+      timeout.mockRestore()
+    }
+
+    expect(succeeded).toBe(true)
+    expect(getTurn).toHaveBeenCalledTimes(121)
+    expect(hook.result.current.error).toBeNull()
+  })
+
+  it('surfaces a real polling exception without inventing a timeout failure', async () => {
+    vi.mocked(createTurn).mockResolvedValue(admittedTurn)
+    vi.mocked(getTurn).mockRejectedValue(new Error('Connection to the backend failed.'))
+    const hook = await renderLoadedChat()
+
+    let succeeded = true
+    await act(async () => {
+      succeeded = await hook.result.current.sendTurn('Hello')
+    })
+
+    expect(succeeded).toBe(false)
+    expect(hook.result.current.error).toEqual({
+      message: 'Connection to the backend failed.',
+      workflowRunId: null,
+      agentRunId: null,
+      terminationReason: null,
+    })
+  })
+
   it('allows only one active Turn request at a time', async () => {
     let finishTurn: (turn: Turn) => void = () => undefined
     vi.mocked(createTurn).mockReturnValue(new Promise((resolve) => {

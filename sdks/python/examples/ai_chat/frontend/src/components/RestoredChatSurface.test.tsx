@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Conversation, Turn } from '../api/schemas'
+import ChatForm from './ChatForm'
 import ChatReceiveImageBubble from './bubbles/ChatReceiveImageBubble'
 import ChatSidebar from './sidebar/ChatSidebar'
 
@@ -93,5 +94,18 @@ describe('restored AI Chat surface', () => {
     await user.click(screen.getByRole('img', { name: 'A generated scene' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getAllByRole('img', { name: 'A generated scene' })).toHaveLength(2)
+  })
+
+  it('clears the composer as soon as a message is submitted', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(false)
+    render(<ChatForm chatId="conversation-1" sending={false} onSubmit={onSubmit} />)
+    const user = userEvent.setup()
+    const composer = screen.getByRole('textbox', { name: 'Message' })
+
+    await user.type(composer, 'A message that may take a while')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    expect(onSubmit).toHaveBeenCalledWith('A message that may take a while')
+    expect(composer).toHaveValue('')
   })
 })
