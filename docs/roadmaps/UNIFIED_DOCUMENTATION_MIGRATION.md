@@ -1,17 +1,18 @@
 # Unified Documentation Portal Migration Strategy And Implementation Plan
 
-- Status: Cutover-ready implementation; production parallel-run and retirement
-  gates remain open
-- Date: 2026-07-14
+- Status: Production cutover approved; deployment credentials and live
+  verification remain open
+- Date: 2026-07-15
 - Owners: Junjo platform, Python SDK, Studio, website, and future SDK owners
 - Decision authority: ADR 0009 accepts the unified publishing boundary; the
   production and Sphinx-retirement gates in this document remain authoritative
 
 ## Implementation Record
 
-The repository implementation was created on
-`codex/unified-docs-migration`. It deliberately stops before production DNS,
-Cloudflare, or legacy-domain cutover.
+The repository implementation began on `codex/unified-docs-migration`. On
+2026-07-15 the owner selected GitHub Actions direct upload for production and
+approved retirement of the legacy Sphinx site with a single global permanent
+redirect rather than page-by-page compatibility mappings.
 
 Implemented:
 
@@ -26,9 +27,12 @@ Implemented:
 - build validation for every migrated route, API route/anchor, baseline symbol,
   internal link, search artifact, sitemap, and unconverted markup token; and
 - a path-routed GitHub Actions workflow that uploads the exact validated static
-  `next` artifact while retaining Sphinx as a parity gate; and
+  `next` artifact while retaining Sphinx as a parity gate;
 - an explicit `next`/`stable` manifest and page label, with stable assembly
-  callable only from a release-selected checkout.
+  callable only from a release-selected checkout; and
+- a version-pinned Wrangler deployment job that publishes the retained site artifact
+  to `junjo-website`, then replaces the public Sphinx deployment on
+  `junjo-python-api` with a one-rule `301` redirect site.
 
 The original audit contained 4,094 RST lines. Source work that landed during
 implementation expanded the live corpus to 4,113 lines and the Sphinx API
@@ -37,11 +41,13 @@ from the newer source; no content was frozen at the older counts.
 
 Still gated by production evidence:
 
-- publish the validated artifact to the production preview/parallel surface;
-- configure and exercise the `python-api.junjo.ai` compatibility redirects;
-- monitor production routes, search, fragments, canonical metadata, and 404s
-  for the agreed window; and
-- retire Sphinx only after those observations and rollback checks pass.
+- configure the `public-documentation-production` GitHub environment with the
+  Cloudflare account ID and least-privilege Pages API token;
+- disable Cloudflare automatic Git deployments so GitHub Actions is the sole
+  production writer;
+- publish the validated artifact and global legacy-domain redirect; and
+- verify the unified routes, search, canonical metadata, and global redirect in
+  production while retaining the final Sphinx artifact for rollback.
 
 ## Objective
 
@@ -586,33 +592,25 @@ making unrelated release builds nondeterministic.
 
 ## Legacy URL And Anchor Preservation
 
-Before moving pages, crawl and record all existing production Sphinx routes,
-including `.html`, extensionless Cloudflare variants, named document anchors,
-and API symbol fragments.
+The migration inventory records all existing production Sphinx routes,
+extensionless variants, named anchors, and API symbol fragments. Those records
+remain required evidence that the destination corpus contains the migrated
+content.
 
-The redirect manifest maps at least:
+For production retirement, the owner explicitly selected a global redirect
+instead of page-by-page routing. The separately deployed legacy site contains
+exactly this Cloudflare Pages rule:
 
 ```text
-https://python-api.junjo.ai/getting_started.html
-https://python-api.junjo.ai/getting_started
-https://python-api.junjo.ai/api.html
-https://python-api.junjo.ai/api
-https://python-api.junjo.ai/api.html#junjo.Workflow
+/* https://junjo.ai/docs/python/ 301
 ```
 
-to their new routes or compatibility pages.
-
-HTTP redirect handlers do not receive URL fragments. Therefore old Sphinx API
-anchors cannot be preserved by server redirects alone when the target symbol
-slug changes. Use one or both of:
-
-- legacy anchor aliases embedded in compatibility pages; and
-- a small, tested client-side fragment mapper on the legacy API landing route.
-
-Keep `python-api.junjo.ai` as a redirecting compatibility domain through at
-least the agreed support window. Do not merely turn off the Sphinx deployment.
-Monitor production 404s and unresolved legacy fragments during the parallel
-and post-cutover periods.
+Consequently, every request to `python-api.junjo.ai` enters the unified Python
+documentation landing page. Old path-specific and fragment-specific deep links
+are intentionally retired; URL fragments are not available to an HTTP redirect
+handler. The content and symbol routes remain directly available on
+`junjo.ai`, and the committed route and API manifests remain migration evidence
+rather than production redirect inputs.
 
 ## Implementation Work Packages
 
@@ -742,22 +740,21 @@ Exit gate:
 - no generated or copied content is hand-edited in the portal; and
 - standalone deployment distributions remain complete.
 
-### Work Package 6: Release Integration And Parallel Production
+### Work Package 6: Release Integration And Production Direct Upload
 
 Tasks:
 
 - produce versioned docs artifacts with SDK releases;
 - assemble stable production docs from released artifacts;
 - publish an optional clearly labeled `next` preview;
-- deploy the unified site without changing the old Sphinx domain;
-- run production route, fragment, search, sitemap, canonical, and version
-  checks; and
-- observe both sites through an agreed parallel validation window.
+- deploy the exact GitHub Actions artifact to the unified site;
+- run production route, search, sitemap, canonical, and version checks; and
+- retain the prior website and final Sphinx artifacts as rollback inputs.
 
 Exit gate:
 
 - the unified site describes installable released components;
-- every legacy route resolves correctly;
+- every unified route resolves correctly;
 - production monitoring shows no unexplained content or link regressions; and
 - the retained static artifact can be redeployed as a rollback.
 
@@ -765,7 +762,8 @@ Exit gate:
 
 Tasks:
 
-- redirect `python-api.junjo.ai` through the tested compatibility mapping;
+- redirect every `python-api.junjo.ai` request permanently to the unified
+  Python documentation landing page;
 - update PyPI metadata, repository READMEs, website links, sitemaps, and
   canonical URLs;
 - retain the final Sphinx artifact for rollback and historical comparison;
@@ -776,11 +774,11 @@ Tasks:
 
 Exit gate:
 
-- the support window completes without unresolved regressions;
+- the unified site and global redirect pass live production verification;
 - no source or content-ledger record remains pending;
 - there is no second manually maintained API reference; and
-- the old Sphinx deployment can be retired without losing a public route,
-  symbol, or useful document.
+- the old Sphinx deployment is retired without losing migrated content, while
+  its page-specific public URLs are recorded as intentionally retired.
 
 ### Work Package 8: Future TypeScript SDK Integration
 
@@ -820,10 +818,11 @@ away the already migrated Python content.
 ## Rollback Strategy
 
 Every production documentation deployment retains its complete static artifact
-and input manifests. During parallel publication:
+and input manifests. During cutover:
 
-- the existing Sphinx site remains deployable;
-- DNS and compatibility redirects remain independently reversible;
+- the final Sphinx site remains available as a retained rollback artifact;
+- the legacy Pages project can be restored from the final Sphinx artifact,
+  although clients may cache the approved permanent redirect;
 - the unified site can roll back to its previous static artifact without
   rebuilding SDK docs;
 - generated documentation artifacts remain immutable; and
@@ -870,14 +869,15 @@ The migration is complete only when all of the following are true:
   revision;
 - Starlight search, sitemap, internal links, canonical URLs, and accessibility
   validation pass;
-- all legacy pages and API deep links resolve through preserved anchors or
-  tested compatibility mappings;
+- the global legacy-domain redirect resolves to the unified Python landing page
+  and page-specific legacy URLs are recorded as intentionally retired;
 - deployment distributions remain self-contained;
-- production has completed the agreed parallel validation and rollback window;
+- production has passed unified-site and redirect verification;
 - the Python release policy and CI use the new documentation export contract;
 - no hand-maintained duplicate API reference exists; and
 - the final migration record lists every correction and intentionally retired
   placeholder or Sphinx-only feature.
 
 Until every criterion passes, the work remains a migration in progress and the
-Sphinx sources and rollback artifact remain authoritative recovery inputs.
+Sphinx sources and rollback artifact remain authoritative recovery inputs, not
+a second public documentation site.

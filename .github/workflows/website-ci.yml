@@ -111,11 +111,62 @@ jobs:
           path: apps/website/dist
           if-no-files-found: error
           retention-days: 14
-      - name: Upload reversible legacy-domain redirect artifact
+      - name: Upload retired legacy-domain redirect site
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: python-api-redirects-${{ github.sha }}
-          path: apps/website/.docs-assembly/python-api._redirects
+          name: python-api-retirement-${{ github.sha }}
+          path: apps/website/.docs-assembly/python-api-site
           if-no-files-found: error
-          include-hidden-files: true
           retention-days: 14
+
+  deploy:
+    name: Deploy unified documentation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: website
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: public-documentation-production
+      cancel-in-progress: false
+    environment:
+      name: public-documentation-production
+      url: https://junjo.ai/
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.12"
+      - name: Download exact public documentation artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: public-documentation-next-${{ github.sha }}
+          path: .deployment/public-documentation
+      - name: Download retired legacy-domain redirect site
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: python-api-retirement-${{ github.sha }}
+          path: .deployment/python-api-retirement
+      - name: Deploy exact unified documentation artifact
+        run: >-
+          npx --yes wrangler@4.111.0 pages deploy
+          "$GITHUB_WORKSPACE/.deployment/public-documentation"
+          --project-name=junjo-website
+          --branch=master
+          --commit-hash="$GITHUB_SHA"
+          --commit-message="Unified documentation $GITHUB_SHA"
+          --commit-dirty=false
+      - name: Retire legacy Python API documentation site
+        run: >-
+          npx --yes wrangler@4.111.0 pages deploy
+          "$GITHUB_WORKSPACE/.deployment/python-api-retirement"
+          --project-name=junjo-python-api
+          --branch=master
+          --commit-hash="$GITHUB_SHA"
+          --commit-message="Retire Python API documentation $GITHUB_SHA"
+          --commit-dirty=false

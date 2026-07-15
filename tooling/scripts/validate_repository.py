@@ -365,6 +365,28 @@ def validate_website_build_contract() -> None:
         "npm run validate:build" in website_ci,
         "website CI must validate generated internal links and source references",
     )
+    required_deployment_contract = (
+        "name: public-documentation-${{ env.JUNJO_DOCS_CHANNEL }}-${{ github.sha }}",
+        "name: public-documentation-next-${{ github.sha }}",
+        "name: python-api-retirement-${{ github.sha }}",
+        "npx --yes wrangler@4.111.0 pages deploy",
+        "--project-name=junjo-website",
+        "--project-name=junjo-python-api",
+        "CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
+        "CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
+    )
+    require(
+        all(fragment in website_ci for fragment in required_deployment_contract),
+        "website CI must direct-upload the exact retained site and retirement artifacts",
+    )
+    assembler = (PLATFORM_ROOT / "tooling/docs/assemble_public_docs.py").read_text(
+        encoding="utf-8"
+    )
+    require(
+        'LEGACY_REDIRECT_TARGET = "https://junjo.ai/docs/python/"' in assembler
+        and 'f"/* {LEGACY_REDIRECT_TARGET} 301\\n"' in assembler,
+        "the retired Python API domain must use one permanent global redirect",
+    )
     validator = (PLATFORM_ROOT / "apps/website/scripts/validate-build.mjs").read_text(
         encoding="utf-8"
     )

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-14
+- Amended: 2026-07-15 (production deployment and legacy-domain retirement)
 - Owners: Junjo platform, SDKs, Studio, and website
 - Supersedes: the documentation publishing and isolated website-build clauses
   of [ADR 0001](0001-junjo-platform-monorepo.md)
@@ -78,12 +79,33 @@ is proven by the cross-component assembly workflow.
   with section-level provenance and parity validation.
 - Existing Python docstrings are parsed as Sphinx style during migration; a
   docstring-style rewrite is a separate decision.
-- Sphinx remains warning-strict and deployable until narrative, API, route,
-  anchor, search, version, and release parity are verified.
-- `python-api.junjo.ai` becomes a compatibility redirect only after the
-  parallel validation and rollback gates pass.
+- Sphinx remains warning-strict as a parity and rollback input until narrative,
+  API, route, anchor, search, version, and release parity are verified.
+- `python-api.junjo.ai` becomes the approved global retirement redirect only
+  after the exact unified artifact passes its production build gates.
 - Sphinx dependencies and sources are retired only in a later, explicit
   cutover after the roadmap's completion criteria are satisfied.
+
+### Production Cutover Amendment (2026-07-15)
+
+The owner approved the production cutover with two explicit changes to the
+initial compatibility plan:
+
+- GitHub Actions is the production builder and deployer. It assembles and
+  validates one immutable `apps/website/dist` artifact, retains it, and direct
+  uploads that exact artifact to the `junjo-website` Cloudflare Pages project.
+  Cloudflare automatic Git builds are disabled at activation.
+- The public Sphinx deployment is retired with one permanent global redirect:
+  every request on `python-api.junjo.ai` returns a `301` to
+  `https://junjo.ai/docs/python/`. Page-by-page route and fragment redirects are
+  intentionally not part of the retirement surface.
+
+This amendment supersedes the roadmap's original page-level compatibility and
+parallel-publication requirements. It does not authorize deleting or rewriting
+the migrated content. The route ledger, API baseline, Sphinx source, and final
+Sphinx artifact remain as migration evidence and rollback inputs. Sphinx may
+continue to run as a warning-strict parity check until a separate cleanup
+removes that validation dependency.
 
 ## Consequences
 
@@ -97,8 +119,9 @@ alone; it is a static assembly of explicitly versioned inputs. That added build
 coordination is accepted because it prevents manually copied API reference and
 keeps stable docs aligned with released packages.
 
-The migration temporarily maintains both Sphinx and Starlight outputs. This is
-intentional risk control, not a permanent compatibility abstraction.
+The migration retains the Sphinx source and final static artifact as recovery
+inputs, but only the unified Starlight site remains a public documentation
+surface after cutover.
 
 ## Rejected Alternatives
 

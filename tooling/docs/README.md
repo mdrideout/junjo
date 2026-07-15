@@ -17,10 +17,10 @@ product documentation.
 4. Astro/Starlight builds one immutable deployable. The post-build validator
    checks all routes, anchors, links, search output, sitemap output, migration
    entries, and Sphinx API objects.
-5. Assembly emits `.docs-assembly/python-api._redirects`, a reversible
-   Cloudflare Pages compatibility artifact for the legacy domain. Never deploy
-   that file on `junjo.ai`; deploy it on `python-api.junjo.ai` only after the
-   roadmap's parallel validation gate.
+5. Assembly emits `.docs-assembly/python-api-site`, a separately deployable
+   Cloudflare Pages retirement artifact. Its single permanent rule redirects
+   every `python-api.junjo.ai` request to `https://junjo.ai/docs/python/`.
+   Never include this artifact in the `junjo.ai` deployment.
 
 Run the converter in its isolated dependency environment:
 
@@ -47,6 +47,21 @@ The default channel is `next`. A release workflow can set
 source revision. The channel is visible on API pages and recorded in both
 manifests, so an unreleased source preview cannot silently masquerade as stable
 documentation.
+
+## Cloudflare deployment
+
+The `Public Documentation` workflow is the only production build pipeline. It
+assembles, validates, and uploads `apps/website/dist`, then a separate deploy
+job downloads that exact artifact and publishes it to the `junjo-website`
+Cloudflare Pages project. Only after that succeeds does it deploy
+`.docs-assembly/python-api-site` to `junjo-python-api`, retiring the Sphinx site
+with the global `301` redirect.
+
+The GitHub `public-documentation-production` environment owns
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. The token needs only
+Cloudflare Pages edit access for the owning account. Cloudflare's automatic Git
+deployments must be disabled when this pipeline is activated so a second build
+cannot overwrite the validated artifact.
 
 ## Language SDK artifact contract
 

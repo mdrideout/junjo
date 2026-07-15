@@ -46,10 +46,17 @@ the completed production build.
 This component deliberately keeps its own `package-lock.json`; it is not part
 of a repository-wide JavaScript workspace. CI installs each documentation
 producer with its own lock, assembles one exact artifact, and publishes only
-`apps/website/dist`. Assembly also emits the separately uploaded
-`.docs-assembly/python-api._redirects` compatibility artifact. That redirect
-file belongs only on the legacy `python-api.junjo.ai` project after the
-parallel-run gate; it must never be deployed on `junjo.ai`.
+`apps/website/dist`. A second deployable directory,
+`.docs-assembly/python-api-site`, contains the global permanent redirect used
+to retire `python-api.junjo.ai`. It belongs only on the `junjo-python-api`
+Cloudflare Pages project and must never be deployed on `junjo.ai`.
+
+On a successful `master` build, GitHub Actions downloads the exact retained
+artifacts and deploys `dist` to `junjo-website` before deploying the retirement
+artifact to `junjo-python-api`. The `public-documentation-production` GitHub
+environment owns the Cloudflare account ID and least-privilege Pages API token.
+Cloudflare automatic Git deployments are disabled after direct upload is
+activated; production is never rebuilt independently from source in two places.
 
 CI labels ordinary source builds as `next`. A caller may request the `stable`
 channel only from the exact released checkout; the channel, SDK version, and
