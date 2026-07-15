@@ -7,8 +7,16 @@ import { SpanIdSchema, TraceIdSchema } from './schemas/agent-execution'
 import { selectAgentExecutionDetailRequest } from './store/selectors'
 import { TracesStateActions } from '../traces/store/slice'
 
-export default function AgentExecutionDetailPage() {
-  const { traceId, agentSpanId } = useParams()
+interface AgentExecutionDetailPageProps {
+  routeIdentity?: {
+    traceId: string
+    agentSpanId: string
+  }
+}
+
+export default function AgentExecutionDetailPage({ routeIdentity }: AgentExecutionDetailPageProps = {}) {
+  const routeParameters = useParams()
+  const { traceId, agentSpanId } = routeIdentity ?? routeParameters
   const identityIsValid =
     TraceIdSchema.safeParse(traceId).success && SpanIdSchema.safeParse(agentSpanId).success
   const dispatch = useAppDispatch()

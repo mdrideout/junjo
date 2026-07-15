@@ -7,11 +7,12 @@ This document covers testing patterns and practices for Junjo AI Studio.
 1. [Running Tests](#running-tests)
 2. [Testing Strategy Overview](#testing-strategy-overview)
 3. [Platform Telemetry Contract](#platform-telemetry-contract)
-4. [Contract Testing (Frontend/Backend)](#contract-testing-frontendbackend)
-5. [Integration Testing with MSW](#integration-testing-with-msw)
-6. [Shared Test Fixtures](#shared-test-fixtures)
-7. [Common Testing Pitfalls](#common-testing-pitfalls)
-8. [Backend Test Markers](#backend-test-markers)
+4. [Workflow Execution Exploration](#workflow-execution-exploration)
+5. [Contract Testing (Frontend/Backend)](#contract-testing-frontendbackend)
+6. [Integration Testing with MSW](#integration-testing-with-msw)
+7. [Shared Test Fixtures](#shared-test-fixtures)
+8. [Common Testing Pitfalls](#common-testing-pitfalls)
+9. [Backend Test Markers](#backend-test-markers)
 
 ---
 
@@ -124,6 +125,33 @@ Backend and frontend transport tests load the same files from
 `contracts/telemetry/fixtures/workflow`. A semantic telemetry change must update
 the contract version or schema as appropriate and keep all producer and
 consumer tests green in one change.
+
+---
+
+## Workflow Execution Exploration
+
+Workflow detail is one interaction across the Graph, nested span tree, Store
+transition list, state projection, detail panel, and URL. A change to any one
+surface must preserve the matrix in Studio ADR-008.
+
+| Behavior | Test owner |
+| --- | --- |
+| Graph snapshot to span matching, including Agent ancestry | `src/mermaidjs/junjo-graph-span-matching.test.ts` |
+| Installed Mermaid DOM to Junjo identity | `src/mermaidjs/mermaid-dom-adapter.test.ts` |
+| Graph click and selected-span highlight | `src/mermaidjs/RenderJunjoGraphMermaid.test.tsx` |
+| Route restoration and cross-Workflow reset | `src/features/junjo-data/workflow-detail/WorkflowDetailPage.test.tsx` |
+| Store sequence and previous/next selection | `src/features/junjo-data/workflow-detail/WorkflowStoreTransitionNavigation.test.tsx` |
+| Pending semantic link becoming resolved content | `src/features/execution-resolution/ExecutionResolverPage.test.tsx` |
+| Store status presentation | `src/features/workflow-executions/components/WorkflowStoreDiagnosticsNotice.test.tsx` |
+
+The Mermaid adapter test must call the actual installed Mermaid renderer. A
+fixture containing hand-authored legacy SVG IDs is insufficient. Cover normal
+nodes, RunConcurrent clusters, Subflow parent/child Graphs, unexecuted nodes,
+edge-label rerendering, and a model or Agent span nested inside a Workflow Node.
+
+When `package-lock.json` changes, review Mermaid and its renderer dependencies
+even if `package.json` did not change. Run the complete frontend tests, lint,
+and production build after any renderer or selection change.
 
 ---
 

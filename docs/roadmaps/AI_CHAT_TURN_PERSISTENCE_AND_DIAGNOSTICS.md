@@ -106,10 +106,11 @@ input rather than domain identity.
   type, and runtime ID input.
 - Select only executable owner spans and reject ambiguous evidence.
 - Return the exact physical identity and Studio-relative destination.
-- Add an authenticated frontend resolver route with bounded polling for OTLP
-  ingestion delay.
-- Redirect resolved Agent and Workflow identities into their existing semantic
-  detail views.
+- Add an authenticated semantic execution page that renders immediately,
+  treats not-yet-indexed telemetry as pending, and continues exact resolution
+  with capped backoff while the page remains open.
+- Render resolved Agent, Workflow, or trace detail in place so the application
+  link remains canonical.
 
 ### 6. Debug UX and end-to-end proof
 
@@ -148,15 +149,17 @@ infrastructure. This does not establish faithful AI Chat product restoration.
   consumer fixtures, 41 invalid fixtures, 22 fingerprint vectors, 7 RFC 6902
   vectors, and 575 bounded malformed-scalar mutations.
 - Studio's complete routed suite passed backend, ingestion, frontend, OpenAPI,
-  and protobuf validation. The new resolver also has exact-query repository,
-  service, router, browser-polling, and generated-contract tests.
+  and protobuf validation. The resolver has exact-query repository, service,
+  router, semantic-page readiness, and generated-contract tests. Its original
+  bounded holding screen was corrected on 2026-07-15 under root ADR 0007.
 - A disposable current-code Studio stack admitted a real Turn asynchronously,
   reloaded its canonical JSON from a fresh application instance, ingested the
   exact fourteen-span reduced demonstration execution tree, verified Turn correlation on
   every executable owner, served one cohesive `TraceEvidence` document,
   resolved the outer Workflow, Agent, and nested Workflow by runtime identity,
-  replayed all three Stores, and navigated through the stable resolver URL into
-  the Agent and nested Workflow diagnostics UI.
+  replayed all three Stores, and rendered Agent diagnostics at the stable
+  semantic execution URL before navigating to the nested Workflow diagnostics
+  UI.
 
 ## Explicitly deferred
 

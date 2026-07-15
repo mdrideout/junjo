@@ -140,7 +140,6 @@ try {
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.waitForFunction(() => window.location.pathname !== '/sign-in', undefined, { timeout })
 
-  const agentUrl = `${frontendOrigin}/agents/${evidence.trace_id}/${evidence.agent_span_id}`
   const resolverUrl = new URL('/resolve/executable', frontendOrigin)
   resolverUrl.searchParams.set('service_namespace', evidence.service_namespace)
   resolverUrl.searchParams.set('service_name', evidence.service_name)
@@ -148,8 +147,8 @@ try {
   resolverUrl.searchParams.set('runtime_id', evidence.agent_run_id)
   resolverUrl.searchParams.set('destination', 'detail')
   await page.goto(resolverUrl.href, { waitUntil: 'domcontentloaded', timeout })
-  await page.waitForURL(agentUrl, { timeout })
   await visible(page.getByRole('heading', { level: 1, name: evidence.agent_name, exact: true }), 'Agent heading', timeout)
+  assert.equal(page.url(), resolverUrl.href, 'semantic execution URL should remain canonical')
   await visible(page.getByRole('region', { name: 'Evidence integrity' }), 'evidence integrity', timeout)
   await visible(page.getByText('Contract evidence: complete', { exact: true }), 'complete evidence label', timeout)
   await visible(page.getByText(`run ${evidence.agent_run_id.slice(0, 6)}…${evidence.agent_run_id.slice(-6)}`, { exact: true }), 'Agent run identity', timeout)
@@ -183,17 +182,16 @@ try {
     `${frontendOrigin}/workflows/${encodeURIComponent(evidence.service_name)}/${evidence.trace_id}/${evidence.nested_workflow_span_id}`,
     { timeout },
   )
-  const workflowStoreEvidence = page.getByRole('region', { name: 'Workflow Store evidence' })
-  await visible(workflowStoreEvidence, 'Workflow Store evidence', timeout)
   await visible(
     page.getByText(`${evidence.nested_workflow_name} (${evidence.nested_workflow_span_id})`, { exact: true }),
     'nested Workflow identity',
     timeout,
   )
-  await visible(
-    workflowStoreEvidence.getByText('Backend Store replay verified', { exact: true }),
-    'verified Workflow Store replay',
-    timeout,
+  await visible(page.getByRole('button', { name: 'Before', exact: true }), 'verified Workflow state', timeout)
+  assert.equal(
+    await page.getByRole('region', { name: 'Workflow Store diagnostics' }).count(),
+    0,
+    'healthy Workflow Store diagnostics should be silent',
   )
 
   assert.ok(observedTraceEvidence, 'the cohesive TraceEvidence request was not observed')

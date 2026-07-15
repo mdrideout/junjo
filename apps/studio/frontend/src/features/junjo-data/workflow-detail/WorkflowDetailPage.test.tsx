@@ -13,7 +13,10 @@ import {
 import tracesSlice from '../../traces/store/slice'
 import { rawStateEventIdentity } from './state-event-identity'
 import WorkflowDetailPage from './WorkflowDetailPage'
-import workflowDetailSlice, { WorkflowDetailStateActions } from './store/slice'
+import workflowDetailSlice, {
+  spanSelection,
+  WorkflowDetailStateActions,
+} from './store/slice'
 import { makeTraceEvidence } from '../../traces/testing/make-trace-evidence'
 
 vi.mock('./WorkflowDetailNavButtons', () => ({ default: () => null }))
@@ -67,7 +70,7 @@ function makeStore(basicSpans: OtelSpan[], subflowSpans: OtelSpan[]) {
     },
     preloadedState: {
       workflowDetailState: {
-        activeSpan: staleSpan,
+        activeSpanIdentity: spanSelection(staleSpan),
         activeStateEvent: staleEvent.selection,
         stateEventScrollTarget: staleEvent.identity,
         openFailuresTrigger: 1,
@@ -121,7 +124,7 @@ describe('WorkflowDetailPage route lifecycle', () => {
 
     await user.click(screen.getByRole('link', { name: 'Open nested Workflow' }))
     await waitFor(() => {
-      expect(store.getState().workflowDetailState.activeSpan?.span_id)
+      expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
         .toBe(subflowWorkflow.span_id)
     })
     expect(store.getState().workflowDetailState.activeStateEvent).toBeNull()
@@ -129,14 +132,14 @@ describe('WorkflowDetailPage route lifecycle', () => {
     expect(store.getState().workflowDetailState.openFailuresTrigger).toBeNull()
 
     act(() => {
-      store.dispatch(WorkflowDetailStateActions.setActiveSpan(subflowEventSpan))
+      store.dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(subflowEventSpan)))
       store.dispatch(WorkflowDetailStateActions.setActiveStateEvent(subflowEvent.selection))
       store.dispatch(WorkflowDetailStateActions.setStateEventScrollTarget(subflowEvent.identity))
     })
     await act(async () => {
       await router.navigate(`${nestedWorkflowRoute}/${subflowEventSpan.span_id}`)
     })
-    expect(store.getState().workflowDetailState.activeSpan?.span_id)
+    expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
       .toBe(subflowEventSpan.span_id)
     expect(store.getState().workflowDetailState.activeStateEvent?.eventId)
       .toBe('state-event-subflow-01')
@@ -147,7 +150,7 @@ describe('WorkflowDetailPage route lifecycle', () => {
     expect(await screen.findByRole('heading', { name: 'Span not found' })).toBeInTheDocument()
     expect(screen.getByText(/is not part of Workflow/)).toBeInTheDocument()
     await waitFor(() => {
-      expect(store.getState().workflowDetailState.activeSpan).toBeNull()
+      expect(store.getState().workflowDetailState.activeSpanIdentity).toBeNull()
     })
     expect(store.getState().workflowDetailState.activeStateEvent).toBeNull()
     expect(store.getState().workflowDetailState.stateEventScrollTarget).toBeNull()
@@ -156,7 +159,7 @@ describe('WorkflowDetailPage route lifecycle', () => {
       await router.navigate(`${nestedWorkflowRoute}/${differentSubflowSpan.span_id}`)
     })
     await waitFor(() => {
-      expect(store.getState().workflowDetailState.activeSpan?.span_id)
+      expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
         .toBe(differentSubflowSpan.span_id)
     })
     expect(store.getState().workflowDetailState.activeStateEvent).toBeNull()
@@ -166,7 +169,7 @@ describe('WorkflowDetailPage route lifecycle', () => {
       await router.navigate(basicWorkflowRoute)
     })
     await waitFor(() => {
-      expect(store.getState().workflowDetailState.activeSpan?.span_id)
+      expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
         .toBe(basicWorkflow.span_id)
     })
     expect(store.getState().workflowDetailState.activeStateEvent).toBeNull()
@@ -197,7 +200,7 @@ describe('WorkflowDetailPage route lifecycle', () => {
 
     expect(await screen.findByRole('heading', { name: 'Span not found' })).toBeInTheDocument()
     await waitFor(() => {
-      expect(store.getState().workflowDetailState.activeSpan).toBeNull()
+      expect(store.getState().workflowDetailState.activeSpanIdentity).toBeNull()
     })
     expect(store.getState().workflowDetailState.activeStateEvent).toBeNull()
     expect(store.getState().workflowDetailState.stateEventScrollTarget).toBeNull()

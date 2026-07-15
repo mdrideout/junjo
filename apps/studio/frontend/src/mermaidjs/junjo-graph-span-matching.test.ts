@@ -1,12 +1,20 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { loadJunjoTransportFixtureCase } from '../test-utils/junjo-fixture-loader'
 import { OtelSpan, OtelSpanSchema } from '../features/traces/schemas/schemas'
 import { JGraph, JGraphSchema } from '../junjo-graph/schemas'
 import {
   findRenderedGraphNodeIdForSpan,
+  findNearestSpanRepresentedInGraph,
   findSpanForRenderedGraphNodeId,
 } from './junjo-graph-span-matching'
-import { extractGraphNodeIdFromMermaidElementId } from './mermaid-render-utils'
+
+const telemetryFixtures = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../../../contracts/telemetry/fixtures',
+)
 
 function loadFixtureSpans(caseName: string): OtelSpan[] {
   const fixture = loadJunjoTransportFixtureCase(caseName)
@@ -50,15 +58,10 @@ describe('Junjo graph span matching', () => {
     const spans = loadFixtureSpans('run_concurrent_success')
     const graph = loadWorkflowGraph(spans, '3333333333333331')
     const concurrentSpan = findSpan(spans, '3333333333333333')
-    const renderedClusterId = extractGraphNodeIdFromMermaidElementId('run.concurrent.fanout')
 
     expect(findSpanForRenderedGraphNodeId(graph, 'run.concurrent.fanout', spans)?.span_id).toBe(
       '3333333333333333',
     )
-    expect(renderedClusterId).toBe('run.concurrent.fanout')
-    expect(
-      renderedClusterId ? findSpanForRenderedGraphNodeId(graph, renderedClusterId, spans)?.span_id : null,
-    ).toBe('3333333333333333')
     expect(findRenderedGraphNodeIdForSpan(graph, concurrentSpan)).toBe('run.concurrent.fanout')
   })
 
@@ -71,5 +74,21 @@ describe('Junjo graph span matching', () => {
       '2222222222222223',
     )
     expect(findRenderedGraphNodeIdForSpan(graph, subflowSpan)).toBe('node.subflow.container')
+  })
+
+  it('maps Agent and model descendants to the nearest Node represented in the Workflow Graph', () => {
+    const fixture = JSON.parse(fs.readFileSync(
+      path.join(telemetryFixtures, 'agent/producer/agent_inside_workflow_node.json'),
+      'utf8',
+    )) as { spans: unknown[] }
+    const spans = OtelSpanSchema.array().parse(fixture.spans)
+    const graph = loadWorkflowGraph(spans, 'd838aca111e3a971')
+    const agentSpan = findSpan(spans, '98d460d32e3bcb3e')
+    const modelSpan = findSpan(spans, '2c1f5a649f51c1b3')
+
+    expect(findNearestSpanRepresentedInGraph(graph, agentSpan, spans)?.span_id)
+      .toBe('d528888d4b23da30')
+    expect(findNearestSpanRepresentedInGraph(graph, modelSpan, spans)?.span_id)
+      .toBe('d528888d4b23da30')
   })
 })

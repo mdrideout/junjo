@@ -11,6 +11,7 @@ import { loadJunjoTransportFixtureCase } from '../../../test-utils/junjo-fixture
 import { OtelSpan, OtelSpanSchema } from '../../traces/schemas/schemas'
 import tracesSlice from '../../traces/store/slice'
 import workflowDetailSlice from './store/slice'
+import { spanSelection } from './store/slice'
 import { makeTraceEvidence } from '../../traces/testing/make-trace-evidence'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
 import {
@@ -74,7 +75,7 @@ function renderStateDiff({
     },
     preloadedState: {
       workflowDetailState: {
-        activeSpan,
+        activeSpanIdentity: spanSelection(activeSpan),
         activeStateEvent: null,
         stateEventScrollTarget: null,
         openFailuresTrigger: null,
@@ -125,7 +126,7 @@ describe('WorkflowDetailStateDiff', () => {
     })
 
     expect(screen.getByText('Basic Information')).toBeInTheDocument()
-    expect(await screen.findByText('Backend Store replay verified')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Workflow Store diagnostics')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Before' }))
 
@@ -157,7 +158,7 @@ describe('WorkflowDetailStateDiff', () => {
       diagnostic: detail,
     })
 
-    expect(await screen.findByText('Backend Store replay verification failed')).toBeInTheDocument()
+    expect(await screen.findByText('State history could not be verified')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Before' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'After' })).not.toBeInTheDocument()
     expect(screen.getByText('patch_replay_mismatch')).toBeInTheDocument()

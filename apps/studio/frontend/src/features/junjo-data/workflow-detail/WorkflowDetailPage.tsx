@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router'
+import { Link } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
@@ -14,9 +14,12 @@ import WorkflowDetailStateNav from './WorkflowDetailStateNav'
 import { TracesStateActions } from '../../traces/store/slice'
 import { WorkflowDetailStateActions } from './store/slice'
 import { useActiveWorkflowStoreDiagnostic } from './use-active-workflow-store-diagnostic'
+import { useWorkflowDetailRoute } from './workflow-detail-route-context'
+import { selectWorkflowDetailActiveSpan } from './store/selectors'
+import { spanSelection } from './store/slice'
 
 export default function WorkflowDetailPage() {
-  const { serviceName, traceId, workflowSpanId, spanId } = useParams()
+  const { serviceName, traceId, workflowSpanId, spanId } = useWorkflowDetailRoute()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
@@ -36,7 +39,7 @@ export default function WorkflowDetailPage() {
   )
   const routeTargetSpanId = spanId ?? workflowSpanId
   const routeTargetSpan = workflowSpans.find((span) => span.span_id === routeTargetSpanId)
-  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
   const activeStoreDiagnostic = useActiveWorkflowStoreDiagnostic(
     traceId ?? '',
     workflowSpanId ?? '',
@@ -94,7 +97,7 @@ export default function WorkflowDetailPage() {
       initializedRouteTargetIdentityRef.current = routeTargetIdentity
       pendingRouteTargetIdentityRef.current = null
       if (!selectedTargetMatches) {
-        dispatch(WorkflowDetailStateActions.initializeWorkflowRoute(routeTargetSpan))
+        dispatch(WorkflowDetailStateActions.initializeWorkflowRoute(spanSelection(routeTargetSpan)))
       }
       return
     }

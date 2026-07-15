@@ -5,12 +5,14 @@ import type { RootState } from '../../../root-store/store'
 import type { StoreTransition } from '../../store-diagnostics/schemas/store-diagnostics'
 import { JunjoSetStateEventSchema } from '../../traces/schemas/schemas'
 import { selectTraceSpansForTraceId } from '../../traces/store/selectors'
-import { WorkflowDetailStateActions } from './store/slice'
+import { spanSelection, WorkflowDetailStateActions } from './store/slice'
 import {
   rawStateEventIdentity,
   stateEventIdentityKey,
   transitionStateEventIdentity,
 } from './state-event-identity'
+import { useNavigate } from 'react-router'
+import { useWorkflowDetailRoute } from './workflow-detail-route-context'
 
 interface WorkflowStateEventNavButtonsProps {
   traceId: string
@@ -24,6 +26,8 @@ export default function WorkflowStateEventNavButtons({
   transitions,
 }: WorkflowStateEventNavButtonsProps) {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const route = useWorkflowDetailRoute()
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
@@ -70,9 +74,13 @@ export default function WorkflowStateEventNavButtons({
     const span = spansById.get(transition.span_id)
     if (event === undefined || span === undefined) return
 
-    dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+    dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
     dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
     dispatch(WorkflowDetailStateActions.setStateEventScrollTarget(identity))
+    navigate(
+      `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${span.span_id}`,
+      { replace: true },
+    )
   }
 
   return (

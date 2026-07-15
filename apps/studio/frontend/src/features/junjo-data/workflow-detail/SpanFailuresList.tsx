@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useAppDispatch } from '../../../root-store/hooks'
 import { OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from '../span-lists/determine-span-icon'
-import { WorkflowDetailStateActions } from './store/slice'
+import { spanSelection, WorkflowDetailStateActions } from './store/slice'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 
 interface SpanFailuresListProps {
@@ -63,7 +63,7 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
               <button
                 className={'font-bold cursor-pointer text-left hover:underline'}
                 onClick={() => {
-                  dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                  dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
                   dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
                   dispatch(WorkflowDetailStateActions.setOpenFailuresTrigger())
                 }}

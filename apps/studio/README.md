@@ -519,13 +519,15 @@ frontend link of this form:
 /resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=agent&runtime_id=<run-id>&destination=detail
 ```
 
-The authenticated frontend polls the exact backend resolution boundary for a
-bounded ingestion window and then replaces the stable URL with the existing
-Agent, Workflow, or full-trace route. Resolution requires service namespace,
-service name, executable type, and runtime ID. Missing evidence remains not
-found; multiple matching owner spans are an explicit conflict and Studio never
-selects the newest match. Applications do not receive a Studio API credential
-to construct or follow these links.
+The authenticated frontend renders the semantic execution page immediately.
+While telemetry is still arriving, it shows an in-context pending message and
+continues exact resolution with capped backoff. When the execution becomes
+available, the ordinary Agent, Workflow, or full-trace detail renders in place
+without replacing the stable URL. Resolution requires service namespace,
+service name, executable type, and runtime ID. Multiple matching owner spans
+are an explicit conflict and Studio never selects the newest match.
+Applications do not receive a Studio API credential to construct or follow
+these links.
 
 ### Database & Storage Access
 

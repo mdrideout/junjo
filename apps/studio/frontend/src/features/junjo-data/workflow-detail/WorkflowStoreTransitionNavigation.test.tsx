@@ -5,6 +5,8 @@ import { configureStore } from '@reduxjs/toolkit'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
+import { MemoryRouter } from 'react-router'
+import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { loadJunjoTransportFixtureCase } from '../../../test-utils/junjo-fixture-loader'
 import FlatStateEventsList from '../span-lists/FlatStateEventsList'
@@ -19,6 +21,7 @@ import {
 } from '../../traces/schemas/schemas'
 import tracesSlice from '../../traces/store/slice'
 import workflowDetailSlice from './store/slice'
+import { spanSelection } from './store/slice'
 import { makeTraceEvidence } from '../../traces/testing/make-trace-evidence'
 import WorkflowStateEventNavButtons from './WorkflowStateDiffNavButtons'
 import {
@@ -26,6 +29,7 @@ import {
   type StateEventIdentity,
   type StateEventSelection,
 } from './state-event-identity'
+import { WorkflowDetailRouteProvider } from './workflow-detail-route'
 
 const testDirectory = path.dirname(fileURLToPath(import.meta.url))
 const workflowProjectionPath = path.resolve(
@@ -81,7 +85,7 @@ function makeStore(spans: OtelSpan[], stateEventScrollTarget: StateEventIdentity
     },
     preloadedState: {
       workflowDetailState: {
-        activeSpan: firstEventSpan,
+        activeSpanIdentity: spanSelection(firstEventSpan),
         activeStateEvent: findStateEvent(spans, 'state-event-basic-01'),
         stateEventScrollTarget,
         openFailuresTrigger: null,
@@ -96,6 +100,28 @@ function makeStore(spans: OtelSpan[], stateEventScrollTarget: StateEventIdentity
   })
 }
 
+function WorkflowRoute({
+  diagnostic,
+  children,
+}: {
+  diagnostic: WorkflowStoreDiagnostic
+  children: ReactNode
+}) {
+  return (
+    <MemoryRouter>
+      <WorkflowDetailRouteProvider
+        identity={{
+          serviceName: 'basic-service',
+          traceId: diagnostic.trace_id,
+          workflowSpanId: diagnostic.workflow_span_id,
+        }}
+      >
+        {children}
+      </WorkflowDetailRouteProvider>
+    </MemoryRouter>
+  )
+}
+
 describe('Workflow Store transition navigation', () => {
   it('navigates by backend transition sequence even when raw timestamps and response order disagree', async () => {
     const user = userEvent.setup()
@@ -104,11 +130,13 @@ describe('Workflow Store transition navigation', () => {
 
     render(
       <Provider store={store}>
-        <WorkflowStateEventNavButtons
-          traceId={diagnostic.trace_id}
-          storeId={diagnostic.state.store_id}
-          transitions={diagnostic.state.transitions}
-        />
+        <WorkflowRoute diagnostic={diagnostic}>
+          <WorkflowStateEventNavButtons
+            traceId={diagnostic.trace_id}
+            storeId={diagnostic.state.store_id}
+            transitions={diagnostic.state.transitions}
+          />
+        </WorkflowRoute>
       </Provider>,
     )
 
@@ -121,7 +149,7 @@ describe('Workflow Store transition navigation', () => {
       .toBe('store-basic-01')
     expect(store.getState().workflowDetailState.activeStateEvent?.spanId)
       .toBe('1111111111111113')
-    expect(store.getState().workflowDetailState.activeSpan?.span_id)
+    expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
       .toBe('1111111111111113')
   })
 
@@ -131,11 +159,13 @@ describe('Workflow Store transition navigation', () => {
 
     render(
       <Provider store={store}>
-        <FlatStateEventsList
-          traceId={diagnostic.trace_id}
-          workflowSpanId={diagnostic.workflow_span_id}
-          storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }}
-        />
+        <WorkflowRoute diagnostic={diagnostic}>
+          <FlatStateEventsList
+            traceId={diagnostic.trace_id}
+            workflowSpanId={diagnostic.workflow_span_id}
+            storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }}
+          />
+        </WorkflowRoute>
       </Provider>,
     )
 
@@ -164,11 +194,13 @@ describe('Workflow Store transition navigation', () => {
 
     render(
       <Provider store={store}>
-        <WorkflowStateEventNavButtons
-          traceId={diagnostic.trace_id}
-          storeId={diagnostic.state.store_id}
-          transitions={diagnostic.state.transitions}
-        />
+        <WorkflowRoute diagnostic={diagnostic}>
+          <WorkflowStateEventNavButtons
+            traceId={diagnostic.trace_id}
+            storeId={diagnostic.state.store_id}
+            transitions={diagnostic.state.transitions}
+          />
+        </WorkflowRoute>
       </Provider>,
     )
 
@@ -208,16 +240,18 @@ describe('Workflow Store transition navigation', () => {
       const store = makeStore(spans)
       render(
         <Provider store={store}>
-          <WorkflowStateEventNavButtons
-            traceId={diagnostic.trace_id}
-            storeId={diagnostic.state.store_id}
-            transitions={diagnostic.state.transitions}
-          />
-          <FlatStateEventsList
-            traceId={diagnostic.trace_id}
-            workflowSpanId={diagnostic.workflow_span_id}
-            storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }}
-          />
+          <WorkflowRoute diagnostic={diagnostic}>
+            <WorkflowStateEventNavButtons
+              traceId={diagnostic.trace_id}
+              storeId={diagnostic.state.store_id}
+              transitions={diagnostic.state.transitions}
+            />
+            <FlatStateEventsList
+              traceId={diagnostic.trace_id}
+              workflowSpanId={diagnostic.workflow_span_id}
+              storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }}
+            />
+          </WorkflowRoute>
         </Provider>,
       )
 

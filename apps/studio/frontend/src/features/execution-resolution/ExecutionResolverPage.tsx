@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { resolveExecution } from './fetch/resolve-execution'
 import {
   ExecutionResolutionRequestSchema,
+  type ExecutionResolution,
   type ExecutionResolutionRequest,
 } from './schemas'
+import { ResolvedExecutionDetail } from './ResolvedExecutionDetail'
 
-const MAX_RESOLUTION_ATTEMPTS = 15
-const RESOLUTION_RETRY_DELAY_MS = 1000
+const INITIAL_RESOLUTION_RETRY_DELAY_MS = 1_000
+const MAX_RESOLUTION_RETRY_DELAY_MS = 5_000
+
+function retryDelay(attempt: number): number {
+  return Math.min(
+    INITIAL_RESOLUTION_RETRY_DELAY_MS * 2 ** Math.min(attempt - 1, 3),
+    MAX_RESOLUTION_RETRY_DELAY_MS,
+  )
+}
 
 function requestFromSearch(search: string): ExecutionResolutionRequest | null {
   const parameters = new URLSearchParams(search)
@@ -23,14 +32,15 @@ function requestFromSearch(search: string): ExecutionResolutionRequest | null {
 
 export default function ExecutionResolverPage() {
   const location = useLocation()
-  const navigate = useNavigate()
   const request = useMemo(() => requestFromSearch(location.search), [location.search])
   const [attempt, setAttempt] = useState(1)
   const [error, setError] = useState<string | null>(null)
+  const [resolution, setResolution] = useState<ExecutionResolution | null>(null)
 
   useEffect(() => {
     setAttempt(1)
     setError(null)
+    setResolution(null)
   }, [request])
 
   useEffect(() => {
@@ -42,19 +52,13 @@ export default function ExecutionResolverPage() {
       .then((resolution) => {
         if (controller.signal.aborted) return
         if (resolution !== null) {
-          navigate(
-            request.destination === 'trace'
-              ? resolution.trace_path
-              : resolution.detail_path,
-            { replace: true },
-          )
+          setResolution(resolution)
           return
         }
-        if (attempt >= MAX_RESOLUTION_ATTEMPTS) {
-          setError('Studio did not receive this execution before the resolution window ended.')
-          return
-        }
-        retryTimer = setTimeout(() => setAttempt((current) => current + 1), RESOLUTION_RETRY_DELAY_MS)
+        retryTimer = setTimeout(
+          () => setAttempt((current) => current + 1),
+          retryDelay(attempt),
+        )
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) {
@@ -66,7 +70,7 @@ export default function ExecutionResolverPage() {
       controller.abort()
       if (retryTimer !== undefined) clearTimeout(retryTimer)
     }
-  }, [attempt, error, navigate, request])
+  }, [attempt, error, request])
 
   if (request === null) {
     return (
@@ -79,21 +83,39 @@ export default function ExecutionResolverPage() {
     )
   }
 
+  if (resolution !== null) {
+    return <ResolvedExecutionDetail request={request} resolution={resolution} />
+  }
+
   return (
-    <main className="mx-auto max-w-2xl p-8" aria-live="polite">
-      <h1 className="text-xl font-semibold">Resolving execution evidence</h1>
+    <main className="px-4 py-3" aria-live="polite">
+      <div className="mb-1 flex flex-wrap items-center gap-x-3 font-bold">
+        <Link to="/logs" className="hover:underline">Logs</Link>
+        <span aria-hidden="true">&rarr;</span>
+        <span>{request.service_name}</span>
+        <span aria-hidden="true">&rarr;</span>
+        <h1 className="font-bold">
+          {request.executable_type === 'agent' ? 'Agent execution' : 'Workflow execution'}
+        </h1>
+      </div>
+      <div className="break-all font-mono text-xs text-[var(--studio-text-subtle)]">
+        {request.runtime_id}
+      </div>
+      <hr className="my-4" />
       {error === null ? (
-        <p className="mt-2 text-sm text-zinc-600">
-          Waiting for telemetry from <strong>{request.service_name}</strong>… attempt {attempt} of{' '}
-          {MAX_RESOLUTION_ATTEMPTS}
-        </p>
+        <section
+          className="rounded-lg border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4"
+          role="status"
+        >
+          <h2 className="font-semibold">Telemetry is still arriving</h2>
+          <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+            Studio is waiting for this execution to be indexed. This page will update when its diagnostics are ready.
+          </p>
+        </section>
       ) : (
         <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-4" role="alert">
-          <p className="font-medium text-red-900">Execution evidence could not be resolved.</p>
+          <p className="font-medium text-red-900">Execution diagnostics could not be loaded.</p>
           <p className="mt-1 text-sm text-red-800">{error}</p>
-          <p className="mt-3 break-all font-mono text-xs text-red-700">
-            {request.executable_type}: {request.runtime_id}
-          </p>
         </div>
       )}
     </main>

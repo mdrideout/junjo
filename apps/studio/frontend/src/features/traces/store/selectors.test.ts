@@ -64,7 +64,9 @@ function buildState({
     },
     workflowDetailState: {
       ...baseState.workflowDetailState,
-      activeSpan: activeSpanId ? findSpan(spans, activeSpanId) : null,
+      activeSpanIdentity: activeSpanId && traceId
+        ? { traceId, spanId: findSpan(spans, activeSpanId).span_id }
+        : null,
       activeStateEvent: activeStateEventId ? findSetStateEvent(spans, activeStateEventId) : null,
       stateEventScrollTarget: null,
       openFailuresTrigger: null,

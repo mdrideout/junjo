@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-14
+- Last clarified: 2026-07-15
 - Owners: Junjo platform
 
 ## Context
@@ -97,10 +98,28 @@ Studio never selects the newest match.
 The service scope is required because Junjo runtime IDs are portable execution
 identities, not a Studio-global namespace contract.
 
-Studio also owns an authenticated frontend resolver route. It performs bounded
-polling for ingestion delay and redirects to the exact Agent or Workflow
-detail route after resolution. Applications link to this stable resolver route
-rather than constructing Studio's physical detail routes.
+Studio also owns an authenticated semantic execution route. Applications link
+to this route rather than constructing Studio's physical detail routes. The
+semantic route is a content route, not a holding screen:
+
+- it renders the authenticated Studio shell and requested execution identity
+  immediately;
+- a missing resolution means telemetry is still arriving, so the page shows an
+  in-context pending state and continues resolution with capped backoff for as
+  long as the page remains open;
+- it renders the ordinary Agent, Workflow, or trace detail surface when the
+  physical identity becomes available; and
+- it keeps the semantic URL as the canonical application link.
+
+There is no user-visible attempt counter or ingestion deadline. An unresolved
+execution is not an error merely because telemetry has not arrived yet. Invalid
+semantic input, authorization failure, an ambiguous identity, transport
+failure, and backend failure remain explicit errors.
+
+Telemetry readiness and telemetry integrity are separate. Readiness answers
+whether Studio can locate the execution. Integrity answers whether the located
+telemetry is complete and internally coherent. A pending page makes no claim
+about integrity, and a resolved page may still show integrity diagnostics.
 
 ### Debug presentation does not change execution
 
@@ -116,8 +135,10 @@ configuration. The setting controls presentation only:
 
 Application objects, Junjo runs, and physical telemetry remain independently
 addressable while retaining deterministic links between them. Nested Workflow
-and Agent evidence can be found from one trusted application correlation
-without storing trace internals in the application.
+and Agent telemetry can be found from one trusted application correlation
+without storing trace internals in the application. A deep link is useful as
+soon as an application has a runtime ID, including while telemetry is in
+flight.
 
 The SDK gains a small public execution-input value and run-local propagation.
 Studio gains an exact resolver feature and URL contract. Cross-process
@@ -138,6 +159,9 @@ contract is accepted.
   results depend on physical telemetry concerns and duplicates Studio routing.
 - Let the application query raw Studio spans: it reverses the evidence-plane
   ownership boundary.
+- Bounded resolver holding screen followed by redirect: ingestion latency is
+  not an execution failure, attempt counts are implementation detail, and the
+  semantic application link should remain stable.
 
 ## Related decisions
 

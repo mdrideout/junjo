@@ -6,7 +6,7 @@ import {
   nanosecondsStringToMicroseconds,
 } from '../../../util/duration-utils'
 import { JSX, useEffect, useRef } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import {
   NodeEventType,
   JunjoSetStateEvent,
@@ -14,7 +14,11 @@ import {
   OtelSpan,
 } from '../../traces/schemas/schemas'
 import { PlayIcon } from '@heroicons/react/24/solid'
-import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import {
+  spanSelection,
+  WorkflowDetailStateActions,
+} from '../workflow-detail/store/slice'
+import { selectWorkflowDetailActiveSpan } from '../workflow-detail/store/selectors'
 import {
   rawStateEventIdentity,
   stateEventIdentityKey,
@@ -22,6 +26,7 @@ import {
 import NestedSpanRow from './NestedSpanRow'
 import { selectSpanAndChildren } from '../../traces/store/selectors'
 import { wrapSpan } from '../../traces/utils/span-accessor'
+import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 
 interface NestedWorkflowSpansProps {
   traceId: string
@@ -37,7 +42,9 @@ interface NestedWorkflowSpansProps {
 export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const { traceId, workflowSpanId } = props
   const dispatch = useAppDispatch()
-  const { serviceName } = useParams()
+  const navigate = useNavigate()
+  const route = useWorkflowDetailRoute()
+  const { serviceName } = route
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const spanRowRefs = useRef(new Map<string, HTMLDivElement>())
   const stateEventRowRefs = useRef(new Map<string, HTMLDivElement>())
@@ -45,7 +52,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
-  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
   const activeSpanId = activeSpan ? activeSpan.span_id : null
   const stateEventScrollTarget = useAppSelector(
     (state: RootState) => state.workflowDetailState.stateEventScrollTarget,
@@ -247,10 +254,14 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
             className={`p-1 cursor-pointer border-b last:border-0 border-zinc-200 dark:border-zinc-700 hover:bg-amber-200 dark:hover:bg-amber-900 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'} ${isActivePatch ? 'bg-amber-100 dark:bg-amber-950' : ''}`}
             onClick={() => {
               // Set the active span that this state event belongs to
-              dispatch(WorkflowDetailStateActions.setActiveSpan(row.parentSpan))
+              dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(row.parentSpan)))
 
               // Set the active set state event
               dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event: row.data }))
+              navigate(
+                `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${row.parentSpan.span_id}`,
+                { replace: true },
+              )
             }}
           >
             <div className={'flex gap-x-2 items-start'}>

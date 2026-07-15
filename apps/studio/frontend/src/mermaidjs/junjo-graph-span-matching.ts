@@ -84,3 +84,28 @@ export function findRenderedGraphNodeIdForSpan(
 
   return null
 }
+
+/** Find the nearest physical ancestor represented in this exact Graph. */
+export function findNearestSpanRepresentedInGraph(
+  graphSnapshot: JGraph,
+  selectedSpan: OtelSpan | null | undefined,
+  traceSpans: OtelSpan[],
+): OtelSpan | undefined {
+  if (selectedSpan === null || selectedSpan === undefined) return undefined
+
+  const spansById = new Map(traceSpans.map((span) => [span.span_id, span]))
+  const visited = new Set<string>()
+  let current: OtelSpan | undefined = spansById.get(selectedSpan.span_id) ?? selectedSpan
+
+  while (current !== undefined && !visited.has(current.span_id)) {
+    visited.add(current.span_id)
+    if (findRenderedGraphNodeIdForSpan(graphSnapshot, current) !== null) {
+      return current
+    }
+    current = current.parent_span_id === null
+      ? undefined
+      : spansById.get(current.parent_span_id)
+  }
+
+  return undefined
+}

@@ -8,7 +8,7 @@ Accepted
 
 2026-07-13
 
-Last clarified: 2026-07-14
+Last clarified: 2026-07-15
 
 ## Context
 
@@ -95,6 +95,13 @@ frontend models.
 Verified annotations are conclusions derived from the included raw evidence.
 They do not replace, omit, or repair that evidence. Partial or malformed
 contract evidence remains inspectable and receives explicit diagnostics.
+
+Execution outcome and telemetry integrity are independent. Application,
+Workflow, Node, model, or Tool exceptions determine execution outcome. Studio
+integrity diagnostics determine whether the telemetry that reached Studio is
+complete and internally coherent. A failed execution may have healthy
+telemetry, while a successful execution may have partial telemetry because an
+out-of-process export, ingestion, storage, or query boundary lost data.
 
 The backend also provides typed summary queries for large-scale filtering and
 pagination. Those queries do not replace the cohesive detail document.
@@ -278,6 +285,29 @@ Only `failed` is corruption. Intentional policy transformation is not mislabeled
 as a patch replay mismatch, while missing required evidence still cannot become
 `policy_unavailable` without an explicit payload mode.
 
+The SDK verifies Store transitions against the in-memory execution before
+export. Studio independently replays the Store history that actually survived
+OTLP export, ingestion, storage, and query. Ordinary execution exception
+handling cannot replace this check because it cannot observe data lost or
+changed after the producer emitted it.
+
+The default presentation is quiet when diagnostics are healthy:
+
+- `verified` reconstruction with complete integrity renders no status banner;
+- `not_applicable` renders no warning and omits Store state controls;
+- `policy_unavailable` explains neutrally that payload policy prevents state
+  inspection;
+- `failed` warns that reconstructed state is unavailable while retaining raw
+  spans and events for diagnosis; and
+- partial contract integrity warns about the missing or inconsistent telemetry
+  without rewriting the execution outcome.
+
+User-facing copy uses concrete terms such as telemetry readiness, telemetry
+integrity, state history verification, and payload availability. The generic
+term `evidence` remains valid inside telemetry contracts and backend domain
+models, but it is not a healthy-state product badge. Store IDs and reason codes
+belong in an expandable technical diagnostic rather than the primary message.
+
 Feature selection and presentation remain separate. Trace-evidence assembly
 selects and normalizes one trace, shared backend utilities derive executable
 and Store annotations, and frontend features decide how to present the result.
@@ -421,3 +451,4 @@ SDK and Studio releases must remain coordinated during greenfield development.
 - [Root ADR 0005: Agent and Workflow composition](../../../../docs/adr/0005-agent-workflow-composition.md)
 - [ADR-004: Events JSON contract](004-events-json-contract.md)
 - [ADR-005: Studio frontend interaction foundation](005-studio-frontend-interaction-foundation.md)
+- [ADR-008: Workflow Graph exploration and selection](008-workflow-graph-exploration-and-selection.md)

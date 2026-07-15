@@ -12,11 +12,12 @@ import SpanFailuresList from './SpanFailuresList'
 import SpanAttributesContent from '../../traces/SpanAttributesContent'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 import type { WorkflowStoreDiagnosticRequest } from '../../workflow-executions/hooks/use-workflow-store-diagnostic'
-import { WorkflowStoreEvidenceBanner } from '../../workflow-executions/components/WorkflowStoreEvidenceBanner'
+import { WorkflowStoreDiagnosticsNotice } from '../../workflow-executions/components/WorkflowStoreDiagnosticsNotice'
 import {
   stateEventIdentityKey,
   transitionStateEventIdentity,
 } from './state-event-identity'
+import { selectWorkflowDetailActiveSpan } from './store/selectors'
 
 enum DiffTabOptions {
   BEFORE = 'Before',
@@ -80,7 +81,7 @@ export default function WorkflowDetailStateDiff({
   const openFailuresTrigger = useAppSelector(
     (state: RootState) => state.workflowDetailState.openFailuresTrigger,
   )
-  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
@@ -212,7 +213,7 @@ export default function WorkflowDetailStateDiff({
           <TabButton tab={DiffTabOptions.FAILURES} activeTab={activeTab} tabChangeHandler={setActiveTab} />
         )}
       </div>
-      <WorkflowStoreEvidenceBanner
+      <WorkflowStoreDiagnosticsNotice
         diagnostic={storeDiagnosticRequest.data}
         loading={storeDiagnosticRequest.loading}
         error={storeDiagnosticRequest.error}

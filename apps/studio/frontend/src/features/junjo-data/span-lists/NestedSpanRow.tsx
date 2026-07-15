@@ -2,10 +2,14 @@ import { useAppDispatch } from '../../../root-store/hooks'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import { OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from './determine-span-icon'
-import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import {
+  spanSelection,
+  WorkflowDetailStateActions,
+} from '../workflow-detail/store/slice'
 import { spanNameConstructor } from './span-name-constructor'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate } from 'react-router'
 import { wrapSpan } from '../../traces/utils/span-accessor'
+import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -16,7 +20,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
   const { span, isActiveSpan } = props
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const { serviceName, traceId, workflowSpanId } = useParams()
+  const { serviceName, traceId, workflowSpanId } = useWorkflowDetailRoute()
 
   // Determine the type of span
   const junjoSpan = wrapSpan(span).isJunjoSpan
@@ -42,7 +46,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 <button
                   className={`cursor-pointer text-left hover:underline`}
                   onClick={() => {
-                    dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                    dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
                     dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                     // Preserve existing params and set the new spanId
@@ -61,7 +65,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
               <button
                 className={`cursor-pointer text-left hover:underline`}
                 onClick={() => {
-                  dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                  dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
                   dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                   // Preserve existing params and set the new spanId
@@ -83,7 +87,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                 }
                 onClick={() => {
                   // Set this span as the active span
-                  dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+                  dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
                   dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                   // Preserve existing params and set the new spanId

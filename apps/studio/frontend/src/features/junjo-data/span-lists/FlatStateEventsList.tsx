@@ -9,13 +9,19 @@ import {
 import type { WorkflowStoreDiagnosticRequest } from '../../workflow-executions/hooks/use-workflow-store-diagnostic'
 import { JunjoSetStateEventSchema } from '../../traces/schemas/schemas'
 import { selectSpanAndChildren } from '../../traces/store/selectors'
-import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
+import {
+  spanSelection,
+  WorkflowDetailStateActions,
+} from '../workflow-detail/store/slice'
+import { selectWorkflowDetailActiveSpan } from '../workflow-detail/store/selectors'
 import {
   rawStateEventIdentity,
   stateEventIdentityKey,
   transitionStateEventIdentity,
 } from '../workflow-detail/state-event-identity'
 import { SpanIconConstructor } from './determine-span-icon'
+import { useNavigate } from 'react-router'
+import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 
 interface FlatStateEventsListProps {
   traceId: string
@@ -32,13 +38,15 @@ export default function FlatStateEventsList({
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const transitionRowRefs = useRef(new Map<string, HTMLButtonElement>())
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const route = useWorkflowDetailRoute()
   const spans = useAppSelector((state: RootState) =>
     selectSpanAndChildren(state, { traceId, spanId: workflowSpanId }),
   )
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
-  const activeSpan = useAppSelector((state: RootState) => state.workflowDetailState.activeSpan)
+  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
   const stateEventScrollTarget = useAppSelector(
     (state: RootState) => state.workflowDetailState.stateEventScrollTarget,
   )
@@ -129,10 +137,14 @@ export default function FlatStateEventsList({
             disabled={!selectable}
             onClick={() => {
               if (event === undefined || span === undefined) return
-              dispatch(WorkflowDetailStateActions.setActiveSpan(span))
+              dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
               if (identity !== null) {
                 dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
               }
+              navigate(
+                `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${span.span_id}`,
+                { replace: true },
+              )
             }}
           >
             <div className="flex gap-x-1 items-start">
