@@ -417,14 +417,19 @@ def validate_python_support_policy() -> None:
     python_examples = (workflow_root / "python-examples-smoke.yml").read_text(
         encoding="utf-8"
     )
+    ai_chat_compose = (workflow_root / "ai-chat-compose-smoke.yml").read_text(
+        encoding="utf-8"
+    )
     require(
         "uses: ./.github/workflows/python-ci.yml" in python_publish
         and "uses: ./.github/workflows/python-examples-smoke.yml" in python_publish
-        and "needs: [sdk-validation, examples-validation, build-release]"
+        and "uses: ./.github/workflows/ai-chat-compose-smoke.yml" in python_publish
+        and "needs: [sdk-validation, examples-validation, compose-validation, build-release]"
         in python_publish
         and "workflow_call:" in python_examples
+        and "workflow_call:" in ai_chat_compose
         and "Run AI Chat infrastructure tests" in python_examples,
-        "PyPI publication must wait for reusable SDK, AI Chat, and release-build validation",
+        "PyPI publication must wait for reusable SDK, AI Chat, Compose, and release-build validation",
     )
 
 
