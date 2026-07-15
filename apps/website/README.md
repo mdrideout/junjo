@@ -46,11 +46,17 @@ the completed production build.
 This component deliberately keeps its own `package-lock.json`; it is not part
 of a repository-wide JavaScript workspace. CI installs each documentation
 producer with its own lock and validates the complete source assembly without
-retaining or deploying its generated output. After the validated pull request
-is merged, Cloudflare Pages pulls the protected `master` commit and runs
-`tooling/docs/build_cloudflare_pages.sh` from the repository root. Cloudflare
-publishes its own generated `apps/website/dist`; that directory is never
-checked in.
+retaining or deploying its generated output. Cloudflare Pages pulls pull-request
+branches and `master`, runs `tooling/docs/build_cloudflare_pages.sh`, and
+publishes them only as `next` preview deployments. Merging does not update
+`junjo.ai`.
+
+Production uses the dedicated `docs-production` source branch and the `stable`
+channel. Python, Studio, and documentation-only release workflows validate the
+stable source set, publish the GitHub release, and only then fast-forward that
+branch to the exact release-tag commit. Cloudflare detects the ref update, pulls
+the source, generates `apps/website/dist`, and updates `junjo.ai`. GitHub never
+uploads or retains the generated site, and `dist` is never checked in.
 
 `legacy-python-api/_redirects` is source configuration, not generated site
 output. The `junjo-python-api` Cloudflare Pages project pulls that directory
@@ -58,9 +64,13 @@ from Git after the same approved merge. Its build waits for the unified Python
 landing page to be live before publishing the single permanent redirect rule.
 It must never be included in the `junjo.ai` output.
 
-CI labels ordinary source builds as `next`. A caller may request the `stable`
-channel only from the exact released checkout; the channel, SDK version, and
-full source revision are embedded in the generated pages and manifests.
+CI labels ordinary source builds as `next`. Stable assembly reads
+`tooling/docs/stable-releases.json` so independently released Python and Studio
+documentation cannot drift to unreleased `master` source. The channel, SDK
+version, release tag, and full source revision are embedded in generated
+manifests. Update the releasing component's manifest entry to its forthcoming
+exact tag in the same release commit; documentation-only releases keep the
+existing component selections.
 
 ## Content ownership
 

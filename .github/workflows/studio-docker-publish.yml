@@ -25,6 +25,14 @@ jobs:
     with:
       version: ${{ inputs.version }}
 
+  documentation_validation:
+    if: needs.validation.outputs.production == 'true'
+    needs: validation
+    uses: ./.github/workflows/website-ci.yml
+    with:
+      documentation_channel: stable
+      release_tag: ${{ github.ref_name }}
+
   dockerhub_controls:
     if: needs.validation.outputs.production == 'true'
     needs: validation
@@ -652,6 +660,7 @@ jobs:
     if: needs.validation.outputs.production == 'true'
     needs:
       - validation
+      - documentation_validation
       - exact_manifests
       - publish_distributions
       - promote_floating_tags
@@ -752,3 +761,14 @@ jobs:
             --verify-tag \
             --title "Junjo AI Studio ${VERSION}" \
             --notes-file /tmp/studio-release/RELEASE_NOTES.md
+
+  promote_documentation:
+    if: needs.validation.outputs.production == 'true'
+    needs:
+      - validation
+      - publish_release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/documentation-production-promotion.yml
+    with:
+      release_tag: ${{ github.ref_name }}

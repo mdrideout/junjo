@@ -4,6 +4,17 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repository_root"
 
+if [[ -n "${CF_PAGES_BRANCH:-}" ]]; then
+  if [[ "$CF_PAGES_BRANCH" == "docs-production" && "${JUNJO_DOCS_CHANNEL:-}" != "stable" ]]; then
+    echo "Cloudflare production builds must use JUNJO_DOCS_CHANNEL=stable" >&2
+    exit 1
+  fi
+  if [[ "$CF_PAGES_BRANCH" != "docs-production" && "${JUNJO_DOCS_CHANNEL:-next}" != "next" ]]; then
+    echo "Cloudflare preview builds must use JUNJO_DOCS_CHANNEL=next" >&2
+    exit 1
+  fi
+fi
+
 required_uv_version="0.11.7"
 if ! command -v uv >/dev/null 2>&1 || \
   [[ "$(uv --version)" != "uv ${required_uv_version} "* ]]; then

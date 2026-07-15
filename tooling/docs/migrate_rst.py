@@ -328,8 +328,8 @@ def normalize_markdown(markdown: str) -> str:
     return markdown.strip() + "\n"
 
 
-def convert_page(page: Page) -> str:
-    source_path = PYTHON_DOCS / page.source
+def convert_page(page: Page, source_docs: Path = PYTHON_DOCS) -> str:
+    source_path = source_docs / page.source
     source = source_path.read_text(encoding="utf-8")
     warnings = io.StringIO()
     converted = rst_to_myst(
@@ -353,6 +353,26 @@ def convert_page(page: Page) -> str:
     if keywords:
         provenance += f"\n<!-- migrated-keywords: {html.escape(keywords)} -->"
     return "\n".join(frontmatter) + provenance + "\n\n" + body
+
+
+def export_release_content(source_docs: Path, output: Path) -> int:
+    """Convert the Python-owned RST present in a pre-migration SDK release."""
+    converted_pages = 0
+    for page in PAGES:
+        if page.owner != "python" or page.target is None:
+            continue
+        source_path = source_docs / page.source
+        if not source_path.is_file():
+            continue
+        target = Path(page.target).relative_to("sdks/python/docs/content")
+        destination = output / target
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(convert_page(page, source_docs), encoding="utf-8")
+        converted_pages += 1
+    if converted_pages == 0:
+        raise ValueError(f"no Python RST documentation was found below {source_docs}")
+    print(f"Exported {converted_pages} released RST pages to {output}.")
+    return converted_pages
 
 
 def source_directive_blocks(source: str, directive: str) -> list[str]:
@@ -528,7 +548,23 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--write", action="store_true", help="write converted content and migration ledgers")
     mode.add_argument("--check", action="store_true", help="verify committed output is current")
+    mode.add_argument(
+        "--export-release",
+        action="store_true",
+        help="convert only Python-owned RST present in an older released source tree",
+    )
+    parser.add_argument("--source-docs", type=Path)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+
+    if args.export_release:
+        if args.source_docs is None or args.output is None:
+            parser.error("--export-release requires --source-docs and --output")
+        export_release_content(args.source_docs.resolve(), args.output.resolve())
+        return 0
+
+    if args.source_docs is not None or args.output is not None:
+        parser.error("--source-docs and --output are valid only with --export-release")
 
     outputs = expected_outputs()
     if args.write:

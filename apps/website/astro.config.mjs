@@ -1,7 +1,15 @@
 // @ts-check
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, passthroughImageService } from "astro/config";
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
+
+const hasAgentGuides = existsSync(
+  fileURLToPath(
+    new URL("./src/content/docs/generated/docs/python/agents/index.md", import.meta.url),
+  ),
+);
 
 // https://astro.build/config
 export default defineConfig({
@@ -34,14 +42,18 @@ export default defineConfig({
             { label: "Getting Started", slug: "docs/python/get-started" },
             { label: "Tutorial", slug: "docs/python/tutorial" },
             { label: "Core Concepts", slug: "docs/python/concepts" },
-            {
-              label: "Agents",
-              items: [
-                { label: "Agents", slug: "docs/python/agents" },
-                { label: "Testing", slug: "docs/python/agents/testing" },
-                { label: "Composition", slug: "docs/python/agents/composition" },
-              ],
-            },
+            ...(hasAgentGuides
+              ? [
+                  {
+                    label: "Agents",
+                    items: [
+                      { label: "Agents", slug: "docs/python/agents" },
+                      { label: "Testing", slug: "docs/python/agents/testing" },
+                      { label: "Composition", slug: "docs/python/agents/composition" },
+                    ],
+                  },
+                ]
+              : []),
             {
               label: "Workflows",
               items: [

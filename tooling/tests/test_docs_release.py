@@ -1,0 +1,69 @@
+"""Offline tests for release-selected documentation publication."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import unittest
+from pathlib import Path
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"could not load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class DocumentationReleaseTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.manifest = json.loads(
+            (REPOSITORY_ROOT / "tooling/docs/stable-releases.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.validator = load_module(
+            "validate_release_manifest",
+            REPOSITORY_ROOT / "tooling/docs/validate_release_manifest.py",
+        )
+        self.promoter = load_module(
+            "promote_production_branch",
+            REPOSITORY_ROOT / "tooling/docs/promote_production_branch.py",
+        )
+
+    def test_stable_manifest_selects_versioned_component_tags(self) -> None:
+        self.assertEqual(self.manifest["version"], 1)
+        self.assertEqual(
+            self.manifest["python"]["release_tag"],
+            f"sdk-python-v{self.manifest['python']['version']}",
+        )
+        self.assertEqual(
+            self.manifest["studio"]["release_tag"],
+            f"studio-v{self.manifest['studio']['version']}",
+        )
+
+    def test_documentation_only_release_keeps_component_selection(self) -> None:
+        self.validator.validate_release_tag("docs-release-20260715.1", self.manifest)
+
+    def test_new_component_release_must_update_its_manifest_entry(self) -> None:
+        with self.assertRaisesRegex(ValueError, "update tooling/docs/stable-releases.json"):
+            self.validator.validate_release_tag("sdk-python-v0.65.0", self.manifest)
+
+    def test_production_promotion_accepts_only_owned_release_namespaces(self) -> None:
+        accepted = (
+            "sdk-python-v0.65.0",
+            "studio-v0.82.0",
+            "docs-release-20260715.1",
+        )
+        for tag in accepted:
+            self.assertIsNotNone(self.promoter.RELEASE_TAG.fullmatch(tag), tag)
+        for tag in ("v1.0.0", "master", "docs-production", "docs-release-latest"):
+            self.assertIsNone(self.promoter.RELEASE_TAG.fullmatch(tag), tag)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -26,7 +26,6 @@ import griffe
 
 SDK_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = SDK_ROOT.parents[1]
-SOURCE_ROOT = SDK_ROOT / "src"
 DEFAULT_BASELINE = Path(__file__).with_name("api-sphinx-baseline.json")
 API_PREFIX = "/docs/python/api"
 
@@ -92,7 +91,7 @@ def module_route(module: str) -> str:
     return f"{API_PREFIX}/{slug_for_symbol(module)}/"
 
 
-def source_revision(explicit: str | None) -> str:
+def source_revision(explicit: str | None, repository_root: Path = REPOSITORY_ROOT) -> str:
     if explicit:
         return explicit
     environment = os.environ.get("JUNJO_DOCS_REVISION")
@@ -100,7 +99,7 @@ def source_revision(explicit: str | None) -> str:
         return environment
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
-        cwd=REPOSITORY_ROOT,
+        cwd=repository_root,
         check=True,
         capture_output=True,
         text=True,
@@ -108,10 +107,10 @@ def source_revision(explicit: str | None) -> str:
     return result.stdout.strip()
 
 
-def package_version(explicit: str | None) -> str:
+def package_version(explicit: str | None, sdk_root: Path = SDK_ROOT) -> str:
     if explicit:
         return explicit
-    with (SDK_ROOT / "pyproject.toml").open("rb") as handle:
+    with (sdk_root / "pyproject.toml").open("rb") as handle:
         project = tomllib.load(handle)["project"]
     return str(project["version"])
 
@@ -137,10 +136,17 @@ def sphinx_baseline_payload(inventory_path: Path) -> dict[str, Any]:
                     "legacy_anchor": anchor,
                 }
             )
+    documented_modules = {
+        entry["name"] for entry in objects if entry["kind"] == "py:module"
+    }
     return {
         "version": 1,
         "source_inventory_hash": sha256_bytes(inventory_bytes),
-        "module_allowlist": [section.module for section in MODULE_SECTIONS],
+        "module_allowlist": [
+            section.module
+            for section in MODULE_SECTIONS
+            if section.module in documented_modules
+        ],
         "objects": sorted(objects, key=lambda item: (item["kind"], item["name"])),
     }
 
@@ -165,10 +171,26 @@ def check_sphinx_baseline(inventory_path: Path, baseline_path: Path) -> None:
 
 def load_baseline(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
-    expected_modules = [section.module for section in MODULE_SECTIONS]
-    if payload.get("module_allowlist") != expected_modules:
-        raise ValueError("Sphinx API baseline module allowlist does not match export configuration")
+    documented_modules = {
+        entry["name"]
+        for entry in payload.get("objects", [])
+        if entry.get("kind") == "py:module"
+    }
+    known_sections = {section.module: section for section in MODULE_SECTIONS}
+    module_allowlist = payload.get("module_allowlist")
+    if not isinstance(module_allowlist, list):
+        raise ValueError("Sphinx API baseline has no module allowlist")
+    if set(module_allowlist) != documented_modules:
+        raise ValueError("Sphinx API baseline module allowlist does not match its module inventory")
+    unknown_modules = sorted(documented_modules - known_sections.keys())
+    if unknown_modules:
+        raise ValueError(f"Sphinx API baseline contains unsupported modules: {unknown_modules}")
     return payload
+
+
+def module_sections_for_baseline(baseline: dict[str, Any]) -> tuple[ModuleSection, ...]:
+    allowed = set(baseline["module_allowlist"])
+    return tuple(section for section in MODULE_SECTIONS if section.module in allowed)
 
 
 def page_symbols(baseline: dict[str, Any]) -> list[str]:
@@ -382,14 +404,14 @@ def render_docstring(
     return "\n\n".join(part for part in rendered if part).strip()
 
 
-def source_link(obj: Any, revision: str) -> str | None:
+def source_link(obj: Any, revision: str, repository_root: Path) -> str | None:
     filepath = getattr(obj, "filepath", None)
     lineno = getattr(obj, "lineno", None)
     if filepath is None or lineno is None:
         return None
     path = Path(filepath).resolve()
     try:
-        relative = path.relative_to(REPOSITORY_ROOT)
+        relative = path.relative_to(repository_root)
     except ValueError:
         return None
     return f"https://github.com/mdrideout/junjo/blob/{revision}/{relative.as_posix()}#L{lineno}"
@@ -432,6 +454,7 @@ def render_member(
     member: Any,
     kind: str,
     revision: str,
+    repository_root: Path,
     symbol_links: dict[str, tuple[str, str]],
 ) -> str:
     name = public_path.rsplit(".", 1)[-1]
@@ -439,7 +462,7 @@ def render_member(
     signature = signature_for(member)
     if signature:
         output.extend(("```python", signature, "```", ""))
-    link = source_link(member, revision)
+    link = source_link(member, revision, repository_root)
     if link:
         output.extend((f"[View source]({link})", ""))
     docs = render_docstring(getattr(member, "docstring", None), 4, page_path, symbol_links)
@@ -458,6 +481,7 @@ def render_object_members(
     obj: Any,
     entries: list[dict[str, str]],
     revision: str,
+    repository_root: Path,
     symbol_links: dict[str, tuple[str, str]],
 ) -> list[str]:
     member_entries = [
@@ -482,6 +506,7 @@ def render_object_members(
                     member,
                     entry["kind"],
                     revision,
+                    repository_root,
                     symbol_links,
                 ),
             )
@@ -506,6 +531,7 @@ def render_object_page(
     version: str,
     revision: str,
     channel: str,
+    repository_root: Path,
     symbol_links: dict[str, tuple[str, str]],
 ) -> str:
     title = public_path.rsplit(".", 1)[-1]
@@ -535,7 +561,7 @@ def render_object_page(
     signature = signature_for(obj)
     if signature:
         output.extend(("## Signature", "", "```python", signature, "```", ""))
-    link = source_link(obj, revision)
+    link = source_link(obj, revision, repository_root)
     if link:
         output.extend((f"[View source]({link})", ""))
     docs = render_docstring(getattr(obj, "docstring", None), 2, public_path, symbol_links)
@@ -553,6 +579,7 @@ def render_object_page(
             obj=obj,
             entries=entries,
             revision=revision,
+            repository_root=repository_root,
             symbol_links=symbol_links,
         )
     )
@@ -593,6 +620,7 @@ def render_api_index(
     revision: str,
     channel: str,
 ) -> str:
+    has_agents = any(section.module.startswith("junjo.agent.") for section, _ in sections)
     output = [
         "---",
         'title: "Python API Reference"',
@@ -613,11 +641,16 @@ def render_api_index(
             else "This reference is generated from the released source revision."
         ),
         "",
-        "The common Agent definition and binding types are also available from `junjo`. "
-        "Provider-neutral messages, results, and typed errors live in `junjo.agent`, and "
-        "deterministic scripted testing support is public at `junjo.agent.testing`.",
-        "",
     ]
+    if has_agents:
+        output.extend(
+            (
+                "The common Agent definition and binding types are also available from `junjo`. "
+                "Provider-neutral messages, results, and typed errors live in `junjo.agent`, and "
+                "deterministic scripted testing support is public at `junjo.agent.testing`.",
+                "",
+            )
+        )
     for section, symbols in sections:
         output.extend((f"## {section.title}", "", f"Module: [`{section.module}`]({module_route(section.module)})", ""))
         if section.introduction:
@@ -628,8 +661,17 @@ def render_api_index(
     return "\n".join(output).rstrip() + "\n"
 
 
-def generate_api(output: Path, baseline_path: Path, version: str, revision: str, channel: str) -> None:
+def generate_api(
+    output: Path,
+    baseline_path: Path,
+    version: str,
+    revision: str,
+    channel: str,
+    sdk_root: Path = SDK_ROOT,
+) -> None:
     baseline = load_baseline(baseline_path)
+    module_sections = module_sections_for_baseline(baseline)
+    repository_root = sdk_root.parents[1]
     pages = page_symbols(baseline)
     baseline_entries: list[dict[str, str]] = baseline["objects"]
     symbol_links: dict[str, tuple[str, str]] = {}
@@ -645,7 +687,9 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str,
         symbol_links[entry["legacy_anchor"]] = link
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
-        package = griffe.load("junjo", search_paths=[SOURCE_ROOT], docstring_parser="auto")
+        package = griffe.load(
+            "junjo", search_paths=[sdk_root / "src"], docstring_parser="auto"
+        )
 
     output.mkdir(parents=True, exist_ok=True)
     manifest_symbols: list[dict[str, str]] = []
@@ -659,6 +703,7 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str,
                 version,
                 revision,
                 channel,
+                repository_root,
                 symbol_links,
             )
         path = output_path_for_symbol(output, public_path)
@@ -666,7 +711,7 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str,
         path.write_text(page_content, encoding="utf-8")
 
     sections: list[tuple[ModuleSection, list[str]]] = []
-    for section in MODULE_SECTIONS:
+    for section in module_sections:
         symbols = [
             page
             for page in pages
@@ -726,17 +771,28 @@ def generate_api(output: Path, baseline_path: Path, version: str, revision: str,
         "module_page_count": module_page_count,
         "symbol_count": len(manifest_symbols),
         "symbols": manifest_symbols,
-        "griffe_diagnostics": [line for line in stderr.getvalue().splitlines() if line.strip()],
+        "griffe_diagnostics": [
+            line.replace(f"{repository_root.resolve()}/", "")
+            for line in stderr.getvalue().splitlines()
+            if line.strip()
+        ],
     }
     manifest_path = output / "api-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"Generated {page_count} API pages covering {len(manifest_symbols)} Sphinx objects.")
 
 
-def check_generation(output: Path, baseline: Path, version: str, revision: str, channel: str) -> None:
+def check_generation(
+    output: Path,
+    baseline: Path,
+    version: str,
+    revision: str,
+    channel: str,
+    sdk_root: Path = SDK_ROOT,
+) -> None:
     with tempfile_directory() as temporary:
         expected_root = temporary / "expected"
-        generate_api(expected_root, baseline, version, revision, channel)
+        generate_api(expected_root, baseline, version, revision, channel, sdk_root)
         expected_files = {
             path.relative_to(expected_root): path.read_bytes() for path in expected_root.rglob("*") if path.is_file()
         }
@@ -779,6 +835,7 @@ def main() -> int:
     generate_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     generate_parser.add_argument("--version")
     generate_parser.add_argument("--revision")
+    generate_parser.add_argument("--sdk-root", type=Path, default=SDK_ROOT)
     generate_parser.add_argument(
         "--channel", choices=("next", "stable"), default=os.environ.get("JUNJO_DOCS_CHANNEL", "next")
     )
@@ -789,6 +846,7 @@ def main() -> int:
     check_parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     check_parser.add_argument("--version")
     check_parser.add_argument("--revision")
+    check_parser.add_argument("--sdk-root", type=Path, default=SDK_ROOT)
     check_parser.add_argument(
         "--channel", choices=("next", "stable"), default=os.environ.get("JUNJO_DOCS_CHANNEL", "next")
     )
@@ -801,14 +859,30 @@ def main() -> int:
         check_sphinx_baseline(args.inventory, args.baseline)
         return 0
 
-    version = package_version(args.version)
-    revision = source_revision(args.revision)
+    sdk_root = args.sdk_root.resolve()
+    repository_root = sdk_root.parents[1]
+    version = package_version(args.version, sdk_root)
+    revision = source_revision(args.revision, repository_root)
     if args.command == "generate":
         if args.clean and args.output.exists():
             shutil.rmtree(args.output)
-        generate_api(args.output, args.baseline, version, revision, args.channel)
+        generate_api(
+            args.output,
+            args.baseline,
+            version,
+            revision,
+            args.channel,
+            sdk_root,
+        )
         return 0
-    check_generation(args.output, args.baseline, version, revision, args.channel)
+    check_generation(
+        args.output,
+        args.baseline,
+        version,
+        revision,
+        args.channel,
+        sdk_root,
+    )
     return 0
 
 

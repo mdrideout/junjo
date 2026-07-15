@@ -1,7 +1,7 @@
 # Unified Documentation Portal Migration Strategy And Implementation Plan
 
-- Status: Production source-build cutover complete; post-cutover release-policy
-  cleanup remains
+- Status: Unified source-build cutover and release-gated production policy
+  implemented; Sphinx cleanup remains separately gated
 - Date: 2026-07-15
 - Owners: Junjo platform, Python SDK, Studio, website, and future SDK owners
 - Decision authority: ADR 0009 accepts the unified publishing boundary; the
@@ -10,10 +10,11 @@
 ## Implementation Record
 
 The repository implementation began on `codex/unified-docs-migration`. On
-2026-07-15 the owner selected Cloudflare Pages Git builds gated by validated
-merges to protected `master` and approved retirement of the legacy Sphinx site
-with a single global permanent redirect rather than page-by-page compatibility
-mappings.
+2026-07-15 the owner selected Cloudflare Pages Git builds and approved
+retirement of the legacy Sphinx site with a single global permanent redirect
+rather than page-by-page compatibility mappings. The owner then separated
+automatic preview publication from production: pull requests and `master` build
+as Cloudflare previews, while a published release is the only production signal.
 
 Implemented:
 
@@ -29,14 +30,18 @@ Implemented:
   internal link, search artifact, sitemap, and unconverted markup token;
 - a path-routed GitHub Actions workflow that validates the complete `next`
   source assembly without persisting or deploying its generated output;
-- an explicit `next`/`stable` manifest and page label, with stable assembly
-  callable only from a release-selected checkout;
+- explicit `next`/`stable` labels plus a stable source manifest that pins the
+  independently released Python and Studio inputs;
 - a version-controlled Cloudflare source-build command that repeats every
   assembly and validation gate before publishing `apps/website/dist`;
 - a committed one-rule `301` redirect source plus a legacy-domain build gate
   that waits for the unified Python landing page before retiring Sphinx; and
-- both Cloudflare Pages projects configured for automatic production builds
-  from `master`, with unvalidated branch previews disabled.
+- the unified Cloudflare Pages project configured with `docs-production` as its
+  production branch, `stable` production builds, and automatic `next` previews
+  for `master` and same-repository pull-request branches;
+- release workflows that validate stable source, require a published release,
+  and monotonically fast-forward only the production source ref; and
+- GitHub validation that retains no generated site and never calls Cloudflare.
 
 The original audit contained 4,094 RST lines. Source work that landed during
 implementation expanded the live corpus to 4,113 lines and the Sphinx API
@@ -60,11 +65,31 @@ Production evidence completed on 2026-07-15:
   `https://junjo.ai/docs/python/`. The final Sphinx deployment remains in
   Cloudflare history as a rollback input.
 
-The remaining work is post-cutover lifecycle cleanup: finish the
-release-selected stable-artifact policy, then remove Sphinx from active
-generation only when the Python release policy and CI use the replacement
-export contract. The Sphinx source and final artifact remain authoritative
-recovery inputs until those completion criteria pass.
+Release-gated control-plane evidence completed later on 2026-07-15:
+
+- `docs-production` was initialized at the already-live `master` commit
+  `6bd744ae3b86fe0daca09ecc2862295631e24557`, so changing the branch model did
+  not introduce a content deployment or rollback;
+- the `master` branch protection created for the initial cutover was removed,
+  while `docs-production` rejects force pushes and deletion;
+- the `junjo-website` Pages project now uses `docs-production` as its production
+  branch, enables previews for every non-production same-repository branch, and
+  keeps automatic production builds enabled only for commits reaching the
+  production branch;
+- Cloudflare production configuration sets `JUNJO_DOCS_CHANNEL=stable`, preview
+  configuration sets `JUNJO_DOCS_CHANNEL=next`, and both keep dependency
+  installation under the version-controlled build command; and
+- `junjo.ai` remained attached to the previous successful canonical deployment
+  during this control-plane change. A future published release, not this
+  migration merge, will trigger the first release-gated stable production build.
+
+The remaining work is the separately gated Sphinx lifecycle cleanup. Stable
+builds already regenerate the selected released Python API through the Griffe
+contract, including an explicit build-time RST conversion for the final
+pre-migration SDK release. Sphinx can leave active generation only when the
+Python release policy and CI no longer need that historical input. The Sphinx
+source and final artifact remain authoritative recovery inputs until those
+completion criteria pass.
 
 ## Objective
 
@@ -556,25 +581,33 @@ commands and stages their output before the normal website build.
 
 ### Recommended Production Pipeline
 
-Use GitHub Actions to assemble and validate pull-request source without
-persisting its generated output. Required review and validation complete before
-the source reaches protected `master`. That merge is the production signal:
-Cloudflare Pages pulls the approved commit, runs the version-controlled root
-build contract, and deploys its own generated output. Cloudflare preview builds
-remain disabled so unapproved commits are never deployed.
+Use GitHub Actions to assemble and validate source without persisting generated
+output. Cloudflare independently pulls same-repository pull-request branches and
+`master`, runs the version-controlled root build contract, and exposes `next`
+preview deployments. Merge is not a production signal.
+
+Production follows published releases. The release transaction validates the
+stable manifest and complete site, publishes the component or documentation
+release, and then fast-forwards `docs-production` to the exact release-tag
+commit. Cloudflare pulls that source, builds the selected released inputs as
+`stable`, and updates `junjo.ai`. GitHub neither uploads a site nor calls a
+Cloudflare deployment API.
 
 The production sequence is:
 
-1. obtain the selected released SDK documentation artifacts;
+1. select exact released component sources in `stable-releases.json`;
 2. stage platform, Studio, and SDK content into an ignored assembly tree;
 3. run Starlight content and TypeScript checks;
 4. build the static site;
 5. validate links, routes, anchors, symbol manifests, search, sitemap, and
    version metadata;
-6. merge the validated source to protected `master`;
-7. let Cloudflare independently repeat the complete build contract and deploy
-   only if it passes; and
-8. retire the Sphinx domain only after the unified Python landing page is live.
+6. publish an `sdk-python-v*`, `studio-v*`, or `docs-release-YYYYMMDD.N` GitHub
+   release only after its existing release gates pass;
+7. fast-forward `docs-production` to that exact release commit;
+8. let Cloudflare independently repeat the complete stable build contract and
+   deploy only if it passes; and
+9. retain the global Sphinx-domain redirect after the unified Python landing
+   page is live.
 
 For pull requests, a cross-component public-docs workflow builds `next` output
 from the changed source tree. It is triggered by:
@@ -768,9 +801,11 @@ Tasks:
 
 - produce versioned docs artifacts with SDK releases;
 - assemble stable production docs from released artifacts;
-- publish an optional clearly labeled `next` preview;
+- publish clearly labeled `next` previews automatically for `master` and
+  same-repository pull requests;
 - validate pull-request source in GitHub without persisting generated output;
-- merge approved source and let Cloudflare pull, build, and deploy it;
+- publish a GitHub release, fast-forward `docs-production`, and let Cloudflare
+  pull, build, and deploy the exact release source;
 - run production route, search, sitemap, canonical, and version checks; and
 - retain the prior website and final Sphinx artifacts as rollback inputs.
 

@@ -69,10 +69,15 @@ REQUIRED_PATHS = (
     ".github/workflows/python-ci.yml",
     ".github/workflows/python-examples-smoke.yml",
     ".github/workflows/python-publish.yml",
+    ".github/workflows/documentation-production-promotion.yml",
+    ".github/workflows/documentation-publish.yml",
     ".github/workflows/studio-deployments.yml",
     ".github/workflows/studio-docker-publish.yml",
     ".github/workflows/studio-release-validation.yml",
     ".github/workflows/website-ci.yml",
+    "tooling/docs/promote_production_branch.py",
+    "tooling/docs/stable-releases.json",
+    "tooling/docs/validate_release_manifest.py",
     "tooling/scripts/build_studio_release_evidence.py",
     "tooling/scripts/export_studio_distribution.py",
     "tooling/scripts/publish_studio_distribution.py",
@@ -402,6 +407,38 @@ def validate_website_build_contract() -> None:
         ),
         "the Cloudflare source build must run every public documentation gate",
     )
+    require(
+        'CF_PAGES_BRANCH" == "docs-production"' in cloudflare_build
+        and "Cloudflare production builds must use JUNJO_DOCS_CHANNEL=stable"
+        in cloudflare_build
+        and "Cloudflare preview builds must use JUNJO_DOCS_CHANNEL=next"
+        in cloudflare_build,
+        "Cloudflare must fail closed when production and preview channels are misrouted",
+    )
+    stable_releases = json.loads(
+        (PLATFORM_ROOT / "tooling/docs/stable-releases.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    require(
+        stable_releases.get("version") == 1
+        and stable_releases["python"]["release_tag"]
+        == f"sdk-python-v{stable_releases['python']['version']}"
+        and stable_releases["studio"]["release_tag"]
+        == f"studio-v{stable_releases['studio']['version']}",
+        "stable documentation sources must select exact component release tags",
+    )
+    promotion = (
+        PLATFORM_ROOT / ".github/workflows/documentation-production-promotion.yml"
+    ).read_text(encoding="utf-8")
+    require(
+        "tooling/docs/promote_production_branch.py" in promotion
+        and "contents: write" in promotion
+        and "upload-artifact" not in promotion
+        and "CLOUDFLARE_API_TOKEN" not in promotion
+        and "wrangler" not in promotion,
+        "release promotion must update only the production source ref for Cloudflare to pull",
+    )
     legacy_redirect = (
         PLATFORM_ROOT / "apps/website/legacy-python-api/_redirects"
     ).read_text(encoding="utf-8")
@@ -480,12 +517,14 @@ def validate_python_support_policy() -> None:
         "uses: ./.github/workflows/python-ci.yml" in python_publish
         and "uses: ./.github/workflows/python-examples-smoke.yml" in python_publish
         and "uses: ./.github/workflows/ai-chat-compose-smoke.yml" in python_publish
-        and "needs: [sdk-validation, examples-validation, compose-validation, build-release]"
+        and "uses: ./.github/workflows/website-ci.yml" in python_publish
+        and "documentation-validation" in python_publish
+        and "uses: ./.github/workflows/documentation-production-promotion.yml"
         in python_publish
         and "workflow_call:" in python_examples
         and "workflow_call:" in ai_chat_compose
         and "Run AI Chat infrastructure tests" in python_examples,
-        "PyPI publication must wait for reusable SDK, AI Chat, Compose, and release-build validation",
+        "PyPI publication must wait for SDK, AI Chat, Compose, documentation, and release-build validation",
     )
 
 
@@ -506,6 +545,9 @@ def validate_release_routing() -> None:
         PLATFORM_ROOT / "tooling/scripts/publish_studio_distribution.py"
     ).read_text(encoding="utf-8")
     platform_gate = (workflow_root / "platform-gate.yml").read_text(encoding="utf-8")
+    docs_publish = (workflow_root / "documentation-publish.yml").read_text(
+        encoding="utf-8"
+    )
     evidence_upload = studio_publish[
         studio_publish.index(
             "- name: Upload release and mirror evidence"
@@ -599,6 +641,21 @@ def validate_release_routing() -> None:
     require(
         "Publish GitHub release last" in studio_publish,
         "the GitHub release must be the final publication step",
+    )
+    require(
+        "documentation_validation:" in studio_publish
+        and "documentation_channel: stable" in studio_publish
+        and "uses: ./.github/workflows/documentation-production-promotion.yml"
+        in studio_publish
+        and "needs:\n      - validation\n      - publish_release" in studio_publish,
+        "Studio documentation must validate before release publication and promote only afterward",
+    )
+    require(
+        "startsWith(github.event.release.tag_name, 'docs-release-')" in docs_publish
+        and "documentation_channel: stable" in docs_publish
+        and "uses: ./.github/workflows/documentation-production-promotion.yml"
+        in docs_publish,
+        "documentation-only releases must validate stable sources before production promotion",
     )
     require(
         "python3 tooling/scripts/build_studio_release_evidence.py" in studio_publish,
@@ -705,6 +762,8 @@ def validate_release_routing() -> None:
         "studio-release-validation.yml",
         "studio-docker-publish.yml",
         "website-ci.yml",
+        "documentation-publish.yml",
+        "documentation-production-promotion.yml",
     )
     require(
         all(workflow not in platform_gate for workflow in forbidden_pr_workflows)

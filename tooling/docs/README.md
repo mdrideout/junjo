@@ -42,17 +42,21 @@ python3 tooling/docs/assemble_public_docs.py --write
 python3 tooling/docs/assemble_public_docs.py --check
 ```
 
-The default channel is `next`. A release workflow can set
-`JUNJO_DOCS_CHANNEL=stable` only while checked out at the corresponding released
-source revision. The channel is visible on API pages and recorded in both
-manifests, so an unreleased source preview cannot silently masquerade as stable
-documentation.
+The default channel is `next`. A release workflow sets
+`JUNJO_DOCS_CHANNEL=stable` and resolves the independently released inputs in
+`stable-releases.json`. The Python API is regenerated from the exact selected
+SDK revision. The channel, releases, and immutable source revisions are recorded
+in the generated manifests, so an unreleased source preview cannot silently
+masquerade as stable documentation. The initial Python release predates the
+owned Markdown export, so its RST is converted at build time; the initial Studio
+entry explicitly records the reviewed migration snapshot. Each component's next
+release replaces its exceptional migration input with its exact release tag.
 
 ## Cloudflare deployment
 
-Cloudflare Pages owns production builds through its Git integration. The
-`junjo-website` project runs this version-controlled command from the repository
-root:
+Cloudflare Pages owns preview and production builds through its Git integration.
+The `junjo-website` project runs this version-controlled command from the
+repository root:
 
 ```bash
 bash tooling/docs/build_cloudflare_pages.sh
@@ -61,12 +65,22 @@ bash tooling/docs/build_cloudflare_pages.sh
 The build output is `apps/website/dist`. The script installs a pinned `uv`,
 builds and validates the Sphinx parity source, validates the narrative ledger,
 assembles the source-owned exports, runs all Starlight checks, and audits
-production dependencies. GitHub Actions independently runs the same gates as a
-pull-request validator, but does not upload, retain, or deploy its generated
-output. Merging the validated source to protected `master` is the production
-signal; Cloudflare then pulls, builds, and deploys that commit. Automatic
-production builds are enabled for `master`, while Cloudflare branch previews
-are disabled so unvalidated source is never deployed.
+production dependencies. GitHub Actions independently runs the same gates but
+does not upload, retain, or deploy generated output.
+
+Cloudflare's production branch is `docs-production`; its production environment
+sets `JUNJO_DOCS_CHANNEL=stable`. All other same-repository branches, including
+`master` and pull-request heads, build automatically as previews with
+`JUNJO_DOCS_CHANNEL=next`. The source-build script rejects a production/preview
+channel mismatch. Cloudflare preview deployments do not apply to forked pull
+requests.
+
+Release workflows use `promote_production_branch.py` only after the corresponding
+GitHub release is published. The script verifies the live tag, `master`
+reachability, and a monotonic fast-forward before updating `docs-production`.
+It does not build, upload, or deploy the website; Cloudflare observes that ref,
+pulls the exact source, and owns the production build. Website-only changes ship
+with a published `docs-release-YYYYMMDD.N` tag after stable validation.
 
 The `junjo-python-api` project runs
 `tooling/docs/build_legacy_python_redirect.sh`, which waits for the unified
