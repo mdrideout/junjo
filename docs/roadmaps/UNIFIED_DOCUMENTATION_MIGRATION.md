@@ -1,7 +1,7 @@
 # Unified Documentation Portal Migration Strategy And Implementation Plan
 
-- Status: Production source-build cutover approved; live verification remains
-  open
+- Status: Production source-build cutover complete; post-cutover release-policy
+  cleanup remains
 - Date: 2026-07-15
 - Owners: Junjo platform, Python SDK, Studio, website, and future SDK owners
 - Decision authority: ADR 0009 accepts the unified publishing boundary; the
@@ -43,12 +43,28 @@ implementation expanded the live corpus to 4,113 lines and the Sphinx API
 inventory from 418 to 428 objects. The converter and baseline were refreshed
 from the newer source; no content was frozen at the older counts.
 
-Still gated by production evidence:
+Production evidence completed on 2026-07-15:
 
-- merge the green source and publish the unified build plus global
-  legacy-domain redirect; and
-- verify the unified routes, search, canonical metadata, and global redirect in
-  production while retaining the final Sphinx artifact for rollback.
+- protected pull requests 22 and 23 passed the required Gitleaks, platform
+  integrity, and public-documentation checks before reaching `master`;
+- Cloudflare Pages pulled commit
+  `f2a19f1b9ef00a5c3935e83b37b1f8f8ffe81ab0`, built the unified portal as
+  deployment `8fec9dd8-20cb-4acb-8801-b89de9dd35da`, and assigned
+  `https://junjo.ai` only after the source build succeeded;
+- the homepage, docs hub, Python landing page, generated Python API index, and
+  a generated symbol page returned `200` from the production domain;
+- Cloudflare pulled the same commit for the retired Sphinx domain and published
+  redirect deployment `92eee7cb-c1bb-47d9-ae20-db5f9aa09868`; and
+- the legacy domain root, an old API page, an old generated page, and an
+  arbitrary deep path all returned `301` to
+  `https://junjo.ai/docs/python/`. The final Sphinx deployment remains in
+  Cloudflare history as a rollback input.
+
+The remaining work is post-cutover lifecycle cleanup: finish the
+release-selected stable-artifact policy, then remove Sphinx from active
+generation only when the Python release policy and CI use the replacement
+export contract. The Sphinx source and final artifact remain authoritative
+recovery inputs until those completion criteria pass.
 
 ## Objective
 
