@@ -78,7 +78,7 @@ class DocumentationMigrationTests(unittest.TestCase):
         modules = self.baseline["module_allowlist"]
         identities = {(entry["kind"], entry["name"], entry["legacy_uri"]) for entry in objects}
         self.assertEqual(len(modules), 12)
-        self.assertEqual(len(objects), 424)
+        self.assertEqual(len(objects), 428)
         self.assertEqual(len(identities), len(objects))
         self.assertTrue(all(str(entry["kind"]).startswith("py:") for entry in objects))
 
