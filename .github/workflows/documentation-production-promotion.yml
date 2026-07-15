@@ -28,7 +28,8 @@ jobs:
       - name: Fast-forward the Cloudflare production source branch
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: >-
           python3 tooling/docs/promote_production_branch.py
           --repository "$GITHUB_REPOSITORY"
-          --release-tag "${{ inputs.release_tag }}"
+          --release-tag "$RELEASE_TAG"

@@ -122,9 +122,11 @@ jobs:
         working-directory: apps/website
       - name: Validate release-selected stable sources
         if: env.JUNJO_DOCS_CHANNEL == 'stable' && inputs.release_tag != ''
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: >-
           python3 tooling/docs/validate_release_manifest.py
-          --release-tag "${{ inputs.release_tag }}"
+          --release-tag "$RELEASE_TAG"
       - name: Assemble source-owned documentation
         run: npm run docs:assemble
         working-directory: apps/website
