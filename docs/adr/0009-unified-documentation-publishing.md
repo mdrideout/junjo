@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-14
-- Amended: 2026-07-15 (production deployment and legacy-domain retirement)
+- Amended: 2026-07-15 (release-gated production and legacy-domain retirement)
 - Owners: Junjo platform, SDKs, Studio, and website
 - Supersedes: the documentation publishing and isolated website-build clauses
   of [ADR 0001](0001-junjo-platform-monorepo.md)
@@ -62,14 +62,22 @@ code to generate documentation.
 - Component-owned export commands run with their own locks and native tools.
 - A version-controlled root documentation command stages the selected outputs,
   runs the normal website build, and validates the complete artifact.
-- GitHub Actions runs that contract as a pull-request validation gate, then
-  discards its generated output. It does not persist or deploy documentation
-  artifacts. Merging the validated source to protected `master` is the
-  production signal. Cloudflare Pages pulls that commit, runs the same contract,
-  and publishes its generated `apps/website/dist` directory. Build output is
-  never checked in.
+- GitHub Actions runs that contract as source validation, then discards its
+  generated output. It does not persist or deploy documentation artifacts.
+  Cloudflare Pages pulls and builds source for every same-repository pull-request
+  branch and for `master` as preview deployments. Those preview builds use the
+  explicitly labeled `next` channel and never update `junjo.ai`.
+- The Cloudflare production branch is `docs-production`. A release workflow may
+  fast-forward that branch to the exact release-tag commit only after all release
+  gates succeed and the GitHub release is published. Cloudflare then pulls that
+  source, builds it with the `stable` channel, and updates `junjo.ai`. Generated
+  `apps/website/dist` output is never checked in, uploaded by GitHub, or passed to
+  Cloudflare.
 - Stable SDK reference pages describe installable releases and record the SDK
   version and source revision.
+- A source-owned stable-release manifest pins each independently released SDK or
+  product documentation input. A component release must select its own exact tag;
+  a documentation-only release retains the existing component selections.
 - Main-branch SDK output may be published only as an explicitly labeled `next`
   preview.
 - Documentation deploys after the corresponding packages and Studio release.
@@ -91,7 +99,7 @@ is proven by the cross-component assembly workflow.
 - Sphinx dependencies and sources are retired only in a later, explicit
   cutover after the roadmap's completion criteria are satisfied.
 
-### Production Cutover Amendment (2026-07-15)
+### Initial Production Cutover Amendment (2026-07-15)
 
 The owner approved the production cutover with two explicit changes to the
 initial compatibility plan:
@@ -113,6 +121,30 @@ the migrated content. The route ledger, API baseline, Sphinx source, and final
 Sphinx artifact remain as migration evidence and rollback inputs. Sphinx may
 continue to run as a warning-strict parity check until a separate cleanup
 removes that validation dependency.
+
+### Release-Gated Production Amendment (2026-07-15)
+
+The owner subsequently separated preview publication from production promotion:
+
+- `master` is no longer a production signal and must not be merge-blocked for the
+  purpose of website deployment. GitHub validation remains visible on pull
+  requests and pushes, but repository releases retain the publication gates.
+- `docs-production` is a monotonic source pointer, not an authored branch. It is
+  initialized at the existing production commit and may advance only by
+  fast-forward to a published `sdk-python-v*`, `studio-v*`, or
+  `docs-release-YYYYMMDD.N` tag that is reachable from `master`.
+- Python and Studio release workflows validate the stable documentation set as
+  part of their release transaction and promote only after their existing
+  package or product publication succeeds. A documentation-only release runs the
+  same stable validation before promotion.
+- Cloudflare's Git integration owns every build and deployment. Production and
+  preview environment variables select `stable` and `next` respectively, and the
+  source-build contract fails closed if Cloudflare routes those channels to the
+  wrong branch.
+
+This amendment supersedes only the initial cutover's protected-`master`
+production signal. The source-build ownership, no-artifact rule, unified portal,
+content-preservation contract, and global legacy-domain redirect remain unchanged.
 
 ## Consequences
 

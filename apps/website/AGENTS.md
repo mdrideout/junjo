@@ -32,6 +32,8 @@ npm audit --omit=dev --audit-level=high
 ```
 
 The production artifact is `apps/website/dist`. GitHub Actions assembles and
-validates source without retaining or deploying an artifact. After an approved
-merge, Cloudflare Pages pulls the protected `master` source, repeats the
-version-controlled build contract, and deploys its own generated output.
+validates source without retaining or deploying an artifact. Cloudflare Pages
+pulls pull-request branches and `master` as `next` previews. Only a successful
+published-release workflow may fast-forward `docs-production`; Cloudflare pulls
+that branch, repeats the version-controlled build as `stable`, and deploys its
+own generated output to `junjo.ai`.

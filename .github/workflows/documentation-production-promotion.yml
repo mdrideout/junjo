@@ -1,0 +1,34 @@
+name: Documentation Production Promotion
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Published release tag whose exact commit becomes the production source
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: Promote published documentation source
+    runs-on: ubuntu-latest
+    concurrency:
+      group: documentation-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout release source and history
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fast-forward the Cloudflare production source branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 tooling/docs/promote_production_branch.py
+          --repository "$GITHUB_REPOSITORY"
+          --release-tag "${{ inputs.release_tag }}"

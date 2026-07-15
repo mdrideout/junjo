@@ -174,12 +174,17 @@ The obsolete `publish.yml` publisher was removed.
 - Canonical source: `apps/website`
 - Production domain: [junjo.ai](https://junjo.ai/)
 - Restored-site commit: `d81fe0b3013310c7ec962c478c6790a0e487ba72`
-- At the time of this consolidation record, Cloudflare Pages built directly
-  from `mdrideout/junjo` on `master`. The 2026-07-15 amendment to ADR 0009
-  keeps that ownership model while making the monorepo build explicit: GitHub
-  Actions validates pull-request source without retaining an artifact, and
-  Cloudflare pulls validated `master`, repeats the version-controlled build,
-  and deploys its own output. Cloudflare preview builds are disabled.
+- Cloudflare Pages builds directly from `mdrideout/junjo`. The final 2026-07-15
+  amendment to ADR 0009 separates branches by purpose: `master` and
+  same-repository pull-request branches build automatically as `next` previews,
+  while only the release-controlled `docs-production` branch builds the
+  `stable` production site. GitHub validates source without retaining or
+  deploying an artifact; a successful published-release workflow advances only
+  the production source ref for Cloudflare to pull.
+- `docs-production` was initialized at the already-live commit
+  `6bd744ae3b86fe0daca09ecc2862295631e24557`. The control-plane cutover did not
+  replace the canonical deployment; the first subsequent published release will
+  perform the first release-gated stable production build.
 - The unified-documentation cutover completed from protected `master` commit
   `f2a19f1b9ef00a5c3935e83b37b1f8f8ffe81ab0`. Cloudflare source-built website
   deployment `8fec9dd8-20cb-4acb-8801-b89de9dd35da` serves the unified portal,

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "python": {
+    "version": "0.64.0",
+    "release_tag": "sdk-python-v0.64.0",
+    "documentation_ref": "sdk-python-v0.64.0",
+    "content_format": "sphinx-rst",
+    "migration_snapshot": false
+  },
+  "studio": {
+    "version": "0.81.5",
+    "release_tag": "studio-v0.81.5",
+    "documentation_ref": "f2a19f1b9ef00a5c3935e83b37b1f8f8ffe81ab0",
+    "content_format": "owned-markdown",
+    "migration_snapshot": true
+  }
+}

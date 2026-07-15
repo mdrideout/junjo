@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -11,6 +12,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +26,25 @@ ASSEMBLY_RECORD = WEBSITE_ROOT / ".docs-assembly/manifest.json"
 LEGACY_SITE_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api-site"
 LEGACY_SITE_SOURCE = WEBSITE_ROOT / "legacy-python-api"
 PYTHON_ROOT = REPOSITORY_ROOT / "sdks/python"
+STABLE_RELEASES = REPOSITORY_ROOT / "tooling/docs/stable-releases.json"
 DOCUMENTATION_CHANNEL = os.environ.get("JUNJO_DOCS_CHANNEL", "next")
+
+
+@dataclass(frozen=True)
+class ComponentSource:
+    name: str
+    version: str
+    release_tag: str
+    release_revision: str
+    documentation_revision: str
+    content_format: str
+    root: Path
+
+
+@dataclass(frozen=True)
+class DocumentationSources:
+    python: ComponentSource
+    studio: ComponentSource
 
 
 def sha256_file(path: Path) -> str:
@@ -43,45 +65,298 @@ def copy_tree_without_overwrite(source: Path, destination: Path) -> None:
         shutil.copy2(source_path, target)
 
 
-def run_python_api_export(output: Path) -> None:
+def git_output(*arguments: str) -> str:
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=REPOSITORY_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def resolve_git_ref(reference: str) -> str:
+    try:
+        return git_output("rev-parse", "--verify", f"{reference}^{{commit}}")
+    except subprocess.CalledProcessError:
+        if reference.startswith(("sdk-python-v", "studio-v", "docs-release-")):
+            subprocess.run(
+                [
+                    "git",
+                    "fetch",
+                    "--force",
+                    "origin",
+                    f"refs/tags/{reference}:refs/tags/{reference}",
+                ],
+                cwd=REPOSITORY_ROOT,
+                check=True,
+            )
+        else:
+            subprocess.run(
+                ["git", "fetch", "--no-tags", "origin", reference],
+                cwd=REPOSITORY_ROOT,
+                check=True,
+            )
+        return git_output("rev-parse", "--verify", f"{reference}^{{commit}}")
+
+
+def python_version(root: Path) -> str:
+    with (root / "sdks/python/pyproject.toml").open("rb") as handle:
+        return str(tomllib.load(handle)["project"]["version"])
+
+
+def studio_version(root: Path) -> str:
+    payload = json.loads(
+        (root / "apps/studio/frontend/package.json").read_text(encoding="utf-8")
+    )
+    return str(payload["version"])
+
+
+def load_stable_manifest() -> dict[str, object]:
+    manifest = json.loads(STABLE_RELEASES.read_text(encoding="utf-8"))
+    if manifest.get("version") != 1:
+        raise ValueError("unsupported stable documentation manifest version")
+    return manifest
+
+
+def component_entry_fields(name: str, entry: object) -> tuple[str, str, str, str, bool]:
+    if not isinstance(entry, dict):
+        raise ValueError(f"stable documentation manifest has no {name} entry")
+    required = {
+        "version",
+        "release_tag",
+        "documentation_ref",
+        "content_format",
+        "migration_snapshot",
+    }
+    if set(entry) != required:
+        raise ValueError(
+            f"stable {name} entry must contain exactly {sorted(required)}"
+        )
+    version = entry["version"]
+    release_tag = entry["release_tag"]
+    documentation_ref = entry["documentation_ref"]
+    content_format = entry["content_format"]
+    migration_snapshot = entry["migration_snapshot"]
+    if not all(isinstance(value, str) for value in (version, release_tag, documentation_ref, content_format)):
+        raise ValueError(f"stable {name} string fields are invalid")
+    if not isinstance(migration_snapshot, bool):
+        raise ValueError(f"stable {name} migration_snapshot must be boolean")
+
+    expected_tag = (
+        f"sdk-python-v{version}" if name == "python" else f"studio-v{version}"
+    )
+    if release_tag != expected_tag:
+        raise ValueError(
+            f"stable {name} release tag must be {expected_tag}, received {release_tag}"
+        )
+    allowed_formats = {"owned-markdown"}
+    if name == "python":
+        allowed_formats.add("sphinx-rst")
+    if content_format not in allowed_formats:
+        raise ValueError(f"unsupported stable {name} content format: {content_format}")
+    return version, release_tag, documentation_ref, content_format, migration_snapshot
+
+
+def validate_component_entry(
+    name: str, entry: object, checkout_root: Path
+) -> ComponentSource:
+    version, release_tag, documentation_ref, content_format, migration_snapshot = (
+        component_entry_fields(name, entry)
+    )
+
+    release_revision = resolve_git_ref(release_tag)
+    documentation_revision = resolve_git_ref(documentation_ref)
+    if not migration_snapshot and documentation_revision != release_revision:
+        raise ValueError(
+            f"stable {name} documentation must come from its exact release tag"
+        )
+    if migration_snapshot:
+        git_output("merge-base", "--is-ancestor", release_revision, documentation_revision)
+
+    checkout = checkout_root / name
     subprocess.run(
-        [
-            "uv",
-            "run",
-            "--frozen",
-            "--extra",
-            "dev",
-            "python",
-            "docs/export_api.py",
-            "generate",
-            "--clean",
-            "--output",
-            str(output),
-            "--channel",
-            DOCUMENTATION_CHANNEL,
-        ],
-        cwd=PYTHON_ROOT,
+        ["git", "worktree", "add", "--detach", str(checkout), documentation_revision],
+        cwd=REPOSITORY_ROOT,
+        check=True,
+    )
+    try:
+        actual_version = (
+            python_version(checkout) if name == "python" else studio_version(checkout)
+        )
+        if actual_version != version:
+            raise ValueError(
+                f"stable {name} documentation revision has version {actual_version}; expected {version}"
+            )
+    except Exception:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(checkout)],
+            cwd=REPOSITORY_ROOT,
+            check=False,
+        )
+        raise
+    return ComponentSource(
+        name=name,
+        version=version,
+        release_tag=release_tag,
+        release_revision=release_revision,
+        documentation_revision=documentation_revision,
+        content_format=content_format,
+        root=checkout,
+    )
+
+
+@contextlib.contextmanager
+def stable_documentation_sources(checkout_root: Path) -> Iterator[DocumentationSources]:
+    manifest = load_stable_manifest()
+    created: list[Path] = []
+    try:
+        python = validate_component_entry("python", manifest.get("python"), checkout_root)
+        created.append(python.root)
+        studio = validate_component_entry("studio", manifest.get("studio"), checkout_root)
+        created.append(studio.root)
+        yield DocumentationSources(python=python, studio=studio)
+    finally:
+        for checkout in reversed(created):
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", str(checkout)],
+                cwd=REPOSITORY_ROOT,
+                check=False,
+            )
+
+
+def run_python_api_export(
+    output: Path,
+    *,
+    sdk_root: Path = PYTHON_ROOT,
+    baseline: Path | None = None,
+    revision: str | None = None,
+) -> None:
+    command = [
+        "uv",
+        "run",
+        "--project",
+        str(PYTHON_ROOT),
+        "python",
+        str(PYTHON_ROOT / "docs/export_api.py"),
+        "generate",
+        "--clean",
+        "--output",
+        str(output),
+        "--sdk-root",
+        str(sdk_root),
+        "--channel",
+        DOCUMENTATION_CHANNEL,
+    ]
+    if baseline is not None:
+        command.extend(("--baseline", str(baseline)))
+    if revision is not None:
+        command.extend(("--revision", revision))
+    subprocess.run(
+        command,
+        cwd=REPOSITORY_ROOT,
         check=True,
     )
 
 
-def build_assembly(root: Path) -> None:
+def build_release_sphinx_baseline(source: ComponentSource, output: Path) -> None:
+    sdk_root = source.root / "sdks/python"
+    subprocess.run(
+        ["uv", "sync", "--frozen", "--package", "junjo", "--extra", "dev"],
+        cwd=sdk_root,
+        check=True,
+    )
+    subprocess.run(
+        ["uv", "run", "sphinx-build", "-W", "-b", "html", "docs", "docs/_build/html"],
+        cwd=sdk_root,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "--project",
+            str(PYTHON_ROOT),
+            "python",
+            str(PYTHON_ROOT / "docs/export_api.py"),
+            "baseline",
+            "--inventory",
+            str(sdk_root / "docs/_build/html/objects.inv"),
+            "--output",
+            str(output),
+        ],
+        cwd=REPOSITORY_ROOT,
+        check=True,
+    )
+
+
+def export_release_rst(source: ComponentSource, output: Path) -> None:
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "--project",
+            str(REPOSITORY_ROOT / "tooling/docs"),
+            "python",
+            str(REPOSITORY_ROOT / "tooling/docs/migrate_rst.py"),
+            "--export-release",
+            "--source-docs",
+            str(source.root / "sdks/python/docs"),
+            "--output",
+            str(output),
+        ],
+        cwd=REPOSITORY_ROOT,
+        check=True,
+    )
+
+
+def documentation_route(path: Path, content: Path) -> str:
+    relative = path.relative_to(content).with_suffix("")
+    parts = list(relative.parts)
+    if parts[-1] == "index":
+        parts.pop()
+    return "/" + "/".join(parts) + "/"
+
+
+def build_assembly(root: Path, sources: DocumentationSources | None = None) -> None:
     content = root / "content"
     assets = root / "assets"
     manifests = root / "manifests"
     record_path = root / "assembly-manifest.json"
     api_export = root / "python-api"
 
-    copy_tree_without_overwrite(REPOSITORY_ROOT / "sdks/python/docs/content", content)
-    copy_tree_without_overwrite(REPOSITORY_ROOT / "apps/studio/docs/public", content)
-    run_python_api_export(api_export)
+    if sources is None:
+        python_docs_root = REPOSITORY_ROOT / "sdks/python/docs"
+        studio_root = REPOSITORY_ROOT
+        copy_tree_without_overwrite(python_docs_root / "content", content)
+        python_baseline = python_docs_root / "api-sphinx-baseline.json"
+        python_revision = git_output("rev-parse", "HEAD")
+    else:
+        python_docs_root = sources.python.root / "sdks/python/docs"
+        studio_root = sources.studio.root
+        if sources.python.content_format == "owned-markdown":
+            copy_tree_without_overwrite(python_docs_root / "content", content)
+        else:
+            export_release_rst(sources.python, content)
+        python_baseline = root / "released-sphinx-api-baseline.json"
+        build_release_sphinx_baseline(sources.python, python_baseline)
+        python_revision = sources.python.documentation_revision
+
+    copy_tree_without_overwrite(studio_root / "apps/studio/docs/public", content)
+    run_python_api_export(
+        api_export,
+        sdk_root=python_docs_root.parent,
+        baseline=python_baseline,
+        revision=python_revision,
+    )
     copy_tree_without_overwrite(api_export / "docs", content / "docs")
-    copy_tree_without_overwrite(REPOSITORY_ROOT / "sdks/python/docs/_static", assets)
+    copy_tree_without_overwrite(python_docs_root / "_static", assets)
 
     manifests.mkdir(parents=True, exist_ok=True)
     shutil.copy2(api_export / "api-manifest.json", manifests / "api-manifest.json")
     shutil.copy2(
-        REPOSITORY_ROOT / "sdks/python/docs/api-sphinx-baseline.json",
+        python_baseline,
         manifests / "sphinx-api-baseline.json",
     )
     shutil.copy2(
@@ -112,6 +387,40 @@ def build_assembly(root: Path) -> None:
         encoding="utf-8",
     )
 
+    published_routes = sorted(
+        documentation_route(path, content)
+        for path in content.rglob("*.md")
+        if path.is_file()
+    )
+    python_publication: dict[str, object] = {
+        "version": api_manifest["sdk_version"],
+        "source_revision": api_manifest["source_revision"],
+    }
+    publication_manifest: dict[str, object] = {
+        "version": 1,
+        "documentation_channel": DOCUMENTATION_CHANNEL,
+        "routes": published_routes,
+        "python": python_publication,
+    }
+    if sources is not None:
+        python_publication.update(
+            {
+                "release_tag": sources.python.release_tag,
+                "release_revision": sources.python.release_revision,
+                "content_format": sources.python.content_format,
+            }
+        )
+        publication_manifest["studio"] = {
+            "version": sources.studio.version,
+            "release_tag": sources.studio.release_tag,
+            "release_revision": sources.studio.release_revision,
+            "source_revision": sources.studio.documentation_revision,
+            "content_format": sources.studio.content_format,
+        }
+    (manifests / "publication-manifest.json").write_text(
+        json.dumps(publication_manifest, indent=2) + "\n", encoding="utf-8"
+    )
+
     files: list[dict[str, str]] = []
     for category, directory in (
         ("content", content),
@@ -139,6 +448,9 @@ def build_assembly(root: Path) -> None:
         "python_sdk_version": api_manifest["sdk_version"],
         "python_source_revision": api_manifest["source_revision"],
         "documentation_channel": api_manifest["channel"],
+        "stable_release_manifest_hash": (
+            sha256_file(STABLE_RELEASES) if sources is not None else None
+        ),
         "files": files,
     }
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
@@ -224,17 +536,29 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="junjo-docs-assembly-") as directory:
         temporary = Path(directory)
+        if DOCUMENTATION_CHANNEL == "stable":
+            with stable_documentation_sources(temporary / "source-checkouts") as sources:
+                build_assembly(temporary, sources)
+                return finish_assembly(temporary, args.write)
+        if DOCUMENTATION_CHANNEL != "next":
+            raise ValueError(
+                f"JUNJO_DOCS_CHANNEL must be next or stable, received {DOCUMENTATION_CHANNEL}"
+            )
         build_assembly(temporary)
-        if args.write:
-            write_assembly(temporary)
-            record = json.loads(
-                (temporary / "assembly-manifest.json").read_text(encoding="utf-8")
-            )
-            print(
-                f"Assembled {len(record['files'])} documentation files into Starlight staging."
-            )
-            return 0
-        return check_assembly(temporary)
+        return finish_assembly(temporary, args.write)
+
+
+def finish_assembly(temporary: Path, write: bool) -> int:
+    if write:
+        write_assembly(temporary)
+        record = json.loads(
+            (temporary / "assembly-manifest.json").read_text(encoding="utf-8")
+        )
+        print(
+            f"Assembled {len(record['files'])} documentation files into Starlight staging."
+        )
+        return 0
+    return check_assembly(temporary)
 
 
 if __name__ == "__main__":

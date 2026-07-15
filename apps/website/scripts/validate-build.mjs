@@ -136,6 +136,7 @@ const sphinxBaseline = readJson(join(manifestRoot, "sphinx-api-baseline.json"));
 const contentMigration = readJson(join(manifestRoot, "content-migration.json"));
 const legacyRoutes = readJson(join(manifestRoot, "legacy-routes.json"));
 const legacyApiMap = readJson(join(manifestRoot, "legacy-api-map.json"));
+const publicationManifest = readJson(join(manifestRoot, "publication-manifest.json"));
 
 requireCondition(apiManifest.version === 1, "unsupported Python API manifest version");
 requireCondition(apiManifest.sdk === "python", "API manifest is not for the Python SDK");
@@ -144,6 +145,30 @@ requireCondition(["next", "stable"].includes(apiManifest.channel), "API manifest
 requireCondition(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(apiManifest.sdk_version), "invalid SDK version");
 requireCondition(/^[0-9a-f]{40}$/.test(apiManifest.source_revision), "API source revision is not a full commit SHA");
 requireCondition(apiManifest.symbol_count === apiManifest.symbols.length, "API symbol count is inconsistent");
+requireCondition(publicationManifest.version === 1, "unsupported publication manifest version");
+requireCondition(
+  publicationManifest.documentation_channel === apiManifest.channel,
+  "publication and API documentation channels differ",
+);
+requireCondition(
+  new Set(publicationManifest.routes).size === publicationManifest.routes.length,
+  "publication manifest contains duplicate routes",
+);
+requireCondition(
+  publicationManifest.python.version === apiManifest.sdk_version &&
+    publicationManifest.python.source_revision === apiManifest.source_revision,
+  "publication and API Python sources differ",
+);
+if (apiManifest.channel === "stable") {
+  requireCondition(
+    /^sdk-python-v\d+\.\d+\.\d+/.test(publicationManifest.python.release_tag),
+    "stable publication has no Python release tag",
+  );
+  requireCondition(
+    /^studio-v\d+\.\d+\.\d+/.test(publicationManifest.studio.release_tag),
+    "stable publication has no Studio release tag",
+  );
+}
 requireCondition(
   apiManifest.page_count === apiManifest.symbol_page_count + apiManifest.module_page_count + 1,
   "API page count is inconsistent",
@@ -191,11 +216,16 @@ for (const symbol of apiManifest.symbols) {
   );
 }
 
-for (const page of contentMigration.pages) {
-  requireCondition(existsSync(routeHtmlPath(page.target_route)), `migrated content route is missing: ${page.target_route}`);
+for (const route of publicationManifest.routes) {
+  requireCondition(existsSync(routeHtmlPath(route)), `published content route is missing: ${route}`);
 }
-for (const route of legacyRoutes.routes) {
-  requireCondition(existsSync(routeHtmlPath(route.target_route)), `legacy route target is missing: ${route.target_route}`);
+if (apiManifest.channel === "next") {
+  for (const page of contentMigration.pages) {
+    requireCondition(existsSync(routeHtmlPath(page.target_route)), `migrated content route is missing: ${page.target_route}`);
+  }
+  for (const route of legacyRoutes.routes) {
+    requireCondition(existsSync(routeHtmlPath(route.target_route)), `legacy route target is missing: ${route.target_route}`);
+  }
 }
 
 const expectedLegacyApiMap = new Map();
@@ -224,6 +254,6 @@ for (const htmlPath of htmlFiles) {
 }
 
 console.log(
-  `Validated ${htmlFiles.length} website pages, ${contentMigration.pages.length} migrated sources, ` +
+  `Validated ${htmlFiles.length} website pages, ${publicationManifest.routes.length} published routes, ` +
     `and ${apiManifest.symbol_count} Python API objects.`,
 );

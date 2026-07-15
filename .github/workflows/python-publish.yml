@@ -24,6 +24,13 @@ jobs:
     if: startsWith(github.event.release.tag_name, 'sdk-python-v')
     uses: ./.github/workflows/ai-chat-compose-smoke.yml
 
+  documentation-validation:
+    if: startsWith(github.event.release.tag_name, 'sdk-python-v')
+    uses: ./.github/workflows/website-ci.yml
+    with:
+      documentation_channel: stable
+      release_tag: ${{ github.event.release.tag_name }}
+
   build-release:
     if: startsWith(github.event.release.tag_name, 'sdk-python-v')
     runs-on: ubuntu-latest
@@ -81,7 +88,12 @@ jobs:
 
   publish:
     if: startsWith(github.event.release.tag_name, 'sdk-python-v')
-    needs: [sdk-validation, examples-validation, compose-validation, build-release]
+    needs:
+      - sdk-validation
+      - examples-validation
+      - compose-validation
+      - documentation-validation
+      - build-release
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -100,3 +112,12 @@ jobs:
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
           packages-dir: dist/
+
+  promote-documentation:
+    if: startsWith(github.event.release.tag_name, 'sdk-python-v')
+    needs: publish
+    permissions:
+      contents: write
+    uses: ./.github/workflows/documentation-production-promotion.yml
+    with:
+      release_tag: ${{ github.event.release.tag_name }}

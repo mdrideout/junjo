@@ -1,0 +1,29 @@
+name: Publish Documentation Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  validation:
+    if: startsWith(github.event.release.tag_name, 'docs-release-')
+    uses: ./.github/workflows/website-ci.yml
+    with:
+      documentation_channel: stable
+      release_tag: ${{ github.event.release.tag_name }}
+
+  promote:
+    if: startsWith(github.event.release.tag_name, 'docs-release-')
+    needs: validation
+    permissions:
+      contents: write
+    uses: ./.github/workflows/documentation-production-promotion.yml
+    with:
+      release_tag: ${{ github.event.release.tag_name }}
