@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-14
+- Amended: 2026-07-15 (production deployment and legacy-domain retirement)
 - Owners: Junjo platform, SDKs, Studio, and website
 - Supersedes: the documentation publishing and isolated website-build clauses
   of [ADR 0001](0001-junjo-platform-monorepo.md)
@@ -59,9 +60,14 @@ code to generate documentation.
 ### Assembly And Release
 
 - Component-owned export commands run with their own locks and native tools.
-- A root documentation workflow stages the selected outputs, runs the normal
-  website build, validates the complete artifact, and deploys that exact static
-  artifact to Cloudflare Pages.
+- A version-controlled root documentation command stages the selected outputs,
+  runs the normal website build, and validates the complete artifact.
+- GitHub Actions runs that contract as a pull-request validation gate, then
+  discards its generated output. It does not persist or deploy documentation
+  artifacts. Merging the validated source to protected `master` is the
+  production signal. Cloudflare Pages pulls that commit, runs the same contract,
+  and publishes its generated `apps/website/dist` directory. Build output is
+  never checked in.
 - Stable SDK reference pages describe installable releases and record the SDK
   version and source revision.
 - Main-branch SDK output may be published only as an explicitly labeled `next`
@@ -78,12 +84,35 @@ is proven by the cross-component assembly workflow.
   with section-level provenance and parity validation.
 - Existing Python docstrings are parsed as Sphinx style during migration; a
   docstring-style rewrite is a separate decision.
-- Sphinx remains warning-strict and deployable until narrative, API, route,
-  anchor, search, version, and release parity are verified.
-- `python-api.junjo.ai` becomes a compatibility redirect only after the
-  parallel validation and rollback gates pass.
+- Sphinx remains warning-strict as a parity and rollback input until narrative,
+  API, route, anchor, search, version, and release parity are verified.
+- `python-api.junjo.ai` becomes the approved global retirement redirect only
+  after the unified Cloudflare source build passes its production gates.
 - Sphinx dependencies and sources are retired only in a later, explicit
   cutover after the roadmap's completion criteria are satisfied.
+
+### Production Cutover Amendment (2026-07-15)
+
+The owner approved the production cutover with two explicit changes to the
+initial compatibility plan:
+
+- Cloudflare Pages remains the production builder and deployer through its Git
+  integration. The `junjo-website` project pulls the protected `master` commit
+  and runs the version-controlled `tooling/docs/build_cloudflare_pages.sh`
+  contract. GitHub Actions independently validates the pull-request source but
+  neither persists nor deploys its output. Generated `dist` output is never
+  checked in.
+- The public Sphinx deployment is retired with one permanent global redirect:
+  every request on `python-api.junjo.ai` returns a `301` to
+  `https://junjo.ai/docs/python/`. Page-by-page route and fragment redirects are
+  intentionally not part of the retirement surface.
+
+This amendment supersedes the roadmap's original page-level compatibility and
+parallel-publication requirements. It does not authorize deleting or rewriting
+the migrated content. The route ledger, API baseline, Sphinx source, and final
+Sphinx artifact remain as migration evidence and rollback inputs. Sphinx may
+continue to run as a warning-strict parity check until a separate cleanup
+removes that validation dependency.
 
 ## Consequences
 
@@ -97,8 +126,9 @@ alone; it is a static assembly of explicitly versioned inputs. That added build
 coordination is accepted because it prevents manually copied API reference and
 keeps stable docs aligned with released packages.
 
-The migration temporarily maintains both Sphinx and Starlight outputs. This is
-intentional risk control, not a permanent compatibility abstraction.
+The migration retains the Sphinx source and final static artifact as recovery
+inputs, but only the unified Starlight site remains a public documentation
+surface after cutover.
 
 ## Rejected Alternatives
 

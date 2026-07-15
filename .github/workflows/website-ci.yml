@@ -1,4 +1,4 @@
-name: Public Documentation
+name: Public Documentation Validation
 
 on:
   push:
@@ -15,16 +15,6 @@ on:
       - ".github/workflows/website-ci.yml"
   pull_request:
     branches: [master]
-    paths:
-      - "apps/website/**"
-      - "apps/studio/docs/**"
-      - "apps/studio/deployments/**"
-      - "sdks/python/**"
-      - "contracts/telemetry/README.md"
-      - "docs/adr/**"
-      - "docs/roadmaps/**"
-      - "tooling/docs/**"
-      - ".github/workflows/website-ci.yml"
   workflow_dispatch:
     inputs:
       documentation_channel:
@@ -45,8 +35,44 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Public documentation scope
+    runs-on: ubuntu-latest
+    outputs:
+      docs_changed: ${{ steps.scope.outputs.docs_changed }}
+    steps:
+      - name: Checkout source history
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect public documentation changes
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          docs_changed=true
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            docs_changed=false
+            while IFS= read -r path; do
+              case "$path" in
+                apps/website/* | apps/studio/docs/* | apps/studio/deployments/* | \
+                sdks/python/* | contracts/telemetry/README.md | docs/adr/* | \
+                docs/roadmaps/* | tooling/docs/* | .github/workflows/website-ci.yml)
+                  docs_changed=true
+                  break
+                  ;;
+              esac
+            done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          fi
+          echo "docs_changed=$docs_changed" >> "$GITHUB_OUTPUT"
+
   website:
-    name: Unified documentation artifact
+    name: Unified documentation source
+    needs: changes
+    if: needs.changes.outputs.docs_changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -104,18 +130,19 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
         working-directory: apps/website
-      - name: Upload exact public documentation artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: public-documentation-${{ env.JUNJO_DOCS_CHANNEL }}-${{ github.sha }}
-          path: apps/website/dist
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload reversible legacy-domain redirect artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: python-api-redirects-${{ github.sha }}
-          path: apps/website/.docs-assembly/python-api._redirects
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 14
+
+  validation:
+    name: Public documentation
+    if: always()
+    needs: [changes, website]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce scoped validation result
+        env:
+          DOCS_CHANGED: ${{ needs.changes.outputs.docs_changed }}
+          WEBSITE_RESULT: ${{ needs.website.result }}
+        run: |
+          if [[ "$DOCS_CHANGED" == "true" && "$WEBSITE_RESULT" != "success" ]]; then
+            echo "Public documentation changed but full validation did not pass."
+            exit 1
+          fi

@@ -365,6 +365,62 @@ def validate_website_build_contract() -> None:
         "npm run validate:build" in website_ci,
         "website CI must validate generated internal links and source references",
     )
+    require(
+        "wrangler" not in website_ci and "CLOUDFLARE_API_TOKEN" not in website_ci,
+        "website CI validates source but Cloudflare Pages owns production builds",
+    )
+    require(
+        "upload-artifact" not in website_ci,
+        "website CI must not persist or deploy a documentation artifact",
+    )
+    require(
+        "name: Public Documentation Validation" in website_ci
+        and "name: Public documentation" in website_ci
+        and "docs_changed: ${{ steps.scope.outputs.docs_changed }}" in website_ci,
+        "website CI must expose an always-present, path-scoped validation gate",
+    )
+    cloudflare_build = (
+        PLATFORM_ROOT / "tooling/docs/build_cloudflare_pages.sh"
+    ).read_text(encoding="utf-8")
+    required_cloudflare_build_contract = (
+        'required_uv_version="0.11.7"',
+        'python3 -m pip install --disable-pip-version-check "uv==${required_uv_version}"',
+        "uv run sphinx-build -W -b html docs docs/_build/html",
+        "uv run python migrate_rst.py --check",
+        "npm ci",
+        "npm run docs:assemble",
+        "npm run check",
+        "npm run build",
+        "npm run validate:build",
+        "npm run docs:check",
+        "npm audit --omit=dev --audit-level=high",
+    )
+    require(
+        all(
+            fragment in cloudflare_build
+            for fragment in required_cloudflare_build_contract
+        ),
+        "the Cloudflare source build must run every public documentation gate",
+    )
+    legacy_redirect = (
+        PLATFORM_ROOT / "apps/website/legacy-python-api/_redirects"
+    ).read_text(encoding="utf-8")
+    require(
+        legacy_redirect.splitlines()
+        == [
+            "# The Python Sphinx site is retired. All legacy requests enter the unified docs here.",
+            "/* https://junjo.ai/docs/python/ 301",
+        ],
+        "the retired Python API domain must use one permanent global redirect",
+    )
+    legacy_build = (
+        PLATFORM_ROOT / "tooling/docs/build_legacy_python_redirect.sh"
+    ).read_text(encoding="utf-8")
+    require(
+        "https://junjo.ai/docs/python/" in legacy_build
+        and "--retry-all-errors" in legacy_build,
+        "the legacy-domain build must wait for the unified Python landing page",
+    )
     validator = (PLATFORM_ROOT / "apps/website/scripts/validate-build.mjs").read_text(
         encoding="utf-8"
     )

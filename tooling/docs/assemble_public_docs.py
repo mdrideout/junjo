@@ -19,7 +19,8 @@ CONTENT_OUTPUT = WEBSITE_ROOT / "src/content/docs/generated"
 ASSET_OUTPUT = WEBSITE_ROOT / "public/docs-assets/generated/python"
 MANIFEST_OUTPUT = WEBSITE_ROOT / "public/docs-manifests/generated/python"
 ASSEMBLY_RECORD = WEBSITE_ROOT / ".docs-assembly/manifest.json"
-LEGACY_REDIRECT_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api._redirects"
+LEGACY_SITE_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api-site"
+LEGACY_SITE_SOURCE = WEBSITE_ROOT / "legacy-python-api"
 PYTHON_ROOT = REPOSITORY_ROOT / "sdks/python"
 DOCUMENTATION_CHANNEL = os.environ.get("JUNJO_DOCS_CHANNEL", "next")
 
@@ -83,29 +84,20 @@ def build_assembly(root: Path) -> None:
         REPOSITORY_ROOT / "sdks/python/docs/api-sphinx-baseline.json",
         manifests / "sphinx-api-baseline.json",
     )
-    shutil.copy2(REPOSITORY_ROOT / "tooling/docs/content-migration.json", manifests / "content-migration.json")
-    shutil.copy2(REPOSITORY_ROOT / "tooling/docs/legacy-routes.json", manifests / "legacy-routes.json")
+    shutil.copy2(
+        REPOSITORY_ROOT / "tooling/docs/content-migration.json",
+        manifests / "content-migration.json",
+    )
+    shutil.copy2(
+        REPOSITORY_ROOT / "tooling/docs/legacy-routes.json",
+        manifests / "legacy-routes.json",
+    )
 
-    legacy_routes = json.loads((manifests / "legacy-routes.json").read_text(encoding="utf-8"))
-    redirect_targets: dict[str, str] = {}
-    for entry in legacy_routes["routes"]:
-        target = (
-            "https://junjo.ai/api"
-            if entry["source_document"] == "api.rst"
-            else f"https://junjo.ai{entry['target_route']}"
-        )
-        for source_route in entry["source_routes"]:
-            previous = redirect_targets.setdefault(source_route, target)
-            if previous != target:
-                raise ValueError(f"legacy route {source_route} has conflicting targets")
-    redirects = [
-        "# Deploy only on python-api.junjo.ai after the parallel validation gate.",
-        "# Temporary redirects keep rollback reversible; promote to 301 only at retirement.",
-        *(f"{source} {target} 302" for source, target in sorted(redirect_targets.items())),
-    ]
-    (root / "python-api._redirects").write_text("\n".join(redirects) + "\n", encoding="utf-8")
+    copy_tree_without_overwrite(LEGACY_SITE_SOURCE, root / "python-api-site")
 
-    api_manifest = json.loads((manifests / "api-manifest.json").read_text(encoding="utf-8"))
+    api_manifest = json.loads(
+        (manifests / "api-manifest.json").read_text(encoding="utf-8")
+    )
     legacy_api_map: dict[str, str] = {}
     for symbol in api_manifest["symbols"]:
         anchor = symbol["legacy_anchor"]
@@ -121,7 +113,11 @@ def build_assembly(root: Path) -> None:
     )
 
     files: list[dict[str, str]] = []
-    for category, directory in (("content", content), ("asset", assets), ("manifest", manifests)):
+    for category, directory in (
+        ("content", content),
+        ("asset", assets),
+        ("manifest", manifests),
+    ):
         for path in sorted(directory.rglob("*")):
             if path.is_file():
                 files.append(
@@ -134,8 +130,8 @@ def build_assembly(root: Path) -> None:
     files.append(
         {
             "category": "compatibility",
-            "path": "python-api._redirects",
-            "hash": sha256_file(root / "python-api._redirects"),
+            "path": "python-api-site/_redirects",
+            "hash": sha256_file(root / "python-api-site/_redirects"),
         }
     )
     record = {
@@ -161,13 +157,17 @@ def write_assembly(temporary: Path) -> None:
     replace_output(temporary / "manifests", MANIFEST_OUTPUT)
     ASSEMBLY_RECORD.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(temporary / "assembly-manifest.json", ASSEMBLY_RECORD)
-    shutil.copy2(temporary / "python-api._redirects", LEGACY_REDIRECT_OUTPUT)
+    replace_output(temporary / "python-api-site", LEGACY_SITE_OUTPUT)
 
 
 def directory_files(root: Path) -> dict[Path, bytes]:
     if not root.exists():
         return {}
-    return {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    return {
+        path.relative_to(root): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
 
 
 def compare_directory(expected: Path, actual: Path, label: str) -> list[str]:
@@ -177,7 +177,9 @@ def compare_directory(expected: Path, actual: Path, label: str) -> list[str]:
     missing = sorted(expected_files.keys() - actual_files.keys())
     extra = sorted(actual_files.keys() - expected_files.keys())
     stale = sorted(
-        path for path in expected_files.keys() & actual_files.keys() if expected_files[path] != actual_files[path]
+        path
+        for path in expected_files.keys() & actual_files.keys()
+        if expected_files[path] != actual_files[path]
     )
     failures.extend(f"{label}: missing {path}" for path in missing)
     failures.extend(f"{label}: unexpected {path}" for path in extra)
@@ -196,11 +198,13 @@ def check_assembly(temporary: Path) -> int:
         failures.append("assembly record is missing")
     elif ASSEMBLY_RECORD.read_bytes() != expected_record:
         failures.append("assembly record is stale")
-    expected_redirects = (temporary / "python-api._redirects").read_bytes()
-    if not LEGACY_REDIRECT_OUTPUT.exists():
-        failures.append("legacy-domain redirect artifact is missing")
-    elif LEGACY_REDIRECT_OUTPUT.read_bytes() != expected_redirects:
-        failures.append("legacy-domain redirect artifact is stale")
+    failures.extend(
+        compare_directory(
+            temporary / "python-api-site",
+            LEGACY_SITE_OUTPUT,
+            "legacy-domain redirect site",
+        )
+    )
     if failures:
         print("\n".join(failures), file=sys.stderr)
         return 1
@@ -223,8 +227,12 @@ def main() -> int:
         build_assembly(temporary)
         if args.write:
             write_assembly(temporary)
-            record = json.loads((temporary / "assembly-manifest.json").read_text(encoding="utf-8"))
-            print(f"Assembled {len(record['files'])} documentation files into Starlight staging.")
+            record = json.loads(
+                (temporary / "assembly-manifest.json").read_text(encoding="utf-8")
+            )
+            print(
+                f"Assembled {len(record['files'])} documentation files into Starlight staging."
+            )
             return 0
         return check_assembly(temporary)
 

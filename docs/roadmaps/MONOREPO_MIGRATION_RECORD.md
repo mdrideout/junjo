@@ -156,8 +156,9 @@ both passed before merge.
   - `junjo-0.64.0.tar.gz`, SHA-256
     `4fe0963193125d7d95c396e2022cdf0fedff11437dfbbb641429bd71e936d103`.
 - Supported Python: 3.11 and newer; repository development version: 3.13
-- Documentation: [python-api.junjo.ai](https://python-api.junjo.ai/), verified
-  serving version `0.64.0`
+- Historical Sphinx documentation deployment:
+  [python-api.junjo.ai](https://python-api.junjo.ai/), verified serving version
+  `0.64.0` before the unified-documentation cutover
 
 The sole PyPI trusted publisher is:
 
@@ -173,7 +174,12 @@ The obsolete `publish.yml` publisher was removed.
 - Canonical source: `apps/website`
 - Production domain: [junjo.ai](https://junjo.ai/)
 - Restored-site commit: `d81fe0b3013310c7ec962c478c6790a0e487ba72`
-- Cloudflare Pages builds directly from `mdrideout/junjo` on `master`.
+- At the time of this consolidation record, Cloudflare Pages built directly
+  from `mdrideout/junjo` on `master`. The 2026-07-15 amendment to ADR 0009
+  keeps that ownership model while making the monorepo build explicit: GitHub
+  Actions validates pull-request source without retaining an artifact, and
+  Cloudflare pulls validated `master`, repeats the version-controlled build,
+  and deploys its own output. Cloudflare preview builds are disabled.
 
 The restored site preserves the original Starlight homepage and documentation
 content. The temporary migration redesign, gradients, replacement copy, and
