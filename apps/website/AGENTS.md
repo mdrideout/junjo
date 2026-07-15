@@ -32,4 +32,6 @@ npm audit --omit=dev --audit-level=high
 ```
 
 The production artifact is `apps/website/dist`. GitHub Actions assembles and
-validates the exact artifact deployed to Cloudflare Pages.
+validates source without retaining or deploying an artifact. After an approved
+merge, Cloudflare Pages pulls the protected `master` source, repeats the
+version-controlled build contract, and deploys its own generated output.

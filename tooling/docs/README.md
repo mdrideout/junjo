@@ -17,10 +17,10 @@ product documentation.
 4. Astro/Starlight builds one immutable deployable. The post-build validator
    checks all routes, anchors, links, search output, sitemap output, migration
    entries, and Sphinx API objects.
-5. Assembly emits `.docs-assembly/python-api-site`, a separately deployable
-   Cloudflare Pages retirement artifact. Its single permanent rule redirects
-   every `python-api.junjo.ai` request to `https://junjo.ai/docs/python/`.
-   Never include this artifact in the `junjo.ai` deployment.
+5. Assembly copies and validates `apps/website/legacy-python-api`, the
+   separately deployed Cloudflare Pages source for the retired domain. Its
+   single permanent rule redirects every `python-api.junjo.ai` request to
+   `https://junjo.ai/docs/python/`. Never include it in the `junjo.ai` output.
 
 Run the converter in its isolated dependency environment:
 
@@ -50,18 +50,29 @@ documentation.
 
 ## Cloudflare deployment
 
-The `Public Documentation` workflow is the only production build pipeline. It
-assembles, validates, and uploads `apps/website/dist`, then a separate deploy
-job downloads that exact artifact and publishes it to the `junjo-website`
-Cloudflare Pages project. Only after that succeeds does it deploy
-`.docs-assembly/python-api-site` to `junjo-python-api`, retiring the Sphinx site
-with the global `301` redirect.
+Cloudflare Pages owns production builds through its Git integration. The
+`junjo-website` project runs this version-controlled command from the repository
+root:
 
-The GitHub `public-documentation-production` environment owns
-`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. The token needs only
-Cloudflare Pages edit access for the owning account. Automatic Git deployments
-are disabled on both Pages projects, so a second builder cannot overwrite the
-validated artifact.
+```bash
+bash tooling/docs/build_cloudflare_pages.sh
+```
+
+The build output is `apps/website/dist`. The script installs a pinned `uv`,
+builds and validates the Sphinx parity source, validates the narrative ledger,
+assembles the source-owned exports, runs all Starlight checks, and audits
+production dependencies. GitHub Actions independently runs the same gates as a
+pull-request validator, but does not upload, retain, or deploy its generated
+output. Merging the validated source to protected `master` is the production
+signal; Cloudflare then pulls, builds, and deploys that commit. Automatic
+production builds are enabled for `master`, while Cloudflare branch previews
+are disabled so unvalidated source is never deployed.
+
+The `junjo-python-api` project runs
+`tooling/docs/build_legacy_python_redirect.sh`, which waits for the unified
+Python landing page before publishing the committed
+`apps/website/legacy-python-api` directory. That directory contains only the
+global `301` rule. Neither Pages project consumes a checked-in `dist` directory.
 
 ## Language SDK artifact contract
 

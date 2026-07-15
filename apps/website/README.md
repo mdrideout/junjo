@@ -45,18 +45,18 @@ the completed production build.
 
 This component deliberately keeps its own `package-lock.json`; it is not part
 of a repository-wide JavaScript workspace. CI installs each documentation
-producer with its own lock, assembles one exact artifact, and publishes only
-`apps/website/dist`. A second deployable directory,
-`.docs-assembly/python-api-site`, contains the global permanent redirect used
-to retire `python-api.junjo.ai`. It belongs only on the `junjo-python-api`
-Cloudflare Pages project and must never be deployed on `junjo.ai`.
+producer with its own lock and validates the complete source assembly without
+retaining or deploying its generated output. After the validated pull request
+is merged, Cloudflare Pages pulls the protected `master` commit and runs
+`tooling/docs/build_cloudflare_pages.sh` from the repository root. Cloudflare
+publishes its own generated `apps/website/dist`; that directory is never
+checked in.
 
-On a successful `master` build, GitHub Actions downloads the exact retained
-artifacts and deploys `dist` to `junjo-website` before deploying the retirement
-artifact to `junjo-python-api`. The `public-documentation-production` GitHub
-environment owns the Cloudflare account ID and least-privilege Pages API token.
-Cloudflare automatic Git deployments are disabled on both Pages projects;
-production is never rebuilt independently from source in two places.
+`legacy-python-api/_redirects` is source configuration, not generated site
+output. The `junjo-python-api` Cloudflare Pages project pulls that directory
+from Git after the same approved merge. Its build waits for the unified Python
+landing page to be live before publishing the single permanent redirect rule.
+It must never be included in the `junjo.ai` output.
 
 CI labels ordinary source builds as `next`. A caller may request the `stable`
 channel only from the exact released checkout; the channel, SDK version, and

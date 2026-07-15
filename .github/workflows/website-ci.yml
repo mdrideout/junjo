@@ -1,4 +1,4 @@
-name: Public Documentation
+name: Public Documentation Validation
 
 on:
   push:
@@ -15,16 +15,6 @@ on:
       - ".github/workflows/website-ci.yml"
   pull_request:
     branches: [master]
-    paths:
-      - "apps/website/**"
-      - "apps/studio/docs/**"
-      - "apps/studio/deployments/**"
-      - "sdks/python/**"
-      - "contracts/telemetry/README.md"
-      - "docs/adr/**"
-      - "docs/roadmaps/**"
-      - "tooling/docs/**"
-      - ".github/workflows/website-ci.yml"
   workflow_dispatch:
     inputs:
       documentation_channel:
@@ -45,8 +35,44 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Public documentation scope
+    runs-on: ubuntu-latest
+    outputs:
+      docs_changed: ${{ steps.scope.outputs.docs_changed }}
+    steps:
+      - name: Checkout source history
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect public documentation changes
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          docs_changed=true
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            docs_changed=false
+            while IFS= read -r path; do
+              case "$path" in
+                apps/website/* | apps/studio/docs/* | apps/studio/deployments/* | \
+                sdks/python/* | contracts/telemetry/README.md | docs/adr/* | \
+                docs/roadmaps/* | tooling/docs/* | .github/workflows/website-ci.yml)
+                  docs_changed=true
+                  break
+                  ;;
+              esac
+            done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          fi
+          echo "docs_changed=$docs_changed" >> "$GITHUB_OUTPUT"
+
   website:
-    name: Unified documentation artifact
+    name: Unified documentation source
+    needs: changes
+    if: needs.changes.outputs.docs_changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -104,69 +130,19 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
         working-directory: apps/website
-      - name: Upload exact public documentation artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: public-documentation-${{ env.JUNJO_DOCS_CHANNEL }}-${{ github.sha }}
-          path: apps/website/dist
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload retired legacy-domain redirect site
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: python-api-retirement-${{ github.sha }}
-          path: apps/website/.docs-assembly/python-api-site
-          if-no-files-found: error
-          retention-days: 14
 
-  deploy:
-    name: Deploy unified documentation
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: website
+  validation:
+    name: Public documentation
+    if: always()
+    needs: [changes, website]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    concurrency:
-      group: public-documentation-production
-      cancel-in-progress: false
-    environment:
-      name: public-documentation-production
-      url: https://junjo.ai/
-    permissions:
-      contents: read
-      deployments: write
-    env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: "22.12"
-      - name: Download exact public documentation artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: public-documentation-next-${{ github.sha }}
-          path: .deployment/public-documentation
-      - name: Download retired legacy-domain redirect site
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: python-api-retirement-${{ github.sha }}
-          path: .deployment/python-api-retirement
-      - name: Deploy exact unified documentation artifact
-        run: >-
-          npx --yes wrangler@4.111.0 pages deploy
-          "$GITHUB_WORKSPACE/.deployment/public-documentation"
-          --project-name=junjo-website
-          --branch=master
-          --commit-hash="$GITHUB_SHA"
-          --commit-message="Unified documentation $GITHUB_SHA"
-          --commit-dirty=false
-      - name: Retire legacy Python API documentation site
-        run: >-
-          npx --yes wrangler@4.111.0 pages deploy
-          "$GITHUB_WORKSPACE/.deployment/python-api-retirement"
-          --project-name=junjo-python-api
-          --branch=master
-          --commit-hash="$GITHUB_SHA"
-          --commit-message="Retire Python API documentation $GITHUB_SHA"
-          --commit-dirty=false
+      - name: Enforce scoped validation result
+        env:
+          DOCS_CHANGED: ${{ needs.changes.outputs.docs_changed }}
+          WEBSITE_RESULT: ${{ needs.website.result }}
+        run: |
+          if [[ "$DOCS_CHANGED" == "true" && "$WEBSITE_RESULT" != "success" ]]; then
+            echo "Public documentation changed but full validation did not pass."
+            exit 1
+          fi

@@ -20,9 +20,9 @@ ASSET_OUTPUT = WEBSITE_ROOT / "public/docs-assets/generated/python"
 MANIFEST_OUTPUT = WEBSITE_ROOT / "public/docs-manifests/generated/python"
 ASSEMBLY_RECORD = WEBSITE_ROOT / ".docs-assembly/manifest.json"
 LEGACY_SITE_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api-site"
+LEGACY_SITE_SOURCE = WEBSITE_ROOT / "legacy-python-api"
 PYTHON_ROOT = REPOSITORY_ROOT / "sdks/python"
 DOCUMENTATION_CHANNEL = os.environ.get("JUNJO_DOCS_CHANNEL", "next")
-LEGACY_REDIRECT_TARGET = "https://junjo.ai/docs/python/"
 
 
 def sha256_file(path: Path) -> str:
@@ -93,13 +93,7 @@ def build_assembly(root: Path) -> None:
         manifests / "legacy-routes.json",
     )
 
-    legacy_site = root / "python-api-site"
-    legacy_site.mkdir(parents=True)
-    (legacy_site / "_redirects").write_text(
-        "# The Python Sphinx site is retired. All legacy requests enter the unified docs here.\n"
-        f"/* {LEGACY_REDIRECT_TARGET} 301\n",
-        encoding="utf-8",
-    )
+    copy_tree_without_overwrite(LEGACY_SITE_SOURCE, root / "python-api-site")
 
     api_manifest = json.loads(
         (manifests / "api-manifest.json").read_text(encoding="utf-8")

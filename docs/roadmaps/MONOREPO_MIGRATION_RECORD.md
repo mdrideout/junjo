@@ -176,9 +176,10 @@ The obsolete `publish.yml` publisher was removed.
 - Restored-site commit: `d81fe0b3013310c7ec962c478c6790a0e487ba72`
 - At the time of this consolidation record, Cloudflare Pages built directly
   from `mdrideout/junjo` on `master`. The 2026-07-15 amendment to ADR 0009
-  supersedes that publishing path: GitHub Actions now owns the exact validated
-  direct-upload artifact. Automatic production and preview deployments are
-  disabled on both Cloudflare Pages projects.
+  keeps that ownership model while making the monorepo build explicit: GitHub
+  Actions validates pull-request source without retaining an artifact, and
+  Cloudflare pulls validated `master`, repeats the version-controlled build,
+  and deploys its own output. Cloudflare preview builds are disabled.
 
 The restored site preserves the original Starlight homepage and documentation
 content. The temporary migration redesign, gradients, replacement copy, and

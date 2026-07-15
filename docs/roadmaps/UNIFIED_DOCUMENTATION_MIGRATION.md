@@ -1,7 +1,7 @@
 # Unified Documentation Portal Migration Strategy And Implementation Plan
 
-- Status: Production cutover approved; deployment credentials and live
-  verification remain open
+- Status: Production source-build cutover approved; live verification remains
+  open
 - Date: 2026-07-15
 - Owners: Junjo platform, Python SDK, Studio, website, and future SDK owners
 - Decision authority: ADR 0009 accepts the unified publishing boundary; the
@@ -10,9 +10,10 @@
 ## Implementation Record
 
 The repository implementation began on `codex/unified-docs-migration`. On
-2026-07-15 the owner selected GitHub Actions direct upload for production and
-approved retirement of the legacy Sphinx site with a single global permanent
-redirect rather than page-by-page compatibility mappings.
+2026-07-15 the owner selected Cloudflare Pages Git builds gated by validated
+merges to protected `master` and approved retirement of the legacy Sphinx site
+with a single global permanent redirect rather than page-by-page compatibility
+mappings.
 
 Implemented:
 
@@ -26,16 +27,16 @@ Implemented:
 - a client-side compatibility map for legacy API fragments;
 - build validation for every migrated route, API route/anchor, baseline symbol,
   internal link, search artifact, sitemap, and unconverted markup token;
-- a path-routed GitHub Actions workflow that uploads the exact validated static
-  `next` artifact while retaining Sphinx as a parity gate;
+- a path-routed GitHub Actions workflow that validates the complete `next`
+  source assembly without persisting or deploying its generated output;
 - an explicit `next`/`stable` manifest and page label, with stable assembly
   callable only from a release-selected checkout;
-- a version-pinned Wrangler deployment job that publishes the retained site
-  artifact to `junjo-website`, then replaces the public Sphinx deployment on
-  `junjo-python-api` with a one-rule `301` redirect site; and
-- Cloudflare automatic production and preview deployments disabled on both
-  Pages projects without changing their current production deployments or
-  custom domains.
+- a version-controlled Cloudflare source-build command that repeats every
+  assembly and validation gate before publishing `apps/website/dist`;
+- a committed one-rule `301` redirect source plus a legacy-domain build gate
+  that waits for the unified Python landing page before retiring Sphinx; and
+- both Cloudflare Pages projects configured for automatic production builds
+  from `master`, with unvalidated branch previews disabled.
 
 The original audit contained 4,094 RST lines. Source work that landed during
 implementation expanded the live corpus to 4,113 lines and the Sphinx API
@@ -44,9 +45,8 @@ from the newer source; no content was frozen at the older counts.
 
 Still gated by production evidence:
 
-- configure the `public-documentation-production` GitHub environment with the
-  Cloudflare account ID and least-privilege Pages API token;
-- publish the validated artifact and global legacy-domain redirect; and
+- merge the green source and publish the unified build plus global
+  legacy-domain redirect; and
 - verify the unified routes, search, canonical metadata, and global redirect in
   production while retaining the final Sphinx artifact for rollback.
 
@@ -473,8 +473,10 @@ The Python exporter produces:
 - a redirects/legacy-anchor manifest; and
 - version and source-revision metadata.
 
-Generated files are build artifacts. They are written to an ignored staging
-directory or uploaded as versioned CI artifacts; they are not hand-edited.
+Generated files are build artifacts. The public documentation validator writes
+them only to ignored staging and build directories, then discards them when the
+job ends. SDK-owned release artifacts may use their own release storage, but
+this GitHub validator uploads nothing. Generated files are never hand-edited.
 
 ### API Parity Gates
 
@@ -538,10 +540,12 @@ commands and stages their output before the normal website build.
 
 ### Recommended Production Pipeline
 
-Use GitHub Actions to assemble and validate the exact static production
-artifact, then deploy that artifact to Cloudflare Pages. Do not let an opaque
-Cloudflare build independently regenerate API documentation from whatever main
-branch happens to contain.
+Use GitHub Actions to assemble and validate pull-request source without
+persisting its generated output. Required review and validation complete before
+the source reaches protected `master`. That merge is the production signal:
+Cloudflare Pages pulls the approved commit, runs the version-controlled root
+build contract, and deploys its own generated output. Cloudflare preview builds
+remain disabled so unapproved commits are never deployed.
 
 The production sequence is:
 
@@ -551,9 +555,10 @@ The production sequence is:
 4. build the static site;
 5. validate links, routes, anchors, symbol manifests, search, sitemap, and
    version metadata;
-6. retain the deployable artifact for rollback; and
-7. deploy documentation last, after the corresponding packages and Studio
-   release are public.
+6. merge the validated source to protected `master`;
+7. let Cloudflare independently repeat the complete build contract and deploy
+   only if it passes; and
+8. retire the Sphinx domain only after the unified Python landing page is live.
 
 For pull requests, a cross-component public-docs workflow builds `next` output
 from the changed source tree. It is triggered by:
@@ -741,14 +746,15 @@ Exit gate:
 - no generated or copied content is hand-edited in the portal; and
 - standalone deployment distributions remain complete.
 
-### Work Package 6: Release Integration And Production Direct Upload
+### Work Package 6: Release Integration And Cloudflare Source Build
 
 Tasks:
 
 - produce versioned docs artifacts with SDK releases;
 - assemble stable production docs from released artifacts;
 - publish an optional clearly labeled `next` preview;
-- deploy the exact GitHub Actions artifact to the unified site;
+- validate pull-request source in GitHub without persisting generated output;
+- merge approved source and let Cloudflare pull, build, and deploy it;
 - run production route, search, sitemap, canonical, and version checks; and
 - retain the prior website and final Sphinx artifacts as rollback inputs.
 
