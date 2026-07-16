@@ -13,6 +13,7 @@ import {
 } from './state-event-identity'
 import { useNavigate } from 'react-router'
 import { useWorkflowDetailRoute } from './workflow-detail-route-context'
+import { workflowPath } from '../../../util/telemetry-paths'
 
 interface WorkflowStateEventNavButtonsProps {
   traceId: string
@@ -77,10 +78,12 @@ export default function WorkflowStateEventNavButtons({
     dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
     dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
     dispatch(WorkflowDetailStateActions.setStateEventScrollTarget(identity))
-    navigate(
-      `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${span.span_id}`,
-      { replace: true },
-    )
+    navigate(workflowPath(
+      route.serviceName,
+      route.traceId,
+      route.workflowSpanId,
+      span.span_id,
+    ), { replace: true })
   }
 
   return (

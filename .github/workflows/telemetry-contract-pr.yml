@@ -1,0 +1,26 @@
+name: Telemetry Contract PR
+
+on:
+  pull_request:
+    paths:
+      - "contracts/telemetry/**"
+      - "sdks/python/src/junjo/**"
+      - "sdks/python/tests/**"
+      - "sdks/python/pyproject.toml"
+      - "sdks/python/uv.lock"
+      - "apps/studio/ingestion/**"
+      - "apps/studio/backend/app/features/**"
+      - "apps/studio/backend/tests/**"
+      - "apps/studio/backend/pyproject.toml"
+      - "apps/studio/backend/uv.lock"
+      - "apps/studio/frontend/src/**"
+      - "apps/studio/frontend/package.json"
+      - "apps/studio/frontend/package-lock.json"
+      - ".github/workflows/telemetry-contract*.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validation:
+    uses: ./.github/workflows/telemetry-contract.yml

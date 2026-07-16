@@ -56,6 +56,7 @@ jobs:
           PYTHONUNBUFFERED: "1"
           JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+          JUNJO_INTERNAL_GRPC_TOKEN: "test-internal-grpc-token-32-bytes-long"
       - name: Upload test logs on failure
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

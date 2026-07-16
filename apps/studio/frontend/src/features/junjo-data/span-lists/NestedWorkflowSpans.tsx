@@ -27,6 +27,7 @@ import NestedSpanRow from './NestedSpanRow'
 import { selectSpanAndChildren } from '../../traces/store/selectors'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
+import { tracesPath, workflowPath } from '../../../util/telemetry-paths'
 
 interface NestedWorkflowSpansProps {
   traceId: string
@@ -258,10 +259,12 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
 
               // Set the active set state event
               dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event: row.data }))
-              navigate(
-                `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${row.parentSpan.span_id}`,
-                { replace: true },
-              )
+              navigate(workflowPath(
+                route.serviceName,
+                route.traceId,
+                route.workflowSpanId,
+                row.parentSpan.span_id,
+              ), { replace: true })
             }}
           >
             <div className={'flex gap-x-2 items-start'}>
@@ -288,7 +291,7 @@ export default function NestedWorkflowSpans(props: NestedWorkflowSpansProps) {
   return (
     <div ref={scrollableContainerRef}>
       <div className={'pl-1.5 mt-2 underline text-sm mb-2'}>
-        <Link to={`/traces/${serviceName}/${traceId}`} className={'hover:underline'}>
+        <Link to={tracesPath(serviceName, traceId)} className={'hover:underline'}>
           View full trace
         </Link>
       </div>

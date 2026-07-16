@@ -1,0 +1,5604 @@
+{
+  "matrix_passed": true,
+  "recorded_at_utc": "2026-07-16T17:19:36Z",
+  "scenario_count": 42,
+  "scenarios": [
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "ttl-5",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 4006,
+          "latency_micros_mean": 2773.6666666666665,
+          "latency_micros_total": 8321,
+          "max_active": 1,
+          "requests": 3,
+          "unavailable": 0,
+          "valid": 3
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 5,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 120,
+          "implementation_label": "matrix-ttl-5",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1200
+          },
+          "exports_per_second": 100.75810115707411,
+          "final_codes": {
+            "OK": 1200
+          },
+          "mean_ms": 2.3946351864530393,
+          "p50_ms": 1.632082974538207,
+          "p95_ms": 4.675874952226877,
+          "p99_ms": 16.59470796585083,
+          "requested": 1200,
+          "spans_per_second": 3224.2592370263715,
+          "successful": 1200,
+          "workload_seconds": 11.909712332999334
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 11.7164843696172,
+          "p50_ms": 9.49624995701015,
+          "p95_ms": 22.362166084349155,
+          "p99_ms": 34.81287485919893,
+          "result_codes": {
+            "200": 381
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:55:54Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 235.5,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 235.5,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 15.0,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 235.9,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 6
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 18.08,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 15.59,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 3.79,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 18.08,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 4.0,
+            "sample_count": 6
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 35.07282883301377
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "ttl-10",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 4400,
+          "latency_micros_mean": 3779.5,
+          "latency_micros_total": 7559,
+          "max_active": 1,
+          "requests": 2,
+          "unavailable": 0,
+          "valid": 2
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 120,
+          "implementation_label": "matrix-ttl-10",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1200
+          },
+          "exports_per_second": 100.78805903826716,
+          "final_codes": {
+            "OK": 1200
+          },
+          "mean_ms": 2.0390429794012257,
+          "p50_ms": 1.3418749440461397,
+          "p95_ms": 4.540000110864639,
+          "p99_ms": 12.911833124235272,
+          "requested": 1200,
+          "spans_per_second": 3225.2178892245493,
+          "successful": 1200,
+          "workload_seconds": 11.906172332819551
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 9.996840038317904,
+          "p50_ms": 7.938874885439873,
+          "p95_ms": 19.602375105023384,
+          "p99_ms": 39.38554204069078,
+          "result_codes": {
+            "200": 394
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:56:29Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 235.2,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 235.8,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 16.05,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 236.1,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 6
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 18.98,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 20.2,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 6.38,
+            "max_file_descriptors": 17.0,
+            "max_memory_mib": 20.2,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 6
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 34.442057916894555
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "ttl-15",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 7060,
+          "latency_micros_mean": 7060.0,
+          "latency_micros_total": 7060,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 15,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 120,
+          "implementation_label": "matrix-ttl-15",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1200
+          },
+          "exports_per_second": 100.8091262477275,
+          "final_codes": {
+            "OK": 1200
+          },
+          "mean_ms": 2.0228876189018288,
+          "p50_ms": 1.2668338604271412,
+          "p95_ms": 4.90129180252552,
+          "p99_ms": 17.112083034589887,
+          "requested": 1200,
+          "spans_per_second": 3225.89203992728,
+          "successful": 1200,
+          "workload_seconds": 11.903684166958556
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 12.317693236692952,
+          "p50_ms": 9.016208117827773,
+          "p95_ms": 29.802124947309494,
+          "p99_ms": 45.885165920481086,
+          "result_codes": {
+            "200": 378
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:57:04Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 235.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 235.6,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 27.0,
+            "max_cpu_percent": 15.8,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 236.3,
+            "max_pids": 28.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 27.0,
+            "sample_count": 6
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 18.16,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 14.99,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 4.2,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 18.16,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 6
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 34.832802624907345
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "ttl-30",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 4481,
+          "latency_micros_mean": 4481.0,
+          "latency_micros_total": 4481,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 30,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 120,
+          "implementation_label": "matrix-ttl-30",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1200
+          },
+          "exports_per_second": 100.6092761521793,
+          "final_codes": {
+            "OK": 1200
+          },
+          "mean_ms": 2.1669661723232516,
+          "p50_ms": 1.3487921096384525,
+          "p95_ms": 3.6807910073548555,
+          "p99_ms": 16.799458069726825,
+          "requested": 1200,
+          "spans_per_second": 3219.4968368697378,
+          "successful": 1200,
+          "workload_seconds": 11.92732962500304
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 12.454461970423056,
+          "p50_ms": 8.192708948627114,
+          "p95_ms": 20.31908300705254,
+          "p99_ms": 40.92062497511506,
+          "result_codes": {
+            "200": 379
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:57:39Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 236.4,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 236.5,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 15.78,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 237.0,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 6
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 18.09,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 21.09,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 3.83,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 21.09,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 4.0,
+            "sample_count": 6
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 35.81315845903009
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-4",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 61100,
+          "latency_micros_mean": 7558.76,
+          "latency_micros_total": 755876,
+          "max_active": 4,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-4",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 4,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 216
+          },
+          "exports_per_second": 965.4951349187296,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 25.91308645834215,
+          "p50_ms": 0.9242079686373472,
+          "p95_ms": 211.22445911169052,
+          "p99_ms": 464.46554199792445,
+          "requested": 1000,
+          "spans_per_second": 30895.844317399347,
+          "successful": 1000,
+          "workload_seconds": 1.0357379999477416
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 36.57567883298422,
+          "p50_ms": 8.883917005732656,
+          "p95_ms": 267.78400014154613,
+          "p99_ms": 280.17345792613924,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:58:58Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 40.0,
+            "first_memory_mib": 235.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 40.0,
+            "last_memory_mib": 235.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.26,
+            "max_file_descriptors": 40.0,
+            "max_memory_mib": 235.1,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 16.6,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 16.6,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 11.95,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 16.6,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.251033790875226
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-8",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 77964,
+          "latency_micros_mean": 20722.97,
+          "latency_micros_total": 2072297,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-8",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 222
+          },
+          "exports_per_second": 861.1481182725527,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 30.135721132392064,
+          "p50_ms": 0.905750086531043,
+          "p95_ms": 272.10525004193187,
+          "p99_ms": 431.5788340754807,
+          "requested": 1000,
+          "spans_per_second": 27556.739784721685,
+          "successful": 1000,
+          "workload_seconds": 1.1612404170446098
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 39.7622901140354,
+          "p50_ms": 9.382124990224838,
+          "p95_ms": 273.1981249526143,
+          "p99_ms": 320.69479185156524,
+          "result_codes": {
+            "200": 26
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:59:23Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.3,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.3,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.33,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.3,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 18.12,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 18.12,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 11.75,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 18.12,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.131055624922737
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-16",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 157963,
+          "latency_micros_mean": 62523.22,
+          "latency_micros_total": 6252322,
+          "max_active": 16,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-16",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 16,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 212
+          },
+          "exports_per_second": 1035.4510394835563,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 32.10310434526764,
+          "p50_ms": 1.2179168406873941,
+          "p95_ms": 291.2812498398125,
+          "p99_ms": 576.6824998427182,
+          "requested": 1000,
+          "spans_per_second": 33134.4332634738,
+          "successful": 1000,
+          "workload_seconds": 0.9657627081032842
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 86.92157747490066,
+          "p50_ms": 48.20329206995666,
+          "p95_ms": 348.19716680794954,
+          "p99_ms": 348.7203340046108,
+          "result_codes": {
+            "200": 14
+          }
+        },
+        "recorded_at_utc": "2026-07-16T16:59:49Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 49.0,
+            "first_memory_mib": 236.5,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 49.0,
+            "last_memory_mib": 236.5,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.3,
+            "max_file_descriptors": 49.0,
+            "max_memory_mib": 236.5,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 18.92,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 18.92,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.54,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 18.92,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.3487578749191
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-16",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 96803,
+          "latency_micros_mean": 28624.73,
+          "latency_micros_total": 2862473,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-16",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 16,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 237
+          },
+          "exports_per_second": 922.4400131059557,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 37.04442555271089,
+          "p50_ms": 1.7627920024096966,
+          "p95_ms": 280.3975420538336,
+          "p99_ms": 793.7052089255303,
+          "requested": 1000,
+          "spans_per_second": 29518.080419390582,
+          "successful": 1000,
+          "workload_seconds": 1.0840813340619206
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 39.80514050150911,
+          "p50_ms": 34.47229089215398,
+          "p95_ms": 187.59162491187453,
+          "p99_ms": 187.72941711358726,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:00:14Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.5,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.5,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 35.04,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.5,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 17.48,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 17.48,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.08,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 17.48,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.51849895901978
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-32",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 113470,
+          "latency_micros_mean": 26313.62,
+          "latency_micros_total": 2631362,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-32",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 245
+          },
+          "exports_per_second": 1080.713735256021,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 35.00674374355003,
+          "p50_ms": 2.6252090465277433,
+          "p95_ms": 316.9502499513328,
+          "p99_ms": 694.9200839735568,
+          "requested": 1000,
+          "spans_per_second": 34582.83952819267,
+          "successful": 1000,
+          "workload_seconds": 0.9253144171088934
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 35.241634500297636,
+          "p50_ms": 10.805999860167503,
+          "p95_ms": 153.69524993002415,
+          "p99_ms": 161.3292081747204,
+          "result_codes": {
+            "200": 22
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:00:39Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.7,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.7,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 29.43,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.7,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.06,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.06,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 14.11,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.06,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.43918574997224
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-64",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 56748,
+          "latency_micros_mean": 22828.3,
+          "latency_micros_total": 2282830,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-64",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 64,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 212
+          },
+          "exports_per_second": 979.139633738726,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 30.865708793746307,
+          "p50_ms": 4.086375003680587,
+          "p95_ms": 274.07383313402534,
+          "p99_ms": 484.8389581311494,
+          "requested": 1000,
+          "spans_per_second": 31332.468279639234,
+          "successful": 1000,
+          "workload_seconds": 1.0213047920260578
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 30.743011345083897,
+          "p50_ms": 7.693124935030937,
+          "p95_ms": 163.65083400160074,
+          "p99_ms": 164.40691705793142,
+          "result_codes": {
+            "200": 26
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:01:04Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.24,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.1,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.14,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.14,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.65,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.14,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.677868583006784
+    },
+    {
+      "expected_final_code": "UNAVAILABLE",
+      "expected_success": false,
+      "matched_expectation": true,
+      "name": "deadline-1000-delay-1250",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": false,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 1250,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 1001815,
+          "latency_micros_mean": 1001581.3333333334,
+          "latency_micros_total": 3004744,
+          "max_active": 1,
+          "requests": 3,
+          "unavailable": 3,
+          "valid": 0
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 3,
+          "implementation_label": "matrix-deadline-1000-delay-1250",
+          "key_topology": "shared",
+          "max_retries": 0,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 1,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 1000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 1250
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "UNAVAILABLE": 30
+          },
+          "exports_per_second": 0.0,
+          "final_codes": {
+            "UNAVAILABLE": 30
+          },
+          "mean_ms": 1003.9387513572971,
+          "p50_ms": 1003.0977078713477,
+          "p95_ms": 1006.8274580407888,
+          "p99_ms": 1006.9967501331121,
+          "requested": 30,
+          "spans_per_second": 0.0,
+          "successful": 0,
+          "workload_seconds": 3.3335785830859095
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 12.256059455158153,
+          "p50_ms": 5.704415962100029,
+          "p95_ms": 9.549333015456796,
+          "p99_ms": 329.5240418519825,
+          "result_codes": {
+            "200": 106
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:01:31Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 29.0,
+            "first_memory_mib": 226.3,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 22.0,
+            "last_file_descriptors": 29.0,
+            "last_memory_mib": 226.3,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 22.0,
+            "max_cpu_percent": 8.16,
+            "max_file_descriptors": 29.0,
+            "max_memory_mib": 226.3,
+            "max_pids": 23.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 22.0,
+            "sample_count": 2
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 14.05,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 13.81,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.88,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 14.05,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 4.0,
+            "sample_count": 2
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 1,
+      "wall_seconds": 26.917725707869977
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "deadline-2000-delay-1250",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 1250,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 1255640,
+          "latency_micros_mean": 1255640.0,
+          "latency_micros_total": 1255640,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 3,
+          "implementation_label": "matrix-deadline-2000-delay-1250",
+          "key_topology": "shared",
+          "max_retries": 0,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 1,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 1250
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 30
+          },
+          "exports_per_second": 21.235191504197466,
+          "final_codes": {
+            "OK": 30
+          },
+          "mean_ms": 421.65162215630215,
+          "p50_ms": 1.1869589798152447,
+          "p95_ms": 1262.8671668935567,
+          "p99_ms": 1263.300540857017,
+          "requested": 30,
+          "spans_per_second": 21.235191504197466,
+          "successful": 30,
+          "workload_seconds": 1.4127492089755833
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 15.761821017473597,
+          "p50_ms": 9.117332985624671,
+          "p95_ms": 18.909459002315998,
+          "p99_ms": 153.95825006999075,
+          "result_codes": {
+            "200": 44
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:01:56Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 227.3,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 24.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 227.3,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 24.0,
+            "max_cpu_percent": 8.38,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 227.3,
+            "max_pids": 23.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 24.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 16.17,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 16.17,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.76,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 16.17,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.477465499890968
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "deadline-5000-delay-1250",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 1250,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 1255210,
+          "latency_micros_mean": 1255210.0,
+          "latency_micros_total": 1255210,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 3,
+          "implementation_label": "matrix-deadline-5000-delay-1250",
+          "key_topology": "shared",
+          "max_retries": 0,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 1,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 5000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 1250
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 30
+          },
+          "exports_per_second": 19.75370530875225,
+          "final_codes": {
+            "OK": 30
+          },
+          "mean_ms": 420.82637504984933,
+          "p50_ms": 1.636875094845891,
+          "p95_ms": 1259.6219999250025,
+          "p99_ms": 1259.9387499503791,
+          "requested": 30,
+          "spans_per_second": 19.75370530875225,
+          "successful": 30,
+          "workload_seconds": 1.5187024171464145
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 20.574196897955105,
+          "p50_ms": 9.622459067031741,
+          "p95_ms": 16.71866700053215,
+          "p99_ms": 262.13870802894235,
+          "result_codes": {
+            "200": 44
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:02:21Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 233.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 24.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 233.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 24.0,
+            "max_cpu_percent": 3.91,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 233.1,
+            "max_pids": 25.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 24.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 13.8,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 13.8,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.91,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 13.8,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.678492167033255
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "spans-1",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 9863,
+          "latency_micros_mean": 9863.0,
+          "latency_micros_total": 9863,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 20,
+          "exports_per_exporter": 20,
+          "implementation_label": "matrix-spans-1",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 1,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 200.23644591423476,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 1.1100342933787033,
+          "p50_ms": 0.4611250478774309,
+          "p95_ms": 1.656917156651616,
+          "p99_ms": 12.570708058774471,
+          "requested": 400,
+          "spans_per_second": 200.23644591423476,
+          "successful": 400,
+          "workload_seconds": 1.9976383328903466
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 15.938610232795678,
+          "p50_ms": 7.3090409860014915,
+          "p95_ms": 12.966000009328127,
+          "p99_ms": 263.85879213921726,
+          "result_codes": {
+            "200": 62
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:02:45Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 237.4,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 237.4,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 14.33,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 237.4,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 18.2,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 18.2,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 1.47,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 18.2,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.83910954114981
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "spans-32",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 7322,
+          "latency_micros_mean": 7322.0,
+          "latency_micros_total": 7322,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 20,
+          "exports_per_exporter": 20,
+          "implementation_label": "matrix-spans-32",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 200.20646711336997,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 1.408567174221389,
+          "p50_ms": 0.49958284944295883,
+          "p95_ms": 6.6144580487161875,
+          "p99_ms": 11.21937483549118,
+          "requested": 400,
+          "spans_per_second": 6406.606947627839,
+          "successful": 400,
+          "workload_seconds": 1.99793745810166
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 16.08920969511764,
+          "p50_ms": 7.188291987404227,
+          "p95_ms": 11.830999981611967,
+          "p99_ms": 263.2656660862267,
+          "result_codes": {
+            "200": 61
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:03:10Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 234.8,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 234.8,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 10.34,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 234.8,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 15.55,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 15.55,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 3.43,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 15.55,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.05952354101464
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "spans-128",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 9581,
+          "latency_micros_mean": 9581.0,
+          "latency_micros_total": 9581,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 20,
+          "exports_per_exporter": 20,
+          "implementation_label": "matrix-spans-128",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 128,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 199.89731943512132,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 3.169051255681552,
+          "p50_ms": 0.6594590377062559,
+          "p95_ms": 19.99962516129017,
+          "p99_ms": 20.195875084027648,
+          "requested": 400,
+          "spans_per_second": 25586.85688769553,
+          "successful": 400,
+          "workload_seconds": 2.001027333084494
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 17.521151364780962,
+          "p50_ms": 6.870082812383771,
+          "p95_ms": 19.65795806609094,
+          "p99_ms": 285.1275419816375,
+          "result_codes": {
+            "200": 60
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:03:35Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 235.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 235.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 10.89,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 235.1,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 20.85,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 20.85,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 7.32,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 20.85,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.793917500181124
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "spans-512",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 11041,
+          "latency_micros_mean": 11041.0,
+          "latency_micros_total": 11041,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 20,
+          "exports_per_exporter": 20,
+          "implementation_label": "matrix-spans-512",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 512,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 198.83436258875,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 15.220298618660308,
+          "p50_ms": 2.4082500021904707,
+          "p95_ms": 56.96591688320041,
+          "p99_ms": 196.4874160476029,
+          "requested": 400,
+          "spans_per_second": 101803.19364544,
+          "successful": 400,
+          "workload_seconds": 2.0117247079033405
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 21.60162343144683,
+          "p50_ms": 9.325792081654072,
+          "p95_ms": 147.61041710153222,
+          "p99_ms": 168.54362515732646,
+          "result_codes": {
+            "200": 56
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:04:00Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 235.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 235.6,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 15.83,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 235.6,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 23.41,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 23.41,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 23.48,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 23.41,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.68144241697155
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "exporters-1",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 10222,
+          "latency_micros_mean": 10222.0,
+          "latency_micros_total": 10222,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 1,
+          "exports_per_exporter": 100,
+          "implementation_label": "matrix-exporters-1",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 100
+          },
+          "exports_per_second": 10.096758583363007,
+          "final_codes": {
+            "OK": 100
+          },
+          "mean_ms": 1.3702016370370984,
+          "p50_ms": 1.0915419552475214,
+          "p95_ms": 2.254666993394494,
+          "p99_ms": 5.853540962561965,
+          "requested": 100,
+          "spans_per_second": 323.0962746676162,
+          "successful": 100,
+          "workload_seconds": 9.904168667038903
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 11.736863429799582,
+          "p50_ms": 10.141792008653283,
+          "p95_ms": 17.344540916383266,
+          "p99_ms": 29.52770795673132,
+          "result_codes": {
+            "200": 316
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:04:33Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 238.2,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 239.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 27.0,
+            "max_cpu_percent": 15.18,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 239.2,
+            "max_pids": 28.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 27.0,
+            "sample_count": 5
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 15.84,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 15.55,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 1.74,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 15.84,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 5
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 32.74147320911288
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "exporters-10",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 4608,
+          "latency_micros_mean": 4608.0,
+          "latency_micros_total": 4608,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 10,
+          "exports_per_exporter": 100,
+          "implementation_label": "matrix-exporters-10",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000
+          },
+          "exports_per_second": 99.56898453554787,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 2.1435693949460983,
+          "p50_ms": 0.8367078844457865,
+          "p95_ms": 4.26404201425612,
+          "p99_ms": 14.176749857142568,
+          "requested": 1000,
+          "spans_per_second": 3186.207505137532,
+          "successful": 1000,
+          "workload_seconds": 10.043288124958053
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 18.020302056446408,
+          "p50_ms": 8.456500014290214,
+          "p95_ms": 30.440709087997675,
+          "p99_ms": 150.30633308924735,
+          "result_codes": {
+            "200": 284
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:05:05Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 235.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 236.7,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 15.32,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 236.7,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 4
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 15.58,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 15.74,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 3.06,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 15.74,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 4.0,
+            "sample_count": 4
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 32.58936020801775
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "exporters-100",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 3181,
+          "latency_micros_mean": 3181.0,
+          "latency_micros_total": 3181,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 30,
+          "implementation_label": "matrix-exporters-100",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 3000
+          },
+          "exports_per_second": 997.7134622894041,
+          "final_codes": {
+            "OK": 3000
+          },
+          "mean_ms": 5.758808521786705,
+          "p50_ms": 0.48512499779462814,
+          "p95_ms": 49.32779096998274,
+          "p99_ms": 77.29662489145994,
+          "requested": 3000,
+          "spans_per_second": 31926.83079326093,
+          "successful": 3000,
+          "workload_seconds": 3.00687533384189
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 16.987044852902436,
+          "p50_ms": 8.155333111062646,
+          "p95_ms": 81.68041706085205,
+          "p99_ms": 282.8947079833597,
+          "result_codes": {
+            "200": 91
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:05:31Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 234.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 234.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 25.0,
+            "max_cpu_percent": 14.39,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 234.6,
+            "max_pids": 26.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 25.0,
+            "sample_count": 2
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 20.99,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 23.43,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.63,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 23.43,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 2
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 26.191351999994367
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "topology-shared-synchronized",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 8278,
+          "latency_micros_mean": 8278.0,
+          "latency_micros_total": 8278,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-topology-shared-synchronized",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 68
+          },
+          "exports_per_second": 1085.9754550580722,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 10.790090294321999,
+          "p50_ms": 6.735167000442743,
+          "p95_ms": 45.2266251668334,
+          "p99_ms": 79.23358399420977,
+          "requested": 1000,
+          "spans_per_second": 34751.21456185831,
+          "successful": 1000,
+          "workload_seconds": 0.9208311249967664
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 18.373659121737415,
+          "p50_ms": 8.18937481380999,
+          "p95_ms": 141.52520801872015,
+          "p99_ms": 157.90479187853634,
+          "result_codes": {
+            "200": 28
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:05:56Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 35.0,
+            "first_memory_mib": 235.3,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 26.0,
+            "last_file_descriptors": 35.0,
+            "last_memory_mib": 235.3,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 26.0,
+            "max_cpu_percent": 0.14,
+            "max_file_descriptors": 35.0,
+            "max_memory_mib": 235.3,
+            "max_pids": 27.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 26.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.13,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.13,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 10.47,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.13,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.517729833023623
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "topology-shared-staggered",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 4150,
+          "latency_micros_mean": 4150.0,
+          "latency_micros_total": 4150,
+          "max_active": 1,
+          "requests": 1,
+          "unavailable": 0,
+          "valid": 1
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-topology-shared-staggered",
+          "key_topology": "shared",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 68
+          },
+          "exports_per_second": 989.6016370372527,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 10.747915086103603,
+          "p50_ms": 2.4761250242590904,
+          "p95_ms": 46.303125098347664,
+          "p99_ms": 95.96145781688392,
+          "requested": 1000,
+          "spans_per_second": 31667.252385192085,
+          "successful": 1000,
+          "workload_seconds": 1.0105076250620186
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 34.95208676516389,
+          "p50_ms": 11.002499843016267,
+          "p95_ms": 146.57462504692376,
+          "p99_ms": 160.61324998736382,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:06:21Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 33.0,
+            "first_memory_mib": 233.2,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 33.0,
+            "last_memory_mib": 233.2,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 25.0,
+            "max_cpu_percent": 0.17,
+            "max_file_descriptors": 33.0,
+            "max_memory_mib": 233.2,
+            "max_pids": 26.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 25.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 18.14,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 18.14,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.52,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 18.14,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.534041666891426
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "topology-distinct-synchronized",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 84063,
+          "latency_micros_mean": 21390.61,
+          "latency_micros_total": 2139061,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-topology-distinct-synchronized",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 222
+          },
+          "exports_per_second": 951.7677418476042,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 29.173572833184153,
+          "p50_ms": 1.6527501866221428,
+          "p95_ms": 285.21549981087446,
+          "p99_ms": 442.33120791614056,
+          "requested": 1000,
+          "spans_per_second": 30456.567739123333,
+          "successful": 1000,
+          "workload_seconds": 1.050676500191912
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 24.79601206557293,
+          "p50_ms": 8.120834128931165,
+          "p95_ms": 141.49766694754362,
+          "p99_ms": 166.16229200735688,
+          "result_codes": {
+            "200": 28
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:06:46Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 228.5,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 228.5,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.21,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 228.5,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 17.82,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 17.82,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.43,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 17.82,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.10360658285208
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "topology-distinct-staggered",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 81449,
+          "latency_micros_mean": 16701.82,
+          "latency_micros_total": 1670182,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-topology-distinct-staggered",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 225
+          },
+          "exports_per_second": 990.3150899138069,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 29.11619820445776,
+          "p50_ms": 0.45250006951391697,
+          "p95_ms": 296.81833321228623,
+          "p99_ms": 485.46583391726017,
+          "requested": 1000,
+          "spans_per_second": 31690.08287724182,
+          "successful": 1000,
+          "workload_seconds": 1.0097796248737723
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 24.3259687059825,
+          "p50_ms": 6.6996251698583364,
+          "p95_ms": 144.6948330849409,
+          "p99_ms": 149.2277500219643,
+          "result_codes": {
+            "200": 28
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:07:11Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 228.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 228.6,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.25,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 228.6,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 16.96,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 16.96,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 13.6,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 16.96,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.05441950005479
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "capacity-256",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 82169,
+          "latency_micros_mean": 10923.543604651162,
+          "latency_micros_total": 3757699,
+          "max_active": 8,
+          "requests": 344,
+          "unavailable": 0,
+          "valid": 344
+        },
+        "config": {
+          "cache_max_entries": 256,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 300,
+          "exports_per_exporter": 2,
+          "implementation_label": "matrix-capacity-256",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 0,
+          "restart_count": 0,
+          "round_barrier": true,
+          "run_failure_probes": false,
+          "spans_per_export": 1,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 600,
+            "UNAVAILABLE": 1043
+          },
+          "exports_per_second": 304.44507573993417,
+          "final_codes": {
+            "OK": 600
+          },
+          "mean_ms": 341.73758645619574,
+          "p50_ms": 86.07900002971292,
+          "p95_ms": 1364.8676669690758,
+          "p99_ms": 1561.8425828870386,
+          "requested": 600,
+          "spans_per_second": 304.44507573993417,
+          "successful": 600,
+          "workload_seconds": 1.9707988330628723
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0,
+          "p99_ms": 0.0,
+          "result_codes": {}
+        },
+        "recorded_at_utc": "2026-07-16T17:09:47Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 37.0,
+            "first_memory_mib": 226.0,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 37.0,
+            "last_memory_mib": 226.0,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 25.0,
+            "max_cpu_percent": 38.84,
+            "max_file_descriptors": 37.0,
+            "max_memory_mib": 226.0,
+            "max_pids": 26.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 25.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 13.0,
+            "first_memory_mib": 8.895,
+            "first_tcp_sockets": 4.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 13.0,
+            "last_memory_mib": 8.895,
+            "last_tcp_sockets": 4.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 2.01,
+            "max_file_descriptors": 13.0,
+            "max_memory_mib": 8.895,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 4.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 26.672591457841918
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "capacity-1024",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 92252,
+          "latency_micros_mean": 12144.486666666666,
+          "latency_micros_total": 3643346,
+          "max_active": 8,
+          "requests": 300,
+          "unavailable": 0,
+          "valid": 300
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 100,
+          "exporters": 300,
+          "exports_per_exporter": 2,
+          "implementation_label": "matrix-capacity-1024",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 0,
+          "restart_count": 0,
+          "round_barrier": true,
+          "run_failure_probes": false,
+          "spans_per_export": 1,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 600,
+            "UNAVAILABLE": 1056
+          },
+          "exports_per_second": 290.5556051255235,
+          "final_codes": {
+            "OK": 600
+          },
+          "mean_ms": 369.62930169266957,
+          "p50_ms": 77.4544170126319,
+          "p95_ms": 1204.9424999859184,
+          "p99_ms": 1621.5757499448955,
+          "requested": 600,
+          "spans_per_second": 290.5556051255235,
+          "successful": 600,
+          "workload_seconds": 2.065009207930416
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0,
+          "p99_ms": 0.0,
+          "result_codes": {}
+        },
+        "recorded_at_utc": "2026-07-16T17:10:14Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 37.0,
+            "first_memory_mib": 228.3,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 25.0,
+            "last_file_descriptors": 37.0,
+            "last_memory_mib": 228.3,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 25.0,
+            "max_cpu_percent": 35.23,
+            "max_file_descriptors": 37.0,
+            "max_memory_mib": 228.3,
+            "max_pids": 26.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 25.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 13.0,
+            "first_memory_mib": 14.35,
+            "first_tcp_sockets": 4.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 13.0,
+            "last_memory_mib": 14.35,
+            "last_tcp_sockets": 4.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 1.91,
+            "max_file_descriptors": 13.0,
+            "max_memory_mib": 14.35,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 4.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 26.41377095808275
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "cadence-5s-ttl-5-distinct",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 15800,
+          "latency_micros_mean": 3128.1428571428573,
+          "latency_micros_total": 656910,
+          "max_active": 6,
+          "requests": 210,
+          "unavailable": 0,
+          "valid": 210
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 5,
+          "export_interval_ms": 5000,
+          "exporters": 100,
+          "exports_per_exporter": 4,
+          "implementation_label": "matrix-cadence-5s-ttl-5-distinct",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 20.03527347636335,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 3.474867619224824,
+          "p50_ms": 2.8319170232862234,
+          "p95_ms": 11.395624838769436,
+          "p99_ms": 17.346916953101754,
+          "requested": 400,
+          "spans_per_second": 641.1287512436272,
+          "successful": 400,
+          "workload_seconds": 19.96478862501681
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 12.156568414058547,
+          "p50_ms": 10.361624881625175,
+          "p95_ms": 18.833165988326073,
+          "p99_ms": 27.925417060032487,
+          "result_codes": {
+            "200": 626
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:10:57Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 41.0,
+            "first_memory_mib": 236.9,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 41.0,
+            "last_memory_mib": 237.8,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 29.0,
+            "max_cpu_percent": 18.02,
+            "max_file_descriptors": 41.0,
+            "max_memory_mib": 239.6,
+            "max_pids": 30.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 29.0,
+            "sample_count": 10
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 16.16,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 14.77,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 2.49,
+            "max_file_descriptors": 16.0,
+            "max_memory_mib": 18.29,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 10
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 43.31325970799662
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "cadence-5s-ttl-10-distinct",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 16212,
+          "latency_micros_mean": 3157.92,
+          "latency_micros_total": 631584,
+          "max_active": 6,
+          "requests": 200,
+          "unavailable": 0,
+          "valid": 200
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "export_interval_ms": 5000,
+          "exporters": 100,
+          "exports_per_exporter": 4,
+          "implementation_label": "matrix-cadence-5s-ttl-10-distinct",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 20.030455891604507,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 3.3681467443238944,
+          "p50_ms": 2.7213338762521744,
+          "p95_ms": 10.317000094801188,
+          "p99_ms": 17.500415910035372,
+          "requested": 400,
+          "spans_per_second": 640.9745885313442,
+          "successful": 400,
+          "workload_seconds": 19.969590415945277
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 12.037980881198369,
+          "p50_ms": 10.232749860733747,
+          "p95_ms": 18.8443751540035,
+          "p99_ms": 31.01900010369718,
+          "result_codes": {
+            "200": 632
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:11:40Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 41.0,
+            "first_memory_mib": 233.9,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 41.0,
+            "last_memory_mib": 235.8,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 29.0,
+            "max_cpu_percent": 19.99,
+            "max_file_descriptors": 41.0,
+            "max_memory_mib": 236.4,
+            "max_pids": 30.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 29.0,
+            "sample_count": 10
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 16.43,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 20.65,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 2.68,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 20.65,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 6.0,
+            "max_threads": 4.0,
+            "sample_count": 10
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 43.35528054088354
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "cadence-after-completion-5s-ttl-5-distinct",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 41893,
+          "latency_micros_mean": 3386.005,
+          "latency_micros_total": 1354402,
+          "max_active": 8,
+          "requests": 400,
+          "unavailable": 0,
+          "valid": 400
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 5,
+          "cadence_mode": "after-completion",
+          "export_interval_ms": 5000,
+          "exporters": 100,
+          "exports_per_exporter": 4,
+          "implementation_label": "matrix-cadence-after-completion-5s-ttl-5-distinct",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400,
+            "UNAVAILABLE": 2
+          },
+          "exports_per_second": 20.012722170377234,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 6.087846775189973,
+          "p50_ms": 3.856667084619403,
+          "p95_ms": 15.192708000540733,
+          "p99_ms": 35.83412477746606,
+          "requested": 400,
+          "spans_per_second": 640.4071094520715,
+          "successful": 400,
+          "workload_seconds": 19.98728591715917
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 11.734757539846147,
+          "p50_ms": 10.105374967679381,
+          "p95_ms": 19.724666140973568,
+          "p99_ms": 35.36599990911782,
+          "result_codes": {
+            "200": 622
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:13:16Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 39.0,
+            "first_memory_mib": 235.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 237.2,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 29.0,
+            "max_cpu_percent": 18.78,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 237.2,
+            "max_pids": 30.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 29.0,
+            "sample_count": 10
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 16.39,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 22.04,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 2.61,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 22.04,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 4.0,
+            "sample_count": 10
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 43.3265363748651
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "cadence-after-completion-5s-ttl-10-distinct",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 12521,
+          "latency_micros_mean": 2586.77,
+          "latency_micros_total": 517354,
+          "max_active": 4,
+          "requests": 200,
+          "unavailable": 0,
+          "valid": 200
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "after-completion",
+          "export_interval_ms": 5000,
+          "exporters": 100,
+          "exports_per_exporter": 4,
+          "implementation_label": "matrix-cadence-after-completion-5s-ttl-10-distinct",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "staggered",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 400
+          },
+          "exports_per_second": 20.02225331597907,
+          "final_codes": {
+            "OK": 400
+          },
+          "mean_ms": 3.6119593505281955,
+          "p50_ms": 2.797708148136735,
+          "p95_ms": 8.44391598366201,
+          "p99_ms": 14.660957967862487,
+          "requested": 400,
+          "spans_per_second": 640.7121061113303,
+          "successful": 400,
+          "workload_seconds": 19.977771417004988
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 11.561930599215161,
+          "p50_ms": 10.150833986699581,
+          "p95_ms": 18.605707911774516,
+          "p99_ms": 29.71175010316074,
+          "result_codes": {
+            "200": 622
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:13:58Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 39.0,
+            "first_memory_mib": 236.0,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 39.0,
+            "last_memory_mib": 237.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 29.0,
+            "max_cpu_percent": 16.63,
+            "max_file_descriptors": 40.0,
+            "max_memory_mib": 238.9,
+            "max_pids": 30.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 29.0,
+            "sample_count": 10
+          },
+          "ingestion": {
+            "first_file_descriptors": 15.0,
+            "first_memory_mib": 14.38,
+            "first_tcp_sockets": 6.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 16.0,
+            "last_tcp_sockets": 6.0,
+            "last_threads": 3.0,
+            "max_cpu_percent": 2.31,
+            "max_file_descriptors": 15.0,
+            "max_memory_mib": 16.53,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 4.0,
+            "sample_count": 10
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 42.742296792101115
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-4-repeat-2",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 70051,
+          "latency_micros_mean": 4736.34,
+          "latency_micros_total": 473634,
+          "max_active": 4,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-4-repeat-2",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 4,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 211
+          },
+          "exports_per_second": 1079.1309654625882,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 24.62340295338072,
+          "p50_ms": 1.9725828897207975,
+          "p95_ms": 166.1722909193486,
+          "p99_ms": 466.2683750502765,
+          "requested": 1000,
+          "spans_per_second": 34532.19089480282,
+          "successful": 1000,
+          "workload_seconds": 0.9266715829726309
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 29.588369856355712,
+          "p50_ms": 8.51695891469717,
+          "p95_ms": 256.5190000459552,
+          "p99_ms": 268.4322919230908,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:15:02Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 39.0,
+            "first_memory_mib": 235.7,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 39.0,
+            "last_memory_mib": 235.7,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.26,
+            "max_file_descriptors": 39.0,
+            "max_memory_mib": 235.7,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.05,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.05,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 11.33,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.05,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.179013709072024
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-8-repeat-2",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 78617,
+          "latency_micros_mean": 16326.66,
+          "latency_micros_total": 1632666,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-8-repeat-2",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 205
+          },
+          "exports_per_second": 1087.422173725924,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 24.60826918692328,
+          "p50_ms": 0.7010828703641891,
+          "p95_ms": 195.52270811982453,
+          "p99_ms": 421.78724985569715,
+          "requested": 1000,
+          "spans_per_second": 34797.50955922957,
+          "successful": 1000,
+          "workload_seconds": 0.9196060409303755
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 50.67511345259845,
+          "p50_ms": 9.061791934072971,
+          "p95_ms": 295.68337509408593,
+          "p99_ms": 321.2517499923706,
+          "result_codes": {
+            "200": 18
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:15:27Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 43.0,
+            "first_memory_mib": 235.6,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 43.0,
+            "last_memory_mib": 235.6,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.32,
+            "max_file_descriptors": 43.0,
+            "max_memory_mib": 235.6,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 17.35,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 17.35,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 11.2,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 17.35,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.94349291617982
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-16-repeat-2",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 154247,
+          "latency_micros_mean": 62722.42,
+          "latency_micros_total": 6272242,
+          "max_active": 16,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-16-repeat-2",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 16,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 229
+          },
+          "exports_per_second": 768.4048576750911,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 38.652695425087586,
+          "p50_ms": 0.8966249879449606,
+          "p95_ms": 345.94433289021254,
+          "p99_ms": 652.9762498103082,
+          "requested": 1000,
+          "spans_per_second": 24588.955445602915,
+          "successful": 1000,
+          "workload_seconds": 1.3013972907792777
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 48.288374992639376,
+          "p50_ms": 19.639707868918777,
+          "p95_ms": 268.54995894245803,
+          "p99_ms": 308.7599999271333,
+          "result_codes": {
+            "200": 27
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:15:51Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 49.0,
+            "first_memory_mib": 236.4,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 49.0,
+            "last_memory_mib": 236.4,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 37.56,
+            "max_file_descriptors": 49.0,
+            "max_memory_mib": 236.4,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 18.95,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 18.95,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.12,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 18.95,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.03825316694565
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-4-repeat-3",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 47870,
+          "latency_micros_mean": 5382.79,
+          "latency_micros_total": 538279,
+          "max_active": 4,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-4-repeat-3",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 4,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 213
+          },
+          "exports_per_second": 931.705194215702,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 23.8599025583826,
+          "p50_ms": 1.6334161628037691,
+          "p95_ms": 183.2810000050813,
+          "p99_ms": 357.57054202258587,
+          "requested": 1000,
+          "spans_per_second": 29814.566214902465,
+          "successful": 1000,
+          "workload_seconds": 1.0733008747920394
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 27.841221682527767,
+          "p50_ms": 7.649957900866866,
+          "p95_ms": 268.07933393865824,
+          "p99_ms": 280.58541589416564,
+          "result_codes": {
+            "200": 28
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:16:16Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 40.0,
+            "first_memory_mib": 236.3,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 40.0,
+            "last_memory_mib": 236.3,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 22.56,
+            "max_file_descriptors": 40.0,
+            "max_memory_mib": 236.3,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.81,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.81,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.11,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.81,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.273283875081688
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-8-repeat-3",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 66341,
+          "latency_micros_mean": 15222.28,
+          "latency_micros_total": 1522228,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-8-repeat-3",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 203
+          },
+          "exports_per_second": 1086.0691231546934,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 24.536536374827847,
+          "p50_ms": 1.3027919922024012,
+          "p95_ms": 191.8943750206381,
+          "p99_ms": 413.0210839211941,
+          "requested": 1000,
+          "spans_per_second": 34754.21194095019,
+          "successful": 1000,
+          "workload_seconds": 0.9207517078612
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 41.24361260328442,
+          "p50_ms": 8.083041990175843,
+          "p95_ms": 262.4562920536846,
+          "p99_ms": 286.2950412090868,
+          "result_codes": {
+            "200": 20
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:16:42Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 22.95,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.1,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 17.82,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 17.82,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.1,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 17.82,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.21043883403763
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "concurrency-16-repeat-3",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 163817,
+          "latency_micros_mean": 57564.28,
+          "latency_micros_total": 5756428,
+          "max_active": 16,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-concurrency-16-repeat-3",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 16,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 238
+          },
+          "exports_per_second": 806.4543231179617,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 40.094337317859754,
+          "p50_ms": 1.0056670289486647,
+          "p95_ms": 301.16079095751047,
+          "p99_ms": 712.5956660602242,
+          "requested": 1000,
+          "spans_per_second": 25806.538339774776,
+          "successful": 1000,
+          "workload_seconds": 1.2399958327878267
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 53.12075852998532,
+          "p50_ms": 11.013416107743979,
+          "p95_ms": 404.7135829459876,
+          "p99_ms": 415.4761249665171,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:17:06Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 49.0,
+            "first_memory_mib": 236.8,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 49.0,
+            "last_memory_mib": 236.8,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 34.32,
+            "max_file_descriptors": 49.0,
+            "max_memory_mib": 236.8,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.7,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.7,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.11,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.7,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.85435404186137
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-16-repeat-2",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 87771,
+          "latency_micros_mean": 15045.82,
+          "latency_micros_total": 1504582,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-16-repeat-2",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 16,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 228
+          },
+          "exports_per_second": 1084.2641771149563,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 28.7831484854687,
+          "p50_ms": 0.7478329353034496,
+          "p95_ms": 298.49816719070077,
+          "p99_ms": 459.3243340495974,
+          "requested": 1000,
+          "spans_per_second": 34696.4536676786,
+          "successful": 1000,
+          "workload_seconds": 0.9222844589967281
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 45.45930840540677,
+          "p50_ms": 12.59508403018117,
+          "p95_ms": 268.23858404532075,
+          "p99_ms": 291.06004210188985,
+          "result_codes": {
+            "200": 20
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:17:31Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.31,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.1,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.34,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.34,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.81,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.34,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.89370095799677
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-32-repeat-2",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 100248,
+          "latency_micros_mean": 17610.66,
+          "latency_micros_total": 1761066,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-32-repeat-2",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 229
+          },
+          "exports_per_second": 1087.7853170952574,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 29.82753629074432,
+          "p50_ms": 0.814415980130434,
+          "p95_ms": 302.72645805962384,
+          "p99_ms": 466.12791693769395,
+          "requested": 1000,
+          "spans_per_second": 34809.130147048236,
+          "successful": 1000,
+          "workload_seconds": 0.9192990420851856
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 42.19199176877737,
+          "p50_ms": 8.499833988025784,
+          "p95_ms": 265.8567500766367,
+          "p99_ms": 287.2874999884516,
+          "result_codes": {
+            "200": 20
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:17:56Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.3,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.3,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.29,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.3,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.4,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.4,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 11.54,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.4,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 25.172584125073627
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-64-repeat-2",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 68843,
+          "latency_micros_mean": 16642.42,
+          "latency_micros_total": 1664242,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-64-repeat-2",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 64,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 210
+          },
+          "exports_per_second": 1084.399587530037,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 26.171515384456143,
+          "p50_ms": 3.1502090860158205,
+          "p95_ms": 254.8028330784291,
+          "p99_ms": 382.5452500022948,
+          "requested": 1000,
+          "spans_per_second": 34700.786800961185,
+          "successful": 1000,
+          "workload_seconds": 0.9221692921128124
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 23.455078516585324,
+          "p50_ms": 8.552083978429437,
+          "p95_ms": 150.58224997483194,
+          "p99_ms": 177.54458403214812,
+          "result_codes": {
+            "200": 26
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:18:21Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.2,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.2,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 27.05,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.2,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 17.12,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 17.12,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.08,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 17.12,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.979020708007738
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-16-repeat-3",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 85745,
+          "latency_micros_mean": 15280.04,
+          "latency_micros_total": 1528004,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-16-repeat-3",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 16,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 225
+          },
+          "exports_per_second": 1083.5780938126718,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 28.976939351065084,
+          "p50_ms": 1.8061671871691942,
+          "p95_ms": 227.61800000444055,
+          "p99_ms": 455.37224994041026,
+          "requested": 1000,
+          "spans_per_second": 34674.4990020055,
+          "successful": 1000,
+          "workload_seconds": 0.9228684168774635
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 29.53926897801769,
+          "p50_ms": 9.841374820098281,
+          "p95_ms": 144.78462492115796,
+          "p99_ms": 163.87058305554092,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:18:46Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 43.0,
+            "first_memory_mib": 236.8,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 43.0,
+            "last_memory_mib": 236.8,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.25,
+            "max_file_descriptors": 43.0,
+            "max_memory_mib": 236.8,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 17.38,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 17.38,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 12.18,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 17.38,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.98971024993807
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-32-repeat-3",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 74289,
+          "latency_micros_mean": 13855.06,
+          "latency_micros_total": 1385506,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-32-repeat-3",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 32,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 221
+          },
+          "exports_per_second": 1086.491957876439,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 28.720409885281697,
+          "p50_ms": 2.6758748572319746,
+          "p95_ms": 219.23625003546476,
+          "p99_ms": 448.9370840601623,
+          "requested": 1000,
+          "spans_per_second": 34767.74265204605,
+          "successful": 1000,
+          "workload_seconds": 0.9203933749813586
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 27.135595456153776,
+          "p50_ms": 7.490125019103289,
+          "p95_ms": 148.7714578397572,
+          "p99_ms": 169.53508299775422,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:19:11Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.1,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.1,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 25.02,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.1,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.14,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.14,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 0.09,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.14,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.827865415951237
+    },
+    {
+      "expected_final_code": null,
+      "expected_success": true,
+      "matched_expectation": true,
+      "name": "pending-64-repeat-3",
+      "result": {
+        "acceptance": {
+          "all_exports_succeeded": true,
+          "all_queries_succeeded": true
+        },
+        "acceptance_limits": {
+          "revocation_acceptance_tolerance_seconds": 1.0
+        },
+        "authorization_proxy": {
+          "active": 0,
+          "delay_ms": 0,
+          "force_unavailable": false,
+          "invalid": 0,
+          "latency_micros_max": 92178,
+          "latency_micros_mean": 18235.23,
+          "latency_micros_total": 1823523,
+          "max_active": 8,
+          "requests": 100,
+          "unavailable": 0,
+          "valid": 100
+        },
+        "config": {
+          "cache_max_entries": 1024,
+          "cache_ttl_seconds": 10,
+          "cadence_mode": "start-to-start",
+          "export_interval_ms": 100,
+          "exporters": 100,
+          "exports_per_exporter": 10,
+          "implementation_label": "matrix-pending-64-repeat-3",
+          "key_topology": "distinct",
+          "max_retries": 20,
+          "measure_revocation": false,
+          "query_workers": 2,
+          "restart_count": 0,
+          "round_barrier": false,
+          "run_failure_probes": false,
+          "spans_per_export": 32,
+          "timing": "synchronized",
+          "use_auth_proxy": true,
+          "validation_max_concurrency": 8,
+          "validation_max_pending": 64,
+          "validation_timeout_ms": 2000,
+          "wal_probe_spans": 0,
+          "workload_auth_delay_ms": 0
+        },
+        "constraints": {
+          "backend_cpus": 0.45,
+          "backend_memory_mib": 450,
+          "ingestion_cpus": 0.45,
+          "ingestion_memory_mib": 350,
+          "instrumentation_proxy_cpus": 0.1,
+          "instrumentation_proxy_memory_mib": 64
+        },
+        "exports": {
+          "attempt_codes": {
+            "OK": 1000,
+            "UNAVAILABLE": 230
+          },
+          "exports_per_second": 1084.8654531398292,
+          "final_codes": {
+            "OK": 1000
+          },
+          "mean_ms": 31.229066900443286,
+          "p50_ms": 2.2153330501168966,
+          "p95_ms": 300.3224169369787,
+          "p99_ms": 497.87312489934266,
+          "requested": 1000,
+          "spans_per_second": 34715.694500474536,
+          "successful": 1000,
+          "workload_seconds": 0.9217732918914407
+        },
+        "failure_probes": {
+          "status": "skipped"
+        },
+        "queries": {
+          "mean_ms": 29.07797062653117,
+          "p50_ms": 9.422708069905639,
+          "p95_ms": 161.13854199647903,
+          "p99_ms": 195.92541712336242,
+          "result_codes": {
+            "200": 24
+          }
+        },
+        "recorded_at_utc": "2026-07-16T17:19:36Z",
+        "resources": {
+          "backend": {
+            "first_file_descriptors": 44.0,
+            "first_memory_mib": 236.5,
+            "first_tcp_sockets": 7.0,
+            "first_threads": 28.0,
+            "last_file_descriptors": 44.0,
+            "last_memory_mib": 236.5,
+            "last_tcp_sockets": 7.0,
+            "last_threads": 28.0,
+            "max_cpu_percent": 0.26,
+            "max_file_descriptors": 44.0,
+            "max_memory_mib": 236.5,
+            "max_pids": 29.0,
+            "max_tcp_sockets": 7.0,
+            "max_threads": 28.0,
+            "sample_count": 1
+          },
+          "ingestion": {
+            "first_file_descriptors": 14.0,
+            "first_memory_mib": 19.46,
+            "first_tcp_sockets": 5.0,
+            "first_threads": 4.0,
+            "last_file_descriptors": 14.0,
+            "last_memory_mib": 19.46,
+            "last_tcp_sockets": 5.0,
+            "last_threads": 4.0,
+            "max_cpu_percent": 13.53,
+            "max_file_descriptors": 14.0,
+            "max_memory_mib": 19.46,
+            "max_pids": 4.0,
+            "max_tcp_sockets": 5.0,
+            "max_threads": 4.0,
+            "sample_count": 1
+          }
+        },
+        "revocation": {
+          "status": "skipped"
+        },
+        "wal_durability": {
+          "status": "skipped"
+        }
+      },
+      "returncode": 0,
+      "wall_seconds": 24.554035541135818
+    }
+  ]
+}

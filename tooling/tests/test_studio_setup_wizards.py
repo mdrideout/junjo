@@ -21,7 +21,11 @@ from unittest import mock
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SECRET_KEYS = ("JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY")
+SECRET_KEYS = (
+    "JUNJO_SESSION_SECRET",
+    "JUNJO_SECURE_COOKIE_KEY",
+    "JUNJO_INTERNAL_GRPC_TOKEN",
+)
 PRODUCTION_HOSTNAME = "studio.example.test"
 PRODUCTION_URLS = {
     "JUNJO_PROD_FRONTEND_URL": f"https://{PRODUCTION_HOSTNAME}",
@@ -319,7 +323,7 @@ class StudioSetupWizardTests(unittest.TestCase):
                     {key: after[key] for key in SECRET_KEYS}, secrets_before
                 )
 
-    def test_force_secrets_rotates_both_secrets_without_logging_them(self) -> None:
+    def test_force_secrets_rotates_all_secrets_without_logging_them(self) -> None:
         for wizard in WIZARDS:
             with self.subTest(wizard=wizard.name), self.copied_wizard(wizard) as root:
                 first = self.run_setup(root, "--env", "development")

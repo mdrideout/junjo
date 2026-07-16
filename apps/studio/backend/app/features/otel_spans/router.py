@@ -38,7 +38,7 @@ async def list_services() -> list[str]:
     return await repository.get_fused_distinct_service_names()
 
 
-@router.get("/services/{service_name}/spans", response_model=list[dict[str, Any]])
+@router.get("/services/{service_name:path}/spans", response_model=list[dict[str, Any]])
 async def get_service_spans(
     service_name: str,
     limit: int = Query(default=100, ge=1, le=250, description="Maximum spans to return"),
@@ -59,7 +59,7 @@ async def get_service_spans(
     return await repository.get_fused_service_spans(service_name, limit)
 
 
-@router.get("/services/{service_name}/spans/root", response_model=list[dict[str, Any]])
+@router.get("/services/{service_name:path}/spans/root", response_model=list[dict[str, Any]])
 async def get_root_spans(
     service_name: str,
     has_llm: bool = Query(default=False, description="Filter for traces containing LLM operations"),
@@ -90,7 +90,7 @@ async def get_root_spans(
     return await repository.get_fused_root_spans(service_name, limit)
 
 
-@router.get("/services/{service_name}/workflows", response_model=list[dict[str, Any]])
+@router.get("/services/{service_name:path}/workflows", response_model=list[dict[str, Any]])
 async def get_workflow_spans(
     service_name: str,
     limit: int = Query(default=100, ge=1, le=250, description="Maximum spans to return"),

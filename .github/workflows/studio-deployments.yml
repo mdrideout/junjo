@@ -60,12 +60,22 @@ jobs:
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/studio/e2e_test_apps/app/uv.lock"
       - name: Run deployment tooling tests
         run: python3 -m unittest discover -s tooling/tests -v
       - name: Validate source runtime and monitoring contracts
         run: python3 tooling/scripts/validate_studio_runtime.py
       - name: Validate Compose and deployment contracts
         run: python3 tooling/scripts/validate_studio_deployments.py
+      - name: Smoke the locked Studio E2E SDK consumer
+        run: |
+          uv sync --frozen --project apps/studio/e2e_test_apps/app
+          uv run --frozen --project apps/studio/e2e_test_apps/app \
+            python apps/studio/e2e_test_apps/app/smoke.py
       - name: Compile VM demo application
         run: |
           python3 -m py_compile \

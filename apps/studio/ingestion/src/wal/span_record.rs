@@ -244,10 +244,7 @@ mod tests {
                     "junjo.workflow.execution_graph_snapshot",
                     string_value("{\"v\":2,\"graphStructuralId\":\"graph-basic-01\"}"),
                 ),
-                key_value(
-                    "junjo.executable_runtime_id",
-                    string_value("run-basic-01"),
-                ),
+                key_value("junjo.executable_runtime_id", string_value("run-basic-01")),
                 key_value(
                     "junjo.executable_structural_id",
                     string_value("graph-basic-01"),
@@ -293,7 +290,10 @@ mod tests {
             "{\"v\":2,\"graphStructuralId\":\"graph-basic-01\"}"
         );
         assert_eq!(attributes["junjo.executable_runtime_id"], "run-basic-01");
-        assert_eq!(attributes["junjo.executable_structural_id"], "graph-basic-01");
+        assert_eq!(
+            attributes["junjo.executable_structural_id"],
+            "graph-basic-01"
+        );
         assert_eq!(attributes["error.type"], "ValueError");
         assert_eq!(attributes["junjo.cancelled"], true);
         assert_eq!(resource_attributes["service.name"], "svc-phase0");
@@ -339,22 +339,13 @@ mod tests {
                     time_unix_nano: 450,
                     name: "junjo.hook_error".to_string(),
                     attributes: vec![
-                        key_value(
-                            "junjo.hook.event",
-                            string_value("after_node_execution"),
-                        ),
+                        key_value("junjo.hook.event", string_value("after_node_execution")),
                         key_value(
                             "junjo.hook.callback",
                             string_value("tests.fixtures.HookFailureCallback"),
                         ),
-                        key_value(
-                            "junjo.hook.error.type",
-                            string_value("RuntimeError"),
-                        ),
-                        key_value(
-                            "junjo.hook.error.message",
-                            string_value("hook exploded"),
-                        ),
+                        key_value("junjo.hook.error.type", string_value("RuntimeError")),
+                        key_value("junjo.hook.error.message", string_value("hook exploded")),
                         key_value("exception.type", string_value("RuntimeError")),
                         key_value("exception.message", string_value("hook exploded")),
                         key_value(
@@ -381,10 +372,7 @@ mod tests {
         assert_eq!(event_list[0]["name"], "set_state");
         assert_eq!(event_list[0]["timeUnixNano"], "400");
         assert_eq!(event_list[0]["droppedAttributesCount"], 0);
-        assert_eq!(
-            event_list[0]["attributes"]["junjo.store.id"],
-            "store-01"
-        );
+        assert_eq!(event_list[0]["attributes"]["junjo.store.id"], "store-01");
         assert_eq!(event_list[1]["name"], "junjo.hook_error");
         assert_eq!(event_list[1]["timeUnixNano"], "450");
         assert_eq!(

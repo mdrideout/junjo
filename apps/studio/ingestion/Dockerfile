@@ -1,11 +1,24 @@
 # Build stage
 FROM rust:1.85-slim-bookworm AS builder
 
-# Install protobuf compiler for proto compilation
+# Install the contract-locked protobuf compiler for proto compilation.
 RUN apt-get update && apt-get install -y \
-    protobuf-compiler \
-    curl \
+    curl unzip \
     && rm -rf /var/lib/apt/lists/*
+
+ARG TARGETARCH
+RUN PROTOC_VERSION=30.2 && \
+    case "${TARGETARCH}" in \
+      amd64) PROTOC_ARCH=x86_64; PROTOC_SHA256=327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f ;; \
+      arm64) PROTOC_ARCH=aarch_64; PROTOC_SHA256=a3173ea338ef91b1605b88c4f8120d6c8ccf36f744d9081991d595d0d4352996 ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    PROTOC_ZIP="protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip" && \
+    curl -fsSLO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}" && \
+    echo "${PROTOC_SHA256}  ${PROTOC_ZIP}" | sha256sum -c - && \
+    unzip -q "${PROTOC_ZIP}" -d /usr/local bin/protoc 'include/*' && \
+    rm "${PROTOC_ZIP}" && \
+    test "$(protoc --version)" = "libprotoc 30.2"
 
 # Install grpc_health_probe for Compose healthchecks.
 RUN GRPC_HEALTH_PROBE_VERSION=v0.4.35 && \
@@ -44,9 +57,22 @@ RUN touch src/main.rs && cargo build --release
 FROM rust:1.85-slim-bookworm AS development
 
 RUN apt-get update && apt-get install -y \
-    protobuf-compiler \
-    curl \
+    curl unzip \
     && rm -rf /var/lib/apt/lists/*
+
+ARG TARGETARCH
+RUN PROTOC_VERSION=30.2 && \
+    case "${TARGETARCH}" in \
+      amd64) PROTOC_ARCH=x86_64; PROTOC_SHA256=327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f ;; \
+      arm64) PROTOC_ARCH=aarch_64; PROTOC_SHA256=a3173ea338ef91b1605b88c4f8120d6c8ccf36f744d9081991d595d0d4352996 ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    PROTOC_ZIP="protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip" && \
+    curl -fsSLO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}" && \
+    echo "${PROTOC_SHA256}  ${PROTOC_ZIP}" | sha256sum -c - && \
+    unzip -q "${PROTOC_ZIP}" -d /usr/local bin/protoc 'include/*' && \
+    rm "${PROTOC_ZIP}" && \
+    test "$(protoc --version)" = "libprotoc 30.2"
 
 # Install cargo-watch for hot reloading
 RUN cargo install cargo-watch --locked

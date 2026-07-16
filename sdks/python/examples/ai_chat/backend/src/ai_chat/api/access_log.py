@@ -12,9 +12,11 @@ class HealthCheckAccessLogFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         arguments = record.args
-        if not isinstance(arguments, tuple) or len(arguments) < 3:
+        if not isinstance(arguments, tuple) or len(arguments) < 5:
             return True
-        return arguments[2] != HEALTH_PATH
+        path = arguments[2]
+        status_code = arguments[4]
+        return path != HEALTH_PATH or not isinstance(status_code, int) or status_code >= 400
 
 
 def configure_access_logging() -> None:

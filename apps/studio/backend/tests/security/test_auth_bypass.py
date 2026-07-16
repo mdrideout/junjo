@@ -5,8 +5,11 @@ properly rejects unauthorized access attempts.
 """
 
 import asyncio
+import base64
+import os
 
 import pytest
+from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -120,9 +123,7 @@ async def test_sign_out_clears_session():
 
     Security: Ensures users can properly sign out.
 
-    Note: Current implementation clears session data but doesn't invalidate
-    the cookie itself. For production, consider implementing proper session
-    invalidation (e.g., server-side session store with revocation).
+    A captured pre-sign-out cookie must also be rejected after sign-out.
     """
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -151,8 +152,13 @@ async def test_sign_out_clears_session():
         signout_response = await client.post("/sign-out", cookies={"session": session_cookie})
         assert signout_response.status_code == 200
 
-        # After sign out, session data is cleared
-        # (current implementation doesn't fully invalidate cookie)
+        client.cookies.clear()
+        replay_response = await client.get(
+            "/auth-test",
+            cookies={"session": session_cookie},
+        )
+        assert replay_response.status_code == 401
+        assert "revoked" in replay_response.json()["detail"].lower()
 
 
 @pytest.mark.security
@@ -299,6 +305,8 @@ async def test_protected_endpoints_require_auth():
             ("POST", "/api_keys", True),  # Now protected
             ("POST", "/llm/generate", True),  # Should require auth
             ("GET", "/llm/providers/openai/models", True),  # Should require auth
+            ("GET", "/api/v1/observability/services", True),
+            ("GET", "/api/v1/observability/traces/trace-id/spans", True),
         ]
 
         for method, endpoint, currently_protected in protected_endpoints:
@@ -349,6 +357,106 @@ async def test_session_cookie_httponly_and_secure_flags():
         # - SessionMiddleware with httponly=True
         # - SecureCookiesMiddleware with secure=True (HTTPS only)
         # - SameSite=Lax or Strict for CSRF protection
+
+
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_session_cookie_is_encrypted_at_rest_in_the_browser():
+    """The browser-facing cookie is Fernet ciphertext, not signed plaintext."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        await client.post(
+            "/users/create-first-user",
+            json={"email": "encrypted@example.com", "password": "password123"},
+        )
+        response = await client.post(
+            "/sign-in",
+            json={"email": "encrypted@example.com", "password": "password123"},
+        )
+
+        cookie = response.cookies["session"]
+        assert "encrypted@example.com" not in cookie
+        decrypted = Fernet(os.environ["JUNJO_SECURE_COOKIE_KEY"]).decrypt(cookie.encode())
+        signed_payload = decrypted.split(b".", maxsplit=1)[0]
+        payload = base64.urlsafe_b64decode(signed_payload)
+        assert b"encrypted@example.com" in payload
+
+
+@pytest.mark.asyncio
+async def test_observability_route_decodes_an_encoded_service_path(monkeypatch):
+    received: list[tuple[str, int]] = []
+
+    async def get_workflows(service_name: str, limit: int):
+        received.append((service_name, limit))
+        return []
+
+    monkeypatch.setattr(
+        "app.features.otel_spans.repository.get_fused_workflow_spans",
+        get_workflows,
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        await client.post(
+            "/users/create-first-user",
+            json={"email": "route@example.com", "password": "password123"},
+        )
+        response = await client.get(
+            "/api/v1/observability/services/slash%2Fpercent%25%20%E6%97%A5%E6%9C%AC%E8%AA%9E/workflows"
+        )
+
+    assert response.status_code == 200
+    assert received == [("slash/percent% 日本語", 100)]
+
+
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_sign_out_revokes_all_concurrent_sessions_for_the_user():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as first:
+        await first.post(
+            "/users/create-first-user",
+            json={"email": "tabs@example.com", "password": "password123"},
+        )
+        first_cookie = (await first.post(
+            "/sign-in",
+            json={"email": "tabs@example.com", "password": "password123"},
+        )).cookies["session"]
+
+        async with AsyncClient(transport=transport, base_url="http://test") as second:
+            second_cookie = (await second.post(
+                "/sign-in",
+                json={"email": "tabs@example.com", "password": "password123"},
+            )).cookies["session"]
+
+        await first.post("/sign-out", cookies={"session": first_cookie})
+        first.cookies.clear()
+        response = await first.get("/auth-test", cookies={"session": second_cookie})
+
+    assert response.status_code == 401
+    assert "revoked" in response.json()["detail"].lower()
+
+
+@pytest.mark.security
+@pytest.mark.asyncio
+async def test_session_is_rejected_after_its_user_is_deleted():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        await client.post(
+            "/users/create-first-user",
+            json={"email": "deleted@example.com", "password": "password123"},
+        )
+        cookie = (await client.post(
+            "/sign-in",
+            json={"email": "deleted@example.com", "password": "password123"},
+        )).cookies["session"]
+        user_id = (await client.get("/users", cookies={"session": cookie})).json()[0]["id"]
+        assert (await client.delete(f"/users/{user_id}", cookies={"session": cookie})).status_code == 200
+
+        client.cookies.clear()
+        response = await client.get("/auth-test", cookies={"session": cookie})
+
+    assert response.status_code == 401
+    assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.security

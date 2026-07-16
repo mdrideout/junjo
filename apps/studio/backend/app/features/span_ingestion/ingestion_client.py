@@ -117,11 +117,13 @@ class IngestionClient:
             raise Exception("Client not connected. Call connect() first.")
 
         request = ingestion_pb2.PrepareHotSnapshotRequest()
+        metadata = (("x-junjo-internal-token", settings.internal_grpc_token),)
 
         try:
             response = await self.stub.PrepareHotSnapshot(
                 request,
                 timeout=self.rpc_timeout_seconds,
+                metadata=metadata,
             )
 
             result = HotSnapshotResult(
@@ -174,11 +176,13 @@ class IngestionClient:
             raise Exception("Client not connected. Call connect() first.")
 
         request = ingestion_pb2.FlushWALRequest()
+        metadata = (("x-junjo-internal-token", settings.internal_grpc_token),)
 
         try:
             response = await self.stub.FlushWAL(
                 request,
                 timeout=self.rpc_timeout_seconds,
+                metadata=metadata,
             )
 
             if response.success:

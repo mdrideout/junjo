@@ -16,6 +16,23 @@ from app.proto_gen import auth_pb2, auth_pb2_grpc
 @pytest.mark.integration
 @pytest.mark.requires_grpc_server
 @pytest.mark.asyncio
+async def test_validate_api_key_rejects_unauthenticated_internal_caller(
+    grpc_server_for_tests,
+):
+    async with grpc.aio.insecure_channel(f"localhost:{settings.GRPC_PORT}") as channel:
+        stub = auth_pb2_grpc.InternalAuthServiceStub(channel)
+
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await stub.ValidateApiKey(
+                auth_pb2.ValidateApiKeyRequest(api_key="connectivity_test"),
+            )
+
+    assert error.value.code() is grpc.StatusCode.UNAUTHENTICATED
+
+
+@pytest.mark.integration
+@pytest.mark.requires_grpc_server
+@pytest.mark.asyncio
 async def test_validate_api_key_integration_with_production_key(test_api_key):
     """
     Integration test: ValidateApiKey with a real API key from database.
@@ -35,7 +52,10 @@ async def test_validate_api_key_integration_with_production_key(test_api_key):
 
         # Make the ValidateApiKey request
         request = auth_pb2.ValidateApiKeyRequest(api_key=test_key)
-        response = await stub.ValidateApiKey(request)
+        response = await stub.ValidateApiKey(
+            request,
+            metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+        )
 
         # Verify the response - should be valid since it exists in DB
         assert response.is_valid is True
@@ -59,7 +79,10 @@ async def test_validate_api_key_integration_invalid(grpc_server_for_tests):
 
         # Make the ValidateApiKey request
         request = auth_pb2.ValidateApiKeyRequest(api_key=invalid_key)
-        response = await stub.ValidateApiKey(request)
+        response = await stub.ValidateApiKey(
+            request,
+            metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+        )
 
         # Verify the response
         assert response.is_valid is False
@@ -81,7 +104,10 @@ async def test_validate_api_key_integration_empty(grpc_server_for_tests):
 
         # Make the ValidateApiKey request with empty key
         request = auth_pb2.ValidateApiKeyRequest(api_key="")
-        response = await stub.ValidateApiKey(request)
+        response = await stub.ValidateApiKey(
+            request,
+            metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+        )
 
         # Verify the response (should be rejected)
         assert response.is_valid is False
@@ -111,7 +137,11 @@ async def test_grpc_server_connectivity(grpc_server_for_tests):
 
             # Make a simple request to verify server is responding
             request = auth_pb2.ValidateApiKeyRequest(api_key="connectivity_test")
-            response = await stub.ValidateApiKey(request, timeout=5.0)
+            response = await stub.ValidateApiKey(
+                request,
+                timeout=5.0,
+                metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+            )
 
             # We don't care about the response value, just that we got a response
             assert response is not None

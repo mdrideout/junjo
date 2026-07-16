@@ -21,6 +21,12 @@ import JsonSchemaModal from './components/JsonSchemaModal'
 import GenerationSettingsModal from './components/GenerationSettingsModal'
 import ActiveSettingsDisplay from './components/ActiveSettingsDisplay'
 import { GenerationSettings } from './store/slice'
+import {
+  logsPath,
+  observabilityTraceSpansPath,
+  tracesPath,
+  workflowPath,
+} from '../../util/telemetry-paths'
 
 type JsonObject = Record<string, unknown>
 
@@ -251,7 +257,7 @@ export default function PromptPlaygroundPage() {
         setLoading(true)
         setError(false)
         // Use Python backend endpoint
-        const endpoint = `/api/v1/observability/traces/${traceId}/spans/${spanId}`
+        const endpoint = observabilityTraceSpansPath(traceId, spanId)
         const apiHost = getApiHost()
         const response = await fetch(`${apiHost}${endpoint}`, {
           credentials: 'include',
@@ -374,25 +380,25 @@ export default function PromptPlaygroundPage() {
             Logs
           </Link>
           <div>&rarr;</div>
-          <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
+          <Link to={logsPath(serviceName)} className={'hover:underline'}>
             {serviceName}
           </Link>
           <div>&rarr;</div>
           {workflowSpanId ? (
             <>
-              <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
+              <Link to={logsPath(serviceName)} className={'hover:underline'}>
                 Workflow Executions
               </Link>
               <div>&rarr;</div>
               <Link
-                to={`/workflows/${serviceName}/${traceId}/${workflowSpanId}`}
+                to={workflowPath(serviceName, traceId, workflowSpanId)}
                 className={'hover:underline'}
               >
                 {workflowSpanId}
               </Link>
               <div>&rarr;</div>
               <Link
-                to={`/workflows/${serviceName}/${traceId}/${workflowSpanId}/${spanId}`}
+                to={workflowPath(serviceName, traceId, workflowSpanId, spanId)}
                 className={'hover:underline'}
               >
                 {spanId}
@@ -400,15 +406,15 @@ export default function PromptPlaygroundPage() {
             </>
           ) : (
             <>
-              <Link to={`/traces/${serviceName}`} className={'hover:underline'}>
+              <Link to={tracesPath(serviceName)} className={'hover:underline'}>
                 Traces
               </Link>
               <div>&rarr;</div>
-              <Link to={`/traces/${serviceName}/${traceId}`} className={'hover:underline'}>
+              <Link to={tracesPath(serviceName, traceId)} className={'hover:underline'}>
                 {traceId}
               </Link>
               <div>&rarr;</div>
-              <Link to={`/traces/${serviceName}/${traceId}/${spanId}`} className={'hover:underline'}>
+              <Link to={tracesPath(serviceName, traceId, spanId)} className={'hover:underline'}>
                 {spanId}
               </Link>
             </>

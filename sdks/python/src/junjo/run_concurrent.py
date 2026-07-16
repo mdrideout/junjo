@@ -64,8 +64,8 @@ class RunConcurrent(Node):
             nodes.
         :type name: str
         :param items: A sequence of nodes or subflows to execute concurrently.
-            Junjo copies this sequence into an immutable tuple during
-            construction.
+            It must contain at least one child. Junjo copies this sequence into
+            an immutable tuple during construction.
         :type items: Sequence[Node | Subflow]
 
         .. code-block:: python
@@ -82,6 +82,8 @@ class RunConcurrent(Node):
         name = require_ijson_text(name, "RunConcurrent name", nonempty=True)
         super().__init__()
         self._items = tuple(items)
+        if not self._items:
+            raise ValueError("RunConcurrent requires at least one child executable.")
         self._id = generate_safe_id()
         self._name = name
 
@@ -152,9 +154,6 @@ class RunConcurrent(Node):
             self.id,
             extra=run_concurrent_log_extra,
         )
-        if not self.items:
-            return
-
         pending = {
             asyncio.create_task(item.execute(store, self.id))
             for item in self.items

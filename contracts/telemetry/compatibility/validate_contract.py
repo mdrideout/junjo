@@ -831,12 +831,47 @@ def _validate_workflow_fixture(fixture: dict[str, Any], name: str) -> None:
     graph_snapshot_count = 0
     owners: dict[str, dict[str, Any]] = {}
     events_by_store: dict[str, list[dict[str, Any]]] = {}
+    children_by_parent: dict[str, list[dict[str, Any]]] = {}
+    for span in fixture["spans"]:
+        parent_span_id = span.get("parent_span_id")
+        if parent_span_id is not None:
+            children_by_parent.setdefault(parent_span_id, []).append(span)
+
+    def completed_executable(span: dict[str, Any]) -> bool:
+        attributes = span["attributes_json"]
+        return span.get("status_code") not in {2, "2"} and attributes.get("junjo.cancelled") is not True
+
+    def expected_node_count(owner: dict[str, Any]) -> int:
+        count = 0
+        for child in children_by_parent.get(owner["span_id"], []):
+            span_type = child["attributes_json"].get("junjo.span_type")
+            if span_type in {"node", "subflow"} and completed_executable(child):
+                count += 1
+            elif span_type == "run_concurrent" and completed_executable(child):
+                count += sum(
+                    grandchild["attributes_json"].get("junjo.span_type") in {"node", "subflow"}
+                    and completed_executable(grandchild)
+                    for grandchild in children_by_parent.get(child["span_id"], [])
+                )
+        return count
+
     for span in fixture["spans"]:
         attributes = span["attributes_json"]
         snapshot = attributes.get("junjo.workflow.execution_graph_snapshot")
         if snapshot is not None:
             graph_snapshot_count += 1
             _validate_graph_snapshot(snapshot, name)
+            node_count = attributes.get("junjo.workflow.node.count")
+            _require(
+                type(node_count) is int and node_count >= 0,
+                "invalid_workflow_node_count",
+                f"{name}: span {span['span_id']}",
+            )
+            _require(
+                node_count == expected_node_count(span),
+                "workflow_node_count_mismatch",
+                f"{name}: span {span['span_id']}",
+            )
         store_id = attributes.get("junjo.workflow.store.id")
         if store_id:
             owners[store_id] = span

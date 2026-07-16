@@ -140,9 +140,7 @@ mod schema_tests {
 
 /// Test module for Parquet file operations
 mod parquet_tests {
-    use arrow::array::{
-        Int64Array, Int8Array, StringArray, TimestampNanosecondArray, UInt32Array,
-    };
+    use arrow::array::{Int64Array, Int8Array, StringArray, TimestampNanosecondArray, UInt32Array};
     use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
     use arrow::record_batch::RecordBatch;
     use parquet::arrow::ArrowWriter;

@@ -5,6 +5,7 @@ import { OtelSpan } from '../../traces/schemas/schemas'
 import { useAppDispatch } from '../../../root-store/hooks'
 import { WorkflowDetailStateActions } from '../workflow-detail/store/slice'
 import { wrapSpan } from '../../traces/utils/span-accessor'
+import { workflowPath } from '../../../util/telemetry-paths'
 
 // Define the shape of one span; replace `any` with your real type if you have one
 interface Props {
@@ -20,7 +21,11 @@ export default function WorkflowListRow({ workflowSpan }: Props) {
 
   const hasFailures = wrapSpan(workflowSpan).hasFailureSignal
 
-  const destination = `/workflows/${workflowSpan.service_name}/${workflowSpan.trace_id}/${workflowSpan.span_id}`
+  const destination = workflowPath(
+    workflowSpan.service_name,
+    workflowSpan.trace_id,
+    workflowSpan.span_id,
+  )
 
   const handleLinkClick = () => {
     dispatch(WorkflowDetailStateActions.selectSpan(null))

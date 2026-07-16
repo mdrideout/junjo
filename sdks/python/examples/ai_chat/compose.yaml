@@ -71,8 +71,7 @@ services:
       backend:
         condition: service_healthy
     volumes:
-      - ./frontend:/app
-      - ai-chat-frontend-node-modules:/app/node_modules
+      - ./frontend/src:/app/src
     healthcheck:
       test:
         - CMD
@@ -89,4 +88,3 @@ services:
 
 volumes:
   ai-chat-data:
-  ai-chat-frontend-node-modules:

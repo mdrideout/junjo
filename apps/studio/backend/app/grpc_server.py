@@ -30,10 +30,28 @@ def create_grpc_server() -> grpc.aio.Server:
 
     # Bind to port (IPv4 - works better on macOS for dev)
     grpc_port = settings.GRPC_PORT
-    server.add_insecure_port(f"0.0.0.0:{grpc_port}")
+    bound_port = server.add_insecure_port(f"0.0.0.0:{grpc_port}")
+    if bound_port == 0:
+        raise RuntimeError(f"Unable to bind internal gRPC port {grpc_port}")
 
     logger.info(f"gRPC server configured on port {grpc_port}")
     return server
+
+
+async def start_grpc_server() -> grpc.aio.Server:
+    """Bind and positively start the internal gRPC server."""
+    global _grpc_server
+
+    if _grpc_server is not None:
+        raise RuntimeError("Internal gRPC server is already running")
+    _grpc_server = create_grpc_server()
+    try:
+        await _grpc_server.start()
+    except BaseException:
+        _grpc_server = None
+        raise
+    logger.info(f"✓ gRPC server started on port {settings.GRPC_PORT}")
+    return _grpc_server
 
 
 async def start_grpc_server_background() -> None:
@@ -46,12 +64,10 @@ async def start_grpc_server_background() -> None:
     global _grpc_server
 
     try:
-        _grpc_server = create_grpc_server()
-        await _grpc_server.start()
-        logger.info(f"✓ gRPC server started on port {settings.GRPC_PORT}")
+        server = await start_grpc_server()
 
         # Keep the server running
-        await _grpc_server.wait_for_termination()
+        await server.wait_for_termination()
 
     except Exception as e:
         logger.error(f"gRPC server failed to start: {e}")

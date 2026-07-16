@@ -7,6 +7,7 @@ import {
 } from '../../traces/store/selectors'
 import { useEffect } from 'react'
 import { TracesStateActions } from '../../traces/store/slice'
+import { logsPath, tracesPath } from '../../../util/telemetry-paths'
 
 export default function AppNamesList() {
   const navigate = useNavigate()
@@ -54,13 +55,13 @@ export default function AppNamesList() {
             <td className={'px-4 py-1.5'}>{item}</td>
             <td
               className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer underline'}
-              onClick={() => navigate(`${item}`)}
+              onClick={() => navigate(logsPath(item))}
             >
               Workflow Executions
             </td>
             <td
               className={'px-4 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer underline'}
-              onClick={() => navigate(`/traces/${item}`)}
+              onClick={() => navigate(tracesPath(item))}
             >
               Traces
             </td>

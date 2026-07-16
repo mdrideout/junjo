@@ -8,7 +8,7 @@ use tokio::sync::{mpsc, RwLock};
 use tonic::{Request, Response, Status};
 use tracing::{debug, warn};
 
-use super::auth::ApiKeyInterceptor;
+use super::auth::{ApiKeyAuthConfig, ApiKeyInterceptor};
 use super::backpressure::BackpressureMonitor;
 use crate::backend::BackendClient;
 use crate::wal::{ArrowWal, SpanRecord};
@@ -26,12 +26,13 @@ impl TraceService {
     pub fn new(
         wal: Arc<RwLock<ArrowWal>>,
         backend: Arc<BackendClient>,
+        auth_config: ApiKeyAuthConfig,
         backpressure_max_bytes: u64,
         segment_notify: mpsc::Sender<()>,
     ) -> Self {
         Self {
             wal,
-            auth: ApiKeyInterceptor::new(backend),
+            auth: ApiKeyInterceptor::new(backend, auth_config),
             backpressure: BackpressureMonitor::new(backpressure_max_bytes),
             segment_notify,
         }
@@ -63,10 +64,7 @@ impl OtlpTraceService for TraceService {
         let auth_duration = auth_start.elapsed();
 
         if !is_valid {
-            warn!(
-                api_key_prefix = &api_key[..8.min(api_key.len())],
-                "API key validation failed"
-            );
+            debug!("API key validation failed");
             return Err(Status::unauthenticated("Invalid API key"));
         }
 

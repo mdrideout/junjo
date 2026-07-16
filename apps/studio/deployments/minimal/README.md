@@ -134,13 +134,15 @@ Junjo AI Studio consists of three Docker services:
    ```
    Then generate and set secrets:
    ```bash
-   # Generate TWO separate keys (run this command twice)
+   # Generate THREE separate keys
+   openssl rand -base64 32
    openssl rand -base64 32
    openssl rand -base64 32
 
    # Edit .env and replace:
    # - JUNJO_SESSION_SECRET with the first generated value
    # - JUNJO_SECURE_COOKIE_KEY with the second generated value
+   # - JUNJO_INTERNAL_GRPC_TOKEN with the third generated value
    ```
 
 3. Start services:
@@ -288,6 +290,7 @@ JUNJO_PROD_BACKEND_URL=https://api.your-domain.com
 JUNJO_PROD_INGESTION_URL=https://ingestion.your-domain.com
 JUNJO_SESSION_SECRET=<generated-secret>
 JUNJO_SECURE_COOKIE_KEY=<generated-secret>
+JUNJO_INTERNAL_GRPC_TOKEN=<generated-secret>
 ```
 
 **Public Access:**
@@ -344,6 +347,7 @@ JUNJO_PROD_BACKEND_URL=https://api.your-app.up.railway.app
 JUNJO_PROD_INGESTION_URL=https://ingestion.your-app.up.railway.app
 JUNJO_SESSION_SECRET=<generated-secret>
 JUNJO_SECURE_COOKIE_KEY=<generated-secret>
+JUNJO_INTERNAL_GRPC_TOKEN=<generated-secret>
 JUNJO_ALLOW_ORIGINS=https://app.your-app.up.railway.app
 ```
 

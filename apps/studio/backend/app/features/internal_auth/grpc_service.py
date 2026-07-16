@@ -5,9 +5,12 @@ This service provides:
 - ValidateApiKey: API key validation for ingestion auth
 """
 
+import secrets
+
 import grpc
 from loguru import logger
 
+from app.config.settings import settings
 from app.db_sqlite.api_keys.repository import APIKeyRepository
 from app.proto_gen import auth_pb2, auth_pb2_grpc
 
@@ -37,9 +40,13 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
         """
         api_key = request.api_key
 
-        # Log validation attempt (without logging the full key for security)
-        key_prefix = api_key[:12] if len(api_key) >= 12 else "***"
-        logger.info(f"Validating API key: {key_prefix}...")
+        metadata = dict(context.invocation_metadata())
+        supplied_token = metadata.get("x-junjo-internal-token", "")
+        if not secrets.compare_digest(supplied_token, settings.internal_grpc_token):
+            await context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid internal workload token")
+            raise RuntimeError("gRPC context.abort returned unexpectedly")
+
+        logger.debug("Validating API key")
 
         try:
             # Try to get the API key from database
@@ -47,20 +54,18 @@ class InternalAuthServicer(auth_pb2_grpc.InternalAuthServiceServicer):
 
             # Check if key exists (get_by_key returns None if not found)
             if result is None:
-                logger.info(f"API key not found: {key_prefix}...")
+                logger.debug("API key not found")
                 return auth_pb2.ValidateApiKeyResponse(is_valid=False)
 
             # Key exists
-            logger.info(f"API key validation successful: {key_prefix}...")
+            logger.debug("API key validation successful")
             return auth_pb2.ValidateApiKeyResponse(is_valid=True)
 
         except Exception as e:
-            # Database error - fail closed (deny access)
             logger.error(
                 "Database error during API key validation",
                 extra={"error": str(e), "error_type": type(e).__name__},
             )
 
-            # Return False instead of raising error (fail closed)
-            # The ingestion service will treat this as invalid
-            return auth_pb2.ValidateApiKeyResponse(is_valid=False)
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "API key store unavailable")
+            raise RuntimeError("gRPC context.abort returned unexpectedly")

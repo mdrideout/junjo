@@ -19,6 +19,20 @@ the Python SDK primary library-health checks from `sdks/python` on Python 3.13:
 - `uv run python -m build`
 - `uv run twine check dist/*`
 
+Before publishing the GitHub release, update
+`tooling/docs/stable-releases.json` so the `python` entry selects the exact
+`sdk-python-v<version>` tag, uses that tag as `documentation_ref`, and sets
+`migration_snapshot` to `false`. Validate this release-owned docs gate from the
+repository root before publication:
+
+```bash
+python3 tooling/docs/validate_release_manifest.py \
+  --release-tag "sdk-python-v<version>"
+```
+
+The website stable-release workflow runs the same command. A mismatched
+manifest blocks publication even when the SDK build itself is green.
+
 Compatibility jobs also run `uv run pytest -q` on Python 3.11, 3.12, and
 3.14. PyPI publication waits for the primary health job, the complete supported
 Python compatibility matrix, and a single Python 3.13 distribution build.

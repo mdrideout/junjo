@@ -511,6 +511,14 @@ def test_run_concurrent_node_structural_ids_are_stable_across_repeated_factory_c
     )
 
 
+def test_run_concurrent_rejects_an_empty_child_group() -> None:
+    with pytest.raises(
+        ValueError,
+        match="RunConcurrent requires at least one child executable",
+    ):
+        RunConcurrent(name="empty fan-out", items=[])
+
+
 @pytest.mark.asyncio
 async def test_workflow_rejects_nonportable_graph_label_before_store_or_run_side_effects() -> None:
     store_factory_called = False

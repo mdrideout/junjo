@@ -183,9 +183,36 @@ def test_health_check_access_log_filter_suppresses_only_health_probes() -> None:
         args=("127.0.0.1:1234", "GET", "/api/config", "1.1", 200),
         exc_info=None,
     )
+    failed_health_record = logging.LogRecord(
+        name="uvicorn.access",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg='%s - "%s %s HTTP/%s" %d',
+        args=("127.0.0.1:1234", "GET", "/api/healthz", "1.1", 503),
+        exc_info=None,
+    )
 
     assert access_filter.filter(health_record) is False
+    assert access_filter.filter(failed_health_record) is True
     assert access_filter.filter(config_record) is True
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_503_before_lifespan_initialization(tmp_path: Path) -> None:
+    harness = make_harness(tmp_path)
+    app = create_app(
+        application_factory=lambda: harness.application,
+        image_directory=harness.application.image_directory,
+    )
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.get("/api/healthz")
+
+    assert response.status_code == 503
 
 
 @pytest.mark.asyncio

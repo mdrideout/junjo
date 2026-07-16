@@ -6,13 +6,14 @@ import { AgentOperationTimeline } from './AgentOperationTimeline'
 import { AgentStateTimeline } from './AgentStateTimeline'
 import { EvidenceIntegrityBanner } from './EvidenceIntegrityBanner'
 import { CandidateEvidenceView, PayloadEvidenceView } from './PayloadEvidenceView'
+import { agentPath, tracesPath, workflowPath } from '../../../util/telemetry-paths'
 
 function ParentExecutableCard({ executable }: { executable: ParentExecutableReference }) {
   const destination = executable.executable_type === 'agent'
-    ? `/agents/${executable.trace_id}/${executable.span_id}`
+    ? agentPath(executable.trace_id, executable.span_id)
     : executable.executable_type === 'workflow' || executable.executable_type === 'subflow'
-      ? `/workflows/${encodeURIComponent(executable.service.name)}/${executable.trace_id}/${executable.span_id}`
-    : `/traces/${encodeURIComponent(executable.service.name)}/${executable.trace_id}/${executable.span_id}`
+      ? workflowPath(executable.service.name, executable.trace_id, executable.span_id)
+    : tracesPath(executable.service.name, executable.trace_id, executable.span_id)
 
   return (
     <section className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4">
@@ -78,7 +79,7 @@ export function AgentExecutionDetailView({ detail }: { detail: AgentExecutionDet
     service_namespace: summary.service.namespace,
     service_name: summary.service.name,
   })
-  const rawTracePath = `/traces/${encodeURIComponent(summary.service.name)}/${summary.trace_id}/${summary.agent_span_id}`
+  const rawTracePath = tracesPath(summary.service.name, summary.trace_id, summary.agent_span_id)
 
   return (
     <div className="mx-auto max-w-[110rem] space-y-5 p-4 sm:p-6">

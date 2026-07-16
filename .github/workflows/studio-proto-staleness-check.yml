@@ -51,7 +51,10 @@ jobs:
         run: cargo check --locked --message-format=short
       - name: Check generated files
         run: |
-          if ! git diff --exit-code -- apps/studio/proto apps/studio/backend/app/proto_gen; then
+          PROTO_STATUS="$(git status --porcelain --untracked-files=all -- \
+            apps/studio/proto apps/studio/backend/app/proto_gen)"
+          if [ -n "$PROTO_STATUS" ]; then
+            printf '%s\n' "$PROTO_STATUS"
             echo "Studio protobuf output is stale. Run apps/studio/run-all-proto-gen.sh." >&2
             exit 1
           fi

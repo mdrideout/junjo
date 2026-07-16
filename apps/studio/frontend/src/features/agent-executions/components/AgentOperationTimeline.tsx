@@ -10,6 +10,7 @@ import type {
 } from '../schemas/agent-execution'
 import { formatNanoseconds } from '../utils/format'
 import { CandidateEvidenceView, PayloadEvidenceView } from './PayloadEvidenceView'
+import { agentPath, workflowPath } from '../../../util/telemetry-paths'
 
 function OperationOutcome({ outcome }: { outcome: AgentOperation['outcome'] }) {
   return <span className={`agent-outcome-${outcome} rounded-full px-2 py-0.5 text-xs font-semibold`}>{outcome}</span>
@@ -142,8 +143,8 @@ function ModelOperationInspector({ operation }: { operation: ModelOperation }) {
 
 function NestedExecutableCard({ executable }: { executable: NestedExecutableReference }) {
   const destination = executable.executable_type === 'workflow'
-    ? `/workflows/${encodeURIComponent(executable.service.name)}/${executable.trace_id}/${executable.span_id}`
-    : `/agents/${executable.trace_id}/${executable.span_id}`
+    ? workflowPath(executable.service.name, executable.trace_id, executable.span_id)
+    : agentPath(executable.trace_id, executable.span_id)
 
   return (
     <li className="m-0 rounded-md bg-[var(--studio-page)] p-3">

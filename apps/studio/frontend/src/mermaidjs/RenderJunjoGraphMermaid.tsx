@@ -13,6 +13,7 @@ import { useWorkflowDetailRoute } from '../features/junjo-data/workflow-detail/w
 import type { JGraph } from '../junjo-graph/schemas'
 import { useAppDispatch, useAppSelector } from '../root-store/hooks'
 import type { RootState } from '../root-store/store'
+import { workflowPath } from '../util/telemetry-paths'
 import {
   findIndexedGraphElementFromTarget,
   indexRenderedGraphElements,
@@ -140,10 +141,12 @@ export default function RenderJunjoGraphMermaid({
 
       dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(clickedSpan)))
       dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
-      navigate(
-        `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${clickedSpan.span_id}`,
-        { replace: true },
-      )
+      navigate(workflowPath(
+        route.serviceName,
+        route.traceId,
+        route.workflowSpanId,
+        clickedSpan.span_id,
+      ), { replace: true })
     }
 
     container.addEventListener('click', handleClick)

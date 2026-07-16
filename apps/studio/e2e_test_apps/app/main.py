@@ -83,8 +83,8 @@ async def main():
 
     # Run all workflows CONCURRENTLY (not sequentially)
     async def run_workflow(idx: int, workflow):
-        await workflow.execute()
-        final_state = await workflow.get_state_json()
+        result = await workflow.execute()
+        final_state = result.state.model_dump_json()
         return idx, final_state
 
     tasks = [run_workflow(i, w) for i, w in enumerate(workflows)]

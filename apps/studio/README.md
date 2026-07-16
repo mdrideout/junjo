@@ -80,11 +80,14 @@ distribution mirror.
    openssl rand -base64 32
 
    openssl rand -base64 32
+
+   openssl rand -base64 32
    ```
 
    Open `.env` and replace the placeholder values:
    - Replace `your_base64_secret_here` in `JUNJO_SESSION_SECRET` with the first generated value
    - Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with the second generated value
+   - Replace `your_internal_grpc_token_here` in `JUNJO_INTERNAL_GRPC_TOKEN` with the third generated value
 
    For production deployments, also configure:
    ```bash
@@ -316,9 +319,10 @@ JUNJO_BUILD_TARGET="development"
 JUNJO_ENV="development"
 
 # === Security (REQUIRED for production) ============================
-# Generate both with: openssl rand -base64 32
+# Generate each with: openssl rand -base64 32
 JUNJO_SESSION_SECRET=your_base64_secret_here
 JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
+JUNJO_INTERNAL_GRPC_TOKEN=your_internal_grpc_token_here
 
 # === CORS ==========================================================
 # IMPORTANT: Cannot use "*" with session cookies (credentials=True)
@@ -721,7 +725,7 @@ Tests run automatically on all PRs via GitHub Actions:
    - **Fix**: Ensure both services share the same registrable domain (see [Deployment Requirements](#deployment-requirements))
 
 3. **Missing or invalid secrets**
-   - `JUNJO_SESSION_SECRET` or `JUNJO_SECURE_COOKIE_KEY` not set correctly
+   - `JUNJO_SESSION_SECRET`, `JUNJO_SECURE_COOKIE_KEY`, or `JUNJO_INTERNAL_GRPC_TOKEN` not set correctly
    - **Fix**: Generate new secrets with `openssl rand -base64 32`
 
 4. **CORS misconfiguration**

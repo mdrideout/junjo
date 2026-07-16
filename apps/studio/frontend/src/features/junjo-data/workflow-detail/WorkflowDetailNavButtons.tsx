@@ -6,6 +6,7 @@ import { WorkflowDetailStateActions } from './store/slice'
 import { selectNextWorkflowSpan, selectPrevWorkflowSpan } from '../list-spans-workflow/store/selectors'
 import { useEffect } from 'react'
 import { WorkflowExecutionsStateActions } from '../list-spans-workflow/store/slice'
+import { workflowPath } from '../../../util/telemetry-paths'
 
 interface WorkflowDetailNavButtonsProps {
   serviceName: string
@@ -38,9 +39,11 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
       dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
       // Navigate
-      navigate(
-        `/workflows/${prevWorkflowSpan.service_name}/${prevWorkflowSpan.trace_id}/${prevWorkflowSpan.span_id}`,
-      )
+      navigate(workflowPath(
+        prevWorkflowSpan.service_name,
+        prevWorkflowSpan.trace_id,
+        prevWorkflowSpan.span_id,
+      ))
     }
   }
 
@@ -51,9 +54,11 @@ export default function WorkflowDetailNavButtons(props: WorkflowDetailNavButtons
       dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
       // Navigate
-      navigate(
-        `/workflows/${nextWorkflowSpan.service_name}/${nextWorkflowSpan.trace_id}/${nextWorkflowSpan.span_id}`,
-      )
+      navigate(workflowPath(
+        nextWorkflowSpan.service_name,
+        nextWorkflowSpan.trace_id,
+        nextWorkflowSpan.span_id,
+      ))
     }
   }
 

@@ -10,6 +10,7 @@ import { spanNameConstructor } from './span-name-constructor'
 import { useNavigate } from 'react-router'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
+import { workflowPath } from '../../../util/telemetry-paths'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -50,7 +51,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                     dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                     // Preserve existing params and set the new spanId
-                    const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
+                    const newPath = workflowPath(serviceName, traceId, workflowSpanId, span.span_id)
                     navigate(newPath, {
                       replace: true,
                     })
@@ -69,7 +70,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                   dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                   // Preserve existing params and set the new spanId
-                  const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
+                  const newPath = workflowPath(serviceName, traceId, workflowSpanId, span.span_id)
                   navigate(newPath, {
                     replace: true,
                   })
@@ -91,7 +92,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                   dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
 
                   // Preserve existing params and set the new spanId
-                  const newPath = `/workflows/${serviceName}/${traceId}/${workflowSpanId}/${span.span_id}`
+                  const newPath = workflowPath(serviceName, traceId, workflowSpanId, span.span_id)
                   navigate(newPath, {
                     replace: true,
                   })

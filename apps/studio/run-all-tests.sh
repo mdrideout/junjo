@@ -22,6 +22,7 @@ cd "$STUDIO_ROOT"
 # Production and development runtime configuration remains mandatory.
 export JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 export JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+export JUNJO_INTERNAL_GRPC_TOKEN="test-internal-grpc-token-32-bytes-long"
 
 # Track test results
 LINTING_RESULT=0
@@ -124,11 +125,12 @@ cd ..
 echo ""
 
 echo "Checking for uncommitted proto changes..."
-if git diff --quiet -- 'proto/' 'backend/app/proto_gen/'; then
+PROTO_STATUS="$(git status --porcelain --untracked-files=all -- 'proto/' 'backend/app/proto_gen/')"
+if [[ -z "$PROTO_STATUS" ]]; then
     echo "✅ Proto files are up-to-date"
 else
     echo "❌ Proto files have uncommitted changes"
-    git diff --name-only -- 'proto/' 'backend/app/proto_gen/'
+    printf '%s\n' "$PROTO_STATUS"
     PROTO_RESULT=1
 fi
 echo ""

@@ -2,6 +2,7 @@ import SpanAttributeKeyValueViewer from '../../components/SpanAttributeKeyValueV
 import { OtelSpan } from './schemas/schemas'
 import { isLLMSpan } from './utils/span-utils'
 import { Link } from 'react-router'
+import { promptPlaygroundPath, tracesPath, workflowPath } from '../../util/telemetry-paths'
 
 interface SpanAttributesContentProps {
   span: OtelSpan
@@ -15,9 +16,11 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
   // Generate playground link based on origin
   const getPlaygroundLink = () => {
     if (origin === 'workflows' && workflowSpanId) {
-      return `/workflows/${span.service_name}/${span.trace_id}/${workflowSpanId}/${span.span_id}/prompt-playground`
+      return promptPlaygroundPath(
+        workflowPath(span.service_name, span.trace_id, workflowSpanId, span.span_id),
+      )
     }
-    return `/traces/${span.service_name}/${span.trace_id}/${span.span_id}/prompt-playground`
+    return promptPlaygroundPath(tracesPath(span.service_name, span.trace_id, span.span_id))
   }
 
   return (

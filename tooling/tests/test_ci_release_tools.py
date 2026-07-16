@@ -763,6 +763,17 @@ class MirrorPublicationTests(unittest.TestCase):
         self.assertLess(auth_indexes[0], clone_indexes[0])
         self.assertLess(auth_indexes[1], clone_indexes[2])
 
+class ProtoStalenessWorkflowTests(unittest.TestCase):
+    def test_proto_checks_include_untracked_generated_files(self) -> None:
+        workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-proto-staleness-check.yml"
+        ).read_text(encoding="utf-8")
+        local_gate = (REPOSITORY_ROOT / "apps/studio/run-all-tests.sh").read_text(
+            encoding="utf-8"
+        )
+        for source in (workflow, local_gate):
+            self.assertIn("git status --porcelain --untracked-files=all", source)
+
 
 if __name__ == "__main__":
     unittest.main()

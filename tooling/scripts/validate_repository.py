@@ -900,6 +900,21 @@ def validate_workflow_action_pins() -> None:
             )
 
 
+def validate_no_tracked_files_are_ignored() -> None:
+    """Prevent broad local ignore rules from masking committed project files."""
+    result = subprocess.run(
+        ["git", "ls-files", "-ci", "--exclude-standard"],
+        cwd=PLATFORM_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    require(
+        not result.stdout.strip(),
+        f"tracked files must not be ignored:\n{result.stdout.strip()}",
+    )
+
+
 def validate_contract() -> None:
     """Run the dependency-free canonical telemetry contract validation."""
     subprocess.run(
@@ -920,6 +935,7 @@ def main() -> None:
     validate_release_routing()
     validate_studio_release_contract()
     validate_workflow_action_pins()
+    validate_no_tracked_files_are_ignored()
     validate_contract()
     print("Junjo platform repository invariants are valid.")
 

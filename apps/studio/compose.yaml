@@ -64,6 +64,11 @@ services:
       GRPC_PORT: 26155
       # Pinned so a stray INTERNAL_GRPC_PORT in the shared .env cannot move the backend-facing RPC listener
       INTERNAL_GRPC_PORT: 50052
+      JUNJO_API_KEY_CACHE_TTL_SECONDS: ${JUNJO_API_KEY_CACHE_TTL_SECONDS:-10}
+      JUNJO_API_KEY_CACHE_MAX_ENTRIES: ${JUNJO_API_KEY_CACHE_MAX_ENTRIES:-1024}
+      JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY: ${JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY:-8}
+      JUNJO_API_KEY_VALIDATION_MAX_PENDING: ${JUNJO_API_KEY_VALIDATION_MAX_PENDING:-32}
+      JUNJO_API_KEY_VALIDATION_TIMEOUT_MS: ${JUNJO_API_KEY_VALIDATION_TIMEOUT_MS:-2000}
       WAL_DIR: /app/.dbdata/spans/wal
       SNAPSHOT_PATH: /app/.dbdata/spans/hot_snapshot.parquet
       PARQUET_OUTPUT_DIR: /app/.dbdata/spans/parquet
@@ -93,6 +98,8 @@ services:
       - junjo-network
     env_file:
       - .env
+    environment:
+      JUNJO_INTERNAL_GRPC_TOKEN: ""
     depends_on:
       backend:
         condition: service_started

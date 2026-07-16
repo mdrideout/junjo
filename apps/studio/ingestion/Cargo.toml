@@ -41,14 +41,13 @@ sysinfo = "0.33"
 # Time
 chrono = "0.4"
 
-# Caching (similar to Go's otter)
-moka = { version = "0.12", features = ["future"] }
-
 # Utilities
 lazy_static = "1.5"
 
 [dev-dependencies]
 tempfile = "3"
+tokio = { version = "1", features = ["test-util"] }
+tokio-stream = { version = "0.1", features = ["net"] }
 
 [build-dependencies]
 tonic-prost-build = "0.14"

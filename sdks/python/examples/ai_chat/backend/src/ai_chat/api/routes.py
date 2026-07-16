@@ -29,7 +29,8 @@ def _application(request: Request) -> ChatApplication:
 async def health(request: Request) -> Response:
     """Report readiness only after the application lifespan has initialized."""
 
-    _application(request)
+    if not isinstance(request.app.state.chat_application, ChatApplication):
+        return Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

@@ -6,6 +6,7 @@ import SpanAttributesPanel from './SpanAttributesPanel'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { TracesStateActions } from './store/slice'
 import { selectTraceSpansForTraceId, selectTracesError, selectTracesLoading } from './store/selectors'
+import { logsPath, tracesPath } from '../../util/telemetry-paths'
 
 interface TraceDetailsProps {
   routeIdentity?: {
@@ -49,7 +50,7 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
 
   useEffect(() => {
     if (selectedSpan && routeIdentity === undefined) {
-      navigate(`/traces/${serviceName}/${traceId}/${selectedSpan.span_id}`, {
+      navigate(tracesPath(serviceName ?? '', traceId, selectedSpan.span_id), {
         replace: true,
       })
     }
@@ -82,11 +83,11 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
             Logs
           </Link>
           <div>&rarr;</div>
-          <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
+          <Link to={logsPath(serviceName)} className={'hover:underline'}>
             {serviceName}
           </Link>
           <div>&rarr;</div>
-          <Link to={`/traces/${serviceName}`} className={'hover:underline'}>
+          <Link to={tracesPath(serviceName)} className={'hover:underline'}>
             Traces
           </Link>
           <div>&rarr;</div>

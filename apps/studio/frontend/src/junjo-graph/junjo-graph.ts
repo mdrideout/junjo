@@ -2,6 +2,10 @@ import { JunjoGraphError } from './errors'
 import { JEdge, JGraph, JGraphSchema, JNode } from './schemas'
 import { escapeMermaidLabel, MermaidGraphDirection } from './utils'
 
+export function buildMermaidNodeIdMap(nodes: readonly JNode[]): Map<string, string> {
+  return new Map(nodes.map((node, index) => [node.nodeRuntimeId, `junjo_node_${index}`]))
+}
+
 export class JunjoGraph {
   private graph: JGraph
 
@@ -42,6 +46,12 @@ export class JunjoGraph {
   ): string {
     const lines: string[] = []
     const nodeMap = new Map<string, JNode>(this.graph.nodes.map((node) => [node.nodeRuntimeId, node]))
+    const mermaidIdByRuntimeId = buildMermaidNodeIdMap(this.graph.nodes)
+    const mermaidId = (runtimeId: string): string => {
+      const localId = mermaidIdByRuntimeId.get(runtimeId)
+      if (localId === undefined) throw new JunjoGraphError(`Unknown graph node: ${runtimeId}`)
+      return localId
+    }
     const concurrentChildIds = new Set<string>()
     const concurrentContainerIds = new Set<string>()
     const subflowInternalNodeIds = new Set<string>()
@@ -86,9 +96,9 @@ export class JunjoGraph {
 
       const label = escapeMermaidLabel(node.nodeLabel)
       if (node.isSubflow) {
-        lines.push(`  ${node.nodeRuntimeId}@{ shape: st-rect, label: ${label} }`)
+        lines.push(`  ${mermaidId(node.nodeRuntimeId)}@{ shape: st-rect, label: ${label} }`)
       } else {
-        lines.push(`  ${node.nodeRuntimeId}@{ shape: rect, label: ${label} }`)
+        lines.push(`  ${mermaidId(node.nodeRuntimeId)}@{ shape: rect, label: ${label} }`)
       }
     }
 
@@ -102,7 +112,7 @@ export class JunjoGraph {
       }
 
       lines.push('')
-      lines.push(`  subgraph ${node.nodeRuntimeId} [${escapeMermaidLabel(node.nodeLabel)}]`)
+      lines.push(`  subgraph ${mermaidId(node.nodeRuntimeId)} [${escapeMermaidLabel(node.nodeLabel)}]`)
       lines.push(`    direction ${subDirection}`)
 
       for (const childNodeRuntimeId of node.childNodeRuntimeIds ?? []) {
@@ -113,9 +123,9 @@ export class JunjoGraph {
 
         const childLabel = escapeMermaidLabel(childNode.nodeLabel)
         if (childNode.isSubflow) {
-          lines.push(`    ${childNode.nodeRuntimeId}@{ shape: st-rect, label: ${childLabel} }`)
+          lines.push(`    ${mermaidId(childNode.nodeRuntimeId)}@{ shape: st-rect, label: ${childLabel} }`)
         } else {
-          lines.push(`    ${childNode.nodeRuntimeId}@{ shape: rect, label: ${childLabel} }`)
+          lines.push(`    ${mermaidId(childNode.nodeRuntimeId)}@{ shape: rect, label: ${childLabel} }`)
         }
       }
 
@@ -140,12 +150,14 @@ export class JunjoGraph {
       }
 
       const condition = edge.edgeConditionLabel ? escapeMermaidLabel(edge.edgeConditionLabel) : null
+      const tailId = mermaidId(edge.tailNodeRuntimeId)
+      const headId = mermaidId(edge.headNodeRuntimeId)
       if (condition && showEdgeLabels) {
-        lines.push(`  ${edge.tailNodeRuntimeId} -.${condition}.-> ${edge.headNodeRuntimeId}`)
+        lines.push(`  ${tailId} -.${condition}.-> ${headId}`)
       } else if (condition) {
-        lines.push(`  ${edge.tailNodeRuntimeId} -.-> ${edge.headNodeRuntimeId}`)
+        lines.push(`  ${tailId} -.-> ${headId}`)
       } else {
-        lines.push(`  ${edge.tailNodeRuntimeId} --> ${edge.headNodeRuntimeId}`)
+        lines.push(`  ${tailId} --> ${headId}`)
       }
     }
 

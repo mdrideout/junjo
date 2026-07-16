@@ -1,0 +1,120 @@
+{
+  "acceptance": {
+    "all_exports_succeeded": true,
+    "all_queries_succeeded": true,
+    "wal_durable_before_acknowledgement": true
+  },
+  "acceptance_limits": {
+    "revocation_acceptance_tolerance_seconds": 1.0
+  },
+  "authorization_proxy": {
+    "status": "not_instrumented"
+  },
+  "config": {
+    "cache_max_entries": 1024,
+    "cache_ttl_seconds": 10,
+    "export_interval_ms": 100,
+    "exporters": 50,
+    "exports_per_exporter": 100,
+    "implementation_label": "bounded-10-reused",
+    "key_topology": "shared",
+    "max_retries": 10,
+    "measure_revocation": false,
+    "query_workers": 2,
+    "restart_count": 0,
+    "run_failure_probes": false,
+    "spans_per_export": 32,
+    "timing": "synchronized",
+    "use_auth_proxy": false,
+    "validation_max_concurrency": 8,
+    "validation_max_pending": 32,
+    "validation_timeout_ms": 2000,
+    "wal_probe_spans": 1000
+  },
+  "constraints": {
+    "backend_cpus": 0.5,
+    "backend_memory_mib": 450,
+    "ingestion_cpus": 0.5,
+    "ingestion_memory_mib": 350,
+    "instrumentation_proxy_cpus": 0,
+    "instrumentation_proxy_memory_mib": 0
+  },
+  "exports": {
+    "attempt_codes": {
+      "OK": 5000,
+      "UNAVAILABLE": 18
+    },
+    "exports_per_second": 503.33045583913787,
+    "final_codes": {
+      "OK": 5000
+    },
+    "mean_ms": 40.980578370578584,
+    "p50_ms": 18.06883397512138,
+    "p95_ms": 123.82495892234147,
+    "p99_ms": 324.454375077039,
+    "requested": 5000,
+    "spans_per_second": 16106.574586852412,
+    "successful": 5000,
+    "workload_seconds": 9.933831624919549
+  },
+  "failure_probes": {
+    "status": "skipped"
+  },
+  "queries": {
+    "mean_ms": 76.49393657282475,
+    "p50_ms": 38.25112502090633,
+    "p95_ms": 271.8902500346303,
+    "p99_ms": 390.74262510985136,
+    "result_codes": {
+      "200": 155
+    }
+  },
+  "recorded_at_utc": "2026-07-16T16:48:19Z",
+  "resources": {
+    "backend": {
+      "first_file_descriptors": 35.0,
+      "first_memory_mib": 236.8,
+      "first_tcp_sockets": 7.0,
+      "first_threads": 26.0,
+      "last_file_descriptors": 35.0,
+      "last_memory_mib": 235.7,
+      "last_tcp_sockets": 7.0,
+      "last_threads": 27.0,
+      "max_cpu_percent": 23.45,
+      "max_file_descriptors": 35.0,
+      "max_memory_mib": 236.8,
+      "max_pids": 28.0,
+      "max_tcp_sockets": 7.0,
+      "max_threads": 27.0,
+      "sample_count": 4
+    },
+    "ingestion": {
+      "first_file_descriptors": 16.0,
+      "first_memory_mib": 19.5,
+      "first_tcp_sockets": 6.0,
+      "first_threads": 4.0,
+      "last_file_descriptors": 14.0,
+      "last_memory_mib": 25.19,
+      "last_tcp_sockets": 5.0,
+      "last_threads": 3.0,
+      "max_cpu_percent": 26.56,
+      "max_file_descriptors": 16.0,
+      "max_memory_mib": 25.19,
+      "max_pids": 4.0,
+      "max_tcp_sockets": 6.0,
+      "max_threads": 4.0,
+      "sample_count": 4
+    }
+  },
+  "revocation": {
+    "status": "skipped"
+  },
+  "wal_durability": {
+    "acknowledgement_ms": 31.72641689889133,
+    "durable_before_acknowledgement": true,
+    "durable_file_mtime_ms": 30.081029,
+    "durable_observed_ms": 33.71999994851649,
+    "result_code": "OK",
+    "spans": 1000
+  }
+}

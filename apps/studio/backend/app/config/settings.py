@@ -303,6 +303,14 @@ class AppSettings(BaseSettings):
             validation_alias="JUNJO_SESSION_SECRET",
         ),
     ]
+    internal_grpc_token: Annotated[
+        str,
+        Field(
+            min_length=32,
+            description="Shared workload token for backend/ingestion internal gRPC calls.",
+            validation_alias="JUNJO_INTERNAL_GRPC_TOKEN",
+        ),
+    ]
 
     # Production URL Configuration
     prod_frontend_url: Annotated[

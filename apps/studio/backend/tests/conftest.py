@@ -75,6 +75,11 @@ def mock_backend_auth_server():
             request: auth_pb2.ValidateApiKeyRequest,
             context: grpc.ServicerContext,
         ) -> auth_pb2.ValidateApiKeyResponse:
+            metadata = dict(context.invocation_metadata())
+            if metadata.get("x-junjo-internal-token") != os.environ[
+                "JUNJO_INTERNAL_GRPC_TOKEN"
+            ]:
+                context.abort(grpc.StatusCode.UNAUTHENTICATED, "invalid workload token")
             return auth_pb2.ValidateApiKeyResponse(is_valid=True)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))

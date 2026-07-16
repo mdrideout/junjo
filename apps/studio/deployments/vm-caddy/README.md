@@ -95,9 +95,9 @@ Choose a setup path:
    cp .env.example .env
    ```
 
-Generate and set TWO required security keys:
+Generate and set three required security keys:
 
-Both `JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` must be set for the backend to function properly.
+`JUNJO_SESSION_SECRET`, `JUNJO_SECURE_COOKIE_KEY`, and `JUNJO_INTERNAL_GRPC_TOKEN` must be set for the backend and ingestion service to function properly.
 
 1. Generate the first key:
    ```bash
@@ -112,6 +112,8 @@ Both `JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` must be set for the ba
    ```
 
 4. Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with this second generated key
+
+5. Generate a third key and replace `your_internal_grpc_token_here` in `JUNJO_INTERNAL_GRPC_TOKEN` with it
 
 For production deployments, also set these values in `.env`:
 - `JUNJO_ENV=production`
@@ -335,9 +337,10 @@ cd <project-folder-name>
 # Copy the example environment file
 cp .env.example .env
 
-# Generate TWO security keys (run twice and use different values)
+# Generate three security keys and use different values
 openssl rand -base64 32  # JUNJO_SESSION_SECRET
 openssl rand -base64 32  # JUNJO_SECURE_COOKIE_KEY
+openssl rand -base64 32  # JUNJO_INTERNAL_GRPC_TOKEN
 
 # Edit .env and set production values:
 # - JUNJO_ENV=production
@@ -346,6 +349,7 @@ openssl rand -base64 32  # JUNJO_SECURE_COOKIE_KEY
 # - JUNJO_PROD_INGESTION_URL=https://ingestion.junjo.example.com
 # - JUNJO_SESSION_SECRET=<generated_key_1>
 # - JUNJO_SECURE_COOKIE_KEY=<generated_key_2>
+# - JUNJO_INTERNAL_GRPC_TOKEN=<generated_key_3>
 # - CLOUDFLARE_API_TOKEN=<required_for_caddy_dns_challenge>
 vi .env
 ```

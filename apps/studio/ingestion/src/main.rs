@@ -30,7 +30,7 @@ use backend::BackendClient;
 use config::Config;
 use flusher::Flusher;
 use recent_cold_files::RecentColdFiles;
-use server::{InternalService, TraceService};
+use server::{ApiKeyAuthConfig, InternalService, TraceService};
 use wal::ArrowWal;
 
 #[tokio::main]
@@ -60,6 +60,11 @@ async fn main() -> anyhow::Result<()> {
         recent_cold_max_files = config.recent_cold_max_files,
         recent_cold_max_age_secs = config.recent_cold_max_age_secs,
         prepare_hot_snapshot_cache_ttl_ms = config.prepare_hot_snapshot_cache_ttl_ms,
+        api_key_cache_ttl_secs = config.api_key_cache_ttl_secs,
+        api_key_cache_max_entries = config.api_key_cache_max_entries,
+        api_key_validation_max_concurrency = config.api_key_validation_max_concurrency,
+        api_key_validation_max_pending = config.api_key_validation_max_pending,
+        api_key_validation_timeout_ms = config.api_key_validation_timeout_ms,
         "Starting ingestion service"
     );
 
@@ -74,7 +79,11 @@ async fn main() -> anyhow::Result<()> {
     )?));
 
     // Initialize backend client
-    let backend_client = Arc::new(BackendClient::new(config.backend_addr()));
+    let backend_client = Arc::new(BackendClient::new(
+        config.backend_addr(),
+        config.internal_grpc_token.clone(),
+        Duration::from_millis(config.api_key_validation_timeout_ms),
+    )?);
 
     // Track recently flushed cold files in memory (bounded by count + age).
     let recent_cold = Arc::new(Mutex::new(RecentColdFiles::new(
@@ -105,6 +114,13 @@ async fn main() -> anyhow::Result<()> {
     let trace_service = TraceService::new(
         Arc::clone(&wal),
         Arc::clone(&backend_client),
+        ApiKeyAuthConfig {
+            positive_cache_ttl: Duration::from_secs(config.api_key_cache_ttl_secs),
+            positive_cache_max_entries: config.api_key_cache_max_entries,
+            max_concurrent_refreshes: config.api_key_validation_max_concurrency,
+            max_pending_requests: config.api_key_validation_max_pending,
+            validation_timeout: Duration::from_millis(config.api_key_validation_timeout_ms),
+        },
         config.backpressure_max_bytes,
         segment_tx,
     );
@@ -115,6 +131,7 @@ async fn main() -> anyhow::Result<()> {
         config.snapshot_path.clone(),
         Arc::clone(&recent_cold),
         Duration::from_millis(config.prepare_hot_snapshot_cache_ttl_ms),
+        config.internal_grpc_token.clone(),
     );
 
     // Start servers concurrently

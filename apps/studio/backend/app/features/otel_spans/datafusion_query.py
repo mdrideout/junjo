@@ -690,8 +690,15 @@ def _convert_row_to_api_format(table: dict[str, list], idx: int) -> dict[str, An
     end_time_str = _format_timestamp_ns(end_time_ns)
 
     # Map span_kind int to string
-    kind_map = {0: "INTERNAL", 1: "SERVER", 2: "CLIENT", 3: "PRODUCER", 4: "CONSUMER"}
-    kind_str = kind_map.get(span_kind, "INTERNAL")
+    kind_map = {
+        0: "UNSPECIFIED",
+        1: "INTERNAL",
+        2: "SERVER",
+        3: "CLIENT",
+        4: "PRODUCER",
+        5: "CONSUMER",
+    }
+    kind_str = kind_map.get(span_kind, "UNSPECIFIED")
 
     return {
         "trace_id": trace_id,

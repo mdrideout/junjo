@@ -9,6 +9,7 @@ from app.config.settings import AppSettings
 # Valid 32-byte test keys (generated with: openssl rand -base64 32)
 TEST_COOKIE_KEY = "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI="
 TEST_SESSION_SECRET = "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM="
+TEST_INTERNAL_GRPC_TOKEN = "test-internal-grpc-token-32-bytes-long"
 
 
 class _IsolatedAppSettings(AppSettings):
@@ -39,7 +40,19 @@ def create_test_settings(**kwargs):
     Note: When using validation_alias in Pydantic Settings, you must pass
     the ALIAS names (e.g., JUNJO_ENV) not the field names (e.g., junjo_env).
     """
+    kwargs.setdefault("JUNJO_INTERNAL_GRPC_TOKEN", TEST_INTERNAL_GRPC_TOKEN)
     return _IsolatedAppSettings(**kwargs)
+
+
+def test_internal_grpc_token_is_required_and_high_entropy() -> None:
+    with pytest.raises(ValidationError, match="JUNJO_INTERNAL_GRPC_TOKEN"):
+        _IsolatedAppSettings(
+            JUNJO_ENV="development",
+            JUNJO_SECURE_COOKIE_KEY=TEST_COOKIE_KEY,
+            JUNJO_SESSION_SECRET=TEST_SESSION_SECRET,
+        )
+    with pytest.raises(ValidationError, match="at least 32 characters"):
+        create_test_settings(JUNJO_INTERNAL_GRPC_TOKEN="too-short")
 
 
 class TestProductionURLValidation:

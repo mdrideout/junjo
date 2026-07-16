@@ -177,7 +177,7 @@ cython_debug/
 graphviz_out
 
 # Coding Agents
-.claude
+/.claude/
 # Viberag index
 .viberag/
 # MCP config (local, not committed)

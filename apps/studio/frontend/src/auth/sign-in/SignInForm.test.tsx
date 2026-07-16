@@ -16,17 +16,22 @@ import SignInForm from './SignInForm'
 
 // Mock useNavigate from react-router
 const mockNavigate = vi.fn()
+let mockPathname = '/sign-in'
+let mockSearch = ''
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router')
   return {
     ...actual,
     useNavigate: () => mockNavigate,
+    useLocation: () => ({ pathname: mockPathname, search: mockSearch, hash: '', state: null, key: 'test' }),
   }
 })
 
 describe('SignInForm', () => {
   beforeEach(() => {
     mockNavigate.mockClear()
+    mockPathname = '/sign-in'
+    mockSearch = ''
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -120,5 +125,23 @@ describe('SignInForm', () => {
 
     // Should NOT navigate
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['/resolve/executable', '?service_namespace=junjo.examples&service_name=ai-chat'],
+    ['/workflows/service/trace/workflow/span', ''],
+  ])('preserves the in-place protected deep link %s%s after sign-in', async (pathname, search) => {
+    mockPathname = pathname
+    mockSearch = search
+    const user = userEvent.setup()
+    const { getByPlaceholderText, getByRole } = renderWithProviders(<SignInForm />)
+
+    await user.type(getByPlaceholderText('Email address'), 'test@example.com')
+    await user.type(getByPlaceholderText('Password'), 'password123')
+    await user.click(getByRole('button', { name: /sign in/i }))
+
+    await waitFor(() => {
+      expect(mockNavigate).not.toHaveBeenCalled()
+    })
   })
 })

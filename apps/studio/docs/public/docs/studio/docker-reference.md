@@ -43,7 +43,11 @@ The ingestion service provides high-throughput OpenTelemetry data reception usin
 - This is the primary endpoint where your Junjo workflows send telemetry
 - Uses segmented Arrow IPC WAL for durability and throughput
 - Flushes WAL → Parquet and maintains a bounded list of recently flushed Parquet paths for query bridging
-- Validates API keys by calling the backend's internal auth gRPC (`:50053`)
+- Reuses successful API-key validation for a short fixed interval (10 seconds
+  by default), with same-key refresh coalescing over one multiplexed backend
+  auth gRPC channel (`:50053`)
+- Never caches invalid keys or backend failures and never serves an expired
+  authorization stale; cold-path saturation is retryable
 
 ### Frontend Service
 
@@ -183,7 +187,7 @@ This section details the environment variables used to configure Junjo AI Studio
   - **Development Default:** `http://localhost:26151,http://localhost:26153`
   - **Production:** Auto-derived from `JUNJO_PROD_FRONTEND_URL` if not set.
 
-### Security (Backend)
+### Security (Backend and Ingestion)
 
 These keys secure session cookies and must be Base64-encoded strings.
 
@@ -196,6 +200,14 @@ These keys secure session cookies and must be Base64-encoded strings.
 `JUNJO_SECURE_COOKIE_KEY`
 
 : **Required.** Encryption key for session confidentiality (prevents reading).
+
+  - **Generate:** `openssl rand -base64 32`
+
+`JUNJO_INTERNAL_GRPC_TOKEN`
+
+: **Required.** Shared workload credential authenticating internal backend and
+  ingestion gRPC calls. It must contain at least 32 characters and must not be
+  exposed to browser-facing or reverse-proxy containers.
 
   - **Generate:** `openssl rand -base64 32`
 

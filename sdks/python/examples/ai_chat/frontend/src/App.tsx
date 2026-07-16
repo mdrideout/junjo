@@ -34,6 +34,16 @@ export default function App() {
     }
   }, [chat.selectedConversationId, chatId, navigate])
 
+  useEffect(() => {
+    if (
+      chat.sending &&
+      chat.selectedConversationId !== null &&
+      chatId !== chat.selectedConversationId
+    ) {
+      navigate(`/${chat.selectedConversationId}`, { replace: true })
+    }
+  }, [chat.sending, chat.selectedConversationId, chatId, navigate])
+
   const latestMessageAt = useMemo(() => {
     const latest = chat.turns[chat.turns.length - 1]
     return latest === undefined ? null : Date.parse(latest.updated_at)
@@ -45,8 +55,7 @@ export default function App() {
   }, [chatId, latestMessageAt])
 
   const selectConversation = (conversationId: string) => {
-    chat.selectConversation(conversationId)
-    navigate(`/${conversationId}`)
+    if (chat.selectConversation(conversationId)) navigate(`/${conversationId}`)
   }
 
   const createContact = async (sex: 'male' | 'female') => {
@@ -60,7 +69,7 @@ export default function App() {
         <div className="bg-zinc-700 rounded-3xl p-3 overflow-y-scroll w-xs min-w-2xs">
           <ChatSidebar
             conversations={chat.conversations}
-            activeChatId={chatId}
+            activeChatId={chat.selectedConversationId ?? undefined}
             loading={chat.loadingConversations}
             creatingContact={chat.creatingContact}
             lastReadAtByChatId={lastReadAtByChatId}
@@ -69,19 +78,27 @@ export default function App() {
           />
         </div>
         <div className="bg-zinc-700 rounded-3xl grow flex flex-col border-l border-r border-zinc-700 min-w-0">
-          <ChatHeader title={chat.conversations.find((item) => item.id === chatId)?.title} />
+          <ChatHeader
+            title={chat.conversations.find(
+              (item) => item.id === chat.selectedConversationId,
+            )?.title}
+          />
           {chat.error !== null && (
             <div className="bg-red-950 text-red-100 px-4 py-2 text-sm" role="alert">
               {chat.error.message}
             </div>
           )}
           <ChatWindow
-            chatId={chatId}
+            chatId={chat.selectedConversationId ?? undefined}
             turns={chat.turns}
             config={chat.config}
             loading={chat.loadingTurns}
           />
-          <ChatForm chatId={chatId} sending={chat.sending} onSubmit={chat.sendTurn} />
+          <ChatForm
+            chatId={chat.selectedConversationId ?? undefined}
+            sending={chat.sending}
+            onSubmit={chat.sendTurn}
+          />
         </div>
       </div>
     </div>

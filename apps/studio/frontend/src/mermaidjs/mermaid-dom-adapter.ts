@@ -1,18 +1,18 @@
-import type { JGraph, JNode } from '../junjo-graph/schemas'
+import type { JGraph } from '../junjo-graph/schemas'
+import { buildMermaidNodeIdMap } from '../junjo-graph/junjo-graph'
 
 export const JUNJO_GRAPH_NODE_ATTRIBUTE = 'data-junjo-graph-node-id'
 
-function renderedElementMatchesNode(element: Element, node: JNode): boolean {
+function renderedElementMatchesNode(element: Element, mermaidId: string): boolean {
   const elementId = element.id
-  const nodeId = node.nodeRuntimeId
-  if (elementId === nodeId) return true
+  if (elementId === mermaidId) return true
 
   if (element.classList.contains('node')) {
-    return elementId.includes(`flowchart-${nodeId}-`)
+    return elementId.includes(`flowchart-${mermaidId}-`)
   }
 
   if (element.classList.contains('cluster')) {
-    return elementId.endsWith(`-${nodeId}`)
+    return elementId.endsWith(`-${mermaidId}`)
   }
 
   return false
@@ -30,6 +30,7 @@ export function indexRenderedGraphElements(
   graphSnapshot: JGraph,
 ): Map<string, Element> {
   const index = new Map<string, Element>()
+  const mermaidIds = buildMermaidNodeIdMap(graphSnapshot.nodes)
   const graphNodesByLongestId = [...graphSnapshot.nodes].sort(
     (left, right) => right.nodeRuntimeId.length - left.nodeRuntimeId.length,
   )
@@ -37,7 +38,7 @@ export function indexRenderedGraphElements(
   for (const element of container.querySelectorAll('.node, .cluster')) {
     element.removeAttribute(JUNJO_GRAPH_NODE_ATTRIBUTE)
     const node = graphNodesByLongestId.find((candidate) =>
-      renderedElementMatchesNode(element, candidate),
+      renderedElementMatchesNode(element, mermaidIds.get(candidate.nodeRuntimeId)!),
     )
     if (node === undefined || index.has(node.nodeRuntimeId)) continue
 

@@ -3,6 +3,7 @@ import { OtelSpan } from '../traces/schemas/schemas'
 import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-icon'
 import { Link } from 'react-router'
 import { wrapSpan } from './utils/span-accessor'
+import { workflowPath } from '../../util/telemetry-paths'
 
 interface SpanRowProps {
   span: OtelSpan
@@ -37,7 +38,7 @@ export default function SpanRow(props: SpanRowProps) {
                 className={
                   'mt-[1px] cursor-pointer text-white bg-zinc-700 hover:bg-zinc-600 rounded-lg px-1.5 text-xs'
                 }
-                to={`/workflows/${span.service_name}/${span.trace_id}/${span.span_id}/${span.span_id}`}
+                to={workflowPath(span.service_name, span.trace_id, span.span_id, span.span_id)}
               >
                 Workflow Explorer &rarr;
               </Link>

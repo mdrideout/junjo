@@ -79,6 +79,7 @@ fi
   cd backend
   JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
     JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" \
+    JUNJO_INTERNAL_GRPC_TOKEN="test-internal-grpc-token-32-bytes-long" \
     uv run python scripts/export_openapi_schema.py >/dev/null
 )
 cp backend/openapi.json frontend/backend/openapi.json

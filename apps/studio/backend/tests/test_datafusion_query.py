@@ -15,7 +15,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from app.features.agent_diagnostics.assembler import assemble_agent_detail
-from app.features.otel_spans.datafusion_query import UnifiedSpanQuery
+from app.features.otel_spans.datafusion_query import UnifiedSpanQuery, _convert_row_to_api_format
 from tests.helpers.junjo_fixture_loader import (
     list_junjo_fixture_case_names,
     list_valid_transport_fixture_ids,
@@ -86,6 +86,28 @@ def create_test_span(
         "resource_attributes": json.dumps({"service.name": service_name}),
         "resource_dropped_attributes_count": 0,
     }
+
+
+@pytest.mark.parametrize(
+    ("raw_kind", "expected"),
+    [
+        (0, "UNSPECIFIED"),
+        (1, "INTERNAL"),
+        (2, "SERVER"),
+        (3, "CLIENT"),
+        (4, "PRODUCER"),
+        (5, "CONSUMER"),
+        (99, "UNSPECIFIED"),
+    ],
+)
+def test_api_span_kind_uses_canonical_otlp_enum_values(raw_kind: int, expected: str) -> None:
+    row = create_test_span(trace_id="a" * 32, span_kind=raw_kind)
+    row["start_time_ns"] = row.pop("start_time").value
+    row["end_time_ns"] = row.pop("end_time").value
+    row.pop("duration_ns")
+    table = {key: [value] for key, value in row.items()}
+
+    assert _convert_row_to_api_format(table, 0)["kind"] == expected
 
 
 def write_spans_to_parquet(spans: list[dict], file_path: str) -> None:

@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { AuthContext } from '../auth-context-value'
 import { getApiHost } from '../../config'
 import { getPostSignInDestination } from '../navigation-helpers'
@@ -13,12 +13,14 @@ export default function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const { isAuthenticated, login } = useContext(AuthContext)
   const navigate = useNavigate()
+  const location = useLocation()
+  const isGuardedLocation = location.pathname !== '/sign-in'
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isGuardedLocation) {
       navigate('/')
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, isGuardedLocation, navigate])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -69,6 +71,12 @@ export default function SignInForm() {
       // No separate CSRF token needed
 
       login('') // Token not used with session-based auth
+
+      // AuthGuard renders this form in place at the protected deep link. Once
+      // authentication state refreshes, it reveals that route without navigation.
+      if (isGuardedLocation) {
+        return
+      }
 
       // Navigate based on API key status
       console.log('[SignInForm] Checking API keys for navigation...')

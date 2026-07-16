@@ -5,12 +5,13 @@ Implements all authentication endpoints, mirroring the Go implementation.
 """
 
 import secrets
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 
+from app.common.datetime_utils import utcnow
+from app.db_sqlite.users.repository import UserRepository
 from app.db_sqlite.users.schemas import (
     AuthTestResponse,
     CreateUserRequest,
@@ -23,6 +24,14 @@ from app.features.auth.dependencies import CurrentUser
 from app.features.auth.service import AuthService
 
 router = APIRouter()
+
+
+def _set_session(request: Request, user: UserRead) -> None:
+    """Issue a session tied to the user's current persistent revision."""
+    request.session["userEmail"] = user.email
+    request.session["session_id"] = secrets.token_urlsafe(32)
+    request.session["authenticated_at"] = utcnow().isoformat()
+    request.session["session_revision"] = user.updated_at.isoformat()
 
 # Note: Session configuration (max_age, secure, samesite, etc.) is handled
 # in main.py when adding SessionMiddleware. No need to configure here.
@@ -71,9 +80,7 @@ async def create_first_user(user_request: CreateUserRequest, request: Request):
 
         if user:
             # Set session (same pattern as sign-in endpoint)
-            request.session["userEmail"] = user.email
-            request.session["session_id"] = secrets.token_urlsafe(32)
-            request.session["authenticated_at"] = datetime.now().isoformat()
+            _set_session(request, user)
             logger.info(f"First user created and signed in automatically: {user.email}")
 
         return UserResponse(message="First user created successfully")
@@ -121,19 +128,14 @@ async def sign_in(sign_in_request: SignInRequest, request: Request):
             detail="Invalid credentials",
         )
 
-    # Set user email in session (middleware handles encryption + signing)
-    request.session["userEmail"] = user.email
-
-    # Store session metadata for audit logging (used by get_authenticated_user dependency)
-    request.session["session_id"] = secrets.token_urlsafe(32)  # Unique session identifier
-    request.session["authenticated_at"] = datetime.now().isoformat()  # ISO 8601 timestamp
+    _set_session(request, user)
 
     logger.info(f"User signed in successfully: {user.email}")
     return UserResponse(message="signed in")
 
 
 @router.post("/sign-out", response_model=UserResponse)
-async def sign_out(request: Request):
+async def sign_out(request: Request, current_user: CurrentUser):
     """
     Sign out by clearing the session.
 
@@ -146,7 +148,9 @@ async def sign_out(request: Request):
     Returns:
         UserResponse with success message
     """
-    # Clear session (middleware handles cookie deletion)
+    # Persistently invalidate captured copies of this session before clearing
+    # the browser cookie.
+    await UserRepository.invalidate_sessions(current_user.user_id)
     request.session.clear()
 
     logger.info("User signed out")

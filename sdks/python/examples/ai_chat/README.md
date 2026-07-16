@@ -110,10 +110,12 @@ Open `http://localhost:26251`; FastAPI is exposed directly at
 `http://localhost:26252`. Compose uses the same origins as native development
 and intentionally has no reverse proxy.
 
-The backend and frontend use bind mounts plus watchfiles/Chokidar polling, so
-Python changes restart FastAPI and frontend changes use Vite HMR. Dependency
-changes require `docker compose up --build` again. SQLite and generated images
-live in `ai-chat-data`; reset them explicitly with:
+The backend source and frontend `src` directory use bind mounts plus
+watchfiles/Chokidar polling, so Python changes restart FastAPI and frontend
+source changes use Vite HMR. Frontend dependencies remain in the rebuilt image,
+so `docker compose up --build` applies `package-lock.json` changes without a
+stale `node_modules` volume. SQLite and generated images live in
+`ai-chat-data`; the following command intentionally deletes that chat data:
 
 ```bash
 docker compose down --volumes

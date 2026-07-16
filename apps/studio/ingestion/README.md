@@ -7,11 +7,18 @@ The ingestion service is the high-throughput receiver for OTLP spans. It validat
 - **Fast writes**: Incoming spans are appended to an Arrow IPC WAL (segmented files) for durable, low-overhead ingestion.
 - **Queryable storage**: The WAL is periodically flushed to date-partitioned Parquet files for efficient scans.
 - **Real-time reads**: The backend can request a hot snapshot (`PrepareHotSnapshot`) to query unflushed spans without streaming data over gRPC.
-- **Fail-closed auth**: API keys are validated against the backend’s internal gRPC auth service and cached in-memory in ingestion for low latency.
+- **Bounded authoritative auth**: Successful API-key validations are reused for
+  a fixed 10-second, non-sliding interval. Cache misses for one key are
+  coalesced over one long-lived backend gRPC channel, while cold-validation
+  concurrency and pending decoded exports are bounded. Invalid keys and
+  backend failures are never cached; expired entries are never served stale;
+  transient failures and saturation return retryable `UNAVAILABLE`. Deletion
+  takes effect within the configured TTL plus an export already racing with it.
 
 Relevant ADRs:
 - `ingestion/adr/001-segmented-wal-architecture.md`
 - `ingestion/adr/002-sqlite-metadata-index.md`
+- `docs/adr/009-bounded-ingestion-api-key-validation.md`
 
 ## Protos
 

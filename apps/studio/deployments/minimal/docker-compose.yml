@@ -68,6 +68,11 @@ services:
       - BACKEND_GRPC_PORT=50053
       - GRPC_PORT=26155
       - INTERNAL_GRPC_PORT=50052
+      - JUNJO_API_KEY_CACHE_TTL_SECONDS=${JUNJO_API_KEY_CACHE_TTL_SECONDS:-10}
+      - JUNJO_API_KEY_CACHE_MAX_ENTRIES=${JUNJO_API_KEY_CACHE_MAX_ENTRIES:-1024}
+      - JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY=${JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY:-8}
+      - JUNJO_API_KEY_VALIDATION_MAX_PENDING=${JUNJO_API_KEY_VALIDATION_MAX_PENDING:-32}
+      - JUNJO_API_KEY_VALIDATION_TIMEOUT_MS=${JUNJO_API_KEY_VALIDATION_TIMEOUT_MS:-2000}
       # Arrow IPC WAL directory
       - WAL_DIR=/app/.dbdata/spans/wal
       # Hot snapshot path (backend reads this file directly)
@@ -91,6 +96,8 @@ services:
       - "${JUNJO_FRONTEND_HOST_PORT:-26153}:26153" # Production web UI
     env_file:
       - .env
+    environment:
+      - JUNJO_INTERNAL_GRPC_TOKEN=
     networks:
       - junjo-network
     depends_on:

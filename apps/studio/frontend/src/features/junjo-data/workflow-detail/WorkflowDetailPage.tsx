@@ -17,6 +17,7 @@ import { useActiveWorkflowStoreDiagnostic } from './use-active-workflow-store-di
 import { useWorkflowDetailRoute } from './workflow-detail-route-context'
 import { selectWorkflowDetailActiveSpan } from './store/selectors'
 import { spanSelection } from './store/slice'
+import { logsPath } from '../../../util/telemetry-paths'
 
 export default function WorkflowDetailPage() {
   const { serviceName, traceId, workflowSpanId, spanId } = useWorkflowDetailRoute()
@@ -160,7 +161,7 @@ export default function WorkflowDetailPage() {
             <div>&rarr;</div>
             <div>{serviceName}</div>
             <div>&rarr;</div>
-            <Link to={`/logs/${serviceName}`} className={'hover:underline'}>
+            <Link to={logsPath(serviceName)} className={'hover:underline'}>
               Workflow Executions
             </Link>
             <div>&rarr;</div>

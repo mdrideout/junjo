@@ -1,0 +1,356 @@
+{
+  "evidence_status": "initial comparison; final decision is supported by the linked matrix, soak, and pinned baseline runs",
+  "final_evidence": [
+    "STUDIO_INGESTION_API_KEY_AUTHORIZATION_MATRIX_2026-07-16.json",
+    "STUDIO_INGESTION_API_KEY_AUTHORIZATION_SOAK_2026-07-16.json",
+    "evidence/studio-ingestion-auth-2026-07-16/README.md"
+  ],
+  "recorded_at_utc": "2026-07-16T16:25:03Z",
+  "repository_head": "390363caaffe4184fc278b5e7b3f774fdc41eaf5",
+  "working_tree": "dirty; measurements include the uncommitted L5 implementation",
+  "host": {
+    "architecture": "arm64",
+    "operating_system": "macOS 15.7.7 (24G720)",
+    "docker_server": "29.5.3"
+  },
+  "container_constraints": {
+    "backend_cpus": 0.5,
+    "backend_memory_mib": 450,
+    "ingestion_cpus": 0.5,
+    "ingestion_memory_mib": 350
+  },
+  "common_workload": {
+    "exporters": 100,
+    "exports_per_exporter": 100,
+    "spans_per_export": 32,
+    "query_workers": 2,
+    "cache_max_entries": 1024,
+    "validation_max_concurrency": 8,
+    "validation_max_pending": 32,
+    "validation_timeout_ms": 2000,
+    "max_retries": 10
+  },
+  "runs": [
+    {
+      "name": "no_cache_burst",
+      "cache_ttl_seconds": 0,
+      "export_interval_ms": 10,
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 1885,
+        "exports_per_second": 2133.59494057891,
+        "spans_per_second": 68275.03809852512,
+        "mean_ms": 25.328293570131063,
+        "p50_ms": 5.363208008930087,
+        "p95_ms": 155.73108289390802,
+        "p99_ms": 217.7018339280039
+      },
+      "queries": {
+        "successful": 132,
+        "mean_ms": 20.471410377825976,
+        "p50_ms": 13.115499867126346,
+        "p95_ms": 71.4113749563694,
+        "p99_ms": 146.33920788764954
+      },
+      "resources": {
+        "backend_max_cpu_percent": 37.02,
+        "backend_max_memory_mib": 240.4,
+        "ingestion_max_cpu_percent": 26.85,
+        "ingestion_max_memory_mib": 23.89
+      },
+      "revocation_first_rejection_seconds": 0.017369208158925176
+    },
+    {
+      "name": "ten_second_cache_burst",
+      "cache_ttl_seconds": 10,
+      "export_interval_ms": 10,
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 68,
+        "exports_per_second": 3980.5948658070533,
+        "spans_per_second": 127379.0357058257,
+        "mean_ms": 14.540303624770605,
+        "p50_ms": 4.595167003571987,
+        "p95_ms": 41.09595809131861,
+        "p99_ms": 138.29737482592463
+      },
+      "queries": {
+        "successful": 57,
+        "mean_ms": 38.41529452045889,
+        "p50_ms": 29.21212511137128,
+        "p95_ms": 114.41329214721918,
+        "p99_ms": 148.77274981699884
+      },
+      "resources": {
+        "backend_max_cpu_percent": 18.74,
+        "backend_max_memory_mib": 240.9,
+        "ingestion_max_cpu_percent": 51.32,
+        "ingestion_max_memory_mib": 21.69
+      },
+      "revocation_first_rejection_seconds": 10.00300229107961
+    },
+    {
+      "name": "fifteen_second_cache_burst",
+      "cache_ttl_seconds": 15,
+      "export_interval_ms": 10,
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 68,
+        "exports_per_second": 3908.9074707292443,
+        "spans_per_second": 125085.03906333582,
+        "mean_ms": 14.797783025586977,
+        "p50_ms": 3.422458190470934,
+        "p95_ms": 38.368667010217905,
+        "p99_ms": 175.57291686534882
+      },
+      "queries": {
+        "successful": 52,
+        "mean_ms": 50.220582459587604,
+        "p50_ms": 35.128333140164614,
+        "p95_ms": 158.89449999667704,
+        "p99_ms": 261.5317909512669
+      },
+      "resources": {
+        "backend_max_cpu_percent": 17.13,
+        "backend_max_memory_mib": 240.3,
+        "ingestion_max_cpu_percent": 51.51,
+        "ingestion_max_memory_mib": 25.64
+      },
+      "revocation_first_rejection_seconds": 15.02804116695188
+    },
+    {
+      "name": "no_cache_paced",
+      "cache_ttl_seconds": 0,
+      "export_interval_ms": 100,
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 1021,
+        "exports_per_second": 804.864485570944,
+        "spans_per_second": 25755.663538270208,
+        "mean_ms": 19.096593541139736,
+        "p50_ms": 6.350334035232663,
+        "p95_ms": 88.03433319553733,
+        "p99_ms": 235.45129201374948
+      },
+      "queries": {
+        "successful": 369,
+        "mean_ms": 16.845940498680605,
+        "p50_ms": 11.379624949768186,
+        "p95_ms": 55.650374852120876,
+        "p99_ms": 117.60866618715227
+      },
+      "resources": {
+        "backend_max_cpu_percent": 34.68,
+        "backend_max_memory_mib": 241.0,
+        "ingestion_max_cpu_percent": 12.02,
+        "ingestion_max_memory_mib": 24.88
+      },
+      "revocation_first_rejection_seconds": 0.009255999932065606
+    },
+    {
+      "name": "ten_second_cache_paced",
+      "cache_ttl_seconds": 10,
+      "export_interval_ms": 100,
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 68,
+        "exports_per_second": 900.1254178856816,
+        "spans_per_second": 28804.01337234181,
+        "mean_ms": 9.884246223513037,
+        "p50_ms": 2.2592919413000345,
+        "p95_ms": 34.57270795479417,
+        "p99_ms": 127.87054106593132
+      },
+      "queries": {
+        "successful": 307,
+        "mean_ms": 22.11757940968274,
+        "p50_ms": 15.435917070135474,
+        "p95_ms": 62.640042044222355,
+        "p99_ms": 161.4218750037253
+      },
+      "resources": {
+        "backend_max_cpu_percent": 35.27,
+        "backend_max_memory_mib": 242.8,
+        "ingestion_max_cpu_percent": 20.58,
+        "ingestion_max_memory_mib": 26.86
+      },
+      "revocation_first_rejection_seconds": 10.129414541879669
+    },
+    {
+      "name": "no_cache_exact_rate_shared_synchronized",
+      "cache_ttl_seconds": 0,
+      "export_interval_ms": 100,
+      "key_topology": "shared",
+      "timing": "synchronized",
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 4315,
+        "exports_per_second": 990.4005508736606,
+        "spans_per_second": 31692.817627957138,
+        "mean_ms": 39.355824146885425,
+        "p50_ms": 10.11645793914795,
+        "p95_ms": 162.34933398663998,
+        "p99_ms": 209.10108415409923
+      },
+      "queries": {
+        "successful": 296,
+        "mean_ms": 17.69075688600817,
+        "p50_ms": 11.801040964201093,
+        "p95_ms": 45.38225010037422,
+        "p99_ms": 93.33645808510482
+      },
+      "resources": {
+        "backend_max_cpu_percent": 34.18,
+        "backend_max_memory_mib": 240.9,
+        "ingestion_max_cpu_percent": 21.97,
+        "ingestion_max_memory_mib": 20.06
+      },
+      "revocation_first_rejection_seconds": 0.010828166967257857
+    },
+    {
+      "name": "ten_second_cache_exact_rate_shared_synchronized",
+      "cache_ttl_seconds": 10,
+      "export_interval_ms": 100,
+      "key_topology": "shared",
+      "timing": "synchronized",
+      "acceptance": "pass",
+      "exports": {
+        "requested": 10000,
+        "successful": 10000,
+        "retryable_unavailable_attempts": 68,
+        "exports_per_second": 1005.7600169814086,
+        "spans_per_second": 32184.320543405076,
+        "mean_ms": 10.119958057557232,
+        "p50_ms": 6.983666913583875,
+        "p95_ms": 29.806208098307252,
+        "p99_ms": 105.74958403594792
+      },
+      "queries": {
+        "successful": 288,
+        "mean_ms": 18.72226608086041,
+        "p50_ms": 11.812707874923944,
+        "p95_ms": 51.79024999961257,
+        "p99_ms": 100.5033329129219
+      },
+      "resources": {
+        "backend_max_cpu_percent": 24.08,
+        "backend_max_memory_mib": 239.9,
+        "ingestion_max_cpu_percent": 21.81,
+        "ingestion_max_memory_mib": 25.96
+      },
+      "revocation_first_rejection_seconds": 10.587017250014469
+    },
+    {
+      "name": "ten_second_cache_exact_rate_distinct_synchronized_jittered",
+      "cache_ttl_seconds": 10,
+      "export_interval_ms": 100,
+      "key_topology": "distinct",
+      "timing": "synchronized",
+      "acceptance": "pass",
+      "exports": {
+        "requested": 5000,
+        "successful": 5000,
+        "retryable_unavailable_attempts": 225,
+        "exports_per_second": 1016.2636569546858,
+        "spans_per_second": 32520.437022549944,
+        "mean_ms": 14.456959082745016,
+        "p50_ms": 7.01254210434854,
+        "p95_ms": 48.21570799686015,
+        "p99_ms": 292.72595793008804
+      },
+      "queries": {
+        "successful": 138,
+        "mean_ms": 20.576800158976212,
+        "p50_ms": 12.081417022272944,
+        "p95_ms": 61.56575004570186,
+        "p99_ms": 197.7007919922471
+      },
+      "resources": {
+        "backend_max_cpu_percent": 17.52,
+        "backend_max_memory_mib": 237.2,
+        "ingestion_max_cpu_percent": 22.04,
+        "ingestion_max_memory_mib": 19.21
+      },
+      "revocation": {
+        "accepted_exports_after_delete": 189,
+        "last_accepted_seconds": 9.948355624917895,
+        "first_rejection_seconds": 10.01090837502852
+      }
+    },
+    {
+      "name": "ten_second_cache_exact_rate_distinct_staggered_jittered",
+      "cache_ttl_seconds": 10,
+      "export_interval_ms": 100,
+      "key_topology": "distinct",
+      "timing": "staggered",
+      "acceptance": "pass",
+      "exports": {
+        "requested": 5000,
+        "successful": 5000,
+        "retryable_unavailable_attempts": 231,
+        "exports_per_second": 997.9517455348694,
+        "spans_per_second": 31934.45585711582,
+        "mean_ms": 8.1527200513985,
+        "p50_ms": 0.40737492963671684,
+        "p95_ms": 27.289333986118436,
+        "p99_ms": 300.94179091975093
+      },
+      "queries": {
+        "successful": 148,
+        "mean_ms": 18.028622195816826,
+        "p50_ms": 9.07745910808444,
+        "p95_ms": 59.01125003583729,
+        "p99_ms": 288.5210409294814
+      },
+      "resources": {
+        "backend_max_cpu_percent": 29.57,
+        "backend_max_memory_mib": 236.8,
+        "ingestion_max_cpu_percent": 21.79,
+        "ingestion_max_memory_mib": 28.32
+      },
+      "revocation": {
+        "accepted_exports_after_delete": 190,
+        "last_accepted_seconds": 9.950991917168722,
+        "first_rejection_seconds": 10.00587591715157
+      }
+    }
+  ],
+  "adversarial_observations": [
+    {
+      "name": "distinct_keys_without_retry_jitter",
+      "result": "fail",
+      "detail": "With 100 distinct cold keys, eight refresh slots, 32 pending slots, and synchronized deterministic retry boundaries, 10 of 5,000 logical exports exhausted 10 retries. Reproducible per-exporter jitter reduced retryable UNAVAILABLE attempts from 566 to 225 and completed all 5,000 synchronized exports without raising the service memory bounds."
+    }
+  ],
+  "interpretation": {
+    "selected_default_ttl_seconds": 10,
+    "reason": "The 10-second and 15-second burst candidates had equivalent cached-path performance, while the shorter candidate reduced the measured revocation bound by five seconds. Relative to no cache, the 10-second burst run increased completed export throughput by 86.6 percent and reduced retryable overload attempts by 96.4 percent.",
+    "limitations": [
+      "The first five runs use one shared valid API key; later exact-rate runs add shared and distinct key topologies plus synchronized and staggered timing.",
+      "The two original paced runs sleep after completion; later exact-rate runs use a start-to-start schedule and should be preferred for equal offered-rate comparison.",
+      "This initial evidence set did not rebuild the historical 600-second warm-cache and fresh-channel baselines; the linked pinned baseline runs provide them.",
+      "This initial evidence set did not include the delayed-backend, outage, restart-soak, file-descriptor, WAL-lag, and full span-size matrix; the linked final matrix and soak close those gaps.",
+      "ADR-009 remained Proposed at this stage; it was accepted only after review of the linked final evidence."
+    ]
+  },
+  "validation": {
+    "ingestion_tests": "23 unit and 14 integration tests passed",
+    "backend_internal_auth_tests": "14 passed",
+    "studio_full_suite": "Python lint, backend, ingestion, frontend, REST contracts, and protobuf validation passed",
+    "deployment_validation": "root development/production, minimal, and vm-caddy passed",
+    "repository_invariants": "passed",
+    "documentation": "140 source-owned files assembled; 129 website pages and 428 Python API objects validated"
+  }
+}

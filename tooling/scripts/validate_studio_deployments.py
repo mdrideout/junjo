@@ -56,6 +56,7 @@ JUNJO_ENV=development
 JUNJO_HOST_DB_DATA_PATH=./.dbdata
 JUNJO_SESSION_SECRET=validation-only-session-secret
 JUNJO_SECURE_COOKIE_KEY=validation-only-cookie-key
+JUNJO_INTERNAL_GRPC_TOKEN=validation-internal-grpc-token-32-bytes
 CLOUDFLARE_API_TOKEN=validation-only-cloudflare-token
 """
 
@@ -375,6 +376,11 @@ def validate_rendered_compose(
             "BACKEND_GRPC_PORT": "50053",
             "GRPC_PORT": "26155",
             "INTERNAL_GRPC_PORT": "50052",
+            "JUNJO_API_KEY_CACHE_MAX_ENTRIES": "1024",
+            "JUNJO_API_KEY_CACHE_TTL_SECONDS": "10",
+            "JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY": "8",
+            "JUNJO_API_KEY_VALIDATION_MAX_PENDING": "32",
+            "JUNJO_API_KEY_VALIDATION_TIMEOUT_MS": "2000",
             "WAL_DIR": "/app/.dbdata/spans/wal",
             "SNAPSHOT_PATH": "/app/.dbdata/spans/hot_snapshot.parquet",
             "PARQUET_OUTPUT_DIR": "/app/.dbdata/spans/parquet",

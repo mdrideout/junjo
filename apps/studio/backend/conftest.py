@@ -23,6 +23,7 @@ os.environ["JUNJO_SESSION_SECRET"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 os.environ["JUNJO_SECURE_COOKIE_KEY"] = (
     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
 )
+os.environ["JUNJO_INTERNAL_GRPC_TOKEN"] = "test-internal-grpc-token-32-bytes-long"
 
 # Set test database paths BEFORE any app code gets imported
 # This ensures db_config.py (which creates engine at import time) uses test location

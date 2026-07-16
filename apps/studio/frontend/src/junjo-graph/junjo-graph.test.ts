@@ -26,26 +26,26 @@ describe('JunjoGraph', () => {
     const mermaid = graph.toMermaid()
 
     expect(mermaid).toContain('graph LR')
-    expect(mermaid).toContain('node.basic.fetch_input@{ shape: rect, label: "fetch_input" }')
-    expect(mermaid).toContain('node.basic.fetch_input --> node.basic.transform_output')
+    expect(mermaid).toContain('junjo_node_0@{ shape: rect, label: "fetch_input" }')
+    expect(mermaid).toContain('junjo_node_0 --> junjo_node_1')
   })
 
   it('renders run_concurrent snapshots as Mermaid subgraphs', () => {
     const graph = loadWorkflowGraph('run_concurrent_success', '3333333333333331')
     const mermaid = graph.toMermaid()
 
-    expect(mermaid).toContain('subgraph run.concurrent.fanout ["fanout"]')
-    expect(mermaid).toContain('node.concurrent.branch_a@{ shape: rect, label: "branch_a" }')
-    expect(mermaid).toContain('node.concurrent.prepare --> run.concurrent.fanout')
+    expect(mermaid).toContain('subgraph junjo_node_1 ["fanout"]')
+    expect(mermaid).toContain('junjo_node_2@{ shape: rect, label: "branch_a" }')
+    expect(mermaid).toContain('junjo_node_0 --> junjo_node_1')
   })
 
   it('omits subflow-scoped internal edges from parent workflow Mermaid output', () => {
     const graph = loadWorkflowGraph('subflow_with_parent_store', '2222222222222221')
     const mermaid = graph.toMermaid()
 
-    expect(mermaid).toContain('node.subflow.container@{ shape: st-rect, label: "child_subflow" }')
-    expect(mermaid).toContain('node.subflow.prepare --> node.subflow.container')
-    expect(mermaid).not.toContain('node.child.entry --> node.child.exit')
+    expect(mermaid).toContain('junjo_node_1@{ shape: st-rect, label: "child_subflow" }')
+    expect(mermaid).toContain('junjo_node_0 --> junjo_node_1')
+    expect(mermaid).not.toContain('junjo_node_2 --> junjo_node_3')
   })
 
   it('omits subflow-internal concurrent clusters and defensive internal endpoint edges', () => {
@@ -146,14 +146,14 @@ describe('JunjoGraph', () => {
 
     const mermaid = graph.toMermaid()
 
-    expect(mermaid).toContain('parent.prepare@{ shape: rect, label: "prepare" }')
-    expect(mermaid).toContain('parent.subflow@{ shape: st-rect, label: "child_subflow" }')
-    expect(mermaid).toContain('parent.subflow --> parent.done')
-    expect(mermaid).not.toContain('subgraph child.concurrent')
-    expect(mermaid).not.toContain('child.branch_a')
-    expect(mermaid).not.toContain('child.branch_b')
-    expect(mermaid).not.toContain('parent.prepare --> child.concurrent')
-    expect(mermaid).not.toContain('child.concurrent --> child.done')
+    expect(mermaid).toContain('junjo_node_0@{ shape: rect, label: "prepare" }')
+    expect(mermaid).toContain('junjo_node_1@{ shape: st-rect, label: "child_subflow" }')
+    expect(mermaid).toContain('junjo_node_1 --> junjo_node_2')
+    expect(mermaid).not.toContain('subgraph junjo_node_3')
+    expect(mermaid).not.toContain('junjo_node_4@{')
+    expect(mermaid).not.toContain('junjo_node_5@{')
+    expect(mermaid).not.toContain('junjo_node_0 --> junjo_node_3')
+    expect(mermaid).not.toContain('junjo_node_3 --> junjo_node_6')
   })
 
   it('omits no-edge single-node subflow internals from parent workflow Mermaid output', () => {
@@ -218,10 +218,30 @@ describe('JunjoGraph', () => {
 
     const mermaid = graph.toMermaid()
 
-    expect(mermaid).toContain('parent.prepare@{ shape: rect, label: "prepare" }')
-    expect(mermaid).toContain('parent.subflow@{ shape: st-rect, label: "single_node_subflow" }')
-    expect(mermaid).toContain('parent.subflow --> parent.done')
-    expect(mermaid).not.toContain('child.only_node')
+    expect(mermaid).toContain('junjo_node_0@{ shape: rect, label: "prepare" }')
+    expect(mermaid).toContain('junjo_node_1@{ shape: st-rect, label: "single_node_subflow" }')
+    expect(mermaid).toContain('junjo_node_1 --> junjo_node_2')
+    expect(mermaid).not.toContain('junjo_node_3@{')
     expect(mermaid).not.toContain('child_only_node')
+  })
+
+  it('never interpolates opaque runtime IDs into Mermaid grammar', () => {
+    const maliciousId = 'node\nend\ngraph TD\nattacker[owned]'
+    const graph = JunjoGraph.fromJson({
+      v: 2,
+      graphStructuralId: 'safe-identifiers',
+      nodes: [{
+        nodeRuntimeId: maliciousId,
+        nodeStructuralId: 'struct-safe',
+        nodeType: 'Node',
+        nodeLabel: 'safe label',
+      }],
+      edges: [],
+    })
+
+    const mermaid = graph.toMermaid()
+    expect(mermaid).toContain('junjo_node_0@{ shape: rect, label: "safe label" }')
+    expect(mermaid).not.toContain(maliciousId)
+    expect(mermaid).not.toContain('attacker[owned]')
   })
 })

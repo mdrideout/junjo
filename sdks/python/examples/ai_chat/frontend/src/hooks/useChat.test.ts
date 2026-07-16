@@ -203,6 +203,37 @@ describe('useChat', () => {
     expect(createTurn).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps an in-flight turn scoped to its originating route', async () => {
+    let finishTurn: (turn: Turn) => void = () => undefined
+    vi.mocked(createTurn).mockReturnValue(new Promise((resolve) => {
+      finishTurn = resolve
+    }))
+    const hook = renderHook(
+      ({ routeId }: { routeId: string }) => useChat(routeId),
+      { initialProps: { routeId: 'conversation-1' } },
+    )
+    await waitFor(() => expect(hook.result.current.loadingTurns).toBe(false))
+
+    let request: Promise<boolean> | undefined
+    await act(async () => {
+      request = hook.result.current.sendTurn('Stay in A')
+      await Promise.resolve()
+    })
+    hook.rerender({ routeId: 'conversation-2' })
+
+    expect(hook.result.current.selectedConversationId).toBe('conversation-1')
+    expect(hook.result.current.selectConversation('conversation-2')).toBe(false)
+
+    await act(async () => {
+      finishTurn(completedTurn)
+      await request
+    })
+
+    expect(hook.result.current.selectedConversationId).toBe('conversation-1')
+    expect(hook.result.current.turns).toEqual([completedTurn])
+    expect(hook.result.current.error).toBeNull()
+  })
+
   it('upserts a failed polled Turn and retains diagnostic identities', async () => {
     const failedTurn: Turn = {
       ...completedTurn,

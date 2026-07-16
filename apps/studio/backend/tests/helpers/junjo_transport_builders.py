@@ -40,11 +40,12 @@ SPAN_SCHEMA = pa.schema(
 )
 
 _KIND_TO_INT = {
-    "INTERNAL": 0,
-    "SERVER": 1,
-    "CLIENT": 2,
-    "PRODUCER": 3,
-    "CONSUMER": 4,
+    "UNSPECIFIED": 0,
+    "INTERNAL": 1,
+    "SERVER": 2,
+    "CLIENT": 3,
+    "PRODUCER": 4,
+    "CONSUMER": 5,
 }
 
 

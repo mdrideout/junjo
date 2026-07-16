@@ -25,6 +25,7 @@ cd "$BACKEND_DIR"
 # security settings rather than relying on a developer's runtime .env file.
 export JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 export JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+export JUNJO_INTERNAL_GRPC_TOKEN="test-internal-grpc-token-32-bytes-long"
 
 echo "========================================"
 echo "API Schema Validation (CI/CD)"

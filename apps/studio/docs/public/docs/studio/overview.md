@@ -140,7 +140,8 @@ networks:
 ```
 
 **Create a .env file** next to your `docker-compose.yml`. The backend requires
-`JUNJO_SESSION_SECRET` and `JUNJO_SECURE_COOKIE_KEY` (they have no defaults),
+`JUNJO_SESSION_SECRET`, `JUNJO_SECURE_COOKIE_KEY`, and
+`JUNJO_INTERNAL_GRPC_TOKEN` (they have no defaults),
 and the prebuilt frontend container requires `JUNJO_ENV`:
 
 ```bash title=".env"
@@ -150,6 +151,7 @@ JUNJO_ENV=development
 # (JUNJO_SECURE_COOKIE_KEY must decode to exactly 32 bytes)
 JUNJO_SESSION_SECRET=<generated value>
 JUNJO_SECURE_COOKIE_KEY=<generated value>
+JUNJO_INTERNAL_GRPC_TOKEN=<generated value>
 
 # Optional: host path for database storage (defaults to ./.dbdata)
 # JUNJO_HOST_DB_DATA_PATH=./.dbdata
@@ -618,6 +620,9 @@ are not telemetry endpoints and are not used by Junjo library applications.
 
 - Use sampling for high-volume workflows
 - The ingestion service uses a segmented Arrow IPC WAL and streams flushes to Parquet (constant memory)
+- Successful ingestion API-key validation uses a bounded, fixed 10-second
+  positive cache by default; invalid or unavailable results are never cached,
+  and cold validation work is bounded for small-host memory safety
 - The backend indexes new Parquet files asynchronously and queries cold + hot data with deduplication
 - See [Junjo AI Studio repository](https://github.com/mdrideout/junjo/tree/master/apps/studio) for tuning options
 

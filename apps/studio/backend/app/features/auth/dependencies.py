@@ -5,7 +5,7 @@ Provides dependency injection for auth-protected endpoints.
 Returns AuthenticatedUser objects with full audit context.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
@@ -67,6 +67,24 @@ async def get_authenticated_user(request: Request) -> AuthenticatedUser:
             detail="Unauthorized: User not found",
         )
 
+    session_revision_str = request.session.get("session_revision")
+    try:
+        session_revision = datetime.fromisoformat(session_revision_str)
+        if session_revision.tzinfo is None:
+            raise ValueError("session revision must include a timezone")
+        session_revision = session_revision.astimezone(UTC)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: Invalid session revision",
+        ) from None
+
+    if session_revision != user.updated_at.astimezone(UTC):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: Session has been revoked",
+        )
+
     # Extract session metadata for audit logging
     session_id = request.session.get("session_id", "unknown")
 
@@ -77,10 +95,10 @@ async def get_authenticated_user(request: Request) -> AuthenticatedUser:
             authenticated_at = datetime.fromisoformat(authenticated_at_str)
         except (ValueError, TypeError):
             # Fallback if timestamp is malformed
-            authenticated_at = datetime.now()
+            authenticated_at = datetime.now(UTC)
     else:
         # Fallback if timestamp not in session (older sessions)
-        authenticated_at = datetime.now()
+        authenticated_at = datetime.now(UTC)
 
     # Create and return AuthenticatedUser object
     return AuthenticatedUser(

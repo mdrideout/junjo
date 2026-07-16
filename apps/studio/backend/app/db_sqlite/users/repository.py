@@ -4,10 +4,13 @@ Each method creates its own session for complete isolation.
 See: PYTHON_BACKEND_HIGH_CONCURRENCY_DB_PATTERN.md
 """
 
+from datetime import timedelta
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.common.audit import AuditAction, AuditResource, audit_log
+from app.common.datetime_utils import utcnow
 from app.db_sqlite import db_config
 from app.db_sqlite.users.models import UserTable
 from app.db_sqlite.users.schemas import UserInDB, UserRead
@@ -117,6 +120,25 @@ class UserRepository:
                     return UserRead.model_validate(db_obj)
                 return None
 
+        except SQLAlchemyError as e:
+            raise e
+
+    @staticmethod
+    async def invalidate_sessions(user_id: str) -> bool:
+        """Advance the user's session revision, invalidating every issued cookie."""
+        try:
+            async with db_config.async_session() as session:
+                stmt = select(UserTable).where(UserTable.id == user_id).with_for_update()
+                result = await session.execute(stmt)
+                db_obj = result.scalar_one_or_none()
+                if db_obj is None:
+                    return False
+
+                # UTCDateTime stores whole seconds. Ensure the revision advances even
+                # when sign-in and sign-out happen within the same second.
+                db_obj.updated_at = max(utcnow(), db_obj.updated_at + timedelta(seconds=1))
+                await session.commit()
+                return True
         except SQLAlchemyError as e:
             raise e
 

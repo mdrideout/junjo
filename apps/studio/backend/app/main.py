@@ -15,7 +15,7 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from securecookies import SecureCookiesMiddleware
@@ -28,13 +28,14 @@ from app.config.settings import settings
 from app.features.admin.router import router as admin_router
 from app.features.agent_diagnostics.router import router as agent_diagnostics_router
 from app.features.api_keys.router import router as api_keys_router
+from app.features.auth.dependencies import get_authenticated_user
 from app.features.auth.router import router as auth_router
 from app.features.config.router import router as config_router
 from app.features.execution_resolution.router import router as execution_resolution_router
 from app.features.llm_playground.router import router as llm_playground_router
 from app.features.otel_spans.router import router as otel_spans_router
 from app.features.trace_evidence.router import router as trace_evidence_router
-from app.grpc_server import start_grpc_server_background, stop_grpc_server
+from app.grpc_server import start_grpc_server, stop_grpc_server
 
 # Set up logging before anything else
 setup_logging()
@@ -98,47 +99,56 @@ async def lifespan(app: FastAPI):
     # Polls filesystem for Parquet files written by the ingestion service
     from app.features.parquet_indexer.background_indexer import parquet_indexer
 
+    # Positively start gRPC before HTTP readiness can succeed.
+    grpc_server = await start_grpc_server()
+    lifespan_task = asyncio.current_task()
+    shutting_down = False
+
+    async def supervise_grpc_server() -> None:
+        await grpc_server.wait_for_termination()
+        if not shutting_down and lifespan_task is not None:
+            logger.error("Internal gRPC server terminated unexpectedly; stopping backend")
+            lifespan_task.cancel("Internal gRPC server terminated unexpectedly")
+
+    grpc_task = asyncio.create_task(supervise_grpc_server())
+    logger.info("gRPC server started and supervised")
+
     indexer_task = asyncio.create_task(parquet_indexer())
     logger.info("Parquet indexer task created")
 
-    # Start gRPC server as background task
-    grpc_task = asyncio.create_task(start_grpc_server_background())
-    logger.info("gRPC server task created")
+    try:
+        yield
+    finally:
+        # Shutdown runs for normal lifespan exit and supervised-task cancellation.
+        shutting_down = True
+        logger.info("Shutting down application")
 
-    yield
+        if not indexer_task.done():
+            indexer_task.cancel()
+            try:
+                await indexer_task
+            except asyncio.CancelledError:
+                logger.info("Parquet indexer cancelled")
 
-    # Shutdown
-    logger.info("Shutting down application")
+        # Cancel supervision before the intentional server stop.
+        if not grpc_task.done():
+            grpc_task.cancel()
+            try:
+                await grpc_task
+            except asyncio.CancelledError:
+                logger.info("gRPC task cancelled")
 
-    # Stop Parquet indexer (V4)
-    if not indexer_task.done():
-        indexer_task.cancel()
-        try:
-            await indexer_task
-        except asyncio.CancelledError:
-            logger.info("Parquet indexer cancelled")
+        await stop_grpc_server()
 
-    # Stop gRPC server
-    await stop_grpc_server()
+        from app.db_sqlite.db_config import checkpoint_wal, engine
+        from app.db_sqlite.metadata import checkpoint_wal as metadata_checkpoint_wal
 
-    # Cancel gRPC task if still running
-    if not grpc_task.done():
-        grpc_task.cancel()
-        try:
-            await grpc_task
-        except asyncio.CancelledError:
-            logger.info("gRPC task cancelled")
-
-    # Database cleanup
-    from app.db_sqlite.db_config import checkpoint_wal, engine
-    from app.db_sqlite.metadata import checkpoint_wal as metadata_checkpoint_wal
-
-    await checkpoint_wal()  # Checkpoint SQLite WAL (user data)
-    logger.info("SQLite WAL checkpointed")
-    metadata_checkpoint_wal()  # Checkpoint metadata WAL (synchronous)
-    logger.info("Metadata WAL checkpointed")
-    await engine.dispose()  # Close database connections
-    logger.info("Database connections closed")
+        await checkpoint_wal()
+        logger.info("SQLite WAL checkpointed")
+        metadata_checkpoint_wal()
+        logger.info("Metadata WAL checkpointed")
+        await engine.dispose()
+        logger.info("Database connections closed")
 
 
 # Create FastAPI app
@@ -163,16 +173,8 @@ app.add_middleware(
 
 # === SESSION/AUTH MIDDLEWARE (ORDER IS CRITICAL!) ===
 
-# 1. Add ENCRYPTION middleware FIRST (outer layer)
-#    This encrypts/decrypts all cookies before they reach SessionMiddleware
-app.add_middleware(
-    SecureCookiesMiddleware,
-    secrets=[settings.secure_cookie_key],  # 32-byte encryption key
-)
-
-# 2. Add SESSION middleware SECOND (inner layer)
-#    This signs/validates session data
-#    https_only should be True in production, False in development/test
+# Starlette wraps middleware in reverse registration order. Register the session
+# layer first so the encryption layer added below is outermost.
 is_production = settings.junjo_env == "production"
 app.add_middleware(
     SessionMiddleware,
@@ -180,6 +182,12 @@ app.add_middleware(
     max_age=86400 * 30,  # 30 days (matches Go implementation)
     https_only=is_production,  # HTTPS required in production only
     same_site="strict",  # CSRF protection
+)
+
+app.add_middleware(
+    SecureCookiesMiddleware,
+    secrets=[settings.secure_cookie_key],  # 32-byte encryption key
+    included_cookies=["session"],
 )
 
 # === REQUEST/RESPONSE FLOW ===
@@ -192,7 +200,12 @@ app.include_router(auth_router, tags=["auth"])
 app.include_router(api_keys_router)
 app.include_router(config_router, prefix="/api")
 app.include_router(llm_playground_router, prefix="/llm", tags=["llm"])
-app.include_router(otel_spans_router, prefix="/api/v1/observability", tags=["observability"])
+app.include_router(
+    otel_spans_router,
+    prefix="/api/v1/observability",
+    tags=["observability"],
+    dependencies=[Depends(get_authenticated_user)],
+)
 app.include_router(agent_diagnostics_router, prefix="/api/v1")
 app.include_router(execution_resolution_router, prefix="/api/v1")
 app.include_router(trace_evidence_router, prefix="/api/v1")

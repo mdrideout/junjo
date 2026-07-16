@@ -15,6 +15,26 @@ use crate::proto::{
 use crate::recent_cold_files::RecentColdFiles;
 use crate::wal::ArrowWal;
 
+fn has_valid_internal_token<T>(request: &Request<T>, expected: &str) -> bool {
+    let Some(supplied) = request
+        .metadata()
+        .get("x-junjo-internal-token")
+        .and_then(|value| value.to_str().ok())
+    else {
+        return false;
+    };
+
+    let supplied = supplied.as_bytes();
+    let expected = expected.as_bytes();
+    let mut difference = supplied.len() ^ expected.len();
+    for index in 0..supplied.len().max(expected.len()) {
+        difference |= usize::from(
+            supplied.get(index).copied().unwrap_or(0) ^ expected.get(index).copied().unwrap_or(0),
+        );
+    }
+    difference == 0
+}
+
 struct _SnapshotCacheEntry {
     expires_at: Instant,
     snapshot_path: String,
@@ -30,6 +50,7 @@ pub struct InternalService {
     recent_cold: Arc<StdMutex<RecentColdFiles>>,
     snapshot_cache: Mutex<Option<_SnapshotCacheEntry>>,
     snapshot_cache_ttl: Duration,
+    internal_grpc_token: String,
 }
 
 impl InternalService {
@@ -39,6 +60,7 @@ impl InternalService {
         snapshot_path: PathBuf,
         recent_cold: Arc<StdMutex<RecentColdFiles>>,
         snapshot_cache_ttl: Duration,
+        internal_grpc_token: String,
     ) -> Self {
         Self {
             wal,
@@ -47,6 +69,15 @@ impl InternalService {
             recent_cold,
             snapshot_cache: Mutex::new(None),
             snapshot_cache_ttl,
+            internal_grpc_token,
+        }
+    }
+
+    fn authorize<T>(&self, request: &Request<T>) -> Result<(), Status> {
+        if has_valid_internal_token(request, &self.internal_grpc_token) {
+            Ok(())
+        } else {
+            Err(Status::unauthenticated("Invalid internal workload token"))
         }
     }
 }
@@ -55,8 +86,9 @@ impl InternalService {
 impl InternalIngestionService for InternalService {
     async fn flush_wal(
         &self,
-        _request: Request<FlushWalRequest>,
+        request: Request<FlushWalRequest>,
     ) -> Result<Response<FlushWalResponse>, Status> {
+        self.authorize(&request)?;
         info!("FlushWAL request received");
 
         match self.flusher.flush_now().await {
@@ -79,8 +111,9 @@ impl InternalIngestionService for InternalService {
 
     async fn prepare_hot_snapshot(
         &self,
-        _request: Request<PrepareHotSnapshotRequest>,
+        request: Request<PrepareHotSnapshotRequest>,
     ) -> Result<Response<PrepareHotSnapshotResponse>, Status> {
+        self.authorize(&request)?;
         debug!("PrepareHotSnapshot request received");
 
         let start = Instant::now();
@@ -186,5 +219,24 @@ impl InternalIngestionService for InternalService {
             error_message,
             recent_cold_paths,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_valid_internal_token;
+    use tonic::Request;
+
+    #[test]
+    fn internal_workload_token_is_required() {
+        let expected = "test-internal-grpc-token-32-bytes-long";
+        let missing = Request::new(());
+        assert!(!has_valid_internal_token(&missing, expected));
+
+        let mut valid = Request::new(());
+        valid
+            .metadata_mut()
+            .insert("x-junjo-internal-token", expected.parse().unwrap());
+        assert!(has_valid_internal_token(&valid, expected));
     }
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ActionButton } from '../../components/actions/action-button'
 import { AppLink } from '../../components/navigation/app-link'
+import { agentPath } from '../../util/telemetry-paths'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import type { AgentExecutionSummary } from './schemas/agent-execution'
 import { AgentExecutionQuerySchema, type AgentExecutionQuery } from './schemas/query'
@@ -35,7 +36,7 @@ function queryFromSearchParams(parameters: URLSearchParams): AgentExecutionQuery
 }
 
 function AgentExecutionRow({ execution }: { execution: AgentExecutionSummary }) {
-  const destination = `/agents/${execution.trace_id}/${execution.agent_span_id}`
+  const destination = agentPath(execution.trace_id, execution.agent_span_id)
 
   return (
     <tr className="border-b border-[var(--studio-border)] last:border-0 hover:bg-[var(--studio-surface-hover)]">

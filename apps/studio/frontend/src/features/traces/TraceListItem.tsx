@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router'
 import { getSpanDurationString } from '../../util/duration-utils'
+import { tracesPath } from '../../util/telemetry-paths'
 import { OtelSpan } from '../traces/schemas/schemas'
 
 interface Props {
@@ -18,7 +19,7 @@ export default function TraceListItem({ trace }: Props) {
       className={
         'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer'
       }
-      onClick={() => navigate(`/traces/${trace.service_name}/${trace.trace_id}`)}
+      onClick={() => navigate(tracesPath(trace.service_name, trace.trace_id))}
     >
       <td className="px-4 py-1.5">{trace.name}</td>
       <td className="px-4 py-1.5 font-mono">{trace.trace_id}</td>

@@ -54,7 +54,7 @@ export interface ChatState {
   sending: boolean
   creatingContact: boolean
   error: ChatFailure | null
-  selectConversation: (conversationId: string) => void
+  selectConversation: (conversationId: string) => boolean
   createContact: (sex: ContactSex) => Promise<Conversation | null>
   sendTurn: (text: string) => Promise<boolean>
 }
@@ -105,7 +105,9 @@ export function useChat(routeConversationId?: string): ChatState {
   }, [])
 
   useEffect(() => {
-    if (routeConversationId !== undefined) setSelectedConversationId(routeConversationId)
+    if (routeConversationId !== undefined && !turnInFlight.current) {
+      setSelectedConversationId(routeConversationId)
+    }
   }, [routeConversationId])
 
   useEffect(() => {
@@ -137,7 +139,9 @@ export function useChat(routeConversationId?: string): ChatState {
   }, [selectedConversationId])
 
   const selectConversation = useCallback((conversationId: string) => {
-    if (!turnInFlight.current) setSelectedConversationId(conversationId)
+    if (turnInFlight.current) return false
+    setSelectedConversationId(conversationId)
+    return true
   }, [])
 
   const createContact = useCallback(async (sex: ContactSex): Promise<Conversation | null> => {
@@ -159,18 +163,19 @@ export function useChat(routeConversationId?: string): ChatState {
 
   const sendTurn = useCallback(async (text: string): Promise<boolean> => {
     if (selectedConversationId === null || turnInFlight.current) return false
+    const originatingConversationId = selectedConversationId
     const normalized = text.trim()
     if (!normalized) return false
     turnInFlight.current = true
     setSending(true)
     setError(null)
     try {
-      const admitted = await createTurn(selectedConversationId, { text: normalized })
+      const admitted = await createTurn(originatingConversationId, { text: normalized })
       setTurns((current) => upsertTurn(current, admitted))
       const terminal = await waitForTerminalTurn(admitted)
       setTurns((current) => upsertTurn(current, terminal))
       setConversations((current) => current.map((conversation) =>
-        conversation.id === selectedConversationId
+        conversation.id === originatingConversationId
           ? { ...conversation, last_message_at: terminal.updated_at }
           : conversation,
       ))

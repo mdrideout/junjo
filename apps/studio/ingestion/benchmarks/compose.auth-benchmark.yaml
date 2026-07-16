@@ -1,0 +1,55 @@
+services:
+  backend:
+    # The benchmark owns all required values and must not inherit a developer's
+    # provider credentials or local Studio configuration.
+    env_file: !reset []
+    cpus: ${JUNJO_BENCHMARK_BACKEND_CPUS:-0.50}
+    mem_reservation: 300m
+    mem_limit: 450m
+    memswap_limit: 450m
+    ports: !override
+      - "${JUNJO_BENCHMARK_BACKEND_PORT:-27154}:26154"
+    environment:
+      JUNJO_ENV: development
+      JUNJO_SESSION_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      JUNJO_SECURE_COOKIE_KEY: AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
+      JUNJO_INTERNAL_GRPC_TOKEN: benchmark-internal-grpc-token-32-bytes-long
+      JUNJO_LOG_LEVEL: warning
+      JUNJO_LOG_FORMAT: json
+
+  ingestion:
+    env_file: !reset []
+    cpus: ${JUNJO_BENCHMARK_INGESTION_CPUS:-0.50}
+    mem_reservation: 250m
+    mem_limit: 350m
+    memswap_limit: 350m
+    ports: !override
+      - "${JUNJO_BENCHMARK_INGESTION_PORT:-27155}:26155"
+    environment:
+      BACKEND_GRPC_HOST: ${JUNJO_BENCHMARK_AUTH_HOST:-backend}
+      BACKEND_GRPC_PORT: ${JUNJO_BENCHMARK_AUTH_PORT:-50053}
+      JUNJO_INTERNAL_GRPC_TOKEN: benchmark-internal-grpc-token-32-bytes-long
+      JUNJO_LOG_LEVEL: warning
+
+  auth-proxy:
+    profiles: ["auth-proxy"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: production
+    entrypoint: ["/usr/bin/tini", "--"]
+    command: ["python", "/benchmark/auth_backend_proxy.py"]
+    cpus: 0.10
+    mem_limit: 64m
+    memswap_limit: 64m
+    volumes:
+      - ./ingestion/benchmarks:/benchmark:ro
+    ports:
+      - "${JUNJO_BENCHMARK_PROXY_PORT:-27156}:50055"
+    networks:
+      - junjo-network
+    environment:
+      JUNJO_BENCHMARK_PROXY_BACKEND_TARGET: backend:50053
+    depends_on:
+      backend:
+        condition: service_started

@@ -22,6 +22,7 @@ import {
 import { SpanIconConstructor } from './determine-span-icon'
 import { useNavigate } from 'react-router'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
+import { workflowPath } from '../../../util/telemetry-paths'
 
 interface FlatStateEventsListProps {
   traceId: string
@@ -141,10 +142,12 @@ export default function FlatStateEventsList({
               if (identity !== null) {
                 dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
               }
-              navigate(
-                `/workflows/${route.serviceName}/${route.traceId}/${route.workflowSpanId}/${span.span_id}`,
-                { replace: true },
-              )
+              navigate(workflowPath(
+                route.serviceName,
+                route.traceId,
+                route.workflowSpanId,
+                span.span_id,
+              ), { replace: true })
             }}
           >
             <div className="flex gap-x-1 items-start">

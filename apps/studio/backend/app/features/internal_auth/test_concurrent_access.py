@@ -44,7 +44,10 @@ async def test_concurrent_grpc_requests(test_api_key):
         async with grpc.aio.insecure_channel(f"localhost:{settings.GRPC_PORT}") as channel:
             stub = auth_pb2_grpc.InternalAuthServiceStub(channel)
             request = auth_pb2.ValidateApiKeyRequest(api_key=key)
-            response = await stub.ValidateApiKey(request)
+            response = await stub.ValidateApiKey(
+                request,
+                metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+            )
             return response.is_valid
 
     # Create concurrent tasks
@@ -95,7 +98,10 @@ async def test_mixed_fastapi_and_grpc_requests(grpc_server_for_tests):
         async with grpc.aio.insecure_channel(f"localhost:{settings.GRPC_PORT}") as channel:
             stub = auth_pb2_grpc.InternalAuthServiceStub(channel)
             request = auth_pb2.ValidateApiKeyRequest(api_key=key)
-            response = await stub.ValidateApiKey(request)
+            response = await stub.ValidateApiKey(
+                request,
+                metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+            )
             return response.is_valid
 
     async def fastapi_health_check() -> bool:
@@ -151,7 +157,10 @@ async def test_grpc_under_load(test_api_key):
         async with grpc.aio.insecure_channel(f"localhost:{settings.GRPC_PORT}") as channel:
             stub = auth_pb2_grpc.InternalAuthServiceStub(channel)
             request = auth_pb2.ValidateApiKeyRequest(api_key=test_key)
-            response = await stub.ValidateApiKey(request)
+            response = await stub.ValidateApiKey(
+                request,
+                metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+            )
             end_time = asyncio.get_event_loop().time()
             return response.is_valid, (end_time - start_time)
 
@@ -197,7 +206,10 @@ async def test_database_isolation_concurrent_reads(test_api_key):
         async with grpc.aio.insecure_channel(f"localhost:{settings.GRPC_PORT}") as channel:
             stub = auth_pb2_grpc.InternalAuthServiceStub(channel)
             request = auth_pb2.ValidateApiKeyRequest(api_key=test_key)
-            response = await stub.ValidateApiKey(request)
+            response = await stub.ValidateApiKey(
+                request,
+                metadata=(("x-junjo-internal-token", settings.internal_grpc_token),),
+            )
             return response.is_valid
 
     # Execute many concurrent reads
