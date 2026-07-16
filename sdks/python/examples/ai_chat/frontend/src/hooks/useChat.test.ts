@@ -104,6 +104,17 @@ async function renderLoadedChat() {
 }
 
 describe('useChat', () => {
+  it('uses ten-second passive refresh intervals', async () => {
+    const interval = vi.spyOn(window, 'setInterval')
+    const hook = await renderLoadedChat()
+
+    const tenSecondIntervals = interval.mock.calls.filter((call) => call[1] === 10000)
+    expect(tenSecondIntervals).toHaveLength(2)
+
+    hook.unmount()
+    interval.mockRestore()
+  })
+
   it('shows the admitted Turn and polls its server identity to completion', async () => {
     vi.mocked(createTurn).mockResolvedValue(admittedTurn)
     vi.mocked(getTurn).mockResolvedValue(completedTurn)
@@ -130,7 +141,9 @@ describe('useChat', () => {
       return pollCount <= 120 ? admittedTurn : completedTurn
     })
     const hook = await renderLoadedChat()
-    const timeout = vi.spyOn(window, 'setTimeout').mockImplementation((handler: TimerHandler) => {
+    const pollDelays: Array<number | undefined> = []
+    const timeout = vi.spyOn(window, 'setTimeout').mockImplementation((handler: TimerHandler, delay?: number) => {
+      pollDelays.push(delay)
       if (typeof handler === 'function') handler()
       return 1
     })
@@ -146,6 +159,8 @@ describe('useChat', () => {
 
     expect(succeeded).toBe(true)
     expect(getTurn).toHaveBeenCalledTimes(121)
+    expect(pollDelays).toHaveLength(121)
+    expect(pollDelays.every((delay) => delay === 2000)).toBe(true)
     expect(hook.result.current.error).toBeNull()
   })
 

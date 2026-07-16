@@ -25,6 +25,7 @@ from ai_chat.domain.errors import (
 )
 from ai_chat.telemetry import TelemetryRuntime, start_telemetry
 
+from .access_log import HEALTH_PATH, configure_access_logging
 from .routes import router
 from .schemas import TurnProblemResponse, TurnResponse
 
@@ -62,6 +63,8 @@ def create_app(
     cors_origins: tuple[str, ...] = (),
     telemetry: TelemetrySettings | None = None,
 ) -> FastAPI:
+    configure_access_logging()
+
     @asynccontextmanager
     async def lifespan(running_app: FastAPI):
         telemetry_runtime: TelemetryRuntime | None = None
@@ -80,7 +83,7 @@ def create_app(
                 running_app.state.chat_application = None
 
     app = FastAPI(title="Junjo AI Chat Example", lifespan=lifespan)
-    FastAPIInstrumentor.instrument_app(app)
+    FastAPIInstrumentor.instrument_app(app, excluded_urls=HEALTH_PATH)
     app.state.chat_application = None
     app.include_router(router)
     app.mount(

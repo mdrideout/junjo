@@ -72,6 +72,8 @@ for provider in gemini grok; do
   compose exec -T backend sh -c \
     "test \"\${AI_CHAT_MODEL_PROVIDER}\" = '${provider}'"
   curl --fail --silent --show-error \
+    "http://localhost:${BACKEND_PORT}/api/healthz" >/dev/null
+  curl --fail --silent --show-error \
     "http://localhost:${BACKEND_PORT}/api/config" >/dev/null
   curl --fail --silent --show-error \
     "http://localhost:${FRONTEND_PORT}/" >/dev/null

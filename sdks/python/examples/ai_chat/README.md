@@ -241,6 +241,7 @@ and HTTP wiring. Credentialed live evals remain the proof of AI behavior.
 
 ## HTTP contract
 
+- `GET /api/healthz` (quiet container-readiness probe)
 - `GET /api/config`
 - `GET /api/conversations`
 - `GET /api/conversations/{conversation_id}/turns`

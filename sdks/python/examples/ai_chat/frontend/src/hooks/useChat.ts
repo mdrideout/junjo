@@ -32,11 +32,13 @@ function upsertTurn(current: Turn[], received: Turn): Turn[] {
 }
 
 const TERMINAL_STATUSES = new Set<Turn['status']>(['completed', 'failed', 'cancelled'])
+const ACTIVE_TURN_POLL_INTERVAL_MS = 2000
+const PASSIVE_REFRESH_INTERVAL_MS = 10000
 
 async function waitForTerminalTurn(initial: Turn): Promise<Turn> {
   let current = initial
   while (!TERMINAL_STATUSES.has(current.status)) {
-    await new Promise((resolve) => window.setTimeout(resolve, 250))
+    await new Promise((resolve) => window.setTimeout(resolve, ACTIVE_TURN_POLL_INTERVAL_MS))
     current = await getTurn(current.id)
   }
   return current
@@ -95,7 +97,7 @@ export function useChat(routeConversationId?: string): ChatState {
       void loadConversations(false).catch((reason: unknown) => {
         if (!controller.signal.aborted) setError(failureFrom(reason))
       })
-    }, 7500)
+    }, PASSIVE_REFRESH_INTERVAL_MS)
     return () => {
       window.clearInterval(interval)
       controller.abort()
@@ -127,7 +129,7 @@ export function useChat(routeConversationId?: string): ChatState {
       })
     }
     void loadTurns(true)
-    const interval = window.setInterval(() => void loadTurns(false), 2000)
+    const interval = window.setInterval(() => void loadTurns(false), PASSIVE_REFRESH_INTERVAL_MS)
     return () => {
       window.clearInterval(interval)
       controller.abort()

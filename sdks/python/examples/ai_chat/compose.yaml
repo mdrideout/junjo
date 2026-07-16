@@ -40,8 +40,8 @@ services:
         - -c
         - >-
           import urllib.request;
-          urllib.request.urlopen('http://localhost:${AI_CHAT_BACKEND_PORT:-26252}/api/config', timeout=2)
-      interval: 2s
+          urllib.request.urlopen('http://localhost:${AI_CHAT_BACKEND_PORT:-26252}/api/healthz', timeout=2)
+      interval: 10s
       timeout: 3s
       retries: 20
       start_period: 5s

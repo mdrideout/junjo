@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import subprocess
 import sys
 import textwrap
@@ -19,6 +20,7 @@ from junjo.agent import (
     ToolCallsResponse,
 )
 
+from ai_chat.api.access_log import HealthCheckAccessLogFilter
 from ai_chat.api.app import create_app
 from ai_chat.api.schemas import MessageResponse
 from ai_chat.bootstrap import ChatApplication, ProviderRuntime
@@ -43,6 +45,10 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
             transport=httpx.ASGITransport(app=app),
             base_url="http://test",
         ) as client:
+            health = await client.get("/api/healthz")
+            assert health.status_code == 204
+            assert health.content == b""
+
             conversations = await client.get("/api/conversations")
             assert conversations.status_code == 200
             assert conversations.json() == {
@@ -155,6 +161,31 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
                 json={"text": "   \n\t"},
             )
             assert whitespace_only.status_code == 422
+
+
+def test_health_check_access_log_filter_suppresses_only_health_probes() -> None:
+    access_filter = HealthCheckAccessLogFilter()
+    health_record = logging.LogRecord(
+        name="uvicorn.access",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg='%s - "%s %s HTTP/%s" %d',
+        args=("127.0.0.1:1234", "GET", "/api/healthz", "1.1", 204),
+        exc_info=None,
+    )
+    config_record = logging.LogRecord(
+        name="uvicorn.access",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg='%s - "%s %s HTTP/%s" %d',
+        args=("127.0.0.1:1234", "GET", "/api/config", "1.1", 200),
+        exc_info=None,
+    )
+
+    assert access_filter.filter(health_record) is False
+    assert access_filter.filter(config_record) is True
 
 
 @pytest.mark.asyncio

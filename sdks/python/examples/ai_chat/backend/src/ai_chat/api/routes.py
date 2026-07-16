@@ -1,6 +1,6 @@
 """Turn-oriented routes over application-owned background execution."""
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Request, Response, status
 
 from ai_chat.bootstrap import ChatApplication
 
@@ -23,6 +23,14 @@ def _application(request: Request) -> ChatApplication:
     if not isinstance(application, ChatApplication):
         raise RuntimeError("Chat application state is not configured.")
     return application
+
+
+@router.get("/healthz", include_in_schema=False, status_code=status.HTTP_204_NO_CONTENT)
+async def health(request: Request) -> Response:
+    """Report readiness only after the application lifespan has initialized."""
+
+    _application(request)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/config")
