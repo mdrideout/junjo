@@ -15,6 +15,19 @@ function renderShell(isAuthenticated: boolean, initialRoute = '/') {
 }
 
 describe('AppShell', () => {
+  it('places intrinsically sized desktop navigation next to the main content', () => {
+    renderShell(true)
+
+    const desktopNavigation = screen.getByRole('complementary')
+    const main = screen.getByRole('main')
+
+    expect(desktopNavigation).toHaveClass('p-3', 'pr-6', 'shrink-0')
+    expect([...desktopNavigation.classList].some((className) => className.startsWith('w-'))).toBe(false)
+    expect(main).toHaveClass('min-w-0', 'flex-1')
+    expect(main).not.toHaveClass('lg:pl-72')
+    expect(desktopNavigation.parentElement).toHaveClass('lg:flex')
+  })
+
   it('shows authenticated navigation and identifies the active route', () => {
     renderShell(true, '/logs/example-service')
 

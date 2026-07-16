@@ -130,8 +130,8 @@ export function AppShell({ children, isAuthenticated }: AppShellProps) {
 
   return (
     <Dialog.Root open={mobileNavigationOpen} onOpenChange={setMobileNavigationOpen}>
-      <div className="min-h-dvh bg-[var(--studio-page)] text-[var(--studio-text)]">
-        <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-[var(--studio-border)] bg-[var(--studio-surface)] p-6 lg:block">
+      <div className="min-h-dvh bg-[var(--studio-page)] text-[var(--studio-text)] lg:flex">
+        <aside className="sticky top-0 hidden h-dvh shrink-0 border-r border-[var(--studio-border)] bg-[var(--studio-surface)] p-3 pr-6 lg:block">
           <Navigation isAuthenticated={isAuthenticated} />
         </aside>
 
@@ -149,7 +149,7 @@ export function AppShell({ children, isAuthenticated }: AppShellProps) {
           <span className="font-logo text-lg tracking-wide">j u n j o</span>
         </header>
 
-        <main className="min-h-dvh lg:pl-72">{children}</main>
+        <main className="min-h-dvh min-w-0 flex-1">{children}</main>
       </div>
 
       <Dialog.Portal>

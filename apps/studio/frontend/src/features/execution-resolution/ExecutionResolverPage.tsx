@@ -33,44 +33,6 @@ function requestFromSearch(search: string): ExecutionResolutionRequest | null {
 export default function ExecutionResolverPage() {
   const location = useLocation()
   const request = useMemo(() => requestFromSearch(location.search), [location.search])
-  const [attempt, setAttempt] = useState(1)
-  const [error, setError] = useState<string | null>(null)
-  const [resolution, setResolution] = useState<ExecutionResolution | null>(null)
-
-  useEffect(() => {
-    setAttempt(1)
-    setError(null)
-    setResolution(null)
-  }, [request])
-
-  useEffect(() => {
-    if (request === null || error !== null) return
-    const controller = new AbortController()
-    let retryTimer: ReturnType<typeof setTimeout> | undefined
-
-    void resolveExecution(request, controller.signal)
-      .then((resolution) => {
-        if (controller.signal.aborted) return
-        if (resolution !== null) {
-          setResolution(resolution)
-          return
-        }
-        retryTimer = setTimeout(
-          () => setAttempt((current) => current + 1),
-          retryDelay(attempt),
-        )
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason.message : 'Execution resolution failed.')
-        }
-      })
-
-    return () => {
-      controller.abort()
-      if (retryTimer !== undefined) clearTimeout(retryTimer)
-    }
-  }, [attempt, error, request])
 
   if (request === null) {
     return (
@@ -83,8 +45,53 @@ export default function ExecutionResolverPage() {
     )
   }
 
-  if (resolution !== null) {
-    return <ResolvedExecutionDetail request={request} resolution={resolution} />
+  return <ExecutionResolver key={location.search} request={request} />
+}
+
+type ResolutionState =
+  | { phase: 'resolving' }
+  | { phase: 'pending' }
+  | { phase: 'resolved'; resolution: ExecutionResolution }
+  | { phase: 'failed'; message: string }
+
+function ExecutionResolver({ request }: { request: ExecutionResolutionRequest }) {
+  const [attempt, setAttempt] = useState(1)
+  const [state, setState] = useState<ResolutionState>({ phase: 'resolving' })
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+    void resolveExecution(request, controller.signal)
+      .then((resolution) => {
+        if (controller.signal.aborted) return
+        if (resolution !== null) {
+          setState({ phase: 'resolved', resolution })
+          return
+        }
+        setState({ phase: 'pending' })
+        retryTimer = setTimeout(
+          () => setAttempt((current) => current + 1),
+          retryDelay(attempt),
+        )
+      })
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) {
+          setState({
+            phase: 'failed',
+            message: reason instanceof Error ? reason.message : 'Execution resolution failed.',
+          })
+        }
+      })
+
+    return () => {
+      controller.abort()
+      if (retryTimer !== undefined) clearTimeout(retryTimer)
+    }
+  }, [attempt, request])
+
+  if (state.phase === 'resolved') {
+    return <ResolvedExecutionDetail request={request} resolution={state.resolution} />
   }
 
   return (
@@ -102,7 +109,7 @@ export default function ExecutionResolverPage() {
         {request.runtime_id}
       </div>
       <hr className="my-4" />
-      {error === null ? (
+      {state.phase === 'pending' ? (
         <section
           className="rounded-lg border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4"
           role="status"
@@ -112,12 +119,12 @@ export default function ExecutionResolverPage() {
             Studio is waiting for this execution to be indexed. This page will update when its diagnostics are ready.
           </p>
         </section>
-      ) : (
+      ) : state.phase === 'failed' ? (
         <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-4" role="alert">
           <p className="font-medium text-red-900">Execution diagnostics could not be loaded.</p>
-          <p className="mt-1 text-sm text-red-800">{error}</p>
+          <p className="mt-1 text-sm text-red-800">{state.message}</p>
         </div>
-      )}
+      ) : null}
     </main>
   )
 }

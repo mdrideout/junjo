@@ -104,9 +104,9 @@ semantic route is a content route, not a holding screen:
 
 - it renders the authenticated Studio shell and requested execution identity
   immediately;
-- a missing resolution means telemetry is still arriving, so the page shows an
-  in-context pending state and continues resolution with capped backoff for as
-  long as the page remains open;
+- after a resolution request returns not found, telemetry is still arriving,
+  so the page shows an in-context pending state and continues resolution with
+  capped backoff for as long as the page remains open;
 - it renders the ordinary Agent, Workflow, or trace detail surface when the
   physical identity becomes available; and
 - it keeps the semantic URL as the canonical application link.

@@ -31,8 +31,9 @@ still arriving, and protect the Mermaid integration from renderer changes.
 
 ## Required acceptance
 
-- A fresh execution link immediately shows Studio content and a pending
-  telemetry message, with no attempt counter or deadline.
+- A fresh execution link immediately shows Studio content. The pending
+  telemetry message appears only after Studio confirms that the execution is
+  not yet indexed, with no attempt counter or deadline.
 - The semantic URL remains stable after the detail becomes available.
 - Healthy Store history produces no banner; non-healthy states remain explicit
   without hiding raw telemetry.

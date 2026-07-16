@@ -38,7 +38,25 @@ describe('ExecutionResolverPage', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => vi.useRealTimers())
 
-  it('renders semantic execution content immediately while telemetry is arriving', async () => {
+  it('does not report telemetry as pending before the first lookup completes', async () => {
+    let resolveLookup!: (value: typeof resolution | null) => void
+    const lookup = new Promise<typeof resolution | null>((resolve) => {
+      resolveLookup = resolve
+    })
+    vi.mocked(resolveExecution).mockReturnValue(lookup)
+    renderResolver()
+
+    expect(screen.getByRole('heading', { name: 'Workflow execution' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    await act(async () => {
+      resolveLookup(resolution)
+      await lookup
+    })
+    expect(await screen.findByText('Workflow detail')).toBeInTheDocument()
+  })
+
+  it('reports telemetry as pending only after the execution is not found', async () => {
     vi.mocked(resolveExecution).mockResolvedValue(null)
     renderResolver()
 
