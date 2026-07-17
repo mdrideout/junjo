@@ -218,7 +218,7 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             workflow_end={"value": "end"},
         )
         evidence = validator.build_browser_evidence(
-            summary={"span_id": "a" * 16},
+            summary={"agent_span_id": "a" * 16},
             expectations=expectations,
             trace_id="b" * 32,
             workflow_span_id="c" * 16,
@@ -232,6 +232,110 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             output = Path(directory) / "evidence.json"
             validator.write_browser_evidence(output, evidence)
             self.assertIn('"service_name": "agent-proof"', output.read_text(encoding="utf-8"))
+
+    def test_current_trace_evidence_projects_agent_and_workflow_details(self) -> None:
+        summary = {
+            "trace_id": "1" * 32,
+            "agent_span_id": "a" * 16,
+            "runtime_id": "agent-runtime",
+        }
+        agent_store = verified_store()
+        workflow_store = verified_store()
+        evidence = {
+            "executables_by_span_id": {
+                "a" * 16: {
+                    "executable_type": "agent",
+                    "runtime_id": "agent-runtime",
+                    "store_id": "agent-store",
+                    "unavailable_store": None,
+                    "summary": summary,
+                    "definition": full({"name": "agent"}),
+                    "input": full({"value": "input"}),
+                    "output": full({"value": "output"}),
+                    "input_candidate": None,
+                    "history_candidate": None,
+                    "error": None,
+                    "cancellation": None,
+                    "integrity": {"status": "complete"},
+                },
+                "b" * 16: {
+                    "executable_type": "workflow",
+                    "runtime_id": "workflow-runtime",
+                    "store_id": "workflow-store",
+                    "unavailable_store": None,
+                    "name": validator.WORKFLOW_NAME,
+                    "integrity": {"status": "complete"},
+                },
+            },
+            "operations_by_owner_runtime_id": {
+                "agent-runtime": {
+                    "c" * 16: {"sequence": 2, "span_id": "c" * 16},
+                    "d" * 16: {"sequence": 1, "span_id": "d" * 16},
+                }
+            },
+            "stores_by_id": {
+                "agent-store": {
+                    "owner_span_id": "a" * 16,
+                    "detail": agent_store,
+                },
+                "workflow-store": {
+                    "owner_span_id": "b" * 16,
+                    "detail": workflow_store,
+                },
+            },
+            "relationships_by_owner_span_id": {
+                "a" * 16: {
+                    "parent": None,
+                    "nested": [{"span_id": "b" * 16}],
+                }
+            },
+        }
+
+        agent = validator.project_agent_detail(summary, evidence)
+        workflow = validator.project_workflow_diagnostic(
+            evidence,
+            trace_id="1" * 32,
+            workflow_span_id="b" * 16,
+        )
+
+        self.assertEqual(
+            [operation["sequence"] for operation in agent["operations"]],
+            [1, 2],
+        )
+        self.assertIs(agent["state"], agent_store)
+        self.assertEqual(agent["nested_executables"], [{"span_id": "b" * 16}])
+        self.assertIs(workflow["state"], workflow_store)
+        self.assertEqual(workflow["executable_type"], "workflow")
+
+    def test_identity_cleanup_stops_after_deleting_the_authenticated_user(self) -> None:
+        requests: list[tuple[str, str]] = []
+
+        class FakeClient:
+            def request(
+                self,
+                path: str,
+                *,
+                method: str = "GET",
+                body: object = None,
+            ) -> None:
+                requests.append((path, method))
+
+        identity = validator.TestIdentity(
+            email="smoke@example.com",
+            password="secret",
+            user_id="user-id",
+            api_key_id="key-id",
+            api_key="api-key",
+        )
+        validator.cleanup_test_identity(FakeClient(), identity)
+
+        self.assertEqual(
+            requests,
+            [
+                ("/api_keys/key-id", "DELETE"),
+                ("/users/user-id", "DELETE"),
+            ],
+        )
 
 if __name__ == "__main__":
     unittest.main()

@@ -331,6 +331,7 @@ def _cleanup_partial_identity(
             client.request(f"/api_keys/{api_key_id}", method="DELETE")
         except BaseException:
             failures.append("API-key deletion")
+    user_deleted = False
     try:
         users = _require_list(client.request("/users"), "users response")
         user_ids = [user.get("id") for user in users if isinstance(user, dict) and user.get("email") == email]
@@ -338,12 +339,14 @@ def _cleanup_partial_identity(
             failures.append("user lookup")
         else:
             client.request(f"/users/{user_ids[0]}", method="DELETE")
+            user_deleted = True
     except BaseException:
         failures.append("user deletion")
-    try:
-        client.request("/sign-out", method="POST")
-    except BaseException:
-        failures.append("sign-out")
+    if not user_deleted:
+        try:
+            client.request("/sign-out", method="POST")
+        except BaseException:
+            failures.append("sign-out")
     return failures
 
 
@@ -352,7 +355,6 @@ def cleanup_test_identity(client: JsonClient, identity: TestIdentity) -> None:
 
     client.request(f"/api_keys/{identity.api_key_id}", method="DELETE")
     client.request(f"/users/{identity.user_id}", method="DELETE")
-    client.request("/sign-out", method="POST")
 
 
 async def _execute_public_composition() -> ExecutionExpectations:
@@ -1064,7 +1066,7 @@ def build_browser_evidence(
 ) -> dict[str, object]:
     """Build the credential-free identity handoff for the Studio browser proof."""
 
-    agent_span_id = summary.get("span_id")
+    agent_span_id = summary.get("agent_span_id")
     require(isinstance(agent_span_id, str), "Agent summary span ID is missing")
     return {
         "schema_version": 1,
@@ -1106,14 +1108,132 @@ def write_browser_evidence(path: Path, evidence: Mapping[str, object]) -> None:
             temporary_path.unlink()
 
 
+def _indexed_store_detail(
+    evidence: Mapping[str, object],
+    executable: Mapping[str, object],
+    *,
+    owner_span_id: str,
+) -> dict[str, Any]:
+    """Resolve one executable's Store through the trace-evidence index."""
+
+    store_id = executable.get("store_id")
+    if store_id is None:
+        return _require_object(
+            executable.get("unavailable_store"),
+            "unavailable executable Store",
+        )
+    require(isinstance(store_id, str) and bool(store_id), "executable Store ID is invalid")
+    stores = _require_object(evidence.get("stores_by_id"), "trace Store index")
+    store = _require_object(stores.get(store_id), "indexed executable Store")
+    require(store.get("owner_span_id") == owner_span_id, "indexed Store owner span is incorrect")
+    return _require_object(store.get("detail"), "indexed executable Store detail")
+
+
+def project_agent_detail(
+    summary: Mapping[str, object],
+    evidence: Mapping[str, object],
+) -> dict[str, Any]:
+    """Apply Studio's frontend Agent projection to cohesive trace evidence."""
+
+    agent_span_id = summary.get("agent_span_id")
+    require(isinstance(agent_span_id, str), "Agent summary span ID is missing")
+    executables = _require_object(
+        evidence.get("executables_by_span_id"),
+        "trace executable index",
+    )
+    executable = _require_object(
+        executables.get(agent_span_id),
+        "indexed Agent executable",
+    )
+    require(executable.get("executable_type") == "agent", "indexed executable is not an Agent")
+    indexed_summary = _require_object(executable.get("summary"), "indexed Agent summary")
+    require(indexed_summary == summary, "Agent list and trace-evidence summaries diverged")
+    runtime_id = executable.get("runtime_id")
+    require(isinstance(runtime_id, str) and bool(runtime_id), "indexed Agent runtime ID is missing")
+
+    operations_by_runtime = _require_object(
+        evidence.get("operations_by_owner_runtime_id"),
+        "trace Agent operation index",
+    )
+    operation_index = _require_object(
+        operations_by_runtime.get(runtime_id),
+        "indexed Agent operations",
+    )
+    operations = [_require_object(value, "indexed Agent operation") for value in operation_index.values()]
+    for operation in operations:
+        require(isinstance(operation.get("sequence"), int), "Agent operation sequence is invalid")
+        require(isinstance(operation.get("span_id"), str), "Agent operation span ID is invalid")
+    operations.sort(key=lambda operation: (operation["sequence"], operation["span_id"]))
+
+    relationships_index = _require_object(
+        evidence.get("relationships_by_owner_span_id"),
+        "trace executable relationship index",
+    )
+    relationships_value = relationships_index.get(agent_span_id)
+    relationships = (
+        _require_object(relationships_value, "indexed Agent relationships")
+        if relationships_value is not None
+        else {}
+    )
+    nested = relationships.get("nested", [])
+    require(isinstance(nested, list), "indexed nested executables must be an array")
+    return {
+        "summary": indexed_summary,
+        "definition": executable.get("definition"),
+        "input": executable.get("input"),
+        "output": executable.get("output"),
+        "input_candidate": executable.get("input_candidate"),
+        "history_candidate": executable.get("history_candidate"),
+        "operations": operations,
+        "state": _indexed_store_detail(evidence, executable, owner_span_id=agent_span_id),
+        "parent_executable": relationships.get("parent"),
+        "nested_executables": nested,
+        "error": executable.get("error"),
+        "cancellation": executable.get("cancellation"),
+        "integrity": executable.get("integrity"),
+    }
+
+
+def project_workflow_diagnostic(
+    evidence: Mapping[str, object],
+    *,
+    trace_id: str,
+    workflow_span_id: str,
+) -> dict[str, Any]:
+    """Apply Studio's frontend Workflow projection to cohesive trace evidence."""
+
+    executables = _require_object(
+        evidence.get("executables_by_span_id"),
+        "trace executable index",
+    )
+    executable = _require_object(
+        executables.get(workflow_span_id),
+        "indexed Workflow executable",
+    )
+    executable_type = executable.get("executable_type")
+    require(executable_type in {"workflow", "subflow"}, "indexed executable is not a Workflow")
+    return {
+        "trace_id": trace_id,
+        "workflow_span_id": workflow_span_id,
+        "executable_type": executable_type,
+        "name": executable.get("name"),
+        "state": _indexed_store_detail(
+            evidence,
+            executable,
+            owner_span_id=workflow_span_id,
+        ),
+        "integrity": executable.get("integrity"),
+    }
+
+
 def fetch_agent_projection(
     client: JsonClient,
     *,
     expectations: ExecutionExpectations,
     timeout_seconds: float,
     interval_seconds: float,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Bounded-poll list and detail until the exact emitted run is queryable."""
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Poll the list and cohesive trace evidence until the run is complete."""
 
     query = urllib.parse.urlencode(
         {
@@ -1124,7 +1244,7 @@ def fetch_agent_projection(
         }
     )
 
-    def query_projection() -> tuple[dict[str, Any], dict[str, Any]] | None:
+    def query_projection() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None:
         summaries = _require_list(
             client.request(f"/api/v1/agent-executions?{query}"),
             "Agent execution list",
@@ -1141,11 +1261,22 @@ def fetch_agent_projection(
         trace_id = summary.get("trace_id")
         span_id = summary.get("agent_span_id")
         require(isinstance(trace_id, str) and isinstance(span_id, str), "Agent identity is incomplete")
-        detail = _require_object(
-            client.request(f"/api/v1/agent-executions/{trace_id}/{span_id}"),
-            "Agent execution detail",
+        evidence = _require_object(
+            client.request(f"/api/v1/trace-evidence/{trace_id}"),
+            "trace evidence",
         )
-        return summary, detail
+        executables = _require_object(
+            evidence.get("executables_by_span_id"),
+            "trace executable index",
+        )
+        executable_value = executables.get(span_id)
+        if not isinstance(executable_value, dict):
+            return None
+        integrity = executable_value.get("integrity")
+        if not isinstance(integrity, dict) or integrity.get("status") != "complete":
+            return None
+        detail = project_agent_detail(summary, evidence)
+        return summary, detail, evidence
 
     result = bounded_poll(
         query_projection,
@@ -1182,7 +1313,7 @@ def run(args: argparse.Namespace) -> None:
             service_name=service_name,
             timeout_seconds=args.timeout_seconds,
         )
-        summary, detail = fetch_agent_projection(
+        summary, detail, trace_evidence = fetch_agent_projection(
             backend,
             expectations=expectations,
             timeout_seconds=args.timeout_seconds,
@@ -1198,12 +1329,10 @@ def run(args: argparse.Namespace) -> None:
             expectations=expectations,
             apply_patch=apply_patch,
         )
-        workflow_projection = bounded_poll(
-            lambda: backend.request(f"/api/v1/workflow-executions/{trace_id}/{workflow_span_id}/store"),
-            accept=lambda value: isinstance(value, dict),
-            timeout_seconds=args.timeout_seconds,
-            interval_seconds=args.poll_interval_seconds,
-            description="the nested Workflow Store projection",
+        workflow_projection = project_workflow_diagnostic(
+            trace_evidence,
+            trace_id=trace_id,
+            workflow_span_id=workflow_span_id,
         )
         assert_workflow_semantics(
             workflow_projection,
@@ -1212,12 +1341,9 @@ def run(args: argparse.Namespace) -> None:
             expectations=expectations,
             apply_patch=apply_patch,
         )
-        raw_spans = bounded_poll(
-            lambda: backend.request(f"/api/v1/observability/traces/{trace_id}/spans"),
-            accept=lambda value: isinstance(value, list) and len(value) == 7,
-            timeout_seconds=args.timeout_seconds,
-            interval_seconds=args.poll_interval_seconds,
-            description="all seven raw OTLP spans",
+        raw_spans = _require_list(
+            trace_evidence.get("spans"),
+            "cohesive raw trace evidence",
         )
         assert_raw_hierarchy(
             raw_spans,
