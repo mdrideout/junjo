@@ -326,10 +326,7 @@ def _validate_owner_conditional_evidence(
     requires_unavailable_state = termination in {
         "input_validation_error",
         "history_validation_error",
-    } or (
-        termination == "internal_error"
-        and attributes.get("error.type") == "AgentAdmissionError"
-    )
+    } or (termination == "internal_error" and attributes.get("error.type") == "AgentAdmissionError")
     if requires_unavailable_state and state_available is not False:
         diagnostics.append(
             diagnostic(
@@ -356,7 +353,6 @@ def _validate_owner_conditional_evidence(
                 "Requested Tool count above the limit requires Tool-limit termination evidence.",
             )
         )
-
 
 
 def assemble_agent_summary(owner_span: dict[str, Any]) -> AgentExecutionSummary:
@@ -677,9 +673,7 @@ def _model_operation(
     candidate = parse_candidate(attributes, "junjo.agent.model.response_candidate", diagnostics)
     outcome = operation_outcome(span, attributes)
     candidate_reason = candidate.unavailable_reason
-    if (candidate_reason == "cancelled") != (
-        outcome == "cancelled" and not candidate.available
-    ):
+    if (candidate_reason == "cancelled") != (outcome == "cancelled" and not candidate.available):
         diagnostics.append(
             diagnostic(
                 "invalid_candidate_transport_correspondence",
@@ -854,9 +848,7 @@ def _tool_operation(
     arguments_published = payload_slot_present(attributes, "junjo.agent.tool.arguments")
     candidate = parse_candidate(attributes, "junjo.agent.tool.result_candidate", diagnostics)
     candidate_reason = candidate.unavailable_reason
-    if (candidate_reason == "cancelled") != (
-        outcome == "cancelled" and not candidate.available
-    ):
+    if (candidate_reason == "cancelled") != (outcome == "cancelled" and not candidate.available):
         diagnostics.append(
             diagnostic(
                 "invalid_candidate_transport_correspondence",
@@ -883,10 +875,7 @@ def _tool_operation(
                 "Started Tool operation requires validated arguments.",
             )
         )
-    if (
-        attributes.get("error.type") == "AgentToolInputValidationError"
-        and arguments_published
-    ):
+    if attributes.get("error.type") == "AgentToolInputValidationError" and arguments_published:
         diagnostics.append(
             diagnostic(
                 "unexpected_tool_arguments_evidence",
@@ -1342,15 +1331,10 @@ def _validate_agent_store_causality(
             responses = [
                 event
                 for event in events
-                if event["attributes"].get("junjo.store.action")
-                == "record_model_response"
+                if event["attributes"].get("junjo.store.action") == "record_model_response"
             ]
-            response_expected = payload_slot_present(
-                attributes, "junjo.agent.model.response"
-            )
-            if (not response_expected and responses) or (
-                response_expected and len(responses) != 1
-            ):
+            response_expected = payload_slot_present(attributes, "junjo.agent.model.response")
+            if (not response_expected and responses) or (response_expected and len(responses) != 1):
                 diagnostics.append(
                     diagnostic(
                         "model_response_causality_mismatch",

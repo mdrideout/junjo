@@ -980,7 +980,7 @@
       "version": "0.4.29"
     },
     {
-      "checksum": "ab6473172471198271ff72e9379150e9dfd70d8e533e0752a27e515b48dd375e",
+      "checksum": "98c23545df7ecf1b16c303910a69b079e8e251d60f7dd2cc9b4177f2afaf1746",
       "license": "MIT",
       "name": "lz4_flex",
       "platforms": [
@@ -988,7 +988,7 @@
         "linux/arm64"
       ],
       "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "version": "0.12.0"
+      "version": "0.12.1"
     },
     {
       "checksum": "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9",
@@ -1996,7 +1996,7 @@
   "scope": "normal Cargo dependency closure for both published Linux targets; development-only and build-only dependencies are excluded",
   "source_lock": {
     "path": "ingestion/Cargo.lock",
-    "sha256": "7b26f527be20493c9968c801cacaeace9ebb218d09d5de67b787a2556f67c3e2"
+    "sha256": "219312a5fed41c9e88f5fe81ec806ad3e6b9e85c5eabbf4f714845208cbfde4c"
   },
   "targets": {
     "linux/amd64": "x86_64-unknown-linux-gnu",

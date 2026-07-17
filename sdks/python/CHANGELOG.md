@@ -4,6 +4,8 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+## 0.65.0 - 2026-07-17
+
 ### Breaking Changes
 
 - Replaced the telemetry contract with strict contract version 2 across the
@@ -28,6 +30,8 @@ All notable changes to Junjo will be documented in this file.
 - Unified Workflow, Node, concurrent, and Agent lifecycle preparation around
   explicit internal identity, terminal-state, cancellation, and observer
   boundaries without introducing a universal executable abstraction.
+- Empty `RunConcurrent` groups are rejected during graph construction so they
+  cannot form a zero-await cycle that bypasses workflow iteration limits.
 - Added typed `WorkflowExecutionError` and `WorkflowCancelledError` results for
   admitted executions. They preserve the Workflow run identity, detached final
   state, execution counts, original cause, cancellation semantics, and an
@@ -75,6 +79,8 @@ All notable changes to Junjo will be documented in this file.
 - Added a provider-free public-SDK-to-OTLP-to-Studio release validator that
   authenticates against a disposable local Studio, verifies raw and semantic
   hierarchy, and independently replays Agent and Workflow Store evidence.
+- Added pre-merge telemetry/protobuf contract checks and hardened the release
+  validation paths used by the coordinated SDK and Studio cutover.
 
 ## 0.64.0 - 2026-07-13
 

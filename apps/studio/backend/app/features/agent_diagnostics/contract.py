@@ -76,8 +76,7 @@ def diagnostic(code: str, path: str, message: str) -> EvidenceDiagnostic:
 def payload_slot_present(attributes: dict[str, Any], root: str) -> bool:
     """Return whether any content, mode, policy, or reference member exists."""
     return any(
-        key in attributes
-        for key in (root, f"{root}.mode", f"{root}.policy", f"{root}.reference")
+        key in attributes for key in (root, f"{root}.mode", f"{root}.policy", f"{root}.reference")
     )
 
 

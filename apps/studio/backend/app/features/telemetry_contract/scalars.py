@@ -35,10 +35,7 @@ def is_portable_enum(value: Any, allowed: Collection[str]) -> bool:
 
 def is_lower_hex(value: Any, *, length: int) -> bool:
     """Validate one exact lowercase hexadecimal transport identity."""
-    return (
-        isinstance(value, str)
-        and re.fullmatch(rf"[0-9a-f]{{{length}}}", value) is not None
-    )
+    return isinstance(value, str) and re.fullmatch(rf"[0-9a-f]{{{length}}}", value) is not None
 
 
 def is_active_contract_version(value: Any) -> bool:

@@ -45,15 +45,14 @@ class DocumentationReleaseTests(unittest.TestCase):
             self.manifest["studio"]["release_tag"],
             f"studio-v{self.manifest['studio']['version']}",
         )
-        self.assertEqual(self.manifest["python"]["content_format"], "legacy-rst")
+        self.assertEqual(self.manifest["python"]["content_format"], "owned-markdown")
 
     def test_legacy_python_release_has_an_immutable_public_surface(self) -> None:
-        version = self.manifest["python"]["version"]
         surface = json.loads(
             (
                 REPOSITORY_ROOT
                 / "tooling/docs/release-snapshots/python"
-                / version
+                / "0.64.0"
                 / "api-public-surface.json"
             ).read_text(encoding="utf-8")
         )
@@ -72,7 +71,10 @@ class DocumentationReleaseTests(unittest.TestCase):
     def test_docs_release_rejects_missing_studio_publication_evidence(self) -> None:
         def load(url: str):
             if "pypi.org" in url:
-                return {"info": {"version": "0.64.0"}, "urls": [{"filename": "junjo.whl"}]}
+                return {
+                    "info": {"version": self.manifest["python"]["version"]},
+                    "urls": [{"filename": "junjo.whl"}],
+                }
             return {"draft": False, "published_at": "2026-07-15T00:00:00Z", "assets": []}
 
         with self.assertRaisesRegex(ValueError, "RELEASE_EVIDENCE.json"):
@@ -81,7 +83,10 @@ class DocumentationReleaseTests(unittest.TestCase):
     def test_docs_release_accepts_published_github_pypi_and_studio_evidence(self) -> None:
         def load(url: str):
             if "pypi.org" in url:
-                return {"info": {"version": "0.64.0"}, "urls": [{"filename": "junjo.whl"}]}
+                return {
+                    "info": {"version": self.manifest["python"]["version"]},
+                    "urls": [{"filename": "junjo.whl"}],
+                }
             assets = [{"name": "RELEASE_EVIDENCE.json"}] if "studio-v" in url else []
             return {"draft": False, "published_at": "2026-07-15T00:00:00Z", "assets": assets}
 
@@ -99,7 +104,10 @@ class DocumentationReleaseTests(unittest.TestCase):
     def test_docs_release_rejects_failed_python_publication(self) -> None:
         def load(url: str):
             if "pypi.org" in url:
-                return {"info": {"version": "0.64.0"}, "urls": []}
+                return {
+                    "info": {"version": self.manifest["python"]["version"]},
+                    "urls": [],
+                }
             assets = [{"name": "RELEASE_EVIDENCE.json"}] if "studio-v" in url else []
             return {"draft": False, "published_at": "2026-07-15T00:00:00Z", "assets": assets}
 
@@ -110,7 +118,7 @@ class DocumentationReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "update tooling/docs/stable-releases.json"
         ):
-            self.validator.validate_release_tag("sdk-python-v0.65.0", self.manifest)
+            self.validator.validate_release_tag("sdk-python-v0.66.0", self.manifest)
 
     def test_production_promotion_accepts_only_owned_release_namespaces(self) -> None:
         accepted = (

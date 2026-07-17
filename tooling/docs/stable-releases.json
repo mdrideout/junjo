@@ -1,10 +1,10 @@
 {
   "version": 1,
   "python": {
-    "version": "0.64.0",
-    "release_tag": "sdk-python-v0.64.0",
-    "documentation_ref": "sdk-python-v0.64.0",
-    "content_format": "legacy-rst",
+    "version": "0.65.0",
+    "release_tag": "sdk-python-v0.65.0",
+    "documentation_ref": "sdk-python-v0.65.0",
+    "content_format": "owned-markdown",
     "migration_snapshot": false
   },
   "studio": {

@@ -903,7 +903,7 @@
       "disposition": "migrated",
       "target_path": "apps/studio/docs/public/docs/studio/overview.md",
       "target_route": "/docs/studio/overview/",
-      "target_hash": "sha256:fb8449a888858d6c3380ff1014a53882e50e152070e77f20e47dcaa390e97871",
+      "target_hash": "sha256:dc5c7b98313480ff85a7af25a911b3d052b322faa8c16ead865981d8c2dbb2c2",
       "status": "retired-source",
       "headings": [
         {
@@ -1173,7 +1173,7 @@
       "disposition": "migrated",
       "target_path": "apps/studio/docs/public/docs/studio/docker-reference.md",
       "target_route": "/docs/studio/docker-reference/",
-      "target_hash": "sha256:815055834446d5bfa2d04d17b619c784ea8ea24d836d86a9d1d7ef351feb23bb",
+      "target_hash": "sha256:2bb4b52892a4a1a5b027dc4a9f5d6d2c0261f19a2cb265542b11a5fecfbe9371",
       "status": "retired-source",
       "headings": [
         {

@@ -3,7 +3,7 @@
 #
 # This script runs:
 #   0. Proto tool version checking (warns if mismatch)
-#   1. Python linting (ruff check)
+#   1. Python linting and formatting (ruff check + format check)
 #   2. Backend tests (unit, integration, gRPC)
 #   3. Ingestion tests (Rust)
 #   4. Frontend tests, lint, and production build
@@ -53,18 +53,19 @@ else
 fi
 echo ""
 
-# 1. Python Linting
+# 1. Python Linting and Formatting
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "1/6: Python Linting (ruff)"
+echo "1/6: Python Linting and Formatting (ruff)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 cd backend
-if uv run ruff check app/ --quiet; then
-    echo "✅ Python linting passed"
+if uv run ruff check app/ --quiet && uv run ruff format app/ --check --quiet; then
+    echo "✅ Python linting and formatting passed"
 else
-    echo "❌ Python linting failed"
+    echo "❌ Python linting or formatting failed"
     echo ""
     echo "Run this to see detailed errors:"
     echo "  cd backend && uv run ruff check app/"
+    echo "  cd backend && uv run ruff format app/ --check"
     echo ""
     LINTING_RESULT=1
 fi

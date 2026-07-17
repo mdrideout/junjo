@@ -60,16 +60,13 @@ def _validate_portable_json(value: Any, path: str = "$") -> None:
             continue
         if isinstance(current, list):
             pending.extend(
-                (item, f"{current_path}[{index}]", depth + 1)
-                for index, item in enumerate(current)
+                (item, f"{current_path}[{index}]", depth + 1) for index, item in enumerate(current)
             )
             continue
         if isinstance(current, dict):
             for key, item in current.items():
                 if not isinstance(key, str):
-                    raise NonPortableJsonValueError(
-                        f"non-string object key at {current_path}"
-                    )
+                    raise NonPortableJsonValueError(f"non-string object key at {current_path}")
                 pending.append((key, f"{current_path}.<key>", depth + 1))
                 pending.append((item, f"{current_path}.{key}", depth + 1))
             continue
@@ -98,9 +95,7 @@ def decode_json_value(raw: str) -> Any:
             object_pairs_hook=_reject_duplicate_names,
         )
     except RecursionError as error:
-        raise PayloadNestingDepthError(
-            f"JSON nesting exceeds {MAX_JSON_NESTING_DEPTH}"
-        ) from error
+        raise PayloadNestingDepthError(f"JSON nesting exceeds {MAX_JSON_NESTING_DEPTH}") from error
     _validate_portable_json(value)
     return value
 

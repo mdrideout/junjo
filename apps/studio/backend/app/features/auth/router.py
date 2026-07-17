@@ -33,6 +33,7 @@ def _set_session(request: Request, user: UserRead) -> None:
     request.session["authenticated_at"] = utcnow().isoformat()
     request.session["session_revision"] = user.updated_at.isoformat()
 
+
 # Note: Session configuration (max_age, secure, samesite, etc.) is handled
 # in main.py when adding SessionMiddleware. No need to configure here.
 
