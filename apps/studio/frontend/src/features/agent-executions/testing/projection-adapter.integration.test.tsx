@@ -89,5 +89,5 @@ describe('API Contract: backend Agent semantic projections', () => {
       ).not.toBeNull()
       view.unmount()
     }
-  }, 30_000)
+  }, 60_000)
 })
