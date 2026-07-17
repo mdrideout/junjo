@@ -794,9 +794,14 @@ class StudioDistributionSmoke:
             sensitive_values=self.sensitive_values,
         )
 
-    def wait_for_example_workflow(self) -> None:
+    def wait_for_example_workflow(self, identity: SmokeIdentity) -> None:
         service_path = urllib.parse.quote(DEMO_SERVICE_NAME, safe="")
         client = JsonClient(f"http://127.0.0.1:{self.backend_port}", timeout_seconds=5)
+        client.request(
+            "/sign-in",
+            method="POST",
+            body={"email": identity.email, "password": identity.password},
+        )
         deadline = time.monotonic() + self.timeout_seconds
         while time.monotonic() < deadline:
             try:
@@ -991,7 +996,7 @@ class StudioDistributionSmoke:
                 self.wait_for_core_services()
                 identity = self.create_identity()
                 self.start_demo_application(identity.api_key)
-                self.wait_for_example_workflow()
+                self.wait_for_example_workflow(identity)
                 self.run_agent_studio_proof(identity)
             except BaseException as error:
                 primary_error = error

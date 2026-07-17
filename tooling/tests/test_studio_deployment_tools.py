@@ -515,6 +515,56 @@ class DistributionSmokeContractTests(unittest.TestCase):
             {"agent-evidence.json", "agent-diagnostics.png"},
         )
 
+    def test_example_workflow_query_authenticates_before_protected_requests(
+        self,
+    ) -> None:
+        runner = self.smoke_runner()
+        identity = smoke.SmokeIdentity(
+            email="smoke-user@example.com",
+            password="smoke-password-with-entropy",
+            api_key="k" * 40,
+        )
+        requests: list[tuple[str, str, dict[str, str] | None]] = []
+
+        class FakeJsonClient:
+            def __init__(self, base_url: str, timeout_seconds: float) -> None:
+                self.base_url = base_url
+                self.timeout_seconds = timeout_seconds
+
+            def request(
+                self,
+                path: str,
+                *,
+                method: str = "GET",
+                body: dict[str, str] | None = None,
+            ) -> object:
+                requests.append((path, method, body))
+                if path == "/api/v1/observability/services":
+                    return [smoke.DEMO_SERVICE_NAME]
+                if path.endswith("/workflows?limit=10"):
+                    return [{"name": smoke.DEMO_WORKFLOW_NAME}]
+                return {}
+
+        with mock.patch.object(smoke, "JsonClient", FakeJsonClient):
+            runner.wait_for_example_workflow(identity)
+
+        self.assertEqual(
+            requests,
+            [
+                (
+                    "/sign-in",
+                    "POST",
+                    {"email": identity.email, "password": identity.password},
+                ),
+                ("/api/v1/observability/services", "GET", None),
+                (
+                    "/api/v1/observability/services/Junjo%20Deployment%20Example/workflows?limit=10",
+                    "GET",
+                    None,
+                ),
+            ],
+        )
+
     @contextlib.contextmanager
     def mocked_successful_smoke(
         self,
