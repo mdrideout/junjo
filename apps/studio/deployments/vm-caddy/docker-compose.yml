@@ -22,7 +22,7 @@ services:
 
   # Junjo AI Studio Services
   junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:0.81.5
+    image: mdrideout/junjo-ai-studio-backend:0.82.0
     restart: unless-stopped
     # Memory guardrails (tuned for small VMs; override in .env as needed)
     mem_reservation: ${JUNJO_BACKEND_MEM_RESERVATION:-300m}
@@ -63,7 +63,7 @@ services:
       - JUNJO_DF_SPILL_PATH=${JUNJO_DF_SPILL_PATH:-/tmp/junjo-datafusion-spill}
 
   junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:0.81.5
+    image: mdrideout/junjo-ai-studio-ingestion:0.82.0
     restart: unless-stopped
     volumes:
       # Database storage (required for all modes)
@@ -99,7 +99,7 @@ services:
       start_period: 30s
 
   junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:0.81.5
+    image: mdrideout/junjo-ai-studio-frontend:0.82.0
     restart: unless-stopped
     ports:
       - "${JUNJO_FRONTEND_HOST_PORT:-26153}:26153" # Production web UI

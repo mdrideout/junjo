@@ -8,10 +8,10 @@
     "migration_snapshot": false
   },
   "studio": {
-    "version": "0.81.5",
-    "release_tag": "studio-v0.81.5",
-    "documentation_ref": "f2a19f1b9ef00a5c3935e83b37b1f8f8ffe81ab0",
+    "version": "0.82.0",
+    "release_tag": "studio-v0.82.0",
+    "documentation_ref": "studio-v0.82.0",
     "content_format": "owned-markdown",
-    "migration_snapshot": true
+    "migration_snapshot": false
   }
 }

@@ -23,7 +23,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "junjo", specifier = "==0.64.0" },
+    { name = "junjo", specifier = "==0.65.0" },
     { name = "lorem-text", specifier = ">=3.0" },
     { name = "pyyaml" },
 ]
@@ -106,7 +106,7 @@ wheels = [
 
 [[package]]
 name = "junjo"
-version = "0.64.0"
+version = "0.65.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "grpcio" },
@@ -115,10 +115,12 @@ dependencies = [
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
+    { name = "rfc8785" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/3e/241b526096460341ed83ecdb07c44cb1f6b49a96a80ec17aa6093a32b1f4/junjo-0.64.0.tar.gz", hash = "sha256:4fe0963193125d7d95c396e2022cdf0fedff11437dfbbb641429bd71e936d103", size = 67394, upload-time = "2026-07-14T02:36:18.743Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/97/2a15acf30950a3702df53175bb8a781ae759f5fede846b55d38bcaf1a22b/junjo-0.65.0.tar.gz", hash = "sha256:4885a6553204b3467290288fe56c821c6315d969d73414283240701993b8dde4", size = 148284, upload-time = "2026-07-17T15:02:16.948Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/20/adf7e46b6b5efbf5ba91b49163d20cf92bb5cf7a9aeb44ac4033537ebe2a/junjo-0.64.0-py3-none-any.whl", hash = "sha256:60b84f017ee1a8e4b259bcbdbb10583281af4474da8cd4923b1ddd3bcae2cb33", size = 49625, upload-time = "2026-07-14T02:36:17.192Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/fa/633ec99b491aee98a6d3e5a35d975a5eb54f4dac89c0965383ddfbae829f/junjo-0.65.0-py3-none-any.whl", hash = "sha256:06f3d3454fe2f26be63e2100d46928732715f746b1f591e658b6f6e74f7c5792", size = 103364, upload-time = "2026-07-17T15:02:15.496Z" },
 ]
 
 [[package]]
@@ -338,6 +340,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/92/1446574745d74df0c92e6aa4a7b0b3130706a4142b2d1a5869f2eaa423c6/pyyaml-6.0.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:16249ee61e95f858e83976573de0f5b2893b3677ba71c9dd36b9cf8be9ac6d65", size = 829923, upload-time = "2025-09-25T21:32:54.537Z" },
     { url = "https://files.pythonhosted.org/packages/f0/7a/1c7270340330e575b92f397352af856a8c06f230aa3e76f86b39d01b416a/pyyaml-6.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4ad1906908f2f5ae4e5a8ddfce73c320c2a1429ec52eafd27138b7f1cbe341c9", size = 174062, upload-time = "2025-09-25T21:32:55.767Z" },
     { url = "https://files.pythonhosted.org/packages/f1/12/de94a39c2ef588c7e6455cfbe7343d3b2dc9d6b6b2f40c4c6565744c873d/pyyaml-6.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:ebc55a14a21cb14062aa4162f906cd962b28e2e9ea38f9b4391244cd8de4ae0b", size = 149341, upload-time = "2025-09-25T21:32:56.828Z" },
+]
+
+[[package]]
+name = "rfc8785"
+version = "0.1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/2f/fa1d2e740c490191b572d33dbca5daa180cb423c24396b856f5886371d8b/rfc8785-0.1.4.tar.gz", hash = "sha256:e545841329fe0eee4f6a3b44e7034343100c12b4ec566dc06ca9735681deb4da", size = 14321, upload-time = "2024-09-27T16:33:31.206Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/78/119878110660b2ad709888c8a1614fce7e2fab39080ab960656dc8605bf6/rfc8785-0.1.4-py3-none-any.whl", hash = "sha256:520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48", size = 9240, upload-time = "2024-09-27T16:33:29.683Z" },
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 [package]
 name = "ingestion"
-version = "0.81.5"
+version = "0.82.0"
 edition = "2021"
 rust-version = "1.85"
 license = "Apache-2.0"

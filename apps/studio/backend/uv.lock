@@ -986,7 +986,7 @@ wheels = [
 
 [[package]]
 name = "junjo-backend"
-version = "0.81.5"
+version = "0.82.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },

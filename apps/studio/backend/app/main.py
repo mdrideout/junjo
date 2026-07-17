@@ -155,7 +155,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Junjo AI Studio",
     description="LLM Observability Platform - Python Backend",
-    version="0.81.5",
+    version="0.82.0",
     lifespan=lifespan,
     # Disable Swagger UI and ReDoc (not needed for production deployments)
     docs_url=None,
@@ -222,7 +222,7 @@ async def health() -> HealthResponse:
     logger.debug("Health endpoint called")
     return HealthResponse(
         status="ok",
-        version="0.81.5",
+        version="0.82.0",
         app_name="Junjo AI Studio",
     )
 
@@ -237,7 +237,7 @@ async def root() -> dict[str, str]:
     """
     return {
         "app": "Junjo AI Studio",
-        "version": "0.81.5",
+        "version": "0.82.0",
         "health": "/health",
     }
 
