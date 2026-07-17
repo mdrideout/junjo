@@ -56,12 +56,8 @@ function readEvidence(value) {
   }
   assert.equal(value.tool_operation_sequence, 2, 'Tool operation sequence is incorrect')
   assert.match(value.trace_id, /^[0-9a-f]{32}$/, 'trace_id is invalid')
-  for (const name of [
-    'outer_workflow_span_id',
-    'agent_span_id',
-    'tool_span_id',
-    'nested_workflow_span_id',
-  ]) {
+  for (const name of EVIDENCE_FIELDS) {
+    if (!name.endsWith('_span_id')) continue
     assert.match(value[name], /^[0-9a-f]{16}$/, `${name} is invalid`)
   }
   return value

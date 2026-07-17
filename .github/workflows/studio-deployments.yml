@@ -15,6 +15,7 @@ on:
       - "apps/studio/scripts/junjo"
       - "apps/studio/backend/Dockerfile"
       - "apps/studio/frontend/Dockerfile"
+      - "apps/studio/frontend/e2e/**"
       - "apps/studio/ingestion/Dockerfile"
       - "apps/studio/deployments/**"
       - "apps/studio/e2e_test_apps/**"
