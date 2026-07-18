@@ -771,8 +771,45 @@ class ProtoStalenessWorkflowTests(unittest.TestCase):
         local_gate = (REPOSITORY_ROOT / "apps/studio/run-all-tests.sh").read_text(
             encoding="utf-8"
         )
-        for source in (workflow, local_gate):
+        pre_commit = (
+            REPOSITORY_ROOT / "apps/studio/scripts/pre-commit.sh"
+        ).read_text(encoding="utf-8")
+        for source in (workflow, local_gate, pre_commit):
             self.assertIn("git status --porcelain --untracked-files=all", source)
+        self.assertIn('cd "$STUDIO_ROOT/backend"', pre_commit)
+        self.assertNotIn("REPO_ROOT", pre_commit)
+
+    def test_rust_ci_uses_checksum_pinned_protoc(self) -> None:
+        workflow = (
+            REPOSITORY_ROOT / ".github/workflows/studio-backend-tests.yml"
+        ).read_text(encoding="utf-8")
+        checksum = "327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f"
+
+        self.assertNotIn("apt-get install -y protobuf-compiler", workflow)
+        self.assertEqual(workflow.count("PROTOC_VERSION=30.2"), 2)
+        self.assertEqual(workflow.count(checksum), 2)
+        self.assertEqual(workflow.count("sha256sum --check -"), 2)
+        self.assertEqual(
+            workflow.count(
+                'test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"'
+            ),
+            2,
+        )
+
+
+class AiChatComposeSmokeContractTests(unittest.TestCase):
+    def test_smoke_proves_only_image_owned_dependencies_and_persistent_data(self) -> None:
+        smoke = (
+            REPOSITORY_ROOT
+            / "sdks/python/examples/ai_chat/scripts/validate-compose-startup.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("compose ps --quiet frontend", smoke)
+        self.assertIn("docker inspect --format", smoke)
+        self.assertIn("grep -Fxq '/app/node_modules'", smoke)
+        self.assertIn("npm ls --all", smoke)
+        self.assertIn("compose-rebuild-preservation-marker", smoke)
+        self.assertNotIn("Rebuild refreshed frontend dependencies", smoke)
 
 
 if __name__ == "__main__":

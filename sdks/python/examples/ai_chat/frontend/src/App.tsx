@@ -1,15 +1,25 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import ChatForm from './components/ChatForm'
 import ChatHeader from './components/ChatHeader'
+import ConversationPane from './components/ConversationPane'
 import ChatSidebar from './components/sidebar/ChatSidebar'
 import ChatWindow from './components/ChatWindow'
-import { useChat } from './hooks/useChat'
+import { useChatShell } from './hooks/useChatShell'
+
+function EmptyConversation() {
+  return (
+    <>
+      <ChatWindow chatId={undefined} turns={[]} config={null} loading={false} />
+      <ChatForm chatId={undefined} sending={false} onSubmit={async () => false} />
+    </>
+  )
+}
 
 export default function App() {
   const { chat_id: chatId } = useParams()
   const navigate = useNavigate()
-  const chat = useChat(chatId)
+  const shell = useChatShell()
   const [lastReadAtByChatId, setLastReadAtByChatId] = useState<Record<string, number>>(() => {
     try {
       const stored = window.localStorage.getItem('ai-chat:last-read-at')
@@ -29,76 +39,61 @@ export default function App() {
   }, [lastReadAtByChatId])
 
   useEffect(() => {
-    if (chatId === undefined && chat.selectedConversationId !== null) {
-      navigate(`/${chat.selectedConversationId}`, { replace: true })
+    const firstConversationId = shell.conversations[0]?.id
+    if (chatId === undefined && firstConversationId !== undefined) {
+      navigate(`/${firstConversationId}`, { replace: true })
     }
-  }, [chat.selectedConversationId, chatId, navigate])
+  }, [chatId, navigate, shell.conversations])
 
-  useEffect(() => {
-    if (
-      chat.sending &&
-      chat.selectedConversationId !== null &&
-      chatId !== chat.selectedConversationId
-    ) {
-      navigate(`/${chat.selectedConversationId}`, { replace: true })
-    }
-  }, [chat.sending, chat.selectedConversationId, chatId, navigate])
-
-  const latestMessageAt = useMemo(() => {
-    const latest = chat.turns[chat.turns.length - 1]
-    return latest === undefined ? null : Date.parse(latest.updated_at)
-  }, [chat.turns])
-
-  useEffect(() => {
-    if (chatId === undefined || latestMessageAt === null) return
-    setLastReadAtByChatId((current) => ({ ...current, [chatId]: latestMessageAt }))
-  }, [chatId, latestMessageAt])
+  const markConversationViewed = useCallback((conversationId: string, latestMessageAt: number) => {
+    setLastReadAtByChatId((current) => {
+      if ((current[conversationId] ?? 0) >= latestMessageAt) return current
+      return { ...current, [conversationId]: latestMessageAt }
+    })
+  }, [])
 
   const selectConversation = (conversationId: string) => {
-    if (chat.selectConversation(conversationId)) navigate(`/${conversationId}`)
+    navigate(`/${conversationId}`)
   }
 
   const createContact = async (sex: 'male' | 'female') => {
-    const conversation = await chat.createContact(sex)
+    const conversation = await shell.createContact(sex)
     if (conversation !== null) navigate(`/${conversation.id}`)
   }
+
+  const selectedConversation = shell.conversations.find((item) => item.id === chatId)
 
   return (
     <div className="h-dvh w-dvw p-5">
       <div className="w-full h-full max-w-5xl flex gap-x-5 m-auto">
         <div className="bg-zinc-700 rounded-3xl p-3 overflow-y-scroll w-xs min-w-2xs">
           <ChatSidebar
-            conversations={chat.conversations}
-            activeChatId={chat.selectedConversationId ?? undefined}
-            loading={chat.loadingConversations}
-            creatingContact={chat.creatingContact}
+            conversations={shell.conversations}
+            activeChatId={chatId}
+            loading={shell.loading}
+            creatingContact={shell.creatingContact}
             lastReadAtByChatId={lastReadAtByChatId}
             onSelect={selectConversation}
             onCreateContact={createContact}
           />
         </div>
         <div className="bg-zinc-700 rounded-3xl grow flex flex-col border-l border-r border-zinc-700 min-w-0">
-          <ChatHeader
-            title={chat.conversations.find(
-              (item) => item.id === chat.selectedConversationId,
-            )?.title}
-          />
-          {chat.error !== null && (
+          <ChatHeader title={selectedConversation?.title} />
+          {shell.error !== null && (
             <div className="bg-red-950 text-red-100 px-4 py-2 text-sm" role="alert">
-              {chat.error.message}
+              {shell.error.message}
             </div>
           )}
-          <ChatWindow
-            chatId={chat.selectedConversationId ?? undefined}
-            turns={chat.turns}
-            config={chat.config}
-            loading={chat.loadingTurns}
-          />
-          <ChatForm
-            chatId={chat.selectedConversationId ?? undefined}
-            sending={chat.sending}
-            onSubmit={chat.sendTurn}
-          />
+          {chatId === undefined ? (
+            <EmptyConversation />
+          ) : (
+            <ConversationPane
+              key={chatId}
+              conversationId={chatId}
+              config={shell.config}
+              onViewed={markConversationViewed}
+            />
+          )}
         </div>
       </div>
     </div>

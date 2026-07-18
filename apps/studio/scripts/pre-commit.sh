@@ -60,8 +60,10 @@ generate_python_proto() {
   # Generate proto files
   ./scripts/generate_proto.sh > /dev/null 2>&1
 
-  # Check if any files were modified
-  if ! git diff --quiet app/proto_gen/; then
+  # Include untracked output so a newly generated module cannot be omitted.
+  local proto_status
+  proto_status=$(git status --porcelain --untracked-files=all -- app/proto_gen/)
+  if [ -n "$proto_status" ]; then
     PROTO_MODIFIED=true
     git add app/proto_gen/
     echo -e "  ${GREEN}✓${NC} Python proto files regenerated and staged"
@@ -106,7 +108,7 @@ run_ruff_format() {
 run_ruff_check() {
   echo ""
   echo "🔍 Pre-commit: Running ruff check on backend..."
-  cd "$REPO_ROOT/backend"
+  cd "$STUDIO_ROOT/backend"
 
   # Check if uv is available
   if ! command -v uv &> /dev/null; then

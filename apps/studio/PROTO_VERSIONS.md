@@ -173,6 +173,7 @@ cargo run
 
 The pre-commit hook automatically regenerates Python proto files before each commit:
 - Regenerates `backend/app/proto_gen/*.py` files
+- Checks tracked and untracked generated output
 - Stages updated files automatically
 - Prevents commits with stale Python proto code
 
@@ -182,7 +183,7 @@ The pre-commit hook automatically regenerates Python proto files before each com
 
 The root `.github/workflows/studio-proto-staleness-check.yml` workflow:
 1. Regenerates Python proto files from scratch
-2. Runs `git diff` to check for changes
+2. Inspects scoped Git porcelain status, including untracked generated files
 3. Fails the build if any differences are detected
 
 ### Rust Proto Validation
@@ -190,6 +191,11 @@ The root `.github/workflows/studio-proto-staleness-check.yml` workflow:
 The same workflow runs `cargo check` in the ingestion directory to verify:
 1. Proto files compile successfully
 2. `build.rs` correctly references shared `proto/` directory
+
+Every CI job that compiles Studio's Rust ingestion target installs system
+protoc 30.2. The backend and ingestion test jobs download the release archive,
+verify its pinned SHA-256 checksum, and require the exact `libprotoc 30.2`
+version before compiling.
 
 ## Troubleshooting
 
@@ -218,7 +224,8 @@ The same workflow runs `cargo check` in the ingestion directory to verify:
 When updating protoc version:
 
 1. Update version numbers in this file
-2. Update `../../.github/workflows/studio-proto-staleness-check.yml`
+2. Update `../../.github/workflows/studio-proto-staleness-check.yml` and
+   `../../.github/workflows/studio-backend-tests.yml`
 3. Regenerate Python proto files locally
 4. Test that Rust `cargo build` still works
 5. Commit all updated files in a single commit

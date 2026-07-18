@@ -39,6 +39,23 @@ clean_artifacts() {
   compose down --volumes --remove-orphans --rmi local --timeout 5 >/dev/null 2>&1 || true
 }
 
+assert_frontend_dependencies_are_image_owned() {
+  local frontend_container_id
+  local mount_destinations
+
+  frontend_container_id="$(compose ps --quiet frontend)"
+  if [[ -z "${frontend_container_id}" ]]; then
+    echo "Unable to identify the running frontend container." >&2
+    return 1
+  fi
+
+  mount_destinations="$(docker inspect --format '{{ range .Mounts }}{{ println .Destination }}{{ end }}' "${frontend_container_id}")"
+  if grep -Fxq '/app/node_modules' <<<"${mount_destinations}"; then
+    echo "Frontend dependencies are shadowed by a mount at /app/node_modules." >&2
+    return 1
+  fi
+}
+
 report_failure() {
   local exit_code="$?"
 
@@ -82,10 +99,11 @@ for provider in gemini grok; do
     compose exec -T backend sh -c \
       "printf preserved > /data/compose-rebuild-preservation-marker"
     compose up --detach --wait --wait-timeout 120 --build
+    assert_frontend_dependencies_are_image_owned
     compose exec -T frontend npm ls --all >/dev/null
     compose exec -T backend sh -c \
       "test \"\$(cat /data/compose-rebuild-preservation-marker)\" = preserved"
-    echo "Rebuild refreshed frontend dependencies and preserved chat storage."
+    echo "Frontend dependencies are image-owned and internally consistent; chat storage survived rebuild."
   fi
 
   echo "${provider} composition is healthy; no provider request was made."

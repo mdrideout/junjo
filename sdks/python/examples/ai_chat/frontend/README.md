@@ -20,10 +20,18 @@ and Workflow/Agent run references. The POST returns the durable admitted Turn;
 the browser shows it immediately, then polls only that server-owned identity
 until it reaches a terminal state.
 Turn text is limited to 2,500 characters. A message image must include nonempty
-`image_alt` text, and conversation selection remains fixed while a turn runs so
-that the response cannot be applied to a different conversation.
+`image_alt` text.
 
-Conversation summaries and the selected conversation's Turns refresh in the
+The route parameter is the only selected-conversation identity. Each route
+mounts a keyed conversation pane that owns its own Turns, loading and error
+state, composer, and polling. The user may navigate or create another contact
+while a server-admitted Turn continues, and may submit a Turn in a different
+conversation. Leaving a conversation stops only that pane's browser polling;
+returning reloads authoritative history and resumes polling if its persisted
+Turn is still active. The backend remains authoritative for the one-active-
+Turn-per-conversation rule.
+
+Conversation summaries and the mounted conversation's Turns refresh in the
 background. Last-read timestamps persist in browser storage, so unread state
 survives reload without becoming server-owned product data.
 
@@ -39,8 +47,10 @@ against the same API origin used for JSON requests.
 The canonical full stack starts from the parent directory with
 `docker compose up --build`. It exposes this Vite server at
 `http://localhost:26251` and FastAPI at `http://localhost:26252`. The frontend
-directory is bind-mounted and Chokidar polling is enabled, so Vite HMR applies
-source changes through Docker Desktop. Dependency changes require a rebuild.
+`src` directory is bind-mounted and Chokidar polling is enabled, so Vite HMR
+applies source changes through Docker Desktop. Dependency and frontend
+configuration changes require an image rebuild; dependencies come from that
+rebuilt image rather than a persistent `node_modules` mount.
 
 For native component development, use Node.js 22 or newer, start the backend
 on port `26252`, then:
@@ -66,5 +76,6 @@ npm run build
 
 The tests lock the JSON contracts and prove that admitted, completed, and
 failed Turns retain execution references, contact creation and the restored UI
-remain available, and debug-only controls construct exact Studio resolver
-links.
+remain available, navigation cannot mix conversation-local state, active Turns
+resume from authoritative history, obsolete polling is cleaned up, and debug-
+only controls construct exact Studio resolver links.

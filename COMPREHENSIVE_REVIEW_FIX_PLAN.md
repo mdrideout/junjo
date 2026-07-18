@@ -22,9 +22,9 @@ therefore cannot be validated one by one from the supplied material.
 ## Outcome summary
 
 - 28 explicitly described findings reviewed
-- 25 validated findings required remediation. Their corrections are
-  implemented; L5 has the accepted bounded low-resource authorization
-  architecture and completed evidence matrix under Studio ADR-009
+- 25 validated findings required remediation, and all 25 are fully resolved.
+  The five bounded residuals reopened by the 2026-07-18 post-release review
+  are also complete. L5 remains resolved under Studio ADR-009
 - 1 finding was already fixed before this review baseline (H1)
 - 2 factual findings require no repository fix (M12 and L8)
 - 25 claimed low findings are blocked because their descriptions were omitted
@@ -126,13 +126,13 @@ code, tests, documentation/ADR impact, and validation commands after review.
 ### P1 — user-visible correctness and compatibility
 
 - [x] **H3: Keep turn results scoped to their originating conversation.**
-  Capture the originating conversation ID for each turn and prevent admitted,
-  terminal, and error state from mutating another conversation's rendered
-  turn list. Make route/sidebar navigation and hook selection obey one explicit
-  policy during an in-flight turn. Add a frontend test that starts a turn in A,
-  changes the route to B before polling completes, and proves no A turn or
-  failure appears in B.
-  Validated with an in-flight route-change regression plus frontend lint/build.
+  Make the route the sole selected-conversation identity and give a keyed
+  conversation pane ownership of its Turns, failures, composer, loading, and
+  polling. Navigating or creating a contact unmounts only the old browser pane;
+  its server-admitted Turn continues durably and reloads from authoritative
+  history on return. A different conversation remains independently usable.
+  Validated with cross-conversation concurrency, route/remount, draft-reset,
+  polling-cleanup, full frontend test, lint, and production-build coverage.
 - [x] **H4: Preserve protected deep links across in-place authentication.**
   Distinguish a guarded in-place sign-in from the standalone `/sign-in` route.
   For the guarded case, let the authentication state reveal the already
@@ -329,7 +329,7 @@ specific boundary.
 | --- | --- | --- |
 | C1 | Router-level auth protects present and future observability handlers; unauthenticated collection and item probes stop before repository access. | Pass |
 | H2 | SecureCookies is outermost and limited to the session cookie; the browser value must be Fernet-decrypted before its signed session payload is readable. | Pass |
-| H3 | Route and sidebar selection cannot switch the rendered conversation during a turn, and admitted/terminal state retains the originating conversation ID. | Pass |
+| H3 | The URL is the only selected-conversation identity. A keyed pane owns one conversation's Turns, failures, composer, and polling; navigation cleans up the old pane while the durable server Turn continues and reloads on return. | Pass |
 | H4 | Guarded sign-in reveals the existing protected location, including resolver query strings; standalone `/sign-in` keeps its intentional default navigation. | Pass |
 | H5 | The frozen E2E environment uses SDK 0.64.0 APIs, executes a real workflow, and asserts current runtime identity and node-count telemetry. | Pass |
 | M1 | Empty `RunConcurrent` groups are rejected at construction, eliminating the no-await, zero-counter cycle. | Pass |
@@ -342,13 +342,13 @@ specific boundary.
 | M8 | All six workflow fixtures contain the exact successful executable count, and validation recomputes it from the span hierarchy. | Pass |
 | M9 | The Python runbook now includes manifest invariants, the exact validation command, and pre-publication ordering. | Pass |
 | M10 | Docs-only promotion requires published releases, PyPI files for Python, and immutable Studio release evidence; tag-only selections fail. | Pass |
-| M11 | Rebuilt frontend dependencies come from the image while the chat-data volume survives `up --build`. | Pass |
+| M11 | Compose mounts only source, asserts `/app/node_modules` is not mounted, validates the image-owned dependency tree, and proves chat storage survives rebuild without claiming a synthetic dependency mutation. | Pass |
 | L1 | A path-scoped PR caller runs producer/consumer telemetry conformance before merge; it exposes a stable check for repository branch protection. | Pass |
 | L2 | A path-scoped PR caller runs protobuf regeneration/staleness checks for proto, generator, lock, and build-input changes. | Pass |
-| L3 | CI and the local Studio gate inspect scoped porcelain status including untracked generated files. | Pass |
-| L4 | HTTP lifespan waits for a successful gRPC bind/start, supervises unexpected termination, and owns graceful shutdown. | Pass |
+| L3 | CI, the full local gate, and the installed pre-commit helper inspect scoped porcelain status including untracked generated stubs; the helper's Ruff path is independently rooted at Studio. | Pass |
+| L4 | HTTP startup waits for gRPC, unexpected later termination or supervisor failure sends `SIGTERM` through Uvicorn's graceful shutdown path, and intentional shutdown cancels supervision before stopping gRPC. | Pass |
 | L5 | Active behavior uses a 10-second fixed positive TTL, 1,024-entry bound, same-key singleflight, a reconnecting shared channel, eight refresh slots, 32 pending-request slots, and a two-second deadline. Median accepted throughput matched the historical warm-cache baseline (504.31 versus 504.28 exports/second) while mixed-query p95 improved to 40.68 from 47.02 ms. The 42-scenario matrix and 60-second/20-restart soak pass; last accepted post-deletion exports remained inside the fixed window. | Pass — ADR-009 Accepted with full evidence |
-| L6 | Protoc 30.2 downloads are architecture-selected and checksum-pinned; arm64 and amd64 builder, development, and production targets build. | Pass |
+| L6 | Every Rust-building CI path uses protoc 30.2; both backend-workflow jobs verify the pinned release checksum and exact compiler version before building. | Pass |
 | L7 | Only the root local `.claude` directory is ignored, and repository validation rejects tracked files hidden by ignore rules. | Pass |
 | L9 | Only successful health probes are filtered; failed readiness access records remain visible. | Pass |
 | L10 | Not-ready health requests intentionally return 503 and ready requests return 204 without an unhandled traceback. | Pass |
@@ -357,6 +357,434 @@ H1 remains already fixed in repository history. M12 and L8 remain validated
 facts that intentionally require no repository change. O1–O25 remain blocked:
 the supplied report did not state those findings, so inventing or guessing at
 their content would not be a valid review.
+
+## Post-release residual implementation plan
+
+- Review date: 2026-07-18
+- Baseline: `master` at `6f516ca` (`studio-v0.82.0`), clean and synchronized
+  with `origin/master`
+- Original scope: H3, M11, L3, L4, and L6 residuals plus the two verification
+  gaps called out by the follow-up review. All scoped residuals are complete
+- Change policy: preserve current runtime, persistence, telemetry, UI, and
+  deployment architectures; make the smallest complete correction for each
+  demonstrated behavior
+
+### Proportionality disposition
+
+| Order | Item | Disposition | Required scope |
+| --- | --- | --- | --- |
+| ✓ | L4 runtime gRPC supervision | **Completed 2026-07-18** | One explicit process-shutdown signal path and focused lifecycle tests |
+| ✓ | H3 conversation state ownership | **Completed 2026-07-18** | The route is the selection source and a keyed pane owns that conversation's Turns, errors, form, and polling |
+| ✓ | L6 Rust CI compiler drift | **Completed 2026-07-18** | Both CI install blocks use checksum-verified protoc 30.2 |
+| ✓ | L3 pre-commit untracked output | **Completed 2026-07-18** | The installed helper uses the accepted scoped porcelain check and its contract test covers it |
+| ✓ | M11 stale frontend README | **Completed with H3** | The README now distinguishes the mounted `src` tree from image-owned dependencies and configuration |
+| ✓ | M11 Compose smoke overclaim | **Completed 2026-07-18** | The smoke asserts no dependency mount, keeps `npm ls`, preserves chat data, and narrows its message |
+| — | L5 authorization performance | No action | ADR-009 and its measured evidence remain authoritative |
+| — | Broad `junjo.*` reconciliation gap | No action without a concrete mismatch | Existing explicit producer, transport, fixture, and consumer contracts remain the boundary |
+
+No item in this plan requires a new ADR. L4 implements the already intended
+co-hosted process lifecycle, H3 corrects an example-local React ownership
+boundary without changing durable Turn ownership, and L3/L6/M11 are
+implementation and evidence alignment.
+
+### Work package 1 — make unexpected internal gRPC termination stop Studio (completed)
+
+**Problem and evidence**
+
+Startup fail-fast is correct: `start_grpc_server()` waits for a successful
+bind and start before FastAPI completes lifespan startup. The runtime
+supervisor in `apps/studio/backend/app/main.py` later cancels the ASGI lifespan
+task if `wait_for_termination()` returns unexpectedly. Under the locked
+Uvicorn 0.38.0 implementation, a post-start lifespan failure sets Uvicorn's
+lifespan error flag but does not set `Server.should_exit`; the HTTP main loop
+continues. A focused local reproduction observed a finalized lifespan and
+`lifespan.error_occured=true` while the Uvicorn server task remained active and
+`should_exit=false`.
+
+The selected replacement was also feasibility-tested against the same pinned
+server: self-sent `SIGTERM` made Uvicorn drain, run the lifespan cleanup, finish
+the server process, and then re-raise the signal for process exit (`143`). That
+is the exact behavior needed by Tini and Compose's restart policy.
+
+That state is worse than a clean process failure: the lifespan `finally` block
+can checkpoint and dispose databases while HTTP continues accepting requests,
+and ingestion can no longer refresh API-key authorization.
+
+**Affected surface**
+
+- `apps/studio/backend/app/main.py`: gRPC supervision and lifespan cleanup
+- `apps/studio/backend/tests/test_grpc_server_lifecycle.py`: startup coverage
+  and the new runtime-supervision coverage
+- `apps/studio/backend/Dockerfile`: validation context only; Tini already
+  forwards signals and Uvicorn is already the executed child
+- canonical Compose and both deployment distributions: validation context
+  only; every backend already uses `restart: unless-stopped`
+
+No gRPC protocol, authentication, ingestion, health endpoint, Compose, or
+deployment-file change is required.
+
+**Selected solution**
+
+- [x] Replace lifespan-task cancellation with a small, directly testable
+  supervisor coroutine that awaits `grpc_server.wait_for_termination()` and,
+  only on unexpected return, logs a critical runtime failure and sends
+  `SIGTERM` to the current process.
+- [x] Keep normal shutdown graceful: the lifespan `finally` block first
+  cancels and awaits the supervisor task, then calls `stop_grpc_server()`. A
+  normal intentional stop must therefore never reach the self-signal path.
+- [x] Let Uvicorn's existing signal handler own HTTP draining and lifespan
+  shutdown. Let Tini and the existing Compose restart policy own process
+  reaping and restart. Do not call `os._exit`, because that would skip WAL
+  checkpointing and database disposal.
+- [x] Remove the now-unnecessary captured lifespan task and `shutting_down`
+  cancellation state. Keep the supervisor beside the lifespan code rather
+  than adding a new lifecycle module.
+
+**Regression evidence**
+
+- [x] Unexpected `wait_for_termination()` completion sends exactly one
+  `SIGTERM` to `os.getpid()`.
+- [x] Cancelling the supervisor during ordinary lifespan shutdown sends no
+  signal and still stops the gRPC server once.
+- [x] Existing port-conflict and positive-start tests remain green.
+- [x] The focused backend suite proves cleanup still runs through the normal
+  lifespan shutdown path; no test should terminate the pytest process itself,
+  so process signaling is patched at the unit boundary.
+
+**Implementation result**
+
+The supervisor now signals the current process on both unexpected gRPC
+termination and supervision failure. Normal shutdown cancels and awaits the
+supervisor before the intentional gRPC stop, so no signal is emitted. Five
+focused lifecycle tests, the complete backend gate, and Studio's full gate
+pass.
+
+**Rejected expansion**
+
+- Do not introduce a custom Uvicorn launcher merely to expose
+  `Server.should_exit` to application code.
+- Do not split HTTP and internal gRPC into new containers or processes.
+- Do not add a second readiness state or rely on Docker health alone; Compose
+  does not restart an otherwise running container merely because it is
+  unhealthy.
+- Do not add an external supervisor. The supported deployment already has
+  Tini plus a restart policy.
+
+### Work package 2 — give conversation state a conventional React owner (completed)
+
+**Problem and design principle**
+
+The bug is not that contact creation, navigation, and Turns overlap. The
+backend intentionally owns durable background Turns, rejects only a second
+active Turn in the same conversation, and permits work in different
+conversations. The frontend should preserve that concurrency.
+
+The current `useChat` hook combines four separate responsibilities:
+
+1. global configuration;
+2. the global conversation/contact list;
+3. selected-conversation identity, duplicated from the route parameter; and
+4. the selected conversation's Turns, errors, form activity, and polling.
+
+Because the hook instance survives route-parameter changes, one `turns` array
+and one error state are reused for A, B, and C. Navigation was then blocked to
+contain that ownership mistake. Adding identity refs to every callback would
+make the code correct but leave a web of synchronization logic.
+
+Use React's normal ownership boundary instead: the URL owns selection, the app
+shell owns global data, and a conversation-keyed child owns conversation-local
+data. React then destroys the old pane's state when the key changes, so A's
+state cannot become C's state.
+
+**Target component and state shape**
+
+```text
+App (route + navigation + read markers)
+├── useChatShell (config, conversations, contact creation, passive summaries)
+├── ChatSidebar
+├── ChatHeader
+└── ConversationPane key={conversationId}
+    ├── useConversationTurns(conversationId)
+    ├── conversation-local error
+    ├── ChatWindow
+    └── ChatForm
+```
+
+Affected files are expected to be:
+
+- `sdks/python/examples/ai_chat/frontend/src/App.tsx`
+- `hooks/useChat.ts`, replaced by `hooks/useChatShell.ts` and
+  `hooks/useConversationTurns.ts`
+- focused shell, conversation, and app interaction tests
+- `components/ConversationPane.tsx`
+- `sdks/python/examples/ai_chat/frontend/README.md`
+
+`ChatSidebar`, `NewContactButton`, the backend API, Turn schema, SQLite
+adapter, and ADR 0008 remain unchanged. `ChatForm`, `ChatHeader`, and
+`ChatWindow` remain presentational and should need at most prop wiring.
+
+**Selected solution**
+
+- [x] Make `chat_id` from React Router the only selected-conversation source.
+  Remove `selectedConversationId` state, the route-to-state synchronization
+  effect, `selectConversation()`, and the effect that forces the route back
+  while a Turn is sending. Sidebar selection navigates directly.
+- [x] Keep one small app-shell hook for global configuration, conversation
+  summaries, passive summary refresh, contact creation, and shell-level
+  failures. Successful contact creation updates the global list and returns
+  the new conversation so `App` can navigate to it.
+- [x] Render a top-level `ConversationPane` with `key={chatId}` whenever a
+  route conversation exists. The pane receives `conversationId`, configuration,
+  and an `onViewed` callback; it owns Turns, loading, submission state,
+  polling, and conversation-local failures. The app derives the presentational
+  header from the same route identity and global conversation list.
+- [x] Put the composer inside the keyed pane. Changing conversations therefore
+  resets its draft by React identity rather than an effect or manual reset,
+  preventing a draft for A from being submitted to B.
+- [x] Make Turn submission a short event operation: submit to the selected
+  conversation, place the admitted Turn into that pane's local list, and end
+  the submission state. Do not keep the event handler awaiting terminal
+  completion.
+- [x] Derive the active Turn from the pane's Turn list. An effect polls that
+  Turn's server-owned ID every two seconds until terminal. The existing
+  ten-second passive history refresh remains responsible for ordinary external
+  updates.
+- [x] Abort or ignore every conversation effect during cleanup. Changing the
+  pane key unmounts A, stops A's browser polling, and makes all late A responses
+  irrelevant to C. The already-admitted server Turn continues independently.
+- [x] On mounting or returning to a conversation, load its authoritative Turn
+  history. If the response contains an admitted or running Turn, the derived
+  active-Turn effect resumes polling automatically.
+- [x] Disable only the selected conversation's composer while its admission is
+  pending or its loaded Turn list contains an active Turn. Navigating to B
+  mounts independent B state, so the user may submit B while A continues. The
+  backend remains authoritative for its existing one-active-Turn-per-
+  conversation invariant.
+- [x] Let the existing global conversation-summary refresh discover terminal
+  timestamps. Do not couple the unmounted A pane back into shell state merely
+  for an eager sidebar timestamp.
+- [x] Keep last-read timestamps in `App`; let the mounted pane report its latest
+  visible Turn timestamp through the existing app-owned map boundary.
+- [x] Update the frontend README to describe background Turns, concurrent
+  navigation/contact creation, per-conversation UI ownership, and reload-on-
+  return behavior.
+
+**Regression evidence**
+
+- [x] The route parameter alone determines the active sidebar item, header,
+  Turn pane, and API conversation ID; there is no mirrored selection state.
+- [x] Start A, navigate to B or create C, and prove the new pane renders
+  immediately while A's old polling is cleaned up and cannot mutate it.
+- [x] Submit a Turn in B while A continues server-side; each request uses its
+  own route conversation ID and neither pane displays the other's Turn.
+- [x] Return to A, load its persisted admitted/running Turn, resume polling,
+  and render its terminal state.
+- [x] A late history or Turn response after unmount produces no B/C Turn,
+  error, loading, or form-state change.
+- [x] Switching conversation keys resets the composer draft.
+- [x] Contact creation remains available during a Turn, updates the global
+  list, and navigates to the new keyed pane.
+- [x] Existing API-schema, admitted/completed/failed Turn, diagnostic-link,
+  unread-marker, contact-creation, and restored-surface tests remain green.
+
+**Implementation result**
+
+`App` now reads selection only from React Router and owns only navigation,
+global shell data, and read markers. `ConversationPane key={chatId}` owns one
+conversation through `useConversationTurns`; its cleanup aborts outstanding
+history and active-Turn reads, and late responses are ignored. Turn admission
+ends after the durable admitted Turn is stored locally, while a separate effect
+polls that Turn to terminal state. The full frontend suite passes 27 tests,
+including cross-conversation contact/Turn concurrency, authoritative reload,
+active-Turn resumption, draft reset, and both history and Turn-poll cleanup.
+Frontend lint and the production TypeScript/Vite build also pass. The real
+Compose infrastructure smoke rebuilt the frontend and brought both synthetic
+Gemini and Grok configurations to healthy state without provider calls.
+
+**Rejected expansion**
+
+- Do not serialize contact creation, navigation, and Turn execution behind one
+  UI lock.
+- Do not scatter selected-identity refs and equality checks through every
+  asynchronous callback.
+- Do not add a client-side per-conversation cache or reducer; component-local
+  state plus authoritative reload is sufficient for this example.
+- Do not add TanStack Query, SWR, a React Router data-router migration, Redux,
+  or another state library for this bounded frontend.
+- Do not cancel a server-admitted Turn when its pane unmounts.
+- Do not change backend concurrency or durable Turn ownership.
+
+### Work package 3 — compile Rust tests with the locked protoc (completed)
+
+**Problem and surface**
+
+The production ingestion images and proto-staleness workflow use protoc 30.2,
+but both Rust-building jobs in
+`.github/workflows/studio-backend-tests.yml` install Ubuntu's moving
+`protobuf-compiler`. The ingestion-only job compiles the Rust test target with
+that compiler, and the backend integration job builds the real ingestion
+binary exercised by Python integration tests. This is a test-versus-production
+reproducibility gap, not a currently observed wire incompatibility.
+
+**Selected solution**
+
+- [x] Replace both `apt-get install protobuf-compiler` blocks with the existing
+  Linux x86_64 protoc 30.2 artifact, pinned to SHA-256
+  `327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f`.
+- [x] Use `curl -fsSLO`, verify the checksum before extraction, install
+  `bin/protoc` plus its include tree, remove the archive, and require the exact
+  output `libprotoc 30.2` before either job proceeds.
+- [x] Keep the two job setup blocks self-contained. Do not add a composite
+  action, third-party setup action, or repository installer abstraction for
+  two small CI consumers.
+- [x] Update `apps/studio/PROTO_VERSIONS.md` so it accurately states that all
+  Rust-building CI paths use the locked compiler.
+
+**Regression evidence**
+
+- [x] Add a workflow-contract assertion that the backend/ingestion workflow
+  contains the locked version, checksum, and version assertion and no longer
+  installs distro `protobuf-compiler`.
+- [x] Run `cargo test --locked` and the real-ingestion backend integration
+  suite with protoc 30.2.
+- [x] Run the existing proto-staleness workflow logic; proto sources and
+  generated Python files must remain unchanged.
+
+No Dockerfile or proto-content change is part of this package.
+
+**Implementation result**
+
+Both Rust-building jobs now download and checksum the same protoc 30.2 Linux
+x86_64 artifact, install its compiler and include tree, and fail unless the
+reported version is exact. An isolated Linux/amd64 build used that archive to
+compile ingestion and pass all 37 Rust tests. Studio's full gate regenerated
+the Python stubs without producing tracked or untracked changes.
+
+### Work package 4 — make the installed pre-commit hook see untracked stubs (completed)
+
+**Problem and surface**
+
+CI and `apps/studio/run-all-tests.sh` use scoped porcelain status and therefore
+see new untracked generated modules. The installed hook still branches on
+`git diff --quiet app/proto_gen/`, so a newly generated `*_pb2.py` file alone
+does not trigger staging. CI prevents a merge escape, making this a local
+developer-workflow defect rather than a release-integrity defect.
+
+The same script contains a directly adjacent path typo:
+`run_ruff_check()` refers to undefined `REPO_ROOT` even though the script owns
+`STUDIO_ROOT`. It currently continues from the backend directory only because
+of prior function side effects. Correcting that one variable is in scope; a
+broader hook rewrite is not.
+
+**Selected solution**
+
+- [x] In `apps/studio/scripts/pre-commit.sh`, compute scoped
+  `git status --porcelain --untracked-files=all -- app/proto_gen/` after
+  generation. If nonempty, stage the directory and report generated changes.
+- [x] Change the Ruff directory reference from `REPO_ROOT` to `STUDIO_ROOT` so
+  the function does not depend on the previous working directory.
+- [x] Extend `ProtoStalenessWorkflowTests` to require the untracked-aware check
+  in the pre-commit script as well as CI and the full local gate.
+- [x] Correct `apps/studio/PROTO_VERSIONS.md`, which still says CI uses only
+  `git diff`, to describe the scoped untracked-aware check.
+
+Do not introduce a hook framework, shared shell library, or generated-output
+manifest for this correction.
+
+**Implementation result**
+
+The installed helper now stages scoped tracked or untracked generated output
+and runs Ruff from `STUDIO_ROOT` without depending on a previous function's
+working directory. Shell syntax and the extended tooling contract pass, and
+the full Studio gate confirms clean regeneration.
+
+### Work package 5 — make the AI Chat Compose proof and docs exact (completed)
+
+**Problem and surface**
+
+The M11 runtime fix is sound: Compose mounts only `frontend/src`, dependencies
+remain in the rebuilt image, and the `ai-chat-data` volume survives
+`up --build`. Two evidence details were identified:
+
+- `frontend/README.md` said the entire frontend directory was bind-mounted;
+- the smoke's unchanged `npm ls --all` proves dependency-tree health after a
+  rebuild, but not that a deliberately changed lockfile was refreshed.
+
+**Selected solution**
+
+- [x] Update the frontend README to say only `frontend/src` is mounted, source
+  edits use HMR, and dependency/configuration changes require an image rebuild.
+- [x] In `validate-compose-startup.sh`, inspect the running frontend
+  container's mounts and fail if `/app/node_modules` is a mount destination.
+  This directly guards against the original volume-shadowing regression.
+- [x] Retain post-rebuild `npm ls --all` as proof that the image-owned
+  dependency tree is internally consistent.
+- [x] Retain the backend data-volume marker as proof that `up --build` does not
+  delete chat data.
+- [x] Change the success text to state exactly those three facts; do not claim
+  that the test mutated or refreshed a dependency version.
+
+**Implementation result**
+
+The smoke now inspects the running container and rejects an
+`/app/node_modules` mount, validates the installed dependency tree, and proves
+the chat-data marker survives rebuild. Its success text states exactly those
+facts. Both synthetic Gemini and Grok configurations pass without provider
+calls.
+
+**Rejected expansion**
+
+- Do not edit `package.json` or `package-lock.json` dynamically inside the
+  release smoke.
+- Do not add a network-dependent temporary package solely to prove Docker
+  layer invalidation.
+- Do not restore a `node_modules` volume or widen the source bind mount.
+
+### Completed implementation order
+
+1. L4 was implemented and validated independently because it changes Studio
+   process lifecycle behavior.
+2. H3 and both M11 evidence corrections were completed in the AI Chat example.
+3. L6 and L3 were completed together as Studio build/developer-tooling
+   consistency work.
+4. The ledger was re-read against the final diffs; every residual checkbox and
+   audit row now has focused passing evidence.
+
+These packages may be separate commits. None depends on a telemetry contract,
+database migration, generated proto change, deployment mirror update, or
+version bump.
+
+### Validation matrix
+
+| Package | Focused validation | Owning-area validation |
+| --- | --- | --- |
+| L4 | `uv run pytest tests/test_grpc_server_lifecycle.py -q` plus the new supervision tests | `apps/studio/backend/scripts/run-backend-tests.sh`; then `apps/studio/run-all-tests.sh` |
+| H3 | AI Chat shell-hook, keyed conversation-pane, polling-cleanup, and routing interaction tests | `npm test`, `npm run lint`, and `npm run build` from the AI Chat frontend |
+| M11 | Mount-shadow assertion, `npm ls --all`, and chat-data marker in the real Compose stack | `sdks/python/examples/ai_chat/scripts/validate-compose-startup.sh` for Gemini and Grok configuration modes |
+| L6 | Exact `protoc --version`, `cargo test --locked`, and real-ingestion backend integration tests | Studio proto-staleness logic and the full Studio gate |
+| L3 | Extended workflow-contract test and shell syntax check | All tooling tests, repository invariants, and the full Studio gate |
+
+Final shared checks are `git diff --check`, a clean proto-generation status,
+and a clean working tree except for the intended implementation. Because no
+telemetry or proto content changes, fixture regeneration and cross-component
+contract versioning are explicitly out of scope.
+
+### Release implications
+
+- L4 changes the Studio backend runtime image and should ship in the next
+  normal Studio patch or minor release. It does not justify recalling 0.82.0:
+  startup failure is already fail-fast, and unexpected post-start server
+  termination is a low-frequency path.
+- H3 and M11 affect the AI Chat example and its release gate, not the public
+  `junjo` wheel API. They can ship with the next normal SDK repository release;
+  no SDK API version change is required solely for these fixes.
+- L3 and L6 affect local/CI reproducibility only and do not independently
+  require a release.
+- L5 remains closed. The accepted 10-second fixed positive cache, reusable
+  channel, and measured one-vCPU/1GB evidence must not be modified as part of
+  these packages.
+- The unspecified O1–O25 findings remain blocked until their actual text and
+  evidence are supplied.
 
 ## Final validation evidence
 
@@ -368,6 +796,19 @@ their content would not be a valid review.
 - AI Chat passed 60 backend tests, 23 frontend tests, lint, build, and Compose
   smoke for both synthetic Gemini and Grok modes. The smoke rebuilt dependencies
   while proving its chat-data marker persisted.
+- The post-release H3 implementation passed all 27 AI Chat frontend tests,
+  lint, and a production TypeScript/Vite build. Focused coverage proves keyed
+  route ownership, cross-conversation concurrency, authoritative remount,
+  active-Turn polling resumption, draft reset, and effect cleanup. The real
+  Compose smoke also passed for synthetic Gemini and Grok configurations.
+- The residual cleanup pass added five focused gRPC lifecycle tests. The full
+  Studio gate passed 48 unit, 90 integration, 9 real-gRPC, 37 Rust, 217
+  frontend, and 24 REST-contract tests plus lint, builds, and clean proto
+  regeneration. An isolated Linux/amd64 build compiled ingestion with the
+  checksum-pinned protoc 30.2 archive and passed all 37 Rust tests.
+- The revised AI Chat Compose smoke directly proved image-owned dependencies,
+  a valid installed dependency tree, and rebuild-persistent chat storage for
+  both synthetic provider configurations without provider calls.
 - Telemetry contract generation was byte-deterministic; validation passed 9
   schemas, all 6 Workflow fixtures, 33 Agent producer fixtures, 4 Agent consumer
   fixtures, invalid/fingerprint/RFC 6902 vectors, and 575 malformed mutations.
@@ -380,5 +821,5 @@ their content would not be a valid review.
 - Frozen Studio E2E workflow smoke passed. Ingestion builder, development, and
   final production images passed for native arm64 and emulated amd64 with
   checksum-verified protoc 30.2.
-- Final `git diff --check` passed and the fix plan has no unchecked actionable
-  items.
+- Final `git diff --check` passed for the original remediation. All five
+  residual IDs reopened by the post-release review are now complete.

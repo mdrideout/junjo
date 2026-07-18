@@ -41,10 +41,16 @@ jobs:
       - name: Install backend dependencies
         working-directory: apps/studio/backend
         run: uv sync --all-extras --locked
-      - name: Install protoc
+      - name: Install protoc 30.2
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
+          PROTOC_VERSION=30.2
+          PROTOC_SHA256="327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f"
+          PROTOC_ARCHIVE="protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+          curl -fsSLO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ARCHIVE}"
+          printf '%s  %s\n' "${PROTOC_SHA256}" "${PROTOC_ARCHIVE}" | sha256sum --check -
+          sudo unzip -q -o "${PROTOC_ARCHIVE}" -d /usr/local bin/protoc 'include/*'
+          rm "${PROTOC_ARCHIVE}"
+          test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
         with:
@@ -105,10 +111,16 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
-      - name: Install protoc
+      - name: Install protoc 30.2
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
+          PROTOC_VERSION=30.2
+          PROTOC_SHA256="327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f"
+          PROTOC_ARCHIVE="protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+          curl -fsSLO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ARCHIVE}"
+          printf '%s  %s\n' "${PROTOC_SHA256}" "${PROTOC_ARCHIVE}" | sha256sum --check -
+          sudo unzip -q -o "${PROTOC_ARCHIVE}" -d /usr/local bin/protoc 'include/*'
+          rm "${PROTOC_ARCHIVE}"
+          test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
         with:
