@@ -123,7 +123,7 @@ class DocumentationReleaseTests(unittest.TestCase):
     def test_production_promotion_accepts_only_owned_release_namespaces(self) -> None:
         accepted = (
             "sdk-python-v0.66.0",
-            "studio-v0.82.0",
+            "studio-v0.82.1",
             "docs-release-20260715.1",
         )
         for tag in accepted:

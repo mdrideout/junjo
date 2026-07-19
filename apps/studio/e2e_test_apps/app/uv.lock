@@ -25,7 +25,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "junjo", specifier = "==0.65.0" },
+    { name = "junjo", specifier = "==0.66.0" },
     { name = "lorem-text", specifier = ">=3.0" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.38.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.38.0" },
@@ -110,7 +110,7 @@ wheels = [
 
 [[package]]
 name = "junjo"
-version = "0.65.0"
+version = "0.66.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "grpcio" },
@@ -122,9 +122,9 @@ dependencies = [
     { name = "rfc8785" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/97/2a15acf30950a3702df53175bb8a781ae759f5fede846b55d38bcaf1a22b/junjo-0.65.0.tar.gz", hash = "sha256:4885a6553204b3467290288fe56c821c6315d969d73414283240701993b8dde4", size = 148284, upload-time = "2026-07-17T15:02:16.948Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/d5/e945bc180d5290a9516eb2ff56522380a90ba9c62d511bfdedde7ef17e88/junjo-0.66.0.tar.gz", hash = "sha256:a18bb287dc502536d9f1182566709a58b9d268f2103b0d6996c18688c0d17b35", size = 148142, upload-time = "2026-07-19T00:29:20.771Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/fa/633ec99b491aee98a6d3e5a35d975a5eb54f4dac89c0965383ddfbae829f/junjo-0.65.0-py3-none-any.whl", hash = "sha256:06f3d3454fe2f26be63e2100d46928732715f746b1f591e658b6f6e74f7c5792", size = 103364, upload-time = "2026-07-17T15:02:15.496Z" },
+    { url = "https://files.pythonhosted.org/packages/02/88/a0f12d06bbdaf49b091ef4161ff5a997b731fcc3c37c59fe557242908bed/junjo-0.66.0-py3-none-any.whl", hash = "sha256:032bf9a27cd7f340900e8a33613a8c812af01fcf74131546347019b455edc514", size = 103418, upload-time = "2026-07-19T00:29:19.295Z" },
 ]
 
 [[package]]

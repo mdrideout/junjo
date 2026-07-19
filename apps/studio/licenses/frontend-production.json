@@ -1494,6 +1494,6 @@
   "scope": "unique packages from package-lock v3 entries marked as part of the production dependency closure; build tools are not represented unless also production dependencies",
   "source_lock": {
     "path": "frontend/package-lock.json",
-    "sha256": "c0235c6ff74cbb47d8acefc1acca52955a660821a83a2d3695943ab6b953923a"
+    "sha256": "2d9a98e85905a029fbb8ed206d6b0fc7281459bebb33f2f270375b26df4c03a7"
   }
 }

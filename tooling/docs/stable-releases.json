@@ -8,9 +8,9 @@
     "migration_snapshot": false
   },
   "studio": {
-    "version": "0.82.0",
-    "release_tag": "studio-v0.82.0",
-    "documentation_ref": "studio-v0.82.0",
+    "version": "0.82.1",
+    "release_tag": "studio-v0.82.1",
+    "documentation_ref": "studio-v0.82.1",
     "content_format": "owned-markdown",
     "migration_snapshot": false
   }

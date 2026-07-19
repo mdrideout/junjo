@@ -4,7 +4,7 @@ version = "0.1.0"
 license = "Apache-2.0"
 requires-python = ">=3.13"
 dependencies = [
-    "junjo==0.65.0",
+    "junjo==0.66.0",
     "lorem-text>=3.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
     "opentelemetry-sdk>=1.38.0",
