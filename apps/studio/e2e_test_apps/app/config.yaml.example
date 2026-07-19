@@ -1,4 +1,4 @@
-# Junjo OTLP Exporter Configuration
+# Junjo AI Studio OTLP Trace Export Configuration
 exporter:
   host: "localhost"
   port: "26155"

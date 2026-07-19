@@ -7,7 +7,7 @@ Orchestration layer for generating test data with multiple services and controll
 1. **Generates random service names** using `coolname` (e.g., "brave-red-panda", "clever-blue-whale")
 2. **Spawns multiple app instances** from Layer 1 (../app)
 3. **Controls concurrency** to create realistic load patterns
-4. **Tracks metadata** for verification in Layer 3
+4. **Tracks producer-side metadata** for the run summary and manual Studio inspection
 
 ## Setup
 
@@ -20,7 +20,8 @@ uv sync
 
 ### Mode 1: Cycle-Based (run N cycles)
 
-Each cycle = all services run 1 workflow each.
+By default, each cycle makes every service run one workflow. Use
+`--workflows-per-process` to increase that explicitly.
 
 ```bash
 uv run python generate_data.py \
@@ -135,20 +136,18 @@ Configuration:
   Services: 3
   Cycles: 10
   Concurrency: 2 cycles
+  Workflows per process: 1
   Total concurrent workflows: 6
 
-Progress: 2/10 cycles, 6 workflows, 42 spans
-Progress: 4/10 cycles, 12 workflows, 84 spans
+Progress: 2/10 cycles, 6 workflows
+Progress: 4/10 cycles, 12 workflows
 ...
-Progress: 10/10 cycles, 30 workflows, 210 spans
+Progress: 10/10 cycles, 30 workflows
 
 ✅ Completed: 30 workflows in 1.23s
    Cycles completed: 10
    Workflows per service: 10
-   Total spans sent: 210
-   Avg spans/workflow: 7.00
    Throughput: 24.39 workflows/sec
-   Span throughput: 170.73 spans/sec
    Metadata saved to: test_run_metadata.json
 ```
 
@@ -163,21 +162,19 @@ Configuration:
   Services: 3
   Duration: 5 seconds
   Concurrency: 2 cycles
+  Workflows per process: 1
   Total concurrent workflows: 6
 
 Running for 5 seconds...
-Progress: 2 cycles, 6 workflows, 42 spans (0.2s elapsed)
-Progress: 4 cycles, 12 workflows, 84 spans (0.5s elapsed)
+Progress: 2 cycles, 6 workflows (0.2s elapsed)
+Progress: 4 cycles, 12 workflows (0.5s elapsed)
 ...
-Progress: 44 cycles, 132 workflows, 924 spans (5.1s elapsed)
+Progress: 44 cycles, 132 workflows (5.1s elapsed)
 
 ✅ Completed: 132 workflows in 5.08s
    Cycles completed: 44
    Workflows per service: 44
-   Total spans sent: 924
-   Avg spans/workflow: 7.00
    Throughput: 25.99 workflows/sec
-   Span throughput: 181.94 spans/sec
    Metadata saved to: test_run_metadata.json
 ```
 
@@ -188,7 +185,8 @@ Progress: 44 cycles, 132 workflows, 924 spans (5.1s elapsed)
     "num_services": 3,
     "num_cycles": 10,
     "duration_seconds": null,
-    "concurrency": 2
+    "concurrency": 2,
+    "workflows_per_process": 1
   },
   "services": [
     "brave-red-panda",
@@ -197,15 +195,11 @@ Progress: 44 cycles, 132 workflows, 924 spans (5.1s elapsed)
   ],
   "results": {
     "total_workflows": 30,
-    "total_spans": 210,
     "cycles_completed": 10,
     "workflows_per_service": 10,
     "duration_seconds": 1.23,
     "throughput_workflows_per_sec": 24.39,
-    "throughput_spans_per_sec": 170.73,
-    "avg_spans_per_workflow": 7.0,
-    "failed_processes": 0,
-    "flush_failures": 0
+    "failed_processes": 0
   }
 }
 ```
@@ -231,19 +225,31 @@ Progress: 44 cycles, 132 workflows, 924 spans (5.1s elapsed)
 - Higher = more concurrent load on system
 - Total concurrent workflows = num_services × concurrency
 
+**--workflows-per-process** (optional, default: 1)
+- Number of workflows each child process runs concurrently
+- Increase this explicitly for denser load
+- Total concurrent workflows = num_services × concurrency × workflows_per_process
+
 **--config** (optional, default: ../app/config.yaml)
 - Path to config file for base app
 - Must have valid API key configured
 
 ## Verification
 
-After generating data, use Layer 3 (verification) to check results:
+`generate_data.py` exits nonzero if any child process fails. Each child drains
+its local OpenTelemetry queue and shuts down its tracer provider before exiting,
+but OpenTelemetry's batch processor does not report collector acceptance to the
+producer. The metadata therefore records workflow/process results only; it is
+not proof that Studio accepted or persisted every span.
 
-```bash
-cd ../verification
-uv run python verify_integrity.py    # Check for pollution
-uv run python verify_completeness.py  # Check all data received
-```
+After a successful run, open Studio and inspect the generated service names and
+their Workflow executions. The repository does not contain an automated verifier
+for this load generator's random service set.
+
+For an independent, deterministic SDK-to-Studio telemetry proof, run
+`tooling/scripts/validate_agent_studio_e2e.py` from the repository root. That
+validator generates and verifies its own data; it does not verify an orchestration
+run.
 
 ## Troubleshooting
 

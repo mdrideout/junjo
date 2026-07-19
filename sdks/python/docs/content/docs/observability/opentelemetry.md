@@ -162,23 +162,27 @@ shown as diagnostic limitations rather than treated as application behavior.
 
 ## Provider Lifecycle
 
-In normal applications, your `TracerProvider` and `MeterProvider` remain
-the top-level owners of OpenTelemetry shutdown. When the process is
-terminating, shut down those providers rather than treating exporter-local
-flush as the default exit path.
-
-`JunjoOtelExporter` gives you components to attach to those providers:
+Junjo AI Studio accepts OTLP traces. It does not currently accept OTLP metrics.
+`JunjoOtelExporter` therefore gives you one component to attach to your
+`TracerProvider`:
 
 - `span_processor` for tracing
-- `metric_reader` for metrics
+
+The exporter does not create a meter provider, metric reader, or periodic
+metric-export worker. If your application exports metrics to another
+OpenTelemetry platform, configure and own that independent metric pipeline in
+the normal OpenTelemetry way.
 
 It also exposes:
 
-- `shutdown()` for wrapper-local shutdown of the Junjo-owned components
+- `shutdown()` for wrapper-local shutdown of the Junjo-owned span processor
 - `flush()` for manual immediate drain when you truly need it
 
-Use `flush()` for targeted cases such as tests or short-lived scripts. Use
-provider shutdown for the normal application lifecycle.
+Use `flush()` for targeted cases such as tests or short-lived scripts. It asks
+the local batch processor to drain; OpenTelemetry does not propagate collector
+acceptance through that result. Query Studio when you need proof of remote
+delivery or persistence. Use `TracerProvider.shutdown()` for the normal
+application lifecycle.
 
 ## Library Logging
 
@@ -520,9 +524,8 @@ Here's a complete OpenTelemetry setup for Junjo:
 ```python title="otel_config.py"
 import os
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-from opentelemetry import trace, metrics
+from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 
 def init_telemetry(service_name: str):
@@ -554,17 +557,10 @@ def init_telemetry(service_name: str):
     # Add span processor
     tracer_provider.add_span_processor(junjo_exporter.span_processor)
 
-    # Configure metrics with the Junjo metric reader
-    meter_provider = MeterProvider(
-        resource=resource,
-        metric_readers=[junjo_exporter.metric_reader]
-    )
-    metrics.set_meter_provider(meter_provider)
-
     # Set as global tracer provider
     trace.set_tracer_provider(tracer_provider)
 
-    return tracer_provider, meter_provider
+    return tracer_provider
 ```
 
 Use in your application:
@@ -572,14 +568,13 @@ Use in your application:
 ```python
 from otel_config import init_telemetry
 
-tracer_provider, meter_provider = init_telemetry(service_name="my-ai-workflow")
+tracer_provider = init_telemetry(service_name="my-ai-workflow")
 
 try:
     # Execute workflows - automatic instrumentation
     await my_workflow.execute()
 finally:
     tracer_provider.shutdown()
-    meter_provider.shutdown()
 ```
 
 ## Production Junjo AI Studio Exporter

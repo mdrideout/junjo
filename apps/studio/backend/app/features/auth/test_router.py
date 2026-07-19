@@ -11,6 +11,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.db_sqlite.users.repository import UserRepository
+from app.features.auth import service as auth_service
 from app.main import app
 
 
@@ -45,7 +46,7 @@ async def test_create_first_user():
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_create_first_user_when_users_exist():
+async def test_create_first_user_when_users_exist(monkeypatch: pytest.MonkeyPatch):
     """Test /users/create-first-user fails when users already exist."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -54,6 +55,11 @@ async def test_create_first_user_when_users_exist():
             "/users/create-first-user",
             json={"email": "first@example.com", "password": "password123"},
         )
+
+        def fail_if_hashed(_password: str) -> str:
+            pytest.fail("post-bootstrap rejection must happen before bcrypt")
+
+        monkeypatch.setattr(auth_service, "hash_password", fail_if_hashed)
 
         # Try to create another "first" user
         response = await client.post(

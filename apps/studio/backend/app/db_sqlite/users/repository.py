@@ -6,7 +6,7 @@ See: PYTHON_BACKEND_HIGH_CONCURRENCY_DB_PATTERN.md
 
 from datetime import timedelta
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.common.audit import AuditAction, AuditResource, audit_log
@@ -182,8 +182,9 @@ class UserRepository:
         """
         Atomically check if users exist and create first user if none exist.
 
-        Uses SELECT FOR UPDATE to prevent race conditions when multiple requests
-        try to create the first user concurrently.
+        SQLite ignores SELECT FOR UPDATE. BEGIN IMMEDIATE acquires SQLite's write
+        reservation before checking the users table, so concurrent bootstrap
+        requests serialize and re-check the committed state before inserting.
 
         Args:
             email: User email address
@@ -207,19 +208,19 @@ class UserRepository:
 
         try:
             async with db_config.async_session() as session:
-                # Start transaction and lock users table to prevent race condition
-                # SELECT COUNT(*) FROM users FOR UPDATE
-                # This locks all rows (or the table itself in some databases)
-                # preventing other transactions from inserting until we commit
-                stmt = select(func.count()).select_from(UserTable).with_for_update()
+                # This repository is intentionally SQLite-specific. A deferred
+                # transaction would let every concurrent request observe an empty
+                # table before any of them writes. Reserve the single SQLite writer
+                # first; waiters then read again after the winner commits.
+                await session.execute(text("BEGIN IMMEDIATE"))
+
+                stmt = select(func.count()).select_from(UserTable)
                 result = await session.execute(stmt)
                 count = result.scalar_one()
 
-                # Check if any users exist (now holding lock)
                 if count > 0:
                     raise ValueError("Users already exist, cannot create first user")
 
-                # Create first user (still holding lock)
                 db_obj = UserTable(email=email, password_hash=password_hash)
                 session.add(db_obj)
                 await session.commit()

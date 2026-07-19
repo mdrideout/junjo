@@ -12,6 +12,7 @@ import pytest
 from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient
 
+from app.db_sqlite.users.repository import UserRepository
 from app.main import app
 
 
@@ -49,9 +50,7 @@ async def test_session_cookie_tampering():
         tamper_index = len(session_cookie) // 2
         replacement = "a" if session_cookie[tamper_index] != "a" else "b"
         tampered_cookie = (
-            session_cookie[:tamper_index]
-            + replacement
-            + session_cookie[tamper_index + 1 :]
+            session_cookie[:tamper_index] + replacement + session_cookie[tamper_index + 1 :]
         )
 
         # Replace the client's valid cookie instead of sending two cookies with
@@ -162,50 +161,49 @@ async def test_sign_out_clears_session():
 
 
 @pytest.mark.security
+@pytest.mark.concurrency
 @pytest.mark.asyncio
 async def test_create_first_user_race_condition():
     """Test that only one 'first user' can be created even with concurrent requests.
 
     Security: Prevents race condition in initial setup that could allow
     unauthorized users to gain access.
-
-    KNOWN ISSUE: This test currently fails - all 10 requests succeed.
-    This is a race condition in the user creation logic.
-    TODO: Add database-level constraint or lock to prevent multiple first users.
     """
-    pytest.skip("KNOWN ISSUE: Race condition in first user creation - needs fix")
-
     transport = ASGITransport(app=app)
 
-    async def create_user(user_num: int):
+    async def create_user(user_num: int) -> tuple[int, dict[str, str]]:
         """Attempt to create first user."""
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            try:
-                response = await client.post(
-                    "/users/create-first-user",
-                    json={
-                        "email": f"user{user_num}@example.com",
-                        "password": f"password{user_num}"
-                    },
-                )
-                return response.status_code, response.json()
-            except Exception as e:
-                return None, str(e)
+            response = await client.post(
+                "/users/create-first-user",
+                json={
+                    "email": f"user{user_num}@example.com",
+                    "password": f"password{user_num}",
+                },
+            )
+            return response.status_code, response.json()
 
     # Launch 10 concurrent requests to create first user
     results = await asyncio.gather(*[create_user(i) for i in range(10)])
 
-    # Count successes (200) and failures (400)
-    successes = [r for r in results if r[0] == 200]
-    failures = [r for r in results if r[0] == 400]
+    successes = [(index, result) for index, result in enumerate(results) if result[0] == 200]
+    failures = [result for result in results if result[0] == 400]
 
-    # Only ONE should succeed, rest should fail with "users already exist"
     assert len(successes) == 1, f"Expected 1 success, got {len(successes)}"
     assert len(failures) == 9, f"Expected 9 failures, got {len(failures)}"
 
-    # Verify failure messages
     for status, response in failures:
+        assert status == 400
         assert "already exist" in response["detail"].lower()
+
+    assert await UserRepository.count_users() == 1
+    successful_index = successes[0][0]
+    for user_num in range(10):
+        user = await UserRepository.get_by_email(f"user{user_num}@example.com")
+        if user_num == successful_index:
+            assert user is not None
+        else:
+            assert user is None
 
 
 @pytest.mark.security
@@ -277,8 +275,9 @@ async def test_sql_injection_in_email():
 
             # Should be rejected by validation (422) or auth (401)
             # Both are acceptable - indicates defense in depth
-            assert response.status_code in [401, 422], \
+            assert response.status_code in [401, 422], (
                 f"SQL injection not rejected: {payload} got {response.status_code}"
+            )
 
             # If 401, should have invalid credentials message
             if response.status_code == 401:
@@ -317,12 +316,14 @@ async def test_protected_endpoints_require_auth():
 
             if currently_protected:
                 # All should reject unauthorized access
-                assert response.status_code == 401, \
+                assert response.status_code == 401, (
                     f"Endpoint {method} {endpoint} did not require auth (status: {response.status_code})"
+                )
             else:
                 # Document endpoints that need to be protected
-                assert response.status_code != 401, \
+                assert response.status_code != 401, (
                     f"Endpoint {method} {endpoint} unexpectedly requires auth (test needs update)"
+                )
 
 
 @pytest.mark.security
@@ -417,16 +418,20 @@ async def test_sign_out_revokes_all_concurrent_sessions_for_the_user():
             "/users/create-first-user",
             json={"email": "tabs@example.com", "password": "password123"},
         )
-        first_cookie = (await first.post(
-            "/sign-in",
-            json={"email": "tabs@example.com", "password": "password123"},
-        )).cookies["session"]
-
-        async with AsyncClient(transport=transport, base_url="http://test") as second:
-            second_cookie = (await second.post(
+        first_cookie = (
+            await first.post(
                 "/sign-in",
                 json={"email": "tabs@example.com", "password": "password123"},
-            )).cookies["session"]
+            )
+        ).cookies["session"]
+
+        async with AsyncClient(transport=transport, base_url="http://test") as second:
+            second_cookie = (
+                await second.post(
+                    "/sign-in",
+                    json={"email": "tabs@example.com", "password": "password123"},
+                )
+            ).cookies["session"]
 
         await first.post("/sign-out", cookies={"session": first_cookie})
         first.cookies.clear()
@@ -445,12 +450,16 @@ async def test_session_is_rejected_after_its_user_is_deleted():
             "/users/create-first-user",
             json={"email": "deleted@example.com", "password": "password123"},
         )
-        cookie = (await client.post(
-            "/sign-in",
-            json={"email": "deleted@example.com", "password": "password123"},
-        )).cookies["session"]
+        cookie = (
+            await client.post(
+                "/sign-in",
+                json={"email": "deleted@example.com", "password": "password123"},
+            )
+        ).cookies["session"]
         user_id = (await client.get("/users", cookies={"session": cookie})).json()[0]["id"]
-        assert (await client.delete(f"/users/{user_id}", cookies={"session": cookie})).status_code == 200
+        assert (
+            await client.delete(f"/users/{user_id}", cookies={"session": cookie})
+        ).status_code == 200
 
         client.cookies.clear()
         response = await client.get("/auth-test", cookies={"session": cookie})

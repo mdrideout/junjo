@@ -2,14 +2,28 @@
 
 import argparse
 import asyncio
+from builtins import BaseExceptionGroup
+from collections.abc import Sequence
+from typing import Any
 
 import yaml
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
-from junjo.telemetry.junjo_server_otel_exporter import JunjoServerOtelExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from workflows import create_workflow
+
+LOCAL_DRAIN_BUDGET_MILLIS = 120_000
+
+
+def positive_int(value: str) -> int:
+    """Parse a strictly positive integer for a load dimension."""
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
 
 
 def load_config(config_path: str) -> dict:
@@ -28,8 +42,8 @@ ITEM_LISTS = [
 ]
 
 
-async def main():
-    """The main entry point for the application."""
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description="E2E Test Application for Junjo AI Studio"
     )
@@ -44,64 +58,116 @@ async def main():
     )
     parser.add_argument(
         "--num-workflows",
-        type=int,
+        type=positive_int,
         help="Override number of workflows to run",
     )
-    args = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+async def run(args: argparse.Namespace) -> None:
+    """Execute workflows and deliver their telemetry before returning."""
 
     # Load configuration
     config = load_config(args.config)
 
     # Apply overrides
     service_name = args.service_name or config["exporter"]["service_name"]
-    num_workflows = args.num_workflows or config["app"]["num_workflows"]
+    num_workflows = (
+        args.num_workflows
+        if args.num_workflows is not None
+        else config["app"]["num_workflows"]
+    )
+    if (
+        not isinstance(num_workflows, int)
+        or isinstance(num_workflows, bool)
+        or num_workflows <= 0
+    ):
+        raise ValueError("app.num_workflows must be a positive integer")
 
-    # Configure OpenTelemetry with Junjo exporter
+    # Studio's ingestion boundary is standard OTLP traces. Configure it
+    # directly so this released-SDK compatibility harness is independent of
+    # convenience-exporter API changes.
     resource = Resource.create({"service.name": service_name})
     provider = TracerProvider(resource=resource)
-
-    # Create Junjo exporter
-    exporter = JunjoServerOtelExporter(
-        host=config["exporter"]["host"],
-        port=config["exporter"]["port"],
-        api_key=config["exporter"]["api_key"],
+    exporter = OTLPSpanExporter(
+        endpoint=f"{config['exporter']['host']}:{config['exporter']['port']}",
         insecure=config["exporter"]["insecure"],
+        headers=(("x-junjo-api-key", config["exporter"]["api_key"]),),
+        timeout=120,
     )
-
-    # Add span processor and set as global tracer provider
-    provider.add_span_processor(exporter.span_processor)
+    provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
 
-    print(f"[{service_name}] Starting {num_workflows} workflow(s) concurrently...")
+    execution_error: BaseException | None = None
+    cleanup_errors: list[BaseException] = []
 
-    # Create all workflows
-    workflows = []
-    for i in range(num_workflows):
-        # Vary the items list for each workflow
-        items = ITEM_LISTS[i % len(ITEM_LISTS)]
-        workflows.append(create_workflow(items))
+    try:
+        print(f"[{service_name}] Starting {num_workflows} workflow(s) concurrently...")
 
-    # Run all workflows CONCURRENTLY (not sequentially)
-    async def run_workflow(idx: int, workflow):
-        result = await workflow.execute()
-        final_state = result.state.model_dump_json()
-        return idx, final_state
+        workflows = [
+            create_workflow(ITEM_LISTS[index % len(ITEM_LISTS)])
+            for index in range(num_workflows)
+        ]
 
-    tasks = [run_workflow(i, w) for i, w in enumerate(workflows)]
-    results = await asyncio.gather(*tasks)
+        async def run_workflow(index: int, workflow: Any) -> tuple[int, str]:
+            result = await workflow.execute()
+            return index, result.state.model_dump_json()
 
-    for idx, final_state in results:
-        print(f"[{service_name}] Workflow {idx+1}/{num_workflows} completed. Final state: {final_state}")
+        workflow_tasks: list[asyncio.Task[tuple[int, str]]] = []
+        async with asyncio.TaskGroup() as task_group:
+            workflow_tasks = [
+                task_group.create_task(run_workflow(index, workflow))
+                for index, workflow in enumerate(workflows)
+            ]
+        results = [task.result() for task in workflow_tasks]
 
-    print(f"[{service_name}] Completed {num_workflows} workflow(s)")
+        for index, final_state in results:
+            print(
+                f"[{service_name}] Workflow {index + 1}/{num_workflows} completed. "
+                f"Final state: {final_state}"
+            )
 
-    # Flush telemetry before exit
-    print(f"[{service_name}] Flushing telemetry...")
-    if exporter.flush():
-        print(f"[{service_name}] Telemetry flushed successfully")
-    else:
-        print(f"[{service_name}] Warning: Telemetry flush failed")
+        print(f"[{service_name}] Completed {num_workflows} workflow(s)")
+    except BaseException as error:
+        execution_error = error
+
+    print(f"[{service_name}] Draining the local telemetry queue...")
+    drain_completed = False
+    try:
+        drain_completed = provider.force_flush(
+            timeout_millis=LOCAL_DRAIN_BUDGET_MILLIS
+        )
+        if not drain_completed:
+            cleanup_errors.append(
+                RuntimeError("Local telemetry queue drain did not complete")
+            )
+    except BaseException as error:
+        cleanup_errors.append(error)
+    finally:
+        try:
+            provider.shutdown()
+        except BaseException as error:
+            cleanup_errors.append(error)
+
+    if execution_error is not None:
+        cleanup_errors.insert(0, execution_error)
+
+    if len(cleanup_errors) == 1:
+        raise cleanup_errors[0]
+    if cleanup_errors:
+        raise BaseExceptionGroup(
+            "Workflow execution or telemetry cleanup failed", cleanup_errors
+        )
+
+    if drain_completed:
+        print(f"[{service_name}] Local telemetry queue drained")
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the CLI and return a process exit code."""
+    asyncio.run(run(parse_args(argv)))
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    raise SystemExit(main())

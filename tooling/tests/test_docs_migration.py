@@ -75,7 +75,7 @@ class DocumentationMigrationTests(unittest.TestCase):
             (entry["kind"], entry["public_name"], entry["anchor"]) for entry in objects
         }
         self.assertEqual(len(modules), 12)
-        self.assertEqual(len(objects), 428)
+        self.assertEqual(len(objects), 427)
         self.assertEqual(len(identities), len(objects))
         self.assertTrue(
             all(not str(entry["kind"]).startswith("py:") for entry in objects)

@@ -4,6 +4,22 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+### Breaking Changes
+
+- Made `JunjoOtelExporter` accurately trace-only for Junjo AI Studio and
+  removed its unsupported `metric_reader` public surface. Studio does not
+  implement OTLP metrics; applications may continue to own an independent
+  metrics pipeline for another OpenTelemetry destination. `shutdown()` no
+  longer accepts the metric-reader-only `timeout_millis` argument.
+
+### Telemetry
+
+- Removed the periodic Studio metric-export worker and narrowed exporter
+  flush/shutdown helpers plus the Base and AI Chat example lifetimes to the
+  trace provider Studio actually supports.
+- Clarified that `JunjoOtelExporter.flush()` reports a local processor drain,
+  not collector acceptance or persistence; delivery proofs must query Studio.
+
 ## 0.65.0 - 2026-07-17
 
 ### Breaking Changes

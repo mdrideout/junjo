@@ -18,6 +18,8 @@ source = { virtual = "." }
 dependencies = [
     { name = "junjo" },
     { name = "lorem-text" },
+    { name = "opentelemetry-exporter-otlp-proto-grpc" },
+    { name = "opentelemetry-sdk" },
     { name = "pyyaml" },
 ]
 
@@ -25,6 +27,8 @@ dependencies = [
 requires-dist = [
     { name = "junjo", specifier = "==0.65.0" },
     { name = "lorem-text", specifier = ">=3.0" },
+    { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.38.0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.38.0" },
     { name = "pyyaml" },
 ]
 

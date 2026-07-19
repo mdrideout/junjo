@@ -68,17 +68,20 @@ The test app uses the getting_started workflow structure:
 
 **Nodes:**
 1. `FirstNode` - Entry point
-2. `CountItemsNode` - Counts items in state
-3. `EvenItemsNode` or `OddItemsNode` - Branching based on count
-4. `FinalNode` - Exit point
+2. `SimulatedRagResponse` - Adds representative retrieval context
+3. `CountItemsNode` - Counts items in state
+4. `AddRandomNode` - Adds a random value to the item count
+5. `EvenItemsNode` or `OddItemsNode` - Branches on the resulting count
+6. `FinalNode` - Exit point
 
 **State:**
 - `items: list[str]` - List of items (varies per workflow)
-- `count: int | None` - Count of items (computed by CountItemsNode)
+- `count: int | None` - Item count plus the random increment
+- `context: str | None` - Simulated retrieval context
 
 **Branching Logic:**
-- If count is even → `EvenItemsNode`
-- If count is odd → `OddItemsNode`
+- If the post-increment count is even → `EvenItemsNode`
+- If the post-increment count is odd → `OddItemsNode`
 
 ## Verification
 
@@ -88,6 +91,9 @@ After running, verify telemetry in Junjo AI Studio:
 2. Navigate to the service you specified
 3. Check that workflows appear with correct service name
 4. Inspect workflow graph structure and state transitions
+
+The process drains its local OpenTelemetry queue before exit. That local drain
+does not prove collector acceptance; Studio inspection is the delivery check.
 
 ## Use Cases
 

@@ -105,7 +105,7 @@ curl http://localhost:26154/ping
 
 **Backend-specific tests:**
 ```bash
-# Run all backend tests (unit, integration, gRPC)
+# Run the complete backend pytest collection
 ./backend/scripts/run-backend-tests.sh
 
 # Run contract tests (schema validation)
@@ -120,7 +120,8 @@ curl http://localhost:26154/ping
 
 ### Automated Test Script (Recommended)
 
-The easiest way to run all backend tests including gRPC integration tests:
+The easiest way to run the complete backend pytest collection, including gRPC
+integration tests:
 
 ```bash
 # From the Studio root (apps/studio)
@@ -133,15 +134,13 @@ cd backend
 
 This script automatically:
 - Sets up temporary databases
-- Runs migrations
-- Starts the backend server in the background
-- Runs all test categories (unit, integration, gRPC)
-- Stops the server and provides a summary
+- Runs every collected backend test once
+- Uses pytest fixtures for services required by integration tests
+- Provides a pass/fail summary
 
-The script runs tests in three phases:
-1. **Unit tests** - Fast, isolated tests with no external dependencies
-2. **Integration tests** (non-gRPC) - Tests using real database but no server
-3. **gRPC integration tests** - Tests requiring the running backend gRPC server
+The collection includes unit, integration, security, concurrency,
+error-recovery, semantic/query, and gRPC integration coverage. The gRPC tests
+use an in-process fixture tied to the isolated test database.
 
 This is the **recommended approach** for running the full test suite locally, as it matches the behavior of CI/CD pipelines.
 

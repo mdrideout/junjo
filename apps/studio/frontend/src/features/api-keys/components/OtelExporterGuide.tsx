@@ -7,13 +7,14 @@ import { useAppSelector } from '../../../root-store/hooks'
 import { selectServiceNames } from '../../traces/store/selectors'
 import '@wooorm/starry-night/style/both'
 
-const codeExample = `from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-from opentelemetry import trace
+const codeExample = `from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 def init_otel(service_name: str):
-    """Configure OpenTelemetry with JunjoOtelExporter."""
+    """Configure standard OTLP trace export to Junjo AI Studio."""
 
     # Create OpenTelemetry Resource
     resource = Resource.create({"service.name": service_name})
@@ -21,26 +22,24 @@ def init_otel(service_name: str):
     # Set up tracing
     tracer_provider = TracerProvider(resource=resource)
 
-    # JunjoOtelExporter - works alongside Honeycomb, Signoz, Jaeger, etc.
-
     # Local Development Example
-    junjo_exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
-        api_key="YOUR_API_KEY",  # From API Keys page (set as environment variable)
-        insecure=True,           # Development uses insecure gRPC
+    studio_exporter = OTLPSpanExporter(
+        endpoint="localhost:26155",
+        headers=(("x-junjo-api-key", "YOUR_API_KEY"),),
+        insecure=True,
+        timeout=120,
     )
 
     # Production Example
-    # junjo_exporter = JunjoOtelExporter(
-    #     host="ingestion.example.com",   # Production assigned subdomain
-    #     port="443",                     # Standard HTTPS / SSL connection port
-    #     api_key="YOUR_API_KEY",         # From API Keys page (set as environment variable)
-    #     insecure=False,                 # Production requires secure HTTPS/TLS
+    # studio_exporter = OTLPSpanExporter(
+    #     endpoint="ingestion.example.com:443",
+    #     headers=(("x-junjo-api-key", "YOUR_API_KEY"),),
+    #     insecure=False,
+    #     timeout=120,
     # )
 
-    # Add Junjo span processor (can coexist with other processors)
-    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+    # This trace processor can coexist with processors for other destinations.
+    tracer_provider.add_span_processor(BatchSpanProcessor(studio_exporter))
 
     # Set the tracer provider
     trace.set_tracer_provider(tracer_provider)`
@@ -90,23 +89,22 @@ export default function OtelExporterGuide() {
           <div className="space-y-4">
             {/* Introduction */}
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Add the Junjo exporter to your Python application. The exporter works alongside other
-              observability providers like Honeycomb, Signoz, or Jaeger — simply add it as an additional span
-              processor.
+              Add a standard OTLP trace exporter to your Python application. Its span processor can coexist
+              with other observability destinations such as Honeycomb, SigNoz, or Jaeger.
             </p>
 
             {/* Links */}
             <div className="flex flex-col gap-2 text-sm">
               <a
-                href="https://junjo.ai/docs/observability/opentelemetry/"
+                href="https://junjo.ai/docs/studio/overview/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:underline"
               >
-                → Full OpenTelemetry Documentation
+                → Junjo AI Studio Telemetry Documentation
               </a>
               <a
-                href="https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/base/src/base/otel_config.py"
+                href="https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/vm-caddy/junjo_app/otel_config.py"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:underline"

@@ -29,7 +29,8 @@ class AuthService:
         """
         Create the first user (only allowed if no users exist).
 
-        Uses atomic transaction with SELECT FOR UPDATE to prevent race conditions.
+        Uses an atomic SQLite write transaction to prevent concurrent bootstrap
+        requests from creating more than one initial user.
 
         Args:
             email: User email
@@ -42,11 +43,16 @@ class AuthService:
             ValueError: If users already exist
             IntegrityError: If email already exists
         """
+        # This endpoint remains public so a fresh deployment can bootstrap.
+        # Reject the steady-state path before spending bcrypt CPU or reserving
+        # SQLite's single writer. The repository repeats this check inside
+        # BEGIN IMMEDIATE; that second check is the authoritative race guard.
+        if await UserRepository.db_has_users():
+            raise ValueError("Users already exist, cannot create first user")
+
         # Hash password
         hashed_password = hash_password(password)
 
-        # Use atomic method that checks and creates in a single transaction
-        # This prevents race conditions when multiple requests try to create first user
         return await UserRepository.create_first_user_atomic(
             email=email, password_hash=hashed_password
         )

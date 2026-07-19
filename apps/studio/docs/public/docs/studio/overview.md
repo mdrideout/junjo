@@ -213,10 +213,10 @@ Create an OpenTelemetry configuration file:
 
 ```python title="otel_config.py"
 import os
-from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-from opentelemetry import trace, metrics
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import Resource
 
 def init_telemetry(service_name: str):
@@ -234,25 +234,17 @@ def init_telemetry(service_name: str):
     # Set up tracer provider
     tracer_provider = TracerProvider(resource=resource)
 
-    junjo_exporter = JunjoOtelExporter(
-        host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
-        port="26155",
-        api_key=api_key,
-        insecure=True  # Use False in production with TLS
+    studio_exporter = OTLPSpanExporter(
+        endpoint="ingestion:26155",  # The Studio ingestion service on your Docker network
+        headers=(("x-junjo-api-key", api_key),),
+        insecure=True,  # Use False in production with TLS
+        timeout=120,
     )
 
-    # Add span processor for tracing
-    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+    tracer_provider.add_span_processor(BatchSpanProcessor(studio_exporter))
     trace.set_tracer_provider(tracer_provider)
 
-    # (Optional) Set up metrics
-    meter_provider = MeterProvider(
-        resource=resource,
-        metric_readers=[junjo_exporter.metric_reader]
-    )
-    metrics.set_meter_provider(meter_provider)
-
-    return tracer_provider, meter_provider
+    return tracer_provider
 ```
 
 If your Junjo application runs in Docker, it only needs to be on the same Docker
@@ -280,27 +272,29 @@ Call the initialization function before executing workflows:
 ```python
 from otel_config import init_telemetry
 
-tracer_provider, meter_provider = init_telemetry(service_name="my-ai-workflow")
+tracer_provider = init_telemetry(service_name="my-ai-workflow")
 
 try:
     # Execute your workflow - telemetry is automatic!
     await my_workflow.execute()
 finally:
     tracer_provider.shutdown()
-    meter_provider.shutdown()
 ```
 
 ## Normal Lifecycle vs Manual Flush
 
-In normal applications, shut down the owning `TracerProvider` and
-`MeterProvider` when the process is terminating. That is the standard
-OpenTelemetry lifecycle and covers all processors and readers attached to those
-providers.
+Junjo AI Studio accepts OTLP traces and does not currently accept OTLP metrics.
+The configuration above therefore installs only a trace exporter and creates no
+periodic metric-export worker. Applications may independently configure a meter
+provider for another OpenTelemetry destination.
 
-`JunjoOtelExporter.flush()` is still available, but it is for manual
-immediate drain when you truly need it, such as in tests or very short-lived
-scripts. `JunjoOtelExporter.shutdown()` is a wrapper-local helper that shuts
-down only the Junjo-owned span processor and metric reader.
+In normal applications, shut down the owning `TracerProvider` when the process
+is terminating. That is the standard OpenTelemetry lifecycle and covers every
+span processor attached to that provider.
+
+`TracerProvider.force_flush()` can request a local queue drain in tests or very
+short-lived scripts, but OpenTelemetry does not propagate collector acceptance
+through that result. Query Studio when you need proof of remote delivery.
 
 ## Key Features Deep Dive
 
@@ -545,7 +539,9 @@ See working examples in the repository:
 
 ## Using Other OpenTelemetry Platforms
 
-**Important:** Junjo's telemetry works with **any** OpenTelemetry platform. The `JunjoOtelExporter` is specifically for Junjo AI Studio, but all Junjo-specific span attributes are automatically included when you use standard OTLP exporters.
+**Important:** Junjo's telemetry works with **any** OpenTelemetry platform. All
+Junjo-specific span attributes are included when you use standard OTLP
+exporters.
 
 You can use Junjo AI Studio alongside other platforms:
 
@@ -554,14 +550,14 @@ You can use Junjo AI Studio alongside other platforms:
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-# Junjo AI Studio
-junjo_exporter = JunjoOtelExporter(
-    host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
-    port="26155",
-    api_key=api_key,
-    insecure=True
+# Junjo AI Studio traces
+studio_exporter = OTLPSpanExporter(
+    endpoint="ingestion:26155",
+    headers=(("x-junjo-api-key", api_key),),
+    insecure=True,
+    timeout=120,
 )
-tracer_provider.add_span_processor(junjo_exporter.span_processor)
+tracer_provider.add_span_processor(BatchSpanProcessor(studio_exporter))
 
 # Also send to Jaeger
 jaeger_exporter = OTLPSpanExporter(endpoint="http://jaeger:4317")

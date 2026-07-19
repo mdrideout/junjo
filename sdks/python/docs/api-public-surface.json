@@ -2147,11 +2147,6 @@
     },
     {
       "kind": "property",
-      "public_name": "junjo.telemetry.junjo_otel_exporter.JunjoOtelExporter.metric_reader",
-      "anchor": "junjo.telemetry.junjo_otel_exporter.JunjoOtelExporter.metric_reader"
-    },
-    {
-      "kind": "property",
       "public_name": "junjo.telemetry.junjo_otel_exporter.JunjoOtelExporter.span_processor",
       "anchor": "junjo.telemetry.junjo_otel_exporter.JunjoOtelExporter.span_processor"
     }

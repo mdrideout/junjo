@@ -454,9 +454,11 @@ Studio credentials:
 - reconstructed Workflow, Agent, and nested-Workflow Stores reported complete
   integrity, correct physical hierarchy, and zero diagnostics.
 
-This record proves trace evidence, not OTLP metrics. Studio's current trace-only
-ingestion versus the SDK's metrics exporter remains a separate platform
-decision and does not weaken the accepted Agent trace path.
+This record proves trace evidence, not OTLP metrics. Under
+[ADR 0012](../adr/0012-studio-trace-only-telemetry-integration.md), the Studio
+integration is intentionally trace-only: AI Chat creates no Studio metric
+exporter or metric worker. An application may still own an independent metrics
+pipeline for another OpenTelemetry destination.
 
 ## Explicit non-goals
 

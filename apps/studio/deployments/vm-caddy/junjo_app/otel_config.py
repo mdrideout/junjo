@@ -1,12 +1,12 @@
 import os
 import textwrap
 
-from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 from loguru import logger
-from opentelemetry import metrics, trace
-from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 def _render_warning_box(title: str, lines: list[str], width: int = 62) -> str:
@@ -28,8 +28,8 @@ def _render_warning_box(title: str, lines: list[str], width: int = 62) -> str:
     return "\n".join(out)
 
 
-def setup_telemetry() -> tuple[TracerProvider, MeterProvider] | None:
-    """Set up OpenTelemetry providers for the deployment example."""
+def setup_telemetry() -> TracerProvider | None:
+    """Set up OpenTelemetry trace export for the deployment example."""
 
     # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
     JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
@@ -53,7 +53,7 @@ def setup_telemetry() -> tuple[TracerProvider, MeterProvider] | None:
         )
 
         logger.error(f"\n{warning_box}\n")
-        return False
+        return None
 
     # Configure OpenTelemetry for this application
     # Create the OpenTelemetry Resource to identify this service
@@ -62,28 +62,15 @@ def setup_telemetry() -> tuple[TracerProvider, MeterProvider] | None:
     # Set up tracing for this application
     tracer_provider = TracerProvider(resource=resource)
 
-    # Construct a Junjo exporter for Junjo AI Studio (see docker-compose.yml)
-    junjo_ai_studio_exporter = JunjoOtelExporter(
-        # The Junjo AI Studio service name on the same Compose network
-        host="junjo-ai-studio-ingestion",  # Junjo AI Studio ingestion on the shared Docker network
-        port="26155",
-        api_key=JUNJO_AI_STUDIO_API_KEY,
+    # Export standard OTLP traces to Studio (see docker-compose.yml).
+    studio_trace_exporter = OTLPSpanExporter(
+        endpoint="junjo-ai-studio-ingestion:26155",
         insecure=True,
+        headers=(("x-junjo-api-key", JUNJO_AI_STUDIO_API_KEY),),
+        timeout=120,
     )
 
-    # Set up span processors
-    # Add the Junjo span processor
-    # Add more span processors if desired
-    tracer_provider.add_span_processor(junjo_ai_studio_exporter.span_processor)
+    tracer_provider.add_span_processor(BatchSpanProcessor(studio_trace_exporter))
     trace.set_tracer_provider(tracer_provider)
 
-    # Set up metrics
-    #    - Construct with the Junjo metric reader
-    #    - Add more metric readers if desired
-    junjo_metric_reader = junjo_ai_studio_exporter.metric_reader
-    meter_provider = MeterProvider(
-        resource=resource, metric_readers=[junjo_metric_reader]
-    )
-    metrics.set_meter_provider(meter_provider)
-
-    return tracer_provider, meter_provider
+    return tracer_provider

@@ -1,6 +1,41 @@
 name: Studio Deployments
 
 on:
+  pull_request:
+    paths:
+      - "apps/studio/VERSION"
+      - "apps/studio/LICENSE"
+      - "apps/studio/THIRD_PARTY_NOTICES.md"
+      - "apps/studio/licenses/**"
+      - "apps/studio/.dockerignore"
+      - "apps/studio/.env.example"
+      - "apps/studio/compose.yaml"
+      - "apps/studio/compose.monitoring.yaml"
+      - "apps/studio/scripts/junjo"
+      - "apps/studio/backend/Dockerfile"
+      - "apps/studio/frontend/Dockerfile"
+      - "apps/studio/frontend/e2e/**"
+      - "apps/studio/ingestion/Dockerfile"
+      - "apps/studio/deployments/**"
+      - "apps/studio/e2e_test_apps/**"
+      - "tooling/scripts/build_studio_release_evidence.py"
+      - "tooling/scripts/export_studio_distribution.py"
+      - "tooling/scripts/publish_studio_distribution.py"
+      - "tooling/scripts/smoke_studio_distribution.py"
+      - "tooling/scripts/validate_agent_studio_e2e.py"
+      - "tooling/scripts/validate_studio_artifact_licenses.py"
+      - "tooling/scripts/validate_studio_deployments.py"
+      - "tooling/scripts/validate_studio_release_policy.py"
+      - "tooling/scripts/validate_studio_runtime.py"
+      - "tooling/studio_release_contract.json"
+      - "tooling/tests/test_agent_studio_e2e.py"
+      - "tooling/tests/test_ci_release_tools.py"
+      - "tooling/tests/test_studio_artifact_licenses.py"
+      - "tooling/tests/test_studio_deployment_tools.py"
+      - "tooling/tests/test_studio_release_evidence.py"
+      - "tooling/tests/test_studio_runtime.py"
+      - "tooling/tests/test_studio_setup_wizards.py"
+      - ".github/workflows/studio-deployments.yml"
   push:
     branches: [master]
     paths:
@@ -67,18 +102,33 @@ jobs:
         uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
         with:
           enable-cache: true
-          cache-dependency-glob: "apps/studio/e2e_test_apps/app/uv.lock"
+          cache-dependency-glob: |
+            apps/studio/e2e_test_apps/app/uv.lock
+            apps/studio/e2e_test_apps/orchestration/uv.lock
       - name: Run deployment tooling tests
         run: python3 -m unittest discover -s tooling/tests -v
       - name: Validate source runtime and monitoring contracts
         run: python3 tooling/scripts/validate_studio_runtime.py
       - name: Validate Compose and deployment contracts
         run: python3 tooling/scripts/validate_studio_deployments.py
-      - name: Smoke the locked Studio E2E SDK consumer
+      - name: Validate the locked Studio E2E harnesses
         run: |
           uv sync --frozen --project apps/studio/e2e_test_apps/app
           uv run --frozen --project apps/studio/e2e_test_apps/app \
+            python apps/studio/e2e_test_apps/app/main.py --help
+          uv run --frozen --project apps/studio/e2e_test_apps/app \
             python apps/studio/e2e_test_apps/app/smoke.py
+          uv run --frozen --project apps/studio/e2e_test_apps/app \
+            python -m unittest discover \
+              -s apps/studio/e2e_test_apps/app/tests -v
+          uv sync --frozen --project apps/studio/e2e_test_apps/orchestration
+          uv run --frozen --project apps/studio/e2e_test_apps/orchestration \
+            python apps/studio/e2e_test_apps/orchestration/generate_data.py --help
+          uv run --frozen --project apps/studio/e2e_test_apps/orchestration \
+            python apps/studio/e2e_test_apps/orchestration/benchmark.py --help
+          uv run --frozen --project apps/studio/e2e_test_apps/orchestration \
+            python -m unittest discover \
+              -s apps/studio/e2e_test_apps/orchestration/tests -v
       - name: Compile VM demo application
         run: |
           python3 -m py_compile \

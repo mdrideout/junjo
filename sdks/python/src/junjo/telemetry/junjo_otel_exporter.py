@@ -1,8 +1,6 @@
 import logging
 
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 logger = logging.getLogger("junjo.telemetry")
@@ -10,19 +8,25 @@ logger = logging.getLogger("junjo.telemetry")
 
 class JunjoOtelExporter:
     """
-    Configure Junjo AI Studio OTLP components for an existing OpenTelemetry setup.
+    Configure Junjo AI Studio trace export for an existing OpenTelemetry setup.
 
-    Junjo is designed to be compatible with existing OpenTelemetry configurations,
-    by adding to an existing configuration instead of creating a new one.
+    Junjo is designed to be compatible with existing OpenTelemetry
+    configurations by adding a span processor instead of creating or replacing
+    the application's tracer provider.
 
-    In normal applications, the tracer provider and meter provider remain the
-    top-level owners of shutdown. Call ``TracerProvider.shutdown()`` and
-    ``MeterProvider.shutdown()`` when the process is terminating.
+    Junjo AI Studio currently accepts OTLP traces only. This exporter therefore
+    exposes a :attr:`span_processor` and does not create a meter provider,
+    metric reader, or periodic metric-export worker. Applications that export
+    metrics to another OpenTelemetry destination should configure that metric
+    pipeline independently.
 
-    :meth:`flush` is available for manual immediate export when you truly need
-    it, such as in short-lived scripts or tests. :meth:`shutdown` is a
-    wrapper-local helper that shuts down only the Junjo-owned span processor
-    and metric reader.
+    In normal applications, the tracer provider remains the top-level owner of
+    shutdown. Call ``TracerProvider.shutdown()`` when the process is
+    terminating.
+
+    :meth:`flush` is available for a manual local queue drain when you truly
+    need it, such as in short-lived scripts or tests. :meth:`shutdown` is a
+    wrapper-local helper that shuts down only the Junjo-owned span processor.
 
     :param host: The hostname of the Junjo AI Studio.
     :type host: str
@@ -43,8 +47,7 @@ class JunjoOtelExporter:
 
         import os
         from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-        from opentelemetry import metrics, trace
-        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry import trace
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
 
@@ -52,37 +55,31 @@ class JunjoOtelExporter:
         JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
         resource = Resource.create({"service.name": "my-ai-workflow"})
 
-        # Option 1: Application running directly on the local machine
-        junjo_exporter_local = JunjoOtelExporter(
+        # Application running directly on the local machine
+        junjo_exporter = JunjoOtelExporter(
             host="localhost",
             port="26155",
             api_key=JUNJO_AI_STUDIO_API_KEY,
             insecure=True,
         )
 
-        # Option 2: Application container on the same Docker network
-        # Do not use localhost from an app container; it resolves to that container.
-        junjo_exporter_docker = JunjoOtelExporter(
-            host="ingestion",  # The Junjo AI Studio container name on the same docker network
-            port="26155",
-            api_key=JUNJO_AI_STUDIO_API_KEY,
-            insecure=True,
-        )
+        # If the application instead runs on Studio's Docker network, replace
+        # the block above with this endpoint (localhost resolves to the app
+        # container itself):
+        # junjo_exporter = JunjoOtelExporter(
+        #     host="ingestion",
+        #     port="26155",
+        #     api_key=JUNJO_AI_STUDIO_API_KEY,
+        #     insecure=True,
+        # )
 
-        # Add traces and metrics to your OpenTelemetry providers
+        # Add Junjo AI Studio trace export to your tracer provider
         tracer_provider = TracerProvider(resource=resource)
-        tracer_provider.add_span_processor(junjo_exporter_local.span_processor)
+        tracer_provider.add_span_processor(junjo_exporter.span_processor)
         trace.set_tracer_provider(tracer_provider)
-
-        meter_provider = MeterProvider(
-            resource=resource,
-            metric_readers=[junjo_exporter_local.metric_reader],
-        )
-        metrics.set_meter_provider(meter_provider)
 
         # On application shutdown:
         tracer_provider.shutdown()
-        meter_provider.shutdown()
 
     .. rubric:: Production Deployment
 
@@ -93,8 +90,7 @@ class JunjoOtelExporter:
 
         import os
         from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-        from opentelemetry import metrics, trace
-        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry import trace
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
 
@@ -109,20 +105,13 @@ class JunjoOtelExporter:
             insecure=False,  # TLS enabled
         )
 
-        # Add traces and metrics to your OpenTelemetry providers
+        # Add Junjo AI Studio trace export to your tracer provider
         tracer_provider = TracerProvider(resource=resource)
         tracer_provider.add_span_processor(junjo_exporter_prod.span_processor)
         trace.set_tracer_provider(tracer_provider)
 
-        meter_provider = MeterProvider(
-            resource=resource,
-            metric_readers=[junjo_exporter_prod.metric_reader],
-        )
-        metrics.set_meter_provider(meter_provider)
-
         # On application shutdown:
         tracer_provider.shutdown()
-        meter_provider.shutdown()
     """
 
     def __init__(
@@ -149,47 +138,29 @@ class JunjoOtelExporter:
         exporter_headers = (("x-junjo-api-key", self._api_key),)
 
         # Set OTLP Span Exporter for Junjo AI Studio
-        oltp_exporter = OTLPSpanExporter(
+        otlp_exporter = OTLPSpanExporter(
             endpoint=self._endpoint,
             insecure=self._insecure,
             headers=exporter_headers,
-            timeout=120
+            timeout=120,
         )
-        self._span_processor = BatchSpanProcessor(oltp_exporter)
-
-        # --- Add Metric Reader ---
-        self._metric_reader = PeriodicExportingMetricReader(
-            OTLPMetricExporter(
-                endpoint=self._endpoint,
-                insecure=self._insecure,
-                headers=exporter_headers,
-            )
-        )
+        self._span_processor = BatchSpanProcessor(otlp_exporter)
 
     @property
     def span_processor(self) -> BatchSpanProcessor:
         """Returns the configured span processor."""
         return self._span_processor
 
-    @property
-    def metric_reader(self) -> PeriodicExportingMetricReader:
-        """Returns the configured metric reader."""
-        return self._metric_reader
-
-    def shutdown(self, timeout_millis: float = 30000) -> bool:
+    def shutdown(self) -> bool:
         """
-        Shut down the Junjo-owned telemetry components.
+        Shut down the Junjo-owned span processor.
 
         In most applications, the preferred terminal lifecycle is to shut down
-        the owning ``TracerProvider`` and ``MeterProvider``. This helper is
-        provided for cases where you need to shut down only the Junjo-owned
-        span processor and metric reader directly.
+        the owning ``TracerProvider``. This helper is provided for cases where
+        you need to shut down only the Junjo-owned span processor directly.
 
-        :param timeout_millis: Maximum time to wait for metric reader shutdown
-                               in milliseconds. Defaults to ``30000``.
-        :type timeout_millis: float
-        :returns: ``True`` if both components shut down cleanly, ``False`` if
-                  either shutdown path raises. Failures are logged through the
+        :returns: ``True`` if the span processor shuts down cleanly, ``False``
+                  if shutdown raises. Failures are logged through the
                   ``junjo.telemetry`` logger.
         :rtype: bool
         """
@@ -207,39 +178,36 @@ class JunjoOtelExporter:
                 exc_info=True,
             )
 
-        try:
-            self._metric_reader.shutdown(timeout_millis=timeout_millis)
-        except Exception:
-            success = False
-            logger.warning(
-                "Failed to shut down the Junjo metric reader for endpoint %s.",
-                self._endpoint,
-                extra=exporter_log_extra,
-                exc_info=True,
-            )
-
         return success
 
     def flush(self, timeout_millis: float = 120000) -> bool:
         """
-        Force a manual drain of pending telemetry.
+        Request a manual drain of pending local telemetry.
 
-        This method blocks until pending telemetry is exported or the timeout is
-        reached. Use it only when you need an immediate manual export, such as
-        in tests, short-lived scripts, or other environments where the normal
-        provider shutdown lifecycle is not the right fit.
+        Use it only when a short-lived script or test needs to ask the local
+        batch processor to drain before normal provider shutdown.
 
-        In normal applications, shut down the owning ``TracerProvider`` and
-        ``MeterProvider`` instead of using :meth:`flush` as the standard exit
-        path.
+        OpenTelemetry's batch processor does not propagate collector acceptance
+        or durability through ``force_flush()``. A ``True`` result therefore
+        confirms only that the processor reported its local drain complete; it
+        is not proof that Studio accepted or persisted the spans. Verify remote
+        delivery through Studio's query APIs when that guarantee matters. The
+        installed OpenTelemetry processor may also apply its timeout as a best-
+        effort budget rather than a strict deadline.
 
-        :param timeout_millis: Maximum time to wait for flush in milliseconds.
-                               Defaults to 120000ms (120 seconds) to match the
-                               exporter timeout and allow for retries.
+        In normal applications, shut down the owning ``TracerProvider`` instead
+        of using :meth:`flush` as the standard exit path.
+
+        :param timeout_millis: Best-effort local processor budget requested for
+                               the drain, in milliseconds. The installed
+                               OpenTelemetry processor may not enforce it as a
+                               strict deadline. Defaults to 120000ms (120
+                               seconds).
         :type timeout_millis: float
-        :returns: ``True`` if all telemetry was flushed successfully, ``False``
-                  otherwise. Failures are logged through the
-                  ``junjo.telemetry`` logger.
+        :returns: ``True`` if the span processor reports its local drain
+                  complete, ``False`` if it refuses or raises. This does not
+                  attest collector acceptance. Surfaced failures are logged
+                  through the ``junjo.telemetry`` logger.
         :rtype: bool
         """
         success = True
@@ -258,24 +226,6 @@ class JunjoOtelExporter:
             success = False
             logger.warning(
                 "Failed to force-flush the Junjo span processor for endpoint %s.",
-                self._endpoint,
-                extra=exporter_log_extra,
-                exc_info=True,
-            )
-
-        # Flush metric reader
-        try:
-            if not self._metric_reader.force_flush(timeout_millis):
-                success = False
-                logger.warning(
-                    "Junjo metric reader force_flush returned false for endpoint %s.",
-                    self._endpoint,
-                    extra=exporter_log_extra,
-                )
-        except Exception:
-            success = False
-            logger.warning(
-                "Failed to force-flush the Junjo metric reader for endpoint %s.",
                 self._endpoint,
                 extra=exporter_log_extra,
                 exc_info=True,

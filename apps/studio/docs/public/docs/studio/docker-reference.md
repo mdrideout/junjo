@@ -31,7 +31,7 @@ The backend service provides the HTTP API, authentication, and query capabilitie
 
 **Image:** [mdrideout/junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)
 
-The ingestion service provides high-throughput OpenTelemetry data reception using a segmented Arrow IPC write-ahead log (WAL) that flushes to date-partitioned Parquet files (constant memory flush).
+The ingestion service provides high-throughput OpenTelemetry trace reception using a segmented Arrow IPC write-ahead log (WAL) that flushes to date-partitioned Parquet files (constant memory flush).
 
 **Ports:**
 
@@ -40,7 +40,7 @@ The ingestion service provides high-throughput OpenTelemetry data reception usin
 
 **Notes:**
 
-- This is the primary endpoint where your Junjo workflows send telemetry
+- This is the primary endpoint where your Junjo workflows send trace telemetry
 - Uses segmented Arrow IPC WAL for durability and throughput
 - Flushes WAL → Parquet and maintains a bounded list of recently flushed Parquet paths for query bridging
 - Reuses successful API-key validation for a short fixed interval (10 seconds

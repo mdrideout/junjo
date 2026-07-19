@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run all backend tests including gRPC integration tests
+# Run the complete backend test collection, including gRPC integration tests.
 #
 # Usage:
 #   From backend directory:  ./scripts/run-backend-tests.sh
@@ -21,25 +21,9 @@ echo "Using temp databases:"
 echo "  SQLite: $JUNJO_SQLITE_PATH"
 echo
 
-# Track test results
-UNIT_RESULT=0
-INTEGRATION_RESULT=0
-GRPC_RESULT=0
-
-# Run unit tests (no server needed)
-echo "=== Unit Tests ==="
-uv run pytest -m "unit" -v || UNIT_RESULT=$?
-echo
-
-# Run integration tests without gRPC (no server needed)
-echo "=== Integration Tests (no gRPC) ==="
-uv run pytest -m "integration and not requires_grpc_server" -v || INTEGRATION_RESULT=$?
-echo
-
-# Run gRPC integration tests (requires server)
-echo "=== gRPC Integration Tests ==="
-
-# Check if required ports are available
+# Some gRPC fixtures bind this fixed test port. Check it before starting the
+# single complete pytest run so an occupied port cannot produce a confusing
+# partial failure late in the suite.
 PORT_50053_PID=$(lsof -ti :50053 2>/dev/null || true)
 
 if [ -n "$PORT_50053_PID" ]; then
@@ -62,8 +46,6 @@ if [ -n "$PORT_50053_PID" ]; then
             ;;
         s|S)
             echo "Skipping gRPC tests..."
-            GRPC_RESULT=0  # Mark as passed (skipped)
-            # Jump to summary by setting a flag
             SKIP_GRPC=1
             ;;
         *)
@@ -73,48 +55,29 @@ if [ -n "$PORT_50053_PID" ]; then
     esac
 fi
 
-if [ "${SKIP_GRPC:-0}" != "1" ]; then
-    echo "Running gRPC tests..."
-    # We DO NOT start uvicorn here. The tests use the grpc_server_for_tests fixture
-    # in backend/app/features/internal_auth/conftest.py to start an in-process
-    # gRPC server that shares the isolated test database.
-    #
-    # If we started uvicorn here, it would use a different database connection
-    # than the test fixture, causing tests to fail because they couldn't find
-    # data (like API keys) that they just inserted into the fixture's DB.
-    uv run pytest -m "requires_grpc_server" -v || GRPC_RESULT=$?
+TEST_RESULT=0
+if [ "${SKIP_GRPC:-0}" = "1" ]; then
+    uv run pytest -m "not requires_grpc_server" -v || TEST_RESULT=$?
+else
+    uv run pytest -v || TEST_RESULT=$?
 fi
 
-# Summary
 echo
 echo "=========================================="
 echo "Test Results Summary:"
 echo "=========================================="
-echo "Unit tests:        $([ $UNIT_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
-echo "Integration tests: $([ $INTEGRATION_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+echo "Backend collection: $([ $TEST_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
 if [ "${SKIP_GRPC:-0}" = "1" ]; then
-    echo "gRPC tests:        ⏭ SKIPPED (ports in use)"
+    echo "gRPC tests:         ⏭ SKIPPED (ports in use)"
 else
-    echo "gRPC tests:        $([ $GRPC_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+    echo "gRPC tests:         included"
 fi
 echo "=========================================="
 
-# Exit with error if critical tests failed
-# (gRPC failures only count if tests were actually run)
-if [ $UNIT_RESULT -ne 0 ]; then
-    echo "❌ Critical tests failed"
+if [ $TEST_RESULT -ne 0 ]; then
+    echo "❌ Backend tests failed"
     exit 1
 fi
 
-if [ $INTEGRATION_RESULT -ne 0 ]; then
-    echo "❌ Critical tests failed"
-    exit 1
-fi
-
-if [ "${SKIP_GRPC:-0}" != "1" ] && [ $GRPC_RESULT -ne 0 ]; then
-    echo "❌ Critical tests failed"
-    exit 1
-fi
-
-echo "✓ All critical tests passed!"
+echo "✓ Backend test collection passed!"
 exit 0

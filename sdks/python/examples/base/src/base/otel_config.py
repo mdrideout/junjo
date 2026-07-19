@@ -3,8 +3,7 @@ import os
 
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
-from opentelemetry import metrics, trace
-from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 
@@ -13,15 +12,14 @@ logger = logging.getLogger(__name__)
 
 def init_otel(
     service_name: str,
-) -> tuple[TracerProvider, MeterProvider] | None:
-    """Configure OpenTelemetry for this application and return the providers."""
+) -> TracerProvider | None:
+    """Configure OpenTelemetry trace export and return the owning provider."""
 
     # Load the JUNJO_AI_STUDIO_API_KEY from the environment variable
     JUNJO_AI_STUDIO_API_KEY = os.getenv("JUNJO_AI_STUDIO_API_KEY")
     if JUNJO_AI_STUDIO_API_KEY is None:
         logger.warning(
-            "JUNJO_AI_STUDIO_API_KEY environment variable is not set. "
-            "Generate a new API key in the Junjo AI Studio UI."
+            "JUNJO_AI_STUDIO_API_KEY environment variable is not set. Generate a new API key in the Junjo AI Studio UI."
         )
         return None
 
@@ -48,17 +46,8 @@ def init_otel(
     tracer_provider.add_span_processor(junjo_ai_studio_exporter.span_processor)
     trace.set_tracer_provider(tracer_provider)
 
-    # Set up metrics
-    #    - Construct with the Junjo metric reader
-    #    - Add more metric readers if desired
-    junjo_metric_reader = junjo_ai_studio_exporter.metric_reader
-    meter_provider = MeterProvider(
-        resource=resource, metric_readers=[junjo_metric_reader]
-    )
-    metrics.set_meter_provider(meter_provider)
-
     # Instrument OpenInference Libraries
     # Google genai
     GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
-    return tracer_provider, meter_provider
+    return tracer_provider

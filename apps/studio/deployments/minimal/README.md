@@ -91,10 +91,10 @@ Junjo AI Studio consists of three Docker services:
 - **junjo-ai-studio-ingestion**
   - **OTLP gRPC Port:** 26155
   - **Internal Port:** 50052 (gRPC for span reading - Docker network only)
-  - High-throughput gRPC service for receiving OpenTelemetry data
+  - High-throughput gRPC service for receiving OpenTelemetry traces
   - Uses Arrow IPC WAL segments and flushes to Parquet for durable cold storage
   - Provides internal gRPC for hot snapshot preparation
-  - Your Python applications send telemetry to this service (e.g., `https://grpc.junjo.example.com`)
+  - Your Python applications send trace telemetry to this service (e.g., `https://grpc.junjo.example.com`)
 
 **Security Note:** Internal ports (50052, 50053) are only accessible within the Docker network and are not exposed to the host machine. This ensures secure service-to-service communication.
 
@@ -158,13 +158,13 @@ Junjo AI Studio consists of three Docker services:
 
 5. Configure your Junjo Python application's exporter:
    ```python
-   from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+   from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
-   junjo_exporter = JunjoOtelExporter(
-       host="localhost",
-       port="26155",
-       api_key=JUNJO_AI_STUDIO_API_KEY,
+   studio_exporter = OTLPSpanExporter(
+       endpoint="localhost:26155",
+       headers=(("x-junjo-api-key", JUNJO_AI_STUDIO_API_KEY),),
        insecure=True,
+       timeout=120,
    )
    ```
 
@@ -195,11 +195,13 @@ Choose the deployment scenario that matches your infrastructure:
 
 **Python Configuration:**
 ```python
-junjo_exporter = JunjoOtelExporter(
-    host="junjo-ai-studio-ingestion",  # Docker service name
-    port="26155",                       # OTLP gRPC port
-    api_key=JUNJO_AI_STUDIO_API_KEY,
-    insecure=True,                      # No TLS needed on internal network
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+studio_exporter = OTLPSpanExporter(
+    endpoint="junjo-ai-studio-ingestion:26155",
+    headers=(("x-junjo-api-key", JUNJO_AI_STUDIO_API_KEY),),
+    insecure=True,
+    timeout=120,
 )
 ```
 
@@ -228,11 +230,13 @@ junjo_exporter = JunjoOtelExporter(
 
 **Python Configuration:**
 ```python
-junjo_exporter = JunjoOtelExporter(
-    host="ingestion.junjo.example.com",   # Your domain
-    port="443",                       		# HTTPS port
-    api_key=JUNJO_AI_STUDIO_API_KEY,
-    insecure=False,                   		# TLS enabled
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+studio_exporter = OTLPSpanExporter(
+    endpoint="ingestion.junjo.example.com:443",
+    headers=(("x-junjo-api-key", JUNJO_AI_STUDIO_API_KEY),),
+    insecure=False,
+    timeout=120,
 )
 ```
 
@@ -401,6 +405,10 @@ For a complete working example with Caddy bundled, see the [Junjo AI Studio Depl
 
 [Junjo's Python library](https://junjo.ai/docs/python/) uses OpenTelemetry to send structured AI graph workflow execution spans to Junjo AI Studio or any other OpenTelemetry destination.
 
+Junjo AI Studio currently accepts OTLP traces only. The configuration below
+creates no metric reader or periodic metric-export worker. An application can
+configure an independent metrics pipeline for another OpenTelemetry destination.
+
 The configuration differs based on your [deployment scenario](#deployment-scenarios). Choose the appropriate configuration below:
 
 ### Full Example
@@ -408,15 +416,15 @@ The configuration differs based on your [deployment scenario](#deployment-scenar
 ```python
 import os
 
-from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-from opentelemetry import metrics, trace
-from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 def setup_telemetry():
-    """Set up OpenTelemetry providers for the application."""
+    """Set up OpenTelemetry trace export for the application."""
     api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
     if api_key is None:
         raise RuntimeError("JUNJO_AI_STUDIO_API_KEY is not set")
@@ -424,28 +432,22 @@ def setup_telemetry():
     resource = Resource.create({"service.name": "My Junjo Application"})
 
     # The Junjo AI Studio service name on the same Compose network
-    junjo_exporter = JunjoOtelExporter(
-        host="junjo-ai-studio-ingestion",  # Junjo AI Studio ingestion on the shared Docker network
-        port="26155",
-        api_key=api_key,
+    studio_exporter = OTLPSpanExporter(
+        endpoint="junjo-ai-studio-ingestion:26155",
+        headers=(("x-junjo-api-key", api_key),),
         insecure=True,
+        timeout=120,
     )
 
     tracer_provider = TracerProvider(resource=resource)
-    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+    tracer_provider.add_span_processor(BatchSpanProcessor(studio_exporter))
     trace.set_tracer_provider(tracer_provider)
 
-    meter_provider = MeterProvider(
-        resource=resource,
-        metric_readers=[junjo_exporter.metric_reader],
-    )
-    metrics.set_meter_provider(meter_provider)
-
-    return tracer_provider, meter_provider
+    return tracer_provider
 ```
 
-Keep the returned providers for the application's lifetime, then call
-`tracer_provider.shutdown()` and `meter_provider.shutdown()` during application shutdown.
+Keep the returned tracer provider for the application's lifetime, then call
+`tracer_provider.shutdown()` during application shutdown.
 
 For a complete end-to-end example, see the [Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example).
 

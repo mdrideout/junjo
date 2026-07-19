@@ -4,7 +4,7 @@
 # This script runs:
 #   0. Proto tool version checking (warns if mismatch)
 #   1. Python linting and formatting (ruff check + format check)
-#   2. Backend tests (unit, integration, gRPC)
+#   2. Complete backend pytest collection (including gRPC)
 #   3. Ingestion tests (Rust)
 #   4. Frontend tests, lint, and production build
 #   5. Contract tests (frontend ↔ backend schema validation)

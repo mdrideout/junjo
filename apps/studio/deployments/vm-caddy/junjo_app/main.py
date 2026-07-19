@@ -77,12 +77,10 @@ def create_app_workflow():
 # --- Main Execution Loop ---
 async def main():
     """Runs the workflow in a loop to continuously generate telemetry."""
-    telemetry_providers = setup_telemetry()
-    while telemetry_providers is None:
+    tracer_provider = setup_telemetry()
+    while tracer_provider is None:
         await asyncio.sleep(30)
-        telemetry_providers = setup_telemetry()
-
-    tracer_provider, meter_provider = telemetry_providers
+        tracer_provider = setup_telemetry()
 
     try:
         logger.info("Starting Junjo application...")
@@ -94,7 +92,6 @@ async def main():
             await asyncio.sleep(5)
     finally:
         tracer_provider.shutdown()
-        meter_provider.shutdown()
 
 
 if __name__ == "__main__":

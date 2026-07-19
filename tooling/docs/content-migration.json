@@ -903,7 +903,7 @@
       "disposition": "migrated",
       "target_path": "apps/studio/docs/public/docs/studio/overview.md",
       "target_route": "/docs/studio/overview/",
-      "target_hash": "sha256:dc5c7b98313480ff85a7af25a911b3d052b322faa8c16ead865981d8c2dbb2c2",
+      "target_hash": "sha256:99abd3030e9b53352b4c1312291b685b1d34700a004a045b965867ee3c767d58",
       "status": "retired-source",
       "headings": [
         {
@@ -1173,7 +1173,7 @@
       "disposition": "migrated",
       "target_path": "apps/studio/docs/public/docs/studio/docker-reference.md",
       "target_route": "/docs/studio/docker-reference/",
-      "target_hash": "sha256:2bb4b52892a4a1a5b027dc4a9f5d6d2c0261f19a2cb265542b11a5fecfbe9371",
+      "target_hash": "sha256:9796d8ae342990883e1cb26adfd9e5ef09dbe020a7eabbc2c06f1b9b3e37e7d1",
       "status": "retired-source",
       "headings": [
         {
@@ -1446,7 +1446,7 @@
       "disposition": "migrated",
       "target_path": "sdks/python/docs/content/docs/observability/opentelemetry.md",
       "target_route": "/docs/observability/opentelemetry/",
-      "target_hash": "sha256:4ade32549a5b9207491666ef7ed5b2cb7ea11bc89a2edc0df793d428e36442ae",
+      "target_hash": "sha256:c3e4436ab6e615817dcc22e6cfc0cf75c80455ce6da615d572738c7dec0648ec",
       "status": "retired-source",
       "headings": [
         {

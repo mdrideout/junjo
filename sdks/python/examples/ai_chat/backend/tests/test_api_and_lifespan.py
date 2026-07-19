@@ -543,46 +543,33 @@ async def test_lifespan_shuts_down_telemetry_when_application_cleanup_fails(
     ]
 
 
-def test_telemetry_runtime_shuts_down_both_providers_when_flush_fails() -> None:
+def test_telemetry_runtime_shuts_down_trace_provider_when_flush_fails() -> None:
     events: list[str] = []
     trace_provider = RecordingProvider(
         events,
         name="trace",
         flush_error=RuntimeError("flush failed"),
     )
-    meter_provider = RecordingProvider(events, name="meter")
-    runtime = TelemetryRuntime(
-        trace_provider=trace_provider,
-        meter_provider=meter_provider,
-    )
+    runtime = TelemetryRuntime(trace_provider=trace_provider)
 
     with pytest.raises(RuntimeError, match="flush failed"):
         runtime.shutdown()
 
     assert events == [
         "trace-force-flush",
-        "meter-force-flush",
         "trace-shutdown",
-        "meter-shutdown",
     ]
 
 
-def test_telemetry_runtime_preserves_both_cleanup_failures() -> None:
+def test_telemetry_runtime_preserves_flush_and_shutdown_failures() -> None:
     events: list[str] = []
     trace_provider = RecordingProvider(
         events,
         name="trace",
         flush_error=RuntimeError("flush failed"),
-    )
-    meter_provider = RecordingProvider(
-        events,
-        name="meter",
         shutdown_error=RuntimeError("shutdown failed"),
     )
-    runtime = TelemetryRuntime(
-        trace_provider=trace_provider,
-        meter_provider=meter_provider,
-    )
+    runtime = TelemetryRuntime(trace_provider=trace_provider)
 
     with pytest.raises(ExceptionGroup) as caught:
         runtime.shutdown()
@@ -593,9 +580,7 @@ def test_telemetry_runtime_preserves_both_cleanup_failures() -> None:
     ]
     assert events == [
         "trace-force-flush",
-        "meter-force-flush",
         "trace-shutdown",
-        "meter-shutdown",
     ]
 
 
@@ -605,7 +590,7 @@ def test_real_telemetry_runtime_leaves_no_export_worker_threads() -> None:
         import json
         import threading
 
-        from opentelemetry import metrics, trace
+        from opentelemetry import trace
 
         from ai_chat.config import TelemetrySettings
         from ai_chat.telemetry import start_telemetry
@@ -626,10 +611,7 @@ def test_real_telemetry_runtime_leaves_no_export_worker_threads() -> None:
             thread.name for thread in threading.enumerate()
             if thread.name in worker_names
         )
-        providers_installed = (
-            trace.get_tracer_provider() is runtime.trace_provider
-            and metrics.get_meter_provider() is runtime.meter_provider
-        )
+        providers_installed = trace.get_tracer_provider() is runtime.trace_provider
         runtime.shutdown()
         remaining = sorted(
             thread.name for thread in threading.enumerate()
@@ -651,43 +633,29 @@ def test_real_telemetry_runtime_leaves_no_export_worker_threads() -> None:
     result = json.loads(completed.stdout.strip())
     assert result == {
         "providers_installed": True,
-        "started": [
-            "OtelBatchSpanRecordProcessor",
-            "OtelPeriodicExportingMetricReader",
-        ],
+        "started": ["OtelBatchSpanRecordProcessor"],
         "remaining": [],
     }
 
 
-@pytest.mark.parametrize("preinstalled_provider", ["trace", "meter"])
-def test_telemetry_provider_conflict_is_rejected_before_any_global_or_worker_change(
-    preinstalled_provider: str,
-) -> None:
+def test_trace_provider_conflict_is_rejected_before_any_worker_change() -> None:
     program = textwrap.dedent(
-        f"""
+        """
         import json
         import threading
 
-        from opentelemetry import metrics, trace
-        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry import trace
         from opentelemetry.sdk.trace import TracerProvider
 
         from ai_chat.config import TelemetrySettings
         from ai_chat.telemetry import start_telemetry
 
-        worker_names = {{
+        worker_names = {
             "OtelBatchSpanRecordProcessor",
             "OtelPeriodicExportingMetricReader",
-        }}
-        preinstalled_provider = {preinstalled_provider!r}
-        if preinstalled_provider == "trace":
-            owned_provider = TracerProvider()
-            trace.set_tracer_provider(owned_provider)
-            untouched_before = metrics.get_meter_provider()
-        else:
-            owned_provider = MeterProvider()
-            metrics.set_meter_provider(owned_provider)
-            untouched_before = trace.get_tracer_provider()
+        }
+        owned_provider = TracerProvider()
+        trace.set_tracer_provider(owned_provider)
 
         conflict = False
         try:
@@ -700,22 +668,17 @@ def test_telemetry_provider_conflict_is_rejected_before_any_global_or_worker_cha
                 )
             )
         except RuntimeError as error:
-            conflict = str(error) == "OpenTelemetry providers are already installed"
+            conflict = str(error) == "OpenTelemetry tracer provider is already installed"
 
-        untouched_after = (
-            metrics.get_meter_provider()
-            if preinstalled_provider == "trace"
-            else trace.get_tracer_provider()
-        )
         workers = sorted(
             thread.name for thread in threading.enumerate()
             if thread.name in worker_names
         )
-        print(json.dumps({{
+        print(json.dumps({
             "conflict": conflict,
-            "untouched_same": untouched_after is untouched_before,
+            "provider_unchanged": trace.get_tracer_provider() is owned_provider,
             "workers": workers,
-        }}))
+        }))
         owned_provider.shutdown()
         """
     )
@@ -727,8 +690,58 @@ def test_telemetry_provider_conflict_is_rejected_before_any_global_or_worker_cha
     )
     assert json.loads(completed.stdout.strip()) == {
         "conflict": True,
-        "untouched_same": True,
+        "provider_unchanged": True,
         "workers": [],
+    }
+
+
+def test_preinstalled_meter_provider_is_left_owned_by_the_application() -> None:
+    program = textwrap.dedent(
+        """
+        import json
+        import threading
+
+        from opentelemetry import metrics
+        from opentelemetry.sdk.metrics import MeterProvider
+
+        from ai_chat.config import TelemetrySettings
+        from ai_chat.telemetry import start_telemetry
+
+        meter_provider = MeterProvider()
+        metrics.set_meter_provider(meter_provider)
+        runtime = start_telemetry(
+            TelemetrySettings(
+                api_key="test-key",
+                host="127.0.0.1",
+                port=1,
+                insecure=True,
+            )
+        )
+        meter_provider_unchanged = metrics.get_meter_provider() is meter_provider
+        runtime.shutdown()
+        remaining = sorted(
+            thread.name for thread in threading.enumerate()
+            if thread.name in {
+                "OtelBatchSpanRecordProcessor",
+                "OtelPeriodicExportingMetricReader",
+            }
+        )
+        meter_provider.shutdown()
+        print(json.dumps({
+            "meter_provider_unchanged": meter_provider_unchanged,
+            "remaining": remaining,
+        }))
+        """
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", program],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert json.loads(completed.stdout.strip()) == {
+        "meter_provider_unchanged": True,
+        "remaining": [],
     }
 
 

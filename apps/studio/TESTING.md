@@ -20,7 +20,8 @@ This document covers testing patterns and practices for Junjo AI Studio.
 
 ### Backend Tests (All Tests)
 
-Run all backend tests including gRPC integration tests:
+Run the complete backend test collection, including security, concurrency, and
+gRPC integration tests:
 
 ```bash
 cd backend
@@ -28,9 +29,9 @@ cd backend
 ```
 
 **What it does:**
-- Runs unit tests (fast, no external dependencies)
-- Runs integration tests (database tests without gRPC)
-- Runs gRPC integration tests (starts in-process gRPC server with isolated DB)
+- Runs the complete pytest collection once, including unmarked semantic and query tests
+- Includes unit, integration, security, concurrency, error-recovery, and gRPC tests
+- Uses pytest fixtures for isolated databases and the in-process gRPC service
 
 **Why use this script:**
 - Ensures all backend tests pass before committing
