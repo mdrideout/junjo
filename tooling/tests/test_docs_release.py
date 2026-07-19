@@ -118,11 +118,11 @@ class DocumentationReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "update tooling/docs/stable-releases.json"
         ):
-            self.validator.validate_release_tag("sdk-python-v0.66.0", self.manifest)
+            self.validator.validate_release_tag("sdk-python-v0.67.0", self.manifest)
 
     def test_production_promotion_accepts_only_owned_release_namespaces(self) -> None:
         accepted = (
-            "sdk-python-v0.65.0",
+            "sdk-python-v0.66.0",
             "studio-v0.82.0",
             "docs-release-20260715.1",
         )

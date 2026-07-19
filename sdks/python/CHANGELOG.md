@@ -4,6 +4,8 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+## 0.66.0 - 2026-07-18
+
 ### Breaking Changes
 
 - Made `JunjoOtelExporter` accurately trace-only for Junjo AI Studio and
