@@ -516,54 +516,72 @@ concurrency matrices. AI Chat does not duplicate those kernel tests.
 
 Horizon 2 restores application-owned live evals as a core AI Chat development
 practice. Horizon 3 builds platform-level measurement and comparison on top of
-that working eval-and-evidence loop.
+that working eval-and-evidence loop. The iterative source of truth for this
+horizon is the
+[Horizon 3 Queryable Evaluation System And Iterative MVP Plan](AGENT_LAYER_HORIZON_3_QUERYABLE_EVALUATION.md).
 
 #### Objective
 
-Make autonomous behavior measurable without weakening deterministic CI.
+Make complete execution evidence selectable, repeatable, comparable, and
+operable by developers and coding agents without weakening deterministic CI.
 
 #### Scope
 
-- opt-in live evaluation layout
-- initial tool-selection and response-quality datasets
-- model and prompt comparison workflow
-- deterministic score and report helpers where possible
-- links from evaluation results to exact execution and artifact evidence
-- explicit cost, latency, and quality comparison reports
+- labeled real-execution capture for dataset generation
+- historical, programmatically authored, entity-level, and end-to-end datasets
+- exact evidence anchors, projections, and immutable dataset versions
+- state-schema identity plus prompt, candidate, and evaluator provenance with
+  additional fingerprints where the vertical evidence proves they are required
+- application, dataset-generation, and evaluation traffic separation
+- application-executed Node, Agent, Workflow, and complete-flow evaluation
+- model and prompt comparison through every downstream trace effect
+- bounded semantic Studio APIs, a typed client, and agent access
+- deterministic and qualitative evaluators with exact evidence links
+- explicit quality, cost, latency, usage, and execution comparison
 
 #### Exit criteria
 
 - Live evals require explicit invocation and credentials.
 - Deterministic tests and probabilistic evals have separate commands and
   documentation.
-- Evaluation results identify the exact Agent structural ID, service version,
-  model identity, and dataset version.
+- Datasets can be built from historical evidence, literal authored cases, and
+  deliberate labeled executions.
+- Focused Node or model cases and complete Workflow or Agent flow cases retain
+  exact evidence and causal scope.
+- Evaluation results identify the exact dataset, case, candidate, prompt,
+  schema, executable, model, evaluator, and trace evidence available for that
+  run.
+- Application and evaluation-development traffic are distinct by default in
+  Studio.
+- A coding agent can retrieve a dataset, run a candidate through
+  application-owned code, and query the paired result and evidence.
 - Probabilistic results never become a required default CI gate.
 
-### Horizon 4: Agent-Queryable Evidence Plane
+### Horizon 4: Agent-Assisted Evidence Analysis
 
 #### Objective
 
-Allow agents and developers to query execution evidence semantically rather
-than reading physical span storage.
+Use Horizon 3's stable query, dataset, evaluation, and comparison primitives for
+deeper agent-assisted evidence analysis without granting change or promotion
+authority.
 
 #### Scope
 
-- execution search by workflow, agent, version, time, and outcome
-- execution-tree retrieval
-- state-timeline reconstruction
-- tool and model-call queries
-- representative success and failure sampling
-- evaluation datasets and cases
-- experiment records and version comparisons
-- programmatic Studio API and later MCP access where useful
+- multi-run semantic evidence analysis
+- representative success, failure, and boundary-case sampling
+- bounded cohort construction and comparison
+- state, model, Tool, route, cost, latency, and outcome pattern analysis
+- evidence-grounded evaluation-case and investigation proposals
+- richer aggregate and statistical summaries where measured value warrants it
 
 #### Exit criteria
 
-- An analysis agent can find a failure cohort and retrieve the evidence needed
-  to evaluate it.
+- An analysis agent can identify a meaningful cohort, explain the evidence,
+  and propose bounded dataset cases or an investigation using Horizon 3
+  contracts.
 - Studio remains the owner of physical telemetry storage and query mechanics.
-- Evaluation results link back to the exact execution and artifact versions.
+- Analysis remains read-oriented; candidate generation, automated iteration,
+  promotion, and rollback remain Horizon 7 responsibilities.
 
 ### Horizon 5: Versioned Object And Schema Substrate
 
