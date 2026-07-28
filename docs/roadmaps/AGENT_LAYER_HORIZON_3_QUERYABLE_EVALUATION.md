@@ -5,12 +5,19 @@
 - Owners: Junjo platform
 - Parent roadmap:
   [Junjo Agent Layer Strategy And Roadmap](AGENT_LAYER_ROADMAP.md)
+- Lean implementation sequence:
+  [Horizon 3 Evaluation Lean MVP Critical Path](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md)
 
 ## Document Role
 
 This document is the working source of truth for Horizon 3 planning. It turns
 the high-level Agent roadmap into an iterative implementation sequence that can
 be refined as real evaluation evidence exposes the required contracts.
+
+The separate Lean MVP plan owns the immediate implementation critical path.
+This document remains the north-star capability model and must not be treated
+as a requirement to implement every ideal-state contract before the first
+useful evaluation loop.
 
 This is not an accepted runtime or telemetry contract. Accepted ADRs continue
 to own implemented architecture. Before a Horizon 3 slice changes a shared SDK,
@@ -20,22 +27,27 @@ accepted in the owning ADR and implemented across every affected component.
 ## Product Thesis
 
 Horizon 3 makes Junjo AI Studio the queryable evidence and evaluation control
-plane for an open, application-executed evaluation loop:
+plane for an open, application-repository-executed evaluation loop:
 
 1. applications export OpenTelemetry traces and spans to Studio;
 2. developers and coding agents select historical evidence or author new cases;
 3. applications may deliberately execute a real Node, Agent, Workflow, or
    complete application flow to generate labeled dataset evidence;
 4. Studio organizes exact evidence references into immutable dataset versions;
-5. an open harness pulls those cases and executes candidate prompts, models,
-   Tools, Nodes, Agents, Workflows, or complete flows through the real Junjo
-   lifecycle;
-6. the supported evidence successfully exported and received returns to Studio
+5. a coding agent invokes a deterministic harness inside the source checkout
+   that owns the application, Junjo SDK dependency, providers, target
+   construction, and evaluators;
+6. that harness pulls cases and executes candidate prompts, models, Tools,
+   Nodes, Agents, Workflows, or complete flows through the real Junjo
+   lifecycle at a truthful source revision;
+7. the supported evidence successfully exported and received returns to Studio
    as clearly classified evaluation telemetry;
-7. Studio compares results and complete execution evidence from the changed
+8. Studio binds small evaluation-control records to exact semantic Junjo
+   execution identities;
+9. Studio compares results and complete execution evidence from the changed
    upstream prompt through every downstream consequence; and
-8. developers and coding agents query the evidence, revise the application, and
-   repeat.
+10. developers and coding agents query the evidence, revise the application,
+    and repeat.
 
 Studio already preserves received prompts, responses, state, Tool evidence,
 images or image references, and the supported trace hierarchy emitted by the
@@ -44,26 +56,23 @@ second trace store. Dataset and experiment records organize the canonical
 evidence already in Studio.
 
 ```text
-Real application runs --------------------+
-                                          |
-Deliberate dataset-generation runs -------+--> Studio trace evidence
-                                          |          |
-Programmatically authored literal cases --+          v
-                                             versioned datasets
-                                                    |
-                                                    v
-                                         application eval harness
-                                                    |
-                                      candidate execution + evaluators
-                                                    |
-                                                    v
-                                         labeled evaluation traces
-                                                    |
-                                                    v
-                                      result + end-to-end comparison
-                                                    |
-                                                    v
-                                          developer or coding agent
+Coding agent in application checkout
+        |
+        | edit/commit source + invoke deterministic harness
+        v
+Studio datasets -----> application target adapters -----> real Junjo execution
+     ^                            |                               |
+     |                            | result metadata               | OTLP
+     |                            v                               v
+     +---------------- Studio evaluation records <---- Studio trace evidence
+                                      |                         |
+                                      | semantic runtime link   |
+                                      +-------------------------+
+                                      |
+                                      v
+                         structured result/evidence queries
+                                      |
+                                      +----> next source candidate
 ```
 
 ## Horizon 3 Goals
@@ -76,6 +85,8 @@ Horizon 3 must:
   browser to run;
 - deliberately execute real application code to generate complete labeled
   evidence for a new dataset;
+- make the application repository, not Studio or the core SDK, the execution
+  host for candidate code and application-specific evaluators;
 - support focused entity datasets and complete end-to-end flow datasets;
 - preserve the causal relationship between an upstream prompt or model call and
   every downstream execution effect;
@@ -103,7 +114,9 @@ Horizon 3 does not add:
 - raw SQL, Parquet paths, or DataFusion plans as a public agent API;
 - a generalized distributed scheduler or case-leasing platform;
 - a vector database without a proven retrieval requirement;
-- automatic prompt editing, source modification, or promotion;
+- Studio-directed automatic prompt editing, source modification, or promotion
+  in the initial system; coding agents may edit ordinary application source
+  through the repository's existing development workflow;
 - probabilistic evaluation as a required default CI gate; or
 - a separate MCP query implementation with semantics that diverge from the
   Studio API.
@@ -794,13 +807,23 @@ full-trace cache.
 
 Programmatic Studio access is an API concern, not an import workflow. A coding
 agent uses a Studio programmatic credential to query evidence and manage
-datasets or evaluations. Existing browser sessions remain a human UI
-mechanism, and OTLP ingestion remains an ingestion boundary.
+datasets or evaluations. Existing browser sessions remain the durable human UI
+mechanism, and OTLP ingestion remains an ingestion boundary. The Lean local
+self-hosted proof may temporarily use the existing sign-in endpoint and an
+in-memory session cookie to avoid inventing a credential system before the API
+stabilizes. That exception is not the contract for remote or unattended coding
+agents, which require a separately scoped evaluation-control credential.
 
 ## Harness Ownership
 
 Studio cannot instantiate arbitrary application dependencies from telemetry.
-The application-side runner owns:
+The application repository is therefore the execution host. A coding agent
+operates in a concrete checkout whose source revision, Junjo SDK dependency,
+provider configuration, application types, and tests collectively define the
+candidate. Studio is not a scheduler, source host, prompt injector, or remote
+Python executor.
+
+The application-side deterministic harness owns:
 
 - decoding a dataset case into executable input or state;
 - constructing the selected candidate's providers, dependencies, Stores,
@@ -815,15 +838,94 @@ generalized plugin framework. After both a Node re-execution and a complete
 Workflow re-execution work, Junjo may extract only the common public protocols
 demonstrated by real repetition.
 
-Potential later protocols include a dataset provider, target runner, evaluator,
-result recorder, and Studio adapter. Their names and package ownership remain
-open until the vertical proof.
+The application harness has two independent connections to Studio:
+
+- a bounded authenticated REST connection for dataset, run, attempt, result,
+  execution-resolution, and evidence-query operations; and
+- the existing OTLP exporter connection for complete trace and span evidence.
+
+The REST connection never uploads trace payloads. The OTLP connection never
+gains dataset or control-plane authority.
+
+For the Lean MVP, AI Chat needs only:
+
+- a thin `StudioEvaluationClient` for REST DTOs and authentication;
+- an `application_key`, explicit `target_key`, and `input_version` dispatch
+  contract;
+- two target adapters behind an application-owned map;
+- a sequential resumable runner; and
+- a dataset-generation operation that reuses those same adapters.
+
+Core `junjo` remains responsible for application execution and telemetry. It
+does not own Studio credentials, dataset DTOs, target discovery, application
+composition, evaluators, or result recording. If a second application proves
+transport repetition, the first extraction candidate is a separate
+Studio-owned typed client distribution, not an expansion of the core Junjo
+runtime. Application adapters and evaluators remain application code.
+
+## Application-Repository Agent Loop
+
+The operational coding-agent loop is:
+
+1. select a locked Studio dataset owned by the application;
+2. check out a clean committed source revision;
+3. invoke the application-owned eval command with the dataset key, candidate
+   label, and captured revision;
+4. receive exact case definitions and pre-created attempt IDs;
+5. validate and execute each unbound case through the real application target;
+6. bind each trustworthy runtime ID to its attempt, then record the evaluator
+   outcome;
+7. query the completed run and selected `TraceEvidence`;
+8. edit and test application source in the normal repository workflow;
+9. commit the candidate; and
+10. rerun the same locked dataset for paired comparison.
+
+Studio data becomes identifiable and queryable through this minimum identity
+chain:
+
+```text
+(application_key, dataset_key)
+        -> (case_id, target_key, input_version, evaluator_key, evaluator_version)
+        -> (run_id, candidate_label, source_revision)
+        -> attempt_id
+        -> (service_namespace, service_name, executable_type, runtime_id)
+        -> execution resolution
+        -> trace_id
+        -> complete received TraceEvidence
+```
+
+Generated cases additionally pair their source execution tuple with the clean
+application revision that produced it. Evaluator key/version belongs to the
+locked case so baseline and candidate outcomes cannot silently use different
+judgment contracts.
+
+The attempt-to-execution binding is canonical control metadata in `junjo.db`.
+The semantic execution tuple is stored as indexed scalar fields so Studio can
+query in both directions: from a run or attempt to evidence, and from an exact
+runtime identity back to dataset/run membership. Trace payloads remain only in
+the existing evidence plane.
+
+Binding happens immediately after a runtime ID becomes available and before a
+judge runs. It is a separate idempotent operation from recording a terminal
+outcome. This avoids losing the execution link when judging or result
+submission fails, without adding an evaluation attribute to every span or a
+new ingestion-side join. On resume, an already bound attempt is never
+re-executed; if it still lacks a result, the stopped runner is recorded as an
+interrupted error and a new evaluation run is the retry boundary.
 
 ## Coding-Agent Interface
 
-The semantic REST API is the source contract. A typed Python client and CLI
-provide ordinary developer ergonomics. MCP, added later within Horizon 3, is a
-thin adapter over the same operations.
+The semantic REST API is the source contract. For the Lean MVP, the required
+coding-agent surface is the AI Chat-owned import surface and command executed
+from the AI Chat checkout. It wraps a small local Studio REST client and calls
+real application target adapters. It is not a generalized Junjo CLI and is not
+part of the core SDK.
+
+After the loop works in a second application, a typed Studio Python client and
+general CLI may provide shared transport ergonomics. MCP, added later within
+Horizon 3, is a thin adapter over those same API operations. The client, CLI,
+and MCP move control data and query evidence; they never replace the
+application-side target runner.
 
 A coding agent should ultimately be able to:
 
@@ -843,16 +945,24 @@ A coding agent should ultimately be able to:
 Compact projections exist for query cost and coding-agent context efficiency.
 They are views over canonical received evidence, never substitutes for it.
 
-## Iterative MVP Sequence
+## North-Star Capability Sequence
 
-Horizon 3 follows a corpus-first, contracts-second implementation strategy.
-Each slice must produce inspectable evidence and answer a decision gate before
-the next shared abstraction is accepted.
+The Lean MVP plan owns the immediate implementation order: ownership ADR,
+headless application-repository walking skeleton, then complete Workflow
+candidate comparison and the minimal Studio view. That working loop produces
+the corpus evidence needed to make later abstractions honestly.
+
+The H3.x sections below describe north-star capability gates, not a competing
+backlog and not prerequisites that must all precede the Lean walking skeleton.
+Where the old corpus-first sequence conflicts with the Lean slices, the Lean
+sequence wins. Every later gate must still produce inspectable evidence before
+it authorizes a shared SDK, telemetry, ingestion, or generalized-harness
+contract.
 
 ### H3.1: Labeled Evidence Corpus
 
-Use current public execution paths to generate a small deliberate AI Chat
-corpus:
+Use the Lean application-repository harness and current public execution paths
+to extend a small deliberate AI Chat corpus:
 
 - directive-selection Node cases through `evaluate_node()`;
 - date-response Node cases;
@@ -861,10 +971,12 @@ corpus:
   branches; and
 - approximately 8–12 local-place realism cases.
 
-Run the current baseline and one prompt-only candidate. Wrap each case in an
-application-owned evaluation root span and run it from a dedicated evaluation
-process/resource. This discovery slice must not change the shared Junjo
-telemetry contract.
+Run the current baseline and one prompt-only candidate from clean committed
+AI Chat revisions. Bind every returned semantic runtime identity to its
+pre-created Studio attempt and run from a dedicated evaluation
+process/resource. An application-owned evaluation root span may be prototyped
+for discovery, but is not required by the Lean control-record association and
+must not silently become a shared Junjo telemetry contract.
 
 Exit evidence:
 
@@ -885,10 +997,11 @@ Decision gate:
 
 ### H3.2: Two Concrete Dataset Shapes
 
-Model two immutable dataset versions from the corpus using explicit
-application-owned manifests and current Studio trace retrieval. This is a
-contract prototype, not the permanent Studio persistence or API
-implementation.
+Extend the canonical persisted Lean dataset with two richer shapes using
+explicit application-owned projections and current Studio trace retrieval.
+These additions prototype later entity membership and projection contracts;
+they do not replace or postpone the already-proven Dataset, Case, Run, Attempt,
+and execution-binding persistence.
 
 Entity dataset:
 
@@ -940,8 +1053,10 @@ Use H3.1 and H3.2 evidence to accept:
 - generated evidence set and subject-root semantics;
 - dataset case, anchor, projection, membership-rule, and optional bounded
   manifest contracts;
+- application-owned evaluator key/version identity without a Studio evaluator
+  DSL;
 - minimum candidate provenance;
-- result authority and reconciliation semantics; and
+- the Lean result authority and reconciliation semantics; and
 - Studio control metadata versus rebuildable evidence-index ownership.
 
 State-schema identity is an explicit Horizon 3 requirement. H3.3 accepts the
@@ -966,23 +1081,27 @@ Exit evidence:
 - documented payload, artifact, and index ownership; and
 - an explicit decision on telemetry contract versioning.
 
-### H3.4: Minimal Dataset API And AI Chat Runner
+### H3.4: Consolidate The Proven Dataset API And AI Chat Runner
 
-Implement the smallest programmatic loop:
+Consolidate the smallest programmatic loop first delivered by the Lean slices:
 
-1. retrieve one immutable dataset version;
-2. construct fresh AI Chat dependencies;
-3. execute the date-response Node through `evaluate_node()`;
-4. execute the complete Turn Workflow without starting FastAPI or the
-   frontend;
-5. label the candidate execution;
-6. run deterministic and qualitative evaluators; and
-7. link every case outcome to all received Studio evidence.
+1. invoke the runner from a clean, committed AI Chat checkout;
+2. retrieve one immutable dataset and its pre-created attempts;
+3. construct fresh AI Chat dependencies;
+4. execute the date-response Node through `evaluate_node()`;
+5. execute the complete Turn Workflow through its real isolated application
+   entry point without starting FastAPI or the frontend;
+6. bind the exact semantic execution identity before judging;
+7. run deterministic and qualitative evaluators;
+8. record the result; and
+9. resolve selected attempts to all received Studio evidence.
 
-This slice also ships the minimum run-class index/filter and default
-Application, Dataset Generation, and Evaluation views. A released runner must
-not pollute ordinary application views while richer experiment grouping is
-still under construction.
+The Lean MVP uses a dedicated evaluation service scope plus canonical Studio
+attempt membership and does not require a new run-class telemetry contract.
+This later consolidation gate may ship a shared run-class index/filter and
+default Application, Dataset Generation, and Evaluation views only if the
+working corpus demonstrates that resource separation and control records are
+insufficient.
 
 Do not introduce a plugin registry, evaluator DSL, generalized re-execution
 engine, or cross-language harness in this slice.
@@ -990,11 +1109,13 @@ engine, or cross-language harness in this slice.
 Exit evidence:
 
 - one command runs both entity and end-to-end cases;
+- a stopped command resumes the same run without re-executing a bound attempt
+  or duplicating a run;
 - every case attempt has an explicit execution outcome;
 - every case attempt has independent telemetry readiness and integrity status;
 - the subject root is exact when execution started and explicitly absent when
   setup or admission failed before the Junjo subject span existed;
-- authored and historical cases share one runner boundary; and
+- authored and deliberately generated cases share one runner boundary; and
 - the same dataset version runs against baseline and candidate.
 
 ### H3.5: Evaluation Tracking And Siloing
@@ -1002,10 +1123,11 @@ Exit evidence:
 Add Studio experiment, evaluation-run, candidate, case-attempt, and result
 queries. Preserve distinct subject, judge, and verifier evidence.
 
-Implement the result authority accepted in H3.3. If the control-plane record is
-canonical, telemetry is linked execution evidence. If telemetry is canonical,
-the query record is explicitly a rebuildable projection. Do not create two
-authoritative result channels.
+Preserve the Lean authority boundary: the Studio control-plane attempt is
+canonical for evaluation status, score, and reason; telemetry is canonical
+execution evidence linked through the semantic runtime identity. Later richer
+judge or verifier spans remain evidence and must not create a second
+authoritative result channel.
 
 Exit evidence:
 
@@ -1042,13 +1164,18 @@ transition, or branch without building a universal semantic trace-diff engine.
 
 After the local-place vertical proof:
 
-- extract the smallest reusable harness protocols;
+- extract the smallest repeated Studio REST client and DTO surface into a
+  separate Studio-owned package;
+- retain target construction, application schemas, providers, evaluators, and
+  execution adapters inside each application repository;
 - add bounded evidence search and saved selections;
 - materialize historical cohorts into immutable dataset versions;
 - expand target support across Agent, Workflow, Subflow, model, and Tool
   operations;
 - add additional evaluation-definition types;
-- add typed Python and CLI conveniences;
+- add a generalized CLI only where it can invoke an explicit
+  application-owned adapter rather than pretending the core SDK can recreate
+  application dependencies;
 - expose the stable contract through MCP; and
 - add richer aggregate and repeated-run comparison.
 
@@ -1179,16 +1306,24 @@ guess acceptable regressions after implementation.
 
 ## ADR Plan
 
-After the H3.1/H3.2 discovery corpus and before shared contract implementation:
+Before Lean Slice 1 changes canonical Studio persistence or exposes the runner
+contract:
 
 1. Write a root ADR for Studio-native datasets, generated evidence sets,
-   evaluation ownership, application-executed targets, and open evaluators.
-2. Write or incorporate a root telemetry decision for run classification,
+   evaluation ownership, the application repository as execution host,
+   deterministic application-owned target adapters, and open evaluators.
+2. Write a Studio ADR for dataset and experiment persistence, the separate
+   attempt-execution binding and result-write operations, exact forward and
+   reverse semantic evidence references, entity projections, query/index
+   boundaries, retention behavior, pagination, programmatic authentication,
+   and low-resource budgets.
+
+After the H3.1/H3.2 evidence corpus and before any shared telemetry or SDK
+contract implementation:
+
+3. Write or incorporate a root telemetry decision for run classification,
    evaluation context, subject roots, roles, state/prompt/candidate
    fingerprints, and contract versioning.
-3. Write a Studio ADR for dataset and experiment persistence, exact evidence
-   references, entity projections, query/index boundaries, retention behavior,
-   pagination, programmatic authentication, and low-resource budgets.
 4. Clarify ADR 0010: its faithful `evaluate_node()` execution decision remains;
    Horizon 3 activates the later evidence-plane capability that owns datasets
    and experiments.
@@ -1210,6 +1345,12 @@ At minimum:
   Twine validation;
 - full Studio backend, frontend, ingestion, and contract tests;
 - Compose E2E execution from AI Chat through ingestion and Studio;
+- coding-agent execution from a clean AI Chat checkout through its
+  application-owned command, including interrupted-run resume;
+- idempotent attempt execution binding followed by independent terminal result
+  recording;
+- forward attempt-to-evidence and reverse runtime-to-evaluation membership
+  queries;
 - exact entity selection and payload/integrity preservation;
 - application/dataset-generation/evaluation cohort isolation;
 - Node, Agent, Workflow, nested Workflow/Agent, and failed-run evidence;
@@ -1246,8 +1387,6 @@ answers them:
   Workflow, Subflow, and Tool implementation behavior?
 - Are current Graph, Node, Agent, parent, and operation identities sufficient
   for prompt-only trace alignment?
-- Should experiment run state be API-owned while result evidence is
-  telemetry-owned, or is one idempotent result-write contract required?
 - Which evaluation-definition fields belong in Studio and which remain solely
   in application code?
 - Which place-data provider offers acceptable coverage, freshness, licensing,
@@ -1267,8 +1406,13 @@ answers them:
 | 2026-07-27 | Direction accepted; material proposed | Dataset cases require state-schema shape identity; exact hash material depends on corpus evidence and ADR acceptance. |
 | 2026-07-27 | Proposed; requires corpus proof | Prompt-template shape/content/instance fingerprints should replace handwritten labels only where an explicit prompt artifact boundary can produce them truthfully. |
 | 2026-07-27 | Direction accepted for planning | Dataset-generation and evaluation traces are distinct from real application traffic while retaining the same canonical telemetry storage path. |
-| 2026-07-27 | Proposed; requires corpus proof and ADR | Use a root evaluation span first, then add SDK evaluation-context propagation only if real traces prove it necessary. |
+| 2026-07-27 | Proposed; requires corpus proof and ADR | Begin the Lean proof with dedicated resource scope and exact control-record binding; prototype a root evaluation span and SDK propagation only if real traces prove they add necessary identity. |
 | 2026-07-27 | Proposed; requires implementation proof | Build one AI Chat Node plus complete Workflow vertical slice before extracting a generalized harness or broad semantic query system. |
+| 2026-07-27 | Direction accepted for Lean planning | A coding agent executes the deterministic harness from the application source checkout; Studio owns control records and evidence queries but never executes or injects application code. |
+| 2026-07-27 | Direction accepted for Lean planning | Dataset execution dispatch needs only application key, target key, and input-contract version; candidate execution is identified by a clean committed source revision and exact semantic runtime identity. |
+| 2026-07-27 | Direction accepted for Lean planning | A generated case retains both its source execution and clean source revision; every locked case pins a small application-owned evaluator key/version without introducing a Studio evaluator DSL. |
+| 2026-07-27 | Direction accepted for Lean planning | Attempt-to-execution binding is a separate idempotent control-plane write performed before judging; full trace evidence continues through OTLP only. |
+| 2026-07-27 | Direction accepted for Lean planning | Core `junjo` does not absorb Studio auth, datasets, or runner coordination; a separate Studio client may be extracted only after a second application proves repetition. |
 
 Update this record as decisions are accepted, rejected, or replaced. Do not
 silently turn a proposed item into an implemented contract.

@@ -519,6 +519,8 @@ practice. Horizon 3 builds platform-level measurement and comparison on top of
 that working eval-and-evidence loop. The iterative source of truth for this
 horizon is the
 [Horizon 3 Queryable Evaluation System And Iterative MVP Plan](AGENT_LAYER_HORIZON_3_QUERYABLE_EVALUATION.md).
+Immediate implementation follows the smaller
+[Horizon 3 Evaluation Lean MVP Critical Path](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md).
 
 #### Objective
 
