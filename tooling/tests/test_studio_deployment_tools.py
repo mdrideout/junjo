@@ -515,6 +515,73 @@ class DistributionSmokeContractTests(unittest.TestCase):
             {"agent-evidence.json", "agent-diagnostics.png"},
         )
 
+    def test_evaluation_studio_proof_extends_manifest_without_exposing_credentials(
+        self,
+    ) -> None:
+        runner = self.smoke_runner()
+        identity = smoke.SmokeIdentity(
+            email="smoke-user@example.com",
+            password="smoke-password-with-entropy",
+            api_key="k" * 40,
+        )
+        calls: list[tuple[list[str], dict[str, object]]] = []
+
+        def run(
+            command: list[str], **kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            calls.append((command, kwargs))
+            if any(
+                item.endswith("validate_evaluation_studio_e2e.py") for item in command
+            ):
+                output = Path(command[command.index("--evidence-output") + 1])
+                output.write_text('{"schema_version": 1}\n', encoding="utf-8")
+            if "test:e2e:evaluation-live" in command:
+                output = Path(command[command.index("--screenshot") + 1])
+                output.write_bytes(b"png fixture")
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory(prefix="junjo-evaluation-smoke-") as directory:
+            runner.evidence_directory = Path(directory)
+            manifest_path = runner.evidence_directory / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "studio_version": runner.studio_version,
+                        "image_source": runner.image_source,
+                        "artifacts": {
+                            "agent-evidence.json": {"sha256": "sha256:agent"},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(smoke, "run_command", side_effect=run):
+                runner.run_evaluation_studio_proof(identity)
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(len(calls), 2)
+        for command, kwargs in calls:
+            rendered = " ".join(command)
+            self.assertNotIn(identity.email, rendered)
+            self.assertNotIn(identity.password, rendered)
+            self.assertNotIn(identity.api_key, rendered)
+            self.assertEqual(
+                kwargs["environment"],
+                {
+                    "JUNJO_STUDIO_E2E_EXISTING_EMAIL": identity.email,
+                    "JUNJO_STUDIO_E2E_EXISTING_PASSWORD": identity.password,
+                },
+            )
+        self.assertEqual(
+            set(manifest["artifacts"]),
+            {
+                "agent-evidence.json",
+                "evaluation-evidence.json",
+                "evaluation-runs.png",
+            },
+        )
+
     def test_example_workflow_query_authenticates_before_protected_requests(
         self,
     ) -> None:
@@ -582,6 +649,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
                 "start_demo_application",
                 "wait_for_example_workflow",
                 "run_agent_studio_proof",
+                "run_evaluation_studio_proof",
             ):
                 stack.enter_context(mock.patch.object(runner, method_name))
             stack.enter_context(

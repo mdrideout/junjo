@@ -46,7 +46,22 @@ async def create_fixed_contact(
             url="/api/images/eval-avatar.png",
             alt_text="Portrait of Maya Chen",
         )
-    contact = ContactProfile(
+    contact = fixed_contact_profile(avatar=avatar)
+    conversation = Conversation(
+        id="eval-conversation",
+        title=contact.display_name,
+        contact_id=contact.id,
+    )
+    return await application.store.create_contact(
+        contact=contact,
+        conversation=conversation,
+    )
+
+
+def fixed_contact_profile(*, avatar: ImageArtifact) -> ContactProfile:
+    """Return the stable Maya persona shared by focused and end-to-end evals."""
+
+    return ContactProfile(
         id="eval-contact",
         first_name="Maya",
         last_name="Chen",
@@ -73,15 +88,6 @@ async def create_fixed_contact(
             "Prospect Park with a film camera."
         ),
         avatar=avatar,
-    )
-    conversation = Conversation(
-        id="eval-conversation",
-        title=contact.display_name,
-        contact_id=contact.id,
-    )
-    return await application.store.create_contact(
-        contact=contact,
-        conversation=conversation,
     )
 
 

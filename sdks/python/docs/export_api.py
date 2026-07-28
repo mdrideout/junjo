@@ -55,6 +55,16 @@ MODULE_SECTIONS = (
         "junjo.agent.testing",
         "Deterministic scripted testing support is intentionally public at `junjo.agent.testing`.",
     ),
+    ModuleSection(
+        "Evaluation API",
+        "junjo.evaluation",
+        "Studio-connected evaluation orchestration for real application Nodes, Workflows, and Agents.",
+    ),
+    ModuleSection(
+        "Studio Client API",
+        "junjo.studio",
+        "Typed, bounded evaluation-control and evidence queries for Junjo AI Studio.",
+    ),
     ModuleSection("Hooks API", "junjo.hooks"),
     ModuleSection("Telemetry API", "junjo.telemetry.junjo_otel_exporter"),
 )

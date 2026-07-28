@@ -68,6 +68,10 @@ export default defineConfig({
               label: "Eval-Driven Development",
               slug: "docs/python/testing/eval-driven-development",
             },
+            {
+              label: "Studio-Connected Evaluation",
+              slug: "docs/python/evaluation",
+            },
             { label: "API Reference", slug: "docs/python/api" },
           ],
         },

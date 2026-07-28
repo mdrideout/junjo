@@ -31,7 +31,8 @@ Junjo requires Python 3.11 or newer. Development and documentation use Python
 - 🧪 Eval-Driven Development focused
   - Build massive eval sets by mocking node state
   - Programmatically build and update eval sets with agentic code assistants
-  - Eval patterns are based on pytest, leveraging its testing framework and capabilities
+  - Use ordinary pytest experiments or SDK-owned Studio datasets, runners,
+    comparisons, and exact trace-evidence queries
   - Rapidly iterate on your AI capabilities and avoid regressions
 - 🔭 OpenTelemetry native
   - Provides organized, structured traces to any OpenTelemetry provider

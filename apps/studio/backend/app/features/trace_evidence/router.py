@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Path
 from fastapi.responses import JSONResponse
 
-from app.features.auth.dependencies import CurrentUser
+from app.features.evaluation_tokens.dependencies import EvidenceReadAccess
 from app.features.trace_evidence import service
 from app.features.trace_evidence.schemas import TraceEvidence
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/trace-evidence", tags=["trace-evidence"])
 )
 async def get_trace_evidence(
     trace_id: Annotated[str, Path(pattern="^[0-9a-f]{32}$")],
-    _authenticated_user: CurrentUser,
+    _authenticated_user: EvidenceReadAccess,
 ) -> TraceEvidence | JSONResponse:
     """Get complete raw evidence and verified annotations for one trace."""
     evidence = await service.get_trace_evidence(trace_id)

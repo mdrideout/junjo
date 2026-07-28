@@ -4,6 +4,25 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+### Evaluation
+
+- Added the public `junjo.studio` client and strict DTOs for bounded,
+  authenticated Studio datasets, cases, runs, attempts, comparisons,
+  execution membership, and opt-in trace evidence.
+- Added the public `junjo.evaluation` harness with typed Node, Workflow, and
+  Agent targets, deterministic and callback evaluators, clean source
+  provenance, generated cases, an async-context-managed `EvaluationExecutor`
+  with a lazy reusable application runtime, sequential resume-safe execution,
+  exact execution binding, and bounded evaluation telemetry context.
+- Added the installed JSON-first `junjo eval` CLI, explicit
+  `module:object`/`pyproject.toml` harness selection, stable exit classes, and
+  environment-only Studio control credentials.
+- Added AI Chat and provider-free standalone references that consume the SDK
+  without application-local Studio clients, DTOs, runners, or commands.
+- Removed AI Chat's superseded local JSON evaluation-result recorder. Its
+  focused credentialed quality checks remain direct assertions, while shared
+  datasets, results, comparisons, and evidence live in Studio.
+
 ## 0.66.0 - 2026-07-18
 
 ### Breaking Changes

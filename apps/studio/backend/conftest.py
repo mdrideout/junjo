@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from dotenv import dotenv_values
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # Pytest owns its security configuration explicitly. Runtime settings remain
@@ -60,6 +61,9 @@ async def test_db(request):
 
     # Create engine
     engine = create_async_engine(db_url, echo=False)
+    from app.db_sqlite import db_config
+
+    event.listen(engine.sync_engine, "connect", db_config.set_sqlite_pragmas)
 
     # Create all tables
     async with engine.begin() as conn:
@@ -72,7 +76,6 @@ async def test_db(request):
     )
 
     # Override global session with test session
-    import app.db_sqlite.db_config as db_config
     original_session = db_config.async_session
     original_engine = db_config.engine
     db_config.async_session = async_session_test

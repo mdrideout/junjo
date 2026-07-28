@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from time import perf_counter
 
 import pytest
 
@@ -15,8 +14,7 @@ from ai_chat.evals.fixtures import (
     seed_completed_turn,
 )
 from ai_chat.evals.judges import judge_text
-from ai_chat.evals.provider import live_application, provider_identity
-from ai_chat.evals.results import EvalResult, EvalUsage, studio_execution_url
+from ai_chat.evals.provider import live_application
 
 pytestmark = pytest.mark.live_eval
 
@@ -67,8 +65,6 @@ async def test_agent_tool_choice_composition_and_avoidance(
             assistant_message="Marigold—got it. I will remember.",
         )
         runtime = require_provider_runtime(live.application)
-        identity = provider_identity(live.settings, include_image_model=True)
-
         for index, (case_id, message, rubric) in enumerate(_TOOL_POLICY_CASES, start=1):
             turn_id = f"eval-agent-turn-{index}"
             dependencies = ChatDependencies(
@@ -81,7 +77,6 @@ async def test_agent_tool_choice_composition_and_avoidance(
                 language=runtime.language,
                 images=runtime.images,
             )
-            started = perf_counter()
             result = await live.application.turns.agent.execute(
                 ChatAgentInput(
                     conversation_id=overview.conversation.id,
@@ -91,7 +86,6 @@ async def test_agent_tool_choice_composition_and_avoidance(
                 ),
                 dependencies=dependencies,
             )
-            duration_ms = round((perf_counter() - started) * 1_000)
             transcript = tool_transcript_evidence(result.transcript)
             judgment = await judge_text(
                 language=runtime.language,
@@ -109,30 +103,6 @@ async def test_agent_tool_choice_composition_and_avoidance(
                     f"completed={result.tool_call_completed_count}"
                 ),
             )
-            artifact = live.recorder.record(
-                EvalResult(
-                    dataset_id="agent-tool-policy",
-                    dataset_version="1",
-                    case_id=case_id,
-                    capability="agent.tool_choice_composition",
-                    prompt_version="chat-agent-v1",
-                    provider=identity.provider,
-                    model=identity.model,
-                    executable_type="agent",
-                    run_id=result.run_id,
-                    passed=judgment.passed,
-                    score=judgment.score,
-                    reason=judgment.reason,
-                    duration_ms=duration_ms,
-                    usage=EvalUsage.model_validate(result.usage.to_json()),
-                    studio_url=studio_execution_url(
-                        live.settings.debug,
-                        executable_type="agent",
-                        run_id=result.run_id,
-                    ),
-                )
-            )
-            print(artifact)
             if not judgment.passed:
                 failures.append(f"{case_id} ({result.run_id}): {judgment.reason}")
 

@@ -27,6 +27,7 @@ classifiers = [
 
 dependencies = [
     "grpcio>=1.75.1",
+    "httpx>=0.28.1",
     "jsonpatch>=1.33",
     "nanoid>=2.0.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.37.0",
@@ -35,6 +36,9 @@ dependencies = [
     "rfc8785==0.1.4",
     "typing-extensions>=4.15.0",
 ]
+
+[project.scripts]
+junjo = "junjo.cli.main:main"
 
 [project.urls]
 Docs = "https://junjo.ai/docs/python/"
@@ -56,6 +60,14 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+"share/junjo/skills/junjo-evaluation" = [
+    "skills/junjo-evaluation/SKILL.md",
+]
+"share/junjo/skills/junjo-evaluation/agents" = [
+    "skills/junjo-evaluation/agents/openai.yaml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -90,6 +102,7 @@ members = [
     "examples/base",
     "examples/getting_started",
 ]
+exclude = ["examples/evaluation_standalone"]
 
 [tool.uv.sources]
 junjo = { workspace = true }

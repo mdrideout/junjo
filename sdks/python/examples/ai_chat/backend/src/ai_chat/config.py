@@ -22,6 +22,26 @@ class ModelProvider(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class ServiceScope:
+    """One authoritative OpenTelemetry and semantic-resolution service scope."""
+
+    namespace: str
+    name: str
+
+    def __post_init__(self) -> None:
+        if self.namespace != self.namespace.strip():
+            raise ValueError("Service namespace cannot contain surrounding whitespace.")
+        if not self.name.strip() or self.name != self.name.strip():
+            raise ValueError("Service name must be non-empty without surrounding whitespace.")
+
+
+APPLICATION_SERVICE_SCOPE = ServiceScope(
+    namespace=STUDIO_SERVICE_NAMESPACE,
+    name=STUDIO_SERVICE_NAME,
+)
+
+
+@dataclass(frozen=True, slots=True)
 class TelemetrySettings:
     api_key: str
     host: str

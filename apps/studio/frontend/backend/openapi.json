@@ -1068,6 +1068,11 @@
         ],
         "summary": "Resolve Execution",
         "operationId": "resolve_execution",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
         "parameters": [
           {
             "name": "service_namespace",
@@ -1154,6 +1159,969 @@
         }
       }
     },
+    "/api/v1/evaluation/datasets": {
+      "post": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Create Dataset",
+        "operationId": "create_evaluation_dataset",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationDatasetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationDatasetRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "List Datasets",
+        "operationId": "list_evaluation_datasets",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "application_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Application Key"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationDatasetList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/datasets/{dataset_id}": {
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Get Dataset",
+        "operationId": "get_evaluation_dataset",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationDatasetDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dataset not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/datasets/{dataset_id}/cases": {
+      "post": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Add Case",
+        "operationId": "add_evaluation_case",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationCaseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationCaseRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dataset not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/datasets/{dataset_id}/lock": {
+      "put": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Lock Dataset",
+        "operationId": "lock_evaluation_dataset",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationDatasetRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dataset not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/runs": {
+      "post": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Start Run",
+        "operationId": "start_evaluation_run",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationRunStart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRunDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dataset not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "List Runs",
+        "operationId": "list_evaluation_runs",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRunList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Get Run",
+        "operationId": "get_evaluation_run",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRunDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/attempts/{attempt_id}": {
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Get Attempt",
+        "operationId": "get_evaluation_attempt",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationAttemptDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Attempt not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/attempts/{attempt_id}/execution": {
+      "put": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Bind Attempt Execution",
+        "operationId": "bind_evaluation_attempt_execution",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationExecutionBind"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationAttemptRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Attempt not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/attempts/{attempt_id}/result": {
+      "put": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Record Attempt Result",
+        "operationId": "record_evaluation_attempt_result",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationAttemptResult"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationAttemptRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Attempt not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationConflictResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/execution-membership": {
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Find Execution Membership",
+        "operationId": "find_evaluation_execution_membership",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "service_namespace",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "title": "Service Namespace"
+            }
+          },
+          {
+            "name": "service_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "title": "Service Name"
+            }
+          },
+          {
+            "name": "executable_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workflow",
+                "subflow",
+                "agent"
+              ],
+              "type": "string",
+              "title": "Executable Type"
+            }
+          },
+          {
+            "name": "runtime_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "title": "Runtime Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationExecutionMembershipList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation-tokens": {
+      "post": {
+        "tags": [
+          "evaluation-tokens"
+        ],
+        "summary": "Create Evaluation Token",
+        "operationId": "create_evaluation_token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationTokenCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationTokenCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "evaluation-tokens"
+        ],
+        "summary": "List Evaluation Tokens",
+        "operationId": "list_evaluation_tokens",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationTokenList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation-tokens/{token_id}/revoke": {
+      "put": {
+        "tags": [
+          "evaluation-tokens"
+        ],
+        "summary": "Revoke Evaluation Token",
+        "operationId": "revoke_evaluation_token",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationTokenRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Evaluation token not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/trace-evidence/{trace_id}": {
       "get": {
         "tags": [
@@ -1162,6 +2130,11 @@
         "summary": "Get Trace Evidence",
         "description": "Get complete raw evidence and verified annotations for one trace.",
         "operationId": "get_trace_evidence",
+        "security": [
+          {
+            "EvaluationControlToken": []
+          }
+        ],
         "parameters": [
           {
             "name": "trace_id",
@@ -1845,6 +2818,1325 @@
         "title": "DbHasUsersResponse",
         "description": "Response for db-has-users check."
       },
+      "EvaluationAttemptCounts": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "queued": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Queued"
+          },
+          "passed": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Passed"
+          },
+          "failed": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Failed"
+          },
+          "error": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total",
+          "queued",
+          "passed",
+          "failed",
+          "error"
+        ],
+        "title": "EvaluationAttemptCounts"
+      },
+      "EvaluationAttemptDetail": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/EvaluationRunRead"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/EvaluationDatasetRead"
+          },
+          "case": {
+            "$ref": "#/components/schemas/EvaluationCaseRead"
+          },
+          "attempt": {
+            "$ref": "#/components/schemas/EvaluationAttemptRead"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run",
+          "dataset",
+          "case",
+          "attempt"
+        ],
+        "title": "EvaluationAttemptDetail"
+      },
+      "EvaluationAttemptRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Run Id"
+          },
+          "case_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Case Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "passed",
+              "failed",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 86400000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "subject_execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SemanticExecutionReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "execution_bound_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Bound At"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "case_id",
+          "status",
+          "reason",
+          "subject_execution",
+          "execution_bound_at",
+          "recorded_at"
+        ],
+        "title": "EvaluationAttemptRead"
+      },
+      "EvaluationAttemptResult": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 86400000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "EvaluationAttemptResult"
+      },
+      "EvaluationCaseCreate": {
+        "properties": {
+          "case_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Case Key",
+            "examples": [
+              "specific_place_1"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "authored",
+              "generated"
+            ],
+            "title": "Origin"
+          },
+          "target_kind": {
+            "type": "string",
+            "enum": [
+              "node",
+              "workflow",
+              "agent"
+            ],
+            "title": "Target Kind"
+          },
+          "target_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Key",
+            "examples": [
+              "date_response_node"
+            ]
+          },
+          "input_version": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Version"
+          },
+          "input_json": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "expectation_json": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evaluator_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evaluator Key",
+            "examples": [
+              "response_quality"
+            ]
+          },
+          "evaluator_version": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Evaluator Version"
+          },
+          "source_execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SemanticExecutionReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_key",
+          "origin",
+          "target_kind",
+          "target_key",
+          "input_version",
+          "input_json",
+          "evaluator_key",
+          "evaluator_version"
+        ],
+        "title": "EvaluationCaseCreate"
+      },
+      "EvaluationCaseRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "dataset_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Dataset Id"
+          },
+          "case_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Case Key"
+          },
+          "ordinal": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Ordinal"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "authored",
+              "generated"
+            ],
+            "title": "Origin"
+          },
+          "target_kind": {
+            "type": "string",
+            "enum": [
+              "node",
+              "workflow",
+              "agent"
+            ],
+            "title": "Target Kind"
+          },
+          "target_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Key"
+          },
+          "input_version": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Version"
+          },
+          "input_json": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "expectation_json": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evaluator_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evaluator Key"
+          },
+          "evaluator_version": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Evaluator Version"
+          },
+          "source_execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SemanticExecutionReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "dataset_id",
+          "case_key",
+          "ordinal",
+          "origin",
+          "target_kind",
+          "target_key",
+          "input_version",
+          "input_json",
+          "expectation_json",
+          "evaluator_key",
+          "evaluator_version",
+          "source_execution",
+          "source_revision",
+          "created_at"
+        ],
+        "title": "EvaluationCaseRead"
+      },
+      "EvaluationConflictResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "EvaluationConflictResponse"
+      },
+      "EvaluationDatasetCreate": {
+        "properties": {
+          "application_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Application Key",
+            "examples": [
+              "ai_chat"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Key",
+            "examples": [
+              "local_place_realism_v1"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "examples": [
+              "Local place realism"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "application_key",
+          "key",
+          "name"
+        ],
+        "title": "EvaluationDatasetCreate"
+      },
+      "EvaluationDatasetDetail": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/EvaluationDatasetRead"
+          },
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationCaseRead"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Cases"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dataset",
+          "cases"
+        ],
+        "title": "EvaluationDatasetDetail"
+      },
+      "EvaluationDatasetList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationDatasetRead"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EvaluationDatasetList"
+      },
+      "EvaluationDatasetRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "application_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Application Key"
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "locked"
+            ],
+            "title": "Status"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "locked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "application_key",
+          "key",
+          "name",
+          "status",
+          "description",
+          "created_by_user_id",
+          "created_at",
+          "locked_at"
+        ],
+        "title": "EvaluationDatasetRead"
+      },
+      "EvaluationDatasetSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "application_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Application Key"
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "locked"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "application_key",
+          "key",
+          "name",
+          "status"
+        ],
+        "title": "EvaluationDatasetSummary"
+      },
+      "EvaluationExecutionBind": {
+        "properties": {
+          "execution": {
+            "$ref": "#/components/schemas/SemanticExecutionReference"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "execution"
+        ],
+        "title": "EvaluationExecutionBind"
+      },
+      "EvaluationExecutionMembership": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "case_source",
+              "attempt_subject"
+            ],
+            "title": "Role"
+          },
+          "dataset_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Dataset Id"
+          },
+          "case_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Case Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "dataset_id",
+          "case_id",
+          "run_id",
+          "attempt_id"
+        ],
+        "title": "EvaluationExecutionMembership"
+      },
+      "EvaluationExecutionMembershipList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationExecutionMembership"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EvaluationExecutionMembershipList"
+      },
+      "EvaluationRunCase": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/EvaluationCaseRead"
+          },
+          "attempt": {
+            "$ref": "#/components/schemas/EvaluationAttemptRead"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case",
+          "attempt"
+        ],
+        "title": "EvaluationRunCase"
+      },
+      "EvaluationRunDetail": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/EvaluationRunRead"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/EvaluationDatasetRead"
+          },
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationRunCase"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Cases"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run",
+          "dataset",
+          "cases"
+        ],
+        "title": "EvaluationRunDetail"
+      },
+      "EvaluationRunList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationRunSummary"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EvaluationRunList"
+      },
+      "EvaluationRunRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "dataset_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Dataset Id"
+          },
+          "request_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key"
+          },
+          "candidate_label": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Candidate Label"
+          },
+          "source_revision": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+            "title": "Source Revision"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "dataset_id",
+          "request_key",
+          "candidate_label",
+          "source_revision",
+          "status",
+          "created_by_user_id",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "EvaluationRunRead"
+      },
+      "EvaluationRunStart": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Dataset Id"
+          },
+          "request_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "examples": [
+              "baseline-20260727"
+            ]
+          },
+          "candidate_label": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Candidate Label",
+            "examples": [
+              "baseline"
+            ]
+          },
+          "source_revision": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+            "title": "Source Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "request_key",
+          "candidate_label",
+          "source_revision"
+        ],
+        "title": "EvaluationRunStart"
+      },
+      "EvaluationRunSummary": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/EvaluationRunRead"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/EvaluationDatasetSummary"
+          },
+          "attempt_counts": {
+            "$ref": "#/components/schemas/EvaluationAttemptCounts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run",
+          "dataset",
+          "attempt_counts"
+        ],
+        "title": "EvaluationRunSummary"
+      },
+      "EvaluationTokenCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationTokenScope"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Scopes"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "scopes"
+        ],
+        "title": "EvaluationTokenCreate"
+      },
+      "EvaluationTokenCreated": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "prefix": {
+            "type": "string",
+            "pattern": "^junjo_eval_[A-Za-z0-9_-]{12}$",
+            "title": "Prefix",
+            "examples": [
+              "junjo_eval_AbCdEfGhIjKl"
+            ]
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationTokenScope"
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^junjo_eval_[A-Za-z0-9_-]{12}\\.[A-Za-z0-9_-]{43}$",
+            "title": "Token",
+            "description": "Bearer token secret. Returned only by the create operation.",
+            "examples": [
+              "junjo_eval_AbCdEfGhIjKl.0123456789_abcdefghijklmnopqrstuv-wxyzABCDE"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "scopes",
+          "expires_at",
+          "revoked_at",
+          "created_by_user_id",
+          "created_at",
+          "token"
+        ],
+        "title": "EvaluationTokenCreated"
+      },
+      "EvaluationTokenList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationTokenRead"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EvaluationTokenList"
+      },
+      "EvaluationTokenRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "prefix": {
+            "type": "string",
+            "pattern": "^junjo_eval_[A-Za-z0-9_-]{12}$",
+            "title": "Prefix",
+            "examples": [
+              "junjo_eval_AbCdEfGhIjKl"
+            ]
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationTokenScope"
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "scopes",
+          "expires_at",
+          "revoked_at",
+          "created_by_user_id",
+          "created_at"
+        ],
+        "title": "EvaluationTokenRead"
+      },
+      "EvaluationTokenScope": {
+        "type": "string",
+        "enum": [
+          "evaluation:read",
+          "evaluation:write",
+          "evidence:read"
+        ],
+        "title": "EvaluationTokenScope",
+        "description": "Authorities supported by the evaluation control/query credential."
+      },
       "EvidenceDiagnostic": {
         "properties": {
           "code": {
@@ -2357,6 +4649,7 @@
         "title": "HealthResponse",
         "description": "Health check response"
       },
+      "JsonValue": {},
       "Message": {
         "properties": {
           "role": {
@@ -3071,6 +5364,55 @@
           "admission"
         ],
         "title": "RequestedToolCall"
+      },
+      "SemanticExecutionReference": {
+        "properties": {
+          "service_namespace": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Service Namespace",
+            "description": "Exact normalized service.namespace; empty is explicit",
+            "examples": [
+              "junjo.examples"
+            ]
+          },
+          "service_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Service Name",
+            "examples": [
+              "ai-chat-evaluation"
+            ]
+          },
+          "executable_type": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "subflow",
+              "agent"
+            ],
+            "title": "Executable Type"
+          },
+          "runtime_id": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Runtime Id",
+            "examples": [
+              "workflowRun123"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "service_namespace",
+          "service_name",
+          "executable_type",
+          "runtime_id"
+        ],
+        "title": "SemanticExecutionReference"
       },
       "ServiceIdentity": {
         "properties": {
@@ -3917,6 +6259,13 @@
         ],
         "title": "WorkflowExecutableAnnotation",
         "description": "Verified Workflow owner facts; the Store is indexed independently."
+      }
+    },
+    "securitySchemes": {
+      "EvaluationControlToken": {
+        "type": "http",
+        "description": "A separately scoped Studio evaluation-control token. Studio ingestion API keys are not accepted.",
+        "scheme": "bearer"
       }
     }
   }

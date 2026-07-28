@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "junjo-evaluation-standalone"
+version = "0.1.0"
+description = "Standalone Junjo Evaluation harness declaration"
+requires-python = ">=3.11"
+dependencies = [
+    "junjo",
+    "opentelemetry-sdk>=1.37.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.junjo.evaluation]
+harness = "evaluation_example.harness:harness"

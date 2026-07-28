@@ -393,6 +393,7 @@ async def test_application_factory_runs_inside_lifespan_and_closes_provider_once
         ),
         language=harness.language,
         images=harness.images,
+        _image_model_factory=lambda _directory: harness.images,
         _close_client=close_provider,
     )
     application = RecordingApplication(source=harness.application, events=events)
@@ -443,6 +444,7 @@ async def test_application_attempts_provider_cleanup_when_store_cleanup_fails(
         ),
         language=harness.language,
         images=harness.images,
+        _image_model_factory=lambda _directory: harness.images,
         _close_client=close_provider,
     )
 

@@ -97,9 +97,14 @@ On mission critical workflows, this setup can be used to orchestrate hundreds or
 
 The generated evaluation Workflow is intentional evidence. Junjo AI Studio
 shows it as a one-Node Graph, and `execution.run_id` identifies the exact run
-for a judge result. Junjo does not own the dataset, judge, rubric, score,
-threshold, or report. Evaluate full Workflows and Agents through their normal
-`execute()` methods.
+for a judge result.
+
+This pytest pattern remains useful for source-colocated experiments. For
+shared, locked input datasets, resumable baseline/candidate Runs, structured
+results, coding-agent operation, and exact Studio evidence queries, use
+[Studio-Connected Evaluation](/docs/python/evaluation/). That supported SDK
+surface owns the dataset and Attempt mechanics while the application still
+owns its domain inputs, construction, and judgment meaning.
 
 ## Testing Model Changes
 

@@ -5,7 +5,7 @@ Pattern from wt_api_v2 (validated for production).
 
 SQLite-specific:
 - render_as_batch=True (required for ALTER TABLE support)
-- Direct model imports (not package import)
+- One source-owned model registry populates Base.metadata
 """
 
 import asyncio
@@ -16,16 +16,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-# Import settings to get database URL
+import app.db_sqlite.models  # noqa: F401
 from app.config.settings import settings
-from app.db_sqlite.api_keys.models import APIKeyTable  # noqa: F401
-
-# Import Base to get metadata
 from app.db_sqlite.base import Base
-
-# Import all models DIRECTLY (CRITICAL - ensures Alembic sees all tables)
-# Add new models here as they are created
-from app.db_sqlite.users.models import UserTable  # noqa: F401
 
 # Alembic Config object
 config = context.config
@@ -58,6 +51,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        user_module_prefix="",
     )
 
     with context.begin_transaction():
@@ -77,7 +71,8 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        render_as_batch=True  # ⚠️ REQUIRED for SQLite ALTER TABLE support
+        render_as_batch=True,  # ⚠️ REQUIRED for SQLite ALTER TABLE support
+        user_module_prefix="",
     )
 
     with context.begin_transaction():

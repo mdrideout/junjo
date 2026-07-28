@@ -32,6 +32,8 @@ from app.features.api_keys.router import router as api_keys_router
 from app.features.auth.dependencies import get_authenticated_user
 from app.features.auth.router import router as auth_router
 from app.features.config.router import router as config_router
+from app.features.evaluation.router import router as evaluation_router
+from app.features.evaluation_tokens.router import router as evaluation_tokens_router
 from app.features.execution_resolution.router import router as execution_resolution_router
 from app.features.llm_playground.router import router as llm_playground_router
 from app.features.otel_spans.router import router as otel_spans_router
@@ -216,6 +218,8 @@ app.include_router(
 )
 app.include_router(agent_diagnostics_router, prefix="/api/v1")
 app.include_router(execution_resolution_router, prefix="/api/v1")
+app.include_router(evaluation_router, prefix="/api/v1")
+app.include_router(evaluation_tokens_router, prefix="/api/v1")
 app.include_router(trace_evidence_router, prefix="/api/v1")
 
 

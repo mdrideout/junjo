@@ -1,0 +1,4 @@
+interface:
+  display_name: "Junjo Evaluation"
+  short_description: "Run typed Junjo evaluations through Studio"
+  default_prompt: "Use $junjo-evaluation to declare targets, run a locked dataset, and compare Studio evidence."

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.features.auth.dependencies import get_authenticated_user
+from app.features.evaluation_tokens.dependencies import get_evidence_read_access
 from app.features.trace_evidence.assembler import assemble_trace_evidence
 from app.main import app
 
@@ -54,11 +54,11 @@ def _fixture() -> tuple[str, list[dict]]:
 
 @pytest.fixture
 def authenticated_app(mock_authenticated_user):
-    app.dependency_overrides[get_authenticated_user] = lambda: mock_authenticated_user
+    app.dependency_overrides[get_evidence_read_access] = lambda: mock_authenticated_user
     try:
         yield app
     finally:
-        app.dependency_overrides.pop(get_authenticated_user, None)
+        app.dependency_overrides.pop(get_evidence_read_access, None)
 
 
 def test_trace_evidence_is_lossless_and_indexes_independent_owners() -> None:

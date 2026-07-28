@@ -30,6 +30,7 @@ from ai_chat.domain.models import ConversationOverview, Turn
 from ai_chat.domain.ports import ApplicationStore, ImageModel, LanguageModel
 
 AsyncClose = Callable[[], Awaitable[None]]
+ImageModelFactory = Callable[[Path], ImageModel]
 
 
 def new_id() -> str:
@@ -47,7 +48,13 @@ class ProviderRuntime:
     model: ModelDriverBinding
     language: LanguageModel
     images: ImageModel
+    _image_model_factory: ImageModelFactory
     _close_client: AsyncClose
+
+    def images_for_directory(self, directory: Path) -> ImageModel:
+        """Bind image artifacts to one application-owned directory."""
+
+        return self._image_model_factory(directory)
 
     async def close(self) -> None:
         await self._close_client()
@@ -139,7 +146,7 @@ def build_application(
     elif any(value is not None for value in supplied):
         raise ValueError("Tests must supply model, language, and images together.")
     else:
-        provider_runtime = _provider_runtime(settings)
+        provider_runtime = build_provider_runtime(settings)
         model_binding = provider_runtime.model
         language_model = provider_runtime.language
         image_model = provider_runtime.images
@@ -170,52 +177,64 @@ def build_application(
     )
 
 
-def _provider_runtime(settings: Settings) -> ProviderRuntime:
+def build_provider_runtime(settings: Settings) -> ProviderRuntime:
+    """Construct one command- or application-owned live provider runtime."""
+
     if settings.model_provider is ModelProvider.GEMINI:
         assert settings.gemini_api_key is not None
-        client = genai.Client(api_key=settings.gemini_api_key).aio
+        gemini_client = genai.Client(api_key=settings.gemini_api_key).aio
+
+        def image_model(directory: Path) -> ImageModel:
+            return GeminiImageModel(
+                client=gemini_client,
+                model=settings.gemini_image_model,
+                timeout_seconds=settings.provider_timeout_seconds,
+                directory=directory,
+                id_factory=new_id,
+            )
+
         return ProviderRuntime(
             model=gemini_model_binding(
-                client=client,
+                client=gemini_client,
                 model=settings.gemini_text_model,
                 timeout_seconds=settings.provider_timeout_seconds,
             ),
             language=GeminiLanguageModel(
-                client=client,
+                client=gemini_client,
                 model=settings.gemini_text_model,
                 timeout_seconds=settings.provider_timeout_seconds,
             ),
-            images=GeminiImageModel(
-                client=client,
-                model=settings.gemini_image_model,
-                timeout_seconds=settings.provider_timeout_seconds,
-                directory=settings.image_directory,
-                id_factory=new_id,
-            ),
-            _close_client=client.aclose,
+            images=image_model(settings.image_directory),
+            _image_model_factory=image_model,
+            _close_client=gemini_client.aclose,
         )
     assert settings.xai_api_key is not None
-    client = AsyncClient(
+    xai_client = AsyncClient(
         api_key=settings.xai_api_key,
         timeout=settings.provider_timeout_seconds,
     )
+
+    def image_model(directory: Path) -> ImageModel:
+        return GrokImageModel(
+            client=xai_client,
+            model=settings.grok_image_model,
+            timeout_seconds=settings.provider_timeout_seconds,
+            directory=directory,
+            id_factory=new_id,
+        )
+
     return ProviderRuntime(
         model=grok_model_binding(
-            client=client,
+            client=xai_client,
             model=settings.grok_text_model,
             timeout_seconds=settings.provider_timeout_seconds,
         ),
         language=GrokLanguageModel(
-            client=client,
+            client=xai_client,
             model=settings.grok_text_model,
             timeout_seconds=settings.provider_timeout_seconds,
         ),
-        images=GrokImageModel(
-            client=client,
-            model=settings.grok_image_model,
-            timeout_seconds=settings.provider_timeout_seconds,
-            directory=settings.image_directory,
-            id_factory=new_id,
-        ),
-        _close_client=client.close,
+        images=image_model(settings.image_directory),
+        _image_model_factory=image_model,
+        _close_client=xai_client.close,
     )

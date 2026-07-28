@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog'
 import {
   AvatarIcon,
+  BarChartIcon,
   Cross1Icon,
   DashboardIcon,
   ExitIcon,
@@ -35,8 +36,10 @@ const signedInNavigation: NavigationItem[] = [
   { end: true, icon: DashboardIcon, label: 'Dashboard', to: '/' },
   { icon: RowsIcon, label: 'Logs', to: '/logs' },
   { icon: LightningBoltIcon, label: 'Agents', to: '/agents' },
+  { icon: BarChartIcon, label: 'Evaluation runs', to: '/evaluation-runs' },
+  { icon: LockClosedIcon, label: 'Evaluation tokens', to: '/evaluation-tokens' },
   { icon: AvatarIcon, label: 'Users', to: '/users' },
-  { icon: LockClosedIcon, label: 'API Keys', to: '/api-keys' },
+  { icon: LockClosedIcon, label: 'Ingestion API keys', to: '/api-keys' },
   { icon: GearIcon, label: 'Settings', to: '/settings' },
   { icon: ExitIcon, label: 'Sign out', to: '/sign-out' },
 ]

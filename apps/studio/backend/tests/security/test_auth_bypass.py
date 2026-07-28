@@ -306,6 +306,10 @@ async def test_protected_endpoints_require_auth():
             ("GET", "/llm/providers/openai/models", True),  # Should require auth
             ("GET", "/api/v1/observability/services", True),
             ("GET", "/api/v1/observability/traces/trace-id/spans", True),
+            ("GET", "/api/v1/evaluation/runs", True),
+            ("POST", "/api/v1/evaluation/datasets", True),
+            ("GET", "/api/v1/evaluation-tokens", True),
+            ("POST", "/api/v1/evaluation-tokens", True),
         ]
 
         for method, endpoint, currently_protected in protected_endpoints:

@@ -1,7 +1,6 @@
 """Credentialed full-Workflow evals for persona-aware text responses."""
 
 from pathlib import Path
-from time import perf_counter
 
 import pytest
 
@@ -12,8 +11,7 @@ from ai_chat.evals.fixtures import (
     seed_completed_turn,
 )
 from ai_chat.evals.judges import judge_text
-from ai_chat.evals.provider import live_application, provider_identity
-from ai_chat.evals.results import EvalResult, studio_execution_url
+from ai_chat.evals.provider import live_application
 
 pytestmark = pytest.mark.live_eval
 
@@ -21,8 +19,6 @@ _RESPONSE_CASES = (
     (
         "general-history-continuity",
         "Wait, what class did I say I signed up for, and which night is it?",
-        "turn.general_persona_history",
-        "general-response-v1",
         (
             "Pass only when Maya answers in a natural dating-chat voice, correctly remembers "
             "that the user signed up for pottery on Thursday, and does not claim those facts "
@@ -32,8 +28,6 @@ _RESPONSE_CASES = (
     (
         "work-specificity",
         "What is the hardest part of your landscape architecture work lately?",
-        "turn.work_quality",
-        "work-response-v1",
         (
             "Pass only when Maya answers as a landscape architect at Greenline Studio with "
             "specific plausible work detail. Reject generic career advice, contradictions with "
@@ -43,8 +37,6 @@ _RESPONSE_CASES = (
     (
         "date-local-relevance",
         "Pick one specific place near Brooklyn for our first date and tell me why it fits you.",
-        "turn.date_quality",
-        "date-response-v1",
         (
             "Pass only when Maya proposes at least one specific, plausible place in or near "
             "Brooklyn and explains why it suits her established interests. Reject invented-sounding "
@@ -72,15 +64,11 @@ async def test_persona_history_work_and_date_response_quality(
             assistant_message="That sounds brave—Thursday pottery could end up being a lot of fun.",
         )
         runtime = require_provider_runtime(live.application)
-        identity = provider_identity(live.settings)
-
-        for case_id, message, capability, prompt_version, rubric in _RESPONSE_CASES:
-            started = perf_counter()
+        for case_id, message, rubric in _RESPONSE_CASES:
             turn = await live.application.turns.submit(
                 conversation_id=overview.conversation.id,
                 text=message,
             )
-            duration_ms = round((perf_counter() - started) * 1_000)
             assert turn.status is TurnStatus.COMPLETED
             assert turn.assistant_message is not None
             run_id = turn.execution_references.workflow_run_id
@@ -96,29 +84,6 @@ async def test_persona_history_work_and_date_response_quality(
                     f"{turn.execution_references.agent_run_id}"
                 ),
             )
-            artifact = live.recorder.record(
-                EvalResult(
-                    dataset_id="turn-response-quality",
-                    dataset_version="1",
-                    case_id=case_id,
-                    capability=capability,
-                    prompt_version=prompt_version,
-                    provider=identity.provider,
-                    model=identity.model,
-                    executable_type="workflow",
-                    run_id=run_id,
-                    passed=judgment.passed,
-                    score=judgment.score,
-                    reason=judgment.reason,
-                    duration_ms=duration_ms,
-                    studio_url=studio_execution_url(
-                        live.settings.debug,
-                        executable_type="workflow",
-                        run_id=run_id,
-                    ),
-                )
-            )
-            print(artifact)
             if not judgment.passed:
                 failures.append(f"{case_id} ({run_id}): {judgment.reason}")
 

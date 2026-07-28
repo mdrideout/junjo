@@ -910,6 +910,84 @@ class StudioDistributionSmoke:
             encoding="utf-8",
         )
 
+    def run_evaluation_studio_proof(self, identity: SmokeIdentity) -> None:
+        """Prove the installed SDK evaluation loop and Studio projection."""
+
+        require(
+            self.evidence_directory.is_dir(),
+            "smoke evidence directory has not been prepared",
+        )
+        evidence = self.evidence_directory / "evaluation-evidence.json"
+        screenshot = self.evidence_directory / "evaluation-runs.png"
+        credentials = {
+            "JUNJO_STUDIO_E2E_EXISTING_EMAIL": identity.email,
+            "JUNJO_STUDIO_E2E_EXISTING_PASSWORD": identity.password,
+        }
+        run_command(
+            [
+                "python3",
+                "tooling/scripts/validate_evaluation_studio_e2e.py",
+                "--backend-url",
+                f"http://127.0.0.1:{self.backend_port}",
+                "--ingestion-host",
+                "127.0.0.1",
+                "--ingestion-port",
+                str(self.ingestion_port),
+                "--timeout-seconds",
+                str(self.timeout_seconds),
+                "--evidence-output",
+                str(evidence),
+            ],
+            cwd=self.repository_root,
+            sensitive_values=self.sensitive_values,
+            environment=credentials,
+            show_output=True,
+        )
+        require(
+            evidence.is_file() and evidence.stat().st_size > 0,
+            "evaluation evidence is missing",
+        )
+        run_command(
+            [
+                "npm",
+                "--prefix",
+                "apps/studio/frontend",
+                "run",
+                "test:e2e:evaluation-live",
+                "--",
+                "--frontend-url",
+                f"http://127.0.0.1:{self.frontend_port}",
+                "--backend-url",
+                f"http://127.0.0.1:{self.backend_port}",
+                "--evidence",
+                str(evidence),
+                "--screenshot",
+                str(screenshot),
+                "--timeout-milliseconds",
+                str(self.timeout_seconds * 1_000),
+            ],
+            cwd=self.repository_root,
+            sensitive_values=self.sensitive_values,
+            environment=credentials,
+            show_output=True,
+        )
+        require(
+            screenshot.is_file() and screenshot.stat().st_size > 0,
+            "Studio evaluation visual proof screenshot is missing",
+        )
+        manifest_path = self.evidence_directory / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["artifacts"].update(
+            {
+                evidence.name: {"sha256": file_sha256(evidence)},
+                screenshot.name: {"sha256": file_sha256(screenshot)},
+            }
+        )
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
     def start_core_services(self) -> None:
         require(self.runtime_root is not None, "runtime has not been prepared")
         run_command(
@@ -998,6 +1076,7 @@ class StudioDistributionSmoke:
                 self.start_demo_application(identity.api_key)
                 self.wait_for_example_workflow(identity)
                 self.run_agent_studio_proof(identity)
+                self.run_evaluation_studio_proof(identity)
             except BaseException as error:
                 primary_error = error
                 try:

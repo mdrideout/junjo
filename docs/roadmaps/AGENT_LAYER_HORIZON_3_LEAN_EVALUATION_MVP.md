@@ -1,49 +1,67 @@
 # Horizon 3 Evaluation: Lean MVP Critical Path
 
-- Status: Active implementation planning
+- Status: Implemented and validated
 - Date: 2026-07-27
 - Owners: Junjo platform
 - Parent strategy:
   [Junjo Agent Layer Strategy And Roadmap](AGENT_LAYER_ROADMAP.md)
 - Horizon 3 north star:
   [Queryable Evaluation System And Iterative MVP Plan](AGENT_LAYER_HORIZON_3_QUERYABLE_EVALUATION.md)
+- Product user stories:
+  [Evaluation System User Stories](AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md)
+- Accepted engineering plan:
+  [SDK Evaluation Productization Plan](AGENT_LAYER_HORIZON_3_SDK_EVALUATION_PRODUCTIZATION_PLAN.md)
 
 ## Purpose
 
 The Horizon 3 north-star plan describes the eventual queryable evaluation
-system. This document defines the smallest useful product we can build first.
-It is the implementation-sequencing source of truth until the Lean MVP is
-complete.
+system. This document defines the smallest useful product we can build first
+and the ownership correction required after validating its walking skeleton.
+It owns Lean scope and product exit gates until the SDK-owned MVP is complete.
+The accepted
+[SDK Evaluation Productization Plan](AGENT_LAYER_HORIZON_3_SDK_EVALUATION_PRODUCTIZATION_PLAN.md)
+owns the engineering execution order and migration backlog.
 
 The goal is not to model every possible evaluation entity, recover prompt
 templates, fingerprint application schemas, or build a generalized replay
 engine. The goal is to prove one complete loop with the systems Junjo already
 has:
 
-1. create a dataset and add cases programmatically;
-2. pull the cases into real application code;
-3. execute a Node or Workflow through its normal Junjo lifecycle;
+1. create a dataset and add cases through the Junjo SDK or CLI;
+2. let the SDK evaluation harness pull those cases into real application code;
+3. execute a Node, Workflow, or Agent through its normal Junjo lifecycle;
 4. export ordinary telemetry to Studio;
 5. record one evaluation outcome linked to the exact execution;
 6. run the same cases against a labeled candidate; and
 7. inspect the result and all received trace evidence in Studio.
 
-If this loop is useful, later Horizon 3 work can generalize it from measured
-needs. If it is not useful, we should learn that before changing shared
-telemetry, ingestion, or SDK contracts.
+The application checkout remains the execution host because it owns the code
+being evaluated. It does not own evaluation transport, DTOs, orchestration,
+resume policy, CLI behavior, or generic target and evaluator mechanics. Those
+are Junjo SDK product responsibilities.
+
+The first application-local implementation proved that this loop is useful and
+that the Studio persistence model is viable. It did not prove the correct
+public product boundary. The MVP remains open until the generic mechanics are
+productized in the SDK, AI Chat is reduced to domain declarations, and a coding
+agent can operate the loop from a standalone application repository using
+published Junjo interfaces and guidance.
 
 ## MVP Product Statement
 
-The Lean MVP lets a developer or coding agent create a small immutable dataset
-in Studio, run it from an AI Chat source checkout against the real application
-code at that revision, and see pass, score, reason, duration, and a link to
-Studio's received execution evidence for every case.
+The Lean MVP lets a developer or coding agent use the Junjo SDK and its
+JSON-first CLI to create a small immutable dataset in Studio, load one explicit
+evaluation declaration from an application checkout, run that dataset against
+the real application code at a clean revision, and retrieve pass, score,
+reason, duration, comparison data, and complete received execution evidence for
+every case.
 
 The first proof covers:
 
 - one focused Node target through `evaluate_node()`;
 - one end-to-end Workflow target through AI Chat's real application entry
   point;
+- one Agent target through the same SDK-owned target contract;
 - authored cases that have never run before;
 - cases created from a deliberate real execution; and
 - baseline versus one named candidate over the same locked case set.
@@ -58,19 +76,34 @@ The concrete value proof is AI Chat local-place realism:
 - manual inspection of downstream effects through both received traces.
 
 Node proves focused execution. Workflow proves upstream-to-downstream and
-end-to-end execution. Agent support does not prove another control-plane
-boundary and is the first post-MVP target.
+end-to-end execution. Agent proves that the public target contract covers all
+first-class Junjo executable kinds without adding a second control-plane
+boundary.
 
 ## Lean Scope Reset
 
 ### Required Now
 
 - small Studio-owned dataset and result records;
-- authenticated REST operations for a local application runner;
-- an explicit AI Chat target adapter keyed by a small application-owned name;
+- an SDK-owned typed Studio client and bounded DTOs;
+- an SDK-owned evaluation harness, runner, resume/idempotency policy,
+  evaluation context, target abstractions, and evaluator abstractions;
+- a JSON-first, non-interactive Junjo CLI over those same public SDK APIs;
+- authenticated REST operations suitable for local and unattended coding
+  agents;
+- a separately scoped Studio evaluation-control/query credential for remote or
+  unattended agents, distinct from the OTLP ingestion credential;
+- explicit application target declarations keyed by small application-owned
+  names;
+- application-owned dependency construction, input types, output projectors,
+  and genuinely domain-specific evaluator callbacks;
 - existing Junjo execution APIs and `ExecutionCorrelation`;
+- a standardized evaluation telemetry context that retains the application's
+  normal service identity;
 - existing OTLP trace export and Studio `TraceEvidence`;
 - existing semantic execution resolution and deep links;
+- public runbooks and a coding-agent skill that operate the SDK and CLI rather
+  than reimplementing framework policy;
 - a minimal read-only Studio view after the headless loop works; and
 - bounded inputs, outputs, list sizes, and runner concurrency.
 
@@ -86,15 +119,13 @@ boundary and is the first post-MVP target.
 - broad historical cohort search and saved queries;
 - historical-case import;
 - automated trace alignment or causal diffing;
-- evaluator definitions, evaluator registries, and evaluator DSLs;
-- judge, verifier, and subject role spans in a shared telemetry contract;
+- a Studio-hosted evaluator registry or evaluator DSL;
+- evaluator code execution inside Studio;
 - cross-trace or multi-root case membership;
 - generic replay inferred from telemetry;
 - Studio-side execution of application code;
-- MCP, a generalized CLI, and cross-language runners;
-- Agent target adapters;
+- MCP and cross-language runners;
 - deterministic real-place verification beyond the existing qualitative judge;
-- scoped personal access tokens;
 - Studio-directed automatic source changes, promotion, or rollback; and
 - a new ingestion index, cache, service, database, or queue.
 
@@ -103,10 +134,10 @@ first useful evaluation loop.
 
 ## Foundation We Reuse
 
-The MVP does not start from zero:
+The SDK-owned MVP does not start from zero:
 
-- AI Chat already owns live cases, application composition, judges, and result
-  artifacts.
+- AI Chat already proves application composition, domain input fixtures,
+  provider construction, and domain-specific judgment callbacks.
 - `evaluate_node()` already executes a real Node in a truthful one-Node
   Workflow and returns its evaluation Workflow runtime ID.
 - `Workflow.execute()` and `Agent.execute()` already return exact runtime
@@ -119,64 +150,86 @@ The MVP does not start from zero:
   Agent, Store, operation, relationship, and integrity evidence for one trace.
 - OTLP ingestion already preserves the attributes and parentage required for
   the execution tree.
+- The validated Studio walking skeleton already proves immutable datasets,
+  run/attempt coordination, exact execution membership, and bounded evidence
+  retrieval on the supported small deployment.
 
 These are the critical path. The MVP should compose them rather than introduce
 another execution or evidence path.
 
-The existing AI Chat live evals already prove that real Node, Workflow, and
-Agent execution works. We do not need another app-only discovery phase. The
-first implementation slice begins where value is currently missing: a dynamic
-dataset and centralized Studio result ledger.
+The application-local prototype is evidence, not the reusable framework. Its
+generic Studio client, DTOs, runner, target/evaluator mechanics, retry rules,
+Git provenance, and CLI orchestration must move into the Junjo SDK. AI Chat
+keeps only the declarations and callbacks that require AI Chat types or
+dependencies.
 
 ## Accepted Boundaries Preserved
 
-The Lean MVP stays within current accepted decisions:
+The Lean MVP requires a focused correction to current decisions:
 
 - ADR 0007 owns the semantic execution reference and delayed Studio
   resolution.
-- ADR 0010 keeps cases, judges, rubrics, and reports out of the Junjo runtime
-  while preserving real Node lifecycle through `evaluate_node()`.
+- ADR 0010 keeps application cases and domain judgment policy out of the Junjo
+  execution runtime while preserving real Node lifecycle through
+  `evaluate_node()`. It does not prevent the Junjo SDK distribution from owning
+  a higher-level evaluation client and harness.
 - ADR 0012 keeps the Studio integration trace-only.
-- Studio remains the owner of diagnostic evidence queries, while AI Chat owns
-  construction and execution of its application targets.
+- Studio remains the owner of canonical evaluation records and diagnostic
+  evidence queries.
+- The Junjo SDK owns the complete evaluation framework and Studio interaction
+  contract.
+- Applications own only typed target declarations, real dependency
+  construction, output projection, and domain evaluator callbacks.
 
-Two focused decisions are required before Slice 1: one root ownership ADR for
-the cross-system application-harness/Studio/evidence boundary, and one Studio
-ADR for canonical persistence, authenticated API semantics, exact execution
-binding, indexes, and low-resource limits. No existing ADR needs to be silently
-widened.
+Root ADR 0013 and Studio ADR 010 must state this corrected ownership before SDK
+productization proceeds. The product stories in
+[Evaluation System User Stories](AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md)
+are the durable acceptance language for the developer and coding-agent
+experience.
 
-## Application Repository Is The Execution Host
+## Application Repository Hosts Execution; Junjo Owns The Harness
 
-The first useful coding-agent loop runs from the repository that owns the
-application. For the vertical proof, that is the AI Chat checkout. The coding
-agent has the checked-out source, Junjo SDK dependency, application types,
-provider credentials, target construction, evaluators, and ordinary developer
-tools required to make and validate a candidate. Studio does not need access to
-the source tree and cannot reconstruct those dependencies from telemetry.
+The coding-agent loop runs from the repository that owns the application. For
+the vertical proof, that is the AI Chat checkout. The coding agent has the
+checked-out source, Junjo SDK dependency, application types, provider
+credentials, prompts, and ordinary developer tools required to make and
+validate a candidate. Studio does not need access to the source tree and cannot
+reconstruct those dependencies from telemetry.
+
+Execution location does not determine framework ownership. The Junjo SDK
+installed in that repository owns the Studio client, typed DTOs, dataset and
+run operations, target/evaluator abstractions, sequential orchestration,
+binding-before-judgment rule, resume/idempotency behavior, source-revision
+capture, evaluation context, evidence queries, and CLI. The application
+registers small typed declarations that tell the SDK how to construct and
+execute its real objects.
 
 The system has three cooperating planes:
 
 | Plane | MVP owner | Responsibility |
 | --- | --- | --- |
-| Code and execution | Coding agent plus deterministic AI Chat harness in the application checkout | Edit application source, validate cases, construct real dependencies, invoke Junjo execution, evaluate outputs, and flush telemetry |
+| Code and execution | Junjo SDK evaluation harness loaded in the application checkout | Coordinate cases and attempts, invoke declared targets, apply evaluator contracts, capture provenance, bind executions, record outcomes, and flush telemetry |
+| Application binding | AI Chat target and evaluator declarations | Supply input types, construct real dependencies and executable objects, project outputs, and implement domain-specific checks that Junjo cannot infer |
 | Evaluation control | Studio REST API and `junjo.db` | Own datasets, cases, runs, attempts, source revisions, outcomes, and exact execution bindings |
 | Execution evidence | Existing OTLP ingestion, Parquet, execution resolver, and `TraceEvidence` | Receive and return all supported trace and span evidence without copying it into evaluation tables |
 
-The coding agent may choose the source change and invoke the harness, but the
-harness remains deterministic application code. It validates the Studio case,
-selects an explicit target adapter, runs the real target, binds the resulting
-execution to the pre-created attempt, runs the application-owned evaluator,
-and records the terminal result. This avoids embedding control-plane behavior
-in the Junjo runtime or letting an LLM improvise result-write semantics.
+The coding agent may choose the source change and invoke the SDK harness, but
+it does not improvise result-write semantics. The framework validates the
+Studio envelope, resolves an explicit application declaration, runs the real
+target, binds the resulting execution to the pre-created attempt, invokes the
+declared evaluator, and records the terminal result. Application callbacks
+never authenticate to Studio or own retry, persistence, telemetry, or CLI
+policy.
 
 The minimum repeated loop is:
 
 1. check out a clean, committed AI Chat candidate revision;
-2. invoke the application-owned eval command for a locked Studio dataset;
-3. receive the exact ordered cases and pre-created attempt IDs from Studio;
-4. execute and record each case sequentially through the real application;
-5. query the completed run as structured JSON;
+2. invoke `junjo eval run execute` with an explicit application declaration;
+3. let the SDK receive the exact ordered cases and pre-created attempt IDs from
+   Studio;
+4. let the SDK execute and record each case sequentially through the real
+   application;
+5. query the completed run through stable JSON output;
 6. resolve interesting attempt execution references and request their complete
    received `TraceEvidence`;
 7. edit and validate ordinary application source;
@@ -189,46 +242,66 @@ environment materially changes.
 
 ### Minimum Values Crossing The Application Boundary
 
-The runner does not need a new Junjo runtime object. It needs two small
-application-local values:
+The SDK supplies the application callback with a typed evaluation context and
+validated target input. The application returns a small target result:
 
-| Value | Minimum contents |
+| Value | Owner and minimum contents |
 | --- | --- |
-| Attempt context from Studio | `application_key`, `dataset_id`, `attempt_id`, `run_id`, `case_id`, `target_kind`, `target_key`, `input_version`, `input_json`, `expectation_json`, `evaluator_key`, `evaluator_version`, `candidate_label`, and run `source_revision` |
-| Target execution returned by the adapter | evaluator subject, duration or error, and the semantic execution tuple whenever a trustworthy runtime ID exists |
+| `EvaluationContext` | SDK-owned immutable context containing application, dataset, run, case, attempt, candidate revision, run class, and execution role identities |
+| Target declaration | Application-owned key/kind and input contract plus functions for construction/execution and output projection |
+| Evaluator declaration | Application-owned key/version, expectation contract, and optional domain callback; generic exact/boolean/score mechanics remain SDK-owned |
+| Target result | SDK-owned result envelope containing evaluator subject, duration or error, and semantic execution identity whenever a trustworthy runtime ID exists |
 
-The authoritative evaluation service namespace and service name come from one
-runner configuration value shared by the OpenTelemetry Resource and semantic
-execution references. They are not supplied independently on every case.
+The SDK derives the semantic service namespace and service name from the same
+OpenTelemetry Resource used by the application. Evaluation mode must never
+replace the application's normal service identity with an eval-only service
+name.
 
 The data travels through two existing-purpose channels:
 
 | Channel | Data |
 | --- | --- |
-| Studio REST | Small dataset, run, attempt, execution-binding, result, resolver, and evidence-query records |
+| Studio REST through the SDK client | Small dataset, run, attempt, execution-binding, result, resolver, comparison, and evidence-query records |
 | OTLP | The complete ordinary Junjo trace and span payload |
 
-No dataset payload, score, rubric, candidate label, or Studio credential is
-added to every Junjo span for the MVP. No trace payload is sent through the
-evaluation REST API. This is why neither the Junjo SDK contract nor ingestion
-hot path needs to change.
+No trace payload is sent through the evaluation REST API. The SDK creates one
+bounded evaluation-attempt root span and propagates `EvaluationContext` while
+the subject and optional judge execute. That root records standardized
+evaluation identifiers and role metadata; child Junjo execution retains the
+application's normal service identity and existing executable attributes. The
+attempt ledger and semantic subject binding remain canonical. Evaluation
+metadata is not duplicated onto every span.
+
+This requires a small documented SDK/telemetry-contract addition, but no new
+OTLP endpoint, synchronous ingestion lookup, per-span relational copy, or
+change to Studio's ingestion hot path.
 
 ## Smallest Valuable End-To-End Flow
 
 ```text
-Coding agent in AI Chat checkout
+Coding agent in an application checkout
         |
-        | invoke deterministic application harness
+        | invoke JSON-first Junjo CLI
+        v
+Junjo SDK client + evaluation harness
+        |                         ^
+        | load explicit targets  | return subjects/errors
+        v                         |
+Application declarations --------+
+        |
+        | create/start/query through authenticated SDK client
         v
 Studio eval REST API <----> junjo.db control records
         |
         | start run; return exact cases + attempt IDs
         v
-AI Chat target adapters
+SDK target abstraction + application construction callback
         |
-        | evaluate_node() / real application Workflow entry point
+        | Node / Workflow / Agent normal entry point
         v
-Normal Junjo execution ----> normal OTLP ingestion ----> Parquet evidence
+Evaluation-attempt root span + normal Junjo execution
+        |
+        +--------------------> normal OTLP ingestion ----> Parquet evidence
         |                                                   ^
         | bind runtime ID; then record score + reason        |
         v                                                   |
@@ -236,13 +309,14 @@ Studio case attempt ----> execution resolver ---------------+
         |
         | explicit evidence request
         v
-Coding agent or existing Studio evidence pages
+Junjo CLI/SDK, coding-agent skill, or existing Studio evidence pages
 ```
 
-Studio does not send code to the runner. The runner does not upload traces.
-The runner receives small case definitions, executes application-owned code,
-and returns small result metadata plus the semantic execution reference.
-Telemetry continues through the existing OTLP path.
+Studio does not send or execute code. The SDK harness does not upload traces
+through REST. It receives small case definitions, calls explicitly declared
+application construction/execution functions, and returns small result
+metadata plus the semantic execution reference. Telemetry continues through
+the existing OTLP path.
 
 ## Minimal Domain Model
 
@@ -258,7 +332,7 @@ Required fields:
 | --- | --- |
 | `id` | Server-owned stable ID |
 | `key` | Stable application-facing key |
-| `application_key` | Application/harness owner, initially `ai_chat` |
+| `application_key` | Application identity, initially `ai_chat` |
 | `name` | Human-readable name |
 | `description` | Optional bounded description |
 | `status` | `draft` or `locked` |
@@ -290,8 +364,8 @@ Required fields:
 | `case_key` | Unique human-readable key within the dataset |
 | `ordinal` | Stable execution and display order |
 | `origin` | `authored` or `generated` |
-| `target_kind` | `node` or `workflow` |
-| `target_key` | Application-owned runner dispatch key |
+| `target_kind` | `node`, `workflow`, or `agent` |
+| `target_key` | Application-owned declaration key resolved by the SDK harness |
 | `input_version` | Application-owned positive integer version of the target input contract |
 | `input_json` | Bounded application input validated by the runner |
 | `expectation_json` | Optional bounded evaluator input |
@@ -302,22 +376,26 @@ Required fields:
 | `created_at` | Server timestamp |
 
 The MVP does not define a universal input schema. `target_key` selects an
-explicit AI Chat adapter, and that adapter validates `input_json` with the
-application's existing types before execution.
+explicit target declaration loaded by the SDK harness. The declaration
+validates `input_json` with the application's existing type before execution.
+Junjo owns the target abstraction and lifecycle; the application supplies the
+type and the construction/execution callback.
 
 `application_key`, `target_key`, and `input_version` are the minimum dispatch
 contract between Studio data and a particular application checkout. They do
 not turn Studio into a Python import registry or require Studio to understand
 the application's schemas.
 
-`expectation_json` is application-owned evaluator material. Studio stores and
-returns it but does not interpret it as a general rubric language.
+`expectation_json` is evaluator input. Studio stores and returns it but does
+not interpret it as a general rubric language. The SDK owns evaluator
+contracts and dispatch; an application supplies a callback only where the
+judgment depends on its domain.
 
-`evaluator_key` and `evaluator_version` pin the small application-owned
-judgment contract used for every run of the locked case. The runner rejects an
-unknown version. There is no Studio evaluator registry or DSL. Changing an
-evaluator contract requires a new dataset; otherwise baseline/candidate scores
-could appear comparable while being produced by different rules.
+`evaluator_key` and `evaluator_version` pin the SDK-loaded judgment contract
+used for every run of the locked case. The SDK harness rejects an unknown
+version. There is no Studio evaluator registry or DSL. Changing an evaluator
+contract requires a new dataset; otherwise baseline/candidate scores could
+appear comparable while being produced by different rules.
 
 `source_execution` and case `source_revision` are either both present for a
 generated case or both absent for an authored case. This makes the evidence and
@@ -345,12 +423,12 @@ These explicit labels are sufficient for the first comparison. They are not
 pretended to be cryptographic candidate identity.
 
 For a prompt experiment, the developer supplies the candidate label and runs
-the command from the recorded source revision containing that prompt. The MVP
-requires a clean committed worktree, captures `git rev-parse HEAD`, and rejects
-a dirty candidate rather than attaching a misleading revision. The candidate
-label is metadata; it does not select or inject different behavior. The exact
-rendered model request remains in received trace evidence where the current
-instrumentation emits it. The MVP neither reconstructs nor stores the
+the SDK command from the recorded source revision containing that prompt. The
+SDK requires a clean committed worktree, captures `git rev-parse HEAD`, and
+rejects a dirty candidate rather than attaching a misleading revision. The
+candidate label is metadata; it does not select or inject different behavior.
+The exact rendered model request remains in received trace evidence where the
+current instrumentation emits it. The MVP neither reconstructs nor stores the
 originating template.
 
 Starting a run creates one queued attempt for every case in a single
@@ -388,7 +466,7 @@ second canonical result into span attributes or copy subject prompts,
 responses, state, or traces into SQLite.
 
 Execution binding and terminal judgment are separate idempotent writes. As soon
-as the target returns a trustworthy runtime ID, the runner binds the semantic
+as the target returns a trustworthy runtime ID, the SDK runner binds the semantic
 execution reference to the pre-created attempt before invoking a potentially
 slow or fallible judge. An identical retry succeeds and a conflicting rebind
 returns a conflict. This preserves the evidence link if the runner stops after
@@ -400,7 +478,7 @@ attempt, the same transaction marks the run completed. An identical result
 retry succeeds, a conflicting terminal write returns a conflict, and a
 terminal attempt never reopens.
 
-On command resume, an unbound queued attempt executes normally. A queued
+On SDK command resume, an unbound queued attempt executes normally. A queued
 attempt that already has `subject_execution` is never executed again: the
 previous process completed execution but did not durably record a judgment.
 The resumed command records a bounded `error` reason for that interrupted
@@ -410,13 +488,13 @@ execution bindings without adding attempt leases, persisted evaluator
 subjects, or a distributed scheduler. Concurrent runners for the same run are
 unsupported in the MVP.
 
-If the runner dies before the runtime ID is durably bound, including the small
+If the SDK runner dies before the runtime ID is durably bound, including the small
 gap after application execution returns, the ordinary trace may be received
 without evaluation membership and resume may execute the still-unbound
-attempt. The dedicated service scope makes the orphan visually distinguishable
-but is not canonical membership. Solving this crash window would require a new
-trusted telemetry-to-attempt reconciliation contract and is not hidden inside
-this MVP.
+attempt. The standardized evaluation-attempt root can make the orphan
+discoverable in telemetry but is not canonical membership. Solving this crash
+window would require a new trusted telemetry-to-attempt reconciliation
+contract and is not hidden inside this MVP.
 
 ### Semantic Execution Reference
 
@@ -429,8 +507,8 @@ Both `source_execution` and `subject_execution` reuse ADR 0007 identity:
 | `executable_type` | `workflow`, `subflow`, or `agent` |
 | `runtime_id` | Exact Junjo executable runtime ID |
 
-The UI links this reference to the existing semantic resolver. The runner does
-not block waiting for a physical trace ID.
+The UI and SDK client link this reference to the existing semantic resolver.
+The SDK runner does not block waiting for a physical trace ID.
 
 For a Node case, `evaluate_node()` supplies the generated one-Node Workflow
 runtime ID. The execution reference therefore uses executable type `workflow`.
@@ -495,7 +573,7 @@ in Parquet.
 
 ## Minimal REST API
 
-The first API should expose only the operations needed by the runner and the
+The first API exposes only the operations needed by the SDK client, CLI, and
 read-only UI:
 
 | Operation | Purpose |
@@ -505,8 +583,8 @@ read-only UI:
 | Get dataset | Return metadata and ordered cases |
 | Add case | Add one authored or generated case to a draft |
 | Lock dataset | Irreversibly freeze the exact case set |
-| Start run | Require a locked dataset and return attempts plus cases |
-| Get attempt | Resume or inspect one pre-created attempt |
+| Start run | Require a locked dataset and return attempts plus cases to the SDK harness |
+| Get attempt | Let the SDK resume or inspect one pre-created attempt |
 | Bind attempt execution | Idempotently attach an exact semantic execution as soon as its runtime ID exists |
 | Record attempt result | Idempotently store one terminal case outcome |
 | List evaluation runs | Discover bounded runs, optionally filtered by dataset |
@@ -514,9 +592,9 @@ read-only UI:
 | Find execution membership | Resolve one exact semantic execution tuple to its case, dataset, run, and attempt role |
 
 There is no update-case, delete-case, clone, cancel, retry, saved-search, bulk
-import, or comparison endpoint in the MVP. Baseline and candidate comparison
-is a small read projection over two completed runs for the same dataset and can
-be added after both runs work.
+import, or arbitrary query endpoint in the MVP. Baseline and candidate
+comparison is a deterministic SDK/UI projection over two completed runs for
+the same dataset; it does not require duplicated comparison persistence.
 
 Every route is authenticated and bounded. List endpoints are paginated from
 the beginning even if the first demo has only a few rows.
@@ -526,12 +604,12 @@ Dataset creation is idempotent by `(application_key, key)`, case creation by
 `(dataset_id, request_key)`. Repeating the same request and content returns the
 same record; reusing that identity with different content returns a conflict.
 Locking an already locked dataset succeeds. Starting the same run request
-returns the original run and attempts. These semantics let a local command
+returns the original run and attempts. These semantics let the SDK runner
 resume after an uncertain HTTP response without duplicating work.
 
 `Start run` returns the ordered immutable case definitions together with their
 pre-created attempt IDs. `Get run` returns the same membership and current
-statuses so the application runner can skip terminal attempts and distinguish
+statuses so the SDK runner can skip terminal attempts and distinguish
 unbound from already-bound queued attempts. Binding and terminal-result retries
 follow the idempotency rules in the attempt model.
 
@@ -552,12 +630,12 @@ source or an attempt subject together with its dataset, case, run, and attempt
 identity. It does not hydrate trace evidence.
 
 The backend adds direct Pydantic write/read contracts for Dataset, Case, Run,
-Attempt, and Semantic Execution Reference. The frontend adds Zod read schemas
-only for the evaluation-run list and detail responses. Existing
-`TraceEvidence`, execution-resolution, ingestion, and SDK structures do not
-change.
+Attempt, and Semantic Execution Reference. The Junjo SDK owns the corresponding
+public client DTOs and typed errors. The frontend adds Zod read schemas only
+for the evaluation-run list and detail responses. Existing `TraceEvidence`,
+execution-resolution, and ingestion structures remain reusable.
 
-The coding agent retrieves execution evidence by composing existing APIs:
+The SDK client retrieves execution evidence by composing existing APIs:
 
 1. read the attempt's semantic execution reference;
 2. call the existing `/api/v1/execution-resolution` endpoint;
@@ -574,25 +652,19 @@ relevant exact executable-owner identity, and performs that same lookup.
 
 ### MVP Programmatic Authentication
 
-The runner uses the existing Studio user sign-in flow to obtain a normal
-session for the lifetime of the command. Credentials come from the runner's
-environment and are never written into the dataset, result, trace, or logs.
-The encrypted session cookie remains only in the command's in-memory cookie jar
-and is discarded on exit. The runner does not call sign-out because Studio
-sign-out intentionally invalidates every existing session for that user.
-
-This is intentionally narrower than adding another credential system. The MVP
-does not reuse the OTLP ingestion API key as a control-plane write credential.
-A separately scoped personal access token can follow after the programmatic API
-has stable operations and a demonstrated automation need.
-
-Session reuse is limited to the local self-hosted proof and is not the durable
-coding-agent authentication contract. Remote or unattended automation requires
-a separately scoped evaluation-control token before it is supported.
+The MVP uses a separately scoped evaluation-control token for local, remote,
+and unattended use. Human browser sessions create, list, and revoke tokens;
+the SDK intentionally has no email/password sign-in path. The SDK accepts the
+token through its normal configuration boundary, redacts it from output, and
+never writes it into a
+dataset, result, trace, or log. OTLP ingestion API keys never authorize
+evaluation-control routes, and evaluation-control tokens never become
+ingestion credentials.
 
 ## Programmatic Case Authoring
 
-The API accepts cases from ordinary code. There is no browser upload or bundle.
+The SDK client and CLI accept cases from ordinary code or JSON input. There is
+no browser upload or bundle.
 
 An authored case supplies:
 
@@ -611,18 +683,17 @@ post-MVP concerns.
 
 ## Real-Execution Dataset Generation
 
-Dataset generation is a mode of the application runner, not a new ingestion
-protocol.
+Dataset generation is a mode of the SDK evaluation harness, not application
+framework code and not a new ingestion protocol.
 
 For one generated case:
 
 1. create or select a draft dataset;
 2. verify a clean committed worktree and capture its revision;
-3. choose the case key, known application input, and explicit evaluator
-   key/version;
-4. execute a direct Node with
-   `ExecutionCorrelation(type="ai_chat.dataset_case", id=<dataset ID and case key>)`,
-   or execute a real Turn through its existing `ai_chat.turn` correlation;
+3. choose the case key, known application input, and explicit target and
+   evaluator declarations;
+4. let the SDK establish a `dataset_generation` evaluation context and execute
+   the declared Node, Workflow, or Agent through its normal entry point;
 5. let normal OTLP telemetry reach Studio;
 6. retain the returned top-level runtime ID;
 7. add the case to the draft with its input, expectation, evaluator identity,
@@ -647,104 +718,83 @@ This gives the developer a labeled end-to-end evidence set now. Promoting one
 descendant into a focused case can be added later when a real repeated workflow
 demonstrates the required input projection.
 
-Direct Node evaluation executions use
-`ExecutionCorrelation(type="ai_chat.eval_case", id=<attempt id>)`. Existing
-propagation associates its nested Junjo executables with the case without
-adding new per-span attributes.
+The SDK establishes an evaluation-attempt root span with bounded standardized
+attributes for run class (`evaluation` or `dataset_generation`), dataset, run,
+case, attempt, candidate revision, and role (`subject`, `judge`, `verifier`, or
+`orchestrator`) as applicable. The declared target executes beneath that
+context while retaining the same service namespace, service name, and domain
+correlation it has during ordinary application use. Studio control records
+remain the canonical membership and result source.
 
-Real Turn application entry points retain their existing `ai_chat.turn`
-correlation for both dataset-generation and evaluation runs. The Studio dataset
-and attempt records associate those Turn Workflow runtime IDs with the eval
-case; they do not replace the application's domain identity. No run-class
-telemetry contract is required for the MVP.
+## Junjo SDK Evaluation Harness And CLI
 
-The runner uses a dedicated evaluation service name so its traces do not mix
-with ordinary AI Chat service lists by default. Direct Node runs retain their
-eval correlation, while real Turn runs are classified by the Studio control
-record that references their truthful `ai_chat.turn` execution. This is
-application resource configuration, not a shared telemetry-contract or
-ingestion change.
-
-AI Chat currently fixes its service scope in application constants. The runner
-therefore adds one authoritative evaluation service-scope setting used by both
-the OpenTelemetry Resource and every semantic execution reference. It must not
-change only the Resource while resolver links keep the ordinary application
-scope.
-
-## AI Chat Runner
-
-The first runner is an AI Chat-owned import surface and command, such as
-`python -m ai_chat.evals`, not a Junjo SDK framework. It has four small,
-explicit parts:
+The productized harness is a Junjo SDK public surface with six explicit parts:
 
 | Part | Responsibility |
 | --- | --- |
-| `StudioEvaluationClient` | Authenticate to Studio, exchange bounded evaluation DTOs, resolve an execution, and fetch `TraceEvidence`; it never executes application code or exports telemetry |
-| Target adapters | Validate one known input version, construct real AI Chat dependencies, invoke the focused Node or real Turn entry point, and project the evaluator subject |
-| Sequential runner | Start or resume a run, process unfinished attempts in ordinal order without rerunning a bound execution, bind execution, judge, record one terminal result, and continue after a case error |
-| Dataset-generation operation | Reuse the same target adapters, retain source execution identity, and add a caller-curated case to a draft |
+| Studio client and DTOs | Authenticate, exchange bounded evaluation records, resolve membership, fetch evidence, and expose typed errors |
+| Evaluation harness | Load one explicit application declaration and validate target/evaluator keys and versions before provider work |
+| Target abstractions | Define consistent Node, Workflow, and Agent execution and return the SDK target-result envelope |
+| Evaluator abstractions | Provide common result contracts and invoke a domain callback only when application semantics require it |
+| Evaluation executor | Own one lazy application runtime, start/resume sequentially, execute only eligible attempts, bind before judgment, record results, and continue after case errors |
+| Dataset generation | Reuse declared targets, retain source execution identity, and add a curated case to a draft |
 
-It owns a small explicit dispatch map:
+AI Chat owns only a small declaration:
 
-| Target key | Adapter responsibility |
+| Declared item | Application responsibility |
 | --- | --- |
-| Focused Node key | Validate initial state, construct fresh dependencies and Store, call `evaluate_node()` |
-| Turn Workflow key | Validate use-case input, construct an isolated application, call the real Workflow entry point |
+| Focused date-response Node | Supply the input type and construct fresh dependencies, Store, and Node |
+| Turn Workflow | Supply the use-case input type and construct the isolated real entry point |
+| Agent proof | Supply the Agent input type and construct the real Agent and dependencies |
+| Local-place evaluator | Supply the domain judgment callback and expectation type |
 
-Each adapter returns:
+The SDK Node target calls `evaluate_node()` around the application-supplied
+Node and Store. The SDK Workflow and Agent targets call the supplied real
+entry points. All return the same SDK-owned result envelope: evaluator subject,
+duration or error, and semantic execution identity when a trustworthy runtime
+ID exists.
 
-- the semantic execution reference, whenever a trustworthy runtime ID exists;
-- the evaluator subject value;
-- duration; and
-- any application-level execution error.
+The SDK runner processes attempts in stable ordinal order. An unbound queued
+attempt executes; a bound queued attempt is finalized as interrupted without
+executing again; terminal attempts are skipped. Validation, setup, execution,
+projection, and judgment failures produce a bounded terminal `error`, and one
+case error does not abort the run. The SDK binds execution before invoking the
+declared evaluator.
 
-The focused adapter creates a fresh Node, Store, and dependency set for every
-case and calls `evaluate_node()`. The Workflow adapter calls the real isolated
-AI Chat application service entry point; it does not reconstruct Workflow
-internals in a parallel eval-only implementation.
+The CLI is a thin adapter over the same public Python APIs:
 
-The runner authenticates, starts a new run or retrieves an interrupted run,
-and processes attempts in stable ordinal order. An unbound queued attempt
-executes; a bound queued attempt is finalized as interrupted without executing
-again; and terminal attempts are skipped. Validation, dependency setup, target
-execution, subject projection, and judge failures all produce a bounded
-terminal `error` result, and one failed case does not abort the remaining run.
-When execution identity exists, it is bound before the judge starts. The
-runner then invokes the existing application-owned deterministic check or
-quality judge selected by the case's exact evaluator key/version and records
-the terminal attempt. The key/version dispatch is another small explicit map,
-not a dynamic evaluator registry.
+- `junjo eval dataset create|list|get|add|lock`;
+- `junjo eval case generate`;
+- `junjo eval run execute|resume|list|get|compare`;
+- `junjo eval attempt get|evidence`; and
+- `junjo eval execution membership`.
 
-The command exposes only the operations needed for the proof:
+Execution commands require one explicit `module:object` application
+declaration rather than plugin discovery. Data output is versioned JSON by
+default; diagnostics go to standard error; commands are non-interactive; exit
+codes distinguish usage, authentication, conflict, execution, evaluation, and
+pending evidence; idempotency keys and run IDs are accepted explicitly; and
+secrets are redacted. An optional human projection does not replace the tested
+JSON contract.
 
-- author a draft dataset and add explicit cases;
-- generate a case through real application execution;
-- lock a dataset;
-- run or resume a locked dataset at the current clean revision; and
-- fetch complete evidence for one attempt.
+The coding-agent skill and public runbook operate these commands to create and
+lock datasets, run clean baseline/candidate revisions, resume safely, compare
+outcomes, and retrieve exact evidence. MCP may later wrap the same SDK client,
+but it is not a second implementation and does not block the CLI MVP.
 
-There is no plugin discovery, dynamic Python import, generalized target
-registry, or Studio-side code execution.
+Runner concurrency defaults to one. Controlled concurrency follows measured
+provider, memory, SQLite, and telemetry behavior.
 
-The runner defaults to one case at a time. Controlled concurrency can be added
-after measuring provider, memory, SQLite, and telemetry behavior.
+Existing live pytest evals remain useful product-quality checks, but dynamic
+Studio datasets are not forced through pytest collection. Studio runs record
+their canonical results only in Studio; existing pytest suites may keep their
+separate deliberate local artifacts.
 
-The existing live pytest evals remain useful product-quality checks. The new
-command may reuse their application composition and judges, but dynamic Studio
-datasets should not be forced through pytest collection.
-
-For runs created through the new Studio API, the runner records the canonical
-attempt in Studio and does not also write a local result artifact. The existing
-pytest suites may retain their current local artifacts because they are a
-separate deliberate test surface, not a second result channel for the same
-Studio run.
-
-The core `junjo` package remains responsible for execution and telemetry, not
-Studio authentication, evaluation datasets, HTTP DTOs, judges, or runner
-coordination. If a second application later proves the Studio transport code is
-repeated, extract the typed REST client and DTOs first into a separate
-Studio-owned distribution. Target adapters, application schemas, dependency
-composition, output projection, and evaluators remain application code.
+AI Chat must not retain a private Studio client, duplicate DTOs, generic
+runner, retry policy, Git provenance logic, CLI orchestration, or generic
+target/evaluator machinery. It retains only typed inputs, dependency
+construction, real entry-point calls, output projection, fixtures, and domain
+evaluator callbacks.
 
 ## Stack Surface
 
@@ -754,131 +804,89 @@ composition, output projection, and evaluators remain application code.
 | Studio backend | Four tables, one feature module, authenticated REST routes, migration | Canonical case/run coordination and result queries |
 | Studio ingestion | No change | Ordinary OTLP telemetry already carries the evidence |
 | Studio proto/gRPC | No change | Backend does not need a new ingestion control path |
-| Python SDK | No change | Existing execution APIs, correlation, exporter, and results are sufficient; Studio control-plane code does not belong in core `junjo` |
-| Telemetry contract | No change | Existing owner correlation, identity, parentage, and payload evidence are sufficient |
-| AI Chat backend | Add the explicit command, thin Studio session client, sequential runner, authoritative eval service resource, and two small target adapters | The coding agent operates in this source checkout; application code owns construction, input validation, execution, and evaluation |
+| Python SDK | Add Studio client/DTOs, harness, runner, Node/Workflow/Agent targets, evaluator contracts, evaluation context, provenance, evidence/comparison queries, and CLI | Junjo provides one batteries-included agent-facing product contract |
+| Telemetry contract | Add one bounded evaluation-attempt root-span/context contract | Classify evaluation and dataset-generation traces without replacing application service identity or duplicating attributes on every span |
+| AI Chat backend | Replace the prototype framework with a small target/evaluator declaration | The application owns only code and domain behavior Junjo cannot supply |
 | AI Chat frontend | No change | Evals are deliberate developer operations, not end-user chat behavior |
+| Public docs and agent skill | Add setup, declaration, dataset/run/evidence workflows, JSON examples, and invariants | A coding agent in a standalone application repository must operate the product without monorepo knowledge |
 | Deployment | No new service or port | The existing backend database and HTTP surface are reused |
 
-This matrix is a constraint. A proposed first-slice change to ingestion, shared
-telemetry schemas, or Junjo's public SDK must demonstrate why the existing
-paths cannot complete the walking skeleton.
+This matrix is a constraint. The SDK and bounded evaluation telemetry changes
+are required corrections. No ingestion service, protobuf, cache, database, or
+new runtime service is implied.
 
 ## Vertical Delivery Slices
 
 Each slice must work end to end before starting the next.
 
-### Slice 0: Accept The Lean Ownership Decision
+### Slice 0: Preserve The Validated Walking Skeleton
 
-Write two short ADRs.
-
-The root ownership ADR covers:
-
-- Studio owns canonical dataset, run, and judgment metadata;
-- the application repository and its deterministic harness are the execution
-  host for candidate code;
-- applications own target construction, input validation, and evaluators;
-- telemetry remains canonical execution evidence in Parquet;
-- semantic execution references link control records to evidence;
-- attempt execution binding is independent from terminal result recording;
-- the local session client is a temporary self-hosted proof rather than the
-  remote automation credential contract;
-- no shared telemetry, ingestion, or SDK change is authorized by this MVP.
-
-The Studio ADR covers:
-
-- the four canonical tables in `junjo.db`;
-- lock and idempotency semantics;
-- flattened semantic execution identity and exact reverse lookup;
-- separate execution-binding and terminal-result writes;
-- authenticated programmatic routes and the temporary local-session boundary;
-  and
-- bounded pagination, JSON limits, indexes, and low-resource measurements.
+The application-local prototype already proved the Studio schema, API,
+read-only UI, Node/Workflow execution loop, binding-before-judgment rule,
+resume behavior, evidence links, candidate comparison, and low-resource
+viability. Keep that evidence and its tests while explicitly rejecting the
+prototype's AI Chat ownership as the final public architecture.
 
 Exit gate:
 
-- both ADRs are accepted;
-- the four records, evaluator identity, result authority, and
-  execution-reference boundary are accepted;
-- table ownership in `junjo.db` is accepted; and
-- the deferred list is agreed.
+- the completion record is framed as prototype evidence;
+- Studio persistence and APIs remain reusable;
+- root ADR 0013 and Studio ADR 010 state SDK ownership; and
+- the user stories are the acceptance source for productization.
 
-### Slice 1: Headless Walking Skeleton
+### Slice 1: Productize The SDK Framework
 
-Implement:
+Implement the public Studio client/DTOs, evaluation context, harness, runner,
+provenance, Node/Workflow/Agent target contracts, evaluator contracts,
+evidence/comparison queries, and typed failure model in `junjo`.
 
-- the four backend tables and migration;
-- create dataset, add case, lock dataset, start run, get attempt/run, bind
-  execution, record result, and exact execution-membership operations;
-- an AI Chat Studio-session client;
-- one focused date-response Node adapter; and
-- the existing qualitative judge.
-
-Demonstration:
-
-1. create a draft dataset from Python;
-2. add three authored local-place cases;
-3. explicitly lock the dataset;
-4. verify a clean worktree and start a run labeled `baseline` from its exact
-   committed source revision;
-5. execute each case through `evaluate_node()`;
-6. bind and record three outcomes;
-7. retrieve the completed run as structured data; and
-8. resolve and fetch complete `TraceEvidence` for at least one attempt through
-   the application client.
+Move generic tests from AI Chat to the SDK. Replace AI Chat's private
+framework with one explicit declaration and domain callbacks.
 
 Exit gate:
 
-- one command completes the entire loop;
-- a stopped command resumes the same run without rerunning bound executions or
-  touching terminal attempts;
-- failed setup or execution produces an `error` attempt rather than a lost
-  case;
-- a draft cannot run and a locked dataset cannot accept cases;
-- no local trace or result bundle is uploaded; and
-- ingestion, telemetry contracts, and the SDK remain unchanged.
+- no generic Studio/evaluation mechanics remain under `ai_chat`;
+- a second minimal fixture application can use the same SDK APIs;
+- all three executable target kinds use one attempt lifecycle;
+- resume and idempotency tests pass in the SDK; and
+- SDK public-surface, package, type, lint, and test gates pass.
 
-### Slice 2: End-To-End Candidate And Minimal Studio View
+### Slice 2: Deliver The Agent-Facing Interface
 
-Implement:
-
-- deliberate dataset-generation mode;
-- one complete Turn Workflow adapter;
-- optional source execution on cases;
-- bounded evaluation-run list and detail APIs;
-- one Studio Evaluation Runs list/detail surface; and
-- a small client-side baseline/candidate read projection over two explicit run
-  IDs.
-
-Demonstration:
-
-1. run three real Turn Workflows to create the local-place generated cases;
-2. store their known inputs and source execution references in one draft;
-3. explicitly lock the dataset;
-4. run the exact same cases from the baseline source revision;
-5. let the coding agent make and validate one prompt-only source change, commit
-   it, and record its new source revision;
-6. run the exact same cases with the named prompt candidate;
-7. select those two run IDs and show pass, score, reason, and duration deltas;
-   and
-8. inspect all received evidence for both Workflow traces, including downstream
-   effects.
+Implement the JSON-first `junjo eval` command groups, stable output/version and
+exit-code contracts, explicit declaration loading, scoped evaluation-control
+authentication, public runbook, and coding-agent skill. Add the bounded
+evaluation-attempt telemetry context while retaining normal application
+service identity.
 
 Exit gate:
 
-- an upstream prompt change can be evaluated by the final case outcome and
-  investigated through all received evidence for both traces;
-- a coding agent can perform the edit, commit, run, structured-result query,
-  and explicit evidence-query loop from the AI Chat checkout without a browser
-  or local result files;
-- every result links to the correct execution;
-- incomplete or delayed telemetry does not block recording the attempt; and
-- a developer can inspect results without reading local JSON files;
-- the frontend does not duplicate trace detail rendering; and
-- pending telemetry is handled only after opening the existing semantic
-  resolver, without per-row resolution fan-out;
-- no automatic trace diff, prompt hash, or schema hash was required; and
-- the full loop is usable on the supported low-resource deployment.
+- commands are non-interactive and machine-readable without parsing prose;
+- an agent can create/lock a dataset, execute/resume a run, compare runs, and
+  query exact attempt evidence;
+- secrets never appear in stdout, stderr, Studio records, or telemetry;
+- the skill delegates mechanics to the CLI/SDK and contains no hidden
+  framework implementation; and
+- telemetry contract, SDK producer, Studio consumer/query, and docs validate
+  together.
+
+### Slice 3: Repeat The Full AI Chat Proof
+
+Use the published-style SDK interface from a clean AI Chat checkout. Create the
+same authored and generated cases, run a committed baseline and prompt-only
+candidate through Node, Workflow, and Agent targets, compare them, and inspect
+all received downstream evidence through both CLI JSON and Studio.
+
+Exit gate:
+
+- the loop needs no monorepo-relative imports or AI Chat-owned client/runner;
+- every result links to the correct application-service execution;
+- incomplete telemetry does not block result recording and pending evidence is
+  explicit;
+- the read-only frontend continues to reuse existing evidence views;
+- ordinary application telemetry remains correctly identified;
+- no automatic trace diff, prompt hash, or schema hash is required; and
+- the full loop remains usable on the supported low-resource deployment.
 
 The frontend is read-only in the MVP. Programmatic authoring is the primary
 contract. A dataset-management UI follows only if regular use shows it is
@@ -895,12 +903,16 @@ The Lean MVP preserves the current low-resource architecture:
 - no default trace cache;
 - no background evaluator or scheduler service;
 - no unbounded dataset, case, run, or result lists;
-- one-case runner concurrency by default;
+- one-case SDK runner concurrency by default;
+- one bounded evaluation-attempt root rather than repeated evaluation
+  attributes on every descendant span;
+- normal application service identity during evaluation;
 - exact execution resolution only when a link or detail is requested; and
 - trace hydration only on an explicit Studio UI or application-client evidence
   request, never automatically for result lists or every case.
 
-Before declaring Slice 2 complete, measure the supported small deployment while
+Before declaring Slice 3 complete, repeat measurement on the supported small
+deployment while
 an eval run records results:
 
 - backend RSS and CPU;
@@ -910,17 +922,18 @@ an eval run records results:
 - runner RSS at concurrency one.
 
 Because ingestion code and protocol remain unchanged, any ingestion regression
-is evidence of deployment contention rather than a new ingestion algorithm.
-The measurement should confirm that distinction. This is one bounded
-before/while-evaluation smoke on the supported small profile, not a broad
-benchmark matrix.
+is evidence of deployment contention or telemetry volume, not a new ingestion
+algorithm. The measurement should confirm that distinction. This is one
+bounded before/while-evaluation smoke on the supported small profile, not a
+broad benchmark matrix.
 
 ## Validation
 
 ### Backend
 
 - model and repository tests for all invariants;
-- migration upgrade from the previous released database;
+- greenfield migration upgrade from an empty database, downgrade to base, and
+  re-upgrade to head;
 - authenticated API contract tests;
 - atomic dataset locking and attempt creation;
 - create/start idempotency and conflicting-content rejection;
@@ -931,15 +944,16 @@ benchmark matrix.
 - bounded input and list tests; and
 - concurrent final-attempt updates complete a run exactly once.
 
-### AI Chat Runner
+### Python SDK Framework And CLI
 
-- deterministic client and dispatch tests with no provider calls;
+- deterministic Studio client, DTO, harness, target, evaluator, and dispatch
+  tests with no provider calls;
 - run resume executes only unbound queued attempts, marks a bound
   no-result attempt interrupted, and skips terminal attempts;
 - execution binding survives a later judge or result-write failure;
 - identical bind/result retries succeed and conflicting writes fail;
 - input-validation failure creates an error attempt;
-- Node and Workflow adapters return correct semantic references;
+- Node, Workflow, and Agent targets return correct semantic references;
 - execution resolution handles pending `404` and ambiguous `409` distinctly;
 - explicit trace-evidence retrieval returns the resolved received evidence;
 - generated output is never silently copied into the case expectation;
@@ -948,7 +962,22 @@ benchmark matrix.
 - one credentialed Node run;
 - one credentialed generated Workflow dataset;
 - baseline/candidate execution over the same dataset; and
-- telemetry exporter flush and shutdown remain application-owned.
+- evaluation context produces one bounded root, retains application service
+  identity, and propagates through subject/judge execution;
+- JSON output schemas and exit codes remain stable across every CLI command;
+- stdout contains data only and credentials are always redacted;
+- public SDK surface, lint, type, test, package-build, and Twine gates; and
+- telemetry exporter flush and shutdown remain SDK-harness responsibilities.
+
+### AI Chat Binding
+
+- the declaration contains no Studio transport, DTO, retry, persistence,
+  provenance, or CLI code;
+- application input validation and dependency construction use real AI Chat
+  types and composition;
+- output projectors and domain evaluator callbacks are explicit;
+- one credentialed Node, generated Workflow, and Agent execution; and
+- baseline/candidate execution over the same dataset.
 
 ### Frontend
 
@@ -962,10 +991,13 @@ benchmark matrix.
 
 - run the Studio validation owned by every changed Studio area;
 - run the AI Chat backend validation;
+- run the SDK's complete validation and telemetry conformance suite;
+- exercise the public runbook and coding-agent skill from a clean
+  published-style application checkout;
 - start the supported Compose stack from a clean volume;
 - create, execute, inspect, and compare a small dataset;
-- run the same loop from a clean AI Chat application checkout through its
-  coding-agent-facing command;
+- run the same loop from a clean AI Chat application checkout through
+  `junjo eval`;
 - confirm ordinary application executions remain usable; and
 - record the low-resource measurements listed above.
 
@@ -973,44 +1005,185 @@ benchmark matrix.
 
 Horizon 3 Lean MVP is complete when:
 
+- Studio client, DTOs, harness, runner, retry/resume policy, provenance,
+  evaluation context, target/evaluator abstractions, and CLI are public Junjo
+  SDK product surfaces;
+- AI Chat contains only typed target declarations, construction/execution
+  callbacks, projectors, fixtures, and domain evaluator callbacks;
 - cases can be added programmatically without uploading files;
 - authored and real-execution-generated cases share one dataset contract;
 - generated cases retain both their source execution and clean source
   revision;
-- every locked case pins an application-owned evaluator key and version;
+- every locked case pins an SDK-loaded evaluator key and version;
 - an explicitly locked case set cannot change;
-- Node and Workflow targets execute through real application code;
+- Node, Workflow, and Agent targets execute through real application code;
 - baseline and candidate runs use that same case set;
 - every case is visibly passed, failed, errored, or still queued;
 - completed judgments have a score and reason;
 - executions with a trustworthy runtime ID have exact semantic Studio links;
 - all received trace evidence remains inspectable through existing pages;
-- a local coding agent can create or retrieve a locked dataset, run or resume
-  it, retrieve structured outcomes, and request attempt evidence without a
-  browser or exported result file;
+- a coding agent in a standalone application repository can use stable
+  JSON-first commands to create or retrieve a locked dataset, run or resume it,
+  compare structured outcomes, and request exact evidence without a browser,
+  exported result file, or monorepo knowledge;
+- public docs and the coding-agent skill teach that flow and defer all mechanics
+  to the SDK/CLI;
+- evaluation telemetry is distinguishable through standardized context while
+  retaining the application's normal service identity;
 - a changed upstream prompt can be assessed at the final outcome and traced
   through downstream execution manually;
 - the frontend provides a small readable result surface;
-- ingestion and shared SDK/telemetry contracts did not change; and
+- the bounded SDK/telemetry contract changed coherently across schemas,
+  producer, Studio query behavior, conformance tests, and docs, while the
+  ingestion hot path and protobuf plane did not change; and
 - the supported low-resource deployment remains within its measured budget.
+
+## Walking-Skeleton Validation Record
+
+The first end-to-end walking skeleton was implemented and validated on
+2026-07-27. It proves product value, Studio persistence, evidence linkage, and
+low-resource viability. It does **not** complete the Lean MVP because generic
+framework mechanics were placed in AI Chat rather than the Junjo SDK. Preserve
+the evidence below while replacing that prototype ownership in Slices 1–3.
+
+Delivered:
+
+- initial cross-platform and Studio decisions establishing
+  application-executed, Studio-controlled evaluation records;
+- Studio-owned Dataset, Case, Evaluation Run, and Case Attempt persistence,
+  migrations, authenticated bounded REST APIs, idempotency rules, and
+  concurrency controls;
+- an AI Chat application-local prototype of the client, command, runner, Node
+  and Workflow adapters, authored/generated cases, run/resume behavior,
+  binding-before-judgment, result recording, and evidence retrieval;
+- read-only Studio run list, run detail, and baseline/candidate comparison
+  pages with exact semantic execution links; and
+- prototype-isolated evaluation telemetry under
+  `junjo.examples / ai-chat-evals`.
+
+The prototype did not change ingestion behavior, Studio protobufs, the shared
+telemetry contract, or Junjo SDK core execution APIs. Productization replaces
+its eval-only service identity with standardized SDK evaluation context under
+the application's normal service identity.
+
+Validation completed:
+
+- all Studio validation gates passed, including 940 backend tests with three
+  skips, 237 frontend tests, production frontend build, ingestion validation,
+  telemetry-contract conformance, and protobuf staleness checks;
+- all 83 AI Chat backend tests passed with Ruff, strict `ty`, and lockfile
+  validation;
+- the Python SDK passed Ruff, 329 core tests, strict `ty`, Griffe public-surface
+  validation, package build, and Twine validation;
+- the repository invariant validator and `git diff --check` passed;
+- migration validation exercised previous revision to head, downgrade, and
+  re-upgrade while preserving an existing user; and
+- independent final reviews found no material backend, application-harness,
+  frontend-contract, documentation, or cross-component contract defect.
+
+The isolated live proof used one locked three-case dataset containing two
+authored focused Node cases and one case generated by a real Workflow
+execution. A clean committed baseline and a prompt-only candidate both
+completed with three of three attempts passed over identical case IDs and
+ordinals. All six attempts resolved to received evidence: Node executions had
+three spans and Workflow executions had nine. Each semantic reference exactly
+matched its owner span runtime ID and the evaluation resource scope. The
+baseline and candidate rendered-prompt hashes differed, only candidate evidence
+contained the candidate directive, and the generated Workflow case retained
+its source execution and source revision. The complete ledger and evidence
+links survived two graceful Studio backend restarts.
+
+Ordinary AI Chat was also started from a fresh isolated Compose project. A
+contact and avatar were created, a real turn was admitted and completed, the
+conversation remained queryable, the frontend and application endpoints
+returned successfully, and its 13-span Workflow resolved in Studio under the
+ordinary application scope.
+
+The following values are a bounded local small-profile smoke, not a capacity
+benchmark:
+
+| Signal | Observed result |
+| --- | --- |
+| Studio backend | 302.8 MiB RSS idle; 314.2 MiB during evaluation at about 1.0% CPU; 324.6 MiB highest later query sample, below the 450 MiB limit |
+| Ingestion | 43.5 MiB RSS idle; 62.4 MiB during evaluation at about 1.64% CPU |
+| Evaluation executor (sequential) | 118,046,720 bytes baseline maximum RSS; 119,341,056 bytes candidate maximum RSS |
+| Final-run ingestion | 36 spans over 55.36 seconds, or 0.650 spans/second, dominated by provider latency |
+| Ingestion authentication | 28 export requests; 13 cache hits; 15 backend-validation misses; zero invalid validations |
+| Trace evidence | 8.4–51.4 ms per query; 16.9 ms mean |
+| Evaluation reads and writes | 4.2 ms run detail; 5.6 ms dataset lock; 7.9 ms idempotent run start; 3.9 ms result write |
+| Contention and loss | Zero backend SQLite lock/busy errors; zero ingestion warnings, errors, drops, or backpressure rejections |
+
+The accepted proof was run without out-of-process access to the live SQLite WAL
+and used only supported application and Studio APIs. Both isolated Compose
+projects, volumes, networks, credentials, evidence artifacts, and the temporary
+source checkout were removed afterward. The pre-existing Studio deployment
+retained its original containers and remained healthy.
+
+## SDK-Owned Live Validation Record
+
+The productized SDK-owned path was validated on 2026-07-28 after replacing the
+unreleased Studio migration history with one greenfield initial revision.
+Studio started from an empty data directory, upgraded directly to revision
+`b489954c5651`, and created every application and evaluation table.
+
+The attended setup used only supported product boundaries:
+
+- browser-session management APIs created one OTLP ingestion API key and one
+  separately scoped Evaluation token;
+- the SDK CLI authenticated with `JUNJO_AI_STUDIO_CLI_TOKEN`, discovered the
+  application harness, and reported Node, Workflow, and Agent targets;
+- the CLI created and irreversibly locked dataset
+  `local-place-realism-sdk-v1` with three authored real-geography cases; and
+- a clean committed temporary checkout executed two labeled runs through the
+  SDK runner while the application exported ordinary telemetry to the same
+  Studio deployment.
+
+Both `baseline` and `repeat-same-revision` completed three of three attempts
+with score `1.0`. The first run selected the Noguchi Museum, Weather Up in
+Prospect Heights, and Brooklyn Botanic Garden. The repeat preserved all passes
+while producing independent executions. Studio's comparison paired all three
+rows by exact locked Case identity and reported zero score delta.
+
+All six attempts resolved through `junjo eval attempt evidence` to six distinct
+trace IDs. Bound and resolved runtime IDs matched exactly, all evidence
+diagnostic lists were empty, and the received traces contained 7 spans for
+each focused Node case, 13 for each Workflow case, and 7 for each Agent case.
+Focused Node evaluation intentionally binds the generated one-Node Workflow
+created by `evaluate_node()`; the Dataset target remains `node`.
+
+The same SDK-owned CLI also created a second Dataset from a real generated
+Workflow execution. Its Case retained the exact source execution and clean
+source revision, the locked Dataset reran successfully with score `1.0`, and
+resuming the completed Run did not re-execute its terminal Attempt. The
+sequential runner reached 118,505,472 bytes maximum RSS for this run.
+
+Ordinary AI Chat was then started from the same checkout and Studio deployment.
+After one upstream Gemini high-demand `503`, a retry created a real contact and
+completed a real Turn. Studio resolved its 13-span Workflow by exact runtime
+ID with no evidence diagnostics. None of those ordinary spans carried
+evaluation context, confirming that application and evaluation traffic remain
+distinguishable without changing the application's service identity.
+
+The clean-volume post-run snapshot used 276.9 MiB for the Studio backend under
+its 450 MiB limit, 71.48 MiB for ingestion, and 10.11 MiB for the production
+frontend. The Studio data directory was 1.1 MiB. Backend and ingestion logs
+contained no error, panic, authentication-failure, drop, or unavailable
+records. This is a bounded functional smoke, not a throughput benchmark.
 
 ## Post-MVP Decision Order
 
-Only after the MVP is used should we decide, in this order:
+Only after the corrected SDK-owned MVP is used should we decide, in this order:
 
 1. whether deterministic real-place verification materially improves the
    local-place eval;
-2. whether to add the Agent target through the proven runner boundary;
-3. whether scoped programmatic access tokens are needed;
-4. whether dataset cloning or full version families are needed;
-5. whether historical evidence needs automatic input projection;
-6. whether descendant spans should become focused cases automatically;
-7. whether state-schema identity solves a demonstrated comparison failure;
-8. whether prompt-template identity solves a demonstrated comparison failure;
-9. whether automated paired trace alignment is worth its complexity; and
-10. whether repeated Studio transport code should become a separate typed
-    Studio client distribution, while application adapters and evaluators stay
-    in their application repositories.
+2. whether MCP materially improves agent operation beyond the JSON-first CLI;
+3. whether dataset cloning or full version families are needed;
+4. whether historical evidence needs automatic input projection;
+5. whether descendant spans should become focused cases automatically;
+6. whether state-schema identity solves a demonstrated comparison failure;
+7. whether prompt-template identity solves a demonstrated comparison failure;
+8. whether automated paired trace alignment is worth its complexity; and
+9. whether higher runner concurrency is justified by measured workloads.
 
 This order keeps implementation pressure attached to demonstrated product
 value rather than the completeness of the north-star model.

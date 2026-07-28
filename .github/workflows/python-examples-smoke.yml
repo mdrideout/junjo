@@ -27,6 +27,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  evaluation-package-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      - name: Build the SDK distribution
+        run: uv build --wheel --project sdks/python --out-dir /tmp/junjo-wheel
+      - name: Install the SDK and independent evaluation application
+        run: |
+          python -m venv /tmp/junjo-evaluation
+          /tmp/junjo-evaluation/bin/pip install /tmp/junjo-wheel/junjo-*.whl
+          /tmp/junjo-evaluation/bin/pip install --no-deps sdks/python/examples/evaluation_standalone
+      - name: Discover application-owned targets through the installed CLI
+        working-directory: sdks/python/examples/evaluation_standalone
+        run: /tmp/junjo-evaluation/bin/junjo eval targets list
+
   ai-chat-backend:
     runs-on: ubuntu-latest
     defaults:

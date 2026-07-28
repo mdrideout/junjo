@@ -41,7 +41,43 @@ describe('AppShell', () => {
       'href',
       '/agents',
     )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Evaluation runs' })).toHaveAttribute(
+      'href',
+      '/evaluation-runs',
+    )
+    expect(
+      within(desktopNavigation).getByRole('link', { name: 'Evaluation tokens' }),
+    ).toHaveAttribute('href', '/evaluation-tokens')
+    expect(
+      within(desktopNavigation).getByRole('link', { name: 'Ingestion API keys' }),
+    ).toHaveAttribute('href', '/api-keys')
     expect(within(desktopNavigation).queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
+  })
+
+  it('identifies the evaluation-token route as active navigation', () => {
+    renderShell(true, '/evaluation-tokens')
+
+    expect(
+      within(screen.getByRole('complementary')).getByRole('link', {
+        name: 'Evaluation tokens',
+      }),
+    ).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('identifies evaluation list, comparison, and detail routes as active navigation', () => {
+    for (const route of [
+      '/evaluation-runs',
+      '/evaluation-runs/compare?baseline_run_id=a&candidate_run_id=b',
+      '/evaluation-runs/run-1',
+    ]) {
+      const view = renderShell(true, route)
+      expect(
+        within(screen.getByRole('complementary')).getByRole('link', {
+          name: 'Evaluation runs',
+        }),
+      ).toHaveAttribute('aria-current', 'page')
+      view.unmount()
+    }
   })
 
   it('shows only sign-in navigation to anonymous users', () => {

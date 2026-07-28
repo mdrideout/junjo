@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.features.auth.dependencies import get_authenticated_user
+from app.features.evaluation_tokens.dependencies import get_evidence_read_access
 from app.features.execution_resolution import service
 from app.features.execution_resolution.contract import ExecutionResolutionConflictError
 from app.features.execution_resolution.schemas import ExecutionResolution
@@ -110,15 +110,15 @@ async def test_service_rejects_ambiguous_exact_identity() -> None:
 
 @pytest.fixture
 def authenticated_app(mock_authenticated_user):
-    app.dependency_overrides[get_authenticated_user] = lambda: mock_authenticated_user
+    app.dependency_overrides[get_evidence_read_access] = lambda: mock_authenticated_user
     try:
         yield app
     finally:
-        app.dependency_overrides.pop(get_authenticated_user, None)
+        app.dependency_overrides.pop(get_evidence_read_access, None)
 
 
 @pytest.mark.asyncio
-async def test_route_requires_an_authenticated_studio_session() -> None:
+async def test_route_requires_session_or_evidence_token() -> None:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(

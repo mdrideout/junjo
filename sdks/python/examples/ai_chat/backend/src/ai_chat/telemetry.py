@@ -11,8 +11,8 @@ from opentelemetry.sdk.trace import TracerProvider
 
 from ai_chat import __version__
 from ai_chat.config import (
-    STUDIO_SERVICE_NAME,
-    STUDIO_SERVICE_NAMESPACE,
+    APPLICATION_SERVICE_SCOPE,
+    ServiceScope,
     TelemetrySettings,
 )
 
@@ -29,10 +29,15 @@ class TelemetryRuntime:
 
     trace_provider: _TelemetryProvider
 
+    def force_flush(self) -> None:
+        result = self.trace_provider.force_flush()
+        if result is False:
+            raise RuntimeError("telemetry trace force flush timed out")
+
     def shutdown(self) -> None:
         errors: list[BaseException] = []
         steps = (
-            ("trace force flush", self.trace_provider.force_flush),
+            ("trace force flush", self.force_flush),
             ("trace shutdown", self.trace_provider.shutdown),
         )
         for label, step in steps:
@@ -61,12 +66,16 @@ def _require_unowned_global_trace_provider_slot() -> None:
         raise RuntimeError("OpenTelemetry tracer provider is already installed")
 
 
-def start_telemetry(settings: TelemetrySettings) -> TelemetryRuntime:
+def start_telemetry(
+    settings: TelemetrySettings,
+    *,
+    service_scope: ServiceScope = APPLICATION_SERVICE_SCOPE,
+) -> TelemetryRuntime:
     _require_unowned_global_trace_provider_slot()
     resource = Resource.create(
         {
-            "service.namespace": STUDIO_SERVICE_NAMESPACE,
-            "service.name": STUDIO_SERVICE_NAME,
+            "service.namespace": service_scope.namespace,
+            "service.name": service_scope.name,
             "service.version": __version__,
         }
     )

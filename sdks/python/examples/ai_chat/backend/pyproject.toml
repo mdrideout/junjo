@@ -43,6 +43,9 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = ["live_eval: credentialed model-quality evaluation excluded from ordinary tests"]
 
+[tool.junjo.evaluation]
+harness = "ai_chat.evals:harness"
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"

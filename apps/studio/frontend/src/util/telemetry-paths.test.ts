@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  executionResolverPath,
   logsPath,
   observabilityServicePath,
   tracesPath,
@@ -27,5 +28,18 @@ describe('telemetry path builders', () => {
     expect(() => tracesPath(undefined, 'trace')).toThrow('missing segment')
     expect(() => tracesPath('service', undefined, 'span')).toThrow('without a trace segment')
     expect(() => workflowPath('service', undefined, 'workflow')).toThrow('missing segment')
+  })
+
+  it('preserves and encodes one exact semantic execution identity', () => {
+    expect(
+      executionResolverPath({
+        service_namespace: '',
+        service_name: 'service/name',
+        executable_type: 'subflow',
+        runtime_id: 'runtime?identity',
+      }),
+    ).toBe(
+      '/resolve/executable?service_namespace=&service_name=service%2Fname&executable_type=subflow&runtime_id=runtime%3Fidentity&destination=detail',
+    )
   })
 })

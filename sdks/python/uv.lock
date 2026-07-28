@@ -1146,6 +1146,7 @@ version = "0.66.0"
 source = { editable = "." }
 dependencies = [
     { name = "grpcio" },
+    { name = "httpx" },
     { name = "jsonpatch" },
     { name = "nanoid" },
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
@@ -1172,6 +1173,7 @@ requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2.1" },
     { name = "griffe", marker = "extra == 'dev'", specifier = ">=2.1,<3" },
     { name = "grpcio", specifier = ">=1.75.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "jsonpatch", specifier = ">=1.33" },
     { name = "nanoid", specifier = ">=2.0.0" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.37.0" },

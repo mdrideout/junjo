@@ -143,13 +143,21 @@ npm run dev
 
 ## Junjo AI Studio
 
-Configure the Studio exporter independently:
+AI Chat and the evaluation CLI connect to the same Studio deployment through
+different endpoints and credentials:
 
 ```dotenv
+# AI Chat application -> OTLP ingestion. This key cannot query or mutate
+# evaluation datasets.
 JUNJO_AI_STUDIO_API_KEY=...
 JUNJO_AI_STUDIO_HOST=host.docker.internal
 JUNJO_AI_STUDIO_PORT=26155
 JUNJO_AI_STUDIO_INSECURE=true
+
+# Evaluation CLI -> backend REST control/query API. This token cannot ingest
+# telemetry. Create it after sign-in from Studio's Evaluation tokens page.
+JUNJO_STUDIO_URL=http://localhost:26154
+JUNJO_AI_STUDIO_CLI_TOKEN=junjo_eval_...
 ```
 
 The application emits FastAPI, provider, Workflow, Node, Subflow, Agent, Tool,
@@ -169,6 +177,21 @@ never receives the Studio API key. Deep links use Studio's authenticated
 runtime-identity resolver and tolerate normal ingestion delay.
 
 ## Eval-driven development
+
+The Studio-backed dataset workflow is exposed by the SDK-owned `junjo eval`
+CLI and the small application declaration at `ai_chat.evals.harness:harness`.
+From `examples/ai_chat/backend`, use the same parent `.env` for target
+discovery, dataset authoring, real execution, evidence queries, and run
+comparison:
+
+```bash
+uv run --env-file ../.env junjo eval targets list
+uv run --env-file ../.env junjo eval dataset list
+```
+
+The application owns only its typed targets, real dependency construction, and
+`text.quality:v1` evaluator meaning. Junjo owns the Studio client, DTOs,
+runner, lifecycle, resume behavior, telemetry context, and CLI.
 
 Ordinary tests protect deterministic application mechanics only: versioned
 persistence, server-owned Turn lifecycle, HTTP/schema boundaries, configuration
@@ -192,24 +215,33 @@ uv run --env-file examples/ai_chat/.env --package junjo-ai-chat-example \
   examples/ai_chat/backend/src/ai_chat/application/chat_agent/evals -v -s
 ```
 
-Each completed quality judgment writes portable JSON evidence under
-`$AI_CHAT_DATA_DIRECTORY/eval-results` (or the default backend
-`runtime-data/eval-results` directory). Artifacts record provider, model,
-duration, judgment, available usage, executable type, run ID, and—when debug
-links are enabled—the Studio resolution URL. Studio exporter variables control
-trace export. Separately, `AI_CHAT_DEBUG=true` plus
-`AI_CHAT_STUDIO_UI_URL` adds resolver URLs without exposing the API key.
-
 Direct Node and Workflow evals use `ai_chat.eval_case` correlation; Turn evals
 retain the application's `ai_chat.turn` correlation. Direct Agent cases retain
 their exact Agent run identity without inventing an application correlation.
 Studio resolves each runtime ID to its physical trace and span. A failed
-quality judgment still writes a `passed=false` artifact with that resolver URL.
-Provider or runtime exceptions remain pytest failures and retain typed Junjo
-run identity plus Studio trace evidence when execution was admitted; they are
-not misrepresented as completed quality judgments. The application owns its
-cases, rubrics, judges, and thresholds. A scripted model is never treated as
-proof of AI product behavior.
+quality judgment and provider or runtime exceptions remain pytest failures;
+normal Junjo telemetry retains typed run identity whenever execution was
+admitted. These focused live checks do not create a second application-local
+result ledger. Shared datasets, outcomes, comparisons, and evidence queries are
+owned by the SDK/Studio evaluation loop below. A scripted model is never treated
+as proof of AI product behavior.
+
+### Studio-controlled datasets and comparisons
+
+The Horizon 3 Lean MVP adds the SDK-owned `junjo eval` command for shared
+Studio datasets and results. AI Chat contributes only one explicit harness
+declaration with its typed input, real Node, Workflow, and Agent construction,
+output projection, and local-place quality callback. The SDK creates or
+retrieves the immutable case set, executes it sequentially from a clean
+committed checkout, records each outcome against its exact execution, and
+retrieves Studio trace evidence without uploading local result bundles.
+
+The complete environment, authoring, generation, baseline/candidate, resume,
+and evidence-query commands are documented in the
+[backend evaluation command guide](backend/README.md#junjo-evaluation-reference-declaration).
+The existing pytest live evals remain useful for source-colocated quality
+development; the Studio-controlled command is the queryable cross-revision
+loop.
 
 ## Conventional validation
 

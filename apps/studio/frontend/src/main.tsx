@@ -23,6 +23,10 @@ import PromptPlaygroundPage from './features/prompt-playground/PromptPlaygroundP
 import AgentExecutionsPage from './features/agent-executions/AgentExecutionsPage.tsx'
 import AgentExecutionDetailPage from './features/agent-executions/AgentExecutionDetailPage.tsx'
 import ExecutionResolverPage from './features/execution-resolution/ExecutionResolverPage.tsx'
+import EvaluationRunsPage from './features/evaluation-runs/EvaluationRunsPage.tsx'
+import EvaluationRunDetailPage from './features/evaluation-runs/EvaluationRunDetailPage.tsx'
+import EvaluationRunComparisonPage from './features/evaluation-runs/EvaluationRunComparisonPage.tsx'
+import EvaluationTokensPage from './features/evaluation-tokens/EvaluationTokensPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -95,6 +99,38 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <ExecutionResolverPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/evaluation-runs"
+                  element={
+                    <AuthGuard>
+                      <EvaluationRunsPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/evaluation-runs/compare"
+                  element={
+                    <AuthGuard>
+                      <EvaluationRunComparisonPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/evaluation-runs/:runId"
+                  element={
+                    <AuthGuard>
+                      <EvaluationRunDetailPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/evaluation-tokens"
+                  element={
+                    <AuthGuard>
+                      <EvaluationTokensPage />
                     </AuthGuard>
                   }
                 />

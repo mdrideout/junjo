@@ -212,6 +212,7 @@ class AuditResource:
     """Standard resource type names for consistency."""
 
     API_KEY = "api_key"
+    EVALUATION_TOKEN = "evaluation_token"
     USER = "user"
     SESSION = "session"
     LLM_GENERATION = "llm_generation"

@@ -36,6 +36,27 @@ export function promptPlaygroundPath(basePath: string): string {
   return `${basePath}/prompt-playground`
 }
 
+export interface SemanticExecutionIdentity {
+  service_namespace: string
+  service_name: string
+  executable_type: 'workflow' | 'subflow' | 'agent'
+  runtime_id: string
+}
+
+export function executionResolverPath(
+  identity: SemanticExecutionIdentity,
+  destination: 'detail' | 'trace' = 'detail',
+): string {
+  const parameters = new URLSearchParams({
+    service_namespace: identity.service_namespace,
+    service_name: identity.service_name,
+    executable_type: identity.executable_type,
+    runtime_id: identity.runtime_id,
+    destination,
+  })
+  return `/resolve/executable?${parameters.toString()}`
+}
+
 export function observabilityServicePath(serviceName: string | undefined, resource: string): string {
   return `/api/v1/observability/services/${segment(serviceName)}/${resource}`
 }

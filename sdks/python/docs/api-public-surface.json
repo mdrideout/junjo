@@ -11,6 +11,8 @@
     "junjo.agent.json",
     "junjo.agent.errors",
     "junjo.agent.testing",
+    "junjo.evaluation",
+    "junjo.studio",
     "junjo.hooks",
     "junjo.telemetry.junjo_otel_exporter"
   ],
@@ -2087,8 +2089,453 @@
     },
     {
       "kind": "module",
+      "public_name": "junjo.evaluation",
+      "anchor": "module-junjo.evaluation"
+    },
+    {
+      "kind": "module",
+      "public_name": "junjo.studio",
+      "anchor": "module-junjo.studio"
+    },
+    {
+      "kind": "module",
       "public_name": "junjo.telemetry.junjo_otel_exporter",
       "anchor": "module-junjo.telemetry.junjo_otel_exporter"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.AgentInvocation",
+      "anchor": "junjo.evaluation.AgentInvocation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.AgentTarget",
+      "anchor": "junjo.evaluation.AgentTarget"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.BooleanPredicateEvaluator",
+      "anchor": "junjo.evaluation.BooleanPredicateEvaluator"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.CallbackEvaluator",
+      "anchor": "junjo.evaluation.CallbackEvaluator"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.EvaluationContext",
+      "anchor": "junjo.evaluation.EvaluationContext"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.EvaluationHarness",
+      "anchor": "junjo.evaluation.EvaluationHarness"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.EvaluationResult",
+      "anchor": "junjo.evaluation.EvaluationResult"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.EvaluationRole",
+      "anchor": "junjo.evaluation.EvaluationRole"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.EvaluationRunClass",
+      "anchor": "junjo.evaluation.EvaluationRunClass"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.ExactMatchEvaluator",
+      "anchor": "junjo.evaluation.ExactMatchEvaluator"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.ExecutionServiceIdentity",
+      "anchor": "junjo.evaluation.ExecutionServiceIdentity"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.GenerateCaseRequest",
+      "anchor": "junjo.evaluation.GenerateCaseRequest"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.NodeInvocation",
+      "anchor": "junjo.evaluation.NodeInvocation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.NodeTarget",
+      "anchor": "junjo.evaluation.NodeTarget"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.PreparedEvaluation",
+      "anchor": "junjo.evaluation.PreparedEvaluation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.EvaluationExecutor",
+      "anchor": "junjo.evaluation.EvaluationExecutor"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.StructuredFieldEvaluator",
+      "anchor": "junjo.evaluation.StructuredFieldEvaluator"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.TargetDescriptor",
+      "anchor": "junjo.evaluation.TargetDescriptor"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.TargetExecution",
+      "anchor": "junjo.evaluation.TargetExecution"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.WorkflowInvocation",
+      "anchor": "junjo.evaluation.WorkflowInvocation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.evaluation.WorkflowTarget",
+      "anchor": "junjo.evaluation.WorkflowTarget"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptDetail",
+      "anchor": "junjo.studio.AttemptDetail"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidence",
+      "anchor": "junjo.studio.AttemptEvidence"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptRead",
+      "anchor": "junjo.studio.AttemptRead"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptResultWrite",
+      "anchor": "junjo.studio.AttemptResultWrite"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptStatus",
+      "anchor": "junjo.studio.AttemptStatus"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CaseCreate",
+      "anchor": "junjo.studio.CaseCreate"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CaseOrigin",
+      "anchor": "junjo.studio.CaseOrigin"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CaseRead",
+      "anchor": "junjo.studio.CaseRead"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.DatasetCreate",
+      "anchor": "junjo.studio.DatasetCreate"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.DatasetDetail",
+      "anchor": "junjo.studio.DatasetDetail"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.DatasetList",
+      "anchor": "junjo.studio.DatasetList"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.DatasetRead",
+      "anchor": "junjo.studio.DatasetRead"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.DatasetStatus",
+      "anchor": "junjo.studio.DatasetStatus"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.ExecutableType",
+      "anchor": "junjo.studio.ExecutableType"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.ExecutionMembershipList",
+      "anchor": "junjo.studio.ExecutionMembershipList"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.ExecutionResolutionRead",
+      "anchor": "junjo.studio.ExecutionResolutionRead"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunComparison",
+      "anchor": "junjo.studio.RunComparison"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunDetail",
+      "anchor": "junjo.studio.RunDetail"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunList",
+      "anchor": "junjo.studio.RunList"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunStart",
+      "anchor": "junjo.studio.RunStart"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.SemanticExecutionReference",
+      "anchor": "junjo.studio.SemanticExecutionReference"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.StudioClient",
+      "anchor": "junjo.studio.StudioClient"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.StudioHealth",
+      "anchor": "junjo.studio.StudioHealth"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.TargetKind",
+      "anchor": "junjo.studio.TargetKind"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.TraceEvidenceRead",
+      "anchor": "junjo.studio.TraceEvidenceRead"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.evaluation.CaseGenerationError",
+      "anchor": "junjo.evaluation.CaseGenerationError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.evaluation.DirtySourceTreeError",
+      "anchor": "junjo.evaluation.DirtySourceTreeError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.evaluation.EvaluationRunError",
+      "anchor": "junjo.evaluation.EvaluationRunError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.evaluation.HarnessConfigurationError",
+      "anchor": "junjo.evaluation.HarnessConfigurationError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.evaluation.TargetContractError",
+      "anchor": "junjo.evaluation.TargetContractError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.evaluation.TargetExecutionError",
+      "anchor": "junjo.evaluation.TargetExecutionError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.ExecutionEvidencePending",
+      "anchor": "junjo.studio.ExecutionEvidencePending"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.ExecutionIdentityAmbiguous",
+      "anchor": "junjo.studio.ExecutionIdentityAmbiguous"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.StudioAuthenticationError",
+      "anchor": "junjo.studio.StudioAuthenticationError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.StudioAuthorizationError",
+      "anchor": "junjo.studio.StudioAuthorizationError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.StudioConflictError",
+      "anchor": "junjo.studio.StudioConflictError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.StudioContractError",
+      "anchor": "junjo.studio.StudioContractError"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.StudioTransientError",
+      "anchor": "junjo.studio.StudioTransientError"
+    },
+    {
+      "kind": "function",
+      "public_name": "junjo.evaluation.clean_source_revision",
+      "anchor": "junjo.evaluation.clean_source_revision"
+    },
+    {
+      "kind": "function",
+      "public_name": "junjo.studio.project_run_comparison",
+      "anchor": "junjo.studio.project_run_comparison"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationContext.attributes",
+      "anchor": "junjo.evaluation.EvaluationContext.attributes"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationContext.for_role",
+      "anchor": "junjo.evaluation.EvaluationContext.for_role"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationHarness.prepare_case",
+      "anchor": "junjo.evaluation.EvaluationHarness.prepare_case"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationHarness.runtime",
+      "anchor": "junjo.evaluation.EvaluationHarness.runtime"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationHarness.target_descriptors",
+      "anchor": "junjo.evaluation.EvaluationHarness.target_descriptors"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationExecutor.generate_case",
+      "anchor": "junjo.evaluation.EvaluationExecutor.generate_case"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationExecutor.resume",
+      "anchor": "junjo.evaluation.EvaluationExecutor.resume"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationExecutor.run",
+      "anchor": "junjo.evaluation.EvaluationExecutor.run"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.add_case",
+      "anchor": "junjo.studio.StudioClient.add_case"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.bind_attempt_execution",
+      "anchor": "junjo.studio.StudioClient.bind_attempt_execution"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.close",
+      "anchor": "junjo.studio.StudioClient.close"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.compare_runs",
+      "anchor": "junjo.studio.StudioClient.compare_runs"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.create_dataset",
+      "anchor": "junjo.studio.StudioClient.create_dataset"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_attempt",
+      "anchor": "junjo.studio.StudioClient.get_attempt"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_attempt_evidence",
+      "anchor": "junjo.studio.StudioClient.get_attempt_evidence"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_dataset",
+      "anchor": "junjo.studio.StudioClient.get_dataset"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_execution_membership",
+      "anchor": "junjo.studio.StudioClient.get_execution_membership"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_health",
+      "anchor": "junjo.studio.StudioClient.get_health"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_run",
+      "anchor": "junjo.studio.StudioClient.get_run"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_trace_evidence",
+      "anchor": "junjo.studio.StudioClient.get_trace_evidence"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.list_datasets",
+      "anchor": "junjo.studio.StudioClient.list_datasets"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.list_runs",
+      "anchor": "junjo.studio.StudioClient.list_runs"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.lock_dataset",
+      "anchor": "junjo.studio.StudioClient.lock_dataset"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.record_attempt_result",
+      "anchor": "junjo.studio.StudioClient.record_attempt_result"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.resolve_execution",
+      "anchor": "junjo.studio.StudioClient.resolve_execution"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.start_run",
+      "anchor": "junjo.studio.StudioClient.start_run"
     },
     {
       "kind": "property",

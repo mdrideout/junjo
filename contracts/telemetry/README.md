@@ -66,6 +66,19 @@ version 2 evidence remains valid without the pair. The canonical
 an Agent, a Tool-owned nested Workflow, and its Nodes. ADR 0007 owns the
 application trust and Studio resolution semantics.
 
+## Evaluation context
+
+SDK-orchestrated evaluation and generated-case execution may add a bounded
+Junjo orchestration span plus explicit subject, judge, or verifier role spans.
+Those non-executable spans use the optional `junjo.evaluation.*` attributes
+governed by ADR 0014. They retain the application's normal OpenTelemetry
+service identity and do not repeat evaluation attributes on every descendant.
+
+This is an optional governed extension of contract version 2. Existing valid
+version 2 evidence remains valid without evaluation spans. Studio's canonical
+evaluation membership remains the Attempt-to-execution binding rather than an
+inference over telemetry attributes.
+
 ## Change rules
 
 For a semantic contract change:

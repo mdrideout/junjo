@@ -13,7 +13,8 @@
     "test:ui": "vitest --ui",
     "test:run": "node --test e2e/request-failure-policy.node-test.mjs && vitest run",
     "test:contracts": "vitest run -t 'API Contract'",
-    "test:e2e:agent-live": "node e2e/live-agent.mjs"
+    "test:e2e:agent-live": "node e2e/live-agent.mjs",
+    "test:e2e:evaluation-live": "node e2e/live-evaluation.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

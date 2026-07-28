@@ -20,48 +20,19 @@ from ai_chat.bootstrap import ChatApplication, build_application
 from ai_chat.config import ModelProvider, Settings
 from ai_chat.domain.ports import LanguageModel
 from ai_chat.evals.judges import QualityJudgment
-from ai_chat.evals.results import EvalResultRecorder
 
 
 @dataclass(frozen=True, slots=True)
 class LiveEvalApplication:
-    """An isolated real application plus persistent evaluation evidence."""
+    """An isolated real application for credentialed quality checks."""
 
     settings: Settings
     application: ChatApplication
-    recorder: EvalResultRecorder
-
-
-@dataclass(frozen=True, slots=True)
-class ProviderIdentity:
-    """Stable provider and model labels recorded with evaluation evidence."""
-
-    provider: str
-    model: str
-
-
-def provider_identity(
-    settings: Settings,
-    *,
-    include_image_model: bool = False,
-) -> ProviderIdentity:
-    """Return the selected provider and exact model identity."""
-
-    if settings.model_provider is ModelProvider.GEMINI:
-        provider = "google"
-        text_model = settings.gemini_text_model
-        image_model = settings.gemini_image_model
-    else:
-        provider = "xai"
-        text_model = settings.grok_text_model
-        image_model = settings.grok_image_model
-    model = f"{text_model}+{image_model}" if include_image_model else text_model
-    return ProviderIdentity(provider=provider, model=model)
 
 
 @asynccontextmanager
 async def live_application(working_directory: Path) -> AsyncIterator[LiveEvalApplication]:
-    """Run one isolated real application while preserving evidence artifacts."""
+    """Run one isolated real application with normal Junjo telemetry."""
 
     environment_settings = Settings.from_environment()
     settings = replace(
@@ -75,7 +46,6 @@ async def live_application(working_directory: Path) -> AsyncIterator[LiveEvalApp
         yield LiveEvalApplication(
             settings=settings,
             application=application,
-            recorder=EvalResultRecorder(environment_settings.database_path.parent / "eval-results"),
         )
     finally:
         await application.close()

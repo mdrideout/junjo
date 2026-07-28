@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
-from app.features.auth.dependencies import CurrentUser
+from app.features.evaluation_tokens.dependencies import EvidenceReadAccess
 from app.features.execution_resolution import service
 from app.features.execution_resolution.contract import ExecutionResolutionConflictError
 from app.features.execution_resolution.schemas import (
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/execution-resolution", tags=["execution-resolution"]
     },
 )
 async def resolve_execution(
-    _authenticated_user: CurrentUser,
+    _authenticated_user: EvidenceReadAccess,
     query: Annotated[ExecutionResolutionQuery, Query()],
 ) -> ExecutionResolution | JSONResponse:
     try:
