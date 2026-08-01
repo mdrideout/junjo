@@ -167,8 +167,8 @@ export default function AgentExecutionsPage() {
   return (
     <div className="mx-auto max-w-[110rem] space-y-5 p-4 sm:p-6">
       <header>
-        <h1 className="m-0 text-3xl">Agent executions</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--studio-text-muted)]">
+        <h1 className="m-0">Agent executions</h1>
+        <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
           Query realized Agent runs by their OpenTelemetry service scope. Studio presents backend-verified semantic evidence rather than inferring behavior from raw spans.
         </p>
       </header>

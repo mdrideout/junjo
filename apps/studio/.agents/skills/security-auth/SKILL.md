@@ -24,6 +24,7 @@ description: Use when changing or reviewing API key auth, session cookies, CORS,
 - CORS and same-domain constraints
 - Internal auth gRPC boundary
 - Secret handling and fail-closed behavior
+- First-user setup and local E2E authentication boundaries
 
 ## Owning Code
 
@@ -34,6 +35,7 @@ description: Use when changing or reviewing API key auth, session cookies, CORS,
 - `ingestion/src/server/auth.rs`
 - `ingestion/src/backend/client.rs`
 - `proto/auth.proto`
+- `../../tooling/scripts/validate_agent_studio_e2e.py`
 
 ## Workflow
 
@@ -49,6 +51,8 @@ description: Use when changing or reviewing API key auth, session cookies, CORS,
 5. When deployment rules matter, check the real settings and middleware code instead of relying on stale prose.
 6. If the task also changes backend architecture outside the security boundary, pair this skill with `backend-python`.
 7. If the task also changes ingestion-path runtime behavior, pair this skill with `ingestion-flow`.
+8. Local E2E users are explicit setup-API actions, never runtime or migration
+   seeds. `TESTING.md` owns the reset and validation procedure.
 
 ## Validation Expectations
 

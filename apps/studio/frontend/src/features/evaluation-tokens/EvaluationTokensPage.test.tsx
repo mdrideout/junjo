@@ -11,10 +11,10 @@ import EvaluationTokensPage from './EvaluationTokensPage'
 const TOKEN_READ = {
   id: 'token-1',
   name: 'Coding agent',
-  prefix: 'junjo_eval_abcd1234EFGH',
+  token:
+    'jcli_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
   scopes: ['evaluation:read', 'evaluation:write', 'evidence:read'],
   expires_at: null,
-  revoked_at: null,
   created_by_user_id: 'user-1',
   created_at: '2026-07-27T22:00:00Z',
 }
@@ -31,7 +31,30 @@ function renderPage() {
 }
 
 describe('EvaluationTokensPage', () => {
-  it('creates a scoped token and presents its secret exactly once', async () => {
+  it('describes developer access without redundant credential instructions', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/evaluation-tokens`, () =>
+        HttpResponse.json({ items: [], next_cursor: null }),
+      ),
+    )
+    renderPage()
+
+    expect(
+      screen.getByRole('heading', { name: 'Developer Access Tokens' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Authenticate developer environments and coding agents that interact with Junjo AI Studio through the Junjo SDK and CLI.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/JUNJO_AI_STUDIO_CLI_TOKEN/)).not.toBeInTheDocument()
+
+    const divider = screen.getByRole('separator')
+    const createButton = screen.getByRole('button', { name: 'Create access token' })
+    expect(divider.compareDocumentPosition(createButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('creates a scoped token with a non-expiring default', async () => {
     const user = userEvent.setup()
     let createdRequest: unknown
     server.use(
@@ -44,7 +67,7 @@ describe('EvaluationTokensPage', () => {
           {
             ...TOKEN_READ,
             token:
-              'junjo_eval_abcd1234EFGH.abcdefghijklmnopqrstuvwxyzABCDEFGH_12345678',
+              'jcli_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
           },
           { status: 201 },
         )
@@ -52,15 +75,20 @@ describe('EvaluationTokensPage', () => {
     )
     renderPage()
 
-    await user.click(screen.getByRole('button', { name: 'Create token' }))
+    await user.click(screen.getByRole('button', { name: 'Create access token' }))
+    const expiration = screen.getByRole('combobox', { name: 'Expiration' })
+    expect(expiration).toHaveValue('never')
+    expect(screen.getByRole('option', { name: '30 days' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '90 days' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '1 year' })).toBeInTheDocument()
     await user.type(screen.getByRole('textbox', { name: 'Token name' }), 'Coding agent')
     await user.click(
-      screen.getByRole('button', { name: 'Create token' }),
+      screen.getByRole('button', { name: 'Create access token' }),
     )
 
     expect(
       await screen.findByText(
-        'junjo_eval_abcd1234EFGH.abcdefghijklmnopqrstuvwxyzABCDEFGH_12345678',
+        'jcli_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
       ),
     ).toBeInTheDocument()
     expect(createdRequest).toEqual({
@@ -72,51 +100,53 @@ describe('EvaluationTokensPage', () => {
     await user.click(screen.getByRole('button', { name: 'Done' }))
     expect(
       screen.queryByText(
-        'junjo_eval_abcd1234EFGH.abcdefghijklmnopqrstuvwxyzABCDEFGH_12345678',
+        'jcli_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
       ),
     ).not.toBeInTheDocument()
   })
 
-  it('lists prefixes without secrets and revokes an active token explicitly', async () => {
+  it('copies and deletes a stored access token', async () => {
     const user = userEvent.setup()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    let revokedId: string | null = null
+    const copy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
+    let deletedId: string | null = null
     let listCount = 0
     server.use(
       http.get(`${API_BASE}/api/v1/evaluation-tokens`, () => {
         listCount += 1
         return HttpResponse.json({
-          items: [
-            {
-              ...TOKEN_READ,
-              revoked_at: listCount > 1 ? '2026-07-27T23:00:00Z' : null,
-            },
-          ],
+          items: listCount > 1 ? [] : [TOKEN_READ],
           next_cursor: null,
         })
       }),
-      http.put(
-        `${API_BASE}/api/v1/evaluation-tokens/:tokenId/revoke`,
+      http.delete(
+        `${API_BASE}/api/v1/evaluation-tokens/:tokenId`,
         ({ params }) => {
-          revokedId = String(params.tokenId)
-          return HttpResponse.json({
-            ...TOKEN_READ,
-            revoked_at: '2026-07-27T23:00:00Z',
-          })
+          deletedId = String(params.tokenId)
+          return new HttpResponse(null, { status: 204 })
         },
       ),
     )
     renderPage()
 
-    expect(
-      await screen.findByText('junjo_eval_abcd1234EFGH'),
-    ).toBeInTheDocument()
-    expect(screen.queryByText(/one-time-secret/)).not.toBeInTheDocument()
+    expect(await screen.findByText('jcli_0123456...')).toBeInTheDocument()
+    expect(screen.getByRole('table')).toHaveClass('w-full', 'max-w-[1024px]')
+    expect(screen.getByRole('table').parentElement).toHaveClass('shrink-0')
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Name',
+      'Scopes',
+      'Expires',
+      'Status',
+      'Token',
+      'Actions',
+    ])
+    await user.click(screen.getByRole('button', { name: 'Copy access token Coding agent' }))
+    expect(copy).toHaveBeenCalledWith(TOKEN_READ.token)
 
-    await user.click(screen.getByRole('button', { name: 'Revoke' }))
+    await user.click(screen.getByRole('button', { name: 'Delete access token Coding agent' }))
 
-    await waitFor(() => expect(revokedId).toBe('token-1'))
-    expect(await screen.findByText('Revoked')).toBeInTheDocument()
+    await waitFor(() => expect(deletedId).toBe('token-1'))
+    await waitFor(() => expect(screen.queryByText('Coding agent')).not.toBeInTheDocument())
   })
 
   it('loads subsequent token pages with the server cursor', async () => {
@@ -133,7 +163,8 @@ describe('EvaluationTokensPage', () => {
                 ...TOKEN_READ,
                 id: 'token-2',
                 name: 'Second coding agent',
-                prefix: 'junjo_eval_wxyz5678IJKL',
+                token:
+                  'jcli_9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-',
               },
             ],
             next_cursor: null,

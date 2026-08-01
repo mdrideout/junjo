@@ -155,7 +155,7 @@ export default function ModelSelectorModal({
               />
             </svg>
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+              <h4 className="mb-1 text-red-800 dark:text-red-200">
                 Failed to Load Models
               </h4>
               <p className="text-sm text-red-700 dark:text-red-300">{error}</p>

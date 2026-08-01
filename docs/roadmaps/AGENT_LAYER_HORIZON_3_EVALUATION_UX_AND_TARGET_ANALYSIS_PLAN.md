@@ -264,7 +264,7 @@ Implementation and validation completed on 2026-07-29.
   tests plus 27 frontend tests, lint, and production build.
 - The installed-wheel standalone E2E created and compared a three-Test
   Node/Workflow/Agent Dataset, exported OTLP telemetry, resolved every Result
-  to received evidence, and revoked its temporary Evaluation token.
+  to received evidence, and deleted its temporary developer access token.
 - AI Chat created the locked `local-place-realism-v1` Dataset with three Tests
   named **Response place realism** across Node `turn.date_response`, Workflow
   `turn`, and Agent `chat`.

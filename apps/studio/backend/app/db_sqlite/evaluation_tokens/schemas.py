@@ -101,25 +101,14 @@ class EvaluationTokenCreate(EvaluationTokenContract):
 class EvaluationTokenRead(EvaluationTokenContract):
     id: TokenId
     name: TokenName
-    prefix: str = Field(
-        pattern=r"^junjo_eval_[A-Za-z0-9_-]{12}$",
-        examples=["junjo_eval_AbCdEfGhIjKl"],
+    token: str = Field(
+        description="Recoverable bearer token managed by authenticated Studio users.",
+        examples=["jcli_0123456789_abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKLMNOPQRSTUVWXYZ"],
     )
     scopes: list[EvaluationTokenScope]
     expires_at: datetime | None
-    revoked_at: datetime | None
     created_by_user_id: TokenId | None
     created_at: datetime
-
-
-class EvaluationTokenCreated(EvaluationTokenRead):
-    token: str = Field(
-        description="Bearer token secret. Returned only by the create operation.",
-        pattern=r"^junjo_eval_[A-Za-z0-9_-]{12}\.[A-Za-z0-9_-]{43}$",
-        examples=[
-            "junjo_eval_AbCdEfGhIjKl.0123456789_abcdefghijklmnopqrstuv-wxyzABCDE",
-        ],
-    )
 
 
 class EvaluationTokenList(EvaluationTokenContract):

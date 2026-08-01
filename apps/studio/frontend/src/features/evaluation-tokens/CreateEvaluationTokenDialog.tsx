@@ -4,8 +4,13 @@ import { ActionButton } from '../../components/actions/action-button'
 import { Modal, ModalFooter } from '../../components/overlays/modal'
 import { useAppDispatch } from '../../root-store/hooks'
 import { createEvaluationToken } from './fetch/create-evaluation-token'
+import {
+  EXPIRATION_PRESETS,
+  expirationFromPreset,
+  type ExpirationPreset,
+} from './expiration-presets'
 import type {
-  EvaluationTokenCreated,
+  EvaluationTokenRead,
   EvaluationTokenScope,
 } from './schemas'
 import { EvaluationTokensActions } from './store/slice'
@@ -37,7 +42,7 @@ export default function CreateEvaluationTokenDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [created, setCreated] = useState<EvaluationTokenCreated | null>(null)
+  const [created, setCreated] = useState<EvaluationTokenRead | null>(null)
 
   useEffect(() => {
     if (!open) {
@@ -58,9 +63,9 @@ export default function CreateEvaluationTokenDialog() {
     )
 
     try {
-      const rawExpiration = String(form.get('expires_at') ?? '').trim()
-      const expiresAt =
-        rawExpiration === '' ? null : new Date(rawExpiration).toISOString()
+      const expiresAt = expirationFromPreset(
+        String(form.get('expiration')) as ExpirationPreset,
+      )
       const token = await createEvaluationToken({
         name: String(form.get('name') ?? ''),
         scopes,
@@ -70,7 +75,7 @@ export default function CreateEvaluationTokenDialog() {
       dispatch(EvaluationTokensActions.fetchTokens({ force: true }))
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : 'Failed to create evaluation token.',
+        caught instanceof Error ? caught.message : 'Failed to create access token.',
       )
     } finally {
       setLoading(false)
@@ -89,13 +94,13 @@ export default function CreateEvaluationTokenDialog() {
   return (
     <>
       <ActionButton size="compact" intent="secondary" onClick={() => setOpen(true)}>
-        <PlusIcon className="size-4" /> Create token
+        <PlusIcon className="size-4" /> Create access token
       </ActionButton>
       <Modal
         open={open}
         onOpenChange={setOpen}
-        title="Create evaluation token"
-        description="Create a separately scoped credential for Junjo evaluation automation. It cannot send OTLP telemetry."
+        title="Create access token"
+        description="Choose a name, permissions, and expiration."
       >
         {created === null ? (
           <form onSubmit={submit}>
@@ -106,7 +111,7 @@ export default function CreateEvaluationTokenDialog() {
                   name="name"
                   required
                   maxLength={128}
-                  placeholder="Local coding agent"
+                  placeholder="Local Codex environment"
                   className="rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 font-normal outline-none focus:border-[var(--studio-focus-ring)]"
                 />
               </label>
@@ -133,12 +138,18 @@ export default function CreateEvaluationTokenDialog() {
                 ))}
               </fieldset>
               <label className="flex flex-col gap-1.5 text-sm font-medium">
-                Expires at (optional)
-                <input
-                  type="datetime-local"
-                  name="expires_at"
+                Expiration
+                <select
+                  name="expiration"
+                  defaultValue="never"
                   className="rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 font-normal outline-none focus:border-[var(--studio-focus-ring)]"
-                />
+                >
+                  {EXPIRATION_PRESETS.map((preset) => (
+                    <option key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               {error !== null && (
                 <p role="alert" className="text-sm text-red-700 dark:text-red-300">
@@ -151,14 +162,14 @@ export default function CreateEvaluationTokenDialog() {
                 Cancel
               </ActionButton>
               <ActionButton disabled={loading} type="submit">
-                Create token
+                Create access token
               </ActionButton>
             </ModalFooter>
           </form>
         ) : (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-[var(--studio-text-muted)]">
-              Copy this token now. Studio stores only its hash and cannot show it again.
+              Access token created. You can copy it again later from Access Tokens.
             </p>
             <code className="break-all rounded-lg border border-[var(--studio-border)] bg-[var(--studio-surface-raised)] p-3 text-sm">
               {created.token}

@@ -17,7 +17,7 @@ export function EvidenceIntegrityBanner({ integrity }: { integrity: EvidenceInte
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="m-0 text-base">Contract evidence: {complete ? 'complete' : 'partial'}</h2>
+          <h2 className="m-0">Contract evidence: {complete ? 'complete' : 'partial'}</h2>
           <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
             {complete
               ? 'Required Agent evidence reconciles; any claimed Store reconstruction was backend-verified.'

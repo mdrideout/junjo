@@ -9,7 +9,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { waitFor } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
 import { renderWithProviders, userEvent } from '../test-utils/test-helpers'
+import { API_BASE, server } from '../test-utils/mock-server'
 import SetupForm from './SetupForm'
 
 // Mock useNavigate from react-router
@@ -29,7 +31,7 @@ describe('SetupForm', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('should navigate to ingestion credentials after first-user creation', async () => {
+  it('should navigate to API keys after first-user creation', async () => {
     const user = userEvent.setup()
 
     // Render the SetupForm
@@ -48,7 +50,7 @@ describe('SetupForm', () => {
 
     // Wait for navigation to be called
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/settings/credentials/ingestion')
+      expect(mockNavigate).toHaveBeenCalledWith('/api-keys')
     })
   })
 
@@ -56,9 +58,6 @@ describe('SetupForm', () => {
     const user = userEvent.setup()
 
     // Override the mock to return an error
-    const { API_BASE, server } = await import('../test-utils/mock-server')
-    const { http, HttpResponse } = await import('msw')
-
     server.use(
       http.post(`${API_BASE}/users/create-first-user`, () => {
         return HttpResponse.json(
@@ -91,5 +90,21 @@ describe('SetupForm', () => {
 
     // Should NOT navigate
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('shows a status fallback when setup receives a non-JSON error', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${API_BASE}/users/create-first-user`, () => {
+        return new HttpResponse('Internal Server Error', { status: 500 })
+      })
+    )
+
+    const { getByPlaceholderText, getByRole, findByText } = renderWithProviders(<SetupForm />)
+    await user.type(getByPlaceholderText('Email address'), 'admin@test.com')
+    await user.type(getByPlaceholderText('Password'), 'password')
+    await user.click(getByRole('button', { name: /create account/i }))
+
+    expect(await findByText('Account creation failed (500)')).toBeInTheDocument()
   })
 })

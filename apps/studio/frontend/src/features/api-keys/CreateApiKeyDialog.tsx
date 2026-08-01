@@ -5,6 +5,10 @@ import { useAppDispatch } from '../../root-store/hooks'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { ApiKeysStateActions } from './slice'
 import { getApiHost } from '../../config'
+import {
+  ApiKeyCreateResponseSchema,
+  type ApiKeyCreateResponse,
+} from './response-schemas'
 
 interface ApiErrorResponse {
   detail?: string | Array<{ msg?: string; message?: string }>
@@ -18,12 +22,14 @@ export default function CreateApiKeyDialog() {
   // Loading and error states
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [created, setCreated] = useState<ApiKeyCreateResponse | null>(null)
 
   // Reset error and loading states when dialog opens/closes
   useEffect(() => {
     if (!isOpen) {
       setError(null)
       setLoading(false)
+      setCreated(null)
     }
   }, [isOpen])
 
@@ -47,38 +53,49 @@ export default function CreateApiKeyDialog() {
         credentials: 'include',
       })
 
-      const responseData = (await response.json()) as ApiErrorResponse
+      const responseData: unknown = await response.json()
 
       if (!response.ok) {
+        const errorResponse = responseData as ApiErrorResponse
         console.log('Error response:', responseData)
 
         // Try detail field (handles both Pydantic array and custom string)
-        if (responseData.detail) {
-          if (Array.isArray(responseData.detail)) {
+        if (errorResponse.detail) {
+          if (Array.isArray(errorResponse.detail)) {
             // Pydantic validation errors (422)
-            const errors = responseData.detail.map((err) => err.msg || err.message).join('. ')
+            const errors = errorResponse.detail.map((err) => err.msg || err.message).join('. ')
             throw new Error(errors || 'Validation failed.')
           }
           // Custom error string (400, 409, etc.)
-          throw new Error(responseData.detail)
+          throw new Error(errorResponse.detail)
         }
 
         // Try message field (fallback)
-        if (responseData.message) {
-          throw new Error(responseData.message)
+        if (errorResponse.message) {
+          throw new Error(errorResponse.message)
         }
 
         // Final fallback with status code
         throw new Error(`Request failed (${response.status})`)
       }
 
+      setCreated(ApiKeyCreateResponseSchema.parse(responseData))
+
       // Refresh the list
       dispatch(ApiKeysStateActions.fetchApiKeysData({ force: true }))
-      setIsOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const copyApiKey = async () => {
+    if (created === null) return
+    try {
+      await navigator.clipboard.writeText(created.key)
+    } catch {
+      setError('The API key could not be copied. Copy it manually before closing.')
     }
   }
 
@@ -91,41 +108,62 @@ export default function CreateApiKeyDialog() {
           setIsOpen(true)
         }}
       >
-        <PlusIcon className={'size-4'} /> Create API Key
+        <PlusIcon className={'size-4'} /> Create telemetry API key
       </ActionButton>
       <Modal
         open={isOpen}
         onOpenChange={setIsOpen}
-        title="Create API Key"
-        description="This API key will allow Junjo instances to deliver telemetry to this server."
+        title="Create telemetry API key"
       >
-        <form onSubmit={handleSubmit}>
+        {created === null ? (
+          <form onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-4">
+              <input type="hidden" name="actionType" value="createApiKey" />
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                Key name
+                <input
+                  name="name"
+                  placeholder="Key Name"
+                  required
+                  className="rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 font-normal outline-none focus:border-[var(--studio-focus-ring)]"
+                />
+              </label>
+              {error && (
+                <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+                  {error}
+                </p>
+              )}
+            </div>
+            <ModalFooter>
+              <ActionButton intent="secondary" onClick={() => setIsOpen(false)}>
+                Cancel
+              </ActionButton>
+              <ActionButton disabled={loading} type="submit">
+                Create API key
+              </ActionButton>
+            </ModalFooter>
+          </form>
+        ) : (
           <div className="flex flex-col gap-4">
-            <input type="hidden" name="actionType" value="createApiKey" />
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              Key name
-              <input
-                name="name"
-                placeholder="Key Name"
-                required
-                className="rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 font-normal outline-none focus:border-[var(--studio-focus-ring)]"
-              />
-            </label>
+            <p className="text-sm text-[var(--studio-text-muted)]">
+              API key created. You can copy it again later from API Keys.
+            </p>
+            <code className="break-all rounded-lg border border-[var(--studio-border)] bg-[var(--studio-surface-raised)] p-3 text-sm">
+              {created.key}
+            </code>
             {error && (
               <p role="alert" className="text-sm text-red-700 dark:text-red-300">
                 {error}
               </p>
             )}
+            <ModalFooter>
+              <ActionButton intent="secondary" onClick={copyApiKey}>
+                Copy API key
+              </ActionButton>
+              <ActionButton onClick={() => setIsOpen(false)}>Done</ActionButton>
+            </ModalFooter>
           </div>
-          <ModalFooter>
-            <ActionButton intent="secondary" onClick={() => setIsOpen(false)}>
-              Cancel
-            </ActionButton>
-            <ActionButton disabled={loading} type="submit">
-              Create Key
-            </ActionButton>
-          </ModalFooter>
-        </form>
+        )}
       </Modal>
     </>
   )

@@ -20,7 +20,7 @@ Studio client, control flow, telemetry context, and result contracts.
 - Keep `JUNJO_AI_STUDIO_CLI_TOKEN` separate from
   `JUNJO_AI_STUDIO_API_KEY`. The CLI token is a scoped control-plane
   credential; telemetry still travels through OTLP using the application's
-  ingestion API key.
+  Application Telemetry API key.
 - Preserve the application's truthful OpenTelemetry service namespace and
   service name. Do not invent a special service identity for evaluation runs.
 - Require an explicit `module:object` harness declaration. Generated target
@@ -79,17 +79,18 @@ Set credentials outside source control:
 
 ```bash
 export JUNJO_STUDIO_URL="https://api.example.com"
-export JUNJO_AI_STUDIO_CLI_TOKEN="junjo_eval_..."
+export JUNJO_AI_STUDIO_CLI_TOKEN="jcli_..."
 ```
 
-Sign in to Studio, open **Developer credentials → Evaluation tokens**, and
-create the token with only the scopes required by the workflow:
+Sign in to Studio, open **Access Tokens**, and create a developer access token
+with only the scopes required by the workflow:
 
 - `evaluation:read` to list datasets, runs, attempts, and comparisons.
 - `evaluation:write` to create datasets/cases and execute runs.
 - `evidence:read` to resolve attempt trace evidence.
 
-Never print or persist the full token. Studio displays it only once.
+Never print or persist the full token in application source. Copy it from
+Studio's authenticated Access Tokens page when configuring the environment.
 
 ## 4. Author or generate a dataset
 

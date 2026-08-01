@@ -1,13 +1,9 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { AuthContext } from '../auth-context-value'
+import { readApiError, requestFailureMessage } from '../api-error'
 import { getApiHost } from '../../config'
 import { getPostSignInDestination } from '../navigation-helpers'
-
-interface ApiErrorResponse {
-  detail?: string | Array<{ msg?: string; message?: string }>
-  message?: string
-}
 
 export default function SetupForm() {
   const [error, setError] = useState<string | null>(null)
@@ -44,29 +40,7 @@ export default function SetupForm() {
       })
 
       if (!response.ok) {
-        const data = (await response.json()) as ApiErrorResponse
-        console.log('Error response:', data)
-
-        // Try detail field (handles both Pydantic array and custom string)
-        if (data.detail) {
-          if (Array.isArray(data.detail)) {
-            // Pydantic validation errors (422)
-            const errors = data.detail
-              .map((err) => err.msg || err.message)
-              .join('. ')
-            throw new Error(errors || 'Validation failed.')
-          }
-          // Custom error string (400, 409, etc.)
-          throw new Error(data.detail)
-        }
-
-        // Try message field (fallback)
-        if (data.message) {
-          throw new Error(data.message)
-        }
-
-        // Final fallback with status code
-        throw new Error(`Request failed (${response.status})`)
+        throw new Error(await readApiError(response, 'Account creation failed'))
       }
 
       // Check auth status to verify session was created
@@ -81,7 +55,7 @@ export default function SetupForm() {
       console.log('[SetupForm] Navigating to:', destination)
       navigate(destination)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(requestFailureMessage(err))
     }
   }
 

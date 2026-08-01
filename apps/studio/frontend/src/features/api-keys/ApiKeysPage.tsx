@@ -2,11 +2,10 @@ import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { RootState } from '../../root-store/store'
 import TrashIcon from '@heroicons/react/24/outline/TrashIcon'
-import ApiKeyCopyButton from './ApiKeyCopyButton'
+import { CredentialCopyButton } from '../../components/credentials/credential-copy-button'
 import CreateApiKeyDialog from './CreateApiKeyDialog'
 import OtelExporterGuide from './components/OtelExporterGuide'
 import { ApiKeysStateActions } from './slice'
-import { AppLink } from '../../components/navigation/app-link'
 
 export default function ApiKeysPage() {
   const dispatch = useAppDispatch()
@@ -17,46 +16,41 @@ export default function ApiKeysPage() {
     dispatch(ApiKeysStateActions.fetchApiKeysData({ force: false }))
   }, [dispatch])
 
-  // Handle loading and error states
-  if (loading) {
-    return <div className={'h-full w-full flex items-center justify-center'}>Loading...</div>
-  }
-  if (error) {
-    return <div className={'h-full w-full flex items-center justify-center'}>Error: {error}</div>
-  }
-
   // Render the list
   return (
-    <div className={'px-3 py-4 flex flex-col h-dvh overflow-y-auto'}>
-      <nav aria-label="Breadcrumb" className="mb-4 px-2 text-sm">
-        <AppLink to="/settings/credentials">Developer credentials</AppLink>
-      </nav>
-      <div className={'flex gap-x-3 px-2 items-center'}>
-        <div>
-          <div className={'flex gap-x-3 font-bold'}>Ingestion API keys</div>
-          <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
-            Application credentials for OTLP telemetry delivery. These keys cannot
-            manage evaluation datasets or query evidence.
-          </p>
-        </div>
-        <CreateApiKeyDialog />
+    <div className={'flex h-dvh flex-col overflow-y-auto px-5 py-6'}>
+      <div>
+        <h1>Application Telemetry API Keys</h1>
+        <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+          Authenticate telemetry sent from your application to Junjo AI Studio.
+        </p>
       </div>
       <hr className={'my-4'} />
-      <div className={'px-2'}>
-        {apiKeys.length === 0 && (
+      <div>
+        <CreateApiKeyDialog />
+      </div>
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-red-700 dark:text-red-300">
+          Failed to load application telemetry API keys.
+        </p>
+      )}
+      <div className="mt-4 shrink-0 overflow-x-auto">
+        {loading && apiKeys.length === 0 ? (
+          <p className="text-sm text-[var(--studio-text-muted)]">Loading API keys…</p>
+        ) : !error && apiKeys.length === 0 ? (
           <div className={'text-sm text-zinc-500 dark:text-zinc-400'}>
-            No API keys found. Create one to get started.
+            No application telemetry API keys have been created.
           </div>
-        )}
-        {apiKeys.length > 0 && (
-          <table className="text-left text-sm">
+        ) : !error && apiKeys.length > 0 ? (
+          <table className="w-full max-w-[1024px] text-left text-sm">
             <thead>
-              <tr>
-                <th className={'px-4 py-1'}>Name</th>
-                <th className={'px-4 py-1'}>Created At</th>
-                <th className={'px-4 py-1'}>Key</th>
-                <th className={'px-4 py-1'}></th>
-                <th className={'px-4 py-1'}></th>
+              <tr className="border-b border-[var(--studio-border)]">
+                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Created</th>
+                <th className="px-3 py-2">Key</th>
+                <th className="px-3 py-2">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -67,42 +61,37 @@ export default function ApiKeysPage() {
                 const truncatedKey = apiKey.key.length > 12 ? apiKey.key.slice(0, 12) + '...' : apiKey.key
 
                 return (
-                  <tr
-                    key={apiKey.id}
-                    className={'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600'}
-                  >
-                    <td className={'px-4 py-1.5'}>{apiKey.name}</td>
-                    <td className={'px-4 py-1.5 font-mono'}>{createdAtString}</td>
-                    <td className={'px-4 py-1.5 font-mono'}>{truncatedKey}</td>
-
-                    {/* Copy button */}
-                    <td className={' text-center'}>
-                      <ApiKeyCopyButton apiKey={apiKey.key} />
-                    </td>
-
-                    {/* Delete button */}
-                    <td className={' text-center'}>
-                      <button
-                        className={'p-1 hover:bg-zinc-300 dark:hover:bg-zinc-700 rounded-md cursor-pointer'}
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete key ${apiKey.name}?`)) {
-                            dispatch(ApiKeysStateActions.deleteApiKey({ id: apiKey.id }))
-                          }
-                        }}
-                      >
-                        <TrashIcon className={'size-4'} />
-                      </button>
+                  <tr key={apiKey.id} className="border-b border-[var(--studio-border)] last:border-0">
+                    <td className="px-3 py-3 font-medium">{apiKey.name}</td>
+                    <td className="px-3 py-3">{createdAtString}</td>
+                    <td className="px-3 py-3 font-mono">{truncatedKey}</td>
+                    <td className="px-3 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <CredentialCopyButton label={`API key ${apiKey.name}`} value={apiKey.key} />
+                        <button
+                          type="button"
+                          aria-label={`Delete API key ${apiKey.name}`}
+                          className="rounded-md p-1 hover:bg-[var(--studio-surface-hover)]"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete key ${apiKey.name}?`)) {
+                              dispatch(ApiKeysStateActions.deleteApiKey({ id: apiKey.id }))
+                            }
+                          }}
+                        >
+                          <TrashIcon className={'size-4'} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
-        )}
+        ) : null}
       </div>
 
       {/* Getting Started Guide - Below the table */}
-      <div className={'px-2 mt-12'}>
+      <div className={'mt-12'}>
         <OtelExporterGuide />
       </div>
     </div>

@@ -45,23 +45,41 @@ describe('AppShell', () => {
       'href',
       '/evaluation-runs',
     )
+    expect(within(desktopNavigation).getByRole('link', { name: 'API Keys' })).toHaveAttribute(
+      'href',
+      '/api-keys',
+    )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Access Tokens' })).toHaveAttribute(
+      'href',
+      '/access-tokens',
+    )
     expect(
       within(desktopNavigation).getByRole('link', { name: 'Settings' }),
     ).toHaveAttribute('href', '/settings')
-    expect(within(desktopNavigation).queryByRole('link', {
-      name: 'Evaluation tokens',
-    })).not.toBeInTheDocument()
     expect(within(desktopNavigation).queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
   })
 
-  it('identifies nested credential routes under Settings', () => {
-    renderShell(true, '/settings/credentials/evaluation')
+  it('identifies API key and access token routes independently of Settings', () => {
+    const apiKeyView = renderShell(true, '/api-keys')
+    const apiKeyNavigation = within(screen.getByRole('complementary'))
+    expect(apiKeyNavigation.getByRole('link', { name: 'API Keys' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(apiKeyNavigation.getByRole('link', { name: 'Settings' })).not.toHaveAttribute(
+      'aria-current',
+    )
+    apiKeyView.unmount()
 
-    expect(
-      within(screen.getByRole('complementary')).getByRole('link', {
-        name: 'Settings',
-      }),
-    ).toHaveAttribute('aria-current', 'page')
+    renderShell(true, '/access-tokens')
+    const accessTokenNavigation = within(screen.getByRole('complementary'))
+    expect(accessTokenNavigation.getByRole('link', { name: 'Access Tokens' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(accessTokenNavigation.getByRole('link', { name: 'Settings' })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 
   it('identifies evaluation list, comparison, and detail routes as active navigation', () => {

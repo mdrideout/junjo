@@ -171,12 +171,14 @@ decision.
 
 ### Authentication is separately scoped
 
-CLI and SDK evaluation control use a separately scoped evaluation-control
-credential. Human users create and revoke those credentials through their
-authenticated Studio browser session. Plain HTTP is accepted only for a
-loopback Studio origin. The OTLP ingestion API key is never reused for this
-purpose, and the SDK evaluation client does not accept Studio account
-passwords.
+CLI and SDK evaluation control use a separately scoped developer access token.
+Human users create, copy, and delete those credentials through their
+authenticated Studio browser session. Studio keeps the credential recoverable
+for the same low-friction management UX as Application Telemetry API keys; an
+authenticated Studio user already has shared credential-management authority.
+Plain HTTP is accepted only for a loopback Studio origin. The Application
+Telemetry API key is never reused for this purpose, and the SDK evaluation
+client does not accept Studio account passwords.
 
 ### Generated-case retries avoid duplicate execution
 

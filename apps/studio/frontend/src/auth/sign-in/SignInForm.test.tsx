@@ -4,7 +4,7 @@
  * Tests the sign-in flow including:
  * - Form submission
  * - API calls (sign-in, api_keys)
- * - Navigation based on API key status (no keys → ingestion credentials, has keys → /)
+ * - Navigation based on API key status (no keys → API Keys, has keys → /)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -36,7 +36,7 @@ describe('SignInForm', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('should navigate to ingestion credentials after sign-in when user has no API keys', async () => {
+  it('should navigate to API keys after sign-in when user has no API keys', async () => {
     const user = userEvent.setup()
 
     // Default mock returns empty array for /api_keys
@@ -50,9 +50,9 @@ describe('SignInForm', () => {
     await user.type(passwordInput, 'password123')
     await user.click(submitButton)
 
-    // Wait for navigation to be called with the ingestion credential route.
+    // Wait for navigation to be called with the API Keys route.
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/settings/credentials/ingestion')
+      expect(mockNavigate).toHaveBeenCalledWith('/api-keys')
     })
   })
 
@@ -125,6 +125,36 @@ describe('SignInForm', () => {
 
     // Should NOT navigate
     expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('shows a status fallback when an error response is not JSON', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${API_BASE}/sign-in`, () => {
+        return new HttpResponse('Internal Server Error', { status: 500 })
+      })
+    )
+
+    const { getByPlaceholderText, getByRole, findByText } = renderWithProviders(<SignInForm />)
+    await user.type(getByPlaceholderText('Email address'), 'test@example.com')
+    await user.type(getByPlaceholderText('Password'), 'password123')
+    await user.click(getByRole('button', { name: /sign in/i }))
+
+    expect(await findByText('Sign in failed (500)')).toBeInTheDocument()
+  })
+
+  it('shows a useful message when Studio cannot be reached', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(`${API_BASE}/sign-in`, () => HttpResponse.error())
+    )
+
+    const { getByPlaceholderText, getByRole, findByText } = renderWithProviders(<SignInForm />)
+    await user.type(getByPlaceholderText('Email address'), 'test@example.com')
+    await user.type(getByPlaceholderText('Password'), 'password123')
+    await user.click(getByRole('button', { name: /sign in/i }))
+
+    expect(await findByText('Unable to reach Junjo AI Studio.')).toBeInTheDocument()
   })
 
   it.each([

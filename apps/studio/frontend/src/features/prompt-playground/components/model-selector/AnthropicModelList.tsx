@@ -15,7 +15,7 @@ export default function AnthropicModelList({
   return (
     <div>
       {/* Product Family Header */}
-      <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-3">
+      <h3 className="mb-3 text-zinc-900 dark:text-zinc-100">
         {familyGroup.displayName}
       </h3>
 

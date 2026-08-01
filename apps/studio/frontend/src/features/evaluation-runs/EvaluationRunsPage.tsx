@@ -173,8 +173,8 @@ export default function EvaluationRunsPage() {
   return (
     <div className="mx-auto max-w-[110rem] space-y-5 p-4 sm:p-6">
       <header>
-        <h1 className="m-0 text-3xl">Evaluations</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--studio-text-muted)]">
+        <h1 className="m-0">Evaluations</h1>
+        <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
           Select a dataset, follow outcomes across code revisions, and open the exact
           Node, Workflow, or Agent execution behind every result.
         </p>
@@ -301,7 +301,7 @@ export default function EvaluationRunsPage() {
         <>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="m-0 text-xl">
+              <h2 className="m-0">
                 {selectedDataset === undefined ? (
                   'Dataset history'
                 ) : (

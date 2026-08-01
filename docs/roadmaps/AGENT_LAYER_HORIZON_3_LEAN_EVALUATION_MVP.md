@@ -658,8 +658,8 @@ relevant exact executable-owner identity, and performs that same lookup.
 
 ### MVP Programmatic Authentication
 
-The MVP uses a separately scoped evaluation-control token for local, remote,
-and unattended use. Human browser sessions create, list, and revoke tokens;
+The MVP uses a separately scoped developer access token for local, remote, and
+unattended use. Human browser sessions create, list, copy, and delete tokens;
 the SDK intentionally has no email/password sign-in path. The SDK accepts the
 token through its normal configuration boundary, redacts it from output, and
 never writes it into a

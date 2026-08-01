@@ -553,10 +553,11 @@ print(f"Hot tier spans: {hot.num_rows}")
 
 #### Accessing SQLite (User Data)
 
-```bash
-# SQLite (user data, API keys, sessions)
-sqlite3 ./.dbdata/sqlite/junjo.db
-```
+The backend container exclusively owns the live SQLite database and its WAL
+files. Use Studio's HTTP APIs while the stack is running; do not open the
+bind-mounted database with a host SQLite process. Stop the complete stack before
+offline maintenance. The greenfield reset and setup flow is documented in
+`TESTING.md`.
 
 ### Performance Tuning
 

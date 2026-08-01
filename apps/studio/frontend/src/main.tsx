@@ -28,7 +28,6 @@ import EvaluationDatasetPage from './features/evaluation-runs/EvaluationDatasetP
 import EvaluationRunDetailPage from './features/evaluation-runs/EvaluationRunDetailPage.tsx'
 import EvaluationRunComparisonPage from './features/evaluation-runs/EvaluationRunComparisonPage.tsx'
 import EvaluationTokensPage from './features/evaluation-tokens/EvaluationTokensPage.tsx'
-import DeveloperCredentialsPage from './features/settings/DeveloperCredentialsPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -137,14 +136,6 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/settings/credentials"
-                  element={
-                    <AuthGuard>
-                      <DeveloperCredentialsPage />
-                    </AuthGuard>
-                  }
-                />
-                <Route
                   path="/users"
                   element={
                     <AuthGuard>
@@ -153,7 +144,7 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/settings/credentials/evaluation"
+                  path="/access-tokens"
                   element={
                     <AuthGuard>
                       <EvaluationTokensPage />
@@ -161,7 +152,7 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/settings/credentials/ingestion"
+                  path="/api-keys"
                   element={
                     <AuthGuard>
                       <ApiKeysPage />

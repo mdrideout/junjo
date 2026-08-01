@@ -73,7 +73,7 @@ export default function OtelExporterGuide() {
       >
         <div className="flex items-center gap-2">
           <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
-            Instructions: Configure OpenTelemetry Exporter
+            Connect application telemetry
           </div>
         </div>
         {isExpanded ? (

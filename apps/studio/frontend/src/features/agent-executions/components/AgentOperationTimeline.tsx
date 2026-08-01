@@ -48,7 +48,7 @@ function ModelOperationInspector({ operation }: { operation: ModelOperation }) {
           <div className="text-xs font-semibold uppercase tracking-wide text-[var(--studio-operation-model)]">
             Model request {operation.ordinal}
           </div>
-          <h3 className="m-0 mt-1 text-lg">{operation.provider} / {operation.model_name}</h3>
+          <h3 className="m-0 mt-1">{operation.provider} / {operation.model_name}</h3>
           <div className="mt-1 font-mono text-xs text-[var(--studio-text-subtle)]">
             {operation.driver_key} · state revision {operation.state_revision}
           </div>
@@ -181,7 +181,7 @@ function ToolOperationInspector({
           <div className="text-xs font-semibold uppercase tracking-wide text-[var(--studio-operation-tool)]">
             Tool call {operation.ordinal}
           </div>
-          <h3 className="m-0 mt-1 text-lg">{operation.tool_name}</h3>
+          <h3 className="m-0 mt-1">{operation.tool_name}</h3>
           <div className="mt-1 font-mono text-xs text-[var(--studio-text-subtle)]">
             {operation.call_id} · revision {operation.state_revision_before}
             {operation.state_revision_after === null ? '' : ` → ${operation.state_revision_after}`}
@@ -267,7 +267,7 @@ export function AgentOperationTimeline({
   if (operations.length === 0) {
     return (
       <section className="rounded-xl border border-dashed border-[var(--studio-border-strong)] p-5">
-        <h2 className="m-0 text-lg">Realized operation sequence</h2>
+        <h2 className="m-0">Realized operation sequence</h2>
         <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
           No model or Tool operation began. Boundary validation may have rejected this invocation.
         </p>
@@ -278,7 +278,7 @@ export function AgentOperationTimeline({
   return (
     <section aria-label="Realized Agent operations" className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)]">
       <div className="border-b border-[var(--studio-border)] p-4">
-        <h2 className="m-0 text-lg">Realized operation sequence</h2>
+        <h2 className="m-0">Realized operation sequence</h2>
         <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
           Sequence numbers are authoritative; timestamps are display evidence only.
         </p>

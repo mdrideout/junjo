@@ -121,13 +121,13 @@ class EvaluationStudioE2EToolingTests(unittest.TestCase):
             expected_status="failed",
         )
 
-    def test_evaluation_credential_requires_scoped_token_shape(self) -> None:
+    def test_evaluation_credential_requires_generated_token_prefix(self) -> None:
         class Client:
             def request(self, path, *, method, body):
                 self.requested = (path, method, body)
                 return {
                     "id": "token-1",
-                    "token": "junjo_eval_prefix.secret",
+                    "token": "jcli_generated-token",
                 }
 
         client = Client()
@@ -144,6 +144,25 @@ class EvaluationStudioE2EToolingTests(unittest.TestCase):
                     "scopes": list(validator.EVALUATION_SCOPES),
                 },
             ),
+        )
+
+    def test_evaluation_credential_deletion_uses_management_delete_route(self) -> None:
+        class Client:
+            def request(self, path, *, method):
+                self.requested = (path, method)
+                return None
+
+        client = Client()
+        credential = validator.EvaluationCredential(
+            id="token-1",
+            token="jcli_generated-token",
+        )
+
+        validator.delete_evaluation_credential(client, credential)
+
+        self.assertEqual(
+            client.requested,
+            ("/api/v1/evaluation-tokens/token-1", "DELETE"),
         )
 
 

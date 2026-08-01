@@ -17,11 +17,11 @@ describe('getPostSignInDestination', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('should return ingestion credentials when user has no API keys', async () => {
+  it('should return application telemetry API keys when user has no API keys', async () => {
     // Default mock handler returns empty array []
     const destination = await getPostSignInDestination()
 
-    expect(destination).toBe('/settings/credentials/ingestion')
+    expect(destination).toBe('/api-keys')
   })
 
   it('should return / (home) when user has API keys', async () => {

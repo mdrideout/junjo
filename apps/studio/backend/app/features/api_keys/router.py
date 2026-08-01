@@ -22,7 +22,7 @@ async def create_api_key(request: APIKeyCreate, authenticated_user: CurrentUser)
     """
     Create a new API key (requires authentication).
 
-    Generates a unique 64-character alphanumeric key.
+    Generates one canonical ``jtel_`` application telemetry key.
     Any authenticated user can create keys (shared resource).
 
     Args:

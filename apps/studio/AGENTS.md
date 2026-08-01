@@ -105,7 +105,11 @@ Utilize skills during implementation and plannning. AGENTS.md is for context tha
 - `backend-python`: FastAPI, backend repositories/services, SQLite patterns, DataFusion orchestration, backend tests.
 - `frontend-react`: React architecture, Redux Toolkit patterns, frontend schemas, frontend tests.
 - `security-auth`: API keys, session cookies, CORS, internal auth gRPC, security-sensitive reviews.
+- `api-contracts`: Backend endpoints consumed by the frontend, SDK, CLI, or another service.
 - `docs-sync`: Docs drift audits, ADR cleanup, source-of-truth checks, report-first doc work.
+
+Use `api-contracts` with the owning component skills whenever a backend endpoint
+and one of its consumers change together.
 
 ## Nested Instructions Policy
 

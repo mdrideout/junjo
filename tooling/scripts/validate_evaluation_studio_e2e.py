@@ -7,8 +7,11 @@ telemetry, and queries the resulting Studio control records and trace evidence.
 
 Studio must already be running. The target is treated as disposable because
 evaluation datasets and Runs are intentionally immutable and have no delete
-API. A random user, ingestion API key, and evaluation token are created for the
-proof. Credentials are never command arguments or artifact content.
+API. When Studio reports that setup is required, the shared local provisioner
+creates the manual-test owner through the public first-user setup endpoint.
+It then uses a random user, ingestion API key, and evaluation token for the
+proof. Disposable credentials are cleaned afterward; credential values are
+never command arguments or artifact content.
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ from validate_agent_studio_e2e import (
     cleanup_test_identity,
     provision_test_identity,
     require,
+    verify_owner_reauthentication,
     wait_for_health,
 )
 
@@ -53,7 +57,7 @@ EVALUATION_SCOPES = (
 
 @dataclass(frozen=True, slots=True)
 class EvaluationCredential:
-    """One scoped credential created and revoked by this proof."""
+    """One scoped credential created and deleted by this proof."""
 
     id: str
     token: str
@@ -93,30 +97,23 @@ def create_evaluation_credential(client: JsonClient) -> EvaluationCredential:
         "Studio did not return an evaluation-token ID",
     )
     require(
-        isinstance(token, str) and token.startswith("junjo_eval_"),
+        isinstance(token, str) and token.startswith("jcli_"),
         "Studio did not return an evaluation-token secret",
     )
     return EvaluationCredential(id=token_id, token=token)
 
 
-def revoke_evaluation_credential(
+def delete_evaluation_credential(
     client: JsonClient,
     credential: EvaluationCredential,
 ) -> None:
-    """Revoke the test credential through the human management boundary."""
+    """Delete the test credential through the human management boundary."""
 
-    revoked = _object(
-        client.request(
-            f"/api/v1/evaluation-tokens/{urllib.parse.quote(credential.id, safe='')}/revoke",
-            method="PUT",
-        ),
-        "evaluation-token revoke response",
+    deleted = client.request(
+        f"/api/v1/evaluation-tokens/{credential.id}",
+        method="DELETE",
     )
-    require(revoked.get("id") == credential.id, "Studio revoked the wrong token")
-    require(
-        isinstance(revoked.get("revoked_at"), str),
-        "Studio did not record evaluation-token revocation",
-    )
+    require(deleted is None, "Studio token deletion returned an unexpected response")
 
 
 def build_installed_application(
@@ -823,7 +820,7 @@ def execute_proof(
                 encoding="utf-8",
             )
 
-            revoke_evaluation_credential(backend, credential)
+            delete_evaluation_credential(backend, credential)
             credential = None
             exit_code, envelope = run_cli(
                 junjo,
@@ -837,12 +834,12 @@ def execute_proof(
                 and envelope.get("ok") is False
                 and _object(envelope.get("error"), "CLI error").get("code")
                 == "authentication",
-                "revoked evaluation token remained authorized",
+                "deleted evaluation token remained authorized",
             )
     finally:
         if credential is not None:
             try:
-                revoke_evaluation_credential(backend, credential)
+                delete_evaluation_credential(backend, credential)
             except BaseException as error:
                 cleanup_error = error
         try:
@@ -857,6 +854,7 @@ def execute_proof(
                 )
     if cleanup_error is not None:
         raise cleanup_error
+    verify_owner_reauthentication(backend)
 
 
 def _parser() -> argparse.ArgumentParser:

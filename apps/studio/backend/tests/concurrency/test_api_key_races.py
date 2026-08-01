@@ -23,12 +23,12 @@ async def test_concurrent_api_key_creation(mock_authenticated_user):
     - Database transaction isolation
     - No duplicate IDs or keys
     """
+
     async def create_key(i: int):
         """Create a single API key."""
         try:
             return await APIKeyService.create_api_key(
-                name=f"Concurrent Key {i}",
-                authenticated_user=mock_authenticated_user
+                name=f"Concurrent Key {i}", authenticated_user=mock_authenticated_user
             )
         except Exception:
             return None
@@ -54,7 +54,7 @@ async def test_concurrent_api_key_creation(mock_authenticated_user):
 
     # Verify all are 21 and 64 chars respectively
     assert all(len(id) == 21 for id in ids)
-    assert all(len(key) == 64 for key in keys)
+    assert all(key.startswith("jtel_") and len(key) == 69 for key in keys)
 
 
 @pytest.mark.concurrency
@@ -66,8 +66,7 @@ async def test_concurrent_key_read_and_delete(mock_authenticated_user):
     """
     # Create a key
     created = await APIKeyService.create_api_key(
-        name="Test Key",
-        authenticated_user=mock_authenticated_user
+        name="Test Key", authenticated_user=mock_authenticated_user
     )
 
     async def read_key():
@@ -82,8 +81,7 @@ async def test_concurrent_key_read_and_delete(mock_authenticated_user):
         # Small delay to increase race condition likelihood
         await asyncio.sleep(0.01)
         return await APIKeyService.delete_api_key(
-            created.id,
-            authenticated_user=mock_authenticated_user
+            created.id, authenticated_user=mock_authenticated_user
         )
 
     # Run read and delete concurrently
@@ -127,12 +125,12 @@ async def test_concurrent_duplicate_key_prevention(mock_authenticated_user):
 
     with patch.object(APIKeyService, "generate_id", side_effect=mock_generate_id):
         with patch.object(APIKeyService, "generate_key", side_effect=mock_generate_key):
+
             async def create_key(i: int):
                 """Try to create key with duplicate values."""
                 try:
                     return await APIKeyService.create_api_key(
-                        name=f"Key {i}",
-                        authenticated_user=mock_authenticated_user
+                        name=f"Key {i}", authenticated_user=mock_authenticated_user
                     )
                 except Exception as e:
                     # Expected: unique constraint violation
@@ -159,12 +157,12 @@ async def test_concurrent_list_while_creating(mock_authenticated_user):
 
     Ensures consistent read behavior during concurrent writes.
     """
+
     async def create_keys():
         """Create 20 keys."""
         for i in range(20):
             await APIKeyService.create_api_key(
-                name=f"Key {i}",
-                authenticated_user=mock_authenticated_user
+                name=f"Key {i}", authenticated_user=mock_authenticated_user
             )
             await asyncio.sleep(0.01)  # Small delay between creates
 
@@ -172,9 +170,7 @@ async def test_concurrent_list_while_creating(mock_authenticated_user):
         """List keys 10 times."""
         counts = []
         for _ in range(10):
-            keys = await APIKeyService.list_api_keys(
-                authenticated_user=mock_authenticated_user
-            )
+            keys = await APIKeyService.list_api_keys(authenticated_user=mock_authenticated_user)
             counts.append(len(keys))
             await asyncio.sleep(0.02)
         return counts
@@ -191,7 +187,7 @@ async def test_concurrent_list_while_creating(mock_authenticated_user):
 
     # Each subsequent read should see same or more keys (never less)
     for i in range(1, len(counts)):
-        assert counts[i] >= counts[i-1], f"Count decreased: {counts[i-1]} -> {counts[i]}"
+        assert counts[i] >= counts[i - 1], f"Count decreased: {counts[i - 1]} -> {counts[i]}"
 
 
 @pytest.mark.concurrency
@@ -203,16 +199,14 @@ async def test_concurrent_delete_same_key(mock_authenticated_user):
     """
     # Create a key
     created = await APIKeyService.create_api_key(
-        name="Delete Me",
-        authenticated_user=mock_authenticated_user
+        name="Delete Me", authenticated_user=mock_authenticated_user
     )
 
     async def delete_key():
         """Try to delete the key."""
         try:
             return await APIKeyService.delete_api_key(
-                created.id,
-                authenticated_user=mock_authenticated_user
+                created.id, authenticated_user=mock_authenticated_user
             )
         except Exception as e:
             return str(e)
@@ -242,25 +236,22 @@ async def test_concurrent_create_and_count(mock_authenticated_user):
 
     Verifies transaction isolation and consistent read behavior.
     """
-    initial_count = len(await APIKeyService.list_api_keys(
-        authenticated_user=mock_authenticated_user
-    ))
+    initial_count = len(
+        await APIKeyService.list_api_keys(authenticated_user=mock_authenticated_user)
+    )
 
     async def create_many():
         """Create 50 keys."""
         for i in range(50):
             await APIKeyService.create_api_key(
-                name=f"Concurrent {i}",
-                authenticated_user=mock_authenticated_user
+                name=f"Concurrent {i}", authenticated_user=mock_authenticated_user
             )
 
     async def count_periodically():
         """Count keys 20 times."""
         counts = []
         for _ in range(20):
-            keys = await APIKeyService.list_api_keys(
-                authenticated_user=mock_authenticated_user
-            )
+            keys = await APIKeyService.list_api_keys(authenticated_user=mock_authenticated_user)
             counts.append(len(keys))
             await asyncio.sleep(0.01)
         return counts
@@ -269,9 +260,7 @@ async def test_concurrent_create_and_count(mock_authenticated_user):
     _, counts = await asyncio.gather(create_many(), count_periodically())
 
     # Final count should be initial + 50
-    final_count = len(await APIKeyService.list_api_keys(
-        authenticated_user=mock_authenticated_user
-    ))
+    final_count = len(await APIKeyService.list_api_keys(authenticated_user=mock_authenticated_user))
     assert final_count == initial_count + 50
 
     # Observed counts should never exceed final count
@@ -294,27 +283,22 @@ async def test_high_concurrency_stress_test(mock_authenticated_user):
             # Create
             if i % 3 == 0:
                 await APIKeyService.create_api_key(
-                    name=f"Stress {i}",
-                    authenticated_user=mock_authenticated_user
+                    name=f"Stress {i}", authenticated_user=mock_authenticated_user
                 )
                 operations_completed["create"] += 1
 
             # Read
             elif i % 3 == 1:
-                await APIKeyService.list_api_keys(
-                    authenticated_user=mock_authenticated_user
-                )
+                await APIKeyService.list_api_keys(authenticated_user=mock_authenticated_user)
                 operations_completed["read"] += 1
 
             # Delete (create first, then delete)
             else:
                 key = await APIKeyService.create_api_key(
-                    name=f"Temp {i}",
-                    authenticated_user=mock_authenticated_user
+                    name=f"Temp {i}", authenticated_user=mock_authenticated_user
                 )
                 await APIKeyService.delete_api_key(
-                    key.id,
-                    authenticated_user=mock_authenticated_user
+                    key.id, authenticated_user=mock_authenticated_user
                 )
                 operations_completed["delete"] += 1
 
@@ -332,7 +316,5 @@ async def test_high_concurrency_stress_test(mock_authenticated_user):
     assert len(errors) < 10, f"Too many errors: {len(errors)}"
 
     # Verify database is in consistent state (can query without errors)
-    final_keys = await APIKeyService.list_api_keys(
-        authenticated_user=mock_authenticated_user
-    )
+    final_keys = await APIKeyService.list_api_keys(authenticated_user=mock_authenticated_user)
     assert isinstance(final_keys, list)

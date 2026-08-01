@@ -226,26 +226,26 @@ structured output.
 
 ## Programmatic Authentication
 
-Coding-agent and CI operation uses a separately scoped Studio control/query
-token. Human browser sessions only create, list, and revoke those tokens; the
+Coding-agent and CI operation uses a separately scoped Studio developer access
+token. Human browser sessions create, list, copy, and delete those tokens; the
 SDK has no email/password authentication API.
 
 The smallest supported token model has:
 
-- a user-visible name and non-secret prefix;
-- a high-entropy secret shown once;
-- one-way secret storage;
+- a user-visible name and recoverable canonical bearer credential;
+- a recoverable high-entropy bearer credential;
 - explicit evaluation-read, evaluation-write, and evidence-read scopes;
 - optional expiration;
-- explicit revocation; and
+- explicit deletion; and
 - no per-request last-used database write.
 
 Studio authenticates this token in the backend control plane. It is not sent to
 ingestion and does not authorize OTLP. The existing ingestion API key is not
 accepted by evaluation routes.
 
-The Studio UI needs one minimal token create/list/revoke surface that clearly
-distinguishes these tokens from ingestion API keys. The CLI reads the token
+The Studio UI needs one minimal access-token create/list/copy/delete surface
+that clearly distinguishes these tokens from Application Telemetry API keys.
+The CLI reads the token
 from protected environment or configuration, initially
 `JUNJO_AI_STUDIO_CLI_TOKEN`. Remote Studio origins require HTTPS; loopback
 development may use explicit HTTP.

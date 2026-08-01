@@ -80,9 +80,9 @@ export default function EvaluationDatasetPage() {
             <div className="text-sm font-semibold text-[var(--studio-text-muted)]">
               {dataset.application_key}
             </div>
-            <h1 className="m-0 mt-1 text-3xl">{dataset.name}</h1>
+            <h1 className="m-0 mt-1">{dataset.name}</h1>
             {dataset.description !== null && (
-              <p className="mt-2 max-w-3xl text-sm text-[var(--studio-text-muted)]">
+              <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
                 {dataset.description}
               </p>
             )}
@@ -112,7 +112,7 @@ export default function EvaluationDatasetPage() {
       </header>
 
       <section>
-        <h2 className="m-0 text-xl">Tests</h2>
+        <h2 className="m-0">Tests</h2>
         <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
           Inputs, pass conditions, and execution scope locked into this dataset.
         </p>
@@ -184,7 +184,7 @@ export default function EvaluationDatasetPage() {
       </section>
 
       <section>
-        <h2 className="m-0 text-xl">Run history</h2>
+        <h2 className="m-0">Run history</h2>
         <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
           Every execution of this same locked test set.
         </p>

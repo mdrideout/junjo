@@ -51,7 +51,7 @@ function ExecutionTerminalEvidence({ detail }: { detail: AgentExecutionDetail })
   if (detail.error !== null) {
     return (
       <section className="rounded-xl border border-[var(--studio-outcome-failed)] bg-[var(--studio-outcome-failed-bg)] p-4">
-        <h2 className="m-0 text-lg">Owning execution error</h2>
+        <h2 className="m-0">Owning execution error</h2>
         <div className="mt-2 font-mono text-sm font-semibold">{detail.error.type}</div>
         {detail.error.message !== null && <p className="mt-2 whitespace-pre-wrap text-sm">{detail.error.message}</p>}
         {detail.error.stacktrace !== null && (
@@ -64,7 +64,7 @@ function ExecutionTerminalEvidence({ detail }: { detail: AgentExecutionDetail })
   if (detail.cancellation !== null) {
     return (
       <section className="rounded-xl border border-[var(--studio-outcome-cancelled)] bg-[var(--studio-outcome-cancelled-bg)] p-4">
-        <h2 className="m-0 text-lg">Execution cancelled</h2>
+        <h2 className="m-0">Execution cancelled</h2>
         <p className="mt-2 text-sm">{detail.cancellation.reason ?? 'No cancellation reason was supplied.'}</p>
       </section>
     )
@@ -93,7 +93,7 @@ export function AgentExecutionDetailView({ detail }: { detail: AgentExecutionDet
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold text-[var(--studio-text-muted)]">{summary.agent_key}</div>
-            <h1 className="m-0 mt-1 text-3xl">{summary.agent_name}</h1>
+            <h1 className="m-0 mt-1">{summary.agent_name}</h1>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-[var(--studio-text-subtle)]">
               <span>{summary.service.namespace ? `${summary.service.namespace} / ` : ''}{summary.service.name}</span>
               {summary.service.version !== null && <span>version {summary.service.version}</span>}
@@ -198,7 +198,7 @@ export function AgentExecutionDetailView({ detail }: { detail: AgentExecutionDet
       <AgentStateTimeline state={detail.state} />
 
       <section className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4">
-        <h2 className="m-0 text-lg">Usage evidence</h2>
+        <h2 className="m-0">Usage evidence</h2>
         <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
           {summary.usage.model_responses} normalized model response{summary.usage.model_responses === 1 ? '' : 's'} contributed usage facts.
         </p>

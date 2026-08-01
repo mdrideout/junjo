@@ -5,14 +5,15 @@ This document covers testing patterns and practices for Junjo AI Studio.
 ## Table of Contents
 
 1. [Running Tests](#running-tests)
-2. [Testing Strategy Overview](#testing-strategy-overview)
-3. [Platform Telemetry Contract](#platform-telemetry-contract)
-4. [Workflow Execution Exploration](#workflow-execution-exploration)
-5. [Contract Testing (Frontend/Backend)](#contract-testing-frontendbackend)
-6. [Integration Testing with MSW](#integration-testing-with-msw)
-7. [Shared Test Fixtures](#shared-test-fixtures)
-8. [Common Testing Pitfalls](#common-testing-pitfalls)
-9. [Backend Test Markers](#backend-test-markers)
+2. [Local Agent E2E Identity](#local-agent-e2e-identity)
+3. [Testing Strategy Overview](#testing-strategy-overview)
+4. [Platform Telemetry Contract](#platform-telemetry-contract)
+5. [Workflow Execution Exploration](#workflow-execution-exploration)
+6. [Contract Testing (Frontend/Backend)](#contract-testing-frontendbackend)
+7. [Integration Testing with MSW](#integration-testing-with-msw)
+8. [Shared Test Fixtures](#shared-test-fixtures)
+9. [Common Testing Pitfalls](#common-testing-pitfalls)
+10. [Backend Test Markers](#backend-test-markers)
 
 ---
 
@@ -76,6 +77,38 @@ uv run pytest -m unit              # Unit tests only
 uv run pytest -m integration       # Integration tests only
 uv run pytest -m security          # Security tests only
 ```
+
+---
+
+## Local Agent E2E Identity
+
+The local default user is created through Studio's public first-user setup API,
+the same contract used by the setup form. It is not a database seed and is
+never created by startup, Compose, migrations, or a build:
+
+- Email: `admin@test.com`
+- Password: `JunjoAIStudioLocalTestPass1!`
+
+For a greenfield local proof, stop the stack before removing its bind-mounted
+data, then restart Studio and run either live validator:
+
+```bash
+docker compose down --volumes --remove-orphans
+rm -rf .dbdata
+docker compose up --build --detach
+```
+
+The validator asks Studio whether setup is required and, only on an empty
+deployment, submits `admin@test.com` through `/users/create-first-user`. It uses
+a separate random user and credentials for the proof, removes those disposable
+records through the HTTP API, and finishes by signing the retained owner out
+and back in. Existing-user distribution tests supply paired credentials through
+`JUNJO_STUDIO_E2E_EXISTING_EMAIL` and `JUNJO_STUDIO_E2E_EXISTING_PASSWORD`.
+
+The running containers exclusively own the SQLite database and its WAL files.
+Never open, query, or modify the bind-mounted SQLite files from the host while
+Studio is running. Use Studio's HTTP APIs for live validation; stop the entire
+stack before a greenfield wipe or offline database maintenance.
 
 ---
 

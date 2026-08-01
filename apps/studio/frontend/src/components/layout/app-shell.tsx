@@ -9,7 +9,9 @@ import {
   GearIcon,
   GitHubLogoIcon,
   HamburgerMenuIcon,
+  IdCardIcon,
   LightningBoltIcon,
+  LockClosedIcon,
   RocketIcon,
   RowsIcon,
 } from '@radix-ui/react-icons'
@@ -37,6 +39,8 @@ const signedInNavigation: NavigationItem[] = [
   { icon: LightningBoltIcon, label: 'Agents', to: '/agents' },
   { icon: BarChartIcon, label: 'Evaluations', to: '/evaluation-runs' },
   { icon: AvatarIcon, label: 'Users', to: '/users' },
+  { icon: IdCardIcon, label: 'API Keys', to: '/api-keys' },
+  { icon: LockClosedIcon, label: 'Access Tokens', to: '/access-tokens' },
   { icon: GearIcon, label: 'Settings', to: '/settings' },
   { icon: ExitIcon, label: 'Sign out', to: '/sign-out' },
 ]

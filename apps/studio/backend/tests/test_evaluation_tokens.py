@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import AsyncIterator
 from datetime import timedelta
 from unittest.mock import AsyncMock
@@ -55,7 +54,7 @@ async def _create_token(
     return response.json()
 
 
-async def test_secret_is_returned_once_and_only_a_hash_is_persisted(
+async def test_token_is_recoverable_from_authenticated_management_routes(
     token_management_app,
     test_db,
 ) -> None:
@@ -68,16 +67,16 @@ async def test_secret_is_returned_once_and_only_a_hash_is_persisted(
         )
         listed = await client.get("/api/v1/evaluation-tokens")
 
-    assert created["token"].startswith(f"{created['prefix']}.")
+    assert created["token"].startswith("jcli_")
+    assert len(created["token"]) == 69
+    assert "prefix" not in created
     assert created["scopes"] == [
         "evaluation:read",
         "evaluation:write",
         "evidence:read",
     ]
     assert listed.status_code == 200
-    assert listed.json()["items"] == [{key: value for key, value in created.items() if key != "token"}]
-    assert "token" not in listed.text
-    assert "secret_hash" not in listed.text
+    assert listed.json()["items"] == [created]
 
     async with test_db() as session:
         stored = (
@@ -85,11 +84,10 @@ async def test_secret_is_returned_once_and_only_a_hash_is_persisted(
                 select(EvaluationTokenTable).where(EvaluationTokenTable.id == created["id"])
             )
         ).scalar_one()
-    assert stored.secret_hash == hashlib.sha256(created["token"].encode("ascii")).hexdigest()
-    assert created["token"] not in stored.secret_hash
+    assert stored.token == created["token"]
 
 
-async def test_token_listing_is_keyset_paginated_and_revocation_is_idempotent(
+async def test_token_listing_is_keyset_paginated_and_deletion_is_explicit(
     token_management_app,
 ) -> None:
     transport = ASGITransport(app=token_management_app)
@@ -108,9 +106,9 @@ async def test_token_listing_is_keyset_paginated_and_revocation_is_idempotent(
             params={"cursor": "____"},
         )
 
-        revoked = await client.put(f"/api/v1/evaluation-tokens/{first['id']}/revoke")
-        revoked_again = await client.put(f"/api/v1/evaluation-tokens/{first['id']}/revoke")
-        missing = await client.put("/api/v1/evaluation-tokens/missing/revoke")
+        deleted = await client.delete(f"/api/v1/evaluation-tokens/{first['id']}")
+        deleted_again = await client.delete(f"/api/v1/evaluation-tokens/{first['id']}")
+        missing = await client.delete("/api/v1/evaluation-tokens/missing")
 
     page_ids = {
         first_page.json()["items"][0]["id"],
@@ -119,9 +117,8 @@ async def test_token_listing_is_keyset_paginated_and_revocation_is_idempotent(
     assert page_ids == {first["id"], second["id"]}
     assert second_page.json()["next_cursor"] is None
     assert malformed.status_code == 422
-    assert revoked.status_code == 200
-    assert revoked.json()["revoked_at"] is not None
-    assert revoked_again.json()["revoked_at"] == revoked.json()["revoked_at"]
+    assert deleted.status_code == 204
+    assert deleted_again.status_code == 404
     assert missing.status_code == 404
 
 
@@ -243,7 +240,7 @@ async def test_evaluation_read_write_and_evidence_scopes_are_distinct(
         assert forbidden.json()["detail"]["code"] == "insufficient_evaluation_token_scope"
 
 
-async def test_revocation_applies_to_the_next_request_without_auth_cache_or_write(
+async def test_deletion_applies_to_the_next_request_without_auth_cache_or_write(
     token_management_app,
 ) -> None:
     transport = ASGITransport(app=token_management_app)
@@ -273,8 +270,8 @@ async def test_revocation_applies_to_the_next_request_without_auth_cache_or_writ
     assert write_statements == []
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        revoked = await client.put(f"/api/v1/evaluation-tokens/{created['id']}/revoke")
-    assert revoked.status_code == 200
+        deleted = await client.delete(f"/api/v1/evaluation-tokens/{created['id']}")
+    assert deleted.status_code == 204
 
     session_override = app.dependency_overrides.pop(get_authenticated_user)
     try:
@@ -288,7 +285,7 @@ async def test_revocation_applies_to_the_next_request_without_auth_cache_or_writ
     assert rejected.status_code == 401
 
 
-async def test_expired_malformed_and_ingestion_credentials_are_rejected(
+async def test_expired_unknown_and_wrong_scheme_credentials_are_rejected(
     token_management_app,
     test_db,
 ) -> None:
@@ -323,13 +320,9 @@ async def test_expired_malformed_and_ingestion_credentials_are_rejected(
                 "/api/v1/evaluation/runs",
                 headers={"Authorization": f"Bearer {expiring['token']}"},
             )
-            malformed = await client.get(
+            unknown = await client.get(
                 "/api/v1/evaluation/runs",
-                headers={"Authorization": "Bearer not-an-evaluation-token"},
-            )
-            ingestion_key = await client.get(
-                "/api/v1/evaluation/runs",
-                headers={"Authorization": f"Bearer {'A' * 64}"},
+                headers={"Authorization": "Bearer token-not-present-in-the-table"},
             )
             wrong_scheme = await client.get(
                 "/api/v1/evaluation/runs",
@@ -339,8 +332,7 @@ async def test_expired_malformed_and_ingestion_credentials_are_rejected(
         app.dependency_overrides[get_authenticated_user] = session_override
 
     assert expired.status_code == 401
-    assert malformed.status_code == 401
-    assert ingestion_key.status_code == 401
+    assert unknown.status_code == 401
     assert wrong_scheme.status_code == 401
 
 
@@ -370,17 +362,14 @@ def test_evaluation_token_openapi_contract_is_explicit() -> None:
     assert schema["paths"]["/api/v1/evaluation-tokens"]["get"]["operationId"] == (
         "list_evaluation_tokens"
     )
-    assert schema["paths"]["/api/v1/evaluation-tokens/{token_id}/revoke"]["put"][
-        "operationId"
-    ] == "revoke_evaluation_token"
+    assert (
+        schema["paths"]["/api/v1/evaluation-tokens/{token_id}"]["delete"]["operationId"]
+        == "delete_evaluation_token"
+    )
 
-    created_properties = schema["components"]["schemas"]["EvaluationTokenCreated"][
-        "properties"
-    ]
     read_properties = schema["components"]["schemas"]["EvaluationTokenRead"]["properties"]
-    assert "token" in created_properties
-    assert "token" not in read_properties
-    assert "secret_hash" not in created_properties
+    assert "token" in read_properties
+    assert "prefix" not in read_properties
     assert "secret_hash" not in read_properties
 
     for path, method in (
@@ -389,6 +378,4 @@ def test_evaluation_token_openapi_contract_is_explicit() -> None:
         ("/api/v1/execution-resolution", "get"),
         ("/api/v1/trace-evidence/{trace_id}", "get"),
     ):
-        assert schema["paths"][path][method]["security"] == [
-            {"EvaluationControlToken": []}
-        ]
+        assert schema["paths"][path][method]["security"] == [{"EvaluationControlToken": []}]

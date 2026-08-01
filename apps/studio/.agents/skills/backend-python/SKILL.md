@@ -41,6 +41,9 @@ description: Use when changing or reviewing FastAPI routes, backend services, re
 5. If the task changes query bridging, proto contracts, or hot-snapshot behavior, pair this skill with `ingestion-flow`.
 6. If the task changes an auth trust boundary, middleware order, cookie policy, or API key validation behavior, pair this skill with `security-auth`.
 7. Keep ADRs strategic. If a backend change requires doc updates, update the owning doc rather than restating implementation details in multiple places.
+8. The running backend container owns its bind-mounted SQLite database and WAL
+   files. Do not access them from a host SQLite process; `TESTING.md` owns the
+   stopped-stack reset procedure.
 
 ## Validation Expectations
 

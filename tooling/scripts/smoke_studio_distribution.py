@@ -768,7 +768,7 @@ class StudioDistributionSmoke:
         require(isinstance(created, dict), "API-key response must be an object")
         api_key = created.get("key")
         require(
-            isinstance(api_key, str) and len(api_key) >= 32,
+            isinstance(api_key, str) and api_key.startswith("jtel_"),
             "Studio did not return a valid API key",
         )
         self.sensitive_values.append(api_key)

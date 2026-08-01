@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.db_sqlite.users.repository import UserRepository
 from app.features.auth import service as auth_service
+from app.features.auth.service import AuthService
 from app.main import app
 
 
@@ -115,6 +116,31 @@ async def test_sign_in_invalid_credentials():
         )
         assert response.status_code == 401
         assert "Invalid credentials" in response.json()["detail"]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_unhandled_sign_in_error_is_json_with_cors(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Browser auth requests receive a readable response for unexpected errors."""
+
+    async def fail_validation(_email: str, _password: str):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(AuthService, "validate_credentials", fail_validation)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/sign-in",
+            headers={"Origin": "http://localhost:26151"},
+            json={"email": "test@example.com", "password": "password123"},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error"}
+    assert response.headers["access-control-allow-origin"] == "http://localhost:26151"
+    assert response.headers["access-control-allow-credentials"] == "true"
 
 
 @pytest.mark.integration

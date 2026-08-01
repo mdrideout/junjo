@@ -71,7 +71,7 @@ export default function GenerationSettingsModal({
         {/* OpenAI Section */}
         {provider === 'openai' && (
           <div>
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">OpenAI Settings</h3>
+            <h3 className="mb-3 text-zinc-900 dark:text-zinc-100">OpenAI Settings</h3>
             <div className="space-y-4">
               {isReasoning && (
                 <div>
@@ -155,7 +155,7 @@ export default function GenerationSettingsModal({
         {/* Anthropic Section */}
         {provider === 'anthropic' && (
           <div>
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
+            <h3 className="mb-3 text-zinc-900 dark:text-zinc-100">
               Anthropic Settings
             </h3>
             <div className="space-y-4">
@@ -226,7 +226,7 @@ export default function GenerationSettingsModal({
         {/* Gemini Section */}
         {provider === 'gemini' && (
           <div>
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">Gemini Settings</h3>
+            <h3 className="mb-3 text-zinc-900 dark:text-zinc-100">Gemini Settings</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">

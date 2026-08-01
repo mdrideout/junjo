@@ -22,6 +22,7 @@ from loguru import logger
 from securecookies import SecureCookiesMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.common.middleware import JsonErrorMiddleware
 from app.common.responses import HealthResponse
 from app.config.deployment_validation import log_deployment_configuration
 from app.config.logger import setup_logging
@@ -179,15 +180,6 @@ app = FastAPI(
     redoc_url=None,
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # === SESSION/AUTH MIDDLEWARE (ORDER IS CRITICAL!) ===
 
 # Starlette wraps middleware in reverse registration order. Register the session
@@ -207,9 +199,20 @@ app.add_middleware(
     included_cookies=["session"],
 )
 
+# Convert unhandled request errors into the JSON envelope expected by browser
+# clients. CORS is registered last so it also decorates these error responses.
+app.add_middleware(JsonErrorMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # === REQUEST/RESPONSE FLOW ===
-# Incoming:  Browser → SecureCookiesMiddleware (decrypt) → SessionMiddleware (verify signature) → request.session populated
-# Outgoing:  request.session modified → SessionMiddleware (sign) → SecureCookiesMiddleware (encrypt) → Browser
+# Incoming:  Browser → CORS → JSON error boundary → SecureCookies (decrypt) → Session (verify) → request.session
+# Outgoing:  request.session → Session (sign) → SecureCookies (encrypt) → JSON error boundary → CORS → Browser
 
 # === ROUTERS ===
 app.include_router(admin_router, prefix="/api")

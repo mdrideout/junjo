@@ -1,6 +1,5 @@
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { RootState } from '../../root-store/store'
-import { AppLink } from '../../components/navigation/app-link'
 import { SettingsStateActions } from './slice'
 
 export default function SettingsPage() {
@@ -25,24 +24,13 @@ export default function SettingsPage() {
       </div>
       <hr className={'my-4'} />
 
-      <div className={'px-2 mb-8'}>
-        <h2 className={'text-sm font-semibold mb-4'}>Developer</h2>
-        <div className={'border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 max-w-md'}>
-          <h3 className={'font-medium mb-2'}>Developer credentials</h3>
-          <p className={'text-sm text-zinc-500 dark:text-zinc-400 mb-4'}>
-            Manage separate credentials for evaluation control and application telemetry ingestion.
-          </p>
-          <AppLink to="/settings/credentials">Open developer credentials</AppLink>
-        </div>
-      </div>
-
       {/* System Operations Section */}
       <div className={'px-2'}>
-        <h2 className={'text-sm font-semibold mb-4'}>System Operations</h2>
+        <h2 className="mb-4">System Operations</h2>
 
         {/* Flush WAL Card */}
         <div className={'border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 max-w-md'}>
-          <h3 className={'font-medium mb-2'}>Flush WAL to Parquet</h3>
+          <h3 className="mb-2">Flush WAL to Parquet</h3>
           <p className={'text-sm text-zinc-500 dark:text-zinc-400 mb-4'}>
             Immediately flush pending spans from the Write-Ahead Log (WAL) to Parquet files. This is normally done
             automatically by the ingestion service.

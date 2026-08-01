@@ -35,13 +35,14 @@ and commands run from this checkout. The app and CLI connect to the same Studio
 deployment, but use separate credentials with separate authority:
 
 ```dotenv
-# Evaluation CLI -> Studio backend REST API. Sign in to Studio, open
-# Evaluation tokens, create a scoped token, and copy the one-time secret.
+# Developer environment or agent -> Studio backend REST API. Sign in to Studio,
+# open Access Tokens, create a scoped developer access token, and copy it.
 JUNJO_STUDIO_URL=http://localhost:26154
-JUNJO_AI_STUDIO_CLI_TOKEN=junjo_eval_...
+JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 
-# AI Chat application -> Studio OTLP ingestion. Create this on API Keys.
-JUNJO_AI_STUDIO_API_KEY=...
+# AI Chat application -> Studio OTLP ingestion. Create an Application Telemetry
+# API key from Studio's API Keys page.
+JUNJO_AI_STUDIO_API_KEY=jtel_...
 JUNJO_AI_STUDIO_HOST=localhost
 JUNJO_AI_STUDIO_PORT=26155
 JUNJO_AI_STUDIO_INSECURE=true

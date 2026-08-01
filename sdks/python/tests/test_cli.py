@@ -223,7 +223,7 @@ def test_unexpected_errors_never_echo_the_control_token(
     monkeypatch,
     capsys,
 ) -> None:
-    secret = "junjo_eval_private-control-token"
+    secret = "jcli_private-control-token"
 
     class FailingStudioClient:
         def __init__(self, **_configuration: object) -> None:
@@ -257,7 +257,7 @@ def test_dataset_create_uses_harness_application_and_scoped_client(
 ) -> None:
     FakeStudioClient.created_request = None
     monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
-    monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", "junjo_eval_test.secret")
+    monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", "jcli_test-token")
 
     exit_code = cli.main(
         [

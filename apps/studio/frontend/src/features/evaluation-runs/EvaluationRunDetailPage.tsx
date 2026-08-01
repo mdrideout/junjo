@@ -103,7 +103,7 @@ export default function EvaluationRunDetailPage() {
             <div className="text-sm font-semibold text-[var(--studio-text-muted)]">
               {dataset.name}
             </div>
-            <h1 className="m-0 mt-1 text-3xl">{run.run_label}</h1>
+            <h1 className="m-0 mt-1">{run.run_label}</h1>
           </div>
           <EvaluationStatusBadge status={run.status} />
         </div>
@@ -138,7 +138,7 @@ export default function EvaluationRunDetailPage() {
       <section>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl">Evaluation results</h2>
+            <h2 className="m-0">Evaluation results</h2>
             <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
               Binary results for each Node, Workflow, or Agent test in the dataset.
             </p>

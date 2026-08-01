@@ -25,7 +25,7 @@ export const evaluationTokensSlice = createSlice({
       reducer: () => undefined,
       prepare: (payload: { force: boolean; cursor?: string }) => ({ payload }),
     },
-    revokeToken: {
+    deleteToken: {
       reducer: () => undefined,
       prepare: (payload: { id: string }) => ({ payload }),
     },

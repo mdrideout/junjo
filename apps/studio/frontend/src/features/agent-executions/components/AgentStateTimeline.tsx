@@ -37,7 +37,7 @@ export function AgentStateTimeline({ state }: { state: StoreDetail }) {
   if (!state.available) {
     return (
       <section className="rounded-xl border border-dashed border-[var(--studio-border-strong)] p-5">
-        <h2 className="m-0 text-lg">Agent state</h2>
+        <h2 className="m-0">Agent state</h2>
         <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
           This invocation never admitted a run-local Store. No state or transition evidence is fabricated.
         </p>
@@ -56,7 +56,7 @@ export function AgentStateTimeline({ state }: { state: StoreDetail }) {
     <section aria-label="Agent state history" className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--studio-border)] p-4">
         <div>
-          <h2 className="m-0 text-lg">Agent state revisions</h2>
+          <h2 className="m-0">Agent state revisions</h2>
           <p className="mt-1 font-mono text-xs text-[var(--studio-text-subtle)]">
             {state.store_id ?? 'Store identity unavailable'}
           </p>

@@ -5,9 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import and_, or_, select, text
+from sqlalchemy import and_, delete, or_, select
 
-from app.common.datetime_utils import utcnow
 from app.db_sqlite import db_config
 from app.db_sqlite.evaluation_tokens.models import EvaluationTokenTable
 from app.db_sqlite.evaluation_tokens.schemas import (
@@ -28,11 +27,9 @@ class EvaluationTokenAuthenticationRecord:
     """Credential material required for one read-only authentication check."""
 
     id: str
-    prefix: str
-    secret_hash: str
+    token: str
     scopes: frozenset[EvaluationTokenScope]
     expires_at: datetime | None
-    revoked_at: datetime | None
     user_id: str
     user_email: str
     user_is_active: bool
@@ -54,10 +51,9 @@ def _read(row: EvaluationTokenTable) -> EvaluationTokenRead:
     return EvaluationTokenRead(
         id=row.id,
         name=row.name,
-        prefix=row.prefix,
+        token=row.token,
         scopes=_scopes(row),
         expires_at=row.expires_at,
-        revoked_at=row.revoked_at,
         created_by_user_id=row.created_by_user_id,
         created_at=row.created_at,
     )
@@ -70,16 +66,14 @@ class EvaluationTokenRepository:
     async def create(
         *,
         name: str,
-        prefix: str,
-        secret_hash: str,
+        token: str,
         scopes: frozenset[EvaluationTokenScope],
         expires_at: datetime | None,
         created_by_user_id: str,
     ) -> EvaluationTokenRead:
         row = EvaluationTokenTable(
             name=name,
-            prefix=prefix,
-            secret_hash=secret_hash,
+            token=token,
             evaluation_read=EvaluationTokenScope.EVALUATION_READ in scopes,
             evaluation_write=EvaluationTokenScope.EVALUATION_WRITE in scopes,
             evidence_read=EvaluationTokenScope.EVIDENCE_READ in scopes,
@@ -140,21 +134,17 @@ class EvaluationTokenRepository:
         )
 
     @staticmethod
-    async def revoke(token_id: str) -> EvaluationTokenRead | None:
+    async def delete(token_id: str) -> bool:
         async with db_config.async_session() as session:
-            await session.execute(text("BEGIN IMMEDIATE"))
-            row = await session.get(EvaluationTokenTable, token_id)
-            if row is None:
-                return None
-            if row.revoked_at is None:
-                row.revoked_at = utcnow()
-                await session.commit()
-                await session.refresh(row)
-            return _read(row)
+            result = await session.execute(
+                delete(EvaluationTokenTable).where(EvaluationTokenTable.id == token_id)
+            )
+            await session.commit()
+            return result.rowcount > 0
 
     @staticmethod
     async def get_for_authentication(
-        prefix: str,
+        token: str,
     ) -> EvaluationTokenAuthenticationRecord | None:
         """Read credential state without updating last-used or other metadata."""
         async with db_config.async_session() as session:
@@ -164,19 +154,17 @@ class EvaluationTokenRepository:
                     UserTable,
                     UserTable.id == EvaluationTokenTable.created_by_user_id,
                 )
-                .where(EvaluationTokenTable.prefix == prefix)
+                .where(EvaluationTokenTable.token == token)
             )
             pair = result.one_or_none()
             if pair is None:
                 return None
-            token, user = pair
+            token_row, user = pair
             return EvaluationTokenAuthenticationRecord(
-                id=token.id,
-                prefix=token.prefix,
-                secret_hash=token.secret_hash,
-                scopes=frozenset(_scopes(token)),
-                expires_at=token.expires_at,
-                revoked_at=token.revoked_at,
+                id=token_row.id,
+                token=token_row.token,
+                scopes=frozenset(_scopes(token_row)),
+                expires_at=token_row.expires_at,
                 user_id=user.id,
                 user_email=user.email,
                 user_is_active=user.is_active,

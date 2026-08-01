@@ -37,7 +37,7 @@ export default function ExecutionResolverPage() {
   if (request === null) {
     return (
       <main className="mx-auto max-w-2xl p-8" role="alert">
-        <h1 className="text-xl font-semibold">Invalid execution link</h1>
+        <h1>Invalid execution link</h1>
         <p className="mt-2 text-sm text-zinc-600">
           The link must identify a service, executable type, runtime ID, and destination.
         </p>
@@ -101,7 +101,7 @@ function ExecutionResolver({ request }: { request: ExecutionResolutionRequest })
         <span aria-hidden="true">&rarr;</span>
         <span>{request.service_name}</span>
         <span aria-hidden="true">&rarr;</span>
-        <h1 className="font-bold">
+        <h1>
           {request.executable_type === 'agent' ? 'Agent execution' : 'Workflow execution'}
         </h1>
       </div>
@@ -114,7 +114,7 @@ function ExecutionResolver({ request }: { request: ExecutionResolutionRequest })
           className="rounded-lg border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4"
           role="status"
         >
-          <h2 className="font-semibold">Telemetry is still arriving</h2>
+          <h2>Telemetry is still arriving</h2>
           <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
             Studio is waiting for this execution to be indexed. This page will update when its diagnostics are ready.
           </p>

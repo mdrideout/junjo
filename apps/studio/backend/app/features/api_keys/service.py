@@ -10,6 +10,9 @@ from app.db_sqlite.api_keys.repository import APIKeyRepository
 from app.db_sqlite.api_keys.schemas import APIKeyRead
 from app.features.auth.models import AuthenticatedUser
 
+API_KEY_PREFIX = "jtel_"
+API_KEY_SECRET_LENGTH = 64
+
 
 class APIKeyService:
     """Service for API key business logic.
@@ -19,15 +22,15 @@ class APIKeyService:
 
     @staticmethod
     def generate_key() -> str:
-        """Generate a secure 64-character alphanumeric API key.
+        """Generate one canonical application telemetry API key.
 
         Uses nanoid with alphanumeric alphabet (matches Go implementation).
 
         Returns:
-            64-character alphanumeric string
+            ``jtel_`` followed by a 64-character alphanumeric secret
         """
         alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        return nanoid.generate(alphabet, 64)
+        return API_KEY_PREFIX + nanoid.generate(alphabet, API_KEY_SECRET_LENGTH)
 
     @staticmethod
     def generate_id() -> str:

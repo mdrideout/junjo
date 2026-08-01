@@ -42,7 +42,7 @@ export default function JsonSchemaModal({ open, onOpenChange, schemaInfo }: Json
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">JSON Schema</h3>
+          <h3 className="mb-2 text-zinc-900 dark:text-zinc-100">JSON Schema</h3>
           <div className="border border-zinc-200 dark:border-zinc-700 rounded-md overflow-hidden max-h-96 overflow-y-auto">
             <JsonView
               key={JSON.stringify(schemaInfo.schema)}

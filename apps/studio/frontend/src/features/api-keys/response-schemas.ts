@@ -7,15 +7,14 @@ import { utcDatetimeSchema } from '../../util/datetime-utils'
  * Used by:
  * - POST /api_keys
  *
- * This is the ONLY time the full API key (with secret) is returned.
- * Subsequent GET requests only return APIKeyRead which excludes the secret key.
+ * API keys remain available through the authenticated management list.
  *
  * Matches backend Pydantic schema:
  * backend/app/db_sqlite/api_keys/schemas.py (APIKeyRead with key field)
  */
 export const ApiKeyCreateResponseSchema = z.object({
   id: z.string(),
-  key: z.string(), // Secret API key (only shown once on creation)
+  key: z.string(),
   name: z.string(),
   created_at: utcDatetimeSchema, // Always UTC with 'Z' suffix from backend
 })

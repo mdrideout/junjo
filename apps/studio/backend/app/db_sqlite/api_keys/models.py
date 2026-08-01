@@ -26,8 +26,8 @@ class APIKeyTable(Base):
         String(22), primary_key=True, default=lambda: generate_id(size=22)
     )
 
-    # Key value (64-char alphanumeric nanoid)
-    key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    # Canonical key value: ``jtel_`` plus a 64-character generated secret.
+    key: Mapped[str] = mapped_column(String(69), nullable=False, unique=True, index=True)
 
     # Human-readable name
     name: Mapped[str] = mapped_column(String, nullable=False)

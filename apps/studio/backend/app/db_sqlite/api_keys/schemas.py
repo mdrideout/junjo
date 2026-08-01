@@ -35,7 +35,7 @@ class APIKeyRead(BaseModel):
 
     Attributes:
         id: Unique identifier
-        key: API key value (64-char alphanumeric)
+        key: Canonical application telemetry API key
         name: Human-readable name
         created_at: Timestamp when key was created
     """
@@ -45,8 +45,8 @@ class APIKeyRead(BaseModel):
         description="Unique identifier",
     )
     key: str = Field(
-        examples=["sk_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"],
-        description="API key value (64-char alphanumeric)",
+        examples=["jtel_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"],
+        description="Canonical application telemetry API key.",
     )
     name: str = Field(
         examples=["Production API Key"],

@@ -317,7 +317,7 @@
           "api_keys"
         ],
         "summary": "Create Api Key",
-        "description": "Create a new API key (requires authentication).\n\nGenerates a unique 64-character alphanumeric key.\nAny authenticated user can create keys (shared resource).\n\nArgs:\n    request: APIKeyCreate with name\n    authenticated_user: Authenticated user from session (injected by FastAPI)\n\nReturns:\n    Created API key with id, key, name, created_at\n\nRaises:\n    HTTPException: 401 if not authenticated, 500 if creation fails",
+        "description": "Create a new API key (requires authentication).\n\nGenerates one canonical ``jtel_`` application telemetry key.\nAny authenticated user can create keys (shared resource).\n\nArgs:\n    request: APIKeyCreate with name\n    authenticated_user: Authenticated user from session (injected by FastAPI)\n\nReturns:\n    Created API key with id, key, name, created_at\n\nRaises:\n    HTTPException: 401 if not authenticated, 500 if creation fails",
         "operationId": "create_api_key_api_keys_post",
         "requestBody": {
           "content": {
@@ -2078,7 +2078,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EvaluationTokenCreated"
+                  "$ref": "#/components/schemas/EvaluationTokenRead"
                 }
               }
             }
@@ -2157,13 +2157,13 @@
         }
       }
     },
-    "/api/v1/evaluation-tokens/{token_id}/revoke": {
-      "put": {
+    "/api/v1/evaluation-tokens/{token_id}": {
+      "delete": {
         "tags": [
           "evaluation-tokens"
         ],
-        "summary": "Revoke Evaluation Token",
-        "operationId": "revoke_evaluation_token",
+        "summary": "Delete Evaluation Token",
+        "operationId": "delete_evaluation_token",
         "parameters": [
           {
             "name": "token_id",
@@ -2178,18 +2178,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EvaluationTokenRead"
-                }
-              }
-            }
+          "204": {
+            "description": "Successful Response"
           },
           "404": {
-            "description": "Evaluation token not found"
+            "description": "Access token not found"
           },
           "422": {
             "description": "Validation Error",
@@ -2335,9 +2328,9 @@
           "key": {
             "type": "string",
             "title": "Key",
-            "description": "API key value (64-char alphanumeric)",
+            "description": "Canonical application telemetry API key.",
             "examples": [
-              "sk_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
+              "jtel_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
             ]
           },
           "name": {
@@ -2366,7 +2359,7 @@
           "created_at"
         ],
         "title": "APIKeyRead",
-        "description": "Schema for reading an API key.\n\nAttributes:\n    id: Unique identifier\n    key: API key value (64-char alphanumeric)\n    name: Human-readable name\n    created_at: Timestamp when key was created"
+        "description": "Schema for reading an API key.\n\nAttributes:\n    id: Unique identifier\n    key: Canonical application telemetry API key\n    name: Human-readable name\n    created_at: Timestamp when key was created"
       },
       "AgentCounts": {
         "properties": {
@@ -4183,102 +4176,6 @@
         ],
         "title": "EvaluationTokenCreate"
       },
-      "EvaluationTokenCreated": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 256,
-            "minLength": 1,
-            "title": "Name"
-          },
-          "prefix": {
-            "type": "string",
-            "pattern": "^junjo_eval_[A-Za-z0-9_-]{12}$",
-            "title": "Prefix",
-            "examples": [
-              "junjo_eval_AbCdEfGhIjKl"
-            ]
-          },
-          "scopes": {
-            "items": {
-              "$ref": "#/components/schemas/EvaluationTokenScope"
-            },
-            "type": "array",
-            "title": "Scopes"
-          },
-          "expires_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expires At"
-          },
-          "revoked_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revoked At"
-          },
-          "created_by_user_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 64,
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created By User Id"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "token": {
-            "type": "string",
-            "pattern": "^junjo_eval_[A-Za-z0-9_-]{12}\\.[A-Za-z0-9_-]{43}$",
-            "title": "Token",
-            "description": "Bearer token secret. Returned only by the create operation.",
-            "examples": [
-              "junjo_eval_AbCdEfGhIjKl.0123456789_abcdefghijklmnopqrstuv-wxyzABCDE"
-            ]
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "prefix",
-          "scopes",
-          "expires_at",
-          "revoked_at",
-          "created_by_user_id",
-          "created_at",
-          "token"
-        ],
-        "title": "EvaluationTokenCreated"
-      },
       "EvaluationTokenList": {
         "properties": {
           "items": {
@@ -4323,12 +4220,12 @@
             "minLength": 1,
             "title": "Name"
           },
-          "prefix": {
+          "token": {
             "type": "string",
-            "pattern": "^junjo_eval_[A-Za-z0-9_-]{12}$",
-            "title": "Prefix",
+            "title": "Token",
+            "description": "Recoverable bearer token managed by authenticated Studio users.",
             "examples": [
-              "junjo_eval_AbCdEfGhIjKl"
+              "jcli_0123456789_abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             ]
           },
           "scopes": {
@@ -4349,18 +4246,6 @@
               }
             ],
             "title": "Expires At"
-          },
-          "revoked_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revoked At"
           },
           "created_by_user_id": {
             "anyOf": [
@@ -4386,10 +4271,9 @@
         "required": [
           "id",
           "name",
-          "prefix",
+          "token",
           "scopes",
           "expires_at",
-          "revoked_at",
           "created_by_user_id",
           "created_at"
         ],

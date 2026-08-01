@@ -24,20 +24,27 @@ export default function UsersPage() {
 
   // Render the users list
   return (
-    <div className={'px-3 py-4 flex flex-col h-dvh overflow-hidden'}>
-      <div className={'flex gap-x-3 px-2 items-center'}>
-        <div className={'flex gap-x-3 font-bold'}>Users</div>
+    <div className="flex h-dvh flex-col overflow-y-auto px-5 py-6">
+      <div>
+        <h1>Users</h1>
+        <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+          Create and manage user accounts.
+        </p>
+      </div>
+      <hr className="my-4" />
+      <div>
         <CreateUserDialog />
       </div>
-      <hr className={'my-4'} />
-      <div className={'px-2'}>
-        <table className="text-left text-sm">
+      <div className="mt-4 shrink-0 overflow-x-auto">
+        <table className="w-full max-w-[1024px] text-left text-sm">
           <thead>
-            <tr>
-              <th className={'px-4 py-1'}>ID</th>
-              <th className={'px-4 py-1'}>Email</th>
-              <th className={'px-4 py-1'}>Created At</th>
-              <th className={'px-4 py-1'}></th>
+            <tr className="border-b border-[var(--studio-border)]">
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Email</th>
+              <th className="px-3 py-2">Created</th>
+              <th className="px-3 py-2">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -49,22 +56,26 @@ export default function UsersPage() {
               return (
                 <tr
                   key={user.id}
-                  className={'last-of-type:border-0 border-b border-zinc-200 dark:border-zinc-600'}
+                  className="border-b border-[var(--studio-border)] last:border-0"
                 >
-                  <td className={'px-4 py-1.5 font-mono'}>{user.id}</td>
-                  <td className={'px-4 py-1.5'}>{user.email}</td>
-                  <td className={'px-4 py-1.5 font-mono'}>{createdAtString}</td>
-                  <td className={' text-center'}>
-                    <button
-                      className={'p-1 hover:bg-zinc-300 dark:hover:bg-zinc-700 rounded-md cursor-pointer'}
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete user ${user.email}?`)) {
-                          dispatch(UsersStateActions.deleteUser({ id: user.id }))
-                        }
-                      }}
-                    >
-                      <TrashIcon className={'size-4'} />
-                    </button>
+                  <td className="px-3 py-3 font-mono">{user.id}</td>
+                  <td className="px-3 py-3 font-medium">{user.email}</td>
+                  <td className="px-3 py-3">{createdAtString}</td>
+                  <td className="px-3 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        aria-label={`Delete user ${user.email}`}
+                        className="rounded-md p-1 hover:bg-[var(--studio-surface-hover)]"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete user ${user.email}?`)) {
+                            dispatch(UsersStateActions.deleteUser({ id: user.id }))
+                          }
+                        }}
+                      >
+                        <TrashIcon className="size-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

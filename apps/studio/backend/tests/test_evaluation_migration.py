@@ -35,10 +35,7 @@ def _alembic(database_path: Path, *arguments: str) -> None:
 
 def _tables(connection: sqlite3.Connection) -> set[str]:
     return {
-        row[0]
-        for row in connection.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table'"
-        )
+        row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
     }
 
 
@@ -53,23 +50,18 @@ def test_generated_initial_migration_round_trips_without_schema_drift(
     with sqlite3.connect(database_path) as connection:
         tables = _tables(connection)
         subject_indexes = {
-            row[1]
-            for row in connection.execute(
-                "PRAGMA index_list('eval_case_attempts')"
-            )
+            row[1] for row in connection.execute("PRAGMA index_list('eval_case_attempts')")
         }
         token_indexes = {
-            row[1]
-            for row in connection.execute("PRAGMA index_list('evaluation_tokens')")
+            row[1] for row in connection.execute("PRAGMA index_list('evaluation_tokens')")
         }
         eval_cases_sql = connection.execute(
-            "SELECT sql FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'eval_cases'"
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'eval_cases'"
         ).fetchone()
 
     assert APPLICATION_TABLES.issubset(tables)
     assert "uq_eval_case_attempts_subject_execution" in subject_indexes
-    assert "ix_evaluation_tokens_prefix" in token_indexes
+    assert "ix_evaluation_tokens_token" in token_indexes
     assert eval_cases_sql is not None
     assert "target_kind IN ('node', 'workflow', 'agent')" in eval_cases_sql[0]
 

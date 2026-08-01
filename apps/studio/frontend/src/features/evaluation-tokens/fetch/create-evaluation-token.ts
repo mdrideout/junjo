@@ -1,14 +1,14 @@
 import { getApiHost } from '../../../config'
 import {
   EvaluationTokenCreateSchema,
-  EvaluationTokenCreatedSchema,
+  EvaluationTokenReadSchema,
   type EvaluationTokenCreate,
-  type EvaluationTokenCreated,
+  type EvaluationTokenRead,
 } from '../schemas'
 
 export async function createEvaluationToken(
   request: EvaluationTokenCreate,
-): Promise<EvaluationTokenCreated> {
+): Promise<EvaluationTokenRead> {
   const payload = EvaluationTokenCreateSchema.parse(request)
   const response = await fetch(`${getApiHost()}/api/v1/evaluation-tokens`, {
     method: 'POST',
@@ -17,7 +17,7 @@ export async function createEvaluationToken(
     credentials: 'include',
   })
   if (!response.ok) {
-    throw new Error(`Failed to create evaluation token (${response.status})`)
+    throw new Error(`Failed to create access token (${response.status})`)
   }
-  return EvaluationTokenCreatedSchema.parse(await response.json())
+  return EvaluationTokenReadSchema.parse(await response.json())
 }

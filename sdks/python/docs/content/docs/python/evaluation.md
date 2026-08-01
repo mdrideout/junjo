@@ -27,19 +27,18 @@ bounded control records and exact evidence references.
 
 ## Credentials stay separate
 
-Sign in to Studio, open **Developer credentials → Evaluation tokens**,
-choose the required scopes and optional expiration, and create a token. Studio
-shows the secret once; copy it to the environment:
+Sign in to Studio, open **Access Tokens**, choose the required scopes and
+expiration, and create a developer access token. Copy it to the environment:
 
 ```dotenv
 JUNJO_STUDIO_URL=http://localhost:26154
-JUNJO_AI_STUDIO_CLI_TOKEN=junjo_eval_...
+JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 ```
 
-The token has explicit `evaluation:read`, `evaluation:write`, and
+The access token has explicit `evaluation:read`, `evaluation:write`, and
 `evidence:read` scopes. It cannot deliver OTLP telemetry. The existing
-`JUNJO_AI_STUDIO_API_KEY` remains an ingestion-only credential and cannot
-query or mutate datasets.
+`JUNJO_AI_STUDIO_API_KEY`, created from **API Keys**, remains an
+application-telemetry-only credential and cannot query or mutate datasets.
 
 Remote Studio origins must use HTTPS. Explicit loopback development may use
 HTTP.

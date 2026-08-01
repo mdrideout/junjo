@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import ModuleType
+from unittest.mock import patch
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
@@ -307,8 +309,8 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
         self.assertIs(workflow["state"], workflow_store)
         self.assertEqual(workflow["executable_type"], "workflow")
 
-    def test_identity_cleanup_stops_after_deleting_the_authenticated_user(self) -> None:
-        requests: list[tuple[str, str]] = []
+    def test_identity_cleanup_returns_to_owner_before_deleting_disposable_user(self) -> None:
+        requests: list[tuple[str, str, object]] = []
 
         class FakeClient:
             def request(
@@ -318,7 +320,7 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
                 method: str = "GET",
                 body: object = None,
             ) -> None:
-                requests.append((path, method))
+                requests.append((path, method, body))
 
         identity = validator.TestIdentity(
             email="smoke@example.com",
@@ -327,15 +329,149 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             api_key_id="key-id",
             api_key="api-key",
         )
-        validator.cleanup_test_identity(FakeClient(), identity)
+        with patch.dict(os.environ, {}, clear=True):
+            validator.cleanup_test_identity(FakeClient(), identity)
 
         self.assertEqual(
             requests,
             [
-                ("/api_keys/key-id", "DELETE"),
-                ("/users/user-id", "DELETE"),
+                ("/api_keys/key-id", "DELETE", None),
+                ("/sign-out", "POST", None),
+                (
+                    "/sign-in",
+                    "POST",
+                    {
+                        "email": validator.LOCAL_ADMIN_EMAIL,
+                        "password": validator.LOCAL_ADMIN_PASSWORD,
+                    },
+                ),
+                ("/users/user-id", "DELETE", None),
             ],
         )
+
+    def test_owner_reauthentication_uses_a_fresh_session(self) -> None:
+        requests: list[tuple[str, str, object]] = []
+
+        class FakeClient:
+            def request(
+                self,
+                path: str,
+                *,
+                method: str = "GET",
+                body: object = None,
+            ) -> object:
+                requests.append((path, method, body))
+                if path == "/auth-test":
+                    return {"user_email": validator.LOCAL_ADMIN_EMAIL}
+                return None
+
+        with patch.dict(os.environ, {}, clear=True):
+            validator.verify_owner_reauthentication(FakeClient())
+
+        self.assertEqual(
+            requests,
+            [
+                ("/sign-out", "POST", None),
+                (
+                    "/sign-in",
+                    "POST",
+                    {
+                        "email": validator.LOCAL_ADMIN_EMAIL,
+                        "password": validator.LOCAL_ADMIN_PASSWORD,
+                    },
+                ),
+                ("/auth-test", "GET", None),
+            ],
+        )
+
+    def test_empty_local_studio_retains_default_admin_for_manual_testing(self) -> None:
+        requests: list[tuple[str, str, object]] = []
+        test_email = "junjo-e2e-fixed@example.com"
+        test_password = "disposable-password"
+
+        class FakeClient:
+            def request(
+                self,
+                path: str,
+                *,
+                method: str = "GET",
+                body: object = None,
+            ) -> object:
+                requests.append((path, method, body))
+                if path == "/users/db-has-users":
+                    return {"users_exist": False}
+                if path == "/auth-test":
+                    return {"user_email": test_email}
+                if path == "/users" and method == "GET":
+                    return [{"id": "test-user-id", "email": test_email}]
+                if path == "/api_keys":
+                    return {"id": "test-key-id", "key": "jtel_" + "a" * 64}
+                return None
+
+        with (
+            patch.object(validator.secrets, "token_hex", return_value="fixed"),
+            patch.object(
+                validator.secrets, "token_urlsafe", return_value=test_password
+            ),
+        ):
+            identity = validator.provision_test_identity(FakeClient())
+
+        self.assertEqual(identity.email, test_email)
+        self.assertEqual(identity.user_id, "test-user-id")
+        self.assertEqual(
+            requests[:2],
+            [
+                ("/users/db-has-users", "GET", None),
+                (
+                    "/users/create-first-user",
+                    "POST",
+                    {
+                        "email": validator.LOCAL_ADMIN_EMAIL,
+                        "password": validator.LOCAL_ADMIN_PASSWORD,
+                    },
+                ),
+            ],
+        )
+        self.assertIn(
+            (
+                "/users",
+                "POST",
+                {"email": test_email, "password": test_password},
+            ),
+            requests,
+        )
+
+    def test_existing_local_studio_uses_default_or_paired_override(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(
+                validator.existing_owner_credentials(),
+                (validator.LOCAL_ADMIN_EMAIL, validator.LOCAL_ADMIN_PASSWORD),
+            )
+
+        with patch.dict(
+            os.environ,
+            {
+                validator.EXISTING_EMAIL_ENV: "smoke@example.com",
+                validator.EXISTING_PASSWORD_ENV: "smoke-password",
+            },
+            clear=True,
+        ):
+            self.assertEqual(
+                validator.existing_owner_credentials(),
+                ("smoke@example.com", "smoke-password"),
+            )
+
+        with patch.dict(
+            os.environ,
+            {validator.EXISTING_EMAIL_ENV: "incomplete@example.com"},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(
+                validator.StudioE2EError,
+                "must be provided together",
+            ):
+                validator.existing_owner_credentials()
+
 
 if __name__ == "__main__":
     unittest.main()

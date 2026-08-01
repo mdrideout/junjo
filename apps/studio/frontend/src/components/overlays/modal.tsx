@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 
 export interface ModalProps {
   children: ReactNode
-  description: ReactNode
+  description?: ReactNode
   onOpenChange: (open: boolean) => void
   open: boolean
   size?: 'standard' | 'large' | 'wide'
@@ -37,10 +37,12 @@ export function Modal({ children, description, onOpenChange, open, size = 'stand
               size === 'wide' && 'max-w-4xl',
             )}
           >
-            <Dialog.Title className="pr-10 text-xl font-semibold tracking-tight">{title}</Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm leading-6 text-[var(--studio-text-muted)]">
-              {description}
-            </Dialog.Description>
+            <Dialog.Title className="pr-10 text-lg font-semibold tracking-tight">{title}</Dialog.Title>
+            {description !== undefined && (
+              <Dialog.Description className="mt-2 text-sm leading-6 text-[var(--studio-text-muted)]">
+                {description}
+              </Dialog.Description>
+            )}
             <div className="mt-6">{children}</div>
             <Dialog.Close
               aria-label="Close dialog"

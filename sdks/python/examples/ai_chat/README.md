@@ -147,17 +147,19 @@ AI Chat and the evaluation CLI connect to the same Studio deployment through
 different endpoints and credentials:
 
 ```dotenv
-# AI Chat application -> OTLP ingestion. This key cannot query or mutate
-# evaluation datasets.
-JUNJO_AI_STUDIO_API_KEY=...
+# AI Chat application -> Junjo AI Studio telemetry ingestion. Create an
+# Application Telemetry API key from Studio's API Keys page. This key cannot
+# query or mutate evaluation datasets.
+JUNJO_AI_STUDIO_API_KEY=jtel_...
 JUNJO_AI_STUDIO_HOST=host.docker.internal
 JUNJO_AI_STUDIO_PORT=26155
 JUNJO_AI_STUDIO_INSECURE=true
 
-# Evaluation CLI -> backend REST control/query API. This token cannot ingest
-# telemetry. Create it after sign-in from Studio's Evaluation tokens page.
+# Developer environment or agent -> Studio backend REST control/query API.
+# Create a Developer Access Token from Studio's Access Tokens page. This token
+# cannot ingest application telemetry.
 JUNJO_STUDIO_URL=http://localhost:26154
-JUNJO_AI_STUDIO_CLI_TOKEN=junjo_eval_...
+JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 ```
 
 The application emits FastAPI, provider, Workflow, Node, Subflow, Agent, Tool,

@@ -7,13 +7,16 @@ public Junjo ``Agent -> Tool -> Workflow -> Nodes`` composition with
 then validates both Studio's raw transport view and its semantic Agent and
 Workflow Store APIs.
 
-The target Studio must be a disposable local development instance. When its
-user database is empty, the validator bootstraps a random first user. When it
-already has users, credentials must be supplied through
+The target Studio must be a disposable local development instance. When Studio
+reports that setup is required, this explicit E2E workflow submits the
+retained manual-test user ``admin@test.com`` /
+``JunjoAIStudioLocalTestPass1!`` through the public first-user setup endpoint
+before creating a random proof user. This is not application startup seeding.
+When users already exist, the validator uses that local default unless
+credentials are supplied through
 ``JUNJO_STUDIO_E2E_EXISTING_EMAIL`` and
-``JUNJO_STUDIO_E2E_EXISTING_PASSWORD``; those credentials are used only to
-create the random test user. The random user and API key are deleted at the end
-of the run. Credential values are never command-line arguments or output.
+``JUNJO_STUDIO_E2E_EXISTING_PASSWORD``. The random user and API key are deleted
+at the end of the run; the local manual-test user remains available.
 
 Run from the repository root with the Python SDK environment:
 
@@ -50,6 +53,8 @@ OUTPUT_VALUE = "JUNJO HORIZON ONE E2E"
 FULL_POLICY = "junjo.full.v1"
 EXISTING_EMAIL_ENV = "JUNJO_STUDIO_E2E_EXISTING_EMAIL"
 EXISTING_PASSWORD_ENV = "JUNJO_STUDIO_E2E_EXISTING_PASSWORD"
+LOCAL_ADMIN_EMAIL = "admin@test.com"
+LOCAL_ADMIN_PASSWORD = "JunjoAIStudioLocalTestPass1!"
 
 
 class StudioE2EError(RuntimeError):
@@ -83,7 +88,9 @@ class JsonClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         cookie_jar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+        self.opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(cookie_jar)
+        )
 
     def request(
         self,
@@ -114,13 +121,17 @@ class JsonClient:
                 status=error.code,
             ) from error
         except (urllib.error.URLError, OSError) as error:
-            raise StudioE2EError(f"Studio API request failed: {method} {path}") from error
+            raise StudioE2EError(
+                f"Studio API request failed: {method} {path}"
+            ) from error
         if not payload:
             return None
         try:
             return json.loads(payload)
         except json.JSONDecodeError as error:
-            raise StudioE2EError(f"Studio returned invalid JSON: {method} {path}") from error
+            raise StudioE2EError(
+                f"Studio returned invalid JSON: {method} {path}"
+            ) from error
 
 
 T = TypeVar("T")
@@ -159,7 +170,9 @@ def bounded_poll(
         now = clock()
         if now >= deadline:
             suffix = f"; last HTTP status was {last_status}" if last_status else ""
-            raise StudioE2EError(f"Timed out after {attempts} attempts waiting for {description}{suffix}")
+            raise StudioE2EError(
+                f"Timed out after {attempts} attempts waiting for {description}{suffix}"
+            )
         sleeper(min(interval_seconds, deadline - now))
 
 
@@ -198,7 +211,9 @@ def _require_list(value: object, description: str) -> list[Any]:
     return value
 
 
-def wait_for_health(client: JsonClient, *, timeout_seconds: float, interval_seconds: float) -> None:
+def wait_for_health(
+    client: JsonClient, *, timeout_seconds: float, interval_seconds: float
+) -> None:
     """Wait only at the bounded Studio-health boundary."""
 
     health = bounded_poll(
@@ -211,8 +226,23 @@ def wait_for_health(client: JsonClient, *, timeout_seconds: float, interval_seco
     require(health["status"] == "ok", "Studio health response changed unexpectedly")
 
 
+def existing_owner_credentials() -> tuple[str, str]:
+    """Return explicit overrides or the retained local manual-test identity."""
+
+    email = os.environ.get(EXISTING_EMAIL_ENV) or None
+    password = os.environ.get(EXISTING_PASSWORD_ENV) or None
+    require(
+        (email is None) == (password is None),
+        f"{EXISTING_EMAIL_ENV} and {EXISTING_PASSWORD_ENV} must be provided together",
+    )
+    return (
+        email or LOCAL_ADMIN_EMAIL,
+        password or LOCAL_ADMIN_PASSWORD,
+    )
+
+
 def provision_test_identity(client: JsonClient) -> TestIdentity:
-    """Create and authenticate one random user, then create one random API key."""
+    """Retain the local admin and authenticate one disposable proof identity."""
 
     has_users_response = _require_object(
         client.request("/users/db-has-users"),
@@ -234,37 +264,40 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
     api_key_id: str | None = None
     try:
         if has_users_response["users_exist"]:
-            existing_email = os.environ.get(EXISTING_EMAIL_ENV)
-            existing_password = os.environ.get(EXISTING_PASSWORD_ENV)
-            require(
-                bool(existing_email and existing_password),
-                "Studio already has users; provide existing local credentials through "
-                f"{EXISTING_EMAIL_ENV} and {EXISTING_PASSWORD_ENV}",
-            )
+            existing_email, existing_password = existing_owner_credentials()
             client.request(
                 "/sign-in",
                 method="POST",
                 body={"email": existing_email, "password": existing_password},
             )
-            client.request("/users", method="POST", body=credentials)
-            test_user_created = True
-            client.request("/sign-out", method="POST")
-            client.request("/sign-in", method="POST", body=credentials)
         else:
             client.request(
                 "/users/create-first-user",
                 method="POST",
-                body=credentials,
+                body={
+                    "email": LOCAL_ADMIN_EMAIL,
+                    "password": LOCAL_ADMIN_PASSWORD,
+                },
             )
-            test_user_created = True
 
-        authenticated = _require_object(client.request("/auth-test"), "auth-test response")
+        client.request("/users", method="POST", body=credentials)
+        test_user_created = True
+        client.request("/sign-out", method="POST")
+        client.request("/sign-in", method="POST", body=credentials)
+
+        authenticated = _require_object(
+            client.request("/auth-test"), "auth-test response"
+        )
         require(
             authenticated.get("user_email") == test_email,
             "Studio did not authenticate the fresh E2E user",
         )
         users = _require_list(client.request("/users"), "users response")
-        matches = [user for user in users if isinstance(user, dict) and user.get("email") == test_email]
+        matches = [
+            user
+            for user in users
+            if isinstance(user, dict) and user.get("email") == test_email
+        ]
         require(len(matches) == 1, "Studio did not return exactly one fresh E2E user")
         user_id = matches[0].get("id")
         require(isinstance(user_id, str) and bool(user_id), "E2E user ID is missing")
@@ -285,7 +318,7 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
         )
         api_key_id = raw_api_key_id
         require(
-            isinstance(api_key, str) and len(api_key) >= 32,
+            isinstance(api_key, str) and api_key.startswith("jtel_"),
             "Studio did not return a valid API key",
         )
         return TestIdentity(
@@ -304,7 +337,10 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
                 api_key_id=api_key_id,
             )
             if cleanup_failures:
-                error.add_note("Fresh E2E auth cleanup also failed at: " + ", ".join(cleanup_failures))
+                error.add_note(
+                    "Fresh E2E auth cleanup also failed at: "
+                    + ", ".join(cleanup_failures)
+                )
         raise
 
 
@@ -334,7 +370,11 @@ def _cleanup_partial_identity(
     user_deleted = False
     try:
         users = _require_list(client.request("/users"), "users response")
-        user_ids = [user.get("id") for user in users if isinstance(user, dict) and user.get("email") == email]
+        user_ids = [
+            user.get("id")
+            for user in users
+            if isinstance(user, dict) and user.get("email") == email
+        ]
         if len(user_ids) != 1 or not isinstance(user_ids[0], str):
             failures.append("user lookup")
         else:
@@ -354,7 +394,31 @@ def cleanup_test_identity(client: JsonClient, identity: TestIdentity) -> None:
     """Delete only artifacts created by this validator run."""
 
     client.request(f"/api_keys/{identity.api_key_id}", method="DELETE")
+    client.request("/sign-out", method="POST")
+    owner_email, owner_password = existing_owner_credentials()
+    client.request(
+        "/sign-in",
+        method="POST",
+        body={"email": owner_email, "password": owner_password},
+    )
     client.request(f"/users/{identity.user_id}", method="DELETE")
+
+
+def verify_owner_reauthentication(client: JsonClient) -> None:
+    """Prove the retained owner can complete a fresh sign-out/sign-in flow."""
+
+    owner_email, owner_password = existing_owner_credentials()
+    client.request("/sign-out", method="POST")
+    client.request(
+        "/sign-in",
+        method="POST",
+        body={"email": owner_email, "password": owner_password},
+    )
+    authenticated = _require_object(client.request("/auth-test"), "auth-test response")
+    require(
+        authenticated.get("user_email") == owner_email,
+        "Studio did not reauthenticate the retained owner",
+    )
 
 
 async def _execute_public_composition() -> ExecutionExpectations:
@@ -425,7 +489,9 @@ async def _execute_public_composition() -> ExecutionExpectations:
 
     workflow_results: list[object] = []
 
-    async def run_workflow(input: WorkflowToolInput, context: object) -> WorkflowToolOutput:
+    async def run_workflow(
+        input: WorkflowToolInput, context: object
+    ) -> WorkflowToolOutput:
         del context
 
         def graph_factory() -> Graph:
@@ -443,7 +509,9 @@ async def _execute_public_composition() -> ExecutionExpectations:
         ](
             name=WORKFLOW_NAME,
             graph_factory=graph_factory,
-            store_factory=lambda: NormalizationStore(NormalizationState(value=input.value)),
+            store_factory=lambda: NormalizationStore(
+                NormalizationState(value=input.value)
+            ),
             max_iterations=1,
         )
         result = await workflow.execute()
@@ -510,10 +578,18 @@ async def _execute_public_composition() -> ExecutionExpectations:
         "local Agent output lost its evidence marker",
     )
     require(result.model_request_count == 2, "local Agent model count is incorrect")
-    require(result.tool_call_requested_count == 1, "local requested Tool count is incorrect")
-    require(result.tool_call_admitted_count == 1, "local admitted Tool count is incorrect")
-    require(result.tool_call_started_count == 1, "local started Tool count is incorrect")
-    require(result.tool_call_completed_count == 1, "local completed Tool count is incorrect")
+    require(
+        result.tool_call_requested_count == 1, "local requested Tool count is incorrect"
+    )
+    require(
+        result.tool_call_admitted_count == 1, "local admitted Tool count is incorrect"
+    )
+    require(
+        result.tool_call_started_count == 1, "local started Tool count is incorrect"
+    )
+    require(
+        result.tool_call_completed_count == 1, "local completed Tool count is incorrect"
+    )
     require(len(workflow_results) == 1, "Workflow Tool did not execute exactly once")
 
     workflow_result = workflow_results[0]
@@ -596,7 +672,9 @@ def assert_full_payload(payload: object, description: str) -> Any:
     require(slot.get("policy") == FULL_POLICY, f"{description} policy is incorrect")
     require("value" in slot, f"{description} must contain a value")
     require(slot.get("reference") is None, f"{description} cannot contain a reference")
-    require(slot.get("reason") is None, f"{description} cannot contain an absence reason")
+    require(
+        slot.get("reason") is None, f"{description} cannot contain an absence reason"
+    )
     return slot["value"]
 
 
@@ -612,13 +690,21 @@ def assert_verified_store(
 
     detail = _require_object(store, "Store detail")
     require(detail.get("available") is True, "Store must be available")
-    require(detail.get("reconstructable_claimed") is True, "producer Store claim must be true")
-    require(detail.get("reconstructable") is True, "backend Store replay must be verified")
+    require(
+        detail.get("reconstructable_claimed") is True,
+        "producer Store claim must be true",
+    )
+    require(
+        detail.get("reconstructable") is True, "backend Store replay must be verified"
+    )
     require(
         detail.get("reconstruction_status") == "verified",
         "Store reconstruction status must be verified",
     )
-    require(detail.get("reconstruction_reason") is None, "verified Store cannot have a reason")
+    require(
+        detail.get("reconstruction_reason") is None,
+        "verified Store cannot have a reason",
+    )
     require(isinstance(detail.get("store_id"), str), "Store ID is missing")
     start = assert_full_payload(detail.get("start"), "Store start")
     end = assert_full_payload(detail.get("end"), "Store end")
@@ -627,7 +713,9 @@ def assert_verified_store(
 
     transitions = _require_list(detail.get("transitions"), "Store transitions")
     transition_count = detail.get("transition_count")
-    require(transition_count == len(transitions), "Store transition count is inconsistent")
+    require(
+        transition_count == len(transitions), "Store transition count is inconsistent"
+    )
     revision_start = detail.get("revision_start")
     revision_end = detail.get("revision_end")
     require(isinstance(revision_start, int), "Store start revision is missing")
@@ -638,34 +726,52 @@ def assert_verified_store(
     observed_actions: list[str] = []
     for sequence, raw_transition in enumerate(transitions, start=1):
         transition = _require_object(raw_transition, f"Store transition {sequence}")
-        require(transition.get("sequence") == sequence, "Store transition sequence is not contiguous")
+        require(
+            transition.get("sequence") == sequence,
+            "Store transition sequence is not contiguous",
+        )
         require(
             transition.get("revision_before") == previous_revision,
             "Store revision chain is discontinuous",
         )
         revision_after = transition.get("revision_after")
         require(
-            isinstance(revision_after, int) and revision_after in {previous_revision, previous_revision + 1},
+            isinstance(revision_after, int)
+            and revision_after in {previous_revision, previous_revision + 1},
             "Store revision step is invalid",
         )
-        require(transition.get("before") == current, "backend Store before projection is incorrect")
+        require(
+            transition.get("before") == current,
+            "backend Store before projection is incorrect",
+        )
         patch_value = assert_full_payload(
             transition.get("patch"),
             f"Store transition {sequence} patch",
         )
         patch = _require_list(patch_value, f"Store transition {sequence} patch value")
         replayed = apply_patch(copy.deepcopy(current), patch)
-        require(transition.get("after") == replayed, "backend Store after projection is incorrect")
+        require(
+            transition.get("after") == replayed,
+            "backend Store after projection is incorrect",
+        )
         current = replayed
         previous_revision = revision_after
         action = transition.get("action")
-        require(isinstance(action, str) and bool(action), "Store transition action is missing")
+        require(
+            isinstance(action, str) and bool(action),
+            "Store transition action is missing",
+        )
         observed_actions.append(action)
 
     require(previous_revision == revision_end, "Store terminal revision is incorrect")
-    require(current == end, "independent Store replay did not produce the emitted end state")
+    require(
+        current == end, "independent Store replay did not produce the emitted end state"
+    )
     if expected_actions is not None:
-        require(observed_actions == list(expected_actions), "Store action sequence is incorrect")
+        require(
+            observed_actions == list(expected_actions),
+            "Store action sequence is incorrect",
+        )
 
 
 def assert_agent_semantics(
@@ -692,7 +798,10 @@ def assert_agent_semantics(
     )
     require(listed.get("agent_key") == AGENT_KEY, "Agent key is incorrect")
     require(listed.get("agent_name") == AGENT_NAME, "Agent name is incorrect")
-    require(listed.get("runtime_id") == expectations.agent_runtime_id, "Agent runtime ID is incorrect")
+    require(
+        listed.get("runtime_id") == expectations.agent_runtime_id,
+        "Agent runtime ID is incorrect",
+    )
     require(
         listed.get("definition_id") == expectations.agent_definition_id,
         "Agent definition ID is incorrect",
@@ -702,8 +811,14 @@ def assert_agent_semantics(
         "Agent structural ID is incorrect",
     )
     require(listed.get("outcome") == "completed", "Agent did not complete")
-    require(listed.get("termination_reason") == "final_output", "Agent termination reason is incorrect")
-    require(listed.get("limits") == {"model_requests": 2, "tool_calls": 1}, "Agent limits are incorrect")
+    require(
+        listed.get("termination_reason") == "final_output",
+        "Agent termination reason is incorrect",
+    )
+    require(
+        listed.get("limits") == {"model_requests": 2, "tool_calls": 1},
+        "Agent limits are incorrect",
+    )
     require(
         listed.get("counts")
         == {
@@ -734,15 +849,26 @@ def assert_agent_semantics(
     require(integrity.get("status") == "complete", "Agent evidence is not complete")
     require(integrity.get("diagnostics") == [], "Agent evidence has diagnostics")
     require(
-        all(value == 0 for value in _require_object(integrity.get("loss_counts"), "Agent loss counts").values()),
+        all(
+            value == 0
+            for value in _require_object(
+                integrity.get("loss_counts"), "Agent loss counts"
+            ).values()
+        ),
         "Agent evidence has OTLP loss",
     )
-    require(projection.get("parent_executable") is None, "standalone Agent fabricated a semantic parent")
+    require(
+        projection.get("parent_executable") is None,
+        "standalone Agent fabricated a semantic parent",
+    )
     require(projection.get("error") is None, "completed Agent contains an error")
-    require(projection.get("cancellation") is None, "completed Agent contains cancellation")
+    require(
+        projection.get("cancellation") is None, "completed Agent contains cancellation"
+    )
     assert_full_payload(projection.get("definition"), "Agent definition")
     require(
-        assert_full_payload(projection.get("input"), "Agent input") == {"value": INPUT_VALUE},
+        assert_full_payload(projection.get("input"), "Agent input")
+        == {"value": INPUT_VALUE},
         "Agent input payload is incorrect",
     )
     require(
@@ -753,7 +879,8 @@ def assert_agent_semantics(
 
     operations = _require_list(projection.get("operations"), "Agent operations")
     require(
-        [operation.get("operation_type") for operation in operations] == ["model_request", "tool", "model_request"],
+        [operation.get("operation_type") for operation in operations]
+        == ["model_request", "tool", "model_request"],
         "Agent operation types are not in realized order",
     )
     require(
@@ -763,18 +890,36 @@ def assert_agent_semantics(
     first_model, tool_operation, second_model = operations
     for ordinal, model_operation in enumerate((first_model, second_model), start=1):
         require(model_operation.get("ordinal") == ordinal, "model ordinal is incorrect")
-        require(model_operation.get("outcome") == "completed", "model operation did not complete")
+        require(
+            model_operation.get("outcome") == "completed",
+            "model operation did not complete",
+        )
         assert_full_payload(model_operation.get("request"), f"model request {ordinal}")
         candidate = _require_object(
             model_operation.get("response_candidate"),
             f"model response candidate {ordinal}",
         )
-        require(candidate.get("available") is True, "model response candidate is unavailable")
-        assert_full_payload(candidate.get("payload"), f"model response candidate {ordinal} payload")
-        assert_full_payload(model_operation.get("response"), f"model response {ordinal}")
-    require(first_model.get("response_type") == "tool_calls", "first model response type is incorrect")
-    require(second_model.get("response_type") == "final_output", "second model response type is incorrect")
-    requested_calls = _require_list(first_model.get("requested_tool_calls"), "requested Tool calls")
+        require(
+            candidate.get("available") is True,
+            "model response candidate is unavailable",
+        )
+        assert_full_payload(
+            candidate.get("payload"), f"model response candidate {ordinal} payload"
+        )
+        assert_full_payload(
+            model_operation.get("response"), f"model response {ordinal}"
+        )
+    require(
+        first_model.get("response_type") == "tool_calls",
+        "first model response type is incorrect",
+    )
+    require(
+        second_model.get("response_type") == "final_output",
+        "second model response type is incorrect",
+    )
+    requested_calls = _require_list(
+        first_model.get("requested_tool_calls"), "requested Tool calls"
+    )
     require(
         requested_calls
         == [
@@ -789,27 +934,43 @@ def assert_agent_semantics(
         ],
         "requested Tool-call projection is incorrect",
     )
-    require(tool_operation.get("call_id") == "h1-workflow-call", "Tool call ID is incorrect")
-    require(tool_operation.get("ordinal") == 1, "Tool call ordinal is incorrect")
-    require(tool_operation.get("outcome") == "completed", "Tool operation did not complete")
     require(
-        assert_full_payload(tool_operation.get("requested_arguments"), "Tool requested arguments")
+        tool_operation.get("call_id") == "h1-workflow-call", "Tool call ID is incorrect"
+    )
+    require(tool_operation.get("ordinal") == 1, "Tool call ordinal is incorrect")
+    require(
+        tool_operation.get("outcome") == "completed", "Tool operation did not complete"
+    )
+    require(
+        assert_full_payload(
+            tool_operation.get("requested_arguments"), "Tool requested arguments"
+        )
         == {"value": INPUT_VALUE},
         "Tool requested arguments are incorrect",
     )
     require(
-        assert_full_payload(tool_operation.get("arguments"), "Tool validated arguments") == {"value": INPUT_VALUE},
+        assert_full_payload(tool_operation.get("arguments"), "Tool validated arguments")
+        == {"value": INPUT_VALUE},
         "Tool validated arguments are incorrect",
     )
-    result_candidate = _require_object(tool_operation.get("result_candidate"), "Tool result candidate")
-    require(result_candidate.get("available") is True, "Tool result candidate is unavailable")
+    result_candidate = _require_object(
+        tool_operation.get("result_candidate"), "Tool result candidate"
+    )
+    require(
+        result_candidate.get("available") is True,
+        "Tool result candidate is unavailable",
+    )
     expected_tool_result = {"value": OUTPUT_VALUE, "stages": ["prepared", "normalized"]}
     require(
-        assert_full_payload(result_candidate.get("payload"), "Tool result candidate payload") == expected_tool_result,
+        assert_full_payload(
+            result_candidate.get("payload"), "Tool result candidate payload"
+        )
+        == expected_tool_result,
         "Tool result candidate is incorrect",
     )
     require(
-        assert_full_payload(tool_operation.get("result"), "Tool result") == expected_tool_result,
+        assert_full_payload(tool_operation.get("result"), "Tool result")
+        == expected_tool_result,
         "Tool result is incorrect",
     )
 
@@ -829,7 +990,10 @@ def assert_agent_semantics(
     nested = _require_list(projection.get("nested_executables"), "nested executables")
     require(len(nested) == 1, "Agent must expose exactly one nested Workflow")
     workflow = _require_object(nested[0], "nested Workflow reference")
-    require(workflow.get("executable_type") == "workflow", "nested executable is not a Workflow")
+    require(
+        workflow.get("executable_type") == "workflow",
+        "nested executable is not a Workflow",
+    )
     require(workflow.get("name") == WORKFLOW_NAME, "nested Workflow name is incorrect")
     require(
         workflow.get("runtime_id") == expectations.workflow_runtime_id,
@@ -839,17 +1003,26 @@ def assert_agent_semantics(
         workflow.get("definition_id") == expectations.workflow_definition_id,
         "nested Workflow definition ID is incorrect",
     )
-    require(workflow.get("parent_operation_sequence") == 2, "nested Workflow operation link is incorrect")
+    require(
+        workflow.get("parent_operation_sequence") == 2,
+        "nested Workflow operation link is incorrect",
+    )
     require(
         workflow.get("parent_operation_span_id") == tool_operation.get("span_id"),
         "nested Workflow does not link to its physical Tool parent",
     )
-    require(workflow.get("trace_id") == listed.get("trace_id"), "nested Workflow left the Agent trace")
+    require(
+        workflow.get("trace_id") == listed.get("trace_id"),
+        "nested Workflow left the Agent trace",
+    )
     trace_id = workflow.get("trace_id")
     workflow_span_id = workflow.get("span_id")
     tool_span_id = tool_operation.get("span_id")
     require(
-        all(isinstance(value, str) for value in (trace_id, workflow_span_id, tool_span_id)),
+        all(
+            isinstance(value, str)
+            for value in (trace_id, workflow_span_id, tool_span_id)
+        ),
         "semantic execution IDs are missing",
     )
     return trace_id, workflow_span_id, tool_span_id
@@ -917,7 +1090,9 @@ def _agent_state_boundary(*, final: bool) -> dict[str, object]:
             ),
         },
         "final_output_available": final,
-        "final_output": ({"value": OUTPUT_VALUE, "evidence": "nested_workflow"} if final else None),
+        "final_output": (
+            {"value": OUTPUT_VALUE, "evidence": "nested_workflow"} if final else None
+        ),
         "terminal_reason": "final_output" if final else None,
     }
 
@@ -933,18 +1108,31 @@ def assert_workflow_semantics(
     """Validate the nested Workflow's backend-authoritative Store projection."""
 
     workflow = _require_object(projection, "Workflow Store diagnostic")
-    require(workflow.get("trace_id") == trace_id, "Workflow diagnostic trace ID is incorrect")
+    require(
+        workflow.get("trace_id") == trace_id,
+        "Workflow diagnostic trace ID is incorrect",
+    )
     require(
         workflow.get("workflow_span_id") == workflow_span_id,
         "Workflow diagnostic span ID is incorrect",
     )
-    require(workflow.get("executable_type") == "workflow", "Workflow diagnostic type is incorrect")
-    require(workflow.get("name") == WORKFLOW_NAME, "Workflow diagnostic name is incorrect")
+    require(
+        workflow.get("executable_type") == "workflow",
+        "Workflow diagnostic type is incorrect",
+    )
+    require(
+        workflow.get("name") == WORKFLOW_NAME, "Workflow diagnostic name is incorrect"
+    )
     integrity = _require_object(workflow.get("integrity"), "Workflow integrity")
     require(integrity.get("status") == "complete", "Workflow evidence is not complete")
     require(integrity.get("diagnostics") == [], "Workflow evidence has diagnostics")
     require(
-        all(value == 0 for value in _require_object(integrity.get("loss_counts"), "Workflow loss counts").values()),
+        all(
+            value == 0
+            for value in _require_object(
+                integrity.get("loss_counts"), "Workflow loss counts"
+            ).values()
+        ),
         "Workflow evidence has OTLP loss",
     )
     assert_verified_store(
@@ -955,9 +1143,13 @@ def assert_workflow_semantics(
         apply_patch=apply_patch,
     )
     state = _require_object(workflow.get("state"), "Workflow Store")
-    require(state.get("revision_start") == 0, "Workflow Store must start at revision zero")
+    require(
+        state.get("revision_start") == 0, "Workflow Store must start at revision zero"
+    )
     require(state.get("revision_end") == 2, "Workflow Store must end at revision two")
-    require(state.get("transition_count") == 2, "Workflow Store must expose two transitions")
+    require(
+        state.get("transition_count") == 2, "Workflow Store must expose two transitions"
+    )
 
 
 def assert_raw_hierarchy(
@@ -977,27 +1169,60 @@ def assert_raw_hierarchy(
     for index, raw_span in enumerate(spans):
         span = _require_object(raw_span, f"raw span {index}")
         span_id = span.get("span_id")
-        require(isinstance(span_id, str) and span_id not in by_id, "raw span IDs must be unique")
+        require(
+            isinstance(span_id, str) and span_id not in by_id,
+            "raw span IDs must be unique",
+        )
         by_id[span_id] = span
         require(span.get("trace_id") == trace_id, "raw span left the expected trace")
-        require(span.get("service_name") == expectations.service_name, "raw span service name is incorrect")
-        resource = _require_object(span.get("resource_attributes_json"), "raw span resource")
-        require(resource.get("service.namespace") == SERVICE_NAMESPACE, "raw service namespace is incorrect")
-        require(resource.get("service.name") == expectations.service_name, "raw resource service name is incorrect")
-        require(resource.get("service.version") == SERVICE_VERSION, "raw service version is incorrect")
-        require(span.get("dropped_attributes_count") == 0, "raw span dropped attributes")
+        require(
+            span.get("service_name") == expectations.service_name,
+            "raw span service name is incorrect",
+        )
+        resource = _require_object(
+            span.get("resource_attributes_json"), "raw span resource"
+        )
+        require(
+            resource.get("service.namespace") == SERVICE_NAMESPACE,
+            "raw service namespace is incorrect",
+        )
+        require(
+            resource.get("service.name") == expectations.service_name,
+            "raw resource service name is incorrect",
+        )
+        require(
+            resource.get("service.version") == SERVICE_VERSION,
+            "raw service version is incorrect",
+        )
+        require(
+            span.get("dropped_attributes_count") == 0, "raw span dropped attributes"
+        )
         require(span.get("dropped_events_count") == 0, "raw span dropped events")
         require(span.get("dropped_links_count") == 0, "raw span dropped links")
-        require(span.get("resource_dropped_attributes_count") == 0, "raw resource dropped attributes")
+        require(
+            span.get("resource_dropped_attributes_count") == 0,
+            "raw resource dropped attributes",
+        )
 
     projection = _require_object(detail, "Agent detail")
     summary = _require_object(projection.get("summary"), "Agent summary")
     agent_span_id = summary.get("agent_span_id")
-    require(isinstance(agent_span_id, str) and agent_span_id in by_id, "raw Agent span is missing")
+    require(
+        isinstance(agent_span_id, str) and agent_span_id in by_id,
+        "raw Agent span is missing",
+    )
     agent_span = by_id[agent_span_id]
-    require(agent_span.get("parent_span_id") in {None, ""}, "standalone Agent is not a physical root")
-    agent_attributes = _require_object(agent_span.get("attributes_json"), "raw Agent attributes")
-    require(agent_attributes.get("junjo.span_type") == "agent", "raw Agent type is incorrect")
+    require(
+        agent_span.get("parent_span_id") in {None, ""},
+        "standalone Agent is not a physical root",
+    )
+    agent_attributes = _require_object(
+        agent_span.get("attributes_json"), "raw Agent attributes"
+    )
+    require(
+        agent_attributes.get("junjo.span_type") == "agent",
+        "raw Agent type is incorrect",
+    )
 
     operations = _require_list(projection.get("operations"), "Agent operations")
     operation_ids = [operation.get("span_id") for operation in operations]
@@ -1007,10 +1232,16 @@ def assert_raw_hierarchy(
     )
     for operation, operation_id in zip(operations, operation_ids, strict=True):
         operation_span = by_id[operation_id]
-        require(operation_span.get("parent_span_id") == agent_span_id, "operation is not a direct Agent child")
-        attributes = _require_object(operation_span.get("attributes_json"), "raw operation attributes")
         require(
-            attributes.get("junjo.agent.operation_type") == operation.get("operation_type"),
+            operation_span.get("parent_span_id") == agent_span_id,
+            "operation is not a direct Agent child",
+        )
+        attributes = _require_object(
+            operation_span.get("attributes_json"), "raw operation attributes"
+        )
+        require(
+            attributes.get("junjo.agent.operation_type")
+            == operation.get("operation_type"),
             "raw operation type disagrees with semantic projection",
         )
         require(
@@ -1021,19 +1252,30 @@ def assert_raw_hierarchy(
     require(tool_span_id in by_id, "raw Tool span is missing")
     require(workflow_span_id in by_id, "raw nested Workflow span is missing")
     workflow_span = by_id[workflow_span_id]
-    require(workflow_span.get("parent_span_id") == tool_span_id, "nested Workflow is not a physical Tool child")
-    workflow_attributes = _require_object(workflow_span.get("attributes_json"), "raw Workflow attributes")
-    require(workflow_attributes.get("junjo.span_type") == "workflow", "raw Workflow type is incorrect")
     require(
-        workflow_attributes.get("junjo.parent_executable_definition_id") == expectations.agent_definition_id,
+        workflow_span.get("parent_span_id") == tool_span_id,
+        "nested Workflow is not a physical Tool child",
+    )
+    workflow_attributes = _require_object(
+        workflow_span.get("attributes_json"), "raw Workflow attributes"
+    )
+    require(
+        workflow_attributes.get("junjo.span_type") == "workflow",
+        "raw Workflow type is incorrect",
+    )
+    require(
+        workflow_attributes.get("junjo.parent_executable_definition_id")
+        == expectations.agent_definition_id,
         "nested Workflow semantic parent definition is incorrect",
     )
     require(
-        workflow_attributes.get("junjo.parent_executable_runtime_id") == expectations.agent_runtime_id,
+        workflow_attributes.get("junjo.parent_executable_runtime_id")
+        == expectations.agent_runtime_id,
         "nested Workflow semantic parent runtime is incorrect",
     )
     require(
-        workflow_attributes.get("junjo.parent_executable_structural_id") == expectations.agent_structural_id,
+        workflow_attributes.get("junjo.parent_executable_structural_id")
+        == expectations.agent_structural_id,
         "nested Workflow semantic parent structural ID is incorrect",
     )
     require(
@@ -1043,11 +1285,13 @@ def assert_raw_hierarchy(
     nodes = [
         span
         for span in spans
-        if isinstance(span.get("attributes_json"), dict) and span["attributes_json"].get("junjo.span_type") == "node"
+        if isinstance(span.get("attributes_json"), dict)
+        and span["attributes_json"].get("junjo.span_type") == "node"
     ]
     require(len(nodes) == 2, "nested Workflow must emit exactly two Node spans")
     require(
-        {node.get("name") for node in nodes} == {"PrepareNormalizationNode", "UppercaseNormalizationNode"},
+        {node.get("name") for node in nodes}
+        == {"PrepareNormalizationNode", "UppercaseNormalizationNode"},
         "nested Workflow Node names are incorrect",
     )
     require(
@@ -1122,10 +1366,15 @@ def _indexed_store_detail(
             executable.get("unavailable_store"),
             "unavailable executable Store",
         )
-    require(isinstance(store_id, str) and bool(store_id), "executable Store ID is invalid")
+    require(
+        isinstance(store_id, str) and bool(store_id), "executable Store ID is invalid"
+    )
     stores = _require_object(evidence.get("stores_by_id"), "trace Store index")
     store = _require_object(stores.get(store_id), "indexed executable Store")
-    require(store.get("owner_span_id") == owner_span_id, "indexed Store owner span is incorrect")
+    require(
+        store.get("owner_span_id") == owner_span_id,
+        "indexed Store owner span is incorrect",
+    )
     return _require_object(store.get("detail"), "indexed executable Store detail")
 
 
@@ -1145,11 +1394,21 @@ def project_agent_detail(
         executables.get(agent_span_id),
         "indexed Agent executable",
     )
-    require(executable.get("executable_type") == "agent", "indexed executable is not an Agent")
-    indexed_summary = _require_object(executable.get("summary"), "indexed Agent summary")
-    require(indexed_summary == summary, "Agent list and trace-evidence summaries diverged")
+    require(
+        executable.get("executable_type") == "agent",
+        "indexed executable is not an Agent",
+    )
+    indexed_summary = _require_object(
+        executable.get("summary"), "indexed Agent summary"
+    )
+    require(
+        indexed_summary == summary, "Agent list and trace-evidence summaries diverged"
+    )
     runtime_id = executable.get("runtime_id")
-    require(isinstance(runtime_id, str) and bool(runtime_id), "indexed Agent runtime ID is missing")
+    require(
+        isinstance(runtime_id, str) and bool(runtime_id),
+        "indexed Agent runtime ID is missing",
+    )
 
     operations_by_runtime = _require_object(
         evidence.get("operations_by_owner_runtime_id"),
@@ -1159,10 +1418,19 @@ def project_agent_detail(
         operations_by_runtime.get(runtime_id),
         "indexed Agent operations",
     )
-    operations = [_require_object(value, "indexed Agent operation") for value in operation_index.values()]
+    operations = [
+        _require_object(value, "indexed Agent operation")
+        for value in operation_index.values()
+    ]
     for operation in operations:
-        require(isinstance(operation.get("sequence"), int), "Agent operation sequence is invalid")
-        require(isinstance(operation.get("span_id"), str), "Agent operation span ID is invalid")
+        require(
+            isinstance(operation.get("sequence"), int),
+            "Agent operation sequence is invalid",
+        )
+        require(
+            isinstance(operation.get("span_id"), str),
+            "Agent operation span ID is invalid",
+        )
     operations.sort(key=lambda operation: (operation["sequence"], operation["span_id"]))
 
     relationships_index = _require_object(
@@ -1185,7 +1453,9 @@ def project_agent_detail(
         "input_candidate": executable.get("input_candidate"),
         "history_candidate": executable.get("history_candidate"),
         "operations": operations,
-        "state": _indexed_store_detail(evidence, executable, owner_span_id=agent_span_id),
+        "state": _indexed_store_detail(
+            evidence, executable, owner_span_id=agent_span_id
+        ),
         "parent_executable": relationships.get("parent"),
         "nested_executables": nested,
         "error": executable.get("error"),
@@ -1211,7 +1481,10 @@ def project_workflow_diagnostic(
         "indexed Workflow executable",
     )
     executable_type = executable.get("executable_type")
-    require(executable_type in {"workflow", "subflow"}, "indexed executable is not a Workflow")
+    require(
+        executable_type in {"workflow", "subflow"},
+        "indexed executable is not a Workflow",
+    )
     return {
         "trace_id": trace_id,
         "workflow_span_id": workflow_span_id,
@@ -1244,7 +1517,9 @@ def fetch_agent_projection(
         }
     )
 
-    def query_projection() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None:
+    def query_projection() -> (
+        tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None
+    ):
         summaries = _require_list(
             client.request(f"/api/v1/agent-executions?{query}"),
             "Agent execution list",
@@ -1252,7 +1527,8 @@ def fetch_agent_projection(
         matches = [
             summary
             for summary in summaries
-            if isinstance(summary, dict) and summary.get("runtime_id") == expectations.agent_runtime_id
+            if isinstance(summary, dict)
+            and summary.get("runtime_id") == expectations.agent_runtime_id
         ]
         if not matches:
             return None
@@ -1260,7 +1536,10 @@ def fetch_agent_projection(
         summary = matches[0]
         trace_id = summary.get("trace_id")
         span_id = summary.get("agent_span_id")
-        require(isinstance(trace_id, str) and isinstance(span_id, str), "Agent identity is incomplete")
+        require(
+            isinstance(trace_id, str) and isinstance(span_id, str),
+            "Agent identity is incomplete",
+        )
         evidence = _require_object(
             client.request(f"/api/v1/trace-evidence/{trace_id}"),
             "trace evidence",
@@ -1377,6 +1656,7 @@ def run(args: argparse.Namespace) -> None:
         raise primary_error
     if cleanup_error is not None:
         raise cleanup_error
+    verify_owner_reauthentication(backend)
     if args.evidence_output is not None:
         require(browser_evidence is not None, "browser evidence was not produced")
         write_browser_evidence(args.evidence_output, browser_evidence)

@@ -1,7 +1,7 @@
 import { createListenerMiddleware } from '@reduxjs/toolkit/react'
 import type { AppDispatch, RootState } from '../../../root-store/store'
+import { deleteEvaluationToken } from '../fetch/delete-evaluation-token'
 import { listEvaluationTokens } from '../fetch/list-evaluation-tokens'
-import { revokeEvaluationToken } from '../fetch/revoke-evaluation-token'
 import { EvaluationTokensActions } from './slice'
 
 export const evaluationTokensListenerMiddleware = createListenerMiddleware()
@@ -28,7 +28,7 @@ startListener({
     } catch (error) {
       dispatch(
         EvaluationTokensActions.setError(
-          error instanceof Error ? error.message : 'Failed to list evaluation tokens.',
+          error instanceof Error ? error.message : 'Failed to list access tokens.',
         ),
       )
     } finally {
@@ -38,16 +38,16 @@ startListener({
 })
 
 startListener({
-  actionCreator: EvaluationTokensActions.revokeToken,
+  actionCreator: EvaluationTokensActions.deleteToken,
   effect: async ({ payload }, { dispatch }) => {
     dispatch(EvaluationTokensActions.setLoading(true))
     dispatch(EvaluationTokensActions.setError(null))
     try {
-      await revokeEvaluationToken(payload.id)
+      await deleteEvaluationToken(payload.id)
     } catch (error) {
       dispatch(
         EvaluationTokensActions.setError(
-          error instanceof Error ? error.message : 'Failed to revoke evaluation token.',
+          error instanceof Error ? error.message : 'Failed to delete access token.',
         ),
       )
     } finally {

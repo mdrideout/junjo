@@ -16,7 +16,9 @@ Output:
 """
 
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 from loguru import logger
@@ -29,14 +31,17 @@ def export_openapi_schema(output_path: Path) -> None:
         output_path: Path to output JSON file
     """
     try:
-        # Import the FastAPI app
-        # NOTE: This import may trigger database initialization, logging setup, etc.
-        logger.info("Importing FastAPI app...")
-        from app.main import app
+        # Importing the app constructs a lazy SQLAlchemy engine. Point that
+        # engine at an isolated temporary path so schema generation can never
+        # acquire the running Studio database or its WAL files.
+        with tempfile.TemporaryDirectory(prefix="junjo-openapi-") as directory:
+            os.environ["JUNJO_SQLITE_PATH"] = str(Path(directory) / "unused.db")
+            logger.info("Importing FastAPI app...")
+            from app.main import app
 
-        # Generate OpenAPI schema
-        logger.info("Generating OpenAPI schema...")
-        schema = app.openapi()
+            # Generate OpenAPI schema
+            logger.info("Generating OpenAPI schema...")
+            schema = app.openapi()
 
         # Save to file
         logger.info(f"Saving schema to {output_path}")
@@ -55,7 +60,9 @@ def export_openapi_schema(output_path: Path) -> None:
 
     except ImportError as e:
         logger.error(f"Failed to import FastAPI app: {e}")
-        logger.error("Make sure you're running from the backend directory with dependencies installed")
+        logger.error(
+            "Make sure you're running from the backend directory with dependencies installed"
+        )
         sys.exit(1)
     except Exception as e:
         logger.error(f"Unexpected error: {e}")

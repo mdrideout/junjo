@@ -14,7 +14,7 @@ export async function listEvaluationTokens(
     { credentials: 'include' },
   )
   if (!response.ok) {
-    throw new Error(`Failed to list evaluation tokens (${response.status})`)
+    throw new Error(`Failed to list access tokens (${response.status})`)
   }
   return EvaluationTokenListSchema.parse(await response.json())
 }

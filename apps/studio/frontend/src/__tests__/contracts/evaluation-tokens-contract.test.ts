@@ -3,7 +3,6 @@ import { z } from 'zod'
 import openapiSpec from '../../../backend/openapi.json'
 import { generateMock } from '../../auth/test-utils/openapi-mock-generator'
 import {
-  EvaluationTokenCreatedSchema,
   EvaluationTokenListSchema,
   EvaluationTokenReadSchema,
 } from '../../features/evaluation-tokens/schemas'
@@ -35,8 +34,8 @@ const EvaluationTokenSurfaceSchema = z
             post: OperationSchema,
           })
           .passthrough(),
-        '/api/v1/evaluation-tokens/{token_id}/revoke': z
-          .object({ put: OperationSchema })
+        '/api/v1/evaluation-tokens/{token_id}': z
+          .object({ delete: OperationSchema })
           .passthrough(),
       })
       .passthrough(),
@@ -46,15 +45,14 @@ const EvaluationTokenSurfaceSchema = z
 describe('API Contract: evaluation tokens', () => {
   const surface = EvaluationTokenSurfaceSchema.parse(openapiSpec)
   const collection = surface.paths['/api/v1/evaluation-tokens']
-  const revoke =
-    surface.paths['/api/v1/evaluation-tokens/{token_id}/revoke'].put
+  const deleteToken = surface.paths['/api/v1/evaluation-tokens/{token_id}'].delete
 
-  it('publishes create-once, bounded list, and explicit revoke operations', () => {
+  it('publishes recoverable create/list and explicit delete operations', () => {
     expect(collection.post.operationId).toBe('create_evaluation_token')
     expect(collection.post.responses['201']).toMatchObject({
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/EvaluationTokenCreated' },
+          schema: { $ref: '#/components/schemas/EvaluationTokenRead' },
         },
       },
     })
@@ -70,8 +68,8 @@ describe('API Contract: evaluation tokens', () => {
       schema: { default: 50, maximum: 100, minimum: 1 },
     })
 
-    expect(revoke.operationId).toBe('revoke_evaluation_token')
-    expect(revoke.parameters).toMatchObject([
+    expect(deleteToken.operationId).toBe('delete_evaluation_token')
+    expect(deleteToken.parameters).toMatchObject([
       {
         name: 'token_id',
         in: 'path',
@@ -80,10 +78,10 @@ describe('API Contract: evaluation tokens', () => {
     ])
   })
 
-  it('keeps the token secret on create responses only', () => {
+  it('returns the recoverable token from authenticated management responses', () => {
     const schemas = openapiSpec.components.schemas
-    expect(schemas.EvaluationTokenCreated.properties).toHaveProperty('token')
-    expect(schemas.EvaluationTokenRead.properties).not.toHaveProperty('token')
+    expect(schemas.EvaluationTokenRead.properties).toHaveProperty('token')
+    expect(schemas.EvaluationTokenRead.properties).not.toHaveProperty('prefix')
     expect(JSON.stringify(schemas.EvaluationTokenRead)).not.toContain('secret_hash')
   })
 
@@ -92,16 +90,12 @@ describe('API Contract: evaluation tokens', () => {
       string,
       unknown
     >
-    const prefix = 'junjo_eval_AbCdEfGhIjKl'
     expect(
-      EvaluationTokenCreatedSchema.parse(
+      EvaluationTokenReadSchema.parse(
         {
           ...created,
-          // openapi-backend does not honor OpenAPI 3.1 string examples when a
-          // regex contains both a literal dot and bounded URL-safe segments.
-          prefix,
           token:
-            'junjo_eval_AbCdEfGhIjKl.0123456789_abcdefghijklmnopqrstuv-wxyzABCDE',
+            'jcli_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
         },
       ),
     ).toBeDefined()
@@ -111,16 +105,11 @@ describe('API Contract: evaluation tokens', () => {
     expect(
       EvaluationTokenListSchema.parse({
         ...list,
-        items: list.items.map((item) => ({ ...item, prefix })),
-      }),
-    ).toBeDefined()
-    expect(
-      EvaluationTokenReadSchema.parse({
-        ...(generateMock('revoke_evaluation_token').mock as Record<
-          string,
-          unknown
-        >),
-        prefix,
+        items: list.items.map((item) => ({
+          ...item,
+          token:
+            'jcli_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
+        })),
       }),
     ).toBeDefined()
   })

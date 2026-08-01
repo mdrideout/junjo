@@ -28,14 +28,14 @@ export default function ProviderWarningModal({ open, onOpenChange, warning }: Pr
         )}
 
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Current Approach</h3>
+          <h3 className="mb-2 text-zinc-900 dark:text-zinc-100">Current Approach</h3>
           <pre className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-x-auto text-xs">
             <code className="text-zinc-800 dark:text-zinc-200">{warning.codeExampleBad}</code>
           </pre>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+          <h3 className="mb-2 text-zinc-900 dark:text-zinc-100">
             Recommended Approach
           </h3>
           <pre className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-x-auto text-xs">

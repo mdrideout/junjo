@@ -166,11 +166,16 @@ provenance, not an object-level access-control boundary. This matches Studio's
 current shared-resource model and must be revisited with the separately scoped
 remote automation credential rather than implied by creator ownership.
 
-Human users manage evaluation-control tokens through an ordinary encrypted
-Studio browser session. CLI and SDK automation use those separately scoped
-tokens and do not accept Studio account passwords. Plain HTTP is accepted only
-for loopback use; remote Studio origins require HTTPS. Ingestion API keys never
-authorize these routes, and evaluation tokens never authorize ingestion.
+Human users manage developer access tokens through an ordinary encrypted
+Studio browser session. The management surface returns each stored bearer
+credential so it can be copied again and deletes the credential when the user
+removes it. This deliberately matches Studio's existing Application Telemetry
+API key UX: anyone with an authenticated Studio browser session already shares
+credential-management authority. CLI and SDK automation use the separately
+scoped access tokens and do not accept Studio account passwords. Plain HTTP is
+accepted only for loopback use; remote Studio origins require HTTPS.
+Application Telemetry API keys never authorize these routes, and developer
+access tokens never authorize ingestion.
 
 ### Evaluation context complements the ledger
 

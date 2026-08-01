@@ -15,6 +15,8 @@ def test_generate_key_uniqueness():
 
     # All should be unique
     assert len(set(keys)) == 100
+    assert all(key.startswith("jtel_") for key in keys)
+    assert all(len(key) == 69 for key in keys)
 
 
 @pytest.mark.unit
@@ -32,15 +34,15 @@ async def test_create_api_key(mock_authenticated_user):
     """Test creating API key via service."""
     # Test
     api_key = await APIKeyService.create_api_key(
-        name="Test Key",
-        authenticated_user=mock_authenticated_user
+        name="Test Key", authenticated_user=mock_authenticated_user
     )
 
     # Should have generated ID and key
     assert api_key.id is not None
     assert len(api_key.id) == 21
     assert api_key.key is not None
-    assert len(api_key.key) == 64
+    assert api_key.key.startswith("jtel_")
+    assert len(api_key.key) == 69
     assert api_key.name == "Test Key"
     assert api_key.created_at is not None
 
@@ -69,14 +71,12 @@ async def test_delete_api_key(mock_authenticated_user):
     """Test deleting API key via service."""
     # Create key
     created = await APIKeyService.create_api_key(
-        name="Delete Me",
-        authenticated_user=mock_authenticated_user
+        name="Delete Me", authenticated_user=mock_authenticated_user
     )
 
     # Delete
     result = await APIKeyService.delete_api_key(
-        created.id,
-        authenticated_user=mock_authenticated_user
+        created.id, authenticated_user=mock_authenticated_user
     )
 
     assert result is True
@@ -92,8 +92,7 @@ async def test_delete_api_key(mock_authenticated_user):
 async def test_delete_nonexistent_api_key(mock_authenticated_user):
     """Test deleting non-existent API key."""
     result = await APIKeyService.delete_api_key(
-        "nonexistent_id",
-        authenticated_user=mock_authenticated_user
+        "nonexistent_id", authenticated_user=mock_authenticated_user
     )
 
     assert result is False

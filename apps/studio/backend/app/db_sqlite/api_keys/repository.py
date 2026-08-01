@@ -29,7 +29,7 @@ class APIKeyRepository:
 
         Args:
             id: Unique identifier for the key (nanoid)
-            key: API key value (64-char alphanumeric nanoid)
+            key: Canonical application telemetry API key
             name: Human-readable name
             authenticated_user: Authenticated user performing the action
 

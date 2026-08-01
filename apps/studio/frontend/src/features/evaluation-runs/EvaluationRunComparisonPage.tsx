@@ -141,7 +141,7 @@ export default function EvaluationRunComparisonPage() {
       </nav>
 
       <header>
-        <h1 className="m-0 text-3xl">Compare runs</h1>
+        <h1 className="m-0">Compare runs</h1>
         <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
           See which tests improved or regressed across the same locked dataset.
         </p>
@@ -161,7 +161,7 @@ export default function EvaluationRunComparisonPage() {
                 <div className="text-xs font-semibold uppercase tracking-wide text-[var(--studio-text-subtle)]">
                   {role}
                 </div>
-                <h2 className="m-0 mt-1 text-xl">{run.run_label}</h2>
+                <h2 className="m-0 mt-1">{run.run_label}</h2>
               </div>
               <EvaluationStatusBadge status={run.status} />
             </div>
@@ -178,7 +178,7 @@ export default function EvaluationRunComparisonPage() {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl">Test changes</h2>
+            <h2 className="m-0">Test changes</h2>
             <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
               Binary outcomes aligned by the same immutable dataset tests.
             </p>
