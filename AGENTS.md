@@ -12,6 +12,7 @@ the nearest scoped `AGENTS.md` before changing a component.
 - Ground plans and reviews in current code and accepted ADRs.
 - Avoid scope creep and preserve unrelated user work.
 - Do not engage in scope creep. Do not take liberties to refactor or change things that do not need to change beyond the requested implementations and ideas. Keep existing user-interfaces, styles, contracts, integrations, system -> system mechanics as they are unless it's required to change them as part of new feature implementation. Keep changes necessary and required. As much as needed, as little as possible.
+- Do not set arbitrary contraints, budgets, caps, limitations. Do not truncate content. Do not set timeouts. Do not make assumptions about how much we can handle. Allow us to run into the exceptions when resources, time lengths, or capacity are exceeded. We will only create constraints as we encounter real exceptions caused by a real repeatable documented problem or limit.
 
 ## Scope and Complexity
 
