@@ -79,6 +79,7 @@ class GenerateCaseRequest:
 
     dataset_id: str
     case_key: str
+    evaluation_name: str
     target_kind: TargetKind
     target_key: str
     input_version: int
@@ -142,7 +143,7 @@ class EvaluationExecutor:
         *,
         dataset_id: str,
         request_key: str,
-        candidate_label: str,
+        run_label: str,
     ) -> RunDetail:
         """Start or idempotently resume one run at the clean current revision."""
 
@@ -154,7 +155,7 @@ class EvaluationExecutor:
             RunStart(
                 dataset_id=dataset_id,
                 request_key=request_key,
-                candidate_label=candidate_label,
+                run_label=run_label,
                 source_revision=revision,
             )
         )
@@ -279,7 +280,6 @@ class EvaluationExecutor:
                 attempt.id,
                 AttemptResultWrite(
                     status=(AttemptStatus.PASSED if judgment.passed else AttemptStatus.FAILED),
-                    score=judgment.score,
                     reason=judgment.reason,
                     duration_ms=target.duration_ms,
                 ),
@@ -349,6 +349,7 @@ class EvaluationExecutor:
             request.dataset_id,
             CaseCreate(
                 case_key=request.case_key,
+                evaluation_name=request.evaluation_name,
                 origin=CaseOrigin.GENERATED,
                 target_kind=request.target_kind,
                 target_key=request.target_key,
@@ -409,6 +410,7 @@ def _same_generated_case(
 ) -> bool:
     return (
         case.origin is CaseOrigin.GENERATED
+        and case.evaluation_name == request.evaluation_name
         and case.target_kind is request.target_kind
         and case.target_key == request.target_key
         and case.input_version == request.input_version

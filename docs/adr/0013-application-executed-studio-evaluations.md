@@ -96,9 +96,10 @@ Programmatic callers may retain one executor across baseline and candidate
 Runs. The SDK does not restart process-global OpenTelemetry state between
 operations or hide it behind a process singleton.
 
-The active candidate is the clean committed application source revision from
-which the SDK harness runs. Studio stores that revision and a human candidate
-label but does not select, inject, or modify application prompts.
+Each Run is executed from one clean committed application source revision.
+Studio stores that revision and a human Run label but does not select, inject,
+or modify application prompts. Baseline and candidate are comparison roles
+assigned to two Runs; they are not persisted entity types.
 
 Studio never receives uploaded source or executable bundles and never
 instantiates application dependencies. A coding agent edits and commits
@@ -110,16 +111,20 @@ dataset and the application's target declarations.
 Studio owns canonical, bounded records for:
 
 - immutable input datasets and ordered cases;
-- candidate runs over one exact dataset;
+- labeled runs over one exact dataset;
 - one pre-created attempt per run case;
 - evaluator outcomes;
 - exact semantic links between cases or attempts and Junjo executions; and
 - bounded programmatic queries and comparisons over received evidence.
 
-Studio is authoritative for evaluation status, score, reason, and membership.
+Studio is authoritative for evaluation status, reason, and membership.
 Received telemetry remains authoritative for execution evidence. Studio does
 not copy complete prompts, responses, state, conversations, spans, or traces
 into evaluation-control records.
+
+Evaluation judgments are binary. Every evaluator returns `passed` plus a
+bounded reason. Studio stores `passed`, `failed`, or operational `error`;
+there is no numeric score, mean score, or score delta.
 
 Programmatic case authoring uses authenticated Studio APIs through the SDK.
 The input dataset is the Studio Dataset plus its ordered Case records; this

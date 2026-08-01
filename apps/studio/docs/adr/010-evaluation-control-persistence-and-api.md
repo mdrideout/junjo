@@ -32,8 +32,8 @@ Studio stores four canonical record types in the existing application
 database:
 
 - Dataset: one named application-scoped draft or locked input corpus;
-- Case: one ordered, versioned application input and SDK-loaded evaluator
-  contract;
+- Case: one ordered, named evaluation, versioned application input, and
+  SDK-loaded evaluator contract;
 - Run: one labeled clean source revision applied to one locked dataset; and
 - Attempt: one case membership and outcome within that run.
 
@@ -77,6 +77,7 @@ returns the existing record; conflicting content returns an explicit conflict.
 
 A Case stores bounded JSON input and optional expectation material plus:
 
+- a required human evaluation name describing what pass or fail means;
 - origin (`authored` or `generated`);
 - target kind (`node`, `workflow`, or `agent`) and application-owned target
   declaration key;
@@ -136,8 +137,9 @@ attempt marks its run complete in the same transaction.
 
 A result may omit execution identity only when setup failed before Junjo
 created a trustworthy runtime ID. Passed and failed judgments require a bound
-execution, a bounded score, and a bounded reason. Errors retain a bound
-execution whenever one exists.
+execution and bounded reason. Errors retain a bound execution whenever one
+exists. Evaluation judgments are binary; Studio stores no numeric score,
+mean score, confidence, or score delta.
 
 ### The HTTP surface is authenticated and bounded
 
@@ -196,10 +198,12 @@ SDK client; it is not a second Studio contract.
 
 ### Frontend reads results without duplicating evidence views
 
-The initial Studio UI provides bounded evaluation-run list and detail views,
-plus a client-side projection comparing two selected runs from one dataset.
-It presents attempt status, score, reason, duration, candidate revision, and
-semantic execution links.
+The Studio UI provides bounded Dataset, Run, and comparison views. Dataset
+Cases present their human evaluation name and prominent Node, Workflow, or
+Agent scope. Run results present binary status, reason, and a concise
+**View spans** link. Machine keys, evaluator versions, source provenance, and
+the exact Git commit remain available as technical details rather than primary
+table columns.
 
 The UI follows the existing semantic resolver for telemetry. It does not
 resolve every list row, copy trace detail rendering, or hydrate

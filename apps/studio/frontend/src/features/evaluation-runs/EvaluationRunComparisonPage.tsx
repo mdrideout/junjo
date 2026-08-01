@@ -1,14 +1,16 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import ErrorPage from '../../components/errors/ErrorPage'
 import { AppLink } from '../../components/navigation/app-link'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { EvaluationStatusBadge } from './components/EvaluationStatusBadge'
 import { SemanticExecutionLink } from './components/SemanticExecutionLink'
+import type { EvaluationCase } from './schemas/evaluation-runs'
 import { evaluationRunComparisonQueryFromSearchParams } from './schemas/query'
 import {
   selectEvaluationRunComparison,
   selectEvaluationRunDetailRequest,
+  type EvaluationTransition,
 } from './store/selectors'
 import { EvaluationRunsActions } from './store/slice'
 
@@ -17,26 +19,23 @@ const EMPTY_COMPARISON_QUERY = {
   candidate_run_id: '',
 }
 
-function displayScore(score: number | null): string {
-  return score === null ? '—' : score.toFixed(2)
+const filterClassName =
+  'min-h-9 rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-2 py-1 text-sm'
+
+function displayRate(rate: number | null): string {
+  return rate === null ? 'Not judged' : `${Math.round(rate * 100)}%`
 }
 
-function displayScoreDelta(delta: number | null): string {
-  if (delta === null) return '—'
-  return `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`
+function displayTransition(transition: EvaluationTransition): string {
+  return transition.replace('_', ' ')
 }
 
-function displayDuration(durationMs: number | null): string {
-  return durationMs === null ? '—' : `${durationMs} ms`
-}
-
-function displayDurationDelta(deltaMs: number | null): string {
-  if (deltaMs === null) return '—'
-  return `${deltaMs > 0 ? '+' : ''}${deltaMs} ms`
+function targetIdentity(item: EvaluationCase): string {
+  return JSON.stringify([item.target_kind, item.target_key, item.input_version])
 }
 
 export default function EvaluationRunComparisonPage() {
-  const [searchParameters] = useSearchParams()
+  const [searchParameters, setSearchParameters] = useSearchParams()
   const query = useMemo(
     () => evaluationRunComparisonQueryFromSearchParams(searchParameters),
     [searchParameters],
@@ -53,6 +52,9 @@ export default function EvaluationRunComparisonPage() {
   const comparison = useAppSelector((state) =>
     selectEvaluationRunComparison(state, query ?? EMPTY_COMPARISON_QUERY),
   )
+  const [transitionFilter, setTransitionFilter] = useState<EvaluationTransition | ''>('')
+  const [outcomeFilter, setOutcomeFilter] =
+    useState<'passed' | 'failed' | 'error' | 'queued' | ''>('')
 
   useEffect(() => {
     if (query === null) return
@@ -68,7 +70,6 @@ export default function EvaluationRunComparisonPage() {
       />
     )
   }
-
   if (
     (baselineRequest.loading && baselineRequest.data === null)
     || (candidateRequest.loading && candidateRequest.data === null)
@@ -92,27 +93,65 @@ export default function EvaluationRunComparisonPage() {
     return <ErrorPage title="Evaluation comparison unavailable" message="Run details were not available." />
   }
 
-  const { baseline_run: baseline, candidate_run: candidate, dataset, rows } = comparison.data
+  const {
+    baseline_run: baseline,
+    candidate_run: candidate,
+    baseline_summary: baselineSummary,
+    candidate_summary: candidateSummary,
+    transition_counts: transitionCounts,
+    dataset,
+    rows,
+  } = comparison.data
+  const targetOptions = new Map<string, EvaluationCase>()
+  const evaluationOptions = new Set<string>()
+  for (const item of baselineRequest.data?.cases ?? []) {
+    targetOptions.set(targetIdentity(item.case), item.case)
+    evaluationOptions.add(item.case.evaluation_name)
+  }
+  const selectedTarget = query.target_kind === undefined
+    ? ''
+    : JSON.stringify([query.target_kind, query.target_key, query.input_version])
+  const selectedEvaluation = query.evaluation_name ?? ''
+  const visibleRows = rows.filter(
+    (row) =>
+      (!transitionFilter || row.transition === transitionFilter)
+      && (!outcomeFilter || row.candidate_attempt.status === outcomeFilter),
+  )
+
+  const updateScope = (
+    fields: readonly string[],
+    values: Record<string, string | number> = {},
+  ) => {
+    const next = new URLSearchParams(searchParameters)
+    for (const field of fields) next.delete(field)
+    for (const [field, value] of Object.entries(values)) next.set(field, String(value))
+    setSearchParameters(next)
+  }
+
   return (
     <div className="mx-auto max-w-[110rem] space-y-5 p-4 sm:p-6">
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[var(--studio-text-muted)]">
-        <AppLink to="/evaluation-runs">Evaluation runs</AppLink>
+        <AppLink to="/evaluation-runs">Evaluations</AppLink>
+        <span aria-hidden="true">/</span>
+        <AppLink to={`/evaluation-runs/datasets/${encodeURIComponent(dataset.id)}`}>
+          {dataset.name}
+        </AppLink>
         <span aria-hidden="true">/</span>
         <span>Comparison</span>
       </nav>
 
       <header>
-        <h1 className="m-0 text-3xl">Baseline and candidate</h1>
+        <h1 className="m-0 text-3xl">Compare runs</h1>
         <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
-          {dataset.name} · {dataset.key}
+          See which tests improved or regressed across the same locked dataset.
         </p>
       </header>
 
       <section className="grid gap-4 lg:grid-cols-2" aria-label="Compared runs">
         {[
-          { role: 'Baseline', run: baseline },
-          { role: 'Candidate', run: candidate },
-        ].map(({ role, run }) => (
+          { role: 'Baseline', run: baseline, summary: baselineSummary },
+          { role: 'Candidate', run: candidate, summary: candidateSummary },
+        ].map(({ role, run, summary }) => (
           <article
             key={run.id}
             className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface-raised)] p-4"
@@ -122,64 +161,146 @@ export default function EvaluationRunComparisonPage() {
                 <div className="text-xs font-semibold uppercase tracking-wide text-[var(--studio-text-subtle)]">
                   {role}
                 </div>
-                <h2 className="m-0 mt-1 text-xl">{run.candidate_label}</h2>
+                <h2 className="m-0 mt-1 text-xl">{run.run_label}</h2>
               </div>
               <EvaluationStatusBadge status={run.status} />
             </div>
-            <dl className="mt-3 space-y-2 text-xs">
-              <div>
-                <dt className="text-[var(--studio-text-subtle)]">Run</dt>
-                <dd className="break-all font-mono">{run.id}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--studio-text-subtle)]">Source revision</dt>
-                <dd className="break-all font-mono">{run.source_revision}</dd>
-              </div>
-            </dl>
+            <p className="mt-3 text-sm font-semibold">
+              {displayRate(summary.pass_rate)} pass · {summary.passed} passed · {summary.failed} failed
+            </p>
             <div className="mt-3">
-              <AppLink to={`/evaluation-runs/${encodeURIComponent(run.id)}`}>Open run detail</AppLink>
+              <AppLink to={`/evaluation-runs/${encodeURIComponent(run.id)}`}>View run</AppLink>
             </div>
           </article>
         ))}
       </section>
 
       <section>
-        <h2 className="m-0 text-xl">Case-by-case delta</h2>
-        <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
-          Score and duration deltas are candidate minus baseline. Reasons remain side by side as evaluator evidence.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="m-0 text-xl">Test changes</h2>
+            <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+              Binary outcomes aligned by the same immutable dataset tests.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <label className="text-xs font-medium">
+              Scope
+              <select
+                className={`${filterClassName} ml-2`}
+                value={selectedTarget}
+                onChange={(event) => {
+                  const fields = ['target_kind', 'target_key', 'input_version'] as const
+                  if (!event.target.value) {
+                    updateScope(fields)
+                    return
+                  }
+                  const [targetKind, targetKey, inputVersion] = JSON.parse(
+                    event.target.value,
+                  ) as ['node' | 'workflow' | 'agent', string, number]
+                  updateScope(fields, {
+                    target_kind: targetKind,
+                    target_key: targetKey,
+                    input_version: inputVersion,
+                  })
+                }}
+              >
+                <option value="">All targets</option>
+                {[...targetOptions.entries()].map(([identity, item]) => (
+                  <option key={identity} value={identity}>
+                    {item.target_kind} · {item.target_key} · input v{item.input_version}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-medium">
+              Evaluation
+              <select
+                className={`${filterClassName} ml-2`}
+                value={selectedEvaluation}
+                onChange={(event) => {
+                  updateScope(
+                    ['evaluation_name'],
+                    event.target.value
+                      ? { evaluation_name: event.target.value }
+                      : {},
+                  )
+                }}
+              >
+                <option value="">All evaluations</option>
+                {[...evaluationOptions].sort().map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-medium">
+              Change
+              <select
+                className={`${filterClassName} ml-2`}
+                value={transitionFilter}
+                onChange={(event) => setTransitionFilter(event.target.value as EvaluationTransition | '')}
+              >
+                <option value="">All ({rows.length})</option>
+                {(Object.keys(transitionCounts) as EvaluationTransition[]).map((transition) => (
+                  <option key={transition} value={transition}>
+                    {displayTransition(transition)} ({transitionCounts[transition]})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-medium">
+              Candidate result
+              <select
+                className={`${filterClassName} ml-2`}
+                value={outcomeFilter}
+                onChange={(event) => setOutcomeFilter(
+                  event.target.value as typeof outcomeFilter,
+                )}
+              >
+                <option value="">All results</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+                <option value="error">Error</option>
+                <option value="queued">Queued</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
         <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface-raised)]">
-          <table className="w-full min-w-[88rem] text-left text-sm">
+          <table className="w-full min-w-[76rem] text-left text-sm">
             <thead className="bg-[var(--studio-surface)] text-xs uppercase tracking-wide text-[var(--studio-text-subtle)]">
               <tr>
-                <th scope="col" className="px-3 py-3">Case</th>
-                <th scope="col" className="px-3 py-3">Pass/status</th>
-                <th scope="col" className="px-3 py-3">Score</th>
+                <th scope="col" className="px-3 py-3">Scope</th>
+                <th scope="col" className="px-3 py-3">Evaluation</th>
+                <th scope="col" className="px-3 py-3">Change</th>
+                <th scope="col" className="px-3 py-3">Result</th>
                 <th scope="col" className="px-3 py-3">Reason</th>
-                <th scope="col" className="px-3 py-3">Duration</th>
-                <th scope="col" className="px-3 py-3">Evidence</th>
+                <th scope="col" className="px-3 py-3">Spans</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {visibleRows.map((row) => (
                 <tr key={row.case.id} className="border-b border-[var(--studio-border)] last:border-0 align-top">
                   <th scope="row" className="px-3 py-3 text-left">
-                    <span className="font-semibold">{row.case.case_key}</span>
+                    <span className="font-semibold capitalize">{row.case.target_kind}</span>
+                    <span className="mt-1 block font-mono text-xs font-normal">
+                      {row.case.target_key}
+                    </span>
                     <span className="mt-1 block text-xs font-normal text-[var(--studio-text-subtle)]">
-                      #{row.case.ordinal}
+                      Input v{row.case.input_version}
                     </span>
                   </th>
+                  <td className="px-3 py-3 font-semibold">{row.case.evaluation_name}</td>
+                  <td className="px-3 py-3 font-semibold capitalize">
+                    {displayTransition(row.transition)}
+                  </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       <EvaluationStatusBadge status={row.baseline_attempt.status} />
                       <span aria-hidden="true">→</span>
                       <EvaluationStatusBadge status={row.candidate_attempt.status} />
                     </div>
-                  </td>
-                  <td className="px-3 py-3 font-mono text-xs">
-                    <div>Baseline {displayScore(row.baseline_attempt.score)}</div>
-                    <div className="mt-1">Candidate {displayScore(row.candidate_attempt.score)}</div>
-                    <div className="mt-1 font-semibold">Δ {displayScoreDelta(row.score_delta)}</div>
                   </td>
                   <td className="max-w-xl px-3 py-3 text-xs">
                     <div>
@@ -191,27 +312,22 @@ export default function EvaluationRunComparisonPage() {
                       <span className="whitespace-pre-wrap">{row.candidate_attempt.reason ?? '—'}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-3 font-mono text-xs">
-                    <div>Baseline {displayDuration(row.baseline_attempt.duration_ms)}</div>
-                    <div className="mt-1">Candidate {displayDuration(row.candidate_attempt.duration_ms)}</div>
-                    <div className="mt-1 font-semibold">Δ {displayDurationDelta(row.duration_delta_ms)}</div>
-                  </td>
                   <td className="px-3 py-3 text-xs">
                     <div className="flex flex-col items-start gap-2">
                       {row.baseline_attempt.subject_execution === null ? (
-                        <span className="text-[var(--studio-text-subtle)]">No baseline execution</span>
+                        <span className="text-[var(--studio-text-subtle)]">Baseline pending</span>
                       ) : (
                         <SemanticExecutionLink
                           execution={row.baseline_attempt.subject_execution}
-                          label={`Open baseline evidence for ${row.case.case_key}`}
+                          label="View baseline spans"
                         />
                       )}
                       {row.candidate_attempt.subject_execution === null ? (
-                        <span className="text-[var(--studio-text-subtle)]">No candidate execution</span>
+                        <span className="text-[var(--studio-text-subtle)]">Candidate pending</span>
                       ) : (
                         <SemanticExecutionLink
                           execution={row.candidate_attempt.subject_execution}
-                          label={`Open candidate evidence for ${row.case.case_key}`}
+                          label="View candidate spans"
                         />
                       )}
                     </div>

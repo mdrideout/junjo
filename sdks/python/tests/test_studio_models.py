@@ -16,6 +16,7 @@ from junjo.studio import (
     ExecutableType,
     RunComparisonError,
     RunDetail,
+    RunScope,
     SemanticExecutionReference,
     TargetKind,
     project_run_comparison,
@@ -43,6 +44,7 @@ def _case() -> dict[str, Any]:
         "id": "case-1",
         "dataset_id": "dataset-1",
         "case_key": "brooklyn",
+        "evaluation_name": "Response place realism",
         "ordinal": 1,
         "origin": "authored",
         "target_kind": "node",
@@ -58,12 +60,12 @@ def _case() -> dict[str, Any]:
     }
 
 
-def _run(run_id: str, candidate_label: str) -> dict[str, Any]:
+def _run(run_id: str, run_label: str) -> dict[str, Any]:
     return {
         "id": run_id,
         "dataset_id": "dataset-1",
         "request_key": run_id,
-        "candidate_label": candidate_label,
+        "run_label": run_label,
         "source_revision": ("a" if run_id == "baseline" else "b") * 40,
         "status": "completed",
         "created_by_user_id": "user-1",
@@ -76,7 +78,6 @@ def _attempt(
     attempt_id: str,
     run_id: str,
     *,
-    score: float | None,
     duration_ms: int | None,
 ) -> dict[str, Any]:
     return {
@@ -84,7 +85,6 @@ def _attempt(
         "run_id": run_id,
         "case_id": "case-1",
         "status": "passed",
-        "score": score,
         "reason": "Plausible.",
         "duration_ms": duration_ms,
         "subject_execution": None,
@@ -95,15 +95,14 @@ def _attempt(
 
 def _run_detail(
     run_id: str,
-    candidate_label: str,
+    run_label: str,
     *,
-    score: float | None,
     duration_ms: int | None,
 ) -> RunDetail:
     return RunDetail.model_validate_json(
         json.dumps(
             {
-                "run": _run(run_id, candidate_label),
+                "run": _run(run_id, run_label),
                 "dataset": _dataset(),
                 "cases": [
                     {
@@ -111,7 +110,6 @@ def _run_detail(
                         "attempt": _attempt(
                             f"attempt-{run_id}",
                             run_id,
-                            score=score,
                             duration_ms=duration_ms,
                         ),
                     }
@@ -137,6 +135,7 @@ def test_models_are_strict_frozen_and_closed() -> None:
         CaseCreate.model_validate(
             {
                 "case_key": "case",
+                "evaluation_name": "Exact match",
                 "origin": "authored",
                 "target_kind": "node",
                 "target_key": "target",
@@ -149,6 +148,7 @@ def test_models_are_strict_frozen_and_closed() -> None:
 
     request = CaseCreate(
         case_key="case",
+        evaluation_name="Exact match",
         origin=CaseOrigin.AUTHORED,
         target_kind=TargetKind.AGENT,
         target_key="direct-agent",
@@ -171,6 +171,7 @@ def test_case_provenance_and_payload_bounds_match_studio() -> None:
     with pytest.raises(ValidationError, match="source provenance"):
         CaseCreate(
             case_key="authored",
+            evaluation_name="Exact match",
             origin=CaseOrigin.AUTHORED,
             target_kind=TargetKind.NODE,
             target_key="node",
@@ -184,6 +185,7 @@ def test_case_provenance_and_payload_bounds_match_studio() -> None:
     with pytest.raises(ValidationError, match="require both"):
         CaseCreate(
             case_key="generated",
+            evaluation_name="Exact match",
             origin=CaseOrigin.GENERATED,
             target_kind=TargetKind.WORKFLOW,
             target_key="workflow",
@@ -196,6 +198,7 @@ def test_case_provenance_and_payload_bounds_match_studio() -> None:
     with pytest.raises(ValidationError, match="16384"):
         CaseCreate(
             case_key="large",
+            evaluation_name="Exact match",
             origin=CaseOrigin.AUTHORED,
             target_kind=TargetKind.NODE,
             target_key="node",
@@ -206,60 +209,53 @@ def test_case_provenance_and_payload_bounds_match_studio() -> None:
         )
 
 
-@pytest.mark.parametrize(
-    ("status", "score", "valid"),
-    [
-        (AttemptStatus.PASSED, 1.0, True),
-        (AttemptStatus.FAILED, 0.0, True),
-        (AttemptStatus.ERROR, None, True),
-        (AttemptStatus.PASSED, None, False),
-        (AttemptStatus.ERROR, 0.0, False),
-    ],
-)
-def test_attempt_result_contract(
-    status: AttemptStatus,
-    score: float | None,
-    valid: bool,
-) -> None:
-    values = {
-        "status": status,
-        "score": score,
-        "reason": "bounded reason",
-    }
-    if valid:
-        AttemptResultWrite.model_validate(values)
-    else:
-        with pytest.raises(ValidationError):
-            AttemptResultWrite.model_validate(values)
+@pytest.mark.parametrize("status", tuple(AttemptStatus)[1:])
+def test_attempt_result_contract_is_binary(status: AttemptStatus) -> None:
+    AttemptResultWrite(status=status, reason="bounded reason")
+    with pytest.raises(ValidationError, match="extra"):
+        AttemptResultWrite.model_validate({"status": status, "reason": "bounded reason", "score": 1.0})
 
 
 def test_comparison_aligns_exact_case_identity_and_derives_deltas() -> None:
     baseline = _run_detail(
         "baseline",
         "baseline",
-        score=0.4,
         duration_ms=120,
     )
     candidate = _run_detail(
         "candidate",
         "candidate",
-        score=0.9,
         duration_ms=100,
     )
 
     comparison = project_run_comparison(baseline, candidate)
 
     assert comparison.dataset.id == "dataset-1"
+    assert comparison.scope.dataset_id == "dataset-1"
     assert comparison.rows[0].case.case_key == "brooklyn"
-    assert comparison.rows[0].score_delta == pytest.approx(0.5)
     assert comparison.rows[0].duration_delta_ms == -20
+    assert comparison.rows[0].transition == "unchanged"
+    assert comparison.baseline_summary.pass_rate == 1.0
+    assert comparison.candidate_summary.pass_rate == 1.0
+    assert comparison.transition_counts.unchanged == 1
+
+    scoped = project_run_comparison(
+        baseline,
+        candidate,
+        scope=RunScope(
+            target_kind=TargetKind.AGENT,
+            evaluation_name="Response place realism",
+        ),
+    )
+    assert scoped.rows == ()
+    assert scoped.baseline_summary.total == 0
+    assert scoped.scope.target_kind is TargetKind.AGENT
 
 
 def test_comparison_rejects_same_run_or_different_membership() -> None:
     baseline = _run_detail(
         "baseline",
         "baseline",
-        score=0.4,
         duration_ms=120,
     )
     with pytest.raises(RunComparisonError, match="must differ"):
@@ -268,7 +264,6 @@ def test_comparison_rejects_same_run_or_different_membership() -> None:
     candidate = _run_detail(
         "candidate",
         "candidate",
-        score=0.9,
         duration_ms=100,
     )
     mismatched = candidate.model_copy(update={"dataset": candidate.dataset.model_copy(update={"id": "other"})})

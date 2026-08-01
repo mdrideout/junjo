@@ -3,6 +3,7 @@ import { z } from 'zod'
 import openapiSpec from '../../../backend/openapi.json'
 import { generateMock } from '../../auth/test-utils/openapi-mock-generator'
 import {
+  EvaluationDatasetDetailSchema,
   EvaluationRunDetailSchema,
   EvaluationRunListPageSchema,
 } from '../../features/evaluation-runs/schemas/evaluation-runs'
@@ -28,6 +29,7 @@ const EvaluationRunsSurfaceSchema = z
   .object({
     paths: z
       .object({
+        '/api/v1/evaluation/datasets/{dataset_id}': z.object({ get: OperationSchema }).passthrough(),
         '/api/v1/evaluation/runs': z.object({ get: OperationSchema }).passthrough(),
         '/api/v1/evaluation/runs/{run_id}': z.object({ get: OperationSchema }).passthrough(),
       })
@@ -37,6 +39,8 @@ const EvaluationRunsSurfaceSchema = z
 
 describe('API Contract: evaluation run reads', () => {
   const surface = EvaluationRunsSurfaceSchema.parse(openapiSpec)
+  const datasetDetailOperation =
+    surface.paths['/api/v1/evaluation/datasets/{dataset_id}'].get
   const listOperation = surface.paths['/api/v1/evaluation/runs'].get
   const detailOperation = surface.paths['/api/v1/evaluation/runs/{run_id}'].get
 
@@ -44,6 +48,10 @@ describe('API Contract: evaluation run reads', () => {
     expect(listOperation.operationId).toBe('list_evaluation_runs')
     expect(listOperation.parameters.map((parameter) => parameter.name)).toEqual([
       'dataset_id',
+      'target_kind',
+      'target_key',
+      'input_version',
+      'evaluation_name',
       'cursor',
       'limit',
     ])
@@ -76,6 +84,12 @@ describe('API Contract: evaluation run reads', () => {
         },
       },
     })
+  })
+
+  it('parses the OpenAPI-generated dataset detail with the strict frontend schema', () => {
+    expect(datasetDetailOperation.operationId).toBe('get_evaluation_dataset')
+    const { mock } = generateMock('get_evaluation_dataset')
+    expect(EvaluationDatasetDetailSchema.parse(mock)).toBeDefined()
   })
 
   it('parses the OpenAPI-generated run list with the strict frontend schema', () => {

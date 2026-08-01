@@ -134,12 +134,30 @@ async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
             },
         }
         if harness is not None:
-            data["application"] = _harness_summary(harness, include_targets=False)
+            data["application"] = _harness_summary(
+                harness,
+                include_targets=False,
+                include_evaluators=False,
+            )
         return CommandResult(data)
 
     harness = _load_harness(arguments.harness)
     if command == "eval.targets.list":
-        return CommandResult(_harness_summary(harness, include_targets=True))
+        return CommandResult(
+            _harness_summary(
+                harness,
+                include_targets=True,
+                include_evaluators=False,
+            )
+        )
+    if command == "eval.evaluators.list":
+        return CommandResult(
+            _harness_summary(
+                harness,
+                include_targets=False,
+                include_evaluators=True,
+            )
+        )
 
     token = _studio_token()
     async with StudioClient(
@@ -226,6 +244,7 @@ async def _dispatch_dataset(
                 arguments.dataset_id,
                 CaseCreate(
                     case_key=arguments.case_key,
+                    evaluation_name=arguments.evaluation_name,
                     origin=CaseOrigin.AUTHORED,
                     target_kind=target_kind,
                     target_key=arguments.target_key,
@@ -259,6 +278,7 @@ async def _generate_case(
                 GenerateCaseRequest(
                     dataset_id=arguments.dataset_id,
                     case_key=arguments.case_key,
+                    evaluation_name=arguments.evaluation_name,
                     target_kind=TargetKind(arguments.target_kind),
                     target_key=arguments.target_key,
                     input_version=arguments.input_version,
@@ -284,7 +304,7 @@ async def _dispatch_run(
                 detail = await executor.run(
                     dataset_id=arguments.dataset_id,
                     request_key=arguments.request_key,
-                    candidate_label=arguments.candidate_label,
+                    run_label=arguments.run_label,
                 )
             else:
                 detail = await executor.resume(run_id=arguments.run_id)
@@ -292,6 +312,10 @@ async def _dispatch_run(
     if command == "eval.run.list":
         page = await client.list_runs(
             dataset_id=arguments.dataset_id,
+            target_kind=(TargetKind(arguments.target_kind) if arguments.target_kind is not None else None),
+            target_key=arguments.target_key,
+            input_version=arguments.input_version,
+            evaluation_name=arguments.evaluation_name,
             cursor=arguments.cursor,
             limit=arguments.limit,
         )
@@ -311,6 +335,10 @@ async def _dispatch_run(
         comparison = await client.compare_runs(
             arguments.baseline_run_id,
             arguments.candidate_run_id,
+            target_kind=(TargetKind(arguments.target_kind) if arguments.target_kind is not None else None),
+            target_key=arguments.target_key,
+            input_version=arguments.input_version,
+            evaluation_name=arguments.evaluation_name,
         )
         _require_application(harness, comparison.dataset.application_key)
         return CommandResult(comparison)
@@ -393,6 +421,14 @@ def _parser() -> JsonArgumentParser:
     target_list = target_commands.add_parser("list")
     _select(target_list, "eval.targets.list")
 
+    evaluators = commands.add_parser("evaluators")
+    evaluator_commands = evaluators.add_subparsers(
+        dest="evaluators_command",
+        required=True,
+    )
+    evaluator_list = evaluator_commands.add_parser("list")
+    _select(evaluator_list, "eval.evaluators.list")
+
     dataset = commands.add_parser("dataset")
     dataset_commands = dataset.add_subparsers(dest="dataset_command", required=True)
     dataset_create = dataset_commands.add_parser("create")
@@ -428,7 +464,7 @@ def _parser() -> JsonArgumentParser:
     run_execute = run_commands.add_parser("execute")
     run_execute.add_argument("--dataset-id", required=True)
     run_execute.add_argument("--request-key", required=True)
-    run_execute.add_argument("--candidate-label", required=True)
+    run_execute.add_argument("--run-label", required=True)
     _select(run_execute, "eval.run.execute")
 
     run_resume = run_commands.add_parser("resume")
@@ -437,6 +473,13 @@ def _parser() -> JsonArgumentParser:
 
     run_list = run_commands.add_parser("list")
     run_list.add_argument("--dataset-id", required=True)
+    run_list.add_argument(
+        "--target-kind",
+        choices=tuple(item.value for item in TargetKind),
+    )
+    run_list.add_argument("--target-key")
+    run_list.add_argument("--input-version", type=int)
+    run_list.add_argument("--evaluation-name")
     _add_pagination(run_list)
     _select(run_list, "eval.run.list")
 
@@ -447,6 +490,13 @@ def _parser() -> JsonArgumentParser:
     run_compare = run_commands.add_parser("compare")
     run_compare.add_argument("--baseline-run-id", required=True)
     run_compare.add_argument("--candidate-run-id", required=True)
+    run_compare.add_argument(
+        "--target-kind",
+        choices=tuple(item.value for item in TargetKind),
+    )
+    run_compare.add_argument("--target-key")
+    run_compare.add_argument("--input-version", type=int)
+    run_compare.add_argument("--evaluation-name")
     _select(run_compare, "eval.run.compare")
 
     attempt = commands.add_parser("attempt")
@@ -493,6 +543,7 @@ def _add_pagination(parser: argparse.ArgumentParser) -> None:
 def _add_case_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--dataset-id", required=True)
     parser.add_argument("--case-key", required=True)
+    parser.add_argument("--evaluation-name", required=True)
     parser.add_argument(
         "--target-kind",
         choices=tuple(item.value for item in TargetKind),
@@ -608,6 +659,7 @@ def _harness_summary(
     harness: EvaluationHarness,
     *,
     include_targets: bool,
+    include_evaluators: bool,
 ) -> dict[str, object]:
     summary: dict[str, object] = {
         "application_key": harness.application_key,
@@ -625,6 +677,16 @@ def _harness_summary(
                 "input_schema": descriptor.input_schema,
             }
             for descriptor in harness.target_descriptors()
+        ]
+    if include_evaluators:
+        summary["evaluators"] = [
+            {
+                "key": descriptor.key,
+                "version": descriptor.version,
+                "role": descriptor.role.value,
+                "expectation_schema": descriptor.expectation_schema,
+            }
+            for descriptor in harness.evaluator_descriptors()
         ]
     return summary
 

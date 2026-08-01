@@ -106,6 +106,26 @@ def test_targets_list_is_provider_free_and_machine_readable(capsys) -> None:
     assert payload["data"]["targets"][0]["input_schema"]["additionalProperties"] is False
 
 
+def test_evaluators_list_is_provider_free_and_machine_readable(capsys) -> None:
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "evaluators",
+            "list",
+        ]
+    )
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_OK
+    evaluator = payload["data"]["evaluators"][0]
+    assert evaluator["key"] == "junjo.exact"
+    assert evaluator["version"] == 1
+    assert evaluator["role"] == "verifier"
+    assert evaluator["expectation_schema"]["additionalProperties"] is False
+
+
 def test_help_uses_argparse_normally_without_an_internal_error(capsys) -> None:
     exit_code = cli.main(["eval", "--help"])
 

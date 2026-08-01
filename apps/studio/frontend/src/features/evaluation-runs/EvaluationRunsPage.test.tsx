@@ -8,6 +8,7 @@ import { API_BASE, server } from '../../auth/test-utils/mock-server'
 import { store } from '../../root-store/store'
 import EvaluationRunsPage from './EvaluationRunsPage'
 import {
+  makeEvaluationDatasetListPage,
   makeEvaluationRunDetailFixture,
   makeEvaluationRunListPage,
 } from './testing/fixtures'
@@ -19,6 +20,8 @@ describe('EvaluationRunsPage', () => {
       releaseResponse = resolve
     })
     server.use(
+      http.get(`${API_BASE}/api/v1/evaluation/datasets`, () =>
+        HttpResponse.json(makeEvaluationDatasetListPage([]))),
       http.get(`${API_BASE}/api/v1/evaluation/runs`, async () => {
         await responseReady
         return HttpResponse.json(makeEvaluationRunListPage([]))
@@ -35,7 +38,7 @@ describe('EvaluationRunsPage', () => {
 
     expect(await screen.findByText('Loading evaluation runs…')).toBeInTheDocument()
     releaseResponse()
-    expect(await screen.findByText('No evaluation runs match this filter.')).toBeInTheDocument()
+    expect(await screen.findByText('No evaluation runs match this scope.')).toBeInTheDocument()
   })
 
   it('loads one cursor page, renders active and completed runs, and preserves pagination filters', async () => {
@@ -45,11 +48,13 @@ describe('EvaluationRunsPage', () => {
     })
     const candidate = makeEvaluationRunDetailFixture({
       runId: 'page-candidate',
-      candidateLabel: 'prompt candidate',
+      runLabel: 'prompt candidate',
       attemptStatuses: ['passed', 'queued'],
     })
     let observedQuery = ''
     server.use(
+      http.get(`${API_BASE}/api/v1/evaluation/datasets`, () =>
+        HttpResponse.json(makeEvaluationDatasetListPage([baseline, candidate]))),
       http.get(`${API_BASE}/api/v1/evaluation/runs`, ({ request }) => {
         observedQuery = new URL(request.url).search
         return HttpResponse.json(
@@ -70,7 +75,7 @@ describe('EvaluationRunsPage', () => {
       </Provider>,
     )
 
-    expect(await screen.findByRole('link', { name: /baseline page-baseline/ })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'baseline' })).toHaveAttribute(
       'href',
       '/evaluation-runs/page-baseline',
     )
@@ -85,18 +90,34 @@ describe('EvaluationRunsPage', () => {
     )
   })
 
-  it('navigates to a comparison defined by two explicit run IDs', async () => {
+  it('navigates to a comparison selected by visible candidate labels', async () => {
     const user = userEvent.setup()
+    const baseline = makeEvaluationRunDetailFixture({
+      runId: 'visible-baseline',
+      runLabel: 'baseline',
+      attemptStatuses: ['passed'],
+    })
+    const candidate = makeEvaluationRunDetailFixture({
+      runId: 'visible-candidate',
+      runLabel: 'prompt candidate',
+      attemptStatuses: ['passed'],
+    })
     server.use(
+      http.get(`${API_BASE}/api/v1/evaluation/datasets`, () =>
+        HttpResponse.json(makeEvaluationDatasetListPage([baseline]))),
       http.get(`${API_BASE}/api/v1/evaluation/runs`, () =>
-        HttpResponse.json(makeEvaluationRunListPage([]))),
+        HttpResponse.json(makeEvaluationRunListPage([candidate, baseline]))),
     )
     const router = createMemoryRouter(
       [
         { path: '/evaluation-runs', element: <EvaluationRunsPage /> },
         { path: '/evaluation-runs/compare', element: <p>Comparison destination</p> },
       ],
-      { initialEntries: ['/evaluation-runs'] },
+      {
+        initialEntries: [
+          `/evaluation-runs?dataset_id=${encodeURIComponent(baseline.dataset.id)}&limit=50`,
+        ],
+      },
     )
     render(
       <Provider store={store}>
@@ -104,13 +125,12 @@ describe('EvaluationRunsPage', () => {
       </Provider>,
     )
 
-    await user.type(screen.getByRole('textbox', { name: 'Baseline run ID' }), 'run baseline')
-    await user.type(screen.getByRole('textbox', { name: 'Candidate run ID' }), 'run/candidate')
-    await user.click(screen.getByRole('button', { name: 'Compare runs' }))
+    expect(await screen.findByRole('link', { name: /prompt candidate/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Compare' }))
 
     expect(await screen.findByText('Comparison destination')).toBeInTheDocument()
     expect(router.state.location.search).toBe(
-      '?baseline_run_id=run+baseline&candidate_run_id=run%2Fcandidate',
+      '?baseline_run_id=visible-baseline&candidate_run_id=visible-candidate',
     )
   })
 })

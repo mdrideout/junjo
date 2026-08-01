@@ -41,25 +41,25 @@ describe('AppShell', () => {
       'href',
       '/agents',
     )
-    expect(within(desktopNavigation).getByRole('link', { name: 'Evaluation runs' })).toHaveAttribute(
+    expect(within(desktopNavigation).getByRole('link', { name: 'Evaluations' })).toHaveAttribute(
       'href',
       '/evaluation-runs',
     )
     expect(
-      within(desktopNavigation).getByRole('link', { name: 'Evaluation tokens' }),
-    ).toHaveAttribute('href', '/evaluation-tokens')
-    expect(
-      within(desktopNavigation).getByRole('link', { name: 'Ingestion API keys' }),
-    ).toHaveAttribute('href', '/api-keys')
+      within(desktopNavigation).getByRole('link', { name: 'Settings' }),
+    ).toHaveAttribute('href', '/settings')
+    expect(within(desktopNavigation).queryByRole('link', {
+      name: 'Evaluation tokens',
+    })).not.toBeInTheDocument()
     expect(within(desktopNavigation).queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
   })
 
-  it('identifies the evaluation-token route as active navigation', () => {
-    renderShell(true, '/evaluation-tokens')
+  it('identifies nested credential routes under Settings', () => {
+    renderShell(true, '/settings/credentials/evaluation')
 
     expect(
       within(screen.getByRole('complementary')).getByRole('link', {
-        name: 'Evaluation tokens',
+        name: 'Settings',
       }),
     ).toHaveAttribute('aria-current', 'page')
   })
@@ -73,7 +73,7 @@ describe('AppShell', () => {
       const view = renderShell(true, route)
       expect(
         within(screen.getByRole('complementary')).getByRole('link', {
-          name: 'Evaluation runs',
+          name: 'Evaluations',
         }),
       ).toHaveAttribute('aria-current', 'page')
       view.unmount()

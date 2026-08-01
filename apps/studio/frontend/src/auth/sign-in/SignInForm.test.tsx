@@ -4,7 +4,7 @@
  * Tests the sign-in flow including:
  * - Form submission
  * - API calls (sign-in, api_keys)
- * - Navigation based on API key status (no keys → /api-keys, has keys → /)
+ * - Navigation based on API key status (no keys → ingestion credentials, has keys → /)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -36,7 +36,7 @@ describe('SignInForm', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('should navigate to /api-keys after sign-in when user has no API keys', async () => {
+  it('should navigate to ingestion credentials after sign-in when user has no API keys', async () => {
     const user = userEvent.setup()
 
     // Default mock returns empty array for /api_keys
@@ -50,9 +50,9 @@ describe('SignInForm', () => {
     await user.type(passwordInput, 'password123')
     await user.click(submitButton)
 
-    // Wait for navigation to be called with /api-keys
+    // Wait for navigation to be called with the ingestion credential route.
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/api-keys')
+      expect(mockNavigate).toHaveBeenCalledWith('/settings/credentials/ingestion')
     })
   })
 

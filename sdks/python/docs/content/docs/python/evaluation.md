@@ -27,7 +27,7 @@ bounded control records and exact evidence references.
 
 ## Credentials stay separate
 
-Sign in to Studio, open **Evaluation tokens** in the application navigation,
+Sign in to Studio, open **Developer credentials → Evaluation tokens**,
 choose the required scopes and optional expiration, and create a token. Studio
 shows the secret once; copy it to the environment:
 
@@ -119,10 +119,11 @@ Configure the import explicitly in the application repository:
 harness = "my_application.evaluation:harness"
 ```
 
-`junjo eval targets list` imports that object and returns stable target
-identities plus JSON input schemas. It never enters `evaluation_runtime`, so
-target discovery does not create providers, connect to application databases,
-or start telemetry.
+`junjo eval targets list` returns stable target identities plus JSON input
+schemas. `junjo eval evaluators list` returns stable evaluator identities,
+roles, and JSON expectation schemas. Both import the harness without entering
+`evaluation_runtime`, so discovery does not create providers, connect to
+application databases, or start telemetry.
 
 `NodeTarget`, `WorkflowTarget`, and `AgentTarget` own the correct public Junjo
 lifecycle. Their application factories receive typed input, immutable
@@ -147,6 +148,7 @@ junjo eval dataset create \
 junjo eval dataset add \
   --dataset-id DATASET_ID \
   --case-key question-1 \
+  --evaluation-name "Answer exact match" \
   --target-kind node \
   --target-key answer \
   --input-version 1 \
@@ -183,6 +185,7 @@ its clean source revision plus exact semantic execution identity:
 junjo eval case generate \
   --dataset-id DATASET_ID \
   --case-key generated-question-1 \
+  --evaluation-name "Answer quality" \
   --target-kind workflow \
   --target-key answer-flow \
   --input-version 1 \
@@ -203,7 +206,7 @@ Run a locked dataset from a clean committed checkout:
 junjo eval run execute \
   --dataset-id DATASET_ID \
   --request-key baseline-20260727 \
-  --candidate-label baseline
+  --run-label baseline
 
 junjo eval run resume --run-id RUN_ID
 ```
@@ -224,8 +227,30 @@ Dataset with a new request key, then compare exact Case IDs:
 ```bash
 junjo eval run compare \
   --baseline-run-id BASELINE_RUN_ID \
-  --candidate-run-id CANDIDATE_RUN_ID
+  --candidate-run-id CANDIDATE_RUN_ID \
+  --target-kind node \
+  --target-key answer \
+  --input-version 1 \
+  --evaluation-name "Answer quality"
 ```
+
+Omit the target and evaluation flags to compare the complete Dataset. Run-list
+queries accept the same exact Case scope:
+
+```bash
+junjo eval run list \
+  --dataset-id DATASET_ID \
+  --target-kind node \
+  --target-key answer \
+  --input-version 1 \
+  --evaluation-name "Answer quality"
+```
+
+Studio and the SDK report `pass_rate` over judged Attempts only
+(`passed / (passed + failed)`) and report coverage separately
+(`judged / total`). Comparisons classify each immutable Case as `improved`, `regressed`,
+`newly_errored`, `recovered`, `unchanged`, or `changed`, while retaining both
+exact execution links.
 
 ## Query exact evidence
 
@@ -256,12 +281,12 @@ async with StudioClient(base_url=studio_url, token=studio_token) as studio:
         baseline = await evaluation.run(
             dataset_id=dataset_id,
             request_key="baseline-1",
-            candidate_label="baseline",
+            run_label="baseline",
         )
         candidate = await evaluation.run(
             dataset_id=dataset_id,
             request_key="candidate-2",
-            candidate_label="more-specific-prompt",
+            run_label="more-specific-prompt",
         )
 ```
 

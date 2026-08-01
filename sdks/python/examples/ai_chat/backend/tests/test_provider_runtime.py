@@ -178,9 +178,7 @@ def test_live_agent_bindings_are_shared_application_owned_drivers() -> None:
 def test_provider_decision_uses_closed_outer_schema_and_decodes_typed_payloads() -> None:
     schema = ProviderDecision.model_json_schema()
     assert '"additionalProperties": true' not in json.dumps(schema)
-    assert "additionalProperties" not in json.dumps(
-        gemini_response_schema(ProviderDecision)
-    )
+    assert "additionalProperties" not in json.dumps(gemini_response_schema(ProviderDecision))
 
     final = ProviderDecision(
         decision="final_output",
@@ -209,7 +207,7 @@ async def test_gemini_visual_judge_uses_provider_supported_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     response = SimpleNamespace(
-        parsed=QualityJudgment(passed=True, score=1, reason="coherent"),
+        parsed=QualityJudgment(passed=True, reason="coherent"),
         text=None,
     )
     client = FakeGeminiClient(response)

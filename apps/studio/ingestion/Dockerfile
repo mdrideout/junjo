@@ -106,6 +106,8 @@ RUN mkdir src && \
 
 # Copy actual source code (will be overwritten by volume mount in compose)
 COPY ingestion/src/ src/
+COPY ingestion/dev-entrypoint.sh /usr/local/bin/ingestion-dev
+RUN chmod +x /usr/local/bin/ingestion-dev
 
 # Create data directories (needed for development mode)
 RUN mkdir -p /app/.dbdata/spans/wal /app/.dbdata/spans/parquet
@@ -121,9 +123,9 @@ ENV RUST_BACKTRACE=1
 
 EXPOSE 26155 50052
 
-# Use cargo-watch for hot reloading in development
-# -i .dbdata ignores the data directory to prevent restart loops when WAL/parquet files change
-CMD ["cargo", "watch", "-i", ".dbdata", "-i", "target", "-w", "src", "-w", "/proto", "-w", "Cargo.toml", "-w", "build.rs", "-x", "run"]
+# Use cargo-watch for hot reloading in development. The entrypoint owns
+# signal forwarding so the ingestion process can finish its WAL shutdown.
+CMD ["/usr/local/bin/ingestion-dev"]
 
 # ============================================================
 # Production stage (minimal runtime image)

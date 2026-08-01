@@ -25,6 +25,7 @@ EXECUTION = {
 def _case(**overrides):
     values = {
         "case_key": "specific_place",
+        "evaluation_name": "Response place realism",
         "origin": "authored",
         "target_kind": "node",
         "target_key": "date_response_node",
@@ -71,22 +72,20 @@ def test_json_fields_have_strict_serialized_byte_limits() -> None:
         EvaluationCaseCreate.model_validate(_case(input_json={"value": "x" * MAX_JSON_BYTES}))
 
 
-def test_completed_judgment_may_omit_duration_but_requires_score_and_reason() -> None:
+def test_completed_judgment_is_binary_and_may_omit_duration() -> None:
     result = EvaluationAttemptResult(
         status="passed",
-        score=0.8,
         reason="The response names a plausible specific place.",
     )
     assert result.duration_ms is None
 
-    with pytest.raises(ValidationError, match="require score"):
-        EvaluationAttemptResult(status="failed", reason="No place was named.")
-
-    with pytest.raises(ValidationError, match="cannot include score"):
-        EvaluationAttemptResult(
-            status="error",
-            score=0.0,
-            reason="Target setup failed.",
+    with pytest.raises(ValidationError, match="Extra inputs"):
+        EvaluationAttemptResult.model_validate(
+            {
+                "status": "passed",
+                "score": 1.0,
+                "reason": "The response names a plausible specific place.",
+            }
         )
 
 

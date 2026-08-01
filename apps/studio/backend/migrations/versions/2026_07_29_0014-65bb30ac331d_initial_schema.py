@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: b489954c5651
+Revision ID: 65bb30ac331d
 Revises:
-Create Date: 2026-07-28 07:46:41.188113
+Create Date: 2026-07-29 00:14:18.778275
 
 """
 from collections.abc import Sequence
@@ -13,7 +13,7 @@ from alembic import op
 from app.common.datetime_utils import UTCDateTime
 
 # revision identifiers, used by Alembic.
-revision: str = 'b489954c5651'
+revision: str = '65bb30ac331d'
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -94,6 +94,7 @@ def upgrade() -> None:
     sa.Column('id', sa.String(length=22), nullable=False),
     sa.Column('dataset_id', sa.String(length=22), nullable=False),
     sa.Column('case_key', sa.String(length=128), nullable=False),
+    sa.Column('evaluation_name', sa.String(length=256), nullable=False),
     sa.Column('ordinal', sa.Integer(), nullable=False),
     sa.Column('origin', sa.String(length=9), nullable=False),
     sa.Column('target_kind', sa.String(length=8), nullable=False),
@@ -118,6 +119,7 @@ def upgrade() -> None:
     sa.CheckConstraint('input_version BETWEEN 1 AND 2147483647', name='eval_cases_input_version'),
     sa.CheckConstraint('json_valid(input_json) AND length(CAST(input_json AS BLOB)) <= 16384', name='eval_cases_input_json'),
     sa.CheckConstraint('length(CAST(case_key AS BLOB)) BETWEEN 1 AND 128', name='eval_cases_case_key_bytes'),
+    sa.CheckConstraint('length(CAST(evaluation_name AS BLOB)) BETWEEN 1 AND 256', name='eval_cases_evaluation_name_bytes'),
     sa.CheckConstraint('length(CAST(evaluator_key AS BLOB)) BETWEEN 1 AND 128', name='eval_cases_evaluator_key_bytes'),
     sa.CheckConstraint('length(CAST(target_key AS BLOB)) BETWEEN 1 AND 128', name='eval_cases_target_key_bytes'),
     sa.CheckConstraint('ordinal >= 1', name='eval_cases_ordinal'),
@@ -138,7 +140,7 @@ def upgrade() -> None:
     sa.Column('id', sa.String(length=22), nullable=False),
     sa.Column('dataset_id', sa.String(length=22), nullable=False),
     sa.Column('request_key', sa.String(length=128), nullable=False),
-    sa.Column('candidate_label', sa.String(length=256), nullable=False),
+    sa.Column('run_label', sa.String(length=256), nullable=False),
     sa.Column('source_revision', sa.String(length=64), nullable=False),
     sa.Column('status', sa.String(length=9), nullable=False),
     sa.Column('created_by_user_id', sa.String(length=22), nullable=True),
@@ -146,8 +148,8 @@ def upgrade() -> None:
     sa.Column('completed_at', UTCDateTime(), nullable=True),
     sa.CheckConstraint("(status = 'active' AND completed_at IS NULL) OR (status = 'completed' AND completed_at IS NOT NULL)", name='eval_runs_completion_timestamp'),
     sa.CheckConstraint("status IN ('active', 'completed')", name='eval_runs_status'),
-    sa.CheckConstraint('length(CAST(candidate_label AS BLOB)) BETWEEN 1 AND 256', name='eval_runs_candidate_label_bytes'),
     sa.CheckConstraint('length(CAST(request_key AS BLOB)) BETWEEN 1 AND 128', name='eval_runs_request_key_bytes'),
+    sa.CheckConstraint('length(CAST(run_label AS BLOB)) BETWEEN 1 AND 256', name='eval_runs_run_label_bytes'),
     sa.CheckConstraint('length(source_revision) IN (40, 64)', name='eval_runs_source_revision_length'),
     sa.ForeignKeyConstraint(['created_by_user_id'], ['users.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['dataset_id'], ['eval_datasets.id'], ),
@@ -163,7 +165,6 @@ def upgrade() -> None:
     sa.Column('run_id', sa.String(length=22), nullable=False),
     sa.Column('case_id', sa.String(length=22), nullable=False),
     sa.Column('status', sa.String(length=6), nullable=False),
-    sa.Column('score', sa.Float(), nullable=True),
     sa.Column('reason', sa.Text(), nullable=True),
     sa.Column('duration_ms', sa.Integer(), nullable=True),
     sa.Column('subject_service_namespace', sa.String(length=256), nullable=True),
@@ -172,13 +173,12 @@ def upgrade() -> None:
     sa.Column('subject_runtime_id', sa.String(length=256), nullable=True),
     sa.Column('execution_bound_at', UTCDateTime(), nullable=True),
     sa.Column('recorded_at', UTCDateTime(), nullable=True),
-    sa.CheckConstraint("(status = 'queued' AND score IS NULL AND reason IS NULL AND duration_ms IS NULL AND recorded_at IS NULL) OR (status IN ('passed', 'failed') AND score IS NOT NULL AND reason IS NOT NULL AND subject_runtime_id IS NOT NULL AND recorded_at IS NOT NULL) OR (status = 'error' AND score IS NULL AND reason IS NOT NULL AND recorded_at IS NOT NULL)", name='eval_case_attempts_terminal_fields'),
+    sa.CheckConstraint("(status = 'queued' AND reason IS NULL AND duration_ms IS NULL AND recorded_at IS NULL) OR (status IN ('passed', 'failed') AND reason IS NOT NULL AND subject_runtime_id IS NOT NULL AND recorded_at IS NOT NULL) OR (status = 'error' AND reason IS NOT NULL AND recorded_at IS NOT NULL)", name='eval_case_attempts_terminal_fields'),
     sa.CheckConstraint("status IN ('queued', 'passed', 'failed', 'error')", name='eval_case_attempts_status'),
     sa.CheckConstraint("subject_executable_type IS NULL OR subject_executable_type IN ('workflow', 'subflow', 'agent')", name='eval_case_attempts_subject_executable_type'),
     sa.CheckConstraint('(subject_service_namespace IS NULL AND subject_service_name IS NULL AND subject_executable_type IS NULL AND subject_runtime_id IS NULL AND execution_bound_at IS NULL) OR (subject_service_namespace IS NOT NULL AND subject_service_name IS NOT NULL AND subject_executable_type IS NOT NULL AND subject_runtime_id IS NOT NULL AND execution_bound_at IS NOT NULL)', name='eval_case_attempts_subject_execution'),
     sa.CheckConstraint('duration_ms IS NULL OR duration_ms BETWEEN 0 AND 86400000', name='eval_case_attempts_duration'),
     sa.CheckConstraint('reason IS NULL OR length(CAST(reason AS BLOB)) BETWEEN 1 AND 4096', name='eval_case_attempts_reason_bytes'),
-    sa.CheckConstraint('score IS NULL OR (score >= 0.0 AND score <= 1.0)', name='eval_case_attempts_score'),
     sa.CheckConstraint('subject_runtime_id IS NULL OR length(CAST(subject_runtime_id AS BLOB)) BETWEEN 1 AND 256', name='eval_case_attempts_subject_runtime_id_bytes'),
     sa.CheckConstraint('subject_service_name IS NULL OR length(CAST(subject_service_name AS BLOB)) BETWEEN 1 AND 256', name='eval_case_attempts_subject_service_name_bytes'),
     sa.CheckConstraint('subject_service_namespace IS NULL OR length(CAST(subject_service_namespace AS BLOB)) <= 256', name='eval_case_attempts_subject_namespace_bytes'),

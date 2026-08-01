@@ -1,5 +1,7 @@
 import { createListenerMiddleware } from '@reduxjs/toolkit/react'
 import type { AppDispatch, RootState } from '../../../root-store/store'
+import { listEvaluationDatasets } from '../fetch/list-evaluation-datasets'
+import { getEvaluationDataset } from '../fetch/get-evaluation-dataset'
 import { getEvaluationRun } from '../fetch/get-evaluation-run'
 import { listEvaluationRuns } from '../fetch/list-evaluation-runs'
 import { EvaluationIdSchema } from '../schemas/evaluation-runs'
@@ -9,6 +11,46 @@ import { EvaluationRunsActions } from './slice'
 export const evaluationRunsListenerMiddleware = createListenerMiddleware()
 const startListener =
   evaluationRunsListenerMiddleware.startListening.withTypes<RootState, AppDispatch>()
+
+startListener({
+  actionCreator: EvaluationRunsActions.fetchEvaluationDataset,
+  effect: async (action, { dispatch, getState }) => {
+    const parsedDatasetId = EvaluationIdSchema.safeParse(action.payload)
+    if (!parsedDatasetId.success) return
+    const datasetId = parsedDatasetId.data
+    if (getState().evaluationRunsState.datasetDetails[datasetId]?.loading) return
+
+    dispatch(EvaluationRunsActions.setDatasetDetailError({ datasetId, error: null }))
+    dispatch(EvaluationRunsActions.setDatasetDetailLoading({ datasetId, loading: true }))
+    try {
+      const data = await getEvaluationDataset(datasetId)
+      dispatch(EvaluationRunsActions.setDatasetDetailData({ datasetId, data }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch evaluation dataset'
+      dispatch(EvaluationRunsActions.setDatasetDetailError({ datasetId, error: message }))
+    } finally {
+      dispatch(EvaluationRunsActions.setDatasetDetailLoading({ datasetId, loading: false }))
+    }
+  },
+})
+
+startListener({
+  actionCreator: EvaluationRunsActions.fetchEvaluationDatasets,
+  effect: async (_action, { dispatch, getState }) => {
+    if (getState().evaluationRunsState.datasets.loading) return
+
+    dispatch(EvaluationRunsActions.setDatasetsError(null))
+    dispatch(EvaluationRunsActions.setDatasetsLoading(true))
+    try {
+      dispatch(EvaluationRunsActions.setDatasetsData(await listEvaluationDatasets()))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch evaluation datasets'
+      dispatch(EvaluationRunsActions.setDatasetsError(message))
+    } finally {
+      dispatch(EvaluationRunsActions.setDatasetsLoading(false))
+    }
+  },
+})
 
 startListener({
   actionCreator: EvaluationRunsActions.fetchEvaluationRuns,

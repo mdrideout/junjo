@@ -1,5 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type {
+  EvaluationDatasetDetail,
+  EvaluationDatasetListPage,
   EvaluationRunDetail,
   EvaluationRunListPage,
 } from '../schemas/evaluation-runs'
@@ -12,11 +14,15 @@ export interface EvaluationRequestState<T> {
 }
 
 export interface EvaluationRunsState {
+  datasets: EvaluationRequestState<EvaluationDatasetListPage>
+  datasetDetails: Record<string, EvaluationRequestState<EvaluationDatasetDetail>>
   lists: Record<string, EvaluationRequestState<EvaluationRunListPage>>
   details: Record<string, EvaluationRequestState<EvaluationRunDetail>>
 }
 
 export const initialEvaluationRunsState: EvaluationRunsState = {
+  datasets: { data: null, loading: false, error: null },
+  datasetDetails: {},
   lists: {},
   details: {},
 }
@@ -33,17 +39,59 @@ export const evaluationRunsSlice = createSlice({
   name: 'evaluationRunsState',
   initialState: initialEvaluationRunsState,
   reducers: {
+    fetchEvaluationDatasets: () => {
+      // Listener middleware owns the request.
+    },
     fetchEvaluationRuns: {
       reducer: () => {
         // Listener middleware owns the request.
       },
       prepare: (query: EvaluationRunListQuery) => ({ payload: query }),
     },
+    fetchEvaluationDataset: {
+      reducer: () => {
+        // Listener middleware owns the request.
+      },
+      prepare: (datasetId: string) => ({ payload: datasetId }),
+    },
     fetchEvaluationRun: {
       reducer: () => {
         // Listener middleware owns the request.
       },
       prepare: (runId: string) => ({ payload: runId }),
+    },
+    setDatasetsLoading: (state, action: PayloadAction<boolean>) => {
+      state.datasets.loading = action.payload
+    },
+    setDatasetsError: (state, action: PayloadAction<string | null>) => {
+      state.datasets.error = action.payload
+    },
+    setDatasetsData: (
+      state,
+      action: PayloadAction<EvaluationDatasetListPage>,
+    ) => {
+      state.datasets.data = action.payload
+    },
+    setDatasetDetailLoading: (
+      state,
+      action: PayloadAction<{ datasetId: string; loading: boolean }>,
+    ) => {
+      requestState(state.datasetDetails, action.payload.datasetId).loading =
+        action.payload.loading
+    },
+    setDatasetDetailError: (
+      state,
+      action: PayloadAction<{ datasetId: string; error: string | null }>,
+    ) => {
+      requestState(state.datasetDetails, action.payload.datasetId).error =
+        action.payload.error
+    },
+    setDatasetDetailData: (
+      state,
+      action: PayloadAction<{ datasetId: string; data: EvaluationDatasetDetail }>,
+    ) => {
+      requestState(state.datasetDetails, action.payload.datasetId).data =
+        action.payload.data
     },
     setListLoading: (
       state,

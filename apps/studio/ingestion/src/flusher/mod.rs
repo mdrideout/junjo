@@ -39,16 +39,21 @@ impl Flusher {
 
     /// Run the flusher loop in the background.
     /// Takes the segment notification receiver for reactive flush triggering.
-    pub async fn run(&self, mut segment_rx: mpsc::Receiver<()>) {
+    pub async fn run(&self, mut segment_rx: mpsc::Receiver<()>) -> anyhow::Result<()> {
         let mut check_interval = interval(Duration::from_secs(10));
         let mut pending_flush_interval = interval(Duration::from_secs(3));
 
         loop {
             tokio::select! {
                 // Reactive: triggered when TraceService writes a new WAL segment
-                _ = segment_rx.recv() => {
-                    if let Err(e) = self.check_and_flush().await {
-                        error!(error = %e, "Error during reactive flush check");
+                notification = segment_rx.recv() => {
+                    match notification {
+                        Some(()) => {
+                            if let Err(e) = self.check_and_flush().await {
+                                error!(error = %e, "Error during reactive flush check");
+                            }
+                        }
+                        None => break,
                     }
                 }
                 // Fallback: periodic check for age-based flush
@@ -65,6 +70,10 @@ impl Flusher {
                 }
             }
         }
+
+        self.persist_pending_to_wal().await?;
+        info!("Flusher stopped with pending spans persisted to WAL");
+        Ok(())
     }
 
     /// Flush any pending spans to IPC segments (for durability).
@@ -74,6 +83,13 @@ impl Flusher {
             debug!("Timer-based flush of pending spans to IPC");
             wal.flush_pending()?;
         }
+        Ok(())
+    }
+
+    /// Persist every pending span before the ingestion process exits.
+    async fn persist_pending_to_wal(&self) -> anyhow::Result<()> {
+        let mut wal = self.wal.write().await;
+        wal.flush_pending()?;
         Ok(())
     }
 
@@ -187,4 +203,65 @@ fn rand_suffix() -> String {
         .unwrap()
         .subsec_nanos();
     format!("{:08x}", nanos)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::wal::SpanRecord;
+    use tempfile::tempdir;
+
+    fn test_record() -> SpanRecord {
+        SpanRecord {
+            span_id: "span-id".to_string(),
+            trace_id: "trace-id".to_string(),
+            parent_span_id: None,
+            service_name: "shutdown-test".to_string(),
+            name: "pending-span".to_string(),
+            span_kind: 1,
+            start_time_ns: 1,
+            end_time_ns: 2,
+            duration_ns: 1,
+            status_code: 0,
+            status_message: None,
+            attributes: "{}".to_string(),
+            events: "[]".to_string(),
+            links: "[]".to_string(),
+            trace_flags: 0,
+            trace_state: None,
+            dropped_attributes_count: 0,
+            dropped_events_count: 0,
+            dropped_links_count: 0,
+            resource_attributes: "{}".to_string(),
+            resource_dropped_attributes_count: 0,
+        }
+    }
+
+    #[tokio::test]
+    async fn closed_notification_channel_persists_pending_spans_and_stops_flusher() {
+        let dir = tempdir().unwrap();
+        let wal = Arc::new(RwLock::new(
+            ArrowWal::new(&dir.path().join("wal"), 100).unwrap(),
+        ));
+        wal.write().await.write_span(test_record()).unwrap();
+
+        let flusher = Flusher::new(
+            Arc::clone(&wal),
+            dir.path().join("parquet"),
+            u64::MAX,
+            u64::MAX,
+            Arc::new(Mutex::new(RecentColdFiles::new(
+                10,
+                Duration::from_secs(60),
+            ))),
+        );
+        let (segment_tx, segment_rx) = mpsc::channel(1);
+        drop(segment_tx);
+
+        flusher.run(segment_rx).await.unwrap();
+
+        let batches = wal.write().await.read_batches().unwrap();
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].num_rows(), 1);
+    }
 }

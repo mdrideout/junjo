@@ -32,13 +32,21 @@ export const EvaluationDatasetSummarySchema = z
   .strict()
 export type EvaluationDatasetSummary = z.infer<typeof EvaluationDatasetSummarySchema>
 
-export const EvaluationDatasetDetailSchema = EvaluationDatasetSummarySchema.extend({
+export const EvaluationDatasetSchema = EvaluationDatasetSummarySchema.extend({
   description: z.string().nullable(),
   created_by_user_id: EvaluationIdSchema.nullable(),
   created_at: utcDatetimeSchema,
   locked_at: utcDatetimeSchema.nullable(),
 }).strict()
-export type EvaluationDatasetDetail = z.infer<typeof EvaluationDatasetDetailSchema>
+export type EvaluationDataset = z.infer<typeof EvaluationDatasetSchema>
+
+export const EvaluationDatasetListPageSchema = z
+  .object({
+    items: z.array(EvaluationDatasetSchema),
+    next_cursor: z.string().min(1).nullable(),
+  })
+  .strict()
+export type EvaluationDatasetListPage = z.infer<typeof EvaluationDatasetListPageSchema>
 
 export const EvaluationRunStatusSchema = z.enum(['active', 'completed'])
 export type EvaluationRunStatus = z.infer<typeof EvaluationRunStatusSchema>
@@ -48,7 +56,7 @@ export const EvaluationRunSchema = z
     id: EvaluationIdSchema,
     dataset_id: EvaluationIdSchema,
     request_key: z.string().min(1),
-    candidate_label: z.string().min(1),
+    run_label: z.string().min(1),
     source_revision: z.string().min(1),
     status: EvaluationRunStatusSchema,
     created_by_user_id: EvaluationIdSchema.nullable(),
@@ -58,28 +66,63 @@ export const EvaluationRunSchema = z
   .strict()
 export type EvaluationRun = z.infer<typeof EvaluationRunSchema>
 
-export const EvaluationAttemptCountsSchema = z
+export const EvaluationRunScopeSchema = z
+  .object({
+    dataset_id: EvaluationIdSchema.nullable(),
+    target_kind: z.enum(['node', 'workflow', 'agent']).nullable(),
+    target_key: z.string().min(1).nullable(),
+    input_version: SafePositiveIntegerSchema.nullable(),
+    evaluation_name: z.string().min(1).nullable(),
+  })
+  .strict()
+export type EvaluationRunScope = z.infer<typeof EvaluationRunScopeSchema>
+
+export const EvaluationOutcomeSummarySchema = z
   .object({
     total: SafeNonNegativeIntegerSchema,
     queued: SafeNonNegativeIntegerSchema,
+    judged: SafeNonNegativeIntegerSchema,
     passed: SafeNonNegativeIntegerSchema,
     failed: SafeNonNegativeIntegerSchema,
     error: SafeNonNegativeIntegerSchema,
+    pass_rate: z.number().finite().min(0).max(1).nullable(),
+    coverage: z.number().finite().min(0).max(1).nullable(),
   })
   .strict()
-export type EvaluationAttemptCounts = z.infer<typeof EvaluationAttemptCountsSchema>
+export type EvaluationOutcomeSummary = z.infer<typeof EvaluationOutcomeSummarySchema>
+
+export const EvaluationTargetFacetSchema = z
+  .object({
+    target_kind: z.enum(['node', 'workflow', 'agent']),
+    target_key: z.string().min(1),
+    input_version: SafePositiveIntegerSchema,
+    case_count: SafePositiveIntegerSchema,
+  })
+  .strict()
+export type EvaluationTargetFacet = z.infer<typeof EvaluationTargetFacetSchema>
+
+export const EvaluationNameFacetSchema = z
+  .object({
+    evaluation_name: z.string().min(1),
+    case_count: SafePositiveIntegerSchema,
+  })
+  .strict()
+export type EvaluationNameFacet = z.infer<typeof EvaluationNameFacetSchema>
 
 export const EvaluationRunListItemSchema = z
   .object({
     run: EvaluationRunSchema,
     dataset: EvaluationDatasetSummarySchema,
-    attempt_counts: EvaluationAttemptCountsSchema,
+    outcome_summary: EvaluationOutcomeSummarySchema,
+    target_facets: z.array(EvaluationTargetFacetSchema),
+    evaluation_facets: z.array(EvaluationNameFacetSchema),
   })
   .strict()
 export type EvaluationRunListItem = z.infer<typeof EvaluationRunListItemSchema>
 
 export const EvaluationRunListPageSchema = z
   .object({
+    scope: EvaluationRunScopeSchema,
     items: z.array(EvaluationRunListItemSchema),
     next_cursor: z.string().min(1).nullable(),
   })
@@ -97,6 +140,7 @@ export const EvaluationCaseSchema = z
     id: EvaluationIdSchema,
     dataset_id: EvaluationIdSchema,
     case_key: z.string().min(1),
+    evaluation_name: z.string().min(1),
     ordinal: SafePositiveIntegerSchema,
     origin: EvaluationCaseOriginSchema,
     target_kind: EvaluationTargetKindSchema,
@@ -122,7 +166,6 @@ export const EvaluationAttemptSchema = z
     run_id: EvaluationIdSchema,
     case_id: EvaluationIdSchema,
     status: EvaluationAttemptStatusSchema,
-    score: z.number().finite().min(0).max(1).nullable(),
     reason: z.string().nullable(),
     duration_ms: SafeNonNegativeIntegerSchema.nullable(),
     subject_execution: SemanticExecutionReferenceSchema.nullable(),
@@ -140,10 +183,18 @@ export const EvaluationRunCaseSchema = z
   .strict()
 export type EvaluationRunCase = z.infer<typeof EvaluationRunCaseSchema>
 
+export const EvaluationDatasetDetailSchema = z
+  .object({
+    dataset: EvaluationDatasetSchema,
+    cases: z.array(EvaluationCaseSchema),
+  })
+  .strict()
+export type EvaluationDatasetDetail = z.infer<typeof EvaluationDatasetDetailSchema>
+
 export const EvaluationRunDetailSchema = z
   .object({
     run: EvaluationRunSchema,
-    dataset: EvaluationDatasetDetailSchema,
+    dataset: EvaluationDatasetSchema,
     cases: z.array(EvaluationRunCaseSchema),
   })
   .strict()

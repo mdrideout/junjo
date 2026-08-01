@@ -16,6 +16,7 @@ The declaration is provider-free and safe to inspect:
 
 ```bash
 .venv/bin/junjo eval targets list
+.venv/bin/junjo eval evaluators list
 ```
 
 With `JUNJO_STUDIO_URL` and a separately scoped
@@ -36,4 +37,6 @@ The example's Agent uses Junjo's deterministic scripted driver so the package
 boundary can be validated without a model-provider dependency. A real
 application replaces only that application-owned factory and resource context;
 Studio client, dataset, runner, result, resume, and CLI mechanics remain in
-Junjo.
+Junjo. The distribution E2E proof temporarily sets
+`JUNJO_EVALUATION_EXAMPLE_AGENT_FACTOR=3` for the candidate Run to produce one
+deterministic Agent regression; ordinary runs use the default factor of `2`.

@@ -48,9 +48,11 @@ from .models import (
     RecordId,
     RunDetail,
     RunList,
+    RunScope,
     RunStart,
     SemanticExecutionReference,
     StudioHealth,
+    TargetKind,
     TraceEvidenceRead,
 )
 
@@ -218,7 +220,7 @@ class StudioClient:
     async def list_datasets(
         self,
         *,
-        application_key: str,
+        application_key: str | None = None,
         cursor: str | None = None,
         limit: int = 50,
     ) -> DatasetList:
@@ -229,13 +231,13 @@ class StudioClient:
         with ``next_cursor``.
         """
 
-        application_key = _KEY_TEXT.validate_python(application_key, strict=True)
+        if application_key is not None:
+            application_key = _KEY_TEXT.validate_python(application_key, strict=True)
         cursor = _validated_cursor(cursor)
         _require_page_limit(limit)
-        params: dict[str, str | int] = {
-            "application_key": application_key,
-            "limit": limit,
-        }
+        params: dict[str, str | int] = {"limit": limit}
+        if application_key is not None:
+            params["application_key"] = application_key
         if cursor is not None:
             params["cursor"] = cursor
         return await self._model_request(
@@ -293,18 +295,27 @@ class StudioClient:
         self,
         *,
         dataset_id: str | None = None,
+        target_kind: TargetKind | None = None,
+        target_key: str | None = None,
+        input_version: int | None = None,
+        evaluation_name: str | None = None,
         cursor: str | None = None,
         limit: int = 50,
     ) -> RunList:
-        """Return one bounded cursor page of evaluation runs."""
+        """Return one bounded page scoped by conjunctive case identity filters."""
 
-        if dataset_id is not None:
-            dataset_id = _validated_record_id(dataset_id)
+        scope = RunScope(
+            dataset_id=dataset_id,
+            target_kind=target_kind,
+            target_key=target_key,
+            input_version=input_version,
+            evaluation_name=evaluation_name,
+        )
         cursor = _validated_cursor(cursor)
         _require_page_limit(limit)
         params: dict[str, str | int] = {"limit": limit}
-        if dataset_id is not None:
-            params["dataset_id"] = dataset_id
+        for key, value in scope.model_dump(mode="json", exclude_none=True).items():
+            params[key] = value
         if cursor is not None:
             params["cursor"] = cursor
         return await self._model_request(
@@ -328,12 +339,26 @@ class StudioClient:
         self,
         baseline_run_id: str,
         candidate_run_id: str,
+        *,
+        target_kind: TargetKind | None = None,
+        target_key: str | None = None,
+        input_version: int | None = None,
+        evaluation_name: str | None = None,
     ) -> RunComparison:
         """Fetch and compare two runs without hydrating full trace evidence."""
 
         baseline = await self.get_run(baseline_run_id)
         candidate = await self.get_run(candidate_run_id)
-        return project_run_comparison(baseline, candidate)
+        return project_run_comparison(
+            baseline,
+            candidate,
+            scope=RunScope(
+                target_kind=target_kind,
+                target_key=target_key,
+                input_version=input_version,
+                evaluation_name=evaluation_name,
+            ),
+        )
 
     async def get_attempt(self, attempt_id: str) -> AttemptDetail:
         """Return one attempt with its run, dataset, and case context."""

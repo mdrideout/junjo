@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Generic, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, ValidationError
@@ -22,18 +23,11 @@ class EvaluationResult:
     """Validated terminal judgment returned by every evaluator."""
 
     passed: bool
-    score: float
     reason: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.passed, bool):
             raise TypeError("EvaluationResult passed must be a bool.")
-        if (
-            not isinstance(self.score, (int, float))
-            or isinstance(self.score, bool)
-            or not 0.0 <= float(self.score) <= 1.0
-        ):
-            raise ValueError("EvaluationResult score must be between 0.0 and 1.0.")
         if not isinstance(self.reason, str) or not self.reason.strip():
             raise ValueError("EvaluationResult reason must be non-empty.")
         if len(self.reason) > 4_096:
@@ -55,6 +49,12 @@ class Evaluator:
     version: int
     role: EvaluationRole
     timeout_seconds: float
+
+    @property
+    def expectation_schema(self) -> Mapping[str, object]:
+        """Return the JSON schema accepted by this evaluator version."""
+
+        raise NotImplementedError
 
     def validate_expectation(self, expectation_json: JsonValue | None) -> object:
         raise NotImplementedError
@@ -96,6 +96,10 @@ class ExactMatchEvaluator(Evaluator):
         self.role = EvaluationRole.VERIFIER
         self.timeout_seconds = timeout_seconds
 
+    @property
+    def expectation_schema(self) -> Mapping[str, object]:
+        return MappingProxyType(_ExactExpectation.model_json_schema())
+
     def validate_expectation(
         self,
         expectation_json: JsonValue | None,
@@ -118,7 +122,6 @@ class ExactMatchEvaluator(Evaluator):
         passed = subject == expected
         return EvaluationResult(
             passed=passed,
-            score=1.0 if passed else 0.0,
             reason="Subject exactly matched the expected value."
             if passed
             else "Subject did not exactly match the expected value.",
@@ -150,6 +153,10 @@ class StructuredFieldEvaluator(Evaluator):
         self.version = version
         self.role = EvaluationRole.VERIFIER
         self.timeout_seconds = timeout_seconds
+
+    @property
+    def expectation_schema(self) -> Mapping[str, object]:
+        return MappingProxyType(_StructuredFieldsExpectation.model_json_schema())
 
     def validate_expectation(
         self,
@@ -184,7 +191,6 @@ class StructuredFieldEvaluator(Evaluator):
         passed = not mismatches
         return EvaluationResult(
             passed=passed,
-            score=1.0 if passed else 0.0,
             reason=(
                 "All expected structured fields matched."
                 if passed
@@ -223,10 +229,15 @@ class CallbackEvaluator(Evaluator, Generic[ExpectationT, ResourcesT]):
         self._callback = callback
         try:
             self._expectation_adapter = TypeAdapter(expectation_type)
+            self._expectation_schema = MappingProxyType(self._expectation_adapter.json_schema())
         except Exception as error:
             raise EvaluatorContractError(
                 f"Unable to construct expectation contract for evaluator {key}:v{version}."
             ) from error
+
+    @property
+    def expectation_schema(self) -> Mapping[str, object]:
+        return self._expectation_schema
 
     def validate_expectation(self, expectation_json: JsonValue | None) -> ExpectationT:
         try:
@@ -286,7 +297,6 @@ class BooleanPredicateEvaluator(CallbackEvaluator[ExpectationT, ResourcesT]):
                 raise EvaluatorExecutionError(f"Boolean evaluator {key}:v{version} predicate must return bool.")
             return EvaluationResult(
                 passed=passed,
-                score=1.0 if passed else 0.0,
                 reason=passed_reason if passed else failed_reason,
             )
 

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { Provider } from 'react-redux'
 import { MemoryRouter, Route, Routes } from 'react-router'
@@ -37,7 +38,8 @@ describe('EvaluationRunDetailPage', () => {
     expect(await screen.findByRole('heading', { name: 'baseline' })).toBeInTheDocument()
   })
 
-  it('shows every attempt state and links exact semantic identities without hydrating evidence', async () => {
+  it('shows binary results, prominent scope, and exact span links', async () => {
+    const user = userEvent.setup()
     const detail = makeEvaluationRunDetailFixture({ runId: 'detail-all-statuses' })
     server.use(
       http.get(`${API_BASE}/api/v1/evaluation/runs/:runId`, ({ params }) => {
@@ -62,19 +64,23 @@ describe('EvaluationRunDetailPage', () => {
     expect(screen.getByText('error')).toBeInTheDocument()
     expect(screen.getByText('queued')).toBeInTheDocument()
 
-    const subjectLink = screen.getByRole('link', {
-      name: 'Open subject evidence for local-place-1',
-    })
+    const subjectLink = screen.getAllByRole('link', {
+      name: 'View spans',
+    }).find((link) => link.getAttribute('href')?.includes('runtime-1'))
+    expect(subjectLink).toBeDefined()
     expect(subjectLink).toHaveAttribute(
       'href',
       '/resolve/executable?service_namespace=&service_name=ai-chat-evaluation&executable_type=workflow&runtime_id=detail-all-statuses-runtime-1&destination=detail',
     )
+    await user.click(screen.getAllByText('Test details')[0])
     expect(screen.getByRole('link', {
-      name: 'Open source evidence for local-place-1',
+      name: 'View source spans',
     })).toHaveAttribute(
       'href',
       '/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=workflow&runtime_id=source-runtime-1&destination=detail',
     )
-    expect(screen.getByText('No subject execution')).toBeInTheDocument()
+    expect(screen.getByText('Pending')).toBeInTheDocument()
+    expect(screen.getAllByText('Response place realism').length).toBeGreaterThan(0)
+    expect(screen.getByText('Git Commit')).toBeInTheDocument()
   })
 })

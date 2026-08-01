@@ -24,9 +24,11 @@ import AgentExecutionsPage from './features/agent-executions/AgentExecutionsPage
 import AgentExecutionDetailPage from './features/agent-executions/AgentExecutionDetailPage.tsx'
 import ExecutionResolverPage from './features/execution-resolution/ExecutionResolverPage.tsx'
 import EvaluationRunsPage from './features/evaluation-runs/EvaluationRunsPage.tsx'
+import EvaluationDatasetPage from './features/evaluation-runs/EvaluationDatasetPage.tsx'
 import EvaluationRunDetailPage from './features/evaluation-runs/EvaluationRunDetailPage.tsx'
 import EvaluationRunComparisonPage from './features/evaluation-runs/EvaluationRunComparisonPage.tsx'
 import EvaluationTokensPage from './features/evaluation-tokens/EvaluationTokensPage.tsx'
+import DeveloperCredentialsPage from './features/settings/DeveloperCredentialsPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -119,6 +121,14 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
+                  path="/evaluation-runs/datasets/:datasetId"
+                  element={
+                    <AuthGuard>
+                      <EvaluationDatasetPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
                   path="/evaluation-runs/:runId"
                   element={
                     <AuthGuard>
@@ -127,10 +137,10 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/evaluation-tokens"
+                  path="/settings/credentials"
                   element={
                     <AuthGuard>
-                      <EvaluationTokensPage />
+                      <DeveloperCredentialsPage />
                     </AuthGuard>
                   }
                 />
@@ -143,7 +153,15 @@ createRoot(document.getElementById('root')!).render(
                   }
                 />
                 <Route
-                  path="/api-keys"
+                  path="/settings/credentials/evaluation"
+                  element={
+                    <AuthGuard>
+                      <EvaluationTokensPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/settings/credentials/ingestion"
                   element={
                     <AuthGuard>
                       <ApiKeysPage />

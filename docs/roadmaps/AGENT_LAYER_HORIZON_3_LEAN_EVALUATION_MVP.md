@@ -11,6 +11,8 @@
   [Evaluation System User Stories](AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md)
 - Accepted engineering plan:
   [SDK Evaluation Productization Plan](AGENT_LAYER_HORIZON_3_SDK_EVALUATION_PRODUCTIZATION_PLAN.md)
+- Next UX slice:
+  [Evaluation UX And Target Analysis Plan](AGENT_LAYER_HORIZON_3_EVALUATION_UX_AND_TARGET_ANALYSIS_PLAN.md)
 
 ## Purpose
 
@@ -52,9 +54,9 @@ published Junjo interfaces and guidance.
 The Lean MVP lets a developer or coding agent use the Junjo SDK and its
 JSON-first CLI to create a small immutable dataset in Studio, load one explicit
 evaluation declaration from an application checkout, run that dataset against
-the real application code at a clean revision, and retrieve pass, score,
-reason, duration, comparison data, and complete received execution evidence for
-every case.
+the real application code at a clean revision, and retrieve binary pass/fail
+results, reasons, comparison data, and complete received execution evidence
+for every case.
 
 The first proof covers:
 
@@ -223,7 +225,7 @@ policy.
 
 The minimum repeated loop is:
 
-1. check out a clean, committed AI Chat candidate revision;
+1. check out a clean, committed AI Chat source revision;
 2. invoke `junjo eval run execute` with an explicit application declaration;
 3. let the SDK receive the exact ordered cases and pre-created attempt IDs from
    Studio;
@@ -233,7 +235,7 @@ The minimum repeated loop is:
 6. resolve interesting attempt execution references and request their complete
    received `TraceEvidence`;
 7. edit and validate ordinary application source;
-8. commit the next candidate revision; and
+8. commit the next source revision; and
 9. rerun the same locked dataset and compare by case.
 
 The baseline run remains stored in Studio. It does not need to be rerun for
@@ -247,9 +249,9 @@ validated target input. The application returns a small target result:
 
 | Value | Owner and minimum contents |
 | --- | --- |
-| `EvaluationContext` | SDK-owned immutable context containing application, dataset, run, case, attempt, candidate revision, run class, and execution role identities |
+| `EvaluationContext` | SDK-owned immutable context containing application, dataset, run, case, attempt, source revision, run class, and execution role identities |
 | Target declaration | Application-owned key/kind and input contract plus functions for construction/execution and output projection |
-| Evaluator declaration | Application-owned key/version, expectation contract, and optional domain callback; generic exact/boolean/score mechanics remain SDK-owned |
+| Evaluator declaration | Application-owned key/version, expectation contract, and optional domain callback; generic binary judgment mechanics remain SDK-owned |
 | Target result | SDK-owned result envelope containing evaluator subject, duration or error, and semantic execution identity whenever a trustworthy runtime ID exists |
 
 The SDK derives the semantic service namespace and service name from the same
@@ -303,7 +305,7 @@ Evaluation-attempt root span + normal Junjo execution
         |
         +--------------------> normal OTLP ingestion ----> Parquet evidence
         |                                                   ^
-        | bind runtime ID; then record score + reason        |
+        | bind runtime ID; then record pass/fail + reason    |
         v                                                   |
 Studio case attempt ----> execution resolver ---------------+
         |
@@ -361,7 +363,8 @@ Required fields:
 | --- | --- |
 | `id` | Server-owned stable ID |
 | `dataset_id` | Owning dataset |
-| `case_key` | Unique human-readable key within the dataset |
+| `case_key` | Unique machine-oriented idempotency key within the dataset |
+| `evaluation_name` | Required human name describing what pass or fail tests |
 | `ordinal` | Stable execution and display order |
 | `origin` | `authored` or `generated` |
 | `target_kind` | `node`, `workflow`, or `agent` |
@@ -391,10 +394,14 @@ not interpret it as a general rubric language. The SDK owns evaluator
 contracts and dispatch; an application supplies a callback only where the
 judgment depends on its domain.
 
+`evaluation_name` is required human-facing text such as `Response place
+realism`. It explains what pass or fail means without exposing the
+application's machine-oriented Case key as the product label.
+
 `evaluator_key` and `evaluator_version` pin the SDK-loaded judgment contract
 used for every run of the locked case. The SDK harness rejects an unknown
 version. There is no Studio evaluator registry or DSL. Changing an evaluator
-contract requires a new dataset; otherwise baseline/candidate scores could
+contract requires a new dataset; otherwise baseline/candidate results could
 appear comparable while being produced by different rules.
 
 `source_execution` and case `source_revision` are either both present for a
@@ -403,7 +410,7 @@ application/SDK revision that generated a dataset case queryable together.
 
 ### Evaluation Run
 
-A run applies one labeled candidate to one locked dataset.
+A run applies one labeled application revision to one locked dataset.
 
 Required fields:
 
@@ -412,7 +419,7 @@ Required fields:
 | `id` | Server-owned stable ID |
 | `dataset_id` | Exact locked dataset |
 | `request_key` | Application-supplied idempotency key for starting/resuming this run |
-| `candidate_label` | Required human-readable label such as `baseline` |
+| `run_label` | Required human-readable label such as `baseline` |
 | `source_revision` | Required clean committed application Git revision |
 | `status` | `active` or `completed` |
 | `created_by_user_id` | Authenticated creator; nullable after user deletion |
@@ -422,11 +429,11 @@ Required fields:
 These explicit labels are sufficient for the first comparison. They are not
 pretended to be cryptographic candidate identity.
 
-For a prompt experiment, the developer supplies the candidate label and runs
+For a prompt experiment, the developer supplies the Run label and runs
 the SDK command from the recorded source revision containing that prompt. The
 SDK requires a clean committed worktree, captures `git rev-parse HEAD`, and
-rejects a dirty candidate rather than attaching a misleading revision. The
-candidate label is metadata; it does not select or inject different behavior.
+rejects a dirty checkout rather than attaching a misleading revision. The Run
+label is metadata; it does not select or inject different behavior.
 The exact rendered model request remains in received trace evidence where the
 current instrumentation emits it. The MVP neither reconstructs nor stores the
 originating template.
@@ -447,7 +454,6 @@ Required fields:
 | `run_id` | Owning evaluation run |
 | `case_id` | Exact dataset case |
 | `status` | `queued`, `passed`, `failed`, or `error` |
-| `score` | Optional bounded score for a completed judgment |
 | `reason` | Optional bounded human-readable judgment or error |
 | `duration_ms` | Optional non-negative duration |
 | `subject_execution` | Optional exact semantic execution reference |
@@ -460,7 +466,7 @@ the target or evaluator did not produce a valid judgment. A missing
 trustworthy execution identity. When a Workflow error exposes its run ID, the
 attempt retains that reference even though execution failed.
 
-The attempt record is authoritative for evaluation status, score, and reason.
+The attempt record is authoritative for evaluation status and reason.
 Telemetry is authoritative for execution evidence. The MVP does not write a
 second canonical result into span attributes or copy subject prompts,
 responses, state, or traces into SQLite.
@@ -720,7 +726,7 @@ demonstrates the required input projection.
 
 The SDK establishes an evaluation-attempt root span with bounded standardized
 attributes for run class (`evaluation` or `dataset_generation`), dataset, run,
-case, attempt, candidate revision, and role (`subject`, `judge`, `verifier`, or
+case, attempt, source revision, and role (`subject`, `judge`, `verifier`, or
 `orchestrator`) as applicable. The declared target executes beneath that
 context while retaining the same service namespace, service name, and domain
 correlation it has during ordinary application use. Studio control records
@@ -1019,7 +1025,7 @@ Horizon 3 Lean MVP is complete when:
 - Node, Workflow, and Agent targets execute through real application code;
 - baseline and candidate runs use that same case set;
 - every case is visibly passed, failed, errored, or still queued;
-- completed judgments have a score and reason;
+- completed judgments have a binary result and reason;
 - executions with a trustworthy runtime ID have exact semantic Studio links;
 - all received trace evidence remains inspectable through existing pages;
 - a coding agent in a standalone application repository can use stable
@@ -1121,10 +1127,12 @@ retained its original containers and remained healthy.
 
 ## SDK-Owned Live Validation Record
 
-The productized SDK-owned path was validated on 2026-07-28 after replacing the
+The productized SDK-owned path was revalidated on 2026-07-29 after replacing the
 unreleased Studio migration history with one greenfield initial revision.
 Studio started from an empty data directory, upgraded directly to revision
-`b489954c5651`, and created every application and evaluation table.
+`65bb30ac331d`, and created every application and evaluation table. An
+independent empty database also passed upgrade, downgrade, re-upgrade, and
+`alembic check`.
 
 The attended setup used only supported product boundaries:
 
@@ -1133,16 +1141,18 @@ The attended setup used only supported product boundaries:
 - the SDK CLI authenticated with `JUNJO_AI_STUDIO_CLI_TOKEN`, discovered the
   application harness, and reported Node, Workflow, and Agent targets;
 - the CLI created and irreversibly locked dataset
-  `local-place-realism-sdk-v1` with three authored real-geography cases; and
+  `local-place-realism-v1` with three authored real-geography Tests, all named
+  `Response place realism`; and
 - a clean committed temporary checkout executed two labeled runs through the
   SDK runner while the application exported ordinary telemetry to the same
   Studio deployment.
 
-Both `baseline` and `repeat-same-revision` completed three of three attempts
-with score `1.0`. The first run selected the Noguchi Museum, Weather Up in
-Prospect Heights, and Brooklyn Botanic Garden. The repeat preserved all passes
-while producing independent executions. Studio's comparison paired all three
-rows by exact locked Case identity and reported zero score delta.
+Both `baseline` and `current` completed three of three attempts with passing
+binary judgments. The Runs independently selected real Prospect Heights and
+Barclays-area places including Weather Up, Leland Eating and Drinking House,
+Unnameable Books, Chuko, Hungry Ghost Coffee, Grand Army Plaza, and Prospect
+Park. Studio's comparison paired all three rows by exact locked Test identity
+and reported unchanged binary results.
 
 All six attempts resolved through `junjo eval attempt evidence` to six distinct
 trace IDs. Bound and resolved runtime IDs matched exactly, all evidence
@@ -1153,7 +1163,7 @@ created by `evaluate_node()`; the Dataset target remains `node`.
 
 The same SDK-owned CLI also created a second Dataset from a real generated
 Workflow execution. Its Case retained the exact source execution and clean
-source revision, the locked Dataset reran successfully with score `1.0`, and
+source revision, the locked Dataset reran successfully, and
 resuming the completed Run did not re-execute its terminal Attempt. The
 sequential runner reached 118,505,472 bytes maximum RSS for this run.
 

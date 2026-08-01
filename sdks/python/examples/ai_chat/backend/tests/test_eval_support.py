@@ -29,7 +29,7 @@ class RecordingJudgeLanguage:
         output_type: type[StructuredOutput],
     ) -> StructuredOutput:
         self.prompt = prompt
-        return output_type.model_validate({"passed": True, "score": 0.8, "reason": "The subject meets the rubric."})
+        return output_type.model_validate({"passed": True, "reason": "The subject meets the rubric."})
 
 
 async def test_text_judge_uses_closed_schema_and_explicit_rubric() -> None:
@@ -43,7 +43,6 @@ async def test_text_judge_uses_closed_schema_and_explicit_rubric() -> None:
 
     assert judgment == QualityJudgment(
         passed=True,
-        score=0.8,
         reason="The subject meets the rubric.",
     )
     assert language.prompt is not None

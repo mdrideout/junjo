@@ -6,7 +6,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     CheckConstraint,
-    Float,
     ForeignKey,
     Index,
     Integer,
@@ -138,6 +137,10 @@ class EvaluationCaseTable(Base):
             name="eval_cases_case_key_bytes",
         ),
         CheckConstraint(
+            f"length(CAST(evaluation_name AS BLOB)) BETWEEN 1 AND {MAX_NAME_BYTES}",
+            name="eval_cases_evaluation_name_bytes",
+        ),
+        CheckConstraint(
             f"length(CAST(target_key AS BLOB)) BETWEEN 1 AND {MAX_KEY_BYTES}",
             name="eval_cases_target_key_bytes",
         ),
@@ -225,6 +228,7 @@ class EvaluationCaseTable(Base):
         nullable=False,
     )
     case_key: Mapped[str] = mapped_column(String(MAX_KEY_BYTES), nullable=False)
+    evaluation_name: Mapped[str] = mapped_column(String(MAX_NAME_BYTES), nullable=False)
     ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
     origin: Mapped[str] = mapped_column(String(9), nullable=False)
     target_kind: Mapped[str] = mapped_column(String(8), nullable=False)
@@ -282,8 +286,8 @@ class EvaluationRunTable(Base):
             name="eval_runs_request_key_bytes",
         ),
         CheckConstraint(
-            f"length(CAST(candidate_label AS BLOB)) BETWEEN 1 AND {MAX_NAME_BYTES}",
-            name="eval_runs_candidate_label_bytes",
+            f"length(CAST(run_label AS BLOB)) BETWEEN 1 AND {MAX_NAME_BYTES}",
+            name="eval_runs_run_label_bytes",
         ),
         CheckConstraint(
             "length(source_revision) IN (40, 64)",
@@ -309,7 +313,7 @@ class EvaluationRunTable(Base):
         nullable=False,
     )
     request_key: Mapped[str] = mapped_column(String(MAX_KEY_BYTES), nullable=False)
-    candidate_label: Mapped[str] = mapped_column(String(MAX_NAME_BYTES), nullable=False)
+    run_label: Mapped[str] = mapped_column(String(MAX_NAME_BYTES), nullable=False)
     source_revision: Mapped[str] = mapped_column(
         String(MAX_SOURCE_REVISION_BYTES),
         nullable=False,
@@ -341,10 +345,6 @@ class EvaluationCaseAttemptTable(Base):
         CheckConstraint(
             "status IN ('queued', 'passed', 'failed', 'error')",
             name="eval_case_attempts_status",
-        ),
-        CheckConstraint(
-            "score IS NULL OR (score >= 0.0 AND score <= 1.0)",
-            name="eval_case_attempts_score",
         ),
         CheckConstraint(
             f"reason IS NULL OR length(CAST(reason AS BLOB)) BETWEEN 1 AND {MAX_REASON_BYTES}",
@@ -393,19 +393,16 @@ class EvaluationCaseAttemptTable(Base):
         ),
         CheckConstraint(
             "(status = 'queued' "
-            "AND score IS NULL "
             "AND reason IS NULL "
             "AND duration_ms IS NULL "
             "AND recorded_at IS NULL) "
             "OR "
             "(status IN ('passed', 'failed') "
-            "AND score IS NOT NULL "
             "AND reason IS NOT NULL "
             "AND subject_runtime_id IS NOT NULL "
             "AND recorded_at IS NOT NULL) "
             "OR "
             "(status = 'error' "
-            "AND score IS NULL "
             "AND reason IS NOT NULL "
             "AND recorded_at IS NOT NULL)",
             name="eval_case_attempts_terminal_fields",
@@ -439,7 +436,6 @@ class EvaluationCaseAttemptTable(Base):
         nullable=False,
     )
     status: Mapped[str] = mapped_column(String(6), nullable=False, default="queued")
-    score: Mapped[float | None] = mapped_column(Float, nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     subject_service_namespace: Mapped[str | None] = mapped_column(

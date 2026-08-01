@@ -4,7 +4,18 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from sqlalchemy import String, and_, func, literal, null, or_, select, text, union_all
+from sqlalchemy import (
+    String,
+    and_,
+    exists,
+    func,
+    literal,
+    null,
+    or_,
+    select,
+    text,
+    union_all,
+)
 from sqlalchemy.exc import IntegrityError
 
 from app.common.datetime_utils import utcnow
@@ -30,7 +41,6 @@ from app.features.evaluation.pagination import (
 )
 from app.features.evaluation.schemas import (
     MAX_CASES_PER_DATASET,
-    EvaluationAttemptCounts,
     EvaluationAttemptDetail,
     EvaluationAttemptRead,
     EvaluationAttemptResult,
@@ -43,12 +53,16 @@ from app.features.evaluation.schemas import (
     EvaluationDatasetSummary,
     EvaluationExecutionMembership,
     EvaluationExecutionMembershipList,
+    EvaluationNameFacet,
+    EvaluationOutcomeSummary,
     EvaluationRunCase,
     EvaluationRunDetail,
     EvaluationRunList,
     EvaluationRunRead,
+    EvaluationRunScope,
     EvaluationRunStart,
     EvaluationRunSummary,
+    EvaluationTargetFacet,
     SemanticExecutionReference,
     dump_bounded_json,
     load_stored_json,
@@ -102,6 +116,7 @@ def _case_read(row: EvaluationCaseTable) -> EvaluationCaseRead:
         id=row.id,
         dataset_id=row.dataset_id,
         case_key=row.case_key,
+        evaluation_name=row.evaluation_name,
         ordinal=row.ordinal,
         origin=row.origin,
         target_kind=row.target_kind,
@@ -124,12 +139,47 @@ def _case_read(row: EvaluationCaseTable) -> EvaluationCaseRead:
     )
 
 
+def _run_scope_case_filters(scope: EvaluationRunScope) -> list:
+    filters = []
+    if scope.target_kind is not None:
+        filters.append(EvaluationCaseTable.target_kind == scope.target_kind)
+    if scope.target_key is not None:
+        filters.append(EvaluationCaseTable.target_key == scope.target_key)
+    if scope.input_version is not None:
+        filters.append(EvaluationCaseTable.input_version == scope.input_version)
+    if scope.evaluation_name is not None:
+        filters.append(EvaluationCaseTable.evaluation_name == scope.evaluation_name)
+    return filters
+
+
+def _outcome_summary(
+    attempts: list[str],
+) -> EvaluationOutcomeSummary:
+    counts = {
+        "queued": 0,
+        "passed": 0,
+        "failed": 0,
+        "error": 0,
+    }
+    for status in attempts:
+        counts[status] += 1
+    total = sum(counts.values())
+    judged = counts["passed"] + counts["failed"]
+    return EvaluationOutcomeSummary(
+        total=total,
+        judged=judged,
+        pass_rate=counts["passed"] / judged if judged else None,
+        coverage=judged / total if total else None,
+        **counts,
+    )
+
+
 def _run_read(row: EvaluationRunTable) -> EvaluationRunRead:
     return EvaluationRunRead(
         id=row.id,
         dataset_id=row.dataset_id,
         request_key=row.request_key,
-        candidate_label=row.candidate_label,
+        run_label=row.run_label,
         source_revision=row.source_revision,
         status=row.status,
         created_by_user_id=row.created_by_user_id,
@@ -144,7 +194,6 @@ def _attempt_read(row: EvaluationCaseAttemptTable) -> EvaluationAttemptRead:
         run_id=row.run_id,
         case_id=row.case_id,
         status=row.status,
-        score=row.score,
         reason=row.reason,
         duration_ms=row.duration_ms,
         subject_execution=_execution_reference(
@@ -174,6 +223,7 @@ def _case_storage_values(request: EvaluationCaseCreate) -> dict[str, object]:
     source = request.source_execution
     return {
         "case_key": request.case_key,
+        "evaluation_name": request.evaluation_name,
         "origin": request.origin,
         "target_kind": request.target_kind,
         "target_key": request.target_key,
@@ -242,15 +292,15 @@ class EvaluationRepository:
     @staticmethod
     async def list_datasets(
         *,
-        application_key: str,
+        application_key: str | None,
         cursor: str | None,
         limit: int,
     ) -> EvaluationDatasetList:
         decoded = decode_time_cursor("datasets", cursor)
         async with db_config.async_session() as session:
-            stmt = select(EvaluationDatasetTable).where(
-                EvaluationDatasetTable.application_key == application_key
-            )
+            stmt = select(EvaluationDatasetTable)
+            if application_key is not None:
+                stmt = stmt.where(EvaluationDatasetTable.application_key == application_key)
             if decoded is not None:
                 stmt = stmt.where(
                     or_(
@@ -400,7 +450,7 @@ class EvaluationRepository:
             ).scalar_one_or_none()
             if existing is not None:
                 if (
-                    existing.candidate_label == request.candidate_label
+                    existing.run_label == request.run_label
                     and existing.source_revision == request.source_revision
                 ):
                     run_id = existing.id
@@ -438,7 +488,7 @@ class EvaluationRepository:
                 run = EvaluationRunTable(
                     dataset_id=request.dataset_id,
                     request_key=request.request_key,
-                    candidate_label=request.candidate_label,
+                    run_label=request.run_label,
                     source_revision=request.source_revision,
                     created_by_user_id=authenticated_user.user_id,
                 )
@@ -495,18 +545,30 @@ class EvaluationRepository:
     @staticmethod
     async def list_runs(
         *,
-        dataset_id: str | None,
+        scope: EvaluationRunScope,
         cursor: str | None,
         limit: int,
     ) -> EvaluationRunList:
         decoded = decode_time_cursor("runs", cursor)
+        case_filters = _run_scope_case_filters(scope)
         async with db_config.async_session() as session:
             stmt = select(EvaluationRunTable, EvaluationDatasetTable).join(
                 EvaluationDatasetTable,
                 EvaluationDatasetTable.id == EvaluationRunTable.dataset_id,
             )
-            if dataset_id is not None:
-                stmt = stmt.where(EvaluationRunTable.dataset_id == dataset_id)
+            if scope.dataset_id is not None:
+                stmt = stmt.where(EvaluationRunTable.dataset_id == scope.dataset_id)
+            if case_filters:
+                stmt = stmt.where(
+                    exists(
+                        select(literal(1))
+                        .select_from(EvaluationCaseTable)
+                        .where(
+                            EvaluationCaseTable.dataset_id == EvaluationRunTable.dataset_id,
+                            *case_filters,
+                        )
+                    )
+                )
             if decoded is not None:
                 stmt = stmt.where(
                     or_(
@@ -524,32 +586,52 @@ class EvaluationRepository:
             rows = list((await session.execute(stmt)).all())
             page = rows[:limit]
 
-            counts: dict[str, dict[str, int]] = defaultdict(
-                lambda: {
-                    "queued": 0,
-                    "passed": 0,
-                    "failed": 0,
-                    "error": 0,
-                }
-            )
             run_ids = [run.id for run, _dataset in page]
+            attempts_by_run: dict[str, list[str]] = defaultdict(list)
             if run_ids:
-                count_rows = (
+                attempt_rows = (
                     await session.execute(
                         select(
                             EvaluationCaseAttemptTable.run_id,
                             EvaluationCaseAttemptTable.status,
-                            func.count(),
+                        )
+                        .join(
+                            EvaluationCaseTable,
+                            EvaluationCaseTable.id == EvaluationCaseAttemptTable.case_id,
                         )
                         .where(EvaluationCaseAttemptTable.run_id.in_(run_ids))
-                        .group_by(
-                            EvaluationCaseAttemptTable.run_id,
-                            EvaluationCaseAttemptTable.status,
-                        )
+                        .where(*case_filters)
                     )
                 ).all()
-                for counted_run_id, status, count in count_rows:
-                    counts[counted_run_id][status] = count
+                for attempt_run_id, status in attempt_rows:
+                    attempts_by_run[attempt_run_id].append(status)
+
+            target_counts: dict[str, dict[tuple[str, str, int], int]] = defaultdict(
+                lambda: defaultdict(int)
+            )
+            evaluation_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+            dataset_ids = {dataset.id for _run, dataset in page}
+            if dataset_ids:
+                facet_rows = (
+                    await session.execute(
+                        select(
+                            EvaluationCaseTable.dataset_id,
+                            EvaluationCaseTable.target_kind,
+                            EvaluationCaseTable.target_key,
+                            EvaluationCaseTable.input_version,
+                            EvaluationCaseTable.evaluation_name,
+                        ).where(EvaluationCaseTable.dataset_id.in_(dataset_ids))
+                    )
+                ).all()
+                for (
+                    facet_dataset_id,
+                    target_kind,
+                    target_key,
+                    input_version,
+                    evaluation_name,
+                ) in facet_rows:
+                    target_counts[facet_dataset_id][(target_kind, target_key, input_version)] += 1
+                    evaluation_counts[facet_dataset_id][evaluation_name] += 1
 
         next_cursor = None
         if len(rows) > limit and page:
@@ -560,18 +642,38 @@ class EvaluationRepository:
             )
         items: list[EvaluationRunSummary] = []
         for run, dataset in page:
-            status_counts = counts[run.id]
             items.append(
                 EvaluationRunSummary(
                     run=_run_read(run),
                     dataset=_dataset_summary(dataset),
-                    attempt_counts=EvaluationAttemptCounts(
-                        total=sum(status_counts.values()),
-                        **status_counts,
-                    ),
+                    outcome_summary=_outcome_summary(attempts_by_run[run.id]),
+                    target_facets=[
+                        EvaluationTargetFacet(
+                            target_kind=target_kind,
+                            target_key=target_key,
+                            input_version=input_version,
+                            case_count=count,
+                        )
+                        for (
+                            target_kind,
+                            target_key,
+                            input_version,
+                        ), count in sorted(target_counts[dataset.id].items())
+                    ],
+                    evaluation_facets=[
+                        EvaluationNameFacet(
+                            evaluation_name=evaluation_name,
+                            case_count=count,
+                        )
+                        for evaluation_name, count in sorted(evaluation_counts[dataset.id].items())
+                    ],
                 )
             )
-        return EvaluationRunList(items=items, next_cursor=next_cursor)
+        return EvaluationRunList(
+            scope=scope,
+            items=items,
+            next_cursor=next_cursor,
+        )
 
     @staticmethod
     async def get_attempt(attempt_id: str) -> EvaluationAttemptDetail:
@@ -667,7 +769,6 @@ class EvaluationRepository:
             if attempt.status != "queued":
                 if (
                     attempt.status == result.status
-                    and attempt.score == result.score
                     and attempt.reason == result.reason
                     and attempt.duration_ms == result.duration_ms
                 ):
@@ -683,7 +784,6 @@ class EvaluationRepository:
                 )
 
             attempt.status = result.status
-            attempt.score = result.score
             attempt.reason = result.reason
             attempt.duration_ms = result.duration_ms
             attempt.recorded_at = _db_now()

@@ -150,7 +150,7 @@ The **demo application (`junjo-app`) automatically starts**. When configured wit
 #### 🔑 App API Key Setup Steps:
 
 1.  Navigate to [http://localhost:26153](http://localhost:26153) and create your user account, then sign in.
-2.  Create an [API key](http://localhost:26153/api-keys) in the Junjo AI Studio UI.
+2.  Create an [API key](http://localhost:26153/settings/credentials/ingestion) in the Junjo AI Studio UI.
 3.  Set this key as the `JUNJO_AI_STUDIO_API_KEY` environment variable in your `.env` file.
 4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
     ```bash

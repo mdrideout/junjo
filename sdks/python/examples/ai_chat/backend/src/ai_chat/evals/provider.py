@@ -191,8 +191,8 @@ def _judge_prompt(*, rubric: str, subject: str) -> str:
     return f"""
 Evaluate the supplied image or ordered images against the rubric. When two
 images are supplied, the first is the identity reference and the second is the
-candidate. Be strict and judge only visible evidence. Return passed, a score
-from 0 to 1, and a concise reason.
+candidate. Be strict and judge only visible evidence. Return a binary passed
+decision and a concise reason.
 
 RUBRIC:
 {rubric}

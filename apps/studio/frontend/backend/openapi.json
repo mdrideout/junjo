@@ -1229,11 +1229,18 @@
           {
             "name": "application_key",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Application Key"
             }
           },
@@ -1554,6 +1561,81 @@
                 }
               ],
               "title": "Dataset Id"
+            }
+          },
+          {
+            "name": "target_kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "node",
+                    "workflow",
+                    "agent"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Kind"
+            }
+          },
+          {
+            "name": "target_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Key"
+            }
+          },
+          {
+            "name": "input_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2147483647,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Input Version"
+            }
+          },
+          {
+            "name": "evaluation_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Evaluation Name"
             }
           },
           {
@@ -2818,50 +2900,6 @@
         "title": "DbHasUsersResponse",
         "description": "Response for db-has-users check."
       },
-      "EvaluationAttemptCounts": {
-        "properties": {
-          "total": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Total"
-          },
-          "queued": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Queued"
-          },
-          "passed": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Passed"
-          },
-          "failed": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Failed"
-          },
-          "error": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Error"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "total",
-          "queued",
-          "passed",
-          "failed",
-          "error"
-        ],
-        "title": "EvaluationAttemptCounts"
-      },
       "EvaluationAttemptDetail": {
         "properties": {
           "run": {
@@ -2916,19 +2954,6 @@
               "error"
             ],
             "title": "Status"
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
           },
           "reason": {
             "anyOf": [
@@ -3016,19 +3041,6 @@
             ],
             "title": "Status"
           },
-          "score": {
-            "anyOf": [
-              {
-                "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
-          },
           "reason": {
             "type": "string",
             "maxLength": 4096,
@@ -3066,6 +3078,15 @@
             "title": "Case Key",
             "examples": [
               "specific_place_1"
+            ]
+          },
+          "evaluation_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Evaluation Name",
+            "examples": [
+              "Response place realism"
             ]
           },
           "origin": {
@@ -3155,6 +3176,7 @@
         "type": "object",
         "required": [
           "case_key",
+          "evaluation_name",
           "origin",
           "target_kind",
           "target_key",
@@ -3184,6 +3206,12 @@
             "maxLength": 128,
             "minLength": 1,
             "title": "Case Key"
+          },
+          "evaluation_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Evaluation Name"
           },
           "ordinal": {
             "type": "integer",
@@ -3278,6 +3306,7 @@
           "id",
           "dataset_id",
           "case_key",
+          "evaluation_name",
           "ordinal",
           "origin",
           "target_kind",
@@ -3656,6 +3685,107 @@
         ],
         "title": "EvaluationExecutionMembershipList"
       },
+      "EvaluationNameFacet": {
+        "properties": {
+          "evaluation_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Evaluation Name"
+          },
+          "case_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Case Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evaluation_name",
+          "case_count"
+        ],
+        "title": "EvaluationNameFacet"
+      },
+      "EvaluationOutcomeSummary": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "queued": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Queued"
+          },
+          "judged": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Judged"
+          },
+          "passed": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Passed"
+          },
+          "failed": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Failed"
+          },
+          "error": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Error"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Rate"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total",
+          "queued",
+          "judged",
+          "passed",
+          "failed",
+          "error"
+        ],
+        "title": "EvaluationOutcomeSummary",
+        "description": "Bounded outcome aggregates for the attempts visible in one scope."
+      },
       "EvaluationRunCase": {
         "properties": {
           "case": {
@@ -3701,6 +3831,9 @@
       },
       "EvaluationRunList": {
         "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/EvaluationRunScope"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/EvaluationRunSummary"
@@ -3724,6 +3857,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
+          "scope",
           "items",
           "next_cursor"
         ],
@@ -3749,11 +3883,11 @@
             "minLength": 1,
             "title": "Request Key"
           },
-          "candidate_label": {
+          "run_label": {
             "type": "string",
             "maxLength": 256,
             "minLength": 1,
-            "title": "Candidate Label"
+            "title": "Run Label"
           },
           "source_revision": {
             "type": "string",
@@ -3805,7 +3939,7 @@
           "id",
           "dataset_id",
           "request_key",
-          "candidate_label",
+          "run_label",
           "source_revision",
           "status",
           "created_by_user_id",
@@ -3813,6 +3947,82 @@
           "completed_at"
         ],
         "title": "EvaluationRunRead"
+      },
+      "EvaluationRunScope": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Id"
+          },
+          "target_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "node",
+                  "workflow",
+                  "agent"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Kind"
+          },
+          "target_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Key"
+          },
+          "input_version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Version"
+          },
+          "evaluation_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "EvaluationRunScope",
+        "description": "The exact, conjunctive case scope applied to a run-list projection."
       },
       "EvaluationRunStart": {
         "properties": {
@@ -3831,11 +4041,11 @@
               "baseline-20260727"
             ]
           },
-          "candidate_label": {
+          "run_label": {
             "type": "string",
             "maxLength": 256,
             "minLength": 1,
-            "title": "Candidate Label",
+            "title": "Run Label",
             "examples": [
               "baseline"
             ]
@@ -3851,7 +4061,7 @@
         "required": [
           "dataset_id",
           "request_key",
-          "candidate_label",
+          "run_label",
           "source_revision"
         ],
         "title": "EvaluationRunStart"
@@ -3864,8 +4074,24 @@
           "dataset": {
             "$ref": "#/components/schemas/EvaluationDatasetSummary"
           },
-          "attempt_counts": {
-            "$ref": "#/components/schemas/EvaluationAttemptCounts"
+          "outcome_summary": {
+            "$ref": "#/components/schemas/EvaluationOutcomeSummary"
+          },
+          "target_facets": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationTargetFacet"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Target Facets"
+          },
+          "evaluation_facets": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationNameFacet"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Evaluation Facets"
           }
         },
         "additionalProperties": false,
@@ -3873,9 +4099,51 @@
         "required": [
           "run",
           "dataset",
-          "attempt_counts"
+          "outcome_summary",
+          "target_facets",
+          "evaluation_facets"
         ],
         "title": "EvaluationRunSummary"
+      },
+      "EvaluationTargetFacet": {
+        "properties": {
+          "target_kind": {
+            "type": "string",
+            "enum": [
+              "node",
+              "workflow",
+              "agent"
+            ],
+            "title": "Target Kind"
+          },
+          "target_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Key"
+          },
+          "input_version": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Input Version"
+          },
+          "case_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Case Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_kind",
+          "target_key",
+          "input_version",
+          "case_count"
+        ],
+        "title": "EvaluationTargetFacet"
       },
       "EvaluationTokenCreate": {
         "properties": {

@@ -10,7 +10,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{mpsc, watch, RwLock};
 use tonic::transport::Server;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -106,9 +106,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Start flusher background task with the segment notification receiver
     let flusher_handle = flusher.clone();
-    tokio::spawn(async move {
-        flusher_handle.run(segment_rx).await;
-    });
+    let flusher_task = tokio::spawn(async move { flusher_handle.run(segment_rx).await });
 
     // Create gRPC services
     let trace_service = TraceService::new(
@@ -141,21 +139,42 @@ async fn main() -> anyhow::Result<()> {
     info!(container_public_addr = %public_addr, "Starting public gRPC server bind (OTLP)");
     info!(container_internal_addr = %internal_addr, "Starting internal gRPC server bind");
 
-    // Run both servers
-    tokio::try_join!(
-        run_public_server(public_addr, trace_service),
-        run_internal_server(internal_addr, internal_service),
-    )?;
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    let servers = async {
+        tokio::try_join!(
+            run_public_server(public_addr, trace_service, shutdown_rx.clone()),
+            run_internal_server(internal_addr, internal_service, shutdown_rx),
+        )
+    };
+    tokio::pin!(servers);
+
+    let server_result = tokio::select! {
+        result = &mut servers => result,
+        signal_name = shutdown_signal() => {
+            info!(signal = signal_name, "Shutdown signal received");
+            let _ = shutdown_tx.send(true);
+            servers.await
+        }
+    };
+
+    let flusher_result = flusher_task.await?;
+    server_result?;
+    flusher_result?;
+    info!("Ingestion service shutdown complete");
 
     Ok(())
 }
 
-async fn run_public_server(addr: SocketAddr, trace_service: TraceService) -> anyhow::Result<()> {
+async fn run_public_server(
+    addr: SocketAddr,
+    trace_service: TraceService,
+    shutdown_rx: watch::Receiver<bool>,
+) -> anyhow::Result<()> {
     use opentelemetry_proto::tonic::collector::trace::v1::trace_service_server::TraceServiceServer;
 
     Server::builder()
         .add_service(TraceServiceServer::new(trace_service))
-        .serve(addr)
+        .serve_with_shutdown(addr, wait_for_shutdown(shutdown_rx))
         .await?;
 
     Ok(())
@@ -164,6 +183,7 @@ async fn run_public_server(addr: SocketAddr, trace_service: TraceService) -> any
 async fn run_internal_server(
     addr: SocketAddr,
     internal_service: InternalService,
+    shutdown_rx: watch::Receiver<bool>,
 ) -> anyhow::Result<()> {
     use proto::internal_ingestion_service_server::InternalIngestionServiceServer;
 
@@ -172,8 +192,42 @@ async fn run_internal_server(
     Server::builder()
         .add_service(health_service)
         .add_service(InternalIngestionServiceServer::new(internal_service))
-        .serve(addr)
+        .serve_with_shutdown(addr, wait_for_shutdown(shutdown_rx))
         .await?;
 
     Ok(())
+}
+
+async fn wait_for_shutdown(mut shutdown_rx: watch::Receiver<bool>) {
+    if *shutdown_rx.borrow() {
+        return;
+    }
+
+    while shutdown_rx.changed().await.is_ok() {
+        if *shutdown_rx.borrow() {
+            return;
+        }
+    }
+}
+
+#[cfg(unix)]
+async fn shutdown_signal() -> &'static str {
+    use tokio::signal::unix::{signal, SignalKind};
+
+    let mut terminate = signal(SignalKind::terminate()).expect("install SIGTERM handler");
+    tokio::select! {
+        result = tokio::signal::ctrl_c() => {
+            result.expect("install Ctrl+C handler");
+            "SIGINT"
+        }
+        _ = terminate.recv() => "SIGTERM",
+    }
+}
+
+#[cfg(not(unix))]
+async fn shutdown_signal() -> &'static str {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("install Ctrl+C handler");
+    "Ctrl+C"
 }

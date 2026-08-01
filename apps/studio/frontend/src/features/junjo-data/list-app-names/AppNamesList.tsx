@@ -34,7 +34,10 @@ export default function AppNamesList() {
     return (
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
         No data received. See{' '}
-        <Link to="/api-keys" className="text-blue-600 dark:text-blue-400 hover:underline">
+        <Link
+          to="/settings/credentials/ingestion"
+          className="text-blue-600 dark:text-blue-400 hover:underline"
+        >
           instructions on connecting your app with OpenTelemetry
         </Link>
         .

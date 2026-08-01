@@ -16,6 +16,7 @@ from app.features.evaluation.contract import (
 from app.features.evaluation.schemas import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
+    MAX_VERSION,
     CursorText,
     EvaluationAttemptDetail,
     EvaluationAttemptRead,
@@ -31,13 +32,16 @@ from app.features.evaluation.schemas import (
     EvaluationExecutionMembershipList,
     EvaluationRunDetail,
     EvaluationRunList,
+    EvaluationRunScope,
     EvaluationRunStart,
     ExecutableType,
     ExecutionIdentityText,
     KeyText,
+    NameText,
     RecordId,
     SemanticExecutionReference,
     ServiceNamespaceText,
+    TargetKind,
 )
 from app.features.evaluation_tokens.dependencies import (
     EvaluationReadAccess,
@@ -86,7 +90,7 @@ async def create_dataset(
 )
 async def list_datasets(
     _authenticated_user: EvaluationReadAccess,
-    application_key: Annotated[KeyText, Query()],
+    application_key: Annotated[KeyText | None, Query()] = None,
     cursor: Annotated[CursorText | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> EvaluationDatasetList:
@@ -187,12 +191,22 @@ async def start_run(
 async def list_runs(
     _authenticated_user: EvaluationReadAccess,
     dataset_id: Annotated[RecordId | None, Query()] = None,
+    target_kind: Annotated[TargetKind | None, Query()] = None,
+    target_key: Annotated[KeyText | None, Query()] = None,
+    input_version: Annotated[int | None, Query(ge=1, le=MAX_VERSION)] = None,
+    evaluation_name: Annotated[NameText | None, Query()] = None,
     cursor: Annotated[CursorText | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> EvaluationRunList:
     try:
         return await service.list_runs(
-            dataset_id=dataset_id,
+            scope=EvaluationRunScope(
+                dataset_id=dataset_id,
+                target_kind=target_kind,
+                target_key=target_key,
+                input_version=input_version,
+                evaluation_name=evaluation_name,
+            ),
             cursor=cursor,
             limit=limit,
         )

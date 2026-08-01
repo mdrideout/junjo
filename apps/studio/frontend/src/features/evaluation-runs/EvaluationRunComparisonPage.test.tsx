@@ -9,14 +9,14 @@ import EvaluationRunComparisonPage from './EvaluationRunComparisonPage'
 import { makeEvaluationRunDetailFixture } from './testing/fixtures'
 
 describe('EvaluationRunComparisonPage', () => {
-  it('shows pass, score, reason, duration, and evidence deltas by immutable case ID', async () => {
+  it('shows binary results, reasons, and spans by immutable test ID', async () => {
     const baseline = makeEvaluationRunDetailFixture({
       runId: 'view-baseline',
       attemptStatuses: ['passed', 'queued'],
     })
     const candidateFixture = makeEvaluationRunDetailFixture({
       runId: 'view-candidate',
-      candidateLabel: 'prompt candidate',
+      runLabel: 'prompt candidate',
       attemptStatuses: ['passed', 'queued'],
     })
     const candidate = {
@@ -27,7 +27,6 @@ describe('EvaluationRunComparisonPage', () => {
               ...item,
               attempt: {
                 ...item.attempt,
-                score: 1,
                 duration_ms: 140,
                 reason: 'The candidate adds a concrete local detail.',
               },
@@ -55,14 +54,12 @@ describe('EvaluationRunComparisonPage', () => {
       </Provider>,
     )
 
-    expect(await screen.findByRole('heading', { name: 'Baseline and candidate' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Compare runs' })).toBeInTheDocument()
     expect(screen.getByText('prompt candidate')).toBeInTheDocument()
-    expect(screen.getByText('Δ +0.10')).toBeInTheDocument()
-    expect(screen.getByText('Δ +40 ms')).toBeInTheDocument()
+    expect(screen.getAllByText('Response place realism').length).toBeGreaterThan(0)
     expect(screen.getByText('The candidate adds a concrete local detail.')).toBeInTheDocument()
-    expect(screen.getByText('No baseline execution')).toBeInTheDocument()
     expect(screen.getByRole('link', {
-      name: 'Open candidate evidence for local-place-1',
+      name: 'View candidate spans',
     })).toHaveAttribute(
       'href',
       '/resolve/executable?service_namespace=&service_name=ai-chat-evaluation&executable_type=workflow&runtime_id=view-candidate-runtime-1&destination=detail',

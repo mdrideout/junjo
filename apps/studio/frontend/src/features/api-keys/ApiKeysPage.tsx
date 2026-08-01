@@ -6,6 +6,7 @@ import ApiKeyCopyButton from './ApiKeyCopyButton'
 import CreateApiKeyDialog from './CreateApiKeyDialog'
 import OtelExporterGuide from './components/OtelExporterGuide'
 import { ApiKeysStateActions } from './slice'
+import { AppLink } from '../../components/navigation/app-link'
 
 export default function ApiKeysPage() {
   const dispatch = useAppDispatch()
@@ -27,8 +28,17 @@ export default function ApiKeysPage() {
   // Render the list
   return (
     <div className={'px-3 py-4 flex flex-col h-dvh overflow-y-auto'}>
+      <nav aria-label="Breadcrumb" className="mb-4 px-2 text-sm">
+        <AppLink to="/settings/credentials">Developer credentials</AppLink>
+      </nav>
       <div className={'flex gap-x-3 px-2 items-center'}>
-        <div className={'flex gap-x-3 font-bold'}>API Keys</div>
+        <div>
+          <div className={'flex gap-x-3 font-bold'}>Ingestion API keys</div>
+          <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+            Application credentials for OTLP telemetry delivery. These keys cannot
+            manage evaluation datasets or query evidence.
+          </p>
+        </div>
         <CreateApiKeyDialog />
       </div>
       <hr className={'my-4'} />

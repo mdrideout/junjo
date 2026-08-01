@@ -38,6 +38,9 @@ services:
 
   ingestion:
     restart: unless-stopped
+    # Keep development's cargo-watch wrapper out of PID 1 so SIGTERM can
+    # terminate the wrapper after it forwards the signal to ingestion.
+    init: true
     build:
       context: .
       dockerfile: ingestion/Dockerfile

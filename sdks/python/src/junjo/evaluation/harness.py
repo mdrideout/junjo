@@ -12,7 +12,7 @@ from typing import Generic, TypeVar
 from pydantic import JsonValue
 
 from ..studio import CaseRead, TargetKind
-from .context import EvaluationContext
+from .context import EvaluationContext, EvaluationRole
 from .evaluators import EvaluationResult, Evaluator
 from .targets import (
     EvaluationTarget,
@@ -43,6 +43,16 @@ class TargetDescriptor:
     key: str
     input_version: int
     input_schema: Mapping[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluatorDescriptor:
+    """Inspectable evaluator identity, role, and expectation JSON schema."""
+
+    key: str
+    version: int
+    role: EvaluationRole
+    expectation_schema: Mapping[str, object]
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +141,22 @@ class EvaluationHarness(Generic[ResourcesT]):
                     item.key,
                     item.input_version,
                 ),
+            )
+        )
+
+    def evaluator_descriptors(self) -> tuple[EvaluatorDescriptor, ...]:
+        """Return registered evaluators in deterministic display order."""
+
+        return tuple(
+            EvaluatorDescriptor(
+                key=evaluator.key,
+                version=evaluator.version,
+                role=evaluator.role,
+                expectation_schema=MappingProxyType(evaluator.expectation_schema),
+            )
+            for evaluator in sorted(
+                self._evaluators.values(),
+                key=lambda item: (item.key, item.version),
             )
         )
 

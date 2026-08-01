@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { AppLink } from '../../components/navigation/app-link'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import CreateEvaluationTokenDialog from './CreateEvaluationTokenDialog'
 import { EvaluationTokensActions } from './store/slice'
@@ -19,6 +20,9 @@ export default function EvaluationTokensPage() {
 
   return (
     <div className="flex h-dvh flex-col overflow-y-auto px-5 py-6">
+      <nav aria-label="Breadcrumb" className="mb-4 text-sm">
+        <AppLink to="/settings/credentials">Developer credentials</AppLink>
+      </nav>
       <div className="flex flex-wrap items-center gap-3">
         <div>
           <h1 className="text-xl font-semibold">Evaluation tokens</h1>

@@ -100,36 +100,90 @@ try {
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.waitForFunction(() => window.location.pathname !== '/sign-in', undefined, { timeout })
 
+  await page.goto(`${frontendOrigin}/evaluation-runs`, {
+    waitUntil: 'domcontentloaded',
+    timeout,
+  })
+  await visible(page.getByRole('heading', { level: 1, name: 'Evaluations', exact: true }), 'Evaluations heading', timeout)
+  await page.getByRole('combobox', { name: 'Dataset' }).selectOption(evidence.dataset_id)
+  await visible(page.getByRole('link', { name: 'candidate', exact: true }), 'candidate history row', timeout)
+  await page.getByRole('link', { name: 'Evaluation E2E', exact: true }).click()
+  await visible(page.getByRole('heading', { level: 1, name: 'Evaluation E2E', exact: true }), 'dataset detail heading', timeout)
+  await visible(page.getByRole('heading', { level: 2, name: 'Tests', exact: true }), 'dataset Tests heading', timeout)
+  await visible(page.getByRole('heading', { level: 2, name: 'Run history', exact: true }), 'dataset Run history heading', timeout)
+  await page.goto(`${frontendOrigin}/evaluation-runs?dataset_id=${encodeURIComponent(evidence.dataset_id)}&limit=50`, {
+    waitUntil: 'domcontentloaded',
+    timeout,
+  })
+  await page.getByRole('combobox', { name: 'Target scope' }).selectOption({
+    label: 'agent · double.agent · input v1',
+  })
+  await visible(page.getByText('0% pass', { exact: true }), 'scoped candidate pass rate', timeout)
+  await page.getByRole('link', { name: 'candidate', exact: true }).click()
+
+  await visible(page.getByRole('heading', { level: 1, name: 'candidate', exact: true }), 'candidate Run heading', timeout)
+  await visible(page.getByText('Git Commit', { exact: true }), 'Git Commit label', timeout)
+  await visible(page.getByRole('heading', { level: 2, name: 'Evaluation results', exact: true }), 'evaluation results heading', timeout)
+  await visible(page.getByText('completed', { exact: true }).first(), 'completed Run status', timeout)
+
+  assert.equal(await page.getByText('passed', { exact: true }).count(), 2, 'Run detail passed count changed')
+  assert.equal(await page.getByText('failed', { exact: true }).count(), 1, 'Run detail failed count changed')
+  const executionLinks = page.getByRole('link', {
+    name: 'View spans',
+  })
+  assert.equal(
+    await executionLinks.count(),
+    evidence.case_count,
+    'Run detail did not expose an execution for every Case',
+  )
+  const executionHrefs = await executionLinks.evaluateAll((links) =>
+    links.map((link) => link.getAttribute('href')).filter((href) => href !== null))
+  for (const href of executionHrefs) {
+    const resolutionResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/v1/execution-resolution'
+        && response.ok(),
+      { timeout },
+    )
+    await page.goto(new URL(href, frontendOrigin).href, {
+      waitUntil: 'domcontentloaded',
+      timeout,
+    })
+    await resolutionResponse
+    assert.equal(
+      await page.getByRole('alert').filter({
+        hasText: 'Execution diagnostics could not be loaded.',
+      }).count(),
+      0,
+      `execution link failed: ${href}`,
+    )
+  }
   await page.goto(
     `${frontendOrigin}/evaluation-runs/${encodeURIComponent(evidence.candidate_run_id)}`,
     { waitUntil: 'domcontentloaded', timeout },
   )
   await visible(page.getByRole('heading', { level: 1, name: 'candidate', exact: true }), 'candidate Run heading', timeout)
-  await visible(page.getByText(evidence.candidate_run_id, { exact: true }), 'candidate Run identity', timeout)
-  await visible(page.getByText(evidence.dataset_id, { exact: true }), 'Dataset identity', timeout)
-  await visible(page.getByText('completed', { exact: true }).first(), 'completed Run status', timeout)
-
-  const detailRows = page.getByRole('table').getByRole('row').filter({ has: page.getByText('passed', { exact: true }) })
-  assert.equal(await detailRows.count(), evidence.case_count, 'Run detail did not render every passed Case')
-  assert.equal(
-    await page.getByRole('link', { name: /^Open subject evidence for / }).count(),
-    evidence.case_count,
-    'Run detail did not expose subject evidence for every Case',
-  )
   await mkdir(path.dirname(screenshotPath), { recursive: true })
   await page.screenshot({ path: screenshotPath, fullPage: true })
 
   const comparisonUrl = new URL('/evaluation-runs/compare', frontendOrigin)
   comparisonUrl.searchParams.set('baseline_run_id', evidence.baseline_run_id)
   comparisonUrl.searchParams.set('candidate_run_id', evidence.candidate_run_id)
+  comparisonUrl.searchParams.set('target_kind', 'agent')
+  comparisonUrl.searchParams.set('target_key', 'double.agent')
+  comparisonUrl.searchParams.set('input_version', '1')
+  comparisonUrl.searchParams.set('evaluation_name', 'Exact double result')
   await page.goto(comparisonUrl.href, { waitUntil: 'domcontentloaded', timeout })
-  await visible(page.getByRole('heading', { level: 1, name: 'Baseline and candidate', exact: true }), 'comparison heading', timeout)
-  await visible(page.getByText(evidence.baseline_run_id, { exact: true }), 'baseline Run identity', timeout)
-  await visible(page.getByText(evidence.candidate_run_id, { exact: true }), 'candidate comparison identity', timeout)
+  await visible(page.getByRole('heading', { level: 1, name: 'Compare runs', exact: true }), 'comparison heading', timeout)
+  await visible(page.getByRole('heading', { level: 2, name: 'baseline', exact: true }), 'baseline Run label', timeout)
+  await visible(page.getByRole('heading', { level: 2, name: 'candidate', exact: true }), 'candidate Run label', timeout)
   const comparisonRows = page.getByRole('table').getByRole('row').filter({
-    has: page.getByRole('link', { name: /^Open candidate evidence for / }),
+    has: page.getByRole('link', { name: 'View candidate spans' }),
   })
-  assert.equal(await comparisonRows.count(), evidence.case_count, 'comparison did not render every Case')
+  assert.equal(await comparisonRows.count(), 1, 'scoped comparison did not render the Agent Case')
+  await visible(page.getByText('double.agent', { exact: true }), 'comparison target scope', timeout)
+  await visible(page.getByText('Exact double result', { exact: true }), 'comparison evaluation name', timeout)
+  await visible(page.getByText('regressed', { exact: true }), 'regressed transition', timeout)
   assert.deepEqual(browserFailures, [], browserFailures.join('\n'))
 } finally {
   await browser.close()

@@ -200,7 +200,7 @@ def test_dataset_generation_span_omits_nonexistent_control_identities(
 
 
 @pytest.mark.asyncio
-async def test_deterministic_evaluators_validate_and_score_explicit_contracts() -> None:
+async def test_deterministic_evaluators_validate_binary_explicit_contracts() -> None:
     context = _evaluation_context().for_role(EvaluationRole.VERIFIER)
     exact = ExactMatchEvaluator()
     exact_expectation = exact.validate_expectation({"expected": "Brooklyn"})
@@ -211,7 +211,6 @@ async def test_deterministic_evaluators_validate_and_score_explicit_contracts() 
         resources=None,
     ) == EvaluationResult(
         passed=True,
-        score=1.0,
         reason="Subject exactly matched the expected value.",
     )
 
@@ -226,7 +225,6 @@ async def test_deterministic_evaluators_validate_and_score_explicit_contracts() 
         resources=None,
     )
     assert mismatch.passed is False
-    assert mismatch.score == 0.0
     assert mismatch.reason == "Structured fields did not match: borough."
 
 
@@ -245,7 +243,6 @@ async def test_callback_and_boolean_evaluators_keep_domain_meaning_explicit() ->
         passed = subject == expectation.text
         return EvaluationResult(
             passed=passed,
-            score=0.8 if passed else 0.2,
             reason="Domain callback completed.",
         )
 
@@ -280,7 +277,6 @@ async def test_callback_and_boolean_evaluators_keep_domain_meaning_explicit() ->
     )
     assert predicate_result == EvaluationResult(
         passed=True,
-        score=1.0,
         reason="Boolean predicate passed.",
     )
 
@@ -295,7 +291,7 @@ async def test_harness_requires_an_explicit_target_registry() -> None:
     ) -> EvaluationResult:
         del subject, expectation, context, resources
         await asyncio.sleep(0.05)
-        return EvaluationResult(passed=True, score=1.0, reason="late")
+        return EvaluationResult(passed=True, reason="late")
 
     evaluator = CallbackEvaluator(
         key="slow",
@@ -323,8 +319,8 @@ async def test_harness_requires_an_explicit_target_registry() -> None:
 
 
 def test_evaluation_result_and_callback_results_fail_closed() -> None:
-    with pytest.raises(ValueError, match="between"):
-        EvaluationResult(passed=True, score=1.1, reason="invalid")
+    with pytest.raises(ValueError, match="non-empty"):
+        EvaluationResult(passed=True, reason="")
 
     async def invalid_callback(
         subject: object,

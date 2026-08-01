@@ -44,14 +44,14 @@ describe('evaluation run state', () => {
     expect(selectEvaluationRunDetailRequest(root, detail.run.id).data).toEqual(detail)
   })
 
-  it('aligns same-dataset runs by case ID and derives candidate deltas', () => {
+  it('aligns same-dataset runs by case ID and derives binary transitions', () => {
     const baseline = makeEvaluationRunDetailFixture({
       runId: 'comparison-baseline',
       attemptStatuses: ['passed', 'failed'],
     })
     const candidateFixture = makeEvaluationRunDetailFixture({
       runId: 'comparison-candidate',
-      candidateLabel: 'candidate',
+      runLabel: 'candidate',
       attemptStatuses: ['passed', 'passed'],
     })
     const candidate = {
@@ -62,7 +62,6 @@ describe('evaluation run state', () => {
               ...item,
               attempt: {
                 ...item.attempt,
-                score: 1,
                 duration_ms: 140,
                 reason: 'The candidate is more specific.',
               },
@@ -73,11 +72,30 @@ describe('evaluation run state', () => {
     const result = projectEvaluationRunComparison(baseline, candidate)
 
     expect(result.error).toBeNull()
-    expect(result.data?.rows[0].score_delta).toBeCloseTo(0.1)
     expect(result.data?.rows[0].duration_delta_ms).toBe(40)
+    expect(result.data?.rows.map((row) => row.transition)).toEqual([
+      'unchanged',
+      'improved',
+    ])
+    expect(result.data?.baseline_summary.pass_rate).toBe(0.5)
+    expect(result.data?.candidate_summary.pass_rate).toBe(1)
+    expect(result.data?.transition_counts.improved).toBe(1)
     expect(result.data?.rows.map((row) => row.case.id)).toEqual(
       baseline.cases.map((item) => item.case.id),
     )
+
+    const scoped = projectEvaluationRunComparison(baseline, candidate, {
+      baseline_run_id: baseline.run.id,
+      candidate_run_id: candidate.run.id,
+      target_kind: 'node',
+      target_key: 'date_response_node',
+      input_version: 1,
+      evaluation_name: 'Response place realism',
+    })
+    expect(scoped.data?.rows).toHaveLength(1)
+    expect(scoped.data?.rows[0].case.target_kind).toBe('node')
+    expect(scoped.data?.baseline_summary.total).toBe(1)
+    expect(scoped.data?.candidate_summary.pass_rate).toBe(1)
   })
 
   it('rejects comparison across different datasets', () => {

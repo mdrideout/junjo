@@ -14,6 +14,14 @@ export async function listEvaluationRuns(
   const validated = EvaluationRunListQuerySchema.parse(query)
   const parameters = new URLSearchParams({ limit: String(validated.limit) })
   if (validated.dataset_id !== undefined) parameters.set('dataset_id', validated.dataset_id)
+  if (validated.target_kind !== undefined) parameters.set('target_kind', validated.target_kind)
+  if (validated.target_key !== undefined) parameters.set('target_key', validated.target_key)
+  if (validated.input_version !== undefined) {
+    parameters.set('input_version', String(validated.input_version))
+  }
+  if (validated.evaluation_name !== undefined) {
+    parameters.set('evaluation_name', validated.evaluation_name)
+  }
   if (validated.cursor !== undefined) parameters.set('cursor', validated.cursor)
 
   const response = await fetch(

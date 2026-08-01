@@ -1,5 +1,7 @@
 import type {
   EvaluationAttemptStatus,
+  EvaluationDatasetDetail,
+  EvaluationDatasetListPage,
   EvaluationRunDetail,
   EvaluationRunListItem,
   EvaluationRunListPage,
@@ -10,7 +12,7 @@ const RECORDED_AT = '2026-07-27T16:30:00Z'
 interface DetailFixtureOptions {
   runId?: string
   datasetId?: string
-  candidateLabel?: string
+  runLabel?: string
   sourceRevision?: string
   attemptStatuses?: EvaluationAttemptStatus[]
 }
@@ -18,7 +20,7 @@ interface DetailFixtureOptions {
 export function makeEvaluationRunDetailFixture({
   runId = 'eval-run-baseline',
   datasetId = 'eval-dataset-local-places',
-  candidateLabel = 'baseline',
+  runLabel = 'baseline',
   sourceRevision = '1111111111111111111111111111111111111111',
   attemptStatuses = ['passed', 'failed', 'error', 'queued'],
 }: DetailFixtureOptions = {}): EvaluationRunDetail {
@@ -28,7 +30,7 @@ export function makeEvaluationRunDetailFixture({
       id: runId,
       dataset_id: datasetId,
       request_key: `${runId}-request`,
-      candidate_label: candidateLabel,
+      run_label: runLabel,
       source_revision: sourceRevision,
       status: runCompleted ? 'completed' : 'active',
       created_by_user_id: 'user-evaluation-fixture',
@@ -50,7 +52,6 @@ export function makeEvaluationRunDetailFixture({
       const ordinal = index + 1
       const generated = index === 0
       const terminal = status !== 'queued'
-      const score = status === 'passed' ? 0.9 : status === 'failed' ? 0.25 : null
       const reason =
         status === 'passed'
           ? 'The response satisfies the requested local-place criteria.'
@@ -72,13 +73,16 @@ export function makeEvaluationRunDetailFixture({
           id: `${datasetId}-case-${ordinal}`,
           dataset_id: datasetId,
           case_key: `local-place-${ordinal}`,
+          evaluation_name: 'Response place realism',
           ordinal,
           origin: generated ? 'generated' : 'authored',
           target_kind: ordinal === 1 ? 'workflow' : 'node',
           target_key: ordinal === 1 ? 'turn_workflow' : 'date_response_node',
           input_version: 1,
-          input_json: { location: `Place ${ordinal}` },
-          expectation_json: { should_mention_location: true },
+          input_json: { message: `Recommend a real place near Place ${ordinal}.` },
+          expectation_json: {
+            rubric: 'Mention a real place and keep the geography plausible.',
+          },
           evaluator_key: 'qualitative_response',
           evaluator_version: 1,
           source_execution: generated
@@ -99,7 +103,6 @@ export function makeEvaluationRunDetailFixture({
           run_id: runId,
           case_id: `${datasetId}-case-${ordinal}`,
           status,
-          score,
           reason,
           duration_ms: terminal ? ordinal * 100 : null,
           subject_execution: subjectExecution,
@@ -124,6 +127,21 @@ export function makeEvaluationRunListItem(
   for (const item of detail.cases) {
     attemptCounts[item.attempt.status] += 1
   }
+  const judged = attemptCounts.passed + attemptCounts.failed
+  const targetCounts = new Map<string, number>()
+  const evaluationCounts = new Map<string, number>()
+  for (const item of detail.cases) {
+    const targetKey = JSON.stringify([
+      item.case.target_kind,
+      item.case.target_key,
+      item.case.input_version,
+    ])
+    targetCounts.set(targetKey, (targetCounts.get(targetKey) ?? 0) + 1)
+    evaluationCounts.set(
+      item.case.evaluation_name,
+      (evaluationCounts.get(item.case.evaluation_name) ?? 0) + 1,
+    )
+  }
   return {
     run: detail.run,
     dataset: {
@@ -133,7 +151,29 @@ export function makeEvaluationRunListItem(
       name: detail.dataset.name,
       status: detail.dataset.status,
     },
-    attempt_counts: attemptCounts,
+    outcome_summary: {
+      ...attemptCounts,
+      judged,
+      pass_rate: judged === 0 ? null : attemptCounts.passed / judged,
+      coverage: attemptCounts.total === 0 ? null : judged / attemptCounts.total,
+    },
+    target_facets: [...targetCounts].map(([identity, caseCount]) => {
+      const [targetKind, targetKey, inputVersion] = JSON.parse(identity) as [
+        'node' | 'workflow' | 'agent',
+        string,
+        number,
+      ]
+      return {
+        target_kind: targetKind,
+        target_key: targetKey,
+        input_version: inputVersion,
+        case_count: caseCount,
+      }
+    }),
+    evaluation_facets: [...evaluationCounts].map(([evaluationName, caseCount]) => ({
+      evaluation_name: evaluationName,
+      case_count: caseCount,
+    })),
   }
 }
 
@@ -142,7 +182,33 @@ export function makeEvaluationRunListPage(
   nextCursor: string | null = null,
 ): EvaluationRunListPage {
   return {
+    scope: {
+      dataset_id: details[0]?.dataset.id ?? null,
+      target_kind: null,
+      target_key: null,
+      input_version: null,
+      evaluation_name: null,
+    },
     items: details.map(makeEvaluationRunListItem),
     next_cursor: nextCursor,
+  }
+}
+
+export function makeEvaluationDatasetListPage(
+  details: EvaluationRunDetail[],
+): EvaluationDatasetListPage {
+  const datasets = new Map(details.map((detail) => [detail.dataset.id, detail.dataset]))
+  return {
+    items: [...datasets.values()],
+    next_cursor: null,
+  }
+}
+
+export function makeEvaluationDatasetDetailFixture(
+  detail: EvaluationRunDetail = makeEvaluationRunDetailFixture(),
+): EvaluationDatasetDetail {
+  return {
+    dataset: detail.dataset,
+    cases: detail.cases.map((item) => item.case),
   }
 }

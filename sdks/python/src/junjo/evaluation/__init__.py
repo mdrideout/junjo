@@ -19,6 +19,7 @@ from .evaluators import (
 )
 from .harness import (
     EvaluationHarness,
+    EvaluatorDescriptor,
     EvaluatorNotRegisteredError,
     HarnessConfigurationError,
     PreparedEvaluation,
@@ -67,6 +68,7 @@ __all__ = [
     "EvaluationTarget",
     "Evaluator",
     "EvaluatorContractError",
+    "EvaluatorDescriptor",
     "EvaluatorExecutionError",
     "EvaluatorNotRegisteredError",
     "ExactMatchEvaluator",

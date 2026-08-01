@@ -36,6 +36,7 @@ Run these before changing datasets:
 ```bash
 junjo eval capabilities
 junjo eval targets list
+junjo eval evaluators list
 ```
 
 The CLI discovers the harness from:
@@ -69,6 +70,8 @@ callback when the factory creates temporary state.
 
 Register application-owned evaluators with stable keys and versions. Evaluator
 expectation models must be strict and versioned just like target inputs.
+Inspect the machine-readable expectation schema with
+`junjo eval evaluators list` before authoring Case expectation JSON.
 
 ## 3. Configure Studio access
 
@@ -79,8 +82,8 @@ export JUNJO_STUDIO_URL="https://api.example.com"
 export JUNJO_AI_STUDIO_CLI_TOKEN="junjo_eval_..."
 ```
 
-Sign in to Studio, open **Evaluation tokens**, and create the token with only
-the scopes required by the workflow:
+Sign in to Studio, open **Developer credentials → Evaluation tokens**, and
+create the token with only the scopes required by the workflow:
 
 - `evaluation:read` to list datasets, runs, attempts, and comparisons.
 - `evaluation:write` to create datasets/cases and execute runs.
@@ -100,6 +103,7 @@ junjo eval dataset create \
 junjo eval dataset add \
   --dataset-id DATASET_ID \
   --case-key coffee-shop \
+  --evaluation-name "Response place realism" \
   --target-kind workflow \
   --target-key chat.turn \
   --input-version 1 \
@@ -127,7 +131,7 @@ The runner records source provenance and rejects dirty source trees:
 junjo eval run execute \
   --dataset-id DATASET_ID \
   --request-key prompt-v2-001 \
-  --candidate-label "prompt-v2"
+  --run-label "prompt-v2"
 ```
 
 If a process stops after Studio created the run, resume it:
@@ -167,13 +171,38 @@ Compare two completed runs of the same locked dataset:
 ```bash
 junjo eval run compare \
   --baseline-run-id BASELINE_RUN_ID \
-  --candidate-run-id CANDIDATE_RUN_ID
+  --candidate-run-id CANDIDATE_RUN_ID \
+  --target-kind workflow \
+  --target-key chat.turn \
+  --input-version 1 \
+  --evaluator-key text.quality \
+  --evaluator-version 1
 ```
+
+Omit the scope flags to compare every Case in the locked Dataset.
 
 Use the comparison plus bounded trace evidence to identify the first meaningful
 behavior change. Modify application code or prompts, commit the source change,
 execute the same locked inputs with a new request key and candidate label, and
 compare again.
+
+When a Dataset contains mixed Node, Workflow, and Agent cases, scope history
+queries to one exact target and evaluator identity:
+
+```bash
+junjo eval run list \
+  --dataset-id DATASET_ID \
+  --target-kind workflow \
+  --target-key chat.turn \
+  --input-version 1 \
+  --evaluator-key text-quality \
+  --evaluator-version 1
+```
+
+Interpret `pass_rate` only over passed and failed Attempts. Check `coverage`
+before drawing conclusions when Attempts remain queued or errored. Use the
+comparison transition categories and exact baseline/candidate execution links
+to locate the first material behavior change.
 
 ## Exit statuses
 

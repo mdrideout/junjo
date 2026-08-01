@@ -33,6 +33,7 @@ async def _persist_user(test_db, user) -> None:
 def _case(case_key: str) -> EvaluationCaseCreate:
     return EvaluationCaseCreate(
         case_key=case_key,
+        evaluation_name="Response place realism",
         origin="authored",
         target_kind="node",
         target_key="date_response_node",
@@ -97,7 +98,7 @@ async def test_concurrent_final_attempt_updates_complete_run_once(
         EvaluationRunStart(
             dataset_id=dataset.id,
             request_key="concurrent-final-results",
-            candidate_label="baseline",
+            run_label="baseline",
             source_revision=REVISION,
         ),
         mock_authenticated_user,
@@ -120,7 +121,6 @@ async def test_concurrent_final_attempt_updates_complete_run_once(
                 attempt_id=run_case.attempt.id,
                 result=EvaluationAttemptResult(
                     status="passed",
-                    score=1.0,
                     reason="The response names a specific plausible place.",
                 ),
             )
@@ -146,7 +146,7 @@ async def test_subject_execution_can_bind_to_only_one_attempt(
         EvaluationRunStart(
             dataset_id=dataset.id,
             request_key="unique-subject-execution",
-            candidate_label="baseline",
+            run_label="baseline",
             source_revision=REVISION,
         ),
         mock_authenticated_user,

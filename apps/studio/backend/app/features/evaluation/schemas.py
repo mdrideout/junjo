@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime
 from typing import Annotated, Literal
 
@@ -231,6 +230,7 @@ class EvaluationDatasetRead(EvaluationDatasetSummary):
 
 class EvaluationCaseCreate(EvaluationContract):
     case_key: KeyText = Field(examples=["specific_place_1"])
+    evaluation_name: NameText = Field(examples=["Response place realism"])
     origin: CaseOrigin
     target_kind: TargetKind
     target_key: KeyText = Field(examples=["date_response_node"])
@@ -270,6 +270,7 @@ class EvaluationCaseRead(EvaluationContract):
     id: RecordId
     dataset_id: RecordId
     case_key: KeyText
+    evaluation_name: NameText
     ordinal: int = Field(ge=1)
     origin: CaseOrigin
     target_kind: TargetKind
@@ -297,7 +298,7 @@ class EvaluationDatasetList(EvaluationContract):
 class EvaluationRunStart(EvaluationContract):
     dataset_id: RecordId
     request_key: KeyText = Field(examples=["baseline-20260727"])
-    candidate_label: NameText = Field(examples=["baseline"])
+    run_label: NameText = Field(examples=["baseline"])
     source_revision: SourceRevision
 
 
@@ -305,7 +306,7 @@ class EvaluationRunRead(EvaluationContract):
     id: RecordId
     dataset_id: RecordId
     request_key: KeyText
-    candidate_label: NameText
+    run_label: NameText
     source_revision: SourceRevision
     status: RunStatus
     created_by_user_id: RecordId | None
@@ -318,7 +319,6 @@ class EvaluationAttemptRead(EvaluationContract):
     run_id: RecordId
     case_id: RecordId
     status: AttemptStatus
-    score: float | None = Field(default=None, ge=0.0, le=1.0, allow_inf_nan=False)
     reason: ReasonText | None
     duration_ms: int | None = Field(default=None, ge=0, le=MAX_DURATION_MS)
     subject_execution: SemanticExecutionReference | None
@@ -344,21 +344,51 @@ class EvaluationAttemptDetail(EvaluationContract):
     attempt: EvaluationAttemptRead
 
 
-class EvaluationAttemptCounts(EvaluationContract):
+class EvaluationRunScope(EvaluationContract):
+    """The exact, conjunctive case scope applied to a run-list projection."""
+
+    dataset_id: RecordId | None = None
+    target_kind: TargetKind | None = None
+    target_key: KeyText | None = None
+    input_version: int | None = Field(default=None, ge=1, le=MAX_VERSION)
+    evaluation_name: NameText | None = None
+
+
+class EvaluationOutcomeSummary(EvaluationContract):
+    """Bounded outcome aggregates for the attempts visible in one scope."""
+
     total: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     queued: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    judged: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     passed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     failed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     error: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    pass_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    coverage: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class EvaluationTargetFacet(EvaluationContract):
+    target_kind: TargetKind
+    target_key: KeyText
+    input_version: int = Field(ge=1, le=MAX_VERSION)
+    case_count: int = Field(ge=1, le=MAX_CASES_PER_DATASET)
+
+
+class EvaluationNameFacet(EvaluationContract):
+    evaluation_name: NameText
+    case_count: int = Field(ge=1, le=MAX_CASES_PER_DATASET)
 
 
 class EvaluationRunSummary(EvaluationContract):
     run: EvaluationRunRead
     dataset: EvaluationDatasetSummary
-    attempt_counts: EvaluationAttemptCounts
+    outcome_summary: EvaluationOutcomeSummary
+    target_facets: list[EvaluationTargetFacet] = Field(max_length=MAX_CASES_PER_DATASET)
+    evaluation_facets: list[EvaluationNameFacet] = Field(max_length=MAX_CASES_PER_DATASET)
 
 
 class EvaluationRunList(EvaluationContract):
+    scope: EvaluationRunScope
     items: list[EvaluationRunSummary] = Field(max_length=MAX_PAGE_SIZE)
     next_cursor: str | None
 
@@ -369,20 +399,8 @@ class EvaluationExecutionBind(EvaluationContract):
 
 class EvaluationAttemptResult(EvaluationContract):
     status: TerminalAttemptStatus
-    score: float | None = Field(default=None, ge=0.0, le=1.0, allow_inf_nan=False)
     reason: ReasonText
     duration_ms: int | None = Field(default=None, ge=0, le=MAX_DURATION_MS)
-
-    @model_validator(mode="after")
-    def validate_terminal_result(self) -> EvaluationAttemptResult:
-        if self.status in ("passed", "failed"):
-            if self.score is None:
-                raise ValueError("passed and failed results require score")
-        elif self.score is not None:
-            raise ValueError("error results cannot include score")
-        if self.score is not None and not math.isfinite(self.score):
-            raise ValueError("score must be finite")
-        return self
 
 
 class EvaluationExecutionMembership(EvaluationContract):

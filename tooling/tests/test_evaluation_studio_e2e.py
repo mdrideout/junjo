@@ -84,6 +84,7 @@ class EvaluationStudioE2EToolingTests(unittest.TestCase):
             evidence,
             attempt_id="attempt-1",
             run_id="run-1",
+            expected_status="passed",
         )
 
         evidence["evidence"]["spans"].pop()
@@ -95,6 +96,7 @@ class EvaluationStudioE2EToolingTests(unittest.TestCase):
                 evidence,
                 attempt_id="attempt-1",
                 run_id="run-1",
+                expected_status="passed",
             )
 
     def test_command_data_rejects_unsuccessful_or_non_object_payloads(self) -> None:
@@ -108,6 +110,16 @@ class EvaluationStudioE2EToolingTests(unittest.TestCase):
             "must be an object",
         ):
             validator.command_data({"ok": True, "data": []})
+
+    def test_attempt_evidence_accepts_the_expected_failed_outcome(self) -> None:
+        evidence = attempt_evidence()
+        evidence["attempt"]["attempt"]["status"] = "failed"
+        validator.assert_attempt_evidence(
+            evidence,
+            attempt_id="attempt-1",
+            run_id="run-1",
+            expected_status="failed",
+        )
 
     def test_evaluation_credential_requires_scoped_token_shape(self) -> None:
         class Client:

@@ -44,30 +44,33 @@ from app.grpc_server import start_grpc_server, stop_grpc_server
 setup_logging()
 
 
-async def _supervise_internal_grpc_server(grpc_server) -> None:
+async def _supervise_internal_grpc_server(grpc_server, shutdown_requested: asyncio.Event) -> None:
     """Stop the process if the required internal gRPC server terminates."""
     try:
         await grpc_server.wait_for_termination()
     except asyncio.CancelledError:
         raise
     except Exception:
+        if shutdown_requested.is_set():
+            logger.info("Internal gRPC server stopped during application shutdown")
+            return
         logger.exception("Internal gRPC server supervision failed; stopping backend")
     else:
+        if shutdown_requested.is_set():
+            logger.info("Internal gRPC server stopped during application shutdown")
+            return
         logger.critical("Internal gRPC server terminated unexpectedly; stopping backend")
 
     os.kill(os.getpid(), signal.SIGTERM)
 
 
-async def _shutdown_internal_grpc_server(supervisor_task: asyncio.Task[None]) -> None:
-    """Cancel runtime supervision before intentionally stopping gRPC."""
-    if not supervisor_task.done():
-        supervisor_task.cancel()
-        try:
-            await supervisor_task
-        except asyncio.CancelledError:
-            logger.info("gRPC supervisor cancelled")
-
+async def _shutdown_internal_grpc_server(
+    supervisor_task: asyncio.Task[None], shutdown_requested: asyncio.Event
+) -> None:
+    """Intentionally stop gRPC, then wait for its supervisor to finish."""
+    shutdown_requested.set()
     await stop_grpc_server()
+    await supervisor_task
 
 
 @asynccontextmanager
@@ -130,7 +133,10 @@ async def lifespan(app: FastAPI):
 
     # Positively start gRPC before HTTP readiness can succeed.
     grpc_server = await start_grpc_server()
-    grpc_task = asyncio.create_task(_supervise_internal_grpc_server(grpc_server))
+    grpc_shutdown_requested = asyncio.Event()
+    grpc_task = asyncio.create_task(
+        _supervise_internal_grpc_server(grpc_server, grpc_shutdown_requested)
+    )
     logger.info("gRPC server started and supervised")
 
     indexer_task = asyncio.create_task(parquet_indexer())
@@ -148,17 +154,18 @@ async def lifespan(app: FastAPI):
             except asyncio.CancelledError:
                 logger.info("Parquet indexer cancelled")
 
-        await _shutdown_internal_grpc_server(grpc_task)
+        try:
+            await _shutdown_internal_grpc_server(grpc_task, grpc_shutdown_requested)
+        finally:
+            from app.db_sqlite.db_config import checkpoint_wal, engine
+            from app.db_sqlite.metadata import checkpoint_wal as metadata_checkpoint_wal
 
-        from app.db_sqlite.db_config import checkpoint_wal, engine
-        from app.db_sqlite.metadata import checkpoint_wal as metadata_checkpoint_wal
-
-        await checkpoint_wal()
-        logger.info("SQLite WAL checkpointed")
-        metadata_checkpoint_wal()
-        logger.info("Metadata WAL checkpointed")
-        await engine.dispose()
-        logger.info("Database connections closed")
+            await checkpoint_wal()
+            logger.info("SQLite WAL checkpointed")
+            metadata_checkpoint_wal()
+            logger.info("Metadata WAL checkpointed")
+            await engine.dispose()
+            logger.info("Database connections closed")
 
 
 # Create FastAPI app

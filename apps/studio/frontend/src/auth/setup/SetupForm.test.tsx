@@ -29,7 +29,7 @@ describe('SetupForm', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('should navigate to /api-keys after first user creation when no API keys exist', async () => {
+  it('should navigate to ingestion credentials after first-user creation', async () => {
     const user = userEvent.setup()
 
     // Render the SetupForm
@@ -48,7 +48,7 @@ describe('SetupForm', () => {
 
     // Wait for navigation to be called
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/api-keys')
+      expect(mockNavigate).toHaveBeenCalledWith('/settings/credentials/ingestion')
     })
   })
 

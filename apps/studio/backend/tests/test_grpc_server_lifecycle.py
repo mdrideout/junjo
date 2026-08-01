@@ -2,6 +2,7 @@ import asyncio
 import signal
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import grpc
 import pytest
 
 import app.grpc_server as grpc_server
@@ -34,12 +35,13 @@ async def test_start_grpc_server_waits_for_positive_start() -> None:
 async def test_unexpected_grpc_termination_signals_process_shutdown() -> None:
     server = MagicMock()
     server.wait_for_termination = AsyncMock()
+    shutdown_requested = asyncio.Event()
 
     with (
         patch("app.main.os.getpid", return_value=1234),
         patch("app.main.os.kill") as kill,
     ):
-        await _supervise_internal_grpc_server(server)
+        await _supervise_internal_grpc_server(server, shutdown_requested)
 
     server.wait_for_termination.assert_awaited_once_with()
     kill.assert_called_once_with(1234, signal.SIGTERM)
@@ -49,35 +51,37 @@ async def test_unexpected_grpc_termination_signals_process_shutdown() -> None:
 async def test_grpc_supervision_failure_signals_process_shutdown() -> None:
     server = MagicMock()
     server.wait_for_termination = AsyncMock(side_effect=RuntimeError("gRPC failed"))
+    shutdown_requested = asyncio.Event()
 
     with (
         patch("app.main.os.getpid", return_value=1234),
         patch("app.main.os.kill") as kill,
     ):
-        await _supervise_internal_grpc_server(server)
+        await _supervise_internal_grpc_server(server, shutdown_requested)
 
     kill.assert_called_once_with(1234, signal.SIGTERM)
 
 
 @pytest.mark.asyncio
-async def test_normal_shutdown_cancels_supervision_before_stopping_grpc() -> None:
-    wait_started = asyncio.Event()
+async def test_normal_shutdown_stops_real_grpc_server_before_awaiting_supervision() -> None:
+    server = grpc.aio.server()
+    bound_port = server.add_insecure_port("127.0.0.1:0")
+    assert bound_port != 0
+    await server.start()
 
-    async def wait_for_termination() -> None:
-        wait_started.set()
-        await asyncio.Event().wait()
+    shutdown_requested = asyncio.Event()
+    grpc_server._grpc_server = server
+    supervisor = asyncio.create_task(_supervise_internal_grpc_server(server, shutdown_requested))
+    await asyncio.sleep(0)
 
-    server = MagicMock()
-    server.wait_for_termination = wait_for_termination
-    supervisor = asyncio.create_task(_supervise_internal_grpc_server(server))
-    await wait_started.wait()
+    try:
+        with patch("app.main.os.kill") as kill:
+            await _shutdown_internal_grpc_server(supervisor, shutdown_requested)
 
-    with (
-        patch("app.main.os.kill") as kill,
-        patch("app.main.stop_grpc_server", new=AsyncMock()) as stop,
-    ):
-        await _shutdown_internal_grpc_server(supervisor)
-
-    assert supervisor.cancelled()
-    kill.assert_not_called()
-    stop.assert_awaited_once_with()
+        assert supervisor.done()
+        assert not supervisor.cancelled()
+        assert grpc_server._grpc_server is None
+        kill.assert_not_called()
+    finally:
+        if grpc_server._grpc_server is not None:
+            await grpc_server.stop_grpc_server()

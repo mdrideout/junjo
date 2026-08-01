@@ -53,6 +53,7 @@ def _case() -> dict[str, Any]:
         "id": "case-1",
         "dataset_id": "dataset-1",
         "case_key": "brooklyn",
+        "evaluation_name": "Response place realism",
         "ordinal": 1,
         "origin": "authored",
         "target_kind": "node",
@@ -72,13 +73,13 @@ def _run(
     *,
     run_id: str = "run-1",
     request_key: str = "baseline-1",
-    candidate_label: str = "baseline",
+    run_label: str = "baseline",
 ) -> dict[str, Any]:
     return {
         "id": run_id,
         "dataset_id": "dataset-1",
         "request_key": request_key,
-        "candidate_label": candidate_label,
+        "run_label": run_label,
         "source_revision": "a" * 40,
         "status": "active",
         "created_by_user_id": "user-1",
@@ -107,7 +108,6 @@ def _attempt(
         "run_id": run_id,
         "case_id": "case-1",
         "status": "queued",
-        "score": None,
         "reason": None,
         "duration_ms": None,
         "subject_execution": execution,
@@ -120,13 +120,13 @@ def _run_detail(
     *,
     run_id: str = "run-1",
     request_key: str = "baseline-1",
-    candidate_label: str = "baseline",
+    run_label: str = "baseline",
 ) -> dict[str, Any]:
     return {
         "run": _run(
             run_id=run_id,
             request_key=request_key,
-            candidate_label=candidate_label,
+            run_label=run_label,
         ),
         "dataset": _dataset(),
         "cases": [
@@ -175,6 +175,13 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
                 "GET",
                 "/api/v1/evaluation/runs",
             ): lambda: {
+                "scope": {
+                    "dataset_id": "dataset-1",
+                    "target_kind": "node",
+                    "target_key": "turn.date_response",
+                    "input_version": 1,
+                    "evaluation_name": "Response place realism",
+                },
                 "items": [
                     {
                         "run": _run(),
@@ -185,13 +192,30 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
                             "name": "Local places",
                             "status": "locked",
                         },
-                        "attempt_counts": {
+                        "outcome_summary": {
                             "total": 1,
                             "queued": 1,
+                            "judged": 0,
                             "passed": 0,
                             "failed": 0,
                             "error": 0,
+                            "pass_rate": None,
+                            "coverage": 0.0,
                         },
+                        "target_facets": [
+                            {
+                                "target_kind": "node",
+                                "target_key": "turn.date_response",
+                                "input_version": 1,
+                                "case_count": 1,
+                            }
+                        ],
+                        "evaluation_facets": [
+                            {
+                                "evaluation_name": "Response place realism",
+                                "case_count": 1,
+                            }
+                        ],
                     }
                 ],
                 "next_cursor": None,
@@ -255,6 +279,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
             "dataset-1",
             CaseCreate(
                 case_key="brooklyn",
+                evaluation_name="Response place realism",
                 origin=CaseOrigin.AUTHORED,
                 target_kind=TargetKind.NODE,
                 target_key="turn.date_response",
@@ -270,11 +295,18 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
             RunStart(
                 dataset_id="dataset-1",
                 request_key="baseline-1",
-                candidate_label="baseline",
+                run_label="baseline",
                 source_revision="a" * 40,
             )
         )
-        await client.list_runs(dataset_id="dataset-1", limit=19)
+        run_page = await client.list_runs(
+            dataset_id="dataset-1",
+            target_kind=TargetKind.NODE,
+            target_key="turn.date_response",
+            input_version=1,
+            evaluation_name="Response place realism",
+            limit=19,
+        )
         await client.get_run("run-1")
         await client.get_attempt("attempt-1")
         await client.bind_attempt_execution("attempt-1", _reference())
@@ -292,6 +324,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
         )
 
     assert dataset_page.next_cursor == "dataset-cursor"
+    assert run_page.scope.target_kind is TargetKind.NODE
     assert membership.items[0].attempt_id == "attempt-1"
     mutations = [request for request in requests if request.method in {"POST", "PUT"}]
     assert all("idempotency-key" not in request.headers for request in mutations)
@@ -301,6 +334,17 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
     assert dict(list_dataset_request.url.params) == {
         "application_key": "ai_chat",
         "limit": "17",
+    }
+    list_runs_request = next(
+        request for request in requests if request.method == "GET" and request.url.path == "/api/v1/evaluation/runs"
+    )
+    assert dict(list_runs_request.url.params) == {
+        "limit": "19",
+        "dataset_id": "dataset-1",
+        "target_kind": "node",
+        "target_key": "turn.date_response",
+        "input_version": "1",
+        "evaluation_name": "Response place realism",
     }
     membership_request = next(
         request for request in requests if request.url.path == "/api/v1/evaluation/execution-membership"

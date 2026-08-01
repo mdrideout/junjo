@@ -294,7 +294,6 @@ async def _text_quality_callback(
     )
     return EvaluationResult(
         passed=judgment.passed,
-        score=judgment.score,
         reason=judgment.reason,
     )
 

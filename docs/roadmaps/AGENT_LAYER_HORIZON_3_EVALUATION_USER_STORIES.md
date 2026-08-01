@@ -9,6 +9,8 @@
   [Horizon 3 Evaluation Lean MVP Critical Path](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md)
 - Engineering execution:
   [SDK Evaluation Productization Plan](AGENT_LAYER_HORIZON_3_SDK_EVALUATION_PRODUCTIZATION_PLAN.md)
+- Next UX slice:
+  [Evaluation UX And Target Analysis Plan](AGENT_LAYER_HORIZON_3_EVALUATION_UX_AND_TARGET_ANALYSIS_PLAN.md)
 
 ## Document Role
 
@@ -224,7 +226,7 @@ Not part of this story:
 - materializing every descendant span as a separate dataset case; or
 - reconstructing an application execution from stored telemetry alone.
 
-### H3-US-005 — Run One Dataset Against A Baseline Or Candidate
+### H3-US-005 — Run One Dataset From A Labeled Source Revision
 
 **As a coding agent, I want Junjo to execute a locked dataset against the code
 in my checkout so that I can measure a prompt or implementation candidate
@@ -238,9 +240,9 @@ interpret the target.
 
 Acceptance criteria:
 
-- The harness receives a locked dataset and explicit candidate label and
+- The harness receives a locked dataset and explicit Run label and
   executes every case against the declared target.
-- A run records the clean source revision and refuses an uncommitted candidate
+- A run records the clean source revision and refuses an uncommitted checkout
   by default, with any deliberate override visible in provenance.
 - The SDK pre-creates or claims attempts, executes each subject, binds its exact
   semantic execution reference before judging, and records a typed terminal
@@ -249,8 +251,8 @@ Acceptance criteria:
   declarations are available.
 - `EvaluationExecutor` is sequential and bounded and owns one explicit
   application-host runtime lifetime.
-- The result identifies dataset, run, case, attempt, candidate, evaluator,
-  duration, pass/fail/error state, score where applicable, and a bounded reason.
+- The result identifies dataset, run, case, attempt, evaluator, duration,
+  pass/fail/error state, and a bounded reason.
 - The CLI can run the same declaration as the Python API without application-
   local control-plane code.
 
@@ -284,6 +286,8 @@ Acceptance criteria:
   expectation through an SDK-owned interface.
 - Every evaluator has a stable key, version, configuration fingerprint, and
   structured result schema.
+- Every Case has a required human evaluation name describing what its binary
+  pass or fail means.
 - Subject, judge, and verifier failures remain distinguishable.
 - An evaluator cannot silently replace a bound subject execution or copy the
   subject output into its own expected answer.
@@ -379,9 +383,8 @@ Acceptance criteria:
 - A comparison names one baseline run and one candidate run over the same
   locked dataset.
 - Cases pair by stable case identity, not list position, label, or timestamp.
-- The comparison reports result status and score changes, missing or extra
-  attempts, source revisions, target/evaluator versions, and evidence
-  integrity.
+- The comparison reports binary result transitions, missing or extra attempts,
+  source revisions, target/evaluator versions, and evidence integrity.
 - For a focused upstream Node or model behavior inside a Workflow or Agent, the
   user can reach both focal evidence and the declared wider comparison scope.
 - The user can inspect prompts, model requests and responses, Tool calls, state
@@ -393,7 +396,7 @@ Not part of this story:
 
 - claiming semantic causal attribution solely from temporal ordering;
 - requiring a perfect automatic span-alignment algorithm for MVP; or
-- automatically promoting a candidate because its aggregate score increased.
+- automatically promoting a candidate from aggregate pass rate alone.
 
 ### H3-US-010 — Resume Safely After Interruption Or Partial Failure
 
@@ -572,6 +575,46 @@ Not part of this story:
 
 ## P1 Next Valuable Stories
 
+### H3-US-100 — Analyze Evaluations By Target And Iteration
+
+**As an application developer or coding agent, I want to scope evaluation
+history and comparisons to a specific Node, Workflow, Agent, and evaluator so
+that I can see how source and prompt changes affected the behavior I intended
+to improve.**
+
+Outcome:
+
+Studio presents Dataset Runs as an iteration history while deriving exact
+target and evaluator facets from their immutable Cases. Every individual
+Attempt remains linked to its canonical execution evidence.
+
+Acceptance criteria:
+
+- A mixed Dataset remains one Run; Studio does not assign one misleading
+  target to the Run.
+- Run history, detail, and comparison can scope outcomes by target kind,
+  target key, input version, and human evaluation name.
+- Summary counts distinguish passed, failed, errored, queued, judged, pass
+  rate, and coverage without hiding denominator changes.
+- Compatible baseline and candidate Runs are selected by visible Dataset and
+  Run labels without requiring pasted opaque IDs.
+- Comparisons report improved, regressed, recovered, newly errored, changed,
+  and unchanged Case transitions.
+- Every bound Node, Workflow, and Agent Attempt provides a direct action to its
+  exact received Studio execution.
+- Generated source evidence remains available as Case provenance without being
+  confused with the current Attempt execution.
+- The same bounded facets and summaries are exposed through Studio, the SDK,
+  and CLI machine output.
+
+Not part of this story:
+
+- adding a single target field to Run;
+- copying trace payloads into evaluation records;
+- a new analytics database or service;
+- statistical-significance claims; or
+- automatic causal attribution or prompt optimization.
+
 ### H3-US-101 — Curate A Dataset From Historical Studio Evidence
 
 **As a coding agent, I want to select prior application runs or executable
@@ -647,9 +690,8 @@ implementation.
 
 Acceptance criteria:
 
-- Queries can filter by dataset, case, target, candidate, source revision,
-  evaluator, result status, score range, execution outcome, and evidence
-  integrity.
+- Queries can filter by dataset, case, target, Run label, source revision,
+  evaluation name, result status, execution outcome, and evidence integrity.
 - Aggregate responses are bounded and link back to exact attempts and traces.
 - Saved query semantics are versioned and shared by SDK, CLI, UI, and future
   MCP adapters.
@@ -707,7 +749,7 @@ evidence, not an overwrite of automated evaluation.
 Acceptance criteria:
 
 - Review assignments reference exact attempts and evidence.
-- Reviewer identity, rubric version, decision, score, reason, and timestamp are
+- Reviewer identity, rubric version, binary decision, reason, and timestamp are
   retained.
 - Automated, model-judge, external-verifier, and human results remain
   distinguishable.
@@ -825,7 +867,7 @@ Not part of this story:
 - autonomous production deployment;
 - self-modifying prompts stored only in Studio rather than application source;
   or
-- optimizing one score while hiding regressions, missing cases, or partial
+- optimizing one headline metric while hiding regressions, missing cases, or partial
   evidence.
 
 ## Reference End-To-End User Journey

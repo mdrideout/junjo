@@ -11,6 +11,7 @@ from app.features.evaluation.schemas import (
     EvaluationAttemptResult,
     EvaluationCaseCreate,
     EvaluationDatasetCreate,
+    EvaluationRunScope,
     EvaluationRunStart,
     SemanticExecutionReference,
     TargetKind,
@@ -47,16 +48,20 @@ def _case(
     origin: str = "authored",
     source_execution: SemanticExecutionReference | None = None,
     target_kind: TargetKind = "node",
+    target_key: str = "date_response_node",
+    evaluator_key: str = "response_quality",
+    evaluation_name: str = "Response place realism",
 ) -> EvaluationCaseCreate:
     return EvaluationCaseCreate(
         case_key=case_key,
+        evaluation_name=evaluation_name,
         origin=origin,
         target_kind=target_kind,
-        target_key="date_response_node",
+        target_key=target_key,
         input_version=1,
         input_json={"prompt": "Name one specific plausible nearby place."},
         expectation_json={"rubric": "Names one specific place."},
-        evaluator_key="response_quality",
+        evaluator_key=evaluator_key,
         evaluator_version=1,
         source_execution=source_execution,
         source_revision=REVISION if source_execution else None,
@@ -67,7 +72,7 @@ def _run(dataset_id: str) -> EvaluationRunStart:
     return EvaluationRunStart(
         dataset_id=dataset_id,
         request_key="baseline-request",
-        candidate_label="baseline",
+        run_label="baseline",
         source_revision=REVISION,
     )
 
@@ -158,7 +163,6 @@ async def test_complete_control_loop_is_idempotent_and_exact(
 
     result = EvaluationAttemptResult(
         status="passed",
-        score=0.9,
         reason="The response names a specific plausible place.",
     )
     recorded = await EvaluationRepository.record_attempt_result(
@@ -187,18 +191,36 @@ async def test_complete_control_loop_is_idempotent_and_exact(
     assert resumed.cases[0].attempt.status == "passed"
 
     listed = await EvaluationRepository.list_runs(
-        dataset_id=dataset.id,
+        scope=EvaluationRunScope(dataset_id=dataset.id),
         cursor=None,
         limit=50,
     )
     assert len(listed.items) == 1
-    assert listed.items[0].attempt_counts.model_dump() == {
+    assert listed.scope == EvaluationRunScope(dataset_id=dataset.id)
+    assert listed.items[0].outcome_summary.model_dump() == {
         "total": 1,
         "queued": 0,
+        "judged": 1,
         "passed": 1,
         "failed": 0,
         "error": 0,
+        "pass_rate": 1.0,
+        "coverage": 1.0,
     }
+    assert [facet.model_dump() for facet in listed.items[0].target_facets] == [
+        {
+            "target_kind": "node",
+            "target_key": "date_response_node",
+            "input_version": 1,
+            "case_count": 1,
+        }
+    ]
+    assert [facet.model_dump() for facet in listed.items[0].evaluation_facets] == [
+        {
+            "evaluation_name": "Response place realism",
+            "case_count": 1,
+        }
+    ]
 
     source_membership = await EvaluationRepository.find_execution_membership(
         execution=source,
@@ -291,7 +313,6 @@ async def test_conflicting_natural_keys_and_terminal_writes_are_rejected(
         attempt_id=attempt_id,
         result=EvaluationAttemptResult(
             status="failed",
-            score=0.2,
             reason="The response did not name a specific place.",
             duration_ms=20,
         ),
@@ -301,7 +322,6 @@ async def test_conflicting_natural_keys_and_terminal_writes_are_rejected(
             attempt_id=attempt_id,
             result=EvaluationAttemptResult(
                 status="passed",
-                score=0.8,
                 reason="Conflicting outcome.",
                 duration_ms=20,
             ),
@@ -462,19 +482,19 @@ async def test_dataset_run_and_membership_keyset_pages_do_not_repeat_rows(
             EvaluationRunStart(
                 dataset_id=selected.id,
                 request_key=f"run_page_{index}",
-                candidate_label=f"candidate {index}",
+                run_label=f"candidate {index}",
                 source_revision=REVISION,
             ),
             mock_authenticated_user,
         )
 
     first_runs = await EvaluationRepository.list_runs(
-        dataset_id=selected.id,
+        scope=EvaluationRunScope(dataset_id=selected.id),
         cursor=None,
         limit=1,
     )
     second_runs = await EvaluationRepository.list_runs(
-        dataset_id=selected.id,
+        scope=EvaluationRunScope(dataset_id=selected.id),
         cursor=first_runs.next_cursor,
         limit=1,
     )
@@ -495,3 +515,77 @@ async def test_dataset_run_and_membership_keyset_pages_do_not_repeat_rows(
     assert first_membership.next_cursor is not None
     assert second_membership.next_cursor is None
     assert first_membership.items[0].case_id != second_membership.items[0].case_id
+
+
+async def test_run_scope_filters_must_match_the_same_case(
+    test_db,
+    mock_authenticated_user,
+) -> None:
+    await _persist_authenticated_user(test_db, mock_authenticated_user)
+    dataset = await EvaluationRepository.create_dataset(
+        EvaluationDatasetCreate(
+            application_key="ai_chat",
+            key="mixed_targets",
+            name="Mixed targets",
+        ),
+        mock_authenticated_user,
+    )
+    await EvaluationRepository.add_case(
+        dataset_id=dataset.id,
+        request=_case(
+            case_key="node_case",
+            target_kind="node",
+            target_key="date_response_node",
+            evaluator_key="node_quality",
+            evaluation_name="Node place realism",
+        ),
+    )
+    await EvaluationRepository.add_case(
+        dataset_id=dataset.id,
+        request=_case(
+            case_key="agent_case",
+            target_kind="agent",
+            target_key="chat_agent",
+            evaluator_key="agent_quality",
+            evaluation_name="Agent place realism",
+        ),
+    )
+    await EvaluationRepository.lock_dataset(dataset.id)
+    await EvaluationRepository.start_run(
+        _run(dataset.id),
+        mock_authenticated_user,
+    )
+
+    impossible_scope = await EvaluationRepository.list_runs(
+        scope=EvaluationRunScope(
+            dataset_id=dataset.id,
+            target_kind="node",
+            evaluation_name="Agent place realism",
+        ),
+        cursor=None,
+        limit=50,
+    )
+    assert impossible_scope.items == []
+
+    node_scope = await EvaluationRepository.list_runs(
+        scope=EvaluationRunScope(
+            dataset_id=dataset.id,
+            target_kind="node",
+            target_key="date_response_node",
+            input_version=1,
+            evaluation_name="Node place realism",
+        ),
+        cursor=None,
+        limit=50,
+    )
+    assert node_scope.items[0].outcome_summary.model_dump() == {
+        "total": 1,
+        "queued": 1,
+        "judged": 0,
+        "passed": 0,
+        "failed": 0,
+        "error": 0,
+        "pass_rate": None,
+        "coverage": 0.0,
+    }
+    assert len(node_scope.items[0].target_facets) == 2

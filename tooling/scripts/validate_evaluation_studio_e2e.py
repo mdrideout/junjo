@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -123,10 +124,24 @@ def build_installed_application(
     repository_root: Path,
     workspace: Path,
 ) -> tuple[Path, Path]:
-    """Build the SDK wheel and install the independent application package."""
+    """Build the SDK wheel and install a clean independent application repo."""
 
     sdk_root = repository_root / "sdks/python"
-    application_root = sdk_root / "examples/evaluation_standalone"
+    application_source = sdk_root / "examples/evaluation_standalone"
+    application_root = workspace / "application"
+    shutil.copytree(application_source, application_root)
+    for command in (
+        ["git", "init", "--quiet"],
+        ["git", "config", "user.name", "Junjo E2E"],
+        ["git", "config", "user.email", "junjo-e2e@example.invalid"],
+        ["git", "add", "."],
+        ["git", "commit", "--quiet", "-m", "Evaluation E2E application"],
+    ):
+        _run_build_command(
+            command,
+            cwd=application_root,
+            label="standalone application Git fixture",
+        )
     wheel_directory = workspace / "wheels"
     wheel_directory.mkdir()
     _run_build_command(
@@ -234,8 +249,19 @@ def run_cli(
         "Junjo CLI envelope version changed",
     )
     if completed.returncode not in accepted_exit_codes:
+        raw_error = envelope.get("error")
+        error_detail = (
+            _object(raw_error, "Junjo CLI error")
+            if isinstance(raw_error, dict)
+            else {
+                "code": "unexpected_exit",
+                "message": "Command returned a successful envelope.",
+            }
+        )
         raise StudioE2EError(
-            f"Junjo CLI command {arguments[0]} failed with exit {completed.returncode}"
+            f"Junjo CLI command {arguments[0]} failed with exit "
+            f"{completed.returncode}: {error_detail.get('code')}: "
+            f"{error_detail.get('message')}"
         )
     return completed.returncode, envelope
 
@@ -270,6 +296,8 @@ def add_authored_case(
             dataset_id,
             "--case-key",
             case_key,
+            "--evaluation-name",
+            "Exact double result",
             "--target-kind",
             target_kind,
             "--target-key",
@@ -296,6 +324,7 @@ def poll_attempt_evidence(
     environment: Mapping[str, str],
     attempt_id: str,
     run_id: str,
+    expected_status: str,
     timeout_seconds: float,
 ) -> dict[str, Any]:
     """Wait for Studio's normal ingestion/indexing delay, then validate evidence."""
@@ -315,6 +344,7 @@ def poll_attempt_evidence(
                 data,
                 attempt_id=attempt_id,
                 run_id=run_id,
+                expected_status=expected_status,
             )
             return data
         if time.monotonic() >= deadline:
@@ -329,6 +359,7 @@ def assert_attempt_evidence(
     *,
     attempt_id: str,
     run_id: str,
+    expected_status: str,
 ) -> None:
     """Validate evaluation classification and truthful application identity."""
 
@@ -336,7 +367,10 @@ def assert_attempt_evidence(
     attempt_detail = _object(payload.get("attempt"), "Attempt detail")
     attempt = _object(attempt_detail.get("attempt"), "Attempt")
     require(attempt.get("id") == attempt_id, "Attempt evidence identity changed")
-    require(attempt.get("status") == "passed", "deterministic Attempt did not pass")
+    require(
+        attempt.get("status") == expected_status,
+        "deterministic Attempt status changed",
+    )
     execution = _object(
         attempt.get("subject_execution"),
         "Attempt subject execution",
@@ -461,6 +495,29 @@ def execute_proof(
                 == set(TARGETS),
                 "installed application target declarations changed",
             )
+            _, evaluators_envelope = run_cli(
+                junjo,
+                application_root,
+                environment,
+                ["evaluators", "list"],
+            )
+            evaluators = _list(
+                command_data(evaluators_envelope).get("evaluators"),
+                "evaluator descriptors",
+            )
+            require(len(evaluators) == 1, "installed evaluator declarations changed")
+            evaluator = _object(evaluators[0], "evaluator descriptor")
+            expectation_schema = _object(
+                evaluator.get("expectation_schema"),
+                "evaluator expectation schema",
+            )
+            require(
+                evaluator.get("key") == "junjo.exact"
+                and evaluator.get("version") == 1
+                and evaluator.get("role") == "verifier"
+                and expectation_schema.get("additionalProperties") is False,
+                "installed evaluator descriptor changed",
+            )
 
             _, dataset_envelope = run_cli(
                 junjo,
@@ -490,6 +547,8 @@ def execute_proof(
                     dataset_id,
                     "--case-key",
                     "double-node",
+                    "--evaluation-name",
+                    "Exact double result",
                     "--target-kind",
                     "node",
                     "--target-key",
@@ -556,14 +615,21 @@ def execute_proof(
             )
 
             run_details: list[dict[str, Any]] = []
-            for request_key, candidate_label in (
+            for request_key, run_label in (
                 ("baseline", "baseline"),
                 ("candidate", "candidate"),
             ):
+                command_environment = dict(environment)
+                expected_statuses = ["passed", "passed", "passed"]
+                accepted_exit_codes = frozenset({0})
+                if run_label == "candidate":
+                    command_environment["JUNJO_EVALUATION_EXAMPLE_AGENT_FACTOR"] = "3"
+                    expected_statuses[-1] = "failed"
+                    accepted_exit_codes = frozenset({6})
                 _, run_envelope = run_cli(
                     junjo,
                     application_root,
-                    environment,
+                    command_environment,
                     [
                         "run",
                         "execute",
@@ -571,9 +637,10 @@ def execute_proof(
                         dataset_id,
                         "--request-key",
                         request_key,
-                        "--candidate-label",
-                        candidate_label,
+                        "--run-label",
+                        run_label,
                     ],
+                    accepted_exit_codes=accepted_exit_codes,
                 )
                 detail = command_data(run_envelope)
                 run = _object(detail.get("run"), "Run")
@@ -586,13 +653,18 @@ def execute_proof(
                 ]
                 require(
                     len(attempts) == 3
-                    and all(attempt.get("status") == "passed" for attempt in attempts),
-                    "deterministic evaluation Attempts did not all pass",
+                    and [attempt.get("status") for attempt in attempts]
+                    == expected_statuses,
+                    "deterministic evaluation Attempt outcomes changed",
                 )
                 run_details.append(detail)
                 run_id = run.get("id")
                 require(isinstance(run_id, str), "Run ID is missing")
-                for attempt in attempts:
+                for attempt, expected_status in zip(
+                    attempts,
+                    expected_statuses,
+                    strict=True,
+                ):
                     attempt_id = attempt.get("id")
                     require(isinstance(attempt_id, str), "Attempt ID is missing")
                     poll_attempt_evidence(
@@ -601,6 +673,7 @@ def execute_proof(
                         environment=environment,
                         attempt_id=attempt_id,
                         run_id=run_id,
+                        expected_status=expected_status,
                         timeout_seconds=timeout_seconds,
                     )
 
@@ -626,9 +699,90 @@ def execute_proof(
                 ],
             )
             comparison = command_data(comparison_envelope)
+            transition_counts = _object(
+                comparison.get("transition_counts"),
+                "comparison transition counts",
+            )
             require(
-                len(_list(comparison.get("rows"), "comparison rows")) == 3,
+                len(_list(comparison.get("rows"), "comparison rows")) == 3
+                and transition_counts.get("regressed") == 1
+                and transition_counts.get("unchanged") == 2,
                 "Run comparison did not align all Cases",
+            )
+            _, scoped_comparison_envelope = run_cli(
+                junjo,
+                application_root,
+                environment,
+                [
+                    "run",
+                    "compare",
+                    "--baseline-run-id",
+                    baseline_run_id,
+                    "--candidate-run-id",
+                    candidate_run_id,
+                    "--target-kind",
+                    "agent",
+                    "--target-key",
+                    "double.agent",
+                    "--input-version",
+                    "1",
+                    "--evaluation-name",
+                    "Exact double result",
+                ],
+            )
+            scoped_comparison = command_data(scoped_comparison_envelope)
+            scoped_transitions = _object(
+                scoped_comparison.get("transition_counts"),
+                "scoped comparison transition counts",
+            )
+            require(
+                len(_list(scoped_comparison.get("rows"), "scoped comparison rows")) == 1
+                and scoped_transitions.get("regressed") == 1,
+                "Run comparison did not retain the exact Agent scope",
+            )
+            _, scoped_runs_envelope = run_cli(
+                junjo,
+                application_root,
+                environment,
+                [
+                    "run",
+                    "list",
+                    "--dataset-id",
+                    dataset_id,
+                    "--target-kind",
+                    "agent",
+                    "--target-key",
+                    "double.agent",
+                    "--input-version",
+                    "1",
+                    "--evaluation-name",
+                    "Exact double result",
+                ],
+            )
+            scoped_runs = command_data(scoped_runs_envelope)
+            scoped_items = _list(scoped_runs.get("items"), "scoped Run items")
+            require(len(scoped_items) == 2, "scoped Run history changed")
+            candidate_item = next(
+                (
+                    _object(item, "scoped Run item")
+                    for item in scoped_items
+                    if _object(item, "scoped Run item").get("run", {}).get("id")
+                    == candidate_run_id
+                ),
+                None,
+            )
+            require(candidate_item is not None, "scoped candidate Run is missing")
+            assert candidate_item is not None
+            candidate_summary = _object(
+                candidate_item.get("outcome_summary"),
+                "scoped outcome summary",
+            )
+            require(
+                candidate_summary.get("total") == 1
+                and candidate_summary.get("failed") == 1
+                and candidate_summary.get("pass_rate") == 0.0
+                and candidate_summary.get("coverage") == 1.0,
+                "scoped candidate outcome summary changed",
             )
 
             spans_before_resume = service_span_count(backend)
@@ -637,6 +791,7 @@ def execute_proof(
                 application_root,
                 environment,
                 ["run", "resume", "--run-id", candidate_run_id],
+                accepted_exit_codes=frozenset({6}),
             )
             resumed = command_data(resume_envelope)
             require(

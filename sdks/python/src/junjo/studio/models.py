@@ -8,7 +8,6 @@ change after validation, and every object rejects unknown fields.
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Literal
@@ -303,6 +302,7 @@ class CaseCreate(StudioDto):
     """Request to append one immutable input case to a draft dataset."""
 
     case_key: KeyText
+    evaluation_name: NameText
     origin: CaseOrigin
     target_kind: TargetKind
     target_key: KeyText
@@ -350,6 +350,7 @@ class CaseRead(StudioDto):
     id: RecordId
     dataset_id: RecordId
     case_key: KeyText
+    evaluation_name: NameText
     ordinal: int = Field(ge=1)
     origin: CaseOrigin
     target_kind: TargetKind
@@ -379,21 +380,21 @@ class DatasetList(StudioDto):
 
 
 class RunStart(StudioDto):
-    """Request to create or retrieve one idempotently keyed candidate run."""
+    """Request to create or retrieve one idempotently keyed labeled run."""
 
     dataset_id: RecordId
     request_key: KeyText
-    candidate_label: NameText
+    run_label: NameText
     source_revision: SourceRevision
 
 
 class RunRead(StudioDto):
-    """Evaluation candidate run control record."""
+    """Evaluation run control record."""
 
     id: RecordId
     dataset_id: RecordId
     request_key: KeyText
-    candidate_label: NameText
+    run_label: NameText
     source_revision: SourceRevision
     status: RunStatus
     created_by_user_id: RecordId | None
@@ -408,12 +409,6 @@ class AttemptRead(StudioDto):
     run_id: RecordId
     case_id: RecordId
     status: AttemptStatus
-    score: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        allow_inf_nan=False,
-    )
     reason: ReasonText | None
     duration_ms: int | None = Field(
         default=None,
@@ -449,14 +444,43 @@ class AttemptDetail(StudioDto):
     attempt: AttemptRead
 
 
-class AttemptCounts(StudioDto):
-    """Bounded status counts projected in a run-list item."""
+class RunScope(StudioDto):
+    """The exact, conjunctive case scope applied to a run-list projection."""
+
+    dataset_id: RecordId | None = None
+    target_kind: TargetKind | None = None
+    target_key: KeyText | None = None
+    input_version: int | None = Field(default=None, ge=1, le=MAX_VERSION)
+    evaluation_name: NameText | None = None
+
+
+class OutcomeSummary(StudioDto):
+    """Bounded outcome aggregates for the attempts visible in one scope."""
 
     total: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     queued: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    judged: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     passed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     failed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
     error: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    pass_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    coverage: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class TargetFacet(StudioDto):
+    """One target identity and its case count in a run's dataset."""
+
+    target_kind: TargetKind
+    target_key: KeyText
+    input_version: int = Field(ge=1, le=MAX_VERSION)
+    case_count: int = Field(ge=1, le=MAX_CASES_PER_DATASET)
+
+
+class EvaluationNameFacet(StudioDto):
+    """One human evaluation name and its case count in a run's dataset."""
+
+    evaluation_name: NameText
+    case_count: int = Field(ge=1, le=MAX_CASES_PER_DATASET)
 
 
 class RunSummary(StudioDto):
@@ -464,12 +488,15 @@ class RunSummary(StudioDto):
 
     run: RunRead
     dataset: DatasetSummary
-    attempt_counts: AttemptCounts
+    outcome_summary: OutcomeSummary
+    target_facets: tuple[TargetFacet, ...] = Field(max_length=MAX_CASES_PER_DATASET)
+    evaluation_facets: tuple[EvaluationNameFacet, ...] = Field(max_length=MAX_CASES_PER_DATASET)
 
 
 class RunList(StudioDto):
     """One bounded cursor page of evaluation runs."""
 
+    scope: RunScope
     items: tuple[RunSummary, ...] = Field(max_length=MAX_PAGE_SIZE)
     next_cursor: str | None
 
@@ -516,31 +543,12 @@ class AttemptResultWrite(StudioDto):
         AttemptStatus.FAILED,
         AttemptStatus.ERROR,
     ]
-    score: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        allow_inf_nan=False,
-    )
     reason: ReasonText
     duration_ms: int | None = Field(
         default=None,
         ge=0,
         le=MAX_DURATION_MS,
     )
-
-    @model_validator(mode="after")
-    def validate_terminal_result(self) -> AttemptResultWrite:
-        """Enforce Studio's terminal score contract."""
-
-        if self.status in (AttemptStatus.PASSED, AttemptStatus.FAILED):
-            if self.score is None:
-                raise ValueError("passed and failed results require score")
-        elif self.score is not None:
-            raise ValueError("error results cannot include score")
-        if self.score is not None and not math.isfinite(self.score):
-            raise ValueError("score must be finite")
-        return self
 
 
 class ConflictResponse(StudioDto):

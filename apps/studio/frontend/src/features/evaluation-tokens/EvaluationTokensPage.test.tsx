@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { Provider } from 'react-redux'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { API_BASE, server } from '../../auth/test-utils/mock-server'
 import { createAppStore } from '../../root-store/store'
@@ -21,9 +22,11 @@ const TOKEN_READ = {
 function renderPage() {
   const store = createAppStore()
   return render(
-    <Provider store={store}>
-      <EvaluationTokensPage />
-    </Provider>,
+    <MemoryRouter>
+      <Provider store={store}>
+        <EvaluationTokensPage />
+      </Provider>
+    </MemoryRouter>,
   )
 }
 

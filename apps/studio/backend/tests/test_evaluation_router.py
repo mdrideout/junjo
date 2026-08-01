@@ -24,6 +24,7 @@ DATASET_BODY = {
 }
 CASE_BODY = {
     "case_key": "specific_place_1",
+    "evaluation_name": "Response place realism",
     "origin": "authored",
     "target_kind": "node",
     "target_key": "date_response_node",
@@ -86,7 +87,7 @@ async def authenticated_app(test_db, mock_authenticated_user) -> AsyncIterator:
                 "json": {
                     "dataset_id": "dataset-id",
                     "request_key": "baseline",
-                    "candidate_label": "baseline",
+                    "run_label": "baseline",
                     "source_revision": REVISION,
                 }
             },
@@ -138,7 +139,7 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
             json={
                 "dataset_id": dataset["id"],
                 "request_key": "baseline",
-                "candidate_label": "baseline",
+                "run_label": "baseline",
                 "source_revision": REVISION,
             },
         )
@@ -169,7 +170,7 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
             json={
                 "dataset_id": dataset["id"],
                 "request_key": "baseline",
-                "candidate_label": "baseline",
+                "run_label": "baseline",
                 "source_revision": REVISION,
             },
         )
@@ -194,7 +195,6 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
             f"/api/v1/evaluation/attempts/{attempt_id}/result",
             json={
                 "status": "passed",
-                "score": 0.9,
                 "reason": "The response names a specific plausible place.",
             },
         )
@@ -211,8 +211,21 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
         )
         assert listed.status_code == 200
         list_body = listed.json()
-        assert set(list_body) == {"items", "next_cursor"}
-        assert set(list_body["items"][0]) == {"run", "dataset", "attempt_counts"}
+        assert set(list_body) == {"scope", "items", "next_cursor"}
+        assert list_body["scope"] == {
+            "dataset_id": dataset["id"],
+            "target_kind": None,
+            "target_key": None,
+            "input_version": None,
+            "evaluation_name": None,
+        }
+        assert set(list_body["items"][0]) == {
+            "run",
+            "dataset",
+            "outcome_summary",
+            "target_facets",
+            "evaluation_facets",
+        }
         assert set(list_body["items"][0]["dataset"]) == {
             "id",
             "application_key",
@@ -220,13 +233,61 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
             "name",
             "status",
         }
-        assert list_body["items"][0]["attempt_counts"] == {
+        assert list_body["items"][0]["outcome_summary"] == {
             "total": 1,
             "queued": 0,
+            "judged": 1,
             "passed": 1,
             "failed": 0,
             "error": 0,
+            "pass_rate": 1.0,
+            "coverage": 1.0,
         }
+        assert list_body["items"][0]["target_facets"] == [
+            {
+                "target_kind": "node",
+                "target_key": "date_response_node",
+                "input_version": 1,
+                "case_count": 1,
+            }
+        ]
+        assert list_body["items"][0]["evaluation_facets"] == [
+            {
+                "evaluation_name": "Response place realism",
+                "case_count": 1,
+            }
+        ]
+
+        scoped = await client.get(
+            "/api/v1/evaluation/runs",
+            params={
+                "dataset_id": dataset["id"],
+                "target_kind": "node",
+                "target_key": "date_response_node",
+                "input_version": 1,
+                "evaluation_name": "Response place realism",
+            },
+        )
+        assert scoped.status_code == 200
+        assert scoped.json()["items"][0]["outcome_summary"]["pass_rate"] == 1.0
+        assert scoped.json()["scope"] == {
+            "dataset_id": dataset["id"],
+            "target_kind": "node",
+            "target_key": "date_response_node",
+            "input_version": 1,
+            "evaluation_name": "Response place realism",
+        }
+
+        unmatched = await client.get(
+            "/api/v1/evaluation/runs",
+            params={"dataset_id": dataset["id"], "target_kind": "agent"},
+        )
+        assert unmatched.status_code == 200
+        assert unmatched.json()["items"] == []
+
+        all_datasets = await client.get("/api/v1/evaluation/datasets")
+        assert all_datasets.status_code == 200
+        assert [item["id"] for item in all_datasets.json()["items"]] == [dataset["id"]]
 
         membership = await client.get(
             "/api/v1/evaluation/execution-membership",
@@ -303,14 +364,12 @@ def test_openapi_operation_ids_and_fixed_run_envelopes() -> None:
     }
     for (path, method), operation_id in expected.items():
         assert schema["paths"][path][method]["operationId"] == operation_id
-        assert schema["paths"][path][method]["security"] == [
-            {"EvaluationControlToken": []}
-        ]
+        assert schema["paths"][path][method]["security"] == [{"EvaluationControlToken": []}]
 
     run_detail = schema["components"]["schemas"]["EvaluationRunDetail"]
     assert set(run_detail["required"]) == {"run", "dataset", "cases"}
     run_list = schema["components"]["schemas"]["EvaluationRunList"]
-    assert set(run_list["required"]) == {"items", "next_cursor"}
+    assert set(run_list["required"]) == {"scope", "items", "next_cursor"}
     target_kind = schema["components"]["schemas"]["EvaluationCaseCreate"]["properties"][
         "target_kind"
     ]

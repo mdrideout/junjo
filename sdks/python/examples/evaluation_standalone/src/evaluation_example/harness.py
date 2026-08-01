@@ -121,7 +121,10 @@ def _agent_factory(
     resources: EvaluationExampleRuntime,
 ) -> AgentInvocation[NumberInput, NumberOutput, None]:
     del context, resources
-    driver = ScriptedModelDriver([FinalOutputResponse(output={"result": input_value.value * 2})])
+    factor = int(os.getenv("JUNJO_EVALUATION_EXAMPLE_AGENT_FACTOR", "2"))
+    if factor < 1:
+        raise ValueError("JUNJO_EVALUATION_EXAMPLE_AGENT_FACTOR must be positive.")
+    driver = ScriptedModelDriver([FinalOutputResponse(output={"result": input_value.value * factor})])
     model = ModelDriverBinding.shared(
         descriptor=ModelDriverDescriptor(
             driver_key="example.scripted",

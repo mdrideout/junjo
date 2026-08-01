@@ -18,6 +18,7 @@ from app.features.evaluation.schemas import (
     EvaluationExecutionMembershipList,
     EvaluationRunDetail,
     EvaluationRunList,
+    EvaluationRunScope,
     EvaluationRunStart,
     SemanticExecutionReference,
 )
@@ -39,7 +40,7 @@ async def create_dataset(
 
 async def list_datasets(
     *,
-    application_key: str,
+    application_key: str | None,
     cursor: str | None,
     limit: int,
 ) -> EvaluationDatasetList:
@@ -90,7 +91,7 @@ async def start_run(
         {
             "dataset_id": request.dataset_id,
             "request_key": request.request_key,
-            "candidate_label": request.candidate_label,
+            "run_label": request.run_label,
         },
     )
     return await EvaluationRepository.start_run(request, authenticated_user)
@@ -98,12 +99,12 @@ async def start_run(
 
 async def list_runs(
     *,
-    dataset_id: str | None,
+    scope: EvaluationRunScope,
     cursor: str | None,
     limit: int,
 ) -> EvaluationRunList:
     return await EvaluationRepository.list_runs(
-        dataset_id=dataset_id,
+        scope=scope,
         cursor=cursor,
         limit=limit,
     )

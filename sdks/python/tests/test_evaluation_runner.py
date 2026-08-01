@@ -86,6 +86,7 @@ def _case(
         id=f"case-{key}",
         dataset_id="dataset-1",
         case_key=key,
+        evaluation_name="Fake exact match",
         ordinal=ordinal,
         origin=origin,
         target_kind=TargetKind.NODE,
@@ -122,7 +123,6 @@ def _attempt(
         run_id="run-1",
         case_id=case.id,
         status=status,
-        score=1.0 if status is AttemptStatus.PASSED else None,
         reason="already passed" if status is AttemptStatus.PASSED else None,
         duration_ms=1 if terminal else None,
         subject_execution=execution,
@@ -143,7 +143,7 @@ def _run_detail(
             id="run-1",
             dataset_id=selected_dataset.id,
             request_key="baseline-1",
-            candidate_label="baseline",
+            run_label="baseline",
             source_revision=source_revision,
             status=RunStatus.ACTIVE,
             created_by_user_id="user-1",
@@ -204,7 +204,6 @@ class FakeClient:
         return membership.attempt.model_copy(
             update={
                 "status": result.status,
-                "score": result.score,
                 "reason": result.reason,
                 "duration_ms": result.duration_ms,
                 "recorded_at": NOW,
@@ -295,6 +294,15 @@ class FakeEvaluator(Evaluator):
         self.events = events
         self.resources: list[object] = []
 
+    @property
+    def expectation_schema(self) -> dict[str, object]:
+        return {
+            "type": "object",
+            "properties": {"expected": {"const": "pass"}},
+            "required": ["expected"],
+            "additionalProperties": False,
+        }
+
     def validate_expectation(
         self,
         expectation_json: JsonValue | None,
@@ -319,7 +327,6 @@ class FakeEvaluator(Evaluator):
             await asyncio.sleep(0.02)
         return EvaluationResult(
             passed=True,
-            score=0.9,
             reason="Evaluation passed.",
         )
 
@@ -413,6 +420,10 @@ async def test_runner_orders_cases_reuses_resources_and_continues_after_errors()
     harness, target, evaluator = _harness(events)
     evaluator.timeout_seconds = 0.001
     assert harness.target_descriptors()[0].key == "fake"
+    evaluator_descriptor = harness.evaluator_descriptors()[0]
+    assert evaluator_descriptor.key == "fake-evaluator"
+    assert evaluator_descriptor.role is EvaluationRole.JUDGE
+    assert evaluator_descriptor.expectation_schema["additionalProperties"] is False
     assert events == []
 
     async with EvaluationExecutor(
@@ -423,7 +434,7 @@ async def test_runner_orders_cases_reuses_resources_and_continues_after_errors()
         result = await executor.run(
             dataset_id="dataset-1",
             request_key="baseline-1",
-            candidate_label="baseline",
+            run_label="baseline",
         )
 
     assert result.run.id == "run-1"
@@ -511,12 +522,12 @@ async def test_executor_reuses_one_runtime_across_multiple_runs() -> None:
         await executor.run(
             dataset_id="dataset-1",
             request_key="baseline-1",
-            candidate_label="baseline",
+            run_label="baseline",
         )
         await executor.run(
             dataset_id="dataset-1",
             request_key="candidate-1",
-            candidate_label="candidate",
+            run_label="candidate",
         )
 
     assert events.count("resources:enter") == 1
@@ -569,7 +580,7 @@ async def test_result_write_failure_stops_and_bound_resume_never_reexecutes() ->
             await executor.run(
                 dataset_id="dataset-1",
                 request_key="baseline-1",
-                candidate_label="baseline",
+                run_label="baseline",
             )
     assert len(target.resources) == 1
 
@@ -634,6 +645,7 @@ async def test_generation_retains_curated_contract_and_source_execution() -> Non
             GenerateCaseRequest(
                 dataset_id="dataset-1",
                 case_key="generated",
+                evaluation_name="Fake exact match",
                 target_kind=TargetKind.NODE,
                 target_key="fake",
                 input_version=1,
@@ -682,6 +694,7 @@ async def test_generation_retry_and_conflict_fail_before_execution() -> None:
     request = GenerateCaseRequest(
         dataset_id="dataset-1",
         case_key="generated",
+        evaluation_name="Fake exact match",
         target_kind=TargetKind.NODE,
         target_key="fake",
         input_version=1,
@@ -710,6 +723,7 @@ async def test_generation_retry_and_conflict_fail_before_execution() -> None:
                 GenerateCaseRequest(
                     dataset_id=request.dataset_id,
                     case_key=request.case_key,
+                    evaluation_name=request.evaluation_name,
                     target_kind=request.target_kind,
                     target_key=request.target_key,
                     input_version=request.input_version,

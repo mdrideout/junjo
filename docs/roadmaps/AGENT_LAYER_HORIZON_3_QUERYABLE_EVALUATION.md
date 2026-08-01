@@ -916,7 +916,7 @@ chain:
 ```text
 (application_key, dataset_key)
         -> (case_id, target_key, input_version, evaluator_key, evaluator_version)
-        -> (run_id, candidate_label, source_revision)
+        -> (run_id, run_label, source_revision)
         -> attempt_id
         -> (service_namespace, service_name, executable_type, runtime_id)
         -> execution resolution
@@ -1196,7 +1196,7 @@ Add Studio experiment, evaluation-run, candidate, case-attempt, and result
 queries. Preserve distinct subject, judge, and verifier evidence.
 
 Preserve the Lean authority boundary: the Studio control-plane attempt is
-canonical for evaluation status, score, and reason; telemetry is canonical
+canonical for the binary evaluation result and reason; telemetry is canonical
 execution evidence linked through the semantic runtime identity. Later richer
 judge or verifier spans remain evidence and must not create a second
 authoritative result channel.
@@ -1215,7 +1215,7 @@ Exit evidence:
 Ship a paired case comparison for the local-place dataset:
 
 - baseline and candidate criteria;
-- pass, score, and reason deltas;
+- pass/fail transitions and reason changes;
 - verified-place and constraint deltas;
 - subject latency, usage, and Tool-call deltas;
 - runtime, provider, evaluator, and telemetry-integrity failures;

@@ -186,6 +186,7 @@ comparison:
 
 ```bash
 uv run --env-file ../.env junjo eval targets list
+uv run --env-file ../.env junjo eval evaluators list
 uv run --env-file ../.env junjo eval dataset list
 ```
 

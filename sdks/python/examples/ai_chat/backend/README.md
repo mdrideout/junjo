@@ -72,6 +72,7 @@ uv run --env-file ../.env junjo eval dataset create \
 uv run --env-file ../.env junjo eval dataset add \
   --dataset-id DATASET_ID \
   --case-key brooklyn-date-1 \
+  --evaluation-name "Response place realism" \
   --target-kind workflow \
   --target-key turn \
   --input-version 1 \
@@ -91,7 +92,7 @@ provides the real provider and OTLP exporter settings:
 uv run --env-file ../.env junjo eval run execute \
   --dataset-id DATASET_ID \
   --request-key baseline-20260727 \
-  --candidate-label baseline
+  --run-label baseline
 
 uv run --env-file ../.env junjo eval run resume \
   --run-id RUN_ID
@@ -111,6 +112,7 @@ automatically accepted expectation:
 uv run --env-file ../.env junjo eval case generate \
   --dataset-id DATASET_ID \
   --case-key generated-agent-1 \
+  --evaluation-name "Response place realism" \
   --target-kind agent \
   --target-key chat \
   --input-version 1 \
@@ -150,7 +152,7 @@ async with StudioClient(base_url=studio_url, token=studio_token) as studio:
         run = await evaluation.run(
             dataset_id=dataset_id,
             request_key="baseline-20260727",
-            candidate_label="baseline",
+            run_label="baseline",
         )
 ```
 

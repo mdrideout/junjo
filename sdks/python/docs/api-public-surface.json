@@ -2134,6 +2134,11 @@
     },
     {
       "kind": "class",
+      "public_name": "junjo.evaluation.EvaluatorDescriptor",
+      "anchor": "junjo.evaluation.EvaluatorDescriptor"
+    },
+    {
+      "kind": "class",
       "public_name": "junjo.evaluation.EvaluationResult",
       "anchor": "junjo.evaluation.EvaluationResult"
     },
@@ -2289,8 +2294,33 @@
     },
     {
       "kind": "class",
+      "public_name": "junjo.studio.EvaluationNameFacet",
+      "anchor": "junjo.studio.EvaluationNameFacet"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.OutcomeSummary",
+      "anchor": "junjo.studio.OutcomeSummary"
+    },
+    {
+      "kind": "class",
       "public_name": "junjo.studio.RunComparison",
       "anchor": "junjo.studio.RunComparison"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunComparisonSummary",
+      "anchor": "junjo.studio.RunComparisonSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunComparisonTransition",
+      "anchor": "junjo.studio.RunComparisonTransition"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunComparisonTransitionCounts",
+      "anchor": "junjo.studio.RunComparisonTransitionCounts"
     },
     {
       "kind": "class",
@@ -2301,6 +2331,11 @@
       "kind": "class",
       "public_name": "junjo.studio.RunList",
       "anchor": "junjo.studio.RunList"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.RunScope",
+      "anchor": "junjo.studio.RunScope"
     },
     {
       "kind": "class",
@@ -2326,6 +2361,11 @@
       "kind": "class",
       "public_name": "junjo.studio.TargetKind",
       "anchor": "junjo.studio.TargetKind"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.TargetFacet",
+      "anchor": "junjo.studio.TargetFacet"
     },
     {
       "kind": "class",
@@ -2421,6 +2461,11 @@
       "kind": "method",
       "public_name": "junjo.evaluation.EvaluationHarness.prepare_case",
       "anchor": "junjo.evaluation.EvaluationHarness.prepare_case"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.evaluation.EvaluationHarness.evaluator_descriptors",
+      "anchor": "junjo.evaluation.EvaluationHarness.evaluator_descriptors"
     },
     {
       "kind": "method",
