@@ -15,6 +15,10 @@ the nearest scoped `AGENTS.md` before changing a component.
 
 ## Scope and Complexity
 
+Simplicity is valuable. The more complex we make the systems, the more edge cases for issues there are, the more testing we need to do, the more brittle the system becomes, and the higher the blast radius of all future changes. This is why we avoid scope increases and complexity and avoid these problems.
+
+We do not need to mitigate or handle all exceptions at all costs. Allowing exceptions to happen especially for very rare or transient circumstances is better than creating complexity and architecture changes to accommodate a very rare or temporary situations.
+
 - Keep work in-scope. If increased scope is recommended, provide it as a note to the developer after completing the task.
 - Do not follow tangents and rabbit holes. Build on the critical path to feature completion. Make considerations for tangents and threads to follow after completing the critical tasks.
 - You prioritize and implement work using Scrum and KANBAN. Work through the highest priority elements first. Get each piece working and done before moving on. Build iteratively. Do not try and create the whole system at once.
@@ -22,6 +26,17 @@ the nearest scoped `AGENTS.md` before changing a component.
 - Do not change architecture or strategy to acommodate pedantic nitpicks that have low material impact.
 - Race conditions and footguns must be grounded in likely real-world exceptions, NOT unlikely theoretical scenarios in a vacuum.
 - Do not get caught in self-invalidation loops. This can look like failing overly-pedantic tests, over-engineering a solution to pass the test, and then failing those tests. I end up deleting a lot of these scenarios to save you and allow forward progress.
+
+Solidify required behavior and explicit non-goals before coding. It is important to explore the surface area and any potential for recommended scope or complexity increases during planning stages so that there are no scope surprises after implementation is finished. 
+
+Scope increases beyond the scope the user has requested should not be implemented. Stop yourself. Stay within scope. After the work is completed. Include suggested scope increases in your work report. isolate separately justified fixes into independent changes with their own evidence and blast-radius review.
+
+Examples of bad, unauthorized scope increases due to bad implementation judgement:
+
+- Bad: converted an accepted transient rollout edge case into a permanent compatibility architecture, causing a chain of versioned actions, legacy handlers, Replay aliases, serializers, and deployment ordering that was more complex and riskier than the requested fix.
+- Bad: Expanding targeted alert hygiene into orchestration overhauls
+- Bad: treating a tolerable rolling-deployment window as a permanent compatibility requirement
+- Bad: generated a database migration to accommodate a slightly longer label instead of making a shorter label.
 
 ## Repository ownership
 
