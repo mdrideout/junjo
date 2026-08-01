@@ -84,9 +84,10 @@ Deployments:
 Do not create duplicate sources of truth in documentation. Make sure documentation has a proper owner. You can reference other docs from a document, but never have duplication of content. 
 
 - `AGENTS.md`: Repo runtime guidance for Codex. Keep it short and practical.
-- `.agents/skills/`: Detailed subsystem or workflow instructions for repeated tasks.
+- `../../.agents/skills/`: Monorepo-visible subsystem or workflow instructions
+  for repeated tasks. Studio skills use the `studio-` prefix.
 - `README.md`: Human onboarding and product/developer overview.
-- `docs/adr/`: Global level ADRs (individual features may have their own ADR docs)
+- `docs/adr/`: Studio-wide ADRs (individual features may have their own ADR docs)
 - `ingestion/adr/`: Ingestion-owned design decisions only.
 - `TESTING.md`: Human testing guide.
 - `backend/app/db_sqlite/README.md`: Backend DB subsystem guidance.
@@ -99,17 +100,24 @@ ADRs are for decisions made, architecture, strategy, reasoning, alternatives eva
 
 ## Skills
 
-Utilize skills during implementation and plannning. AGENTS.md is for context that should be in EVERY runtime agent process. Skills are domain or task specific.
+Utilize skills during implementation and planning. `AGENTS.md` is for context
+that belongs in every runtime agent process. Skills are domain or task specific.
 
-- `ingestion-flow`: WAL, flush, snapshot, recent-cold bridging, OTLP ingestion, ingestion-related proto work.
-- `backend-python`: FastAPI, backend repositories/services, SQLite patterns, DataFusion orchestration, backend tests.
-- `frontend-react`: React architecture, Redux Toolkit patterns, frontend schemas, frontend tests.
-- `security-auth`: API keys, session cookies, CORS, internal auth gRPC, security-sensitive reviews.
-- `api-contracts`: Backend endpoints consumed by the frontend, SDK, CLI, or another service.
-- `docs-sync`: Docs drift audits, ADR cleanup, source-of-truth checks, report-first doc work.
+- [`studio-ingestion-flow`](../../.agents/skills/studio-ingestion-flow/SKILL.md):
+  WAL, flush, snapshot, recent-cold bridging, OTLP ingestion, and related proto work.
+- [`studio-backend-python`](../../.agents/skills/studio-backend-python/SKILL.md):
+  FastAPI, repositories/services, SQLite, DataFusion, and backend tests.
+- [`studio-frontend-react`](../../.agents/skills/studio-frontend-react/SKILL.md):
+  React architecture, Redux Toolkit, frontend schemas, and frontend tests.
+- [`studio-security-auth`](../../.agents/skills/studio-security-auth/SKILL.md):
+  API keys, session cookies, CORS, internal auth gRPC, and security reviews.
+- [`studio-api-contracts`](../../.agents/skills/studio-api-contracts/SKILL.md):
+  backend endpoints consumed by the frontend, SDK, CLI, or another service.
+- [`studio-docs-sync`](../../.agents/skills/studio-docs-sync/SKILL.md): docs drift,
+  ADR cleanup, source-of-truth checks, and report-first documentation work.
 
-Use `api-contracts` with the owning component skills whenever a backend endpoint
-and one of its consumers change together.
+Use `studio-api-contracts` with the owning component skills whenever a backend
+endpoint and one of its consumers change together.
 
 ## Nested Instructions Policy
 

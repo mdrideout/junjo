@@ -603,7 +603,7 @@ This script runs:
 
 **Individual services:**
 - Backend: See [backend/README.md](backend/README.md#testing) for detailed test categories
-- Frontend: See [frontend/README.md](frontend/README.md) for component testing
+- Frontend: See [TESTING.md](TESTING.md) for testing strategy and [frontend/README.md](frontend/README.md) for frontend commands
 - Ingestion: See [ingestion/README.md](ingestion/README.md) for Rust tests
 
 ### Version Management

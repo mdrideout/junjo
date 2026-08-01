@@ -40,6 +40,8 @@ Examples of bad, unauthorized scope increases due to bad implementation judgemen
 
 ## Repository ownership
 
+- `.agents/skills`: monorepo-visible task guidance. Skills use component
+  prefixes and route back to the owning code, scoped `AGENTS.md`, and ADRs.
 - `sdks/python`: Python SDK, public API, tests, source-owned docs exports, and examples. Follow
   `sdks/python/AGENTS.md`.
 - `apps/studio`: Studio backend, frontend, ingestion, deployment, and internal

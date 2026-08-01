@@ -2,6 +2,19 @@
 
 React + TypeScript frontend for the Junjo AI Studio web UI.
 
+## Architecture and conventions
+
+The frontend's state-placement, Redux Toolkit listener middleware, and vertical
+slice decisions are owned by
+[ADR-002](../docs/adr/002-redux-toolkit-listener-middleware-pattern.md). Shared
+interaction primitives are governed by
+[ADR-005](../docs/adr/005-studio-frontend-interaction-foundation.md).
+
+Coding agents should use the
+[`studio-frontend-react`](../../../.agents/skills/studio-frontend-react/SKILL.md)
+skill as the task workflow and read the ADRs for architectural decisions. The
+README does not duplicate those rules.
+
 ## Running
 
 Primary workflow is the full hot-reload stack from the Studio root (`apps/studio`):
