@@ -81,8 +81,7 @@ function makeStore(basicSpans: OtelSpan[], subflowSpans: OtelSpan[]) {
           [basicTraceId]: makeTraceEvidence(basicSpans),
           [subflowTraceId]: makeTraceEvidence(subflowSpans),
         },
-        loading: false,
-        error: false,
+        traceEvidenceRequest: { traceId: null, loading: false, error: false },
       },
     },
   })

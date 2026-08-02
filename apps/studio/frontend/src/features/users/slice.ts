@@ -5,14 +5,14 @@ import { ListUsersResponse } from './schema'
 interface UsersState {
   users: ListUsersResponse
   loading: boolean
-  error: boolean
+  error: string | null
   lastUpdated: number | null
 }
 
 const initialState: UsersState = {
   users: [],
   loading: false,
-  error: false,
+  error: null,
   lastUpdated: null,
 }
 
@@ -32,14 +32,30 @@ export const usersSlice = createSlice({
       },
       prepare: (payload: { id: string }) => ({ payload }),
     },
-    setUsers: (state, action: PayloadAction<ListUsersResponse>) => {
-      state.users = action.payload
-      state.lastUpdated = Date.now()
+    loadStarted: (state) => {
+      state.loading = true
+      state.error = null
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
+    loadSucceeded: (state, action: PayloadAction<{ users: ListUsersResponse; fetchedAt: number }>) => {
+      state.users = action.payload.users
+      state.loading = false
+      state.error = null
+      state.lastUpdated = action.payload.fetchedAt
     },
-    setError: (state, action: PayloadAction<boolean>) => {
+    loadFailed: (state, action: PayloadAction<string>) => {
+      state.loading = false
+      state.error = action.payload
+    },
+    deleteStarted: (state) => {
+      state.loading = true
+      state.error = null
+    },
+    deleteSucceeded: (state) => {
+      state.loading = false
+      state.error = null
+    },
+    deleteFailed: (state, action: PayloadAction<string>) => {
+      state.loading = false
       state.error = action.payload
     },
   },

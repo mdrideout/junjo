@@ -5,34 +5,32 @@ import { listEvaluationTokens } from '../fetch/list-evaluation-tokens'
 import { EvaluationTokensActions } from './slice'
 
 export const evaluationTokensListenerMiddleware = createListenerMiddleware()
-const startListener =
-  evaluationTokensListenerMiddleware.startListening.withTypes<RootState, AppDispatch>()
+const startListener = evaluationTokensListenerMiddleware.startListening.withTypes<RootState, AppDispatch>()
 
 startListener({
   actionCreator: EvaluationTokensActions.fetchTokens,
   effect: async ({ payload }, { dispatch, getState }) => {
     const state = getState().evaluationTokensState
-    const fresh =
-      state.lastUpdated !== null && Date.now() - state.lastUpdated < 2_000
+    const fresh = state.lastUpdated !== null && Date.now() - state.lastUpdated < 2_000
     if (state.loading || (!payload.force && payload.cursor === undefined && fresh)) return
 
-    dispatch(EvaluationTokensActions.setLoading(true))
-    dispatch(EvaluationTokensActions.setError(null))
+    dispatch(EvaluationTokensActions.loadStarted())
     try {
       const page = await listEvaluationTokens(payload.cursor)
-      dispatch(EvaluationTokensActions.setTokens({
-        items: page.items,
-        nextCursor: page.next_cursor,
-        append: payload.cursor !== undefined,
-      }))
+      dispatch(
+        EvaluationTokensActions.loadSucceeded({
+          items: page.items,
+          nextCursor: page.next_cursor,
+          append: payload.cursor !== undefined,
+          fetchedAt: Date.now(),
+        }),
+      )
     } catch (error) {
       dispatch(
-        EvaluationTokensActions.setError(
+        EvaluationTokensActions.loadFailed(
           error instanceof Error ? error.message : 'Failed to list access tokens.',
         ),
       )
-    } finally {
-      dispatch(EvaluationTokensActions.setLoading(false))
     }
   },
 })
@@ -40,19 +38,17 @@ startListener({
 startListener({
   actionCreator: EvaluationTokensActions.deleteToken,
   effect: async ({ payload }, { dispatch }) => {
-    dispatch(EvaluationTokensActions.setLoading(true))
-    dispatch(EvaluationTokensActions.setError(null))
+    dispatch(EvaluationTokensActions.deleteStarted())
     try {
       await deleteEvaluationToken(payload.id)
+      dispatch(EvaluationTokensActions.deleteSucceeded())
+      dispatch(EvaluationTokensActions.fetchTokens({ force: true }))
     } catch (error) {
       dispatch(
-        EvaluationTokensActions.setError(
+        EvaluationTokensActions.deleteFailed(
           error instanceof Error ? error.message : 'Failed to delete access token.',
         ),
       )
-    } finally {
-      dispatch(EvaluationTokensActions.setLoading(false))
-      dispatch(EvaluationTokensActions.fetchTokens({ force: true }))
     }
   },
 })

@@ -80,8 +80,7 @@ describe('RenderJunjoGraphMermaid selection integration', () => {
         tracesState: {
           serviceNames: { data: [], loading: false, error: false },
           traceEvidence: { [traceId]: makeTraceEvidence(spans) },
-          loading: false,
-          error: false,
+          traceEvidenceRequest: { traceId: null, loading: false, error: false },
         },
       },
     })

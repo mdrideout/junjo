@@ -2,8 +2,11 @@ import { Link } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
-import { selectSpanAndChildren, selectSpanById } from '../../traces/store/selectors'
-import { RootState } from '../../../root-store/store'
+import {
+  selectSpanAndChildren,
+  selectSpanById,
+  selectTraceEvidenceRequestForTraceId,
+} from '../../traces/store/selectors'
 import { getSpanDurationString } from '../../../util/duration-utils'
 import WorkflowDetailNavButtons from './WorkflowDetailNavButtons'
 import WorkflowDetailStateDiff from './WorkflowDetailStateDiff'
@@ -24,15 +27,16 @@ export default function WorkflowDetailPage() {
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
-  const loading = useAppSelector((state: RootState) => state.tracesState.loading)
-  const error = useAppSelector((state: RootState) => state.tracesState.error)
-  const workflowSpan = useAppSelector((state: RootState) =>
+  const request = useAppSelector((state) =>
+    selectTraceEvidenceRequestForTraceId(state, { traceId }),
+  )
+  const workflowSpan = useAppSelector((state) =>
     selectSpanById(state, {
       traceId: traceId,
       spanId: workflowSpanId,
     }),
   )
-  const workflowSpans = useAppSelector((state: RootState) =>
+  const workflowSpans = useAppSelector((state) =>
     selectSpanAndChildren(state, {
       traceId,
       spanId: workflowSpanId,
@@ -40,7 +44,7 @@ export default function WorkflowDetailPage() {
   )
   const routeTargetSpanId = spanId ?? workflowSpanId
   const routeTargetSpan = workflowSpans.find((span) => span.span_id === routeTargetSpanId)
-  const activeSpan = useAppSelector((state: RootState) => selectWorkflowDetailActiveSpan(state))
+  const activeSpan = useAppSelector((state) => selectWorkflowDetailActiveSpan(state))
   const activeStoreDiagnostic = useActiveWorkflowStoreDiagnostic(
     traceId ?? '',
     workflowSpanId ?? '',
@@ -119,9 +123,9 @@ export default function WorkflowDetailPage() {
     }
   }, [activeSpan, dispatch, routeTargetIdentity, routeTargetSpan, traceId, workflowIdentity, workflowSpan])
 
-  if (loading) return null
+  if (request.loading) return null
 
-  if (error) {
+  if (request.error) {
     return <ErrorPage title={'Error'} message={`Error loading workflow span`} />
   }
 

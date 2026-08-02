@@ -21,18 +21,20 @@ export function selectAgentExecutionListRequest(
 export const selectAgentExecutionDetailRequest = createSelector(
   [
     (state: RootState) => state.tracesState.traceEvidence,
-    (state: RootState) => state.tracesState.loading,
-    (state: RootState) => state.tracesState.error,
+    (state: RootState) => state.tracesState.traceEvidenceRequest,
     (_state: RootState, identity: { traceId: string; agentSpanId: string }) => identity,
   ],
-  (evidenceByTraceId, loading, hasError, identity): AgentExecutionDetailRequestState => {
+  (evidenceByTraceId, evidenceRequest, identity): AgentExecutionDetailRequestState => {
     const evidence = evidenceByTraceId[identity.traceId]
     const executable = evidence?.executables_by_span_id[identity.agentSpanId]
     if (executable?.executable_type !== 'agent') {
+      const requestIsCurrent = evidenceRequest.traceId === identity.traceId
       return {
         data: null,
-        loading,
-        error: hasError ? 'Failed to fetch Agent execution' : null,
+        loading: evidence === undefined && (!requestIsCurrent || evidenceRequest.loading),
+        error: requestIsCurrent && evidenceRequest.error
+          ? 'Failed to fetch Agent execution'
+          : null,
       }
     }
 

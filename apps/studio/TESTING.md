@@ -371,101 +371,33 @@ describe('User Request Integration Tests', () => {
 
 ## Shared Test Fixtures
 
-### The Problem
+Keep test data close to the behavior it supports. A fixture used by one test or
+one tightly related test module can remain beside that test. Move reusable
+builders, representative payloads, and feature-level integration helpers into
+the owning feature's `testing/` directory when sharing them improves clarity or
+keeps an important domain example consistent.
 
-Duplicating mock data creators across multiple test files leads to:
-- Inconsistent test data
-- Maintenance burden (update in N places)
-- ~150 lines of duplicated code
+The `testing/` directory is an ownership boundary, not a mandatory file
+template. Use names that describe the artifact, such as `fixtures.ts`,
+`make-trace-evidence.ts`, or a named integration payload. Do not introduce a
+global fixture directory merely to remove duplication between unrelated
+features. Cross-feature fixtures should remain owned by the feature or contract
+that defines the data and be imported from there.
 
-### The Solution: `__test__/fixtures.ts`
+Shared fixtures should:
 
-Extract shared mock data to centralized fixtures within each feature.
+- be deterministic and contain only the fields relevant to the behavior under
+  test
+- use the production types or schemas they represent
+- expose builders when individual tests need explicit variations
+- preserve meaningful integration payloads as checked-in data when readability
+  is better than constructing them inline
+- change with the owning contract rather than masking schema drift with broad
+  type assertions
 
-### File Structure
-
-```
-frontend/src/features/feature-name/
-  utils/
-    __test__/
-      fixtures.ts              # Shared mock data creators
-      test-utils.ts            # Test helper functions
-    helper.test.ts             # Imports from __test__/fixtures.ts
-  components/
-    FeatureCard.test.tsx       # Imports from ../utils/__test__/fixtures.ts
-```
-
-### Example Fixtures File
-
-```typescript
-// frontend/src/features/spans/utils/__test__/fixtures.ts
-import type { OtelSpan } from '@/spans/types'
-
-export const createBaseSpan = (): OtelSpan => ({
-  span_id: 'test-span-id',
-  trace_id: 'test-trace-id',
-  parent_span_id: null,
-  name: 'test.span',
-  start_time: new Date('2024-01-01T00:00:00Z'),
-  end_time: new Date('2024-01-01T00:00:01Z'),
-  status_code: 'OK',
-  attributes_json: {},
-  events_json: [],
-})
-
-export const createOpenAISpan = (): OtelSpan => ({
-  ...createBaseSpan(),
-  name: 'openai.chat.completion',
-  attributes_json: {
-    'llm.provider': 'openai',
-    'llm.model_name': 'gpt-4o',
-    'llm.invocation_parameters': '{"temperature": 0.7}',
-    'input.value': 'Test prompt',
-    'output.value': 'Test response',
-  },
-})
-
-export const createSpanWithStructuredOutput = (): OtelSpan => ({
-  ...createOpenAISpan(),
-  attributes_json: {
-    ...createOpenAISpan().attributes_json,
-    'input.mime_type': 'application/json',
-    'output.mime_type': 'application/json',
-  },
-})
-```
-
-### Usage in Tests
-
-```typescript
-// Component test
-import { createOpenAISpan } from '../utils/__test__/fixtures'
-
-describe('SpanCard', () => {
-  it('renders LLM span data', () => {
-    const span = createOpenAISpan()
-    render(<SpanCard span={span} />)
-    expect(screen.getByText('gpt-4o')).toBeInTheDocument()
-  })
-})
-
-// Util test
-import { createSpanWithStructuredOutput } from './__test__/fixtures'
-
-describe('extractPromptData', () => {
-  it('extracts structured output mime type', () => {
-    const span = createSpanWithStructuredOutput()
-    const result = extractPromptData(span)
-    expect(result.hasStructuredOutput).toBe(true)
-  })
-})
-```
-
-### When to Extract Fixtures
-
-**The Rule of Three:**
-- Same mock data needed in 2+ test files → Extract to `fixtures.ts`
-- Benefits appear immediately (consistency, maintainability)
+Current examples include `features/agent-executions/testing/fixtures.ts`,
+`features/evaluation-runs/testing/fixtures.ts`, and
+`features/traces/testing/make-trace-evidence.ts`.
 
 ---
 
@@ -715,12 +647,12 @@ pytest -m "security or error_recovery"
 - Contract tests ensure schema compatibility
 - Integration tests validate runtime behavior
 - Both are needed for full coverage
-- Extract shared fixtures to prevent duplication
+- Keep fixtures local until feature-level sharing improves clarity or consistency
 - Validate at runtime, don't use type assertions
 - Test edge cases, not just happy paths
 
 **Key files:**
 - `frontend/src/__tests__/contracts/` - Contract tests
 - `frontend/src/__tests__/integration/` - Integration tests
-- `frontend/src/features/{feature}/utils/__test__/fixtures.ts` - Shared fixtures
+- `frontend/src/features/{feature}/testing/` - Feature-owned fixtures and test helpers
 - Backend: Co-located `test_*.py` files with markers

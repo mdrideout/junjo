@@ -5,7 +5,10 @@ import NestedOtelSpans from './NestedOtelSpans'
 import SpanAttributesPanel from './SpanAttributesPanel'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { TracesStateActions } from './store/slice'
-import { selectTraceSpansForTraceId, selectTracesError, selectTracesLoading } from './store/selectors'
+import {
+  selectTraceEvidenceRequestForTraceId,
+  selectTraceSpansForTraceId,
+} from './store/selectors'
 import { logsPath, tracesPath } from '../../util/telemetry-paths'
 
 interface TraceDetailsProps {
@@ -26,42 +29,45 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const spans: OtelSpan[] = useAppSelector((state) => selectTraceSpansForTraceId(state, { traceId }))
-  const loading = useAppSelector(selectTracesLoading)
-  const error = useAppSelector(selectTracesError)
-  const [selectedSpan, setSelectedSpan] = useState<OtelSpan | null>(null)
-  const [requestedTraceId, setRequestedTraceId] = useState<string | null>(null)
+  const request = useAppSelector((state) =>
+    selectTraceEvidenceRequestForTraceId(state, { traceId }),
+  )
+  const resolverIdentity = routeIdentity === undefined
+    ? null
+    : JSON.stringify([serviceName, traceId, spanId])
+  const [resolverSelection, setResolverSelection] = useState<{
+    resolverIdentity: string
+    spanId: string
+  } | null>(null)
+  const selectedSpanId = routeIdentity === undefined
+    ? spanId
+    : resolverSelection?.resolverIdentity === resolverIdentity
+      ? resolverSelection.spanId
+      : spanId
+  const selectedSpan = selectedSpanId === undefined
+    ? null
+    : spans.find((span) => span.span_id === selectedSpanId) ?? null
 
   useEffect(() => {
     if (!traceId) return
     if (spans.length > 0) return
-    if (requestedTraceId === traceId) return
     dispatch(TracesStateActions.fetchTraceEvidence({ traceId }))
-    setRequestedTraceId(traceId)
-  }, [dispatch, traceId, spans.length, requestedTraceId])
+  }, [dispatch, traceId, spans.length])
 
-  useEffect(() => {
-    if (spanId && spans.length > 0) {
-      const span = spans.find((s) => s.span_id === spanId)
-      if (span) {
-        setSelectedSpan(span)
-      }
+  const selectSpan = (span: OtelSpan) => {
+    if (routeIdentity !== undefined && resolverIdentity !== null) {
+      setResolverSelection({ resolverIdentity, spanId: span.span_id })
+      return
     }
-  }, [spanId, spans])
-
-  useEffect(() => {
-    if (selectedSpan && routeIdentity === undefined) {
-      navigate(tracesPath(serviceName ?? '', traceId, selectedSpan.span_id), {
-        replace: true,
-      })
-    }
-  }, [selectedSpan, navigate, routeIdentity, serviceName, traceId])
+    navigate(tracesPath(serviceName ?? '', traceId, span.span_id), { replace: true })
+  }
 
   if (!traceId || !serviceName) {
     return <div>Invalid trace URL.</div>
   }
 
-  const isLoading = spans.length === 0 && (loading || requestedTraceId !== traceId)
-  const hasError = Boolean(error) && spans.length === 0
+  const isLoading = spans.length === 0 && request.loading
+  const hasError = request.error && spans.length === 0
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -103,7 +109,7 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
               spans={spans}
               traceId={traceId}
               selectedSpanId={selectedSpan?.span_id || null}
-              onSelectSpan={setSelectedSpan}
+              onSelectSpan={selectSpan}
             />
           </div>
           <div className="w-1/3 border-l border-zinc-300 dark:border-zinc-700 overflow-y-auto">

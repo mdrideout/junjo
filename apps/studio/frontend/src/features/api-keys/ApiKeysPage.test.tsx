@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { API_BASE, server } from '../../auth/test-utils/mock-server'
 import { createAppStore } from '../../root-store/store'
 import ApiKeysPage from './ApiKeysPage'
+import { ApiKeysStateActions } from './slice'
 
 vi.mock('./components/OtelExporterGuide', () => ({
   default: () => <div>Application telemetry setup guide</div>,
@@ -74,6 +75,37 @@ describe('ApiKeysPage', () => {
     ])
     expect(screen.getByRole('button', { name: 'Copy API key AI Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete API key AI Chat' })).toBeInTheDocument()
+  })
+
+  it('keeps loaded API keys visible when a deletion fails', () => {
+    const store = createAppStore()
+    store.dispatch(
+      ApiKeysStateActions.loadSucceeded({
+        apiKeys: [
+          {
+            id: 'key-1',
+            key: 'jtel_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-',
+            name: 'AI Chat',
+            created_at: '2026-08-01T15:00:00Z',
+          },
+        ],
+        fetchedAt: Date.now(),
+      }),
+    )
+    store.dispatch(
+      ApiKeysStateActions.deleteFailed('Failed to delete application telemetry API key.'),
+    )
+
+    render(
+      <Provider store={store}>
+        <ApiKeysPage />
+      </Provider>,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Failed to delete application telemetry API key.',
+    )
+    expect(screen.getByText('AI Chat')).toBeInTheDocument()
   })
 
   it('shows the generated key and explicit success actions after creation', async () => {

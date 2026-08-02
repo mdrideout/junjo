@@ -18,10 +18,6 @@ export default function UsersPage() {
   if (loading) {
     return <div className={'h-full w-full flex items-center justify-center'}>Loading...</div>
   }
-  if (error) {
-    return <div className={'h-full w-full flex items-center justify-center'}>Error: {error}</div>
-  }
-
   // Render the users list
   return (
     <div className="flex h-dvh flex-col overflow-y-auto px-5 py-6">
@@ -35,6 +31,11 @@ export default function UsersPage() {
       <div>
         <CreateUserDialog />
       </div>
+      {error !== null && (
+        <p role="alert" className="mt-4 text-sm text-red-700 dark:text-red-300">
+          {error}
+        </p>
+      )}
       <div className="mt-4 shrink-0 overflow-x-auto">
         <table className="w-full max-w-[1024px] text-left text-sm">
           <thead>

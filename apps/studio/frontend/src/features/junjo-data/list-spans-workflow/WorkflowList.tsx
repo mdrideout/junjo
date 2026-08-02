@@ -2,6 +2,7 @@ import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
 import { useEffect } from 'react'
 import { WorkflowExecutionsStateActions } from './store/slice'
 import WorkflowListRow from './WorkflowListItem'
+import { selectWorkflowSpanListRequest } from './store/selectors'
 
 interface WorkflowsListProps {
   serviceName: string
@@ -11,9 +12,11 @@ export default function WorkflowsList(props: WorkflowsListProps) {
   const { serviceName } = props
   const dispatch = useAppDispatch()
 
-  const loading = useAppSelector((state) => state.workflowSpanListState.loading)
-  const error = useAppSelector((state) => state.workflowSpanListState.error)
-  const workflowSpans = useAppSelector((state) => state.workflowSpanListState.workflowSpanList)
+  const {
+    loading,
+    error,
+    workflowSpanList: workflowSpans,
+  } = useAppSelector((state) => selectWorkflowSpanListRequest(state, serviceName))
 
   useEffect(() => {
     dispatch(WorkflowExecutionsStateActions.fetchSpansTypeWorkflow(serviceName))

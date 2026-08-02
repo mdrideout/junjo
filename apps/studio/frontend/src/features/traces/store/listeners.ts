@@ -35,37 +35,21 @@ startListener({
     const { traceId } = action.payload
     if (!traceId) throw new Error('No traceId provided')
 
-    const loading = getState().tracesState.loading
-    if (loading) return
+    const request = getState().tracesState.traceEvidenceRequest
+    if (request.traceId === traceId && request.loading) return
 
-    // // Cache busting logic
-    // const now = Date.now()
-    // const staleTime = 5 * 1000 // 5 seconds
-    // const isStale = lastUpdated === null ? true : loading || now - lastUpdated < staleTime
+    dispatch(TracesStateActions.traceEvidenceRequestStarted({ traceId }))
 
-    // // Bail out if already loading or not stale
-    // if (loading || isStale === false) {
-    //   console.log(`Bailing because loading is true (${loading}) or isStale is false (${isStale})`)
-    //   return
-    // }
-
-    // Clear errors and set loading
-    dispatch(TracesStateActions.setTracesError(false))
-    dispatch(TracesStateActions.setTracesLoading(true))
-
-    // Fetch the data
     try {
       const data = await getTraceEvidence(traceId)
       dispatch(
-        TracesStateActions.setTraceEvidenceData({
+        TracesStateActions.traceEvidenceRequestSucceeded({
           traceId,
           data,
         }),
       )
     } catch {
-      dispatch(TracesStateActions.setTracesError(true))
-    } finally {
-      dispatch(TracesStateActions.setTracesLoading(false))
+      dispatch(TracesStateActions.traceEvidenceRequestFailed({ traceId }))
     }
   },
 })

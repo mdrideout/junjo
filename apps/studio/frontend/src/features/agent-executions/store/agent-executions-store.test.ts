@@ -98,7 +98,7 @@ describe('Agent execution state', () => {
     ).toEqual(fixture)
   })
 
-  it('returns immutable empty selector results for requests that have not started', () => {
+  it('returns stable list state and treats an uncached detail route as pending', () => {
     const root = {
       ...store.getState(),
       agentExecutionsState: initialAgentExecutionsState,
@@ -115,7 +115,7 @@ describe('Agent execution state', () => {
         traceId: '33333333333333333333333333333333',
         agentSpanId: 'ffffffffffffffff',
       }),
-    ).toEqual({ data: null, loading: false, error: null })
+    ).toEqual({ data: null, loading: true, error: null })
   })
 
   it('listener middleware deduplicates an in-flight list and stores parsed data', async () => {

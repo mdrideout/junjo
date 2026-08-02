@@ -9,22 +9,19 @@ const startListener = workflowExecutionsListenerMiddleware.startListening.withTy
 startListener({
   actionCreator: WorkflowExecutionsStateActions.fetchSpansTypeWorkflow,
   effect: async (action, { getState, dispatch }) => {
-    const { loading } = getState().workflowSpanListState
-    if (loading) return
+    const serviceName = action.payload
+    const { listServiceName, loading } = getState().workflowSpanListState
+    if (loading && listServiceName === serviceName) return
 
-    dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(null))
-    dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsLoading(true))
+    dispatch(WorkflowExecutionsStateActions.loadStarted({ serviceName }))
 
     try {
-      const serviceName = action.payload
       const data = await getSpansTypeWorkflow(serviceName)
-      dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsData(data))
+      dispatch(WorkflowExecutionsStateActions.loadSucceeded({ serviceName, data }))
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       console.error('Error fetching workflow spans:', error)
-      dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsError(errorMessage))
-    } finally {
-      dispatch(WorkflowExecutionsStateActions.setWorkflowExecutionsLoading(false))
+      dispatch(WorkflowExecutionsStateActions.loadFailed({ serviceName, error: errorMessage }))
     }
   },
 })

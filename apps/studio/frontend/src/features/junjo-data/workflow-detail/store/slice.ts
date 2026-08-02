@@ -1,10 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import type { OtelSpan } from '../../../traces/schemas/schemas'
-import type {
-  StateEventIdentity,
-  StateEventSelection,
-} from '../state-event-identity'
+import type { StateEventIdentity, StateEventSelection } from '../state-event-identity'
 
 interface WorkflowDetailState {
   activeSpanIdentity: SpanSelection | null
@@ -41,7 +38,7 @@ export const otelSlice = createSlice({
       state.stateEventScrollTarget = action.payload
     },
     setOpenFailuresTrigger: (state) => {
-      state.openFailuresTrigger = Date.now()
+      state.openFailuresTrigger = (state.openFailuresTrigger ?? 0) + 1
     },
   },
 })

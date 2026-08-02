@@ -29,29 +29,44 @@ export const evaluationTokensSlice = createSlice({
       reducer: () => undefined,
       prepare: (payload: { id: string }) => ({ payload }),
     },
-    setTokens: (
+    loadStarted: (state) => {
+      state.loading = true
+      state.error = null
+    },
+    loadSucceeded: (
       state,
       action: PayloadAction<{
         items: EvaluationTokenRead[]
         nextCursor: string | null
         append: boolean
+        fetchedAt: number
       }>,
     ) => {
       if (action.payload.append) {
         const knownIds = new Set(state.items.map((item) => item.id))
-        state.items.push(
-          ...action.payload.items.filter((item) => !knownIds.has(item.id)),
-        )
+        state.items.push(...action.payload.items.filter((item) => !knownIds.has(item.id)))
       } else {
         state.items = action.payload.items
       }
       state.nextCursor = action.payload.nextCursor
-      state.lastUpdated = Date.now()
+      state.loading = false
+      state.error = null
+      state.lastUpdated = action.payload.fetchedAt
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
+    loadFailed: (state, action: PayloadAction<string>) => {
+      state.loading = false
+      state.error = action.payload
     },
-    setError: (state, action: PayloadAction<string | null>) => {
+    deleteStarted: (state) => {
+      state.loading = true
+      state.error = null
+    },
+    deleteSucceeded: (state) => {
+      state.loading = false
+      state.error = null
+    },
+    deleteFailed: (state, action: PayloadAction<string>) => {
+      state.loading = false
       state.error = action.payload
     },
   },

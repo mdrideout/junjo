@@ -22,17 +22,21 @@ export const settingsSlice = createSlice({
     flushWal: () => {
       // listener triggers
     },
-    setFlushWalLoading: (state, action: PayloadAction<boolean>) => {
-      state.flushWalLoading = action.payload
+    flushWalStarted: (state) => {
+      state.flushWalLoading = true
+      state.flushWalError = null
+      state.flushWalSuccess = false
     },
-    setFlushWalError: (state, action: PayloadAction<string | null>) => {
+    flushWalFailed: (state, action: PayloadAction<string>) => {
+      state.flushWalLoading = false
       state.flushWalError = action.payload
+      state.flushWalSuccess = false
     },
-    setFlushWalSuccess: (state, action: PayloadAction<boolean>) => {
-      state.flushWalSuccess = action.payload
-      if (action.payload) {
-        state.lastFlushTime = Date.now()
-      }
+    flushWalSucceeded: (state, action: PayloadAction<{ completedAt: number }>) => {
+      state.flushWalLoading = false
+      state.flushWalError = null
+      state.flushWalSuccess = true
+      state.lastFlushTime = action.payload.completedAt
     },
     resetFlushWalState: (state) => {
       state.flushWalLoading = false

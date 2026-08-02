@@ -29,19 +29,19 @@ export default function ApiKeysPage() {
       <div>
         <CreateApiKeyDialog />
       </div>
-      {error && (
+      {error !== null && (
         <p role="alert" className="mt-4 text-sm text-red-700 dark:text-red-300">
-          Failed to load application telemetry API keys.
+          {error}
         </p>
       )}
       <div className="mt-4 shrink-0 overflow-x-auto">
         {loading && apiKeys.length === 0 ? (
           <p className="text-sm text-[var(--studio-text-muted)]">Loading API keys…</p>
-        ) : !error && apiKeys.length === 0 ? (
+        ) : error === null && apiKeys.length === 0 ? (
           <div className={'text-sm text-zinc-500 dark:text-zinc-400'}>
             No application telemetry API keys have been created.
           </div>
-        ) : !error && apiKeys.length > 0 ? (
+        ) : apiKeys.length > 0 ? (
           <table className="w-full max-w-[1024px] text-left text-sm">
             <thead>
               <tr className="border-b border-[var(--studio-border)]">

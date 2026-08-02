@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { API_BASE, server } from '../../auth/test-utils/mock-server'
 import { createAppStore } from '../../root-store/store'
 import UsersPage from './UsersPage'
+import { UsersStateActions } from './slice'
 
 describe('UsersPage', () => {
   it('uses the shared administration page and table layout', async () => {
@@ -44,5 +45,33 @@ describe('UsersPage', () => {
       'Actions',
     ])
     expect(screen.getByRole('button', { name: 'Delete user owner@example.com' })).toBeInTheDocument()
+  })
+
+  it('keeps loaded users visible when a deletion fails', () => {
+    const store = createAppStore()
+    store.dispatch(
+      UsersStateActions.loadSucceeded({
+        users: [
+          {
+            id: 'user-1',
+            email: 'owner@example.com',
+            is_active: true,
+            created_at: '2026-08-01T15:00:00Z',
+            updated_at: '2026-08-01T15:00:00Z',
+          },
+        ],
+        fetchedAt: Date.now(),
+      }),
+    )
+    store.dispatch(UsersStateActions.deleteFailed('Failed to delete user.'))
+
+    render(
+      <Provider store={store}>
+        <UsersPage />
+      </Provider>,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to delete user.')
+    expect(screen.getByText('owner@example.com')).toBeInTheDocument()
   })
 })

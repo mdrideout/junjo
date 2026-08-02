@@ -89,8 +89,7 @@ function renderStateDiff({
         traceEvidence: {
           [defaultWorkflowSpan.trace_id]: makeTraceEvidence(spans),
         },
-        loading: false,
-        error: false,
+        traceEvidenceRequest: { traceId: null, loading: false, error: false },
       },
     },
   })

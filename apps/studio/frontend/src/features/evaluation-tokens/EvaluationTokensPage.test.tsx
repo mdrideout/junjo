@@ -149,6 +149,29 @@ describe('EvaluationTokensPage', () => {
     await waitFor(() => expect(screen.queryByText('Coding agent')).not.toBeInTheDocument())
   })
 
+  it('keeps loaded access tokens visible when a deletion fails', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    server.use(
+      http.get(`${API_BASE}/api/v1/evaluation-tokens`, () =>
+        HttpResponse.json({ items: [TOKEN_READ], next_cursor: null }),
+      ),
+      http.delete(`${API_BASE}/api/v1/evaluation-tokens/:tokenId`, () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
+    )
+    renderPage()
+
+    expect(await screen.findByText('Coding agent')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Delete access token Coding agent' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Failed to delete access token (500)',
+    )
+    expect(screen.getByText('Coding agent')).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+
   it('loads subsequent token pages with the server cursor', async () => {
     const user = userEvent.setup()
     const cursors: Array<string | null> = []

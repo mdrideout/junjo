@@ -5,14 +5,14 @@ import { ListApiKeysResponse } from './schemas'
 interface ApiKeysState {
   apiKeys: ListApiKeysResponse
   loading: boolean
-  error: boolean
+  error: string | null
   lastUpdated: number | null
 }
 
 const initialState: ApiKeysState = {
   apiKeys: [],
   loading: false,
-  error: false,
+  error: null,
   lastUpdated: null,
 }
 
@@ -32,14 +32,30 @@ export const apiKeysSlice = createSlice({
       },
       prepare: (payload: { id: string }) => ({ payload }),
     },
-    setApiKeys: (state, action: PayloadAction<ListApiKeysResponse>) => {
-      state.apiKeys = action.payload
-      state.lastUpdated = Date.now()
+    loadStarted: (state) => {
+      state.loading = true
+      state.error = null
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
+    loadSucceeded: (state, action: PayloadAction<{ apiKeys: ListApiKeysResponse; fetchedAt: number }>) => {
+      state.apiKeys = action.payload.apiKeys
+      state.loading = false
+      state.error = null
+      state.lastUpdated = action.payload.fetchedAt
     },
-    setError: (state, action: PayloadAction<boolean>) => {
+    loadFailed: (state, action: PayloadAction<string>) => {
+      state.loading = false
+      state.error = action.payload
+    },
+    deleteStarted: (state) => {
+      state.loading = true
+      state.error = null
+    },
+    deleteSucceeded: (state) => {
+      state.loading = false
+      state.error = null
+    },
+    deleteFailed: (state, action: PayloadAction<string>) => {
+      state.loading = false
       state.error = action.payload
     },
   },

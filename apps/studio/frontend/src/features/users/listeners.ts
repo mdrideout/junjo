@@ -14,29 +14,15 @@ startListener({
     const { force } = action.payload
     const { loading, lastUpdated } = getState().usersState
 
-    // Cache busting logic
-    const now = Date.now()
-    const staleTime = 2 * 1000 // 2 seconds
-    const isStale = lastUpdated === null ? true : loading || now - lastUpdated < staleTime
+    const fresh = lastUpdated !== null && Date.now() - lastUpdated < 2_000
+    if (!force && (loading || fresh)) return
 
-    // Bail out if already loading or not stale
-    if ((loading || isStale === false) && force === false) {
-      console.log(`Bailing because loading is true (${loading}) or isStale is false (${isStale})`)
-      return
-    }
-
-    // Clear errors and set loading
-    dispatch(UsersStateActions.setError(false))
-    dispatch(UsersStateActions.setLoading(true))
-
-    // Fetch the data
+    dispatch(UsersStateActions.loadStarted())
     try {
-      const data = await fetchUsers()
-      dispatch(UsersStateActions.setUsers(data))
+      const users = await fetchUsers()
+      dispatch(UsersStateActions.loadSucceeded({ users, fetchedAt: Date.now() }))
     } catch {
-      dispatch(UsersStateActions.setError(true))
-    } finally {
-      dispatch(UsersStateActions.setLoading(false))
+      dispatch(UsersStateActions.loadFailed('Failed to load users.'))
     }
   },
 })
@@ -47,19 +33,14 @@ startListener({
   effect: async (action, { dispatch }) => {
     const { id } = action.payload
 
-    dispatch(UsersStateActions.setLoading(true)) // Set loading state
-    dispatch(UsersStateActions.setError(false)) // Clear any previous errors
+    dispatch(UsersStateActions.deleteStarted())
 
     try {
-      await deleteUser(id) // Call the API function to delete the user
-      console.log(`Successfully deleted user with ID: ${id}`)
-    } catch (error: unknown) {
-      console.error(`Failed to delete user with ID: ${id}`, error)
-      // Dispatch an error action, potentially with the error message
-      dispatch(UsersStateActions.setError(true))
-    } finally {
-      // Fetch users data again to refresh the list
-      dispatch(UsersStateActions.fetchUsersData({ force: true })) // Force a refresh
+      await deleteUser(id)
+      dispatch(UsersStateActions.deleteSucceeded())
+      dispatch(UsersStateActions.fetchUsersData({ force: true }))
+    } catch {
+      dispatch(UsersStateActions.deleteFailed('Failed to delete user.'))
     }
   },
 })

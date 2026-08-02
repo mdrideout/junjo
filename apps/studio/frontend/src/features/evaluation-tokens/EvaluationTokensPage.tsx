@@ -42,11 +42,11 @@ export default function EvaluationTokensPage() {
       <div className="mt-4 shrink-0 overflow-x-auto">
         {loading && items.length === 0 ? (
           <p className="text-sm text-[var(--studio-text-muted)]">Loading tokens…</p>
-        ) : error !== null ? null : items.length === 0 ? (
+        ) : error === null && items.length === 0 ? (
           <p className="text-sm text-[var(--studio-text-muted)]">
             No developer access tokens have been created.
           </p>
-        ) : (
+        ) : items.length > 0 ? (
           <table className="w-full max-w-[1024px] text-left text-sm">
             <thead>
               <tr className="border-b border-[var(--studio-border)]">
@@ -106,7 +106,7 @@ export default function EvaluationTokensPage() {
               })}
             </tbody>
           </table>
-        )}
+        ) : null}
       </div>
       {nextCursor !== null && (
         <div className="mt-4">

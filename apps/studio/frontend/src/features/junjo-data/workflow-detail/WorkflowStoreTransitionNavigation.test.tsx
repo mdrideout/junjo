@@ -93,8 +93,7 @@ function makeStore(spans: OtelSpan[], stateEventScrollTarget: StateEventIdentity
       tracesState: {
         serviceNames: { data: [], loading: false, error: false },
         traceEvidence: { [workflowSpan.trace_id]: makeTraceEvidence(spans) },
-        loading: false,
-        error: false,
+        traceEvidenceRequest: { traceId: null, loading: false, error: false },
       },
     },
   })

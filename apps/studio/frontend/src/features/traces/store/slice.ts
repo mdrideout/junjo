@@ -11,8 +11,11 @@ interface TracesState {
   traceEvidence: {
     [traceId: string]: TraceEvidence
   }
-  loading: boolean
-  error: boolean
+  traceEvidenceRequest: {
+    traceId: string | null
+    loading: boolean
+    error: boolean
+  }
 }
 
 const initialState: TracesState = {
@@ -22,8 +25,11 @@ const initialState: TracesState = {
     error: false,
   },
   traceEvidence: {},
-  loading: false,
-  error: false,
+  traceEvidenceRequest: {
+    traceId: null,
+    loading: false,
+    error: false,
+  },
 }
 
 export const tracesSlice = createSlice({
@@ -52,15 +58,29 @@ export const tracesSlice = createSlice({
       state.serviceNames.error = action.payload
     },
 
-    // Traces Data Actions
-    setTraceEvidenceData: (state, action: PayloadAction<{ traceId: string; data: TraceEvidence }>) => {
+    // Trace Evidence Request Actions
+    traceEvidenceRequestStarted: (state, action: PayloadAction<{ traceId: string }>) => {
+      state.traceEvidenceRequest = {
+        traceId: action.payload.traceId,
+        loading: true,
+        error: false,
+      }
+    },
+    traceEvidenceRequestSucceeded: (
+      state,
+      action: PayloadAction<{ traceId: string; data: TraceEvidence }>,
+    ) => {
       state.traceEvidence[action.payload.traceId] = action.payload.data
+      if (state.traceEvidenceRequest.traceId === action.payload.traceId) {
+        state.traceEvidenceRequest.loading = false
+        state.traceEvidenceRequest.error = false
+      }
     },
-    setTracesLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
-    },
-    setTracesError: (state, action: PayloadAction<boolean>) => {
-      state.error = action.payload
+    traceEvidenceRequestFailed: (state, action: PayloadAction<{ traceId: string }>) => {
+      if (state.traceEvidenceRequest.traceId === action.payload.traceId) {
+        state.traceEvidenceRequest.loading = false
+        state.traceEvidenceRequest.error = true
+      }
     },
   },
 })

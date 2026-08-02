@@ -16,8 +16,7 @@ export const selectTraceSpans = createSelector(
     Object.entries(evidenceByTraceId).map(([traceId, evidence]) => [traceId, evidence.spans]),
   ),
 )
-export const selectTracesLoading = (state: RootState) => state.tracesState.loading
-export const selectTracesError = (state: RootState) => state.tracesState.error
+export const selectTraceEvidenceRequest = (state: RootState) => state.tracesState.traceEvidenceRequest
 
 // Selectors - Service Names
 export const selectServiceNamesLoading = (state: RootState) => state.tracesState.serviceNames.loading
@@ -31,6 +30,23 @@ export const selectTraceEvidenceForTraceId = createSelector(
   ],
   (evidenceByTraceId, traceId): TraceEvidence | undefined =>
     traceId === undefined ? undefined : evidenceByTraceId[traceId],
+)
+
+export const selectTraceEvidenceRequestForTraceId = createSelector(
+  [
+    selectTraceEvidence,
+    selectTraceEvidenceRequest,
+    (_state: RootState, props: { traceId: string | undefined }) => props.traceId,
+  ],
+  (evidenceByTraceId, request, traceId): { loading: boolean; error: boolean } => {
+    if (traceId === undefined || evidenceByTraceId[traceId] !== undefined) {
+      return { loading: false, error: false }
+    }
+    if (request.traceId !== traceId) {
+      return { loading: true, error: false }
+    }
+    return { loading: request.loading, error: request.error }
+  },
 )
 
 export const selectExecutableBySpanId = createSelector(

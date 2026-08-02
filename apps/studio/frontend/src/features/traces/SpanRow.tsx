@@ -39,6 +39,7 @@ export default function SpanRow(props: SpanRowProps) {
                   'mt-[1px] cursor-pointer text-white bg-zinc-700 hover:bg-zinc-600 rounded-lg px-1.5 text-xs'
                 }
                 to={workflowPath(span.service_name, span.trace_id, span.span_id, span.span_id)}
+                onClick={(event) => event.stopPropagation()}
               >
                 Workflow Explorer &rarr;
               </Link>

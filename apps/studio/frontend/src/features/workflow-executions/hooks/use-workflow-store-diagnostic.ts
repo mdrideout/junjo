@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useAppSelector } from '../../../root-store/hooks'
+import { selectTraceEvidenceRequestForTraceId } from '../../traces/store/selectors'
 import type { WorkflowStoreDiagnostic } from '../schemas/workflow-store-diagnostic'
 
 export interface WorkflowStoreDiagnosticRequest {
@@ -15,8 +16,9 @@ export function useWorkflowStoreDiagnostic(
   const evidence = useAppSelector((state) =>
     traceId === undefined ? undefined : state.tracesState.traceEvidence[traceId],
   )
-  const loading = useAppSelector((state) => state.tracesState.loading)
-  const hasError = useAppSelector((state) => state.tracesState.error)
+  const request = useAppSelector((state) =>
+    selectTraceEvidenceRequestForTraceId(state, { traceId }),
+  )
 
   return useMemo(() => {
     if (traceId === undefined || workflowSpanId === undefined) {
@@ -26,8 +28,8 @@ export function useWorkflowStoreDiagnostic(
     if (executable?.executable_type !== 'workflow' && executable?.executable_type !== 'subflow') {
       return {
         data: null,
-        loading,
-        error: hasError ? 'Failed to fetch Workflow Store diagnostics' : null,
+        loading: request.loading,
+        error: request.error ? 'Failed to fetch Workflow Store diagnostics' : null,
       }
     }
     const state = executable.store_id === null
@@ -53,5 +55,5 @@ export function useWorkflowStoreDiagnostic(
       loading: false,
       error: null,
     }
-  }, [evidence, hasError, loading, traceId, workflowSpanId])
+  }, [evidence, request.error, request.loading, traceId, workflowSpanId])
 }

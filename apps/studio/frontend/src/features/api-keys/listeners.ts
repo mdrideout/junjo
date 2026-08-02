@@ -13,21 +13,15 @@ startListener({
   effect: async (action, { getState, dispatch }) => {
     const { force } = action.payload
     const { loading, lastUpdated } = getState().apiKeysState
-    const now = Date.now()
-    const staleTime = 2000
-    const isStale = lastUpdated === null ? true : loading || now - lastUpdated < staleTime
+    const fresh = lastUpdated !== null && Date.now() - lastUpdated < 2_000
+    if (!force && (loading || fresh)) return
 
-    if ((loading || !isStale) && !force) return
-
-    dispatch(ApiKeysStateActions.setLoading(true))
-    dispatch(ApiKeysStateActions.setError(false))
+    dispatch(ApiKeysStateActions.loadStarted())
     try {
-      const data = await fetchApiKeys()
-      dispatch(ApiKeysStateActions.setApiKeys(data))
+      const apiKeys = await fetchApiKeys()
+      dispatch(ApiKeysStateActions.loadSucceeded({ apiKeys, fetchedAt: Date.now() }))
     } catch {
-      dispatch(ApiKeysStateActions.setError(true))
-    } finally {
-      dispatch(ApiKeysStateActions.setLoading(false))
+      dispatch(ApiKeysStateActions.loadFailed('Failed to load application telemetry API keys.'))
     }
   },
 })
@@ -36,14 +30,13 @@ startListener({
 startListener({
   actionCreator: ApiKeysStateActions.deleteApiKey,
   effect: async ({ payload }, { dispatch }) => {
-    dispatch(ApiKeysStateActions.setLoading(true))
+    dispatch(ApiKeysStateActions.deleteStarted())
     try {
       await deleteApiKey(payload.id)
-    } catch {
-      dispatch(ApiKeysStateActions.setError(true))
-    } finally {
-      dispatch(ApiKeysStateActions.setLoading(false))
+      dispatch(ApiKeysStateActions.deleteSucceeded())
       dispatch(ApiKeysStateActions.fetchApiKeysData({ force: true }))
+    } catch {
+      dispatch(ApiKeysStateActions.deleteFailed('Failed to delete application telemetry API key.'))
     }
   },
 })

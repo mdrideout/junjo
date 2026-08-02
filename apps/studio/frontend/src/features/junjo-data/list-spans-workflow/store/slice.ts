@@ -2,13 +2,15 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { OtelSpan } from '../../../traces/schemas/schemas'
 
-interface WorkflowSpanListState {
+export interface WorkflowSpanListState {
+  listServiceName: string | null
   workflowSpanList: OtelSpan[]
   loading: boolean
   error: string | null
 }
 
-const initialState: WorkflowSpanListState = {
+export const initialWorkflowSpanListState: WorkflowSpanListState = {
+  listServiceName: null,
   workflowSpanList: [],
   loading: false,
   error: null,
@@ -16,7 +18,7 @@ const initialState: WorkflowSpanListState = {
 
 export const workflowSpanListSlice = createSlice({
   name: 'workflowSpanListState',
-  initialState,
+  initialState: initialWorkflowSpanListState,
   reducers: {
     // Listener Middleware Triggers
     fetchSpansTypeWorkflow: {
@@ -26,14 +28,22 @@ export const workflowSpanListSlice = createSlice({
       prepare: (payload: string) => ({ payload }),
     },
 
-    setWorkflowExecutionsData: (state, action: PayloadAction<OtelSpan[]>) => {
-      state.workflowSpanList = action.payload
+    loadStarted: (state, action: PayloadAction<{ serviceName: string }>) => {
+      state.listServiceName = action.payload.serviceName
+      state.workflowSpanList = []
+      state.loading = true
+      state.error = null
     },
-    setWorkflowExecutionsLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
+    loadSucceeded: (state, action: PayloadAction<{ serviceName: string; data: OtelSpan[] }>) => {
+      if (state.listServiceName !== action.payload.serviceName) return
+      state.workflowSpanList = action.payload.data
+      state.loading = false
+      state.error = null
     },
-    setWorkflowExecutionsError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload
+    loadFailed: (state, action: PayloadAction<{ serviceName: string; error: string }>) => {
+      if (state.listServiceName !== action.payload.serviceName) return
+      state.loading = false
+      state.error = action.payload.error
     },
   },
 })

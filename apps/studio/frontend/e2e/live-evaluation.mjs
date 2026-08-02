@@ -181,9 +181,13 @@ try {
     has: page.getByRole('link', { name: 'View candidate spans' }),
   })
   assert.equal(await comparisonRows.count(), 1, 'scoped comparison did not render the Agent Case')
-  await visible(page.getByText('double.agent', { exact: true }), 'comparison target scope', timeout)
-  await visible(page.getByText('Exact double result', { exact: true }), 'comparison evaluation name', timeout)
-  await visible(page.getByText('regressed', { exact: true }), 'regressed transition', timeout)
+  await visible(comparisonRows.getByText('double.agent', { exact: true }), 'comparison target scope', timeout)
+  await visible(
+    comparisonRows.getByText('Exact double result', { exact: true }),
+    'comparison evaluation name',
+    timeout,
+  )
+  await visible(comparisonRows.getByText('regressed', { exact: true }), 'regressed transition', timeout)
   assert.deepEqual(browserFailures, [], browserFailures.join('\n'))
 } finally {
   await browser.close()
