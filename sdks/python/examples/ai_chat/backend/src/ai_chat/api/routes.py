@@ -36,7 +36,7 @@ async def health(request: Request) -> Response:
 
 @router.get("/config")
 async def public_config(request: Request) -> PublicConfigResponse:
-    return PublicConfigResponse.from_settings(_application(request).debug)
+    return PublicConfigResponse.from_settings(_application(request).studio_diagnostics)
 
 
 @router.get("/conversations")

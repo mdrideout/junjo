@@ -64,6 +64,7 @@ def test_generated_initial_migration_round_trips_without_schema_drift(
     assert "ix_evaluation_tokens_token" in token_indexes
     assert eval_cases_sql is not None
     assert "target_kind IN ('node', 'workflow', 'agent')" in eval_cases_sql[0]
+    assert "target_name" in eval_cases_sql[0]
 
     _alembic(database_path, "downgrade", "base")
     with sqlite3.connect(database_path) as connection:

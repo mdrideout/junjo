@@ -22,7 +22,7 @@ export default function ChatReceiveImageBubble({ message, turn, config }: ChatBu
             onClick={() => setFullScreen(true)}
           />
           {message.content && <div className="safe-word-break px-4 py-3">{message.content}</div>}
-          {config?.debug_enabled === true && turn !== undefined && (
+          {config?.studio_frontend_base_url != null && turn !== undefined && (
             <div className="px-4 pb-3"><TurnDiagnostics turn={turn} config={config} /></div>
           )}
         </div>

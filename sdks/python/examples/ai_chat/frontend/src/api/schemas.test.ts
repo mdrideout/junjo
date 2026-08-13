@@ -54,7 +54,7 @@ const completedTurn = {
 }
 
 describe('chat API schemas', () => {
-  it('accepts exact conversation, debug, and completed Turn contracts', () => {
+  it('accepts exact conversation, Studio-link, and completed Turn contracts', () => {
     expect(ConversationsResponseSchema.parse({
       conversations: [{
         id: 'conversation-1',
@@ -77,11 +77,10 @@ describe('chat API schemas', () => {
       }],
     }).conversations).toHaveLength(1)
     expect(PublicConfigResponseSchema.parse({
-      debug_enabled: true,
-      studio_ui_url: 'http://localhost:26153',
+      studio_frontend_base_url: 'http://localhost:26151',
       service_namespace: 'junjo.examples',
       service_name: 'ai-chat',
-    }).debug_enabled).toBe(true)
+    }).studio_frontend_base_url).toBe('http://localhost:26151')
     expect(TurnSchema.parse(completedTurn).execution_references.agent_run_id).toBe('agent-run-1')
   })
 

@@ -42,6 +42,7 @@ HARNESS = EvaluationHarness(
     targets=(
         NodeTarget(
             key="message",
+            name="Message Node",
             input_version=1,
             input_type=CliInput,
             factory=lambda _input, _context, _resources: None,
@@ -55,9 +56,10 @@ HARNESS = EvaluationHarness(
 
 class FakeStudioClient:
     created_request = None
+    configuration: dict[str, object] | None = None
 
-    def __init__(self, **_configuration: object) -> None:
-        pass
+    def __init__(self, **configuration: object) -> None:
+        type(self).configuration = configuration
 
     async def __aenter__(self) -> FakeStudioClient:
         return self
@@ -103,6 +105,7 @@ def test_targets_list_is_provider_free_and_machine_readable(capsys) -> None:
     assert payload["schema_version"] == 1
     assert payload["ok"] is True
     assert payload["data"]["application_key"] == "cli_test"
+    assert payload["data"]["targets"][0]["name"] == "Message Node"
     assert payload["data"]["targets"][0]["input_schema"]["additionalProperties"] is False
 
 
@@ -134,6 +137,33 @@ def test_help_uses_argparse_normally_without_an_internal_error(capsys) -> None:
     assert "Build and execute Studio-backed evaluation datasets." in captured.out
     assert '"ok":false' not in captured.out
     assert captured.err == ""
+
+
+def test_skill_path_is_local_and_requires_no_harness_or_studio(
+    tmp_path,
+    monkeypatch,
+    capsys,
+) -> None:
+    skill_directory = tmp_path / "junjo-evaluation"
+    skill_directory.mkdir()
+    skill_file = skill_directory / "SKILL.md"
+    skill_file.write_text("---\nname: junjo-evaluation\n---\n", encoding="utf-8")
+    monkeypatch.setattr(cli, "_evaluation_skill_directory", lambda: skill_directory)
+
+    exit_code = cli.main(["eval", "skill", "path"])
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_OK
+    assert payload == {
+        "command": "eval.skill.path",
+        "data": {
+            "name": "junjo-evaluation",
+            "path": str(skill_directory),
+            "skill_file": str(skill_file),
+        },
+        "ok": True,
+        "schema_version": 1,
+    }
 
 
 def test_pyproject_selects_one_explicit_harness(
@@ -177,6 +207,111 @@ def test_capabilities_reports_sdk_studio_and_control_boundaries(
         "authentication": "evaluation_control_token",
         "telemetry_transport": "otlp",
         "version": 1,
+    }
+
+
+def test_backend_base_url_comes_from_the_explicit_environment_variable(
+    monkeypatch,
+    capsys,
+) -> None:
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setenv(
+        "JUNJO_AI_STUDIO_BACKEND_BASE_URL",
+        "http://studio-api.test:26154",
+    )
+
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "capabilities",
+        ]
+    )
+
+    _payload(capsys)
+    assert exit_code == EXIT_OK
+    assert FakeStudioClient.configuration == {
+        "base_url": "http://studio-api.test:26154"
+    }
+
+
+def test_backend_base_url_defaults_to_the_local_studio_api(
+    monkeypatch,
+    capsys,
+) -> None:
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", raising=False)
+
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "capabilities",
+        ]
+    )
+
+    _payload(capsys)
+    assert exit_code == EXIT_OK
+    assert FakeStudioClient.configuration == {
+        "base_url": "http://localhost:26154"
+    }
+
+
+def test_backend_base_url_rejects_an_empty_environment_variable(
+    monkeypatch,
+    capsys,
+) -> None:
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", "")
+
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "capabilities",
+        ]
+    )
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_USAGE
+    assert payload["error"]["message"] == (
+        "JUNJO_AI_STUDIO_BACKEND_BASE_URL cannot be empty."
+    )
+    assert FakeStudioClient.configuration is None
+
+
+def test_backend_base_url_flag_overrides_the_environment_variable(
+    monkeypatch,
+    capsys,
+) -> None:
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setenv(
+        "JUNJO_AI_STUDIO_BACKEND_BASE_URL",
+        "http://environment.test:26154",
+    )
+
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "--studio-backend-base-url",
+            "http://explicit.test:26154",
+            "capabilities",
+        ]
+    )
+
+    _payload(capsys)
+    assert exit_code == EXIT_OK
+    assert FakeStudioClient.configuration == {
+        "base_url": "http://explicit.test:26154"
     }
 
 

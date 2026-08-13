@@ -24,7 +24,7 @@ from ai_chat.adapters.persistence import SqliteChatStore
 from ai_chat.application.chat_agent import create_chat_agent
 from ai_chat.application.contact_workflow import ContactCreationService
 from ai_chat.application.turn_workflow import ChatTurnService
-from ai_chat.config import DebugSettings, ModelProvider, Settings
+from ai_chat.config import ModelProvider, Settings, StudioDiagnosticsSettings
 from ai_chat.domain.errors import TurnExecutionError
 from ai_chat.domain.models import ConversationOverview, Turn
 from ai_chat.domain.ports import ApplicationStore, ImageModel, LanguageModel
@@ -68,7 +68,7 @@ class ChatApplication:
     images: ImageModel
     image_directory: Path
     provider_runtime: ProviderRuntime | None = None
-    debug: DebugSettings = DebugSettings(enabled=False, studio_ui_url=None)
+    studio_diagnostics: StudioDiagnosticsSettings = StudioDiagnosticsSettings(frontend_base_url=None)
     _turn_tasks: set[asyncio.Task[None]] = field(default_factory=set, init=False)
 
     async def initialize(self) -> None:
@@ -173,7 +173,7 @@ def build_application(
         images=image_model,
         image_directory=settings.image_directory,
         provider_runtime=provider_runtime,
-        debug=settings.debug,
+        studio_diagnostics=settings.studio_diagnostics,
     )
 
 

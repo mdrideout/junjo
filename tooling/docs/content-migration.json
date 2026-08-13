@@ -1173,7 +1173,7 @@
       "disposition": "migrated",
       "target_path": "apps/studio/docs/public/docs/studio/docker-reference.md",
       "target_route": "/docs/studio/docker-reference/",
-      "target_hash": "sha256:9796d8ae342990883e1cb26adfd9e5ef09dbe020a7eabbc2c06f1b9b3e37e7d1",
+      "target_hash": "sha256:c21f5cdcc332faa73ccc2e4b0fd085dbf1e541565020748d0ece4b394835a16d",
       "status": "retired-source",
       "headings": [
         {
@@ -1446,7 +1446,7 @@
       "disposition": "migrated",
       "target_path": "sdks/python/docs/content/docs/observability/opentelemetry.md",
       "target_route": "/docs/observability/opentelemetry/",
-      "target_hash": "sha256:c3e4436ab6e615817dcc22e6cfc0cf75c80455ce6da615d572738c7dec0648ec",
+      "target_hash": "sha256:4e06443d2b7b65ea4fc5b259b671d55d090cf47f7666ac31fadbfb04a159a47e",
       "status": "retired-source",
       "headings": [
         {

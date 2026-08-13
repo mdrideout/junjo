@@ -28,10 +28,9 @@ class JunjoOtelExporter:
     need it, such as in short-lived scripts or tests. :meth:`shutdown` is a
     wrapper-local helper that shuts down only the Junjo-owned span processor.
 
-    :param host: The hostname of the Junjo AI Studio.
-    :type host: str
-    :param port: The port of the Junjo AI Studio.
-    :type port: str
+    :param endpoint: The OTLP/gRPC endpoint for Junjo AI Studio, including the
+                     port, such as ``localhost:26155``.
+    :type endpoint: str
     :param api_key: The API key for the Junjo AI Studio.
     :type api_key: str
     :param insecure: Whether to allow insecure connections to the Junjo AI Studio.
@@ -57,8 +56,7 @@ class JunjoOtelExporter:
 
         # Application running directly on the local machine
         junjo_exporter = JunjoOtelExporter(
-            host="localhost",
-            port="26155",
+            endpoint="localhost:26155",
             api_key=JUNJO_AI_STUDIO_API_KEY,
             insecure=True,
         )
@@ -67,8 +65,7 @@ class JunjoOtelExporter:
         # the block above with this endpoint (localhost resolves to the app
         # container itself):
         # junjo_exporter = JunjoOtelExporter(
-        #     host="ingestion",
-        #     port="26155",
+        #     endpoint="ingestion:26155",
         #     api_key=JUNJO_AI_STUDIO_API_KEY,
         #     insecure=True,
         # )
@@ -99,8 +96,7 @@ class JunjoOtelExporter:
         resource = Resource.create({"service.name": "my-ai-workflow"})
 
         junjo_exporter_prod = JunjoOtelExporter(
-            host="ingestion.junjo.example.com",  # Your domain
-            port="443",  # HTTPS port
+            endpoint="ingestion.junjo.example.com:443",
             api_key=JUNJO_AI_STUDIO_API_KEY,
             insecure=False,  # TLS enabled
         )
@@ -116,8 +112,7 @@ class JunjoOtelExporter:
 
     def __init__(
         self,
-        host: str,
-        port: str,
+        endpoint: str,
         api_key: str,
         insecure: bool = False,
     ) -> None:
@@ -126,13 +121,9 @@ class JunjoOtelExporter:
         """
 
         # Set Class Instance Vars
-        self._host = host
-        self._port = port
+        self._endpoint = endpoint
         self._api_key = api_key
         self._insecure = insecure
-
-        # Set the endpoint for the Junjo AI Studio
-        self._endpoint = f"{self._host}:{self._port}"
 
         # Define headers
         exporter_headers = (("x-junjo-api-key", self._api_key),)

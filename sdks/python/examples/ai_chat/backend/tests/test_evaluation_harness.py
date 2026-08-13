@@ -3,6 +3,9 @@
 import pytest
 from junjo.studio import TargetKind
 
+from ai_chat.application.chat_agent.definition import CHAT_AGENT_NAME
+from ai_chat.application.turn_workflow.factory import TURN_WORKFLOW_NAME
+from ai_chat.application.turn_workflow.nodes import CreateDateIdeaResponseNode
 from ai_chat.evals.harness import (
     APPLICATION_KEY,
     CHAT_AGENT_TARGET,
@@ -29,10 +32,18 @@ def test_harness_lists_node_workflow_and_agent_without_runtime_configuration(
     assert harness.application_key == APPLICATION_KEY
     assert harness.service_identity.service_namespace == "junjo.examples"
     assert harness.service_identity.service_name == "ai-chat"
-    assert [(descriptor.kind, descriptor.key, descriptor.input_version) for descriptor in descriptors] == [
-        (TargetKind.AGENT, CHAT_AGENT_TARGET, LOCAL_PLACE_INPUT_VERSION),
-        (TargetKind.NODE, DATE_RESPONSE_NODE_TARGET, LOCAL_PLACE_INPUT_VERSION),
-        (TargetKind.WORKFLOW, TURN_WORKFLOW_TARGET, LOCAL_PLACE_INPUT_VERSION),
+    assert [
+        (descriptor.kind, descriptor.key, descriptor.name, descriptor.input_version)
+        for descriptor in descriptors
+    ] == [
+        (TargetKind.AGENT, CHAT_AGENT_TARGET, CHAT_AGENT_NAME, LOCAL_PLACE_INPUT_VERSION),
+        (
+            TargetKind.NODE,
+            DATE_RESPONSE_NODE_TARGET,
+            CreateDateIdeaResponseNode.__name__,
+            LOCAL_PLACE_INPUT_VERSION,
+        ),
+        (TargetKind.WORKFLOW, TURN_WORKFLOW_TARGET, TURN_WORKFLOW_NAME, LOCAL_PLACE_INPUT_VERSION),
     ]
     assert all(descriptor.input_schema["additionalProperties"] is False for descriptor in descriptors)
 

@@ -19,6 +19,7 @@ import {
   selectEvaluationRunListRequest,
 } from './store/selectors'
 import { EvaluationRunsActions } from './store/slice'
+import { evaluationTargetLabel } from './target-label'
 
 const fieldClassName =
   'min-h-10 w-full rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-3 py-2 text-sm ' +
@@ -206,7 +207,7 @@ export default function EvaluationRunsPage() {
             </select>
           </label>
           <label className="text-sm font-medium">
-            Target scope
+            Targets
             <select
               className={`${fieldClassName} mt-1`}
               value={selectedTarget}
@@ -233,7 +234,7 @@ export default function EvaluationRunsPage() {
               <option value="">All targets</option>
               {targetFacets.map((facet) => (
                 <option key={targetIdentity(facet)} value={targetIdentity(facet)}>
-                  {facet.target_kind} · {facet.target_key} · input v{facet.input_version}
+                  {evaluationTargetLabel(facet.target_kind, facet.target_name)}
                 </option>
               ))}
             </select>
@@ -312,9 +313,12 @@ export default function EvaluationRunsPage() {
                   </AppLink>
                 )}
               </h2>
-              <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
-                {selectedDataset?.description ?? 'Runs for this locked dataset.'}
-              </p>
+              {selectedDataset?.description !== null
+                && selectedDataset?.description !== undefined && (
+                <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
+                  {selectedDataset.description}
+                </p>
+              )}
             </div>
             <form onSubmit={compareRuns} className="flex flex-wrap items-end gap-2">
               <label className="text-xs font-medium">
@@ -363,7 +367,7 @@ export default function EvaluationRunsPage() {
               <thead className="bg-[var(--studio-surface)] text-xs uppercase tracking-wide text-[var(--studio-text-subtle)]">
                 <tr>
                   <th scope="col" className="px-3 py-3">Run</th>
-                  <th scope="col" className="px-3 py-3">Scope</th>
+                  <th scope="col" className="px-3 py-3">Targets</th>
                   <th scope="col" className="px-3 py-3">Results</th>
                   <th scope="col" className="px-3 py-3">Status</th>
                   <th scope="col" className="px-3 py-3">Created</th>
@@ -391,7 +395,7 @@ export default function EvaluationRunsPage() {
                               key={targetIdentity(facet)}
                               className="mr-1 mt-1 inline-block rounded-full bg-[var(--studio-page)] px-2 py-1"
                             >
-                              {facet.target_kind} · {facet.target_key} · input v{facet.input_version}
+                              {evaluationTargetLabel(facet.target_kind, facet.target_name)}
                             </span>
                           ))}
                         </div>

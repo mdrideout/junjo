@@ -353,6 +353,7 @@ class EvaluationExecutor:
                 origin=CaseOrigin.GENERATED,
                 target_kind=request.target_kind,
                 target_key=request.target_key,
+                target_name=target.name,
                 input_version=request.input_version,
                 input_json=request.input_json,
                 expectation_json=request.expectation_json,

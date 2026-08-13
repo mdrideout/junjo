@@ -58,8 +58,7 @@ export default function WorkflowDetailPage() {
   const initializedWorkflowIdentityRef = useRef<string | null>(null)
   const initializedRouteTargetIdentityRef = useRef<string | null>(null)
   const pendingRouteTargetIdentityRef = useRef<string | null>(null)
-  const routeSelectionAlreadyMatches = initializedWorkflowIdentityRef.current === workflowIdentity
-    && routeTargetSpan !== undefined
+  const routeSelectionAlreadyMatches = routeTargetSpan !== undefined
     && activeSpan?.trace_id === traceId
     && activeSpan?.span_id === routeTargetSpan.span_id
 
@@ -143,8 +142,7 @@ export default function WorkflowDetailPage() {
     )
   }
 
-  const routeSelectionReady = initializedRouteTargetIdentityRef.current === routeTargetIdentity
-    || routeSelectionAlreadyMatches
+  const routeSelectionReady = routeSelectionAlreadyMatches
   if (!routeSelectionReady) return null
 
   // Human readable start ingest time

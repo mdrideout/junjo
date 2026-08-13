@@ -62,7 +62,7 @@ Contact Tool. Optional older-history search and image creation remain Tools.
 - `adapters`: SQLite/versioned-JSON persistence and explicit Gemini or Grok
   language, image, and Agent-driver adapters.
 - `api`: strict HTTP projections, durable Turn admission, polling, and safe
-  debug configuration.
+  Studio diagnostic-link configuration.
 - `frontend`: the original multi-contact chat experience plus an optional
   per-Turn Studio diagnostics layer.
 
@@ -144,39 +144,44 @@ npm run dev
 ## Junjo AI Studio
 
 AI Chat and the evaluation CLI connect to the same Studio deployment through
-different endpoints and credentials:
+different endpoints and credentials. The root `.env.example` is the canonical
+configuration reference; its uncommented values target the source-development
+Studio stack:
 
 ```dotenv
 # AI Chat application -> Junjo AI Studio telemetry ingestion. Create an
 # Application Telemetry API key from Studio's API Keys page. This key cannot
 # query or mutate evaluation datasets.
+JUNJO_AI_STUDIO_OTLP_ENDPOINT=localhost:26155
+JUNJO_AI_STUDIO_OTLP_INSECURE=true
 JUNJO_AI_STUDIO_API_KEY=jtel_...
-JUNJO_AI_STUDIO_HOST=host.docker.internal
-JUNJO_AI_STUDIO_PORT=26155
-JUNJO_AI_STUDIO_INSECURE=true
 
 # Developer environment or agent -> Studio backend REST control/query API.
 # Create a Developer Access Token from Studio's Access Tokens page. This token
 # cannot ingest application telemetry.
-JUNJO_STUDIO_URL=http://localhost:26154
+JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
 JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
+
+# Browser -> Studio's authenticated semantic execution resolver.
+JUNJO_AI_STUDIO_FRONTEND_BASE_URL=http://localhost:26151
 ```
+
+The shared `.env` is host-facing so native SDK and evaluation commands use
+`localhost`. Compose explicitly translates only the backend container's OTLP
+target to `host.docker.internal:26155`; it does not invent a second product
+setting or require another environment file.
 
 The application emits FastAPI, provider, Workflow, Node, Subflow, Agent, Tool,
 and Store evidence with one trusted application correlation per Contact or
 Turn. Studio displays Agent operations and nested Tools alongside the normal
 Workflow Graph and reconstructed Store histories.
 
-Enable the optional browser diagnostics layer with:
-
-```dotenv
-AI_CHAT_DEBUG=true
-AI_CHAT_STUDIO_UI_URL=http://localhost:26153
-```
-
-The browser receives only the Studio UI origin and persisted runtime IDs. It
-never receives the Studio API key. Deep links use Studio's authenticated
-runtime-identity resolver and tolerate normal ingestion delay.
+The configured frontend base URL enables browser diagnostics whenever
+application telemetry is configured. The browser receives only the Studio UI
+origin and persisted runtime IDs. It never receives the Studio API key. Deep
+links use Studio's authenticated runtime-identity resolver and tolerate normal
+ingestion delay. Omit the frontend base URL when an application should not
+present those links.
 
 ## Eval-driven development
 

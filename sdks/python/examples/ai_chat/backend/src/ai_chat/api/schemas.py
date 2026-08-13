@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from ai_chat.config import DebugSettings
+from ai_chat.config import StudioDiagnosticsSettings
 from ai_chat.domain.models import (
     ChatMessage,
     ContactProfile,
@@ -202,16 +202,14 @@ class SubmitTurnRequest(ApiModel):
 
 
 class PublicConfigResponse(ApiModel):
-    debug_enabled: bool
-    studio_ui_url: str | None
+    studio_frontend_base_url: str | None
     service_namespace: str
     service_name: str
 
     @classmethod
-    def from_settings(cls, settings: DebugSettings) -> PublicConfigResponse:
+    def from_settings(cls, settings: StudioDiagnosticsSettings) -> PublicConfigResponse:
         return cls(
-            debug_enabled=settings.enabled,
-            studio_ui_url=settings.studio_ui_url,
+            studio_frontend_base_url=settings.frontend_base_url,
             service_namespace=settings.service_namespace,
             service_name=settings.service_name,
         )

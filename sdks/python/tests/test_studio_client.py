@@ -58,6 +58,7 @@ def _case() -> dict[str, Any]:
         "origin": "authored",
         "target_kind": "node",
         "target_key": "turn.date_response",
+        "target_name": "CreateDateIdeaResponseNode",
         "input_version": 1,
         "input_json": {"message": "Pick one place."},
         "expectation_json": {"rubric": "Name a plausible Brooklyn place."},
@@ -206,6 +207,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
                             {
                                 "target_kind": "node",
                                 "target_key": "turn.date_response",
+                                "target_name": "CreateDateIdeaResponseNode",
                                 "input_version": 1,
                                 "case_count": 1,
                             }
@@ -283,6 +285,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
                 origin=CaseOrigin.AUTHORED,
                 target_kind=TargetKind.NODE,
                 target_key="turn.date_response",
+                target_name="CreateDateIdeaResponseNode",
                 input_version=1,
                 input_json={"message": "Pick one place."},
                 expectation_json={"rubric": "Name a place."},

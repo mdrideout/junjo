@@ -26,8 +26,9 @@ from junjo.evaluation import (
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ai_chat.application.chat_agent import create_chat_agent
+from ai_chat.application.chat_agent.definition import CHAT_AGENT_NAME
 from ai_chat.application.dependencies import ChatDependencies
-from ai_chat.application.turn_workflow.factory import create_turn_workflow
+from ai_chat.application.turn_workflow.factory import TURN_WORKFLOW_NAME, create_turn_workflow
 from ai_chat.application.turn_workflow.nodes import CreateDateIdeaResponseNode
 from ai_chat.application.turn_workflow.state import TurnWorkflowState, TurnWorkflowStore
 from ai_chat.bootstrap import (
@@ -417,6 +418,7 @@ harness = EvaluationHarness(
     targets=(
         NodeTarget(
             key=DATE_RESPONSE_NODE_TARGET,
+            name=CreateDateIdeaResponseNode.__name__,
             input_version=LOCAL_PLACE_INPUT_VERSION,
             input_type=LocalPlaceInputV1,
             factory=_date_node_factory,
@@ -424,6 +426,7 @@ harness = EvaluationHarness(
         ),
         WorkflowTarget(
             key=TURN_WORKFLOW_TARGET,
+            name=TURN_WORKFLOW_NAME,
             input_version=LOCAL_PLACE_INPUT_VERSION,
             input_type=LocalPlaceInputV1,
             factory=_turn_workflow_factory,
@@ -431,6 +434,7 @@ harness = EvaluationHarness(
         ),
         AgentTarget(
             key=CHAT_AGENT_TARGET,
+            name=CHAT_AGENT_NAME,
             input_version=LOCAL_PLACE_INPUT_VERSION,
             input_type=LocalPlaceInputV1,
             factory=_chat_agent_factory,

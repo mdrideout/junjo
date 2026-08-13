@@ -2,6 +2,7 @@
 
 - Status: Completed
 - Accepted: 2026-07-15
+- Navigation clarification: 2026-08-12
 - Scope: Studio execution deep links, Store diagnostic presentation, and
   Workflow Graph exploration
 
@@ -19,8 +20,9 @@ still arriving, and protect the Mermaid integration from renderer changes.
    - Studio ADR 007 owns Store integrity meaning and presentation;
    - Studio ADR 008 owns Graph/tree/state/URL selection.
 2. Replace the bounded resolver holding screen with an immediate semantic
-   execution page. Continue resolving 404 responses with capped backoff and
-   render the existing detail surface in place when ready.
+   execution page. Continue resolving 404 responses with capped backoff. Once
+   ready, replace the semantic location with the ordinary physical detail URL
+   so detail selection has one route authority.
 3. Make healthy Store verification silent. Show focused notices only for
    partial, unavailable, failed, or unidentifiable state history.
 4. Replace Mermaid-ID parsing with one DOM adapter and Junjo-owned rendered
@@ -34,7 +36,8 @@ still arriving, and protect the Mermaid integration from renderer changes.
 - A fresh execution link immediately shows Studio content. The pending
   telemetry message appears only after Studio confirms that the execution is
   not yet indexed, with no attempt counter or deadline.
-- The semantic URL remains stable after the detail becomes available.
+- The semantic URL remains stable while resolution is pending; the resolved
+  Agent, Workflow, or trace URL owns navigation after evidence is available.
 - Healthy Store history produces no banner; non-healthy states remain explicit
   without hiding raw telemetry.
 - Graph click, tree click, Store transition navigation, Subflow activation, and
@@ -48,7 +51,7 @@ code and tests. This document is the bounded delivery record for the correction.
 
 ## Completion record
 
-Completed on 2026-07-15. Frontend lint, 205 frontend tests, the production
+Completed on 2026-07-15 and navigation clarified on 2026-08-12. Frontend lint, 205 frontend tests, the production
 build, and the complete six-stage Studio validation passed. The test suite uses
 the installed Mermaid 11.16.0 renderer and covers semantic-link readiness,
 quiet healthy Store diagnostics, normal Nodes, Subflows, RunConcurrent

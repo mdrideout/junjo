@@ -37,16 +37,23 @@ deployment, but use separate credentials with separate authority:
 ```dotenv
 # Developer environment or agent -> Studio backend REST API. Sign in to Studio,
 # open Access Tokens, create a scoped developer access token, and copy it.
-JUNJO_STUDIO_URL=http://localhost:26154
+JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
 JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 
 # AI Chat application -> Studio OTLP ingestion. Create an Application Telemetry
 # API key from Studio's API Keys page.
+JUNJO_AI_STUDIO_OTLP_ENDPOINT=localhost:26155
+JUNJO_AI_STUDIO_OTLP_INSECURE=true
 JUNJO_AI_STUDIO_API_KEY=jtel_...
-JUNJO_AI_STUDIO_HOST=localhost
-JUNJO_AI_STUDIO_PORT=26155
-JUNJO_AI_STUDIO_INSECURE=true
+
+# Browser links -> source-development Studio frontend.
+JUNJO_AI_STUDIO_FRONTEND_BASE_URL=http://localhost:26151
 ```
+
+These are host-facing values because evaluation execution records the real Git
+revision from this checkout. The AI Chat Compose file translates the
+application container's OTLP target to `host.docker.internal:26155` while
+retaining this one environment file.
 
 Run commands from `sdks/python/examples/ai_chat/backend`; the CLI reads the
 configured harness from that package's `pyproject.toml`. Target discovery does
@@ -57,10 +64,11 @@ uv run --env-file ../.env junjo eval targets list
 uv run --env-file ../.env junjo eval capabilities
 ```
 
-The three supported declarations are `node:turn.date_response:v1`,
-`workflow:turn:v1`, and `agent:chat:v1`. They share the strict JSON input
-`{"message": "..."}` and evaluator `text.quality:v1`, whose expectation is
-`{"rubric": "..."}`.
+The three stable target keys are `node:turn.date_response:v1`,
+`workflow:turn:v1`, and `agent:chat:v1`. Their Studio names are
+`CreateDateIdeaResponseNode`, `Chat Turn Workflow`, and `AI Chat Agent`.
+They share the strict JSON input `{"message": "..."}` and evaluator
+`text.quality:v1`, whose expectation is `{"rubric": "..."}`.
 
 Create `input.json` and `expectation.json` with those values, then author and
 lock a dataset:

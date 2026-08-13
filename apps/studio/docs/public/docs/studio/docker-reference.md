@@ -333,10 +333,10 @@ These ports need to be accessible:
 - Same-network container ingestion: `ingestion:26155`
 
 If your Junjo application runs in Docker, it only needs to be on the same Docker
-network as the Junjo AI Studio ingestion service. Use `host="ingestion"` and
-`port="26155"` when the ingestion service container is named `ingestion`.
-Use `localhost:26155` only when the application runs directly on the local
-machine.
+network as the Junjo AI Studio ingestion service. Configure
+`endpoint="ingestion:26155"` with `insecure=True` when the ingestion service
+container is named `ingestion`. Use `endpoint="localhost:26155"` only when the
+application runs directly on the local machine.
 
 **Production (with reverse proxy):**
 

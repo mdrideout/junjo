@@ -95,6 +95,7 @@ export const EvaluationTargetFacetSchema = z
   .object({
     target_kind: z.enum(['node', 'workflow', 'agent']),
     target_key: z.string().min(1),
+    target_name: z.string().min(1),
     input_version: SafePositiveIntegerSchema,
     case_count: SafePositiveIntegerSchema,
   })
@@ -145,6 +146,7 @@ export const EvaluationCaseSchema = z
     origin: EvaluationCaseOriginSchema,
     target_kind: EvaluationTargetKindSchema,
     target_key: z.string().min(1),
+    target_name: z.string().min(1),
     input_version: SafePositiveIntegerSchema,
     input_json: JsonValueSchema,
     expectation_json: JsonValueSchema.nullable(),

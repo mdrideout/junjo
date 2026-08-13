@@ -8,9 +8,9 @@ export function studioResolutionUrl(
   runtimeId: string,
   destination: 'detail' | 'trace' = 'detail',
 ): string | null {
-  if (!config.debug_enabled || config.studio_ui_url === null) return null
+  if (config.studio_frontend_base_url === null) return null
 
-  const url = new URL('/resolve/executable', config.studio_ui_url)
+  const url = new URL('/resolve/executable', config.studio_frontend_base_url)
   url.searchParams.set('service_namespace', config.service_namespace)
   url.searchParams.set('service_name', config.service_name)
   url.searchParams.set('executable_type', executableType)

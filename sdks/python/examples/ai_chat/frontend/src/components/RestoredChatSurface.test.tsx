@@ -84,7 +84,7 @@ describe('restored AI Chat surface', () => {
     expect(onCreate).toHaveBeenCalledWith('female')
   })
 
-  it('keeps generated images zoomable without exposing debug UI by default', async () => {
+  it('keeps generated images zoomable without Studio diagnostics by default', async () => {
     const message = imageTurn.assistant_message
     if (message === null) throw new Error('fixture requires an assistant message')
     render(<ChatReceiveImageBubble message={message} turn={imageTurn} config={null} />)

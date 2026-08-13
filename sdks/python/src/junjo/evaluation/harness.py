@@ -41,6 +41,7 @@ class TargetDescriptor:
 
     kind: TargetKind
     key: str
+    name: str
     input_version: int
     input_schema: Mapping[str, object]
 
@@ -128,6 +129,7 @@ class EvaluationHarness(Generic[ResourcesT]):
             TargetDescriptor(
                 kind=target.kind,
                 key=target.key,
+                name=target.name,
                 input_version=target.input_version,
                 input_schema=MappingProxyType(target.input_schema),
             )
@@ -168,6 +170,12 @@ class EvaluationHarness(Generic[ResourcesT]):
         if target is None:
             raise TargetNotRegisteredError(
                 f"Unknown target {case.target_kind.value}:{case.target_key}:v{case.input_version}."
+            )
+        if case.target_name != target.name:
+            raise HarnessConfigurationError(
+                f"Studio target name {case.target_name!r} does not match the registered "
+                f"target name {target.name!r} for "
+                f"{case.target_kind.value}:{case.target_key}:v{case.input_version}."
             )
         evaluator_identity = (case.evaluator_key, case.evaluator_version)
         evaluator = self._evaluators.get(evaluator_identity)

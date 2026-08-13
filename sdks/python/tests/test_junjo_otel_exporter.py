@@ -2,6 +2,7 @@ import logging
 
 import pytest
 
+import junjo.telemetry.junjo_otel_exporter as exporter_module
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 
 
@@ -34,10 +35,40 @@ class FalseReturningSpanProcessor:
         return False
 
 
+def test_exporter_passes_endpoint_and_transport_security_to_opentelemetry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    otlp_configuration: dict[str, object] = {}
+
+    class StubOtlpExporter:
+        def __init__(self, **configuration: object) -> None:
+            otlp_configuration.update(configuration)
+
+    class StubBatchSpanProcessor:
+        def __init__(self, exporter: object) -> None:
+            self.exporter = exporter
+
+    monkeypatch.setattr(exporter_module, "OTLPSpanExporter", StubOtlpExporter)
+    monkeypatch.setattr(exporter_module, "BatchSpanProcessor", StubBatchSpanProcessor)
+
+    exporter = JunjoOtelExporter(
+        endpoint="studio-ingestion.test:443",
+        api_key="test-key",
+        insecure=False,
+    )
+
+    assert otlp_configuration == {
+        "endpoint": "studio-ingestion.test:443",
+        "headers": (("x-junjo-api-key", "test-key"),),
+        "insecure": False,
+        "timeout": 120,
+    }
+    assert isinstance(exporter.span_processor, StubBatchSpanProcessor)
+
+
 def test_exporter_exposes_only_the_studio_trace_component() -> None:
     exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint="localhost:26155",
         api_key="test-key",
         insecure=True,
     )
@@ -51,8 +82,7 @@ def test_exporter_exposes_only_the_studio_trace_component() -> None:
 
 def test_shutdown_calls_span_processor_shutdown() -> None:
     exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint="localhost:26155",
         api_key="test-key",
         insecure=True,
     )
@@ -68,8 +98,7 @@ def test_shutdown_calls_span_processor_shutdown() -> None:
 
 def test_flush_calls_force_flush_without_shutdown() -> None:
     exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint="localhost:26155",
         api_key="test-key",
         insecure=True,
     )
@@ -87,8 +116,7 @@ def test_shutdown_logs_warnings_when_component_shutdown_fails(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint="localhost:26155",
         api_key="test-key",
         insecure=True,
     )
@@ -107,8 +135,7 @@ def test_flush_logs_warning_when_span_processor_does_not_flush_cleanly(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint="localhost:26155",
         api_key="test-key",
         insecure=True,
     )
@@ -127,8 +154,7 @@ def test_flush_logs_warnings_when_component_flush_raises(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint="localhost:26155",
         api_key="test-key",
         insecure=True,
     )

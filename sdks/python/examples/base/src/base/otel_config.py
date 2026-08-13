@@ -10,6 +10,18 @@ from opentelemetry.sdk.trace import TracerProvider
 logger = logging.getLogger(__name__)
 
 
+def _environment_bool(name: str, *, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise ValueError(f"{name} must be true or false.")
+
+
 def init_otel(
     service_name: str,
 ) -> TracerProvider | None:
@@ -34,10 +46,9 @@ def init_otel(
     # This example runs directly on the local machine.
     # See https://github.com/mdrideout/junjo-ai-studio-minimal-build
     junjo_ai_studio_exporter = JunjoOtelExporter(
-        host="localhost",
-        port="26155",
+        endpoint=os.getenv("JUNJO_AI_STUDIO_OTLP_ENDPOINT", "localhost:26155"),
         api_key=JUNJO_AI_STUDIO_API_KEY,
-        insecure=True,
+        insecure=_environment_bool("JUNJO_AI_STUDIO_OTLP_INSECURE", default=True),
     )
 
     # Set up span processors

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { Provider } from 'react-redux'
@@ -88,6 +88,40 @@ describe('EvaluationRunsPage', () => {
       'href',
       '/evaluation-runs?limit=25&dataset_id=eval-dataset-local-places&cursor=next%2Fcursor',
     )
+  })
+
+  it('labels run targets without exposing their input schema version', async () => {
+    const baseline = makeEvaluationRunDetailFixture({
+      attemptStatuses: ['passed', 'failed'],
+    })
+    server.use(
+      http.get(`${API_BASE}/api/v1/evaluation/datasets`, () =>
+        HttpResponse.json(makeEvaluationDatasetListPage([baseline]))),
+      http.get(`${API_BASE}/api/v1/evaluation/runs`, () =>
+        HttpResponse.json(makeEvaluationRunListPage([baseline]))),
+    )
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter
+          initialEntries={[
+            `/evaluation-runs?dataset_id=${encodeURIComponent(baseline.dataset.id)}&limit=50`,
+          ]}
+        >
+          <EvaluationRunsPage />
+        </MemoryRouter>
+      </Provider>,
+    )
+
+    expect(await screen.findByRole('columnheader', { name: 'Targets' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Targets')).toHaveTextContent('Workflow → Chat Turn Workflow')
+    const table = within(screen.getByRole('table'))
+    expect(table.getByText('Workflow → Chat Turn Workflow')).toBeInTheDocument()
+    expect(table.getByText('Node → CreateDateIdeaResponseNode')).toBeInTheDocument()
+    expect(screen.queryByText('turn_workflow')).not.toBeInTheDocument()
+    expect(screen.queryByText('date_response_node')).not.toBeInTheDocument()
+    expect(screen.queryByText(/input v1/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Runs for this locked dataset.')).not.toBeInTheDocument()
   })
 
   it('navigates to a comparison selected by visible candidate labels', async () => {

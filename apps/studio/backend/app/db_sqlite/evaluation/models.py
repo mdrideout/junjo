@@ -145,6 +145,10 @@ class EvaluationCaseTable(Base):
             name="eval_cases_target_key_bytes",
         ),
         CheckConstraint(
+            f"length(CAST(target_name AS BLOB)) BETWEEN 1 AND {MAX_NAME_BYTES}",
+            name="eval_cases_target_name_bytes",
+        ),
+        CheckConstraint(
             f"length(CAST(evaluator_key AS BLOB)) BETWEEN 1 AND {MAX_KEY_BYTES}",
             name="eval_cases_evaluator_key_bytes",
         ),
@@ -233,6 +237,7 @@ class EvaluationCaseTable(Base):
     origin: Mapped[str] = mapped_column(String(9), nullable=False)
     target_kind: Mapped[str] = mapped_column(String(8), nullable=False)
     target_key: Mapped[str] = mapped_column(String(MAX_KEY_BYTES), nullable=False)
+    target_name: Mapped[str] = mapped_column(String(MAX_NAME_BYTES), nullable=False)
     input_version: Mapped[int] = mapped_column(Integer, nullable=False)
     input_json: Mapped[str] = mapped_column(Text, nullable=False)
     expectation_json: Mapped[str | None] = mapped_column(Text, nullable=True)

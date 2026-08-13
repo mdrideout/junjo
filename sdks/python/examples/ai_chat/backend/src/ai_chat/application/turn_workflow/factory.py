@@ -15,6 +15,8 @@ from ai_chat.domain.ports import (
 from .graph import create_turn_graph
 from .state import TurnWorkflowState, TurnWorkflowStore
 
+TURN_WORKFLOW_NAME = "Chat Turn Workflow"
+
 
 def create_turn_workflow(
     *,
@@ -27,7 +29,7 @@ def create_turn_workflow(
     images: ImageModel,
 ) -> Workflow[TurnWorkflowState, TurnWorkflowStore]:
     return Workflow(
-        name="Chat Turn Workflow",
+        name=TURN_WORKFLOW_NAME,
         graph_factory=lambda: create_turn_graph(
             agent=agent,
             turns=turns,

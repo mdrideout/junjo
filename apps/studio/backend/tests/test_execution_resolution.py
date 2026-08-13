@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -67,6 +68,59 @@ async def test_service_resolves_exact_owner_and_builds_existing_destinations(
     assert resolved is not None
     assert resolved.detail_path == expected_detail
     assert resolved.trace_path == f"/traces/ai-chat/{TRACE_ID}/{SPAN_ID}"
+
+
+@pytest.mark.asyncio
+async def test_service_selects_the_real_node_in_a_one_node_workflow() -> None:
+    node_runtime_id = "node-runtime"
+    node_span_id = "b" * 16
+    owner = _owner()
+    owner["attributes_json"]["junjo.workflow.execution_graph_snapshot"] = json.dumps({
+        "v": 2,
+        "nodes": [
+            {
+                "nodeRuntimeId": node_runtime_id,
+                "nodeStructuralId": "node-structural-id",
+                "nodeLabel": "CreateDateIdeaResponseNode",
+                "nodeType": "CreateDateIdeaResponseNode",
+            }
+        ],
+        "edges": [],
+        "graphStructuralId": "graph-structural-id",
+    })
+    trace_spans = [
+        {
+            "trace_id": TRACE_ID,
+            "span_id": node_span_id,
+            "parent_span_id": SPAN_ID,
+            "attributes_json": {
+                "junjo.telemetry.contract_version": 2,
+                "junjo.span_type": "node",
+                "junjo.executable_runtime_id": node_runtime_id,
+            },
+        }
+    ]
+    with (
+        patch(
+            "app.features.execution_resolution.repository.list_owner_candidates",
+            new=AsyncMock(return_value=[owner]),
+        ),
+        patch(
+            "app.features.execution_resolution.repository.list_trace_spans",
+            new=AsyncMock(return_value=trace_spans),
+        ),
+    ):
+        resolved = await service.resolve_execution(
+            service_namespace="junjo.examples",
+            service_name="ai-chat",
+            executable_type="workflow",
+            runtime_id="workflow-run",
+        )
+
+    assert resolved is not None
+    assert resolved.detail_path == (
+        f"/workflows/ai-chat/{TRACE_ID}/{SPAN_ID}/{node_span_id}"
+    )
 
 
 @pytest.mark.asyncio

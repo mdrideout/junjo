@@ -49,6 +49,7 @@ def _case(
     source_execution: SemanticExecutionReference | None = None,
     target_kind: TargetKind = "node",
     target_key: str = "date_response_node",
+    target_name: str = "CreateDateIdeaResponseNode",
     evaluator_key: str = "response_quality",
     evaluation_name: str = "Response place realism",
 ) -> EvaluationCaseCreate:
@@ -58,6 +59,7 @@ def _case(
         origin=origin,
         target_kind=target_kind,
         target_key=target_key,
+        target_name=target_name,
         input_version=1,
         input_json={"prompt": "Name one specific plausible nearby place."},
         expectation_json={"rubric": "Names one specific place."},
@@ -211,6 +213,7 @@ async def test_complete_control_loop_is_idempotent_and_exact(
         {
             "target_kind": "node",
             "target_key": "date_response_node",
+            "target_name": "CreateDateIdeaResponseNode",
             "input_version": 1,
             "case_count": 1,
         }
@@ -546,6 +549,7 @@ async def test_run_scope_filters_must_match_the_same_case(
             case_key="agent_case",
             target_kind="agent",
             target_key="chat_agent",
+            target_name="AI Chat Agent",
             evaluator_key="agent_quality",
             evaluation_name="Agent place realism",
         ),

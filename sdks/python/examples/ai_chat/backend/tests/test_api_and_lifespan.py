@@ -24,7 +24,12 @@ from ai_chat.api.access_log import HealthCheckAccessLogFilter
 from ai_chat.api.app import create_app
 from ai_chat.api.schemas import MessageResponse
 from ai_chat.bootstrap import ChatApplication, ProviderRuntime
-from ai_chat.config import ModelProvider, Settings, TelemetrySettings
+from ai_chat.config import (
+    ModelProvider,
+    Settings,
+    StudioDiagnosticsSettings,
+    TelemetrySettings,
+)
 from ai_chat.telemetry import TelemetryRuntime
 from conftest import make_harness, scripted_descriptor
 
@@ -90,8 +95,7 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
             config = await client.get("/api/config")
             assert config.status_code == 200
             assert config.json() == {
-                "debug_enabled": False,
-                "studio_ui_url": None,
+                "studio_frontend_base_url": None,
                 "service_namespace": "junjo.examples",
                 "service_name": "ai-chat",
             }
@@ -161,6 +165,32 @@ async def test_api_matches_the_greenfield_frontend_contract(tmp_path: Path) -> N
                 json={"text": "   \n\t"},
             )
             assert whitespace_only.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_public_config_exposes_the_configured_studio_frontend_origin(
+    tmp_path: Path,
+) -> None:
+    harness = make_harness(tmp_path)
+    harness.application.studio_diagnostics = StudioDiagnosticsSettings(frontend_base_url="http://localhost:26151")
+    app = create_app(
+        application_factory=lambda: harness.application,
+        image_directory=harness.application.image_directory,
+    )
+
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            response = await client.get("/api/config")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "studio_frontend_base_url": "http://localhost:26151",
+        "service_namespace": "junjo.examples",
+        "service_name": "ai-chat",
+    }
 
 
 def test_health_check_access_log_filter_suppresses_only_health_probes() -> None:
@@ -348,7 +378,7 @@ class RecordingApplication(ChatApplication):
             images=source.images,
             image_directory=source.image_directory,
             provider_runtime=source.provider_runtime,
-            debug=source.debug,
+            studio_diagnostics=source.studio_diagnostics,
         )
         self._events = events
 
@@ -487,7 +517,7 @@ async def test_lifespan_starts_telemetry_explicitly_and_flushes_after_applicatio
     events: list[str] = []
     harness = make_harness(tmp_path)
     application = RecordingApplication(source=harness.application, events=events)
-    settings = TelemetrySettings(api_key="key", host="studio", port=26155, insecure=True)
+    settings = TelemetrySettings(api_key="key", endpoint="studio:26155", insecure=True)
 
     def fake_start(received: TelemetrySettings) -> FakeTelemetryRuntime:
         assert received is settings
@@ -520,7 +550,7 @@ async def test_lifespan_shuts_down_telemetry_when_application_cleanup_fails(
     events: list[str] = []
     harness = make_harness(tmp_path)
     application = FailingCloseApplication(source=harness.application, events=events)
-    settings = TelemetrySettings(api_key="key", host="studio", port=26155, insecure=True)
+    settings = TelemetrySettings(api_key="key", endpoint="studio:26155", insecure=True)
 
     def fake_start(_: TelemetrySettings) -> FakeTelemetryRuntime:
         events.append("telemetry-start")
@@ -604,8 +634,7 @@ def test_real_telemetry_runtime_leaves_no_export_worker_threads() -> None:
         runtime = start_telemetry(
             TelemetrySettings(
                 api_key="test-key",
-                host="127.0.0.1",
-                port=1,
+                endpoint="127.0.0.1:1",
                 insecure=True,
             )
         )
@@ -664,8 +693,7 @@ def test_trace_provider_conflict_is_rejected_before_any_worker_change() -> None:
             start_telemetry(
                 TelemetrySettings(
                     api_key="test-key",
-                    host="127.0.0.1",
-                    port=1,
+                    endpoint="127.0.0.1:1",
                     insecure=True,
                 )
             )
@@ -714,8 +742,7 @@ def test_preinstalled_meter_provider_is_left_owned_by_the_application() -> None:
         runtime = start_telemetry(
             TelemetrySettings(
                 api_key="test-key",
-                host="127.0.0.1",
-                port=1,
+                endpoint="127.0.0.1:1",
                 insecure=True,
             )
         )
@@ -753,33 +780,51 @@ def test_telemetry_insecure_boolean_rejects_ambiguous_values(
     value: str,
 ) -> None:
     monkeypatch.setenv("JUNJO_AI_STUDIO_API_KEY", "key")
-    monkeypatch.setenv("JUNJO_AI_STUDIO_INSECURE", value)
+    monkeypatch.setenv("JUNJO_AI_STUDIO_OTLP_INSECURE", value)
     with pytest.raises(ValueError, match="exactly true or false"):
         Settings.from_environment()
 
 
-@pytest.mark.parametrize("value", ["0", "65536", "not-a-port"])
-def test_telemetry_port_rejects_invalid_values(
+@pytest.mark.parametrize("value", ["", " ", " studio:26155", "studio:26155 "])
+def test_telemetry_endpoint_rejects_empty_or_padded_values(
     monkeypatch: pytest.MonkeyPatch,
     value: str,
 ) -> None:
     monkeypatch.setenv("JUNJO_AI_STUDIO_API_KEY", "key")
-    monkeypatch.setenv("JUNJO_AI_STUDIO_PORT", value)
-    with pytest.raises(ValueError, match="JUNJO_AI_STUDIO_PORT"):
+    monkeypatch.setenv("JUNJO_AI_STUDIO_OTLP_ENDPOINT", value)
+    with pytest.raises(ValueError, match="JUNJO_AI_STUDIO_OTLP_ENDPOINT"):
         Settings.from_environment()
 
 
-def test_telemetry_boolean_and_port_accept_explicit_valid_values(
+def test_telemetry_endpoint_and_boolean_accept_explicit_valid_values(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("JUNJO_AI_STUDIO_API_KEY", "key")
-    monkeypatch.setenv("JUNJO_AI_STUDIO_INSECURE", "false")
-    monkeypatch.setenv("JUNJO_AI_STUDIO_PORT", "443")
+    monkeypatch.setenv("JUNJO_AI_STUDIO_OTLP_INSECURE", "false")
+    monkeypatch.setenv("JUNJO_AI_STUDIO_OTLP_ENDPOINT", "studio.example.com:443")
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
     settings = Settings.from_environment()
     assert settings.telemetry is not None
     assert settings.telemetry.insecure is False
-    assert settings.telemetry.port == 443
+    assert settings.telemetry.endpoint == "studio.example.com:443"
+
+
+def test_studio_frontend_url_is_exposed_only_when_telemetry_is_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setenv(
+        "JUNJO_AI_STUDIO_FRONTEND_BASE_URL",
+        "http://localhost:26151/",
+    )
+    monkeypatch.delenv("JUNJO_AI_STUDIO_API_KEY", raising=False)
+
+    without_telemetry = Settings.from_environment()
+    assert without_telemetry.studio_diagnostics.frontend_base_url is None
+
+    monkeypatch.setenv("JUNJO_AI_STUDIO_API_KEY", "key")
+    with_telemetry = Settings.from_environment()
+    assert with_telemetry.studio_diagnostics.frontend_base_url == "http://localhost:26151"
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "not-a-number"])

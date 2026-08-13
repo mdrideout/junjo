@@ -37,6 +37,7 @@ def _case(case_key: str) -> EvaluationCaseCreate:
         origin="authored",
         target_kind="node",
         target_key="date_response_node",
+        target_name="CreateDateIdeaResponseNode",
         input_version=1,
         input_json={"prompt": case_key},
         expectation_json={"rubric": "Names one specific place."},

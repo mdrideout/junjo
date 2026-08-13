@@ -44,9 +44,9 @@ APPLICATION_KEY = "standalone_evaluation_example"
 SERVICE_NAMESPACE = "junjo.examples"
 SERVICE_NAME = "evaluation-standalone"
 TARGETS = (
-    ("node", "double.node"),
-    ("workflow", "double.workflow"),
-    ("agent", "double.agent"),
+    ("node", "double.node", "Double Number Node"),
+    ("workflow", "double.workflow", "Double Number Workflow"),
+    ("agent", "double.agent", "Double Number Agent"),
 )
 EVALUATION_SCOPES = (
     "evaluation:read",
@@ -126,7 +126,17 @@ def build_installed_application(
     sdk_root = repository_root / "sdks/python"
     application_source = sdk_root / "examples/evaluation_standalone"
     application_root = workspace / "application"
-    shutil.copytree(application_source, application_root)
+    shutil.copytree(
+        application_source,
+        application_root,
+        ignore=shutil.ignore_patterns(
+            "build",
+            "dist",
+            "*.egg-info",
+            "__pycache__",
+            "*.pyc",
+        ),
+    )
     for command in (
         ["git", "init", "--quiet"],
         ["git", "config", "user.name", "Junjo E2E"],
@@ -463,12 +473,11 @@ def execute_proof(
             expectation_path.write_text('{"expected": 4}\n', encoding="utf-8")
             environment = {
                 **os.environ,
-                "JUNJO_STUDIO_URL": backend_url,
+                "JUNJO_AI_STUDIO_BACKEND_BASE_URL": backend_url,
                 "JUNJO_AI_STUDIO_CLI_TOKEN": credential.token,
                 "JUNJO_AI_STUDIO_API_KEY": identity.api_key,
-                "JUNJO_AI_STUDIO_HOST": ingestion_host,
-                "JUNJO_AI_STUDIO_PORT": str(ingestion_port),
-                "JUNJO_AI_STUDIO_INSECURE": "true",
+                "JUNJO_AI_STUDIO_OTLP_ENDPOINT": f"{ingestion_host}:{ingestion_port}",
+                "JUNJO_AI_STUDIO_OTLP_INSECURE": "true",
             }
 
             _, targets_envelope = run_cli(
@@ -486,6 +495,7 @@ def execute_proof(
                     (
                         _object(item, "target descriptor").get("kind"),
                         _object(item, "target descriptor").get("key"),
+                        _object(item, "target descriptor").get("name"),
                     )
                     for item in targets
                 }
@@ -565,12 +575,13 @@ def execute_proof(
             generated_case = command_data(generated_envelope)
             require(
                 generated_case.get("origin") == "generated"
+                and generated_case.get("target_name") == TARGETS[0][2]
                 and isinstance(generated_case.get("source_execution"), dict),
-                "generated Case did not retain source execution",
+                "generated Case did not retain its target name and source execution",
             )
 
             case_ids = [generated_case.get("id")]
-            for target_kind, target_key in TARGETS[1:]:
+            for target_kind, target_key, target_name in TARGETS[1:]:
                 case = add_authored_case(
                     junjo=junjo,
                     application_root=application_root,
@@ -581,6 +592,10 @@ def execute_proof(
                     case_key=f"double-{target_kind}",
                     input_path=input_path,
                     expectation_path=expectation_path,
+                )
+                require(
+                    case.get("target_name") == target_name,
+                    "authored Case did not retain its target name",
                 )
                 case_ids.append(case.get("id"))
             require(
@@ -675,7 +690,7 @@ def execute_proof(
                     )
 
             baseline_run = _object(run_details[0].get("run"), "baseline Run")
-            candidate_run = _object(run_details[1].get("run"), "candidate Run")
+            candidate_run = _object(run_details[-1].get("run"), "candidate Run")
             baseline_run_id = baseline_run.get("id")
             candidate_run_id = candidate_run.get("id")
             require(

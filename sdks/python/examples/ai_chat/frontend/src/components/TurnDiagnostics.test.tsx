@@ -27,9 +27,8 @@ const turn: Turn = {
   completed_at: '2026-07-14T12:00:02.000Z',
 }
 
-const debugConfig: PublicConfig = {
-  debug_enabled: true,
-  studio_ui_url: 'http://localhost:26153',
+const studioConfig: PublicConfig = {
+  studio_frontend_base_url: 'http://localhost:26151',
   service_namespace: 'junjo.examples',
   service_name: 'ai-chat',
 }
@@ -38,23 +37,26 @@ afterEach(cleanup)
 
 describe('TurnDiagnostics', () => {
   it('links durable runtime references through the Studio resolver contract', () => {
-    render(<TurnDiagnostics turn={turn} config={debugConfig} />)
+    render(<TurnDiagnostics turn={turn} config={studioConfig} />)
 
     const links = screen.getAllByRole('link')
     expect(links).toHaveLength(3)
     expect(links[0]).toHaveAttribute(
       'href',
-      'http://localhost:26153/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=workflow&runtime_id=workflow-run&destination=detail',
+      'http://localhost:26151/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=workflow&runtime_id=workflow-run&destination=detail',
     )
     expect(links[1]).toHaveAttribute(
       'href',
-      'http://localhost:26153/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=agent&runtime_id=agent-run&destination=detail',
+      'http://localhost:26151/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=agent&runtime_id=agent-run&destination=detail',
     )
     expect(links[2]).toHaveAttribute('href', expect.stringContaining('destination=trace'))
   })
 
-  it('shows references without links when debug presentation is disabled', () => {
-    render(<TurnDiagnostics turn={turn} config={{ ...debugConfig, debug_enabled: false }} />)
+  it('shows references without links when no Studio frontend is configured', () => {
+    render(<TurnDiagnostics
+      turn={turn}
+      config={{ ...studioConfig, studio_frontend_base_url: null }}
+    />)
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
     expect(screen.getByText('workflow-run')).toBeInTheDocument()

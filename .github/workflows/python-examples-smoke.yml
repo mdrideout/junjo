@@ -47,6 +47,8 @@ jobs:
           python -m venv /tmp/junjo-evaluation
           /tmp/junjo-evaluation/bin/pip install /tmp/junjo-wheel/junjo-*.whl
           /tmp/junjo-evaluation/bin/pip install --no-deps sdks/python/examples/evaluation_standalone
+      - name: Discover the coding-agent skill through the installed CLI
+        run: /tmp/junjo-evaluation/bin/junjo eval skill path
       - name: Discover application-owned targets through the installed CLI
         working-directory: sdks/python/examples/evaluation_standalone
         run: /tmp/junjo-evaluation/bin/junjo eval targets list

@@ -16,10 +16,12 @@ See the **ai_chat** example for a more advanced frontend / backend E2E experienc
 
 Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) for a turn-key way to see how this example streams debugging telemetry. This is optional. Junjo works with any OpenTelemetry provider.
 
-For a local Docker Compose AI Studio stack, the default local ports are:
+The linked minimal/prebuilt distribution serves its UI at
+`http://localhost:26153`. When running Studio from this monorepo for source
+development, the default local ports are:
 
-- UI: `http://localhost:26153`
-- API: `localhost:26154`
+- UI: `http://localhost:26151`
+- API: `http://localhost:26154`
 - OTLP gRPC ingestion: `localhost:26155`
 
 ### Run the example
@@ -28,7 +30,7 @@ For a local Docker Compose AI Studio stack, the default local ports are:
 
 - The graph workflow will run, logging node executions and state changes to your console
 - If [Junjo AI Studio](https://github.com/mdrideout/junjo-ai-studio-minimal-build) is running, it will receive telemetry.
-  - Requires you to generate an API key inside the Junjo AI Studio interface, and add it as a `.env` variable here.
+  - Copy `.env.example` to `.env`, then add an Application Telemetry API Key generated in Studio.
 - `GEMINI_API_KEY` is required for `base.main` and the eval tests (copy `.env.example` to `.env` and set it) — without it the workflow fails partway through, in the subflow's LLM nodes.
 - The `base.visualize` command requires Graphviz on your host (`brew install graphviz` or `apt-get install graphviz`) — without it the command fails with a `GraphRenderError`.
 

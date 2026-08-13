@@ -17,3 +17,9 @@ async def list_owner_candidates(
         executable_type=executable_type,
         runtime_id=runtime_id,
     )
+
+
+async def list_trace_spans(trace_id: str) -> list[dict]:
+    """Return one resolved execution's trace for detail-route selection."""
+
+    return await span_repository.get_fused_trace_spans(trace_id)

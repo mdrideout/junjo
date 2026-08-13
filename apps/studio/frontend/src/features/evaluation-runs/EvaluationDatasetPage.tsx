@@ -11,6 +11,7 @@ import {
   selectEvaluationRunListRequest,
 } from './store/selectors'
 import { EvaluationRunsActions } from './store/slice'
+import { evaluationTargetLabel } from './target-label'
 
 function displayJson(value: unknown): string {
   return JSON.stringify(value, null, 2)
@@ -114,7 +115,7 @@ export default function EvaluationDatasetPage() {
       <section>
         <h2 className="m-0">Tests</h2>
         <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
-          Inputs, pass conditions, and execution scope locked into this dataset.
+          Inputs, pass conditions, and execution targets locked into this dataset.
         </p>
         {cases.length === 0 ? (
           <div className="mt-3 rounded-xl border border-dashed border-[var(--studio-border-strong)] p-5 text-sm text-[var(--studio-text-muted)]">
@@ -125,7 +126,7 @@ export default function EvaluationDatasetPage() {
             <table className="w-full min-w-[76rem] text-left text-sm">
               <thead className="bg-[var(--studio-surface)] text-xs uppercase tracking-wide text-[var(--studio-text-subtle)]">
                 <tr>
-                  <th scope="col" className="px-3 py-3">Scope</th>
+                  <th scope="col" className="px-3 py-3">Target</th>
                   <th scope="col" className="px-3 py-3">Evaluation</th>
                   <th scope="col" className="px-3 py-3">Input</th>
                   <th scope="col" className="px-3 py-3">Pass condition</th>
@@ -136,12 +137,8 @@ export default function EvaluationDatasetPage() {
                 {[...cases].sort((left, right) => left.ordinal - right.ordinal).map((item) => (
                   <tr key={item.id} className="border-b border-[var(--studio-border)] last:border-0 align-top">
                     <th scope="row" className="px-3 py-3 text-left">
-                      <span className="font-semibold capitalize">{item.target_kind}</span>
-                      <span className="mt-1 block font-mono text-xs font-normal">
-                        {item.target_key}
-                      </span>
-                      <span className="mt-1 block text-xs font-normal text-[var(--studio-text-subtle)]">
-                        Input v{item.input_version}
+                      <span className="font-semibold">
+                        {evaluationTargetLabel(item.target_kind, item.target_name)}
                       </span>
                     </th>
                     <td className="px-3 py-3">
@@ -152,6 +149,9 @@ export default function EvaluationDatasetPage() {
                           {item.evaluator_key} v{item.evaluator_version}
                         </div>
                         <div className="mt-1 font-mono">Case key: {item.case_key}</div>
+                        <div className="mt-1 font-mono">
+                          Target key: {item.target_key} · input v{item.input_version}
+                        </div>
                       </details>
                     </td>
                     <td className="max-w-sm px-3 py-3">

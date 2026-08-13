@@ -5,9 +5,6 @@ import { resolveExecution } from './fetch/resolve-execution'
 import ExecutionResolverPage from './ExecutionResolverPage'
 
 vi.mock('./fetch/resolve-execution', () => ({ resolveExecution: vi.fn() }))
-vi.mock('./ResolvedExecutionDetail', () => ({
-  ResolvedExecutionDetail: () => <div>Workflow detail</div>,
-}))
 
 const resolverUrl = (
   '/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat'
@@ -16,7 +13,11 @@ const resolverUrl = (
 
 function renderResolver() {
   const router = createMemoryRouter(
-    [{ path: '/resolve/executable', element: <ExecutionResolverPage /> }],
+    [
+      { path: '/resolve/executable', element: <ExecutionResolverPage /> },
+      { path: '/workflows/:serviceName/:traceId/:workflowSpanId', element: <div>Workflow detail</div> },
+      { path: '/traces/:serviceName/:traceId/:spanId', element: <div>Trace detail</div> },
+    ],
     { initialEntries: [resolverUrl] },
   )
   render(<RouterProvider router={router} />)
@@ -65,13 +66,13 @@ describe('ExecutionResolverPage', () => {
     expect(screen.queryByText(/attempt/i)).not.toBeInTheDocument()
   })
 
-  it('renders resolved detail in place and keeps the semantic URL canonical', async () => {
+  it('replaces the transient semantic URL with the ordinary detail route', async () => {
     vi.mocked(resolveExecution).mockResolvedValue(resolution)
     const router = renderResolver()
 
     expect(await screen.findByText('Workflow detail')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/resolve/executable')
-    expect(router.state.location.search).toContain('runtime_id=workflow-run')
+    expect(router.state.location.pathname).toBe(resolution.detail_path)
+    expect(router.state.location.search).toBe('')
   })
 
   it('continues polling beyond the former deadline with capped backoff', async () => {

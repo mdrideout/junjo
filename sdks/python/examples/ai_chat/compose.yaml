@@ -6,16 +6,23 @@ services:
       context: ../..
       dockerfile: examples/ai_chat/backend/Dockerfile
     init: true
-    env_file:
-      - path: ${AI_CHAT_COMPOSE_ENV_FILE:-.env}
-        required: true
     environment:
-      AI_CHAT_DATA_DIRECTORY: /data
-      AI_CHAT_CORS_ORIGINS: http://localhost:${AI_CHAT_FRONTEND_PORT:-26251}
-      JUNJO_AI_STUDIO_HOST: ${JUNJO_AI_STUDIO_HOST:-host.docker.internal}
-      JUNJO_AI_STUDIO_PORT: ${JUNJO_AI_STUDIO_PORT:-26155}
-      JUNJO_AI_STUDIO_INSECURE: ${JUNJO_AI_STUDIO_INSECURE:-true}
-      WATCHFILES_FORCE_POLLING: "true"
+      - AI_CHAT_DATA_DIRECTORY=/data
+      - AI_CHAT_CORS_ORIGINS=http://localhost:${AI_CHAT_FRONTEND_PORT:-26251}
+      - AI_CHAT_MODEL_PROVIDER
+      - AI_CHAT_GEMINI_TEXT_MODEL
+      - AI_CHAT_GEMINI_IMAGE_MODEL
+      - AI_CHAT_GROK_TEXT_MODEL
+      - AI_CHAT_GROK_IMAGE_MODEL
+      - AI_CHAT_PROVIDER_TIMEOUT_SECONDS
+      - GEMINI_API_KEY
+      - XAI_API_KEY
+      - JUNJO_AI_STUDIO_API_KEY
+      # The shared .env stays host-native for local evaluation runs.
+      - JUNJO_AI_STUDIO_OTLP_ENDPOINT=host.docker.internal:26155
+      - JUNJO_AI_STUDIO_OTLP_INSECURE
+      - JUNJO_AI_STUDIO_FRONTEND_BASE_URL
+      - WATCHFILES_FORCE_POLLING=true
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:

@@ -306,6 +306,7 @@ class CaseCreate(StudioDto):
     origin: CaseOrigin
     target_kind: TargetKind
     target_key: KeyText
+    target_name: NameText
     input_version: int = Field(ge=1, le=MAX_VERSION)
     input_json: JsonValue
     expectation_json: JsonValue | None = None
@@ -355,6 +356,7 @@ class CaseRead(StudioDto):
     origin: CaseOrigin
     target_kind: TargetKind
     target_key: KeyText
+    target_name: NameText
     input_version: int = Field(ge=1, le=MAX_VERSION)
     input_json: JsonValue
     expectation_json: JsonValue | None
@@ -472,6 +474,7 @@ class TargetFacet(StudioDto):
 
     target_kind: TargetKind
     target_key: KeyText
+    target_name: NameText
     input_version: int = Field(ge=1, le=MAX_VERSION)
     case_count: int = Field(ge=1, le=MAX_CASES_PER_DATASET)
 

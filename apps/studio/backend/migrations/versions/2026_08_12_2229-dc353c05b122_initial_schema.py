@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: d064e362adcf
+Revision ID: dc353c05b122
 Revises:
-Create Date: 2026-08-01 13:18:58.019524
+Create Date: 2026-08-12 22:29:32.641069
 
 """
 from collections.abc import Sequence
@@ -13,7 +13,7 @@ from alembic import op
 from app.common.datetime_utils import UTCDateTime
 
 # revision identifiers, used by Alembic.
-revision: str = 'd064e362adcf'
+revision: str = 'dc353c05b122'
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -94,6 +94,7 @@ def upgrade() -> None:
     sa.Column('origin', sa.String(length=9), nullable=False),
     sa.Column('target_kind', sa.String(length=8), nullable=False),
     sa.Column('target_key', sa.String(length=128), nullable=False),
+    sa.Column('target_name', sa.String(length=256), nullable=False),
     sa.Column('input_version', sa.Integer(), nullable=False),
     sa.Column('input_json', sa.Text(), nullable=False),
     sa.Column('expectation_json', sa.Text(), nullable=True),
@@ -117,6 +118,7 @@ def upgrade() -> None:
     sa.CheckConstraint('length(CAST(evaluation_name AS BLOB)) BETWEEN 1 AND 256', name='eval_cases_evaluation_name_bytes'),
     sa.CheckConstraint('length(CAST(evaluator_key AS BLOB)) BETWEEN 1 AND 128', name='eval_cases_evaluator_key_bytes'),
     sa.CheckConstraint('length(CAST(target_key AS BLOB)) BETWEEN 1 AND 128', name='eval_cases_target_key_bytes'),
+    sa.CheckConstraint('length(CAST(target_name AS BLOB)) BETWEEN 1 AND 256', name='eval_cases_target_name_bytes'),
     sa.CheckConstraint('ordinal >= 1', name='eval_cases_ordinal'),
     sa.CheckConstraint('source_revision IS NULL OR length(source_revision) IN (40, 64)', name='eval_cases_source_revision_length'),
     sa.CheckConstraint('source_runtime_id IS NULL OR length(CAST(source_runtime_id AS BLOB)) BETWEEN 1 AND 256', name='eval_cases_source_runtime_id_bytes'),

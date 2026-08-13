@@ -82,8 +82,7 @@ describe('chat API client', () => {
   it('uses the exact config, conversation, and Turn read endpoints', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({
-        debug_enabled: false,
-        studio_ui_url: null,
+        studio_frontend_base_url: null,
         service_namespace: 'junjo.examples',
         service_name: 'ai-chat',
       }))
@@ -96,7 +95,9 @@ describe('chat API client', () => {
       }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(getPublicConfig()).resolves.toMatchObject({ debug_enabled: false })
+    await expect(getPublicConfig()).resolves.toMatchObject({
+      studio_frontend_base_url: null,
+    })
     await expect(getConversations()).resolves.toMatchObject({
       conversations: [{ id: 'conversation/1' }],
     })

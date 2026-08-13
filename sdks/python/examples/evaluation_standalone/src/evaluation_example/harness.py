@@ -160,10 +160,9 @@ async def runtime() -> AsyncIterator[EvaluationExampleRuntime]:
     if api_key is None or not api_key.strip():
         raise ValueError("JUNJO_AI_STUDIO_API_KEY is required for evaluation execution telemetry.")
     exporter = JunjoOtelExporter(
-        host=os.getenv("JUNJO_AI_STUDIO_HOST", "localhost"),
-        port=os.getenv("JUNJO_AI_STUDIO_PORT", "26155"),
+        endpoint=os.getenv("JUNJO_AI_STUDIO_OTLP_ENDPOINT", "localhost:26155"),
         api_key=api_key,
-        insecure=_environment_bool("JUNJO_AI_STUDIO_INSECURE", default=True),
+        insecure=_environment_bool("JUNJO_AI_STUDIO_OTLP_INSECURE", default=True),
     )
     provider = TracerProvider(
         resource=Resource.create(
@@ -207,6 +206,7 @@ harness = EvaluationHarness(
     targets=(
         NodeTarget(
             key="double.node",
+            name="Double Number Node",
             input_version=1,
             input_type=NumberInput,
             factory=_node_factory,
@@ -214,6 +214,7 @@ harness = EvaluationHarness(
         ),
         WorkflowTarget(
             key="double.workflow",
+            name="Double Number Workflow",
             input_version=1,
             input_type=NumberInput,
             factory=_workflow_factory,
@@ -221,6 +222,7 @@ harness = EvaluationHarness(
         ),
         AgentTarget(
             key="double.agent",
+            name="Double Number Agent",
             input_version=1,
             input_type=NumberInput,
             factory=_agent_factory,

@@ -369,6 +369,7 @@ Required fields:
 | `origin` | `authored` or `generated` |
 | `target_kind` | `node`, `workflow`, or `agent` |
 | `target_key` | Application-owned declaration key resolved by the SDK harness |
+| `target_name` | Human-readable target name snapshotted when the case is authored |
 | `input_version` | Application-owned positive integer version of the target input contract |
 | `input_json` | Bounded application input validated by the runner |
 | `expectation_json` | Optional bounded evaluator input |
@@ -388,6 +389,11 @@ type and the construction/execution callback.
 contract between Studio data and a particular application checkout. They do
 not turn Studio into a Python import registry or require Studio to understand
 the application's schemas.
+
+`target_name` is display metadata, not dispatch identity. The SDK derives it
+from the registered target, and Studio stores it with the immutable case so
+the UI can show the actual Node, Workflow, or Agent name while historical data
+remains self-contained.
 
 `expectation_json` is evaluator input. Studio stores and returns it but does
 not interpret it as a general rubric language. The SDK owns evaluator
@@ -677,6 +683,7 @@ An authored case supplies:
 - `case_key`;
 - `target_kind`;
 - `target_key`;
+- SDK-derived `target_name`;
 - `input_version`;
 - application input;
 - optional expectation;

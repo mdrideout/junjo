@@ -8,6 +8,7 @@ import importlib
 import json
 import os
 import sys
+import sysconfig
 import tomllib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -58,7 +59,7 @@ from ..studio import (
 from ..telemetry.otel_schema import JUNJO_TELEMETRY_CONTRACT_VERSION
 
 JSON_ENVELOPE_VERSION = 1
-DEFAULT_STUDIO_URL = "http://localhost:26154"
+DEFAULT_STUDIO_BACKEND_BASE_URL = "http://localhost:26154"
 
 EXIT_OK = 0
 EXIT_INTERNAL = 1
@@ -115,9 +116,20 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
     command = arguments.command_path
+    if command == "eval.skill.path":
+        skill_directory = _evaluation_skill_directory()
+        return CommandResult(
+            {
+                "name": "junjo-evaluation",
+                "path": str(skill_directory),
+                "skill_file": str(skill_directory / "SKILL.md"),
+            }
+        )
     if command == "eval.capabilities":
         harness = _load_optional_harness(arguments.harness)
-        async with StudioClient(base_url=_studio_url(arguments.studio_url)) as client:
+        async with StudioClient(
+            base_url=_studio_backend_base_url(arguments.studio_backend_base_url)
+        ) as client:
             health = await client.get_health()
         data: dict[str, object] = {
             "sdk": {
@@ -161,7 +173,7 @@ async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
 
     token = _studio_token()
     async with StudioClient(
-        base_url=_studio_url(arguments.studio_url),
+        base_url=_studio_backend_base_url(arguments.studio_backend_base_url),
         token=token,
     ) as client:
         return await _dispatch_studio(
@@ -230,7 +242,7 @@ async def _dispatch_dataset(
         _require_application(harness, detail.dataset.application_key)
         input_json, expectation_json = _case_values(arguments)
         target_kind = TargetKind(arguments.target_kind)
-        harness.validate_case_contract(
+        target, _, _, _ = harness.validate_case_contract(
             target_kind=target_kind,
             target_key=arguments.target_key,
             input_version=arguments.input_version,
@@ -248,6 +260,7 @@ async def _dispatch_dataset(
                     origin=CaseOrigin.AUTHORED,
                     target_kind=target_kind,
                     target_key=arguments.target_key,
+                    target_name=target.name,
                     input_version=arguments.input_version,
                     input_json=input_json,
                     expectation_json=expectation_json,
@@ -408,10 +421,25 @@ def _parser() -> JsonArgumentParser:
         ),
     )
     evaluation.add_argument(
-        "--studio-url",
-        help=(f"Studio origin. Defaults to JUNJO_STUDIO_URL or {DEFAULT_STUDIO_URL}."),
+        "--studio-backend-base-url",
+        help=(
+            "Studio backend origin. Defaults to "
+            "JUNJO_AI_STUDIO_BACKEND_BASE_URL or "
+            f"{DEFAULT_STUDIO_BACKEND_BASE_URL}."
+        ),
     )
     commands = evaluation.add_subparsers(dest="eval_command", required=True)
+
+    skill = commands.add_parser(
+        "skill",
+        help="Locate the coding-agent skill shipped with this Junjo installation.",
+    )
+    skill_commands = skill.add_subparsers(dest="skill_command", required=True)
+    skill_path = skill_commands.add_parser(
+        "path",
+        help="Return the installed junjo-evaluation skill directory.",
+    )
+    _select(skill_path, "eval.skill.path")
 
     capabilities = commands.add_parser("capabilities")
     _select(capabilities, "eval.capabilities")
@@ -583,6 +611,25 @@ def _read_json(location: str, *, label: str) -> JsonValue:
         raise CliUsageError(f"The {label} document is not valid JSON.") from error
 
 
+def _evaluation_skill_directory() -> Path:
+    installed = (
+        Path(sysconfig.get_path("data"))
+        / "share"
+        / "junjo"
+        / "skills"
+        / "junjo-evaluation"
+    )
+    source_checkout = (
+        Path(__file__).resolve().parents[3] / "skills" / "junjo-evaluation"
+    )
+    for candidate in (installed, source_checkout):
+        if (candidate / "SKILL.md").is_file():
+            return candidate.resolve()
+    raise CliUsageError(
+        "This Junjo installation does not contain the junjo-evaluation skill."
+    )
+
+
 def _load_optional_harness(explicit: str | None) -> EvaluationHarness | None:
     locator = explicit or _pyproject_harness(required=False)
     return None if locator is None else _import_harness(locator)
@@ -633,10 +680,13 @@ def _pyproject_harness(*, required: bool) -> str | None:
     return None
 
 
-def _studio_url(explicit: str | None) -> str:
-    value = explicit or os.getenv("JUNJO_STUDIO_URL", DEFAULT_STUDIO_URL)
+def _studio_backend_base_url(explicit: str | None) -> str:
+    value = explicit or os.getenv(
+        "JUNJO_AI_STUDIO_BACKEND_BASE_URL",
+        DEFAULT_STUDIO_BACKEND_BASE_URL,
+    )
     if not value.strip():
-        raise CliUsageError("JUNJO_STUDIO_URL cannot be empty.")
+        raise CliUsageError("JUNJO_AI_STUDIO_BACKEND_BASE_URL cannot be empty.")
     return value
 
 
@@ -673,6 +723,7 @@ def _harness_summary(
             {
                 "kind": descriptor.kind.value,
                 "key": descriptor.key,
+                "name": descriptor.name,
                 "input_version": descriptor.input_version,
                 "input_schema": descriptor.input_schema,
             }

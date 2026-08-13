@@ -29,6 +29,7 @@ def _case(**overrides):
         "origin": "authored",
         "target_kind": "node",
         "target_key": "date_response_node",
+        "target_name": "CreateDateIdeaResponseNode",
         "input_version": 1,
         "input_json": {"prompt": "Name one specific plausible nearby place."},
         "expectation_json": {"rubric": "Names one specific place."},
@@ -63,6 +64,11 @@ def test_agent_is_a_supported_evaluation_target_kind() -> None:
         _case(target_kind="agent", target_key="assistant_agent")
     )
     assert agent_case.target_kind == "agent"
+
+
+def test_target_name_is_required_human_display_metadata() -> None:
+    with pytest.raises(ValidationError):
+        EvaluationCaseCreate.model_validate(_case(target_name=" "))
 
 
 def test_json_fields_have_strict_serialized_byte_limits() -> None:

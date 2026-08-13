@@ -132,8 +132,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   window.localStorage.clear()
   vi.mocked(getPublicConfig).mockResolvedValue({
-    debug_enabled: false,
-    studio_ui_url: null,
+    studio_frontend_base_url: null,
     service_namespace: 'junjo.examples',
     service_name: 'ai-chat',
   })

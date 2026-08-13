@@ -18,6 +18,7 @@ requires a photo; image generation must never be simulated in prose. Do not
 claim a Tool result that was not returned. Return exactly one typed
 ChatAgentOutput. The message should sound human and must not use markdown.
 """.strip()
+CHAT_AGENT_NAME = "AI Chat Agent"
 
 
 def create_chat_agent(
@@ -27,7 +28,7 @@ def create_chat_agent(
 ) -> Agent[ChatAgentInput, ChatAgentOutput, ChatDependencies]:
     return Agent(
         key="ai_chat",
-        name="AI Chat Agent",
+        name=CHAT_AGENT_NAME,
         instructions=CHAT_AGENT_INSTRUCTIONS,
         input_type=ChatAgentInput,
         model=model,

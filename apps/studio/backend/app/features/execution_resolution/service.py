@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from urllib.parse import quote
 
 from app.features.execution_resolution import repository
@@ -52,11 +53,13 @@ async def resolve_execution(
     trace_id = match["trace_id"]
     span_id = match["span_id"]
     encoded_service_name = quote(service_name, safe="")
-    detail_path = (
-        f"/agents/{trace_id}/{span_id}"
-        if executable_type == "agent"
-        else f"/workflows/{encoded_service_name}/{trace_id}/{span_id}"
-    )
+    if executable_type == "agent":
+        detail_path = f"/agents/{trace_id}/{span_id}"
+    else:
+        selected_span_id = await _single_graph_node_span_id(match)
+        detail_path = f"/workflows/{encoded_service_name}/{trace_id}/{span_id}"
+        if selected_span_id is not None:
+            detail_path = f"{detail_path}/{selected_span_id}"
     return ExecutionResolution(
         service_namespace=service_namespace,
         service_name=service_name,
@@ -67,3 +70,50 @@ async def resolve_execution(
         detail_path=detail_path,
         trace_path=f"/traces/{encoded_service_name}/{trace_id}/{span_id}",
     )
+
+
+async def _single_graph_node_span_id(owner: dict) -> str | None:
+    """Select the one real Node in a one-Node Workflow without guessing by name."""
+
+    attributes = owner.get("attributes_json")
+    if not isinstance(attributes, dict):
+        return None
+    snapshot = attributes.get("junjo.workflow.execution_graph_snapshot")
+    if isinstance(snapshot, str):
+        try:
+            snapshot = json.loads(snapshot)
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(snapshot, dict):
+        return None
+    nodes = snapshot.get("nodes")
+    if not isinstance(nodes, list) or len(nodes) != 1:
+        return None
+    node = nodes[0]
+    if not isinstance(node, dict):
+        return None
+    node_runtime_id = node.get("nodeRuntimeId")
+    if not isinstance(node_runtime_id, str) or not node_runtime_id:
+        return None
+
+    trace_id = owner.get("trace_id")
+    owner_span_id = owner.get("span_id")
+    if not isinstance(trace_id, str) or not isinstance(owner_span_id, str):
+        return None
+    trace_spans = await repository.list_trace_spans(trace_id)
+    matches = []
+    for span in trace_spans:
+        span_attributes = span.get("attributes_json")
+        if (
+            span.get("trace_id") == trace_id
+            and span.get("parent_span_id") == owner_span_id
+            and isinstance(span_attributes, dict)
+            and span_attributes.get("junjo.telemetry.contract_version") == 2
+            and span_attributes.get("junjo.span_type") == "node"
+            and span_attributes.get("junjo.executable_runtime_id") == node_runtime_id
+        ):
+            matches.append(span)
+    if len(matches) != 1:
+        return None
+    selected_span_id = matches[0].get("span_id")
+    return selected_span_id if isinstance(selected_span_id, str) else None

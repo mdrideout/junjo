@@ -28,6 +28,7 @@ CASE_BODY = {
     "origin": "authored",
     "target_kind": "node",
     "target_key": "date_response_node",
+    "target_name": "CreateDateIdeaResponseNode",
     "input_version": 1,
     "input_json": {"prompt": "Name one specific plausible nearby place."},
     "expectation_json": {"rubric": "Names one specific place."},
@@ -247,6 +248,7 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
             {
                 "target_kind": "node",
                 "target_key": "date_response_node",
+                "target_name": "CreateDateIdeaResponseNode",
                 "input_version": 1,
                 "case_count": 1,
             }

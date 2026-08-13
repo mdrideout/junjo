@@ -80,8 +80,7 @@ def start_telemetry(
         }
     )
     exporter = JunjoOtelExporter(
-        host=settings.host,
-        port=str(settings.port),
+        endpoint=settings.endpoint,
         api_key=settings.api_key,
         insecure=settings.insecure,
     )

@@ -3108,6 +3108,15 @@
               "date_response_node"
             ]
           },
+          "target_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Target Name",
+            "examples": [
+              "CreateDateIdeaResponseNode"
+            ]
+          },
           "input_version": {
             "type": "integer",
             "maximum": 2147483647.0,
@@ -3173,6 +3182,7 @@
           "origin",
           "target_kind",
           "target_key",
+          "target_name",
           "input_version",
           "input_json",
           "evaluator_key",
@@ -3233,6 +3243,12 @@
             "maxLength": 128,
             "minLength": 1,
             "title": "Target Key"
+          },
+          "target_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Target Name"
           },
           "input_version": {
             "type": "integer",
@@ -3304,6 +3320,7 @@
           "origin",
           "target_kind",
           "target_key",
+          "target_name",
           "input_version",
           "input_json",
           "expectation_json",
@@ -4115,6 +4132,12 @@
             "minLength": 1,
             "title": "Target Key"
           },
+          "target_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Target Name"
+          },
           "input_version": {
             "type": "integer",
             "maximum": 2147483647.0,
@@ -4133,6 +4156,7 @@
         "required": [
           "target_kind",
           "target_key",
+          "target_name",
           "input_version",
           "case_count"
         ],

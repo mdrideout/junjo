@@ -48,8 +48,7 @@ const conversation = {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getPublicConfig).mockResolvedValue({
-    debug_enabled: true,
-    studio_ui_url: 'http://localhost:26153',
+    studio_frontend_base_url: 'http://localhost:26151',
     service_namespace: 'junjo.examples',
     service_name: 'ai-chat',
   })

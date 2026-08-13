@@ -204,4 +204,33 @@ describe('WorkflowDetailPage route lifecycle', () => {
     expect(store.getState().workflowDetailState.activeStateEvent).toBeNull()
     expect(store.getState().workflowDetailState.stateEventScrollTarget).toBeNull()
   })
+
+  it('renders immediately when a canonical child URL already matches shared selection', async () => {
+    const basicSpans = loadSpans('basic_workflow_success')
+    const subflowSpans = loadSpans('subflow_with_parent_store')
+    const workflow = findSpan(basicSpans, '1111111111111111')
+    const child = findSpan(basicSpans, '1111111111111112')
+    const store = makeStore(basicSpans, subflowSpans)
+    store.dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(child)))
+    const route = `/workflows/basic-service/${workflow.trace_id}/${workflow.span_id}/${child.span_id}`
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/workflows/:serviceName/:traceId/:workflowSpanId/:spanId?',
+          element: <WorkflowDetailPage />,
+        },
+      ],
+      { initialEntries: [route] },
+    )
+
+    render(
+      <Provider store={store}>
+        <RouterProvider router={router} />
+      </Provider>,
+    )
+
+    expect(await screen.findByText(workflow.name)).toBeInTheDocument()
+    expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
+      .toBe(child.span_id)
+  })
 })

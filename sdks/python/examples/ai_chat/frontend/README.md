@@ -37,10 +37,10 @@ survives reload without becoming server-owned product data.
 
 An admitted execution failure is a typed problem containing the terminal Turn.
 The client keeps that durable failure and its known runtime identities visible
-after reload. When the backend enables debug presentation, the diagnostics
-panel links those identities through Studio's authenticated resolver; no Studio
-credential is exposed to this application. Relative image paths are resolved
-against the same API origin used for JSON requests.
+after reload. When the backend provides a Studio frontend base URL, the
+diagnostics panel links those identities through Studio's authenticated
+resolver; no Studio credential is exposed to this application. Relative image
+paths are resolved against the same API origin used for JSON requests.
 
 ## Run
 
@@ -77,5 +77,5 @@ npm run build
 The tests lock the JSON contracts and prove that admitted, completed, and
 failed Turns retain execution references, contact creation and the restored UI
 remain available, navigation cannot mix conversation-local state, active Turns
-resume from authoritative history, obsolete polling is cleaned up, and debug-
-only controls construct exact Studio resolver links.
+resume from authoritative history, obsolete polling is cleaned up, and the
+optional diagnostics controls construct exact Studio resolver links.

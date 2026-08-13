@@ -234,6 +234,7 @@ class EvaluationCaseCreate(EvaluationContract):
     origin: CaseOrigin
     target_kind: TargetKind
     target_key: KeyText = Field(examples=["date_response_node"])
+    target_name: NameText = Field(examples=["CreateDateIdeaResponseNode"])
     input_version: int = Field(ge=1, le=MAX_VERSION)
     input_json: JsonValue
     expectation_json: JsonValue | None = None
@@ -275,6 +276,7 @@ class EvaluationCaseRead(EvaluationContract):
     origin: CaseOrigin
     target_kind: TargetKind
     target_key: KeyText
+    target_name: NameText
     input_version: int = Field(ge=1, le=MAX_VERSION)
     input_json: JsonValue
     expectation_json: JsonValue | None
@@ -370,6 +372,7 @@ class EvaluationOutcomeSummary(EvaluationContract):
 class EvaluationTargetFacet(EvaluationContract):
     target_kind: TargetKind
     target_key: KeyText
+    target_name: NameText
     input_version: int = Field(ge=1, le=MAX_VERSION)
     case_count: int = Field(ge=1, le=MAX_CASES_PER_DATASET)
 

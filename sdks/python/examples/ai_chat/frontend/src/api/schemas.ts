@@ -195,21 +195,11 @@ export type CreateTurnRequest = z.infer<typeof CreateTurnRequestSchema>
 
 export const PublicConfigResponseSchema = z
   .object({
-    debug_enabled: z.boolean(),
-    studio_ui_url: z.string().url().nullable(),
+    studio_frontend_base_url: z.string().url().nullable(),
     service_namespace: z.string(),
     service_name: NonEmptyTextSchema,
   })
   .strict()
-  .superRefine((config, context) => {
-    if (config.debug_enabled && config.studio_ui_url === null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'studio_ui_url is required when debug mode is enabled',
-        path: ['studio_ui_url'],
-      })
-    }
-  })
 export type PublicConfig = z.infer<typeof PublicConfigResponseSchema>
 
 export const TurnProblemResponseSchema = z

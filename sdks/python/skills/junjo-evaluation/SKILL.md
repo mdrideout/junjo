@@ -1,232 +1,193 @@
 ---
 name: junjo-evaluation
-description: Build and run Junjo Studio-backed evaluation datasets against application-owned Node, Workflow, or Agent targets. Use when a coding agent needs to author or generate cases, execute or resume a dataset, inspect bounded trace evidence, compare candidate runs, or implement an application evaluation harness with the Junjo Python SDK.
+description: Turn a developer's product-quality objective into a complete Junjo Studio-backed evaluation workflow. Use when a coding agent needs to establish a baseline, design or generate typed cases, run or resume application-owned Node, Workflow, or Agent targets, inspect outcomes and exact trace evidence, compare a candidate with a baseline, improve evaluated behavior, or add an EvaluationHarness using the installed Junjo Python SDK.
 ---
 
 # Junjo Evaluation
 
-Use Junjo's installed SDK and `junjo eval` CLI to run a repository-local
-evaluation harness against datasets stored in Junjo AI Studio. The application
-owns its domain inputs, target factories, and evaluators. The SDK owns the
-Studio client, control flow, telemetry context, and result contracts.
+Operate Junjo Evaluation from the application repository using the installed
+`junjo` SDK and CLI. Do not require access to the Junjo source repository.
+
+## Operating contract
+
+Treat a product-quality objective such as “evaluate local-place realism” as
+sufficient direction to operate the complete baseline workflow. Own target and
+evaluator discovery, scenario design, temporary JSON artifacts, Studio dataset
+operations, run execution, identifier tracking, evidence retrieval, analysis,
+and the final report.
+
+Do not ask the developer to write JSON, choose CLI flags, copy identifiers,
+poll evidence, or run commands. Ask only when product intent is materially
+ambiguous or a real prerequisite or authorization is missing.
+
+For a baseline request, measure current committed behavior and do not modify
+application behavior. Modify prompts or code, run tests, or create commits only
+when the developer authorizes an improvement iteration. Never commit unrelated
+work.
 
 ## Boundaries
 
-- Use `junjo.evaluation`, `junjo.studio`, and the installed `junjo eval` CLI.
-- Do not copy Studio clients, runners, DTOs, or generic evaluation mechanics
-  into the application repository.
-- Do not query Studio's observability REST routes directly. Use the bounded
-  evidence and comparison methods exposed by the SDK and CLI.
+- Use the installed `junjo eval` CLI as the exact command and schema source of
+  truth. Inspect its current `--help`; do not reproduce its mechanics with ad
+  hoc HTTP or shell clients.
+- Use `junjo.evaluation` and `junjo.studio` when application code or direct
+  Python integration is required. Do not copy Studio clients, DTOs, runners, or
+  generic evaluation mechanics into the application.
 - Keep `JUNJO_AI_STUDIO_CLI_TOKEN` separate from
-  `JUNJO_AI_STUDIO_API_KEY`. The CLI token is a scoped control-plane
-  credential; telemetry still travels through OTLP using the application's
-  Application Telemetry API key.
-- Preserve the application's truthful OpenTelemetry service namespace and
-  service name. Do not invent a special service identity for evaluation runs.
-- Require an explicit `module:object` harness declaration. Generated target
-  output is evidence for an authored case, not the source of truth for the
-  application's target contract.
-- Execute the MVP runner sequentially. Do not add application-local concurrency
-  around evaluation attempts.
+  `JUNJO_AI_STUDIO_API_KEY`. Never print, persist, or pass either secret as a
+  routine command argument.
+- Preserve the application's real OpenTelemetry service identity. Evaluation
+  classification augments ordinary application telemetry; it does not create a
+  fake evaluation service.
+- Use bounded SDK/CLI evidence and comparison queries rather than Studio's raw
+  observability routes.
+- Let Junjo execute Attempts sequentially. Do not add application-local
+  concurrency around the runner.
 
-## 1. Inspect capabilities and targets
+## 1. Inspect the application
 
-Run these before changing datasets:
+Read the application repository's instructions and locate its configured
+environment without exposing secrets. Inspect the nearest code, prompts,
+fixtures, tests, and domain rules relevant to the requested quality objective.
+
+Discover the harness through `[tool.junjo.evaluation].harness` in
+`pyproject.toml` or an explicitly supplied `module:object`. Then inspect the
+live machine contracts:
 
 ```bash
 junjo eval capabilities
 junjo eval targets list
 junjo eval evaluators list
+junjo eval --help
 ```
 
-The CLI discovers the harness from:
+If no harness exists and the developer asked to set up Junjo Evaluation,
+implement the narrow application-owned declaration with public
+`junjo.evaluation` APIs. If the developer asked only to run an evaluation,
+report the missing harness as a blocker instead of inventing an unrelated
+application architecture.
 
-```toml
-[tool.junjo.evaluation]
-harness = "my_app.evals:harness"
-```
+Use the harness's runtime context for process-lifetime telemetry, providers,
+and shared clients. Keep mutable state and cleanup invocation-scoped. Register
+only useful application-owned `NodeTarget`, `WorkflowTarget`, and `AgentTarget`
+boundaries plus strict, versioned evaluator expectations.
 
-Alternatively, pass `--harness my_app.evals:harness` immediately after
-`junjo eval`.
+## 2. Translate intent into a dataset
 
-## 2. Declare application-owned targets
+Inspect existing Studio datasets before creating one. Reuse a matching draft
+when its intent and cases are correct. Reuse a matching locked dataset for a
+new run. Create a clearly versioned dataset when membership or evaluation
+meaning must change; never mutate a locked dataset or duplicate it by accident.
 
-Create one `EvaluationHarness` in application code. Register the narrowest
-useful target:
+Choose targets because they expose behavior relevant to the objective:
 
-- `NodeTarget` for one directly executable Node.
-- `WorkflowTarget` for an end-to-end or subflow boundary.
-- `AgentTarget` for one Agent invocation.
+- Use a Node for focused prompt or transformation behavior.
+- Use a Workflow or subflow for stateful end-to-end behavior.
+- Use an Agent for model decisions, Tool use, and downstream effects.
 
-Each target declares a stable key, an input schema version, a strict Pydantic
-input model, a factory that constructs the real application object, and a
-projector that returns the subject evaluated by the case's evaluator.
+Do not include every declared target automatically. Include multiple scopes
+when their comparison materially helps explain upstream and downstream impact.
 
-Use the harness's async runtime context for process-lifetime telemetry, model
-providers, and database pools. One `EvaluationExecutor` enters it lazily and
-reuses it across generated cases and Runs until the executor closes. Create
-mutable case-specific state inside each target factory. Return a cleanup
-callback when the factory creates temporary state.
+Author representative scenarios from the product objective, application
+behavior, and discovered schemas. Do not impose an arbitrary case count. Cover
+the meaningful behavioral variations without redundant cases.
 
-Register application-owned evaluators with stable keys and versions. Evaluator
-expectation models must be strict and versioned just like target inputs.
-Inspect the machine-readable expectation schema with
-`junjo eval evaluators list` before authoring Case expectation JSON.
+For every case:
 
-## 3. Configure Studio access
+- describe the scenario in `case_key`; keep target scope as separate metadata;
+- build input JSON that validates against the selected target schema;
+- build expectation JSON that validates against the evaluator schema;
+- treat an LLM-judge expectation as a binary decision rubric, not an expected
+  prose answer;
+- make pass conditions observable and reject behavior explicit; and
+- keep mechanical JSON in a temporary directory unless it is genuinely
+  application-owned source material.
 
-Set credentials outside source control:
+Use `dataset add` for authored cases. Use `case generate` only when executing
+the real target is itself part of dataset authorship. Generated output remains
+evidence and must never be silently promoted to the expectation.
 
-```bash
-export JUNJO_STUDIO_URL="https://api.example.com"
-export JUNJO_AI_STUDIO_CLI_TOKEN="jcli_..."
-```
+Review the complete case set for schema validity, coverage, names, evaluation
+meaning, and duplication before irreversibly locking it.
 
-Sign in to Studio, open **Access Tokens**, and create a developer access token
-with only the scopes required by the workflow:
+## 3. Execute and retain provenance
 
-- `evaluation:read` to list datasets, runs, attempts, and comparisons.
-- `evaluation:write` to create datasets/cases and execute runs.
-- `evidence:read` to resolve attempt trace evidence.
+Run generation and locked datasets only from a clean committed application
+revision. If the tree is dirty, do not hide it, discard work, or commit without
+authorization. Report the concrete blocker and continue any safe read-only or
+dataset-authoring work that does not misstate source provenance.
 
-Never print or persist the full token in application source. Copy it from
-Studio's authenticated Access Tokens page when configuring the environment.
+Create a stable request key for the exact intent and source revision, choose a
+clear human run label, and execute the locked dataset. Parse each versioned JSON
+envelope and retain dataset, case, run, Attempt, and execution identities inside
+the task; never ask the developer to relay them.
 
-## 4. Author or generate a dataset
+Resume an interrupted Run by its ID. Do not create a replacement for the same
+request. Treat these outcomes correctly:
 
-Create a dataset, then add explicit JSON inputs:
+- exit `6`: execution completed with a failed judgment; analyze it as product
+  evidence;
+- exit `7`: trace evidence is still being ingested or indexed; retry the
+  evidence query rather than declaring the evaluation broken; and
+- subject, authentication, contract, or Studio failures: preserve the typed
+  error and diagnose the actual boundary.
 
-```bash
-junjo eval dataset create \
-  --key local-place-realism \
-  --name "Local place realism"
+Use current CLI help for all other status and argument details.
 
-junjo eval dataset add \
-  --dataset-id DATASET_ID \
-  --case-key coffee-shop \
-  --evaluation-name "Response place realism" \
-  --target-kind workflow \
-  --target-key chat.turn \
-  --input-version 1 \
-  --input ./evals/cases/coffee-shop.input.json \
-  --expectation ./evals/cases/coffee-shop.expectation.json \
-  --evaluator-key text-quality \
-  --evaluator-version 1
-```
+## 4. Analyze outcomes and evidence
 
-Use `junjo eval case generate` only when real application telemetry already
-contains the execution that should seed the case. Review the bounded generated
-input and expectation before locking the dataset.
+Retrieve the completed Run and exact evidence for every Attempt. Confirm each
+Attempt resolves to the intended Node, Workflow, or Agent execution and the
+application's truthful service identity. Use execution membership only when a
+known execution must be followed upstream or downstream.
 
-Locking validates every case against the current harness:
+Explain failures from both the evaluator reason and trace evidence. Locate the
+first meaningful behavioral difference rather than blaming the last visible
+span. Distinguish a failed quality judgment from target execution, evaluator,
+telemetry, authentication, and contract errors.
 
-```bash
-junjo eval dataset lock --dataset-id DATASET_ID
-```
+Lead the report with product meaning:
 
-## 5. Execute from a clean source tree
+- what behavior and scenarios were evaluated;
+- what passed, failed, or errored and why;
+- what the execution evidence shows;
+- which evidence remains pending; and
+- the smallest justified improvement, if one is evident.
 
-The runner records source provenance and rejects dirty source trees:
+Then include reproducibility metadata: harness and target identities, dataset
+and case count, source commit, Run ID and label, comparison transitions when
+applicable, and exact Studio resources to inspect.
 
-```bash
-junjo eval run execute \
-  --dataset-id DATASET_ID \
-  --request-key prompt-v2-001 \
-  --run-label "prompt-v2"
-```
+## 5. Iterate without moving the goalposts
 
-If a process stops after Studio created the run, resume it:
+For an authorized improvement request, reuse the same locked dataset. Inspect
+the baseline failures and traces, make the smallest application-owned change,
+validate it, and commit it before candidate execution when commit authority was
+given. Do not change the evaluator or cases merely to make the candidate pass.
 
-```bash
-junjo eval run resume --run-id RUN_ID
-```
+Execute the candidate with a new request key and descriptive label. Compare the
+complete Dataset unless the developer specifically wants one target scope.
+Report improvements, regressions, unchanged outcomes, errors, coverage, and the
+first meaningful trace differences.
 
-Do not create a replacement run for the same interrupted request. The
-`request-key` is the idempotency boundary.
+## Stop only for real blockers
 
-## 6. Inspect bounded evidence
+Request developer action only when continuing requires it, including:
 
-Start with the attempt and its resolved execution:
+- missing Studio, telemetry, or provider credentials;
+- a missing harness when implementation was not requested;
+- materially ambiguous product intent;
+- a dirty worktree that prevents truthful execution; or
+- missing authority to modify or commit application code for a candidate.
 
-```bash
-junjo eval attempt get --attempt-id ATTEMPT_ID
-junjo eval attempt evidence --attempt-id ATTEMPT_ID
-```
+Do not stop for choices the discovered contracts and product objective let you
+make responsibly.
 
-Evidence may be temporarily pending while telemetry is ingested and indexed.
-Treat exit status `7` as retryable pending evidence, not a failed evaluation.
+## Example developer requests
 
-Use execution membership only when tracing upstream or downstream impact from
-a known semantic execution identity:
-
-```bash
-junjo eval execution membership \
-  --executable-type workflow \
-  --runtime-id WORKFLOW_RUNTIME_ID
-```
-
-## 7. Compare and iterate
-
-Compare two completed runs of the same locked dataset:
-
-```bash
-junjo eval run compare \
-  --baseline-run-id BASELINE_RUN_ID \
-  --candidate-run-id CANDIDATE_RUN_ID \
-  --target-kind workflow \
-  --target-key chat.turn \
-  --input-version 1 \
-  --evaluator-key text.quality \
-  --evaluator-version 1
-```
-
-Omit the scope flags to compare every Case in the locked Dataset.
-
-Use the comparison plus bounded trace evidence to identify the first meaningful
-behavior change. Modify application code or prompts, commit the source change,
-execute the same locked inputs with a new request key and candidate label, and
-compare again.
-
-When a Dataset contains mixed Node, Workflow, and Agent cases, scope history
-queries to one exact target and evaluator identity:
-
-```bash
-junjo eval run list \
-  --dataset-id DATASET_ID \
-  --target-kind workflow \
-  --target-key chat.turn \
-  --input-version 1 \
-  --evaluator-key text-quality \
-  --evaluator-version 1
-```
-
-Interpret `pass_rate` only over passed and failed Attempts. Check `coverage`
-before drawing conclusions when Attempts remain queued or errored. Use the
-comparison transition categories and exact baseline/candidate execution links
-to locate the first material behavior change.
-
-## Exit statuses
-
-- `0`: command succeeded and all evaluated cases passed.
-- `2`: CLI usage, local configuration, dirty source, or harness contract error.
-- `3`: authentication or authorization failure.
-- `4`: conflict or ambiguous execution identity.
-- `5`: target or subject execution failed.
-- `6`: evaluator execution failed or a judgment failed.
-- `7`: evidence is not available yet.
-- `8`: Studio is temporarily unavailable.
-- `9`: SDK and Studio contracts are incompatible.
-
-Every command writes one versioned JSON envelope to stdout. Diagnostics go to
-stderr. Consume the envelope rather than parsing human prose.
-
-## Completion report
-
-When finishing an evaluation task, report:
-
-- harness and target used;
-- locked dataset ID and case count;
-- source commit, run ID, and candidate label;
-- pass/fail/error counts;
-- baseline comparison when applicable;
-- evidence still pending or any contract/authentication blocker.
+- “Use Junjo to baseline whether our assistant recommends authentic local
+  places. Store it in Studio and show me the failures. Do not change the app.”
+- “Evaluate whether this workflow extracts complete invoice data and explain
+  the failures from its traces.”
+- “Improve refund-answer accuracy using our existing Junjo dataset, then
+  compare the candidate with the baseline.”

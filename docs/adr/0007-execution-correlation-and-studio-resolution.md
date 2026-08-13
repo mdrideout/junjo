@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-14
-- Last clarified: 2026-07-15
+- Last clarified: 2026-08-12
 - Owners: Junjo platform
 
 ## Context
@@ -98,18 +98,28 @@ Studio never selects the newest match.
 The service scope is required because Junjo runtime IDs are portable execution
 identities, not a Studio-global namespace contract.
 
-Studio also owns an authenticated semantic execution route. Applications link
-to this route rather than constructing Studio's physical detail routes. The
-semantic route is a content route, not a holding screen:
+Studio also owns an authenticated semantic execution route. Applications and
+stored evaluation memberships link to this route rather than constructing
+Studio's physical detail routes before telemetry arrives. The semantic route
+is a transient resolution boundary:
 
 - it renders the authenticated Studio shell and requested execution identity
   immediately;
 - after a resolution request returns not found, telemetry is still arriving,
   so the page shows an in-context pending state and continues resolution with
   capped backoff for as long as the page remains open;
-- it renders the ordinary Agent, Workflow, or trace detail surface when the
-  physical identity becomes available; and
-- it keeps the semantic URL as the canonical application link.
+- when the physical identity becomes available, it replaces itself with the
+  ordinary Agent, Workflow, or trace detail route; and
+- the resulting physical detail URL becomes the canonical browser location so
+  Workflow selection, Graph highlighting, tree scrolling, refresh, and further
+  in-page navigation all use one route authority.
+
+When a resolved Workflow or Subflow contains exactly one Graph Node, Studio
+may resolve its detail path to that exact Node span. The full Workflow detail
+surface still renders, with its existing URL-owned selection, Graph highlight,
+and span-tree scroll behavior. Studio derives this only from the one-Node Graph
+snapshot and an exact matching child Node span; it does not guess from display
+names or timestamps.
 
 There is no user-visible attempt counter or ingestion deadline. An unresolved
 execution is not an error merely because telemetry has not arrived yet. Invalid
@@ -159,9 +169,11 @@ contract is accepted.
   results depend on physical telemetry concerns and duplicates Studio routing.
 - Let the application query raw Studio spans: it reverses the evidence-plane
   ownership boundary.
-- Bounded resolver holding screen followed by redirect: ingestion latency is
-  not an execution failure, attempt counts are implementation detail, and the
-  semantic application link should remain stable.
+- Render resolved detail under the semantic URL: this gives the same Workflow
+  surface two competing route authorities and breaks ordinary in-page
+  selection and refresh semantics. The semantic URL remains stable as the
+  pre-resolution application link; the physical detail URL owns interaction
+  after resolution.
 
 ## Related decisions
 

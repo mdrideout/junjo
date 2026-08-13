@@ -44,15 +44,13 @@ APPLICATION_SERVICE_SCOPE = ServiceScope(
 @dataclass(frozen=True, slots=True)
 class TelemetrySettings:
     api_key: str
-    host: str
-    port: int
+    endpoint: str
     insecure: bool
 
 
 @dataclass(frozen=True, slots=True)
-class DebugSettings:
-    enabled: bool
-    studio_ui_url: str | None
+class StudioDiagnosticsSettings:
+    frontend_base_url: str | None
     service_namespace: str = STUDIO_SERVICE_NAMESPACE
     service_name: str = STUDIO_SERVICE_NAME
 
@@ -63,7 +61,7 @@ class Settings:
     image_directory: Path
     cors_origins: tuple[str, ...]
     telemetry: TelemetrySettings | None
-    debug: DebugSettings = DebugSettings(enabled=False, studio_ui_url=None)
+    studio_diagnostics: StudioDiagnosticsSettings = StudioDiagnosticsSettings(frontend_base_url=None)
     model_provider: ModelProvider = ModelProvider.GEMINI
     gemini_api_key: str | None = None
     xai_api_key: str | None = None
@@ -83,11 +81,13 @@ class Settings:
                 raise ValueError("JUNJO_AI_STUDIO_API_KEY cannot be empty when configured.")
             telemetry = TelemetrySettings(
                 api_key=api_key,
-                host=os.getenv("JUNJO_AI_STUDIO_HOST", "localhost"),
-                port=_port(os.getenv("JUNJO_AI_STUDIO_PORT", "26155")),
+                endpoint=_non_empty(
+                    os.getenv("JUNJO_AI_STUDIO_OTLP_ENDPOINT", "localhost:26155"),
+                    "JUNJO_AI_STUDIO_OTLP_ENDPOINT",
+                ),
                 insecure=_boolean(
-                    os.getenv("JUNJO_AI_STUDIO_INSECURE", "true"),
-                    "JUNJO_AI_STUDIO_INSECURE",
+                    os.getenv("JUNJO_AI_STUDIO_OTLP_INSECURE", "true"),
+                    "JUNJO_AI_STUDIO_OTLP_INSECURE",
                 ),
             )
         origins = tuple(
@@ -95,12 +95,12 @@ class Settings:
             for item in os.getenv("AI_CHAT_CORS_ORIGINS", "http://localhost:26251").split(",")
             if item.strip()
         )
-        debug_enabled = _boolean(os.getenv("AI_CHAT_DEBUG", "false"), "AI_CHAT_DEBUG")
-        studio_ui_url = None
-        if debug_enabled:
-            studio_ui_url = _http_origin(
-                os.getenv("AI_CHAT_STUDIO_UI_URL", "http://localhost:26153"),
-                "AI_CHAT_STUDIO_UI_URL",
+        studio_frontend_base_url = None
+        configured_frontend_base_url = os.getenv("JUNJO_AI_STUDIO_FRONTEND_BASE_URL")
+        if telemetry is not None and configured_frontend_base_url is not None:
+            studio_frontend_base_url = _http_origin(
+                configured_frontend_base_url,
+                "JUNJO_AI_STUDIO_FRONTEND_BASE_URL",
             )
         provider = ModelProvider(os.getenv("AI_CHAT_MODEL_PROVIDER", ModelProvider.GEMINI.value).casefold())
         gemini_api_key = _optional_secret("GEMINI_API_KEY")
@@ -114,9 +114,8 @@ class Settings:
             image_directory=data_directory / "images",
             cors_origins=origins,
             telemetry=telemetry,
-            debug=DebugSettings(
-                enabled=debug_enabled,
-                studio_ui_url=studio_ui_url,
+            studio_diagnostics=StudioDiagnosticsSettings(
+                frontend_base_url=studio_frontend_base_url,
             ),
             model_provider=provider,
             gemini_api_key=gemini_api_key,
@@ -132,16 +131,6 @@ class Settings:
         )
 
 
-def _port(value: str) -> int:
-    try:
-        port = int(value)
-    except ValueError as exc:
-        raise ValueError("JUNJO_AI_STUDIO_PORT must be an integer.") from exc
-    if not 1 <= port <= 65_535:
-        raise ValueError("JUNJO_AI_STUDIO_PORT must be between 1 and 65535.")
-    return port
-
-
 def _boolean(value: str, name: str) -> bool:
     normalized = value.casefold()
     if normalized == "true":
@@ -149,6 +138,14 @@ def _boolean(value: str, name: str) -> bool:
     if normalized == "false":
         return False
     raise ValueError(f"{name} must be exactly true or false.")
+
+
+def _non_empty(value: str, name: str) -> str:
+    if not value.strip():
+        raise ValueError(f"{name} cannot be empty.")
+    if value != value.strip():
+        raise ValueError(f"{name} cannot contain surrounding whitespace.")
+    return value
 
 
 def _positive_float(value: str, name: str) -> float:

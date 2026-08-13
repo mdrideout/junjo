@@ -26,6 +26,7 @@ from junjo.evaluation import (
     Evaluator,
     ExecutionServiceIdentity,
     GenerateCaseRequest,
+    HarnessConfigurationError,
     TargetContractError,
     TargetExecution,
     TargetExecutionError,
@@ -91,6 +92,7 @@ def _case(
         origin=origin,
         target_kind=TargetKind.NODE,
         target_key="fake",
+        target_name="Fake Node",
         input_version=1,
         input_json={"message": message or key},
         expectation_json={"expected": "pass"},
@@ -232,6 +234,7 @@ class FakeClient:
 class FakeTarget(EvaluationTarget):
     kind = TargetKind.NODE
     key = "fake"
+    name = "Fake Node"
     input_version = 1
 
     def __init__(self, events: list[str]) -> None:
@@ -382,6 +385,9 @@ def test_harness_rejects_duplicate_and_unknown_registration_contracts() -> None:
     unknown = _case("unknown", 1).model_copy(update={"target_key": "missing"})
     with pytest.raises(LookupError, match="Unknown target"):
         harness.prepare_case(unknown)
+    renamed = _case("renamed", 2).model_copy(update={"target_name": "Different Node"})
+    with pytest.raises(HarnessConfigurationError, match="does not match"):
+        harness.prepare_case(renamed)
     assert events == []
 
 

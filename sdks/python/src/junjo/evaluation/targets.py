@@ -155,6 +155,7 @@ class EvaluationTarget:
 
     kind: TargetKind
     key: str
+    name: str
     input_version: int
 
     @property
@@ -181,12 +182,15 @@ class _TypedTarget(EvaluationTarget, Generic[InputT]):
         *,
         kind: TargetKind,
         key: str,
+        name: str,
         input_version: int,
         input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
     ) -> None:
         _validate_registration(key=key, version=input_version, label="target")
+        _validate_target_name(name)
         self.kind = kind
         self.key = key
+        self.name = name
         self.input_version = input_version
         try:
             self._input_adapter = TypeAdapter(input_type)
@@ -210,12 +214,19 @@ class _TypedTarget(EvaluationTarget, Generic[InputT]):
 
 
 class NodeTarget(_TypedTarget[InputT], Generic[InputT, StateT, ResourcesT]):
-    """Execute a fresh application Node through ``evaluate_node()``."""
+    """Execute a fresh application Node through ``evaluate_node()``.
+
+    ``key`` is the stable evaluation dispatch identity. ``name`` is the
+    human-readable Node name stored with Studio cases and shown in evaluation
+    results; it must describe the real application Node rather than repeat the
+    registry key.
+    """
 
     def __init__(
         self,
         *,
         key: str,
+        name: str,
         input_version: int,
         input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
         factory: Callable[
@@ -230,6 +241,7 @@ class NodeTarget(_TypedTarget[InputT], Generic[InputT, StateT, ResourcesT]):
         super().__init__(
             kind=TargetKind.NODE,
             key=key,
+            name=name,
             input_version=input_version,
             input_type=input_type,
         )
@@ -324,12 +336,18 @@ class NodeTarget(_TypedTarget[InputT], Generic[InputT, StateT, ResourcesT]):
 
 
 class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
-    """Execute a fresh application Workflow through ``Workflow.execute()``."""
+    """Execute a fresh application Workflow through ``Workflow.execute()``.
+
+    ``key`` is the stable evaluation dispatch identity. ``name`` is the
+    human-readable name of the real Workflow stored with Studio cases and
+    shown in evaluation results.
+    """
 
     def __init__(
         self,
         *,
         key: str,
+        name: str,
         input_version: int,
         input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
         factory: Callable[
@@ -344,6 +362,7 @@ class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
         super().__init__(
             kind=TargetKind.WORKFLOW,
             key=key,
+            name=name,
             input_version=input_version,
             input_type=input_type,
         )
@@ -440,12 +459,18 @@ class AgentTarget(
     _TypedTarget[InputT],
     Generic[InputT, AgentInputT, AgentOutputT, DependenciesT, ResourcesT],
 ):
-    """Execute a real application Agent through ``Agent.execute()``."""
+    """Execute a real application Agent through ``Agent.execute()``.
+
+    ``key`` is the stable evaluation dispatch identity. ``name`` is the
+    human-readable name of the real Agent stored with Studio cases and shown
+    in evaluation results.
+    """
 
     def __init__(
         self,
         *,
         key: str,
+        name: str,
         input_version: int,
         input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
         factory: Callable[
@@ -466,6 +491,7 @@ class AgentTarget(
         super().__init__(
             kind=TargetKind.AGENT,
             key=key,
+            name=name,
             input_version=input_version,
             input_type=input_type,
         )
@@ -613,6 +639,15 @@ def _validate_registration(*, key: str, version: int, label: str) -> None:
         raise TargetContractError(f"Evaluation {label} key must be a non-empty string of at most 128 characters.")
     if not isinstance(version, int) or isinstance(version, bool) or version < 1:
         raise TargetContractError(f"Evaluation {label} version must be a positive integer.")
+
+
+def _validate_target_name(name: str) -> None:
+    if not isinstance(name, str) or not name.strip():
+        raise TargetContractError("Evaluation target name must be a non-empty string.")
+    if name != name.strip():
+        raise TargetContractError("Evaluation target name must not contain surrounding whitespace.")
+    if len(name.encode("utf-8")) > 256:
+        raise TargetContractError("Evaluation target name must be at most 256 UTF-8 bytes.")
 
 
 def _validate_correlation(correlation: ExecutionCorrelation | None) -> None:

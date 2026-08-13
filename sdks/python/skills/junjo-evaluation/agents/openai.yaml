@@ -1,4 +1,4 @@
 interface:
   display_name: "Junjo Evaluation"
-  short_description: "Run typed Junjo evaluations through Studio"
-  default_prompt: "Use $junjo-evaluation to declare targets, run a locked dataset, and compare Studio evidence."
+  short_description: "Automate Junjo evaluations from product intent"
+  default_prompt: "Use $junjo-evaluation to create and run an evaluation for the behavior I describe, store the dataset and results in Studio, inspect outcomes and traces, and report findings before changing the application."

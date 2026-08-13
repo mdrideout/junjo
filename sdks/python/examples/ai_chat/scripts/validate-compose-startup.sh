@@ -12,7 +12,7 @@ readonly FRONTEND_PORT="${AI_CHAT_SMOKE_FRONTEND_PORT:-36251}"
 readonly BACKEND_PORT="${AI_CHAT_SMOKE_BACKEND_PORT:-36252}"
 
 compose() {
-  AI_CHAT_COMPOSE_ENV_FILE="${ENVIRONMENT_FILE}" docker compose \
+  docker compose \
     --project-name "${PROJECT_NAME}" \
     --file "${COMPOSE_FILE}" \
     --env-file "${ENVIRONMENT_FILE}" \
@@ -28,6 +28,11 @@ write_environment() {
     printf 'AI_CHAT_MODEL_PROVIDER=%s\n' "${provider}"
     printf 'GEMINI_API_KEY=synthetic-not-a-provider-credential\n'
     printf 'XAI_API_KEY=synthetic-not-a-provider-credential\n'
+    printf 'JUNJO_AI_STUDIO_OTLP_ENDPOINT=localhost:26155\n'
+    printf 'JUNJO_AI_STUDIO_OTLP_INSECURE=true\n'
+    printf 'JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154\n'
+    printf 'JUNJO_AI_STUDIO_CLI_TOKEN=jcli_not-for-the-application\n'
+    printf 'JUNJO_AI_STUDIO_FRONTEND_BASE_URL=http://localhost:26151\n'
   } >"${ENVIRONMENT_FILE}"
 }
 
@@ -88,6 +93,14 @@ for provider in gemini grok; do
 
   compose exec -T backend sh -c \
     "test \"\${AI_CHAT_MODEL_PROVIDER}\" = '${provider}'"
+  compose exec -T backend sh -c \
+    'test "${JUNJO_AI_STUDIO_OTLP_ENDPOINT}" = "host.docker.internal:26155"'
+  compose exec -T backend sh -c \
+    'test "${JUNJO_AI_STUDIO_OTLP_INSECURE}" = "true"'
+  compose exec -T backend sh -c \
+    'test -z "${JUNJO_AI_STUDIO_BACKEND_BASE_URL+x}"'
+  compose exec -T backend sh -c \
+    'test -z "${JUNJO_AI_STUDIO_CLI_TOKEN+x}"'
   curl --fail --silent --show-error \
     "http://localhost:${BACKEND_PORT}/api/healthz" >/dev/null
   curl --fail --silent --show-error \

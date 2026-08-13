@@ -108,6 +108,18 @@ def _workflow(value: str) -> Workflow[ExampleState, ExampleStore]:
     )
 
 
+def test_target_name_is_explicit_bounded_display_metadata() -> None:
+    with pytest.raises(TargetContractError, match="surrounding whitespace"):
+        NodeTarget(
+            key="uppercase",
+            name=" Uppercase Node ",
+            input_version=1,
+            input_type=CaseInput,
+            factory=lambda _input, _context, _resources: None,
+            projector=lambda _result, _input, _context, _resources: None,
+        )
+
+
 @pytest.mark.asyncio
 async def test_node_target_validates_before_construction_and_uses_evaluate_node() -> None:
     factory_inputs: list[CaseInput] = []
@@ -129,6 +141,7 @@ async def test_node_target_validates_before_construction_and_uses_evaluate_node(
 
     target = NodeTarget(
         key="uppercase",
+        name="Uppercase Node",
         input_version=1,
         input_type=CaseInput,
         factory=factory,
@@ -161,6 +174,7 @@ async def test_node_failure_retains_truthful_generated_workflow_identity() -> No
 
     target = NodeTarget(
         key="failing",
+        name="Failing Node",
         input_version=1,
         input_type=CaseInput,
         factory=lambda input_value, _context, _resources: NodeInvocation(
@@ -194,6 +208,7 @@ async def test_node_failure_retains_truthful_generated_workflow_identity() -> No
 async def test_workflow_target_invokes_public_workflow_lifecycle() -> None:
     target = WorkflowTarget(
         key="uppercase-workflow",
+        name="Uppercase Workflow",
         input_version=1,
         input_type=CaseInput,
         factory=lambda input_value, _context, _resources: WorkflowInvocation(
@@ -231,6 +246,7 @@ async def test_workflow_projection_failure_closes_per_case_resources() -> None:
 
     target = WorkflowTarget(
         key="projection-failure",
+        name="Projection Failure Workflow",
         input_version=1,
         input_type=CaseInput,
         factory=lambda input_value, _context, _resources: WorkflowInvocation(
@@ -284,6 +300,7 @@ async def test_agent_target_invokes_public_agent_lifecycle() -> None:
     )
     target = AgentTarget(
         key="agent",
+        name="Example Agent",
         input_version=1,
         input_type=CaseInput,
         factory=lambda input_value, _context, _resources: AgentInvocation(

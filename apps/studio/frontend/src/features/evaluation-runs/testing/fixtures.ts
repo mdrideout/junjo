@@ -78,6 +78,7 @@ export function makeEvaluationRunDetailFixture({
           origin: generated ? 'generated' : 'authored',
           target_kind: ordinal === 1 ? 'workflow' : 'node',
           target_key: ordinal === 1 ? 'turn_workflow' : 'date_response_node',
+          target_name: ordinal === 1 ? 'Chat Turn Workflow' : 'CreateDateIdeaResponseNode',
           input_version: 1,
           input_json: { message: `Recommend a real place near Place ${ordinal}.` },
           expectation_json: {
@@ -134,6 +135,7 @@ export function makeEvaluationRunListItem(
     const targetKey = JSON.stringify([
       item.case.target_kind,
       item.case.target_key,
+      item.case.target_name,
       item.case.input_version,
     ])
     targetCounts.set(targetKey, (targetCounts.get(targetKey) ?? 0) + 1)
@@ -158,14 +160,16 @@ export function makeEvaluationRunListItem(
       coverage: attemptCounts.total === 0 ? null : judged / attemptCounts.total,
     },
     target_facets: [...targetCounts].map(([identity, caseCount]) => {
-      const [targetKind, targetKey, inputVersion] = JSON.parse(identity) as [
+      const [targetKind, targetKey, targetName, inputVersion] = JSON.parse(identity) as [
         'node' | 'workflow' | 'agent',
+        string,
         string,
         number,
       ]
       return {
         target_kind: targetKind,
         target_key: targetKey,
+        target_name: targetName,
         input_version: inputVersion,
         case_count: caseCount,
       }

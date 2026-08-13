@@ -19,9 +19,19 @@ The declaration is provider-free and safe to inspect:
 .venv/bin/junjo eval evaluators list
 ```
 
-With `JUNJO_STUDIO_URL` and a separately scoped
-`JUNJO_AI_STUDIO_CLI_TOKEN`, use the same CLI to create a dataset. Each target
-accepts:
+For a repository-local Studio development stack, configure the application's
+OTLP telemetry separately from the SDK and CLI control connection:
+
+```bash
+export JUNJO_AI_STUDIO_OTLP_ENDPOINT=localhost:26155
+export JUNJO_AI_STUDIO_OTLP_INSECURE=true
+export JUNJO_AI_STUDIO_API_KEY=jtel_...
+
+export JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
+export JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
+```
+
+Use the same CLI to create a dataset. Each target accepts:
 
 ```json
 {"value": 2}

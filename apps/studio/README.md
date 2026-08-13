@@ -526,12 +526,12 @@ frontend link of this form:
 The authenticated frontend renders the semantic execution page immediately.
 While telemetry is still arriving, it shows an in-context pending message and
 continues exact resolution with capped backoff. When the execution becomes
-available, the ordinary Agent, Workflow, or full-trace detail renders in place
-without replacing the stable URL. Resolution requires service namespace,
-service name, executable type, and runtime ID. Multiple matching owner spans
-are an explicit conflict and Studio never selects the newest match.
-Applications do not receive a Studio API credential to construct or follow
-these links.
+available, Studio replaces the semantic URL with the ordinary Agent, Workflow,
+or full-trace detail URL. One-Node Workflows open with that exact Node selected.
+Resolution requires service namespace, service name, executable type, and
+runtime ID. Multiple matching owner spans are an explicit conflict and Studio
+never selects the newest match. Applications do not receive a Studio API
+credential to construct or follow these links.
 
 ### Database & Storage Access
 

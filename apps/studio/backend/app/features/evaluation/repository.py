@@ -121,6 +121,7 @@ def _case_read(row: EvaluationCaseTable) -> EvaluationCaseRead:
         origin=row.origin,
         target_kind=row.target_kind,
         target_key=row.target_key,
+        target_name=row.target_name,
         input_version=row.input_version,
         input_json=load_stored_json(row.input_json),
         expectation_json=(
@@ -227,6 +228,7 @@ def _case_storage_values(request: EvaluationCaseCreate) -> dict[str, object]:
         "origin": request.origin,
         "target_kind": request.target_kind,
         "target_key": request.target_key,
+        "target_name": request.target_name,
         "input_version": request.input_version,
         "input_json": dump_bounded_json(request.input_json),
         "expectation_json": (
@@ -606,7 +608,7 @@ class EvaluationRepository:
                 for attempt_run_id, status in attempt_rows:
                     attempts_by_run[attempt_run_id].append(status)
 
-            target_counts: dict[str, dict[tuple[str, str, int], int]] = defaultdict(
+            target_counts: dict[str, dict[tuple[str, str, str, int], int]] = defaultdict(
                 lambda: defaultdict(int)
             )
             evaluation_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -618,6 +620,7 @@ class EvaluationRepository:
                             EvaluationCaseTable.dataset_id,
                             EvaluationCaseTable.target_kind,
                             EvaluationCaseTable.target_key,
+                            EvaluationCaseTable.target_name,
                             EvaluationCaseTable.input_version,
                             EvaluationCaseTable.evaluation_name,
                         ).where(EvaluationCaseTable.dataset_id.in_(dataset_ids))
@@ -627,10 +630,13 @@ class EvaluationRepository:
                     facet_dataset_id,
                     target_kind,
                     target_key,
+                    target_name,
                     input_version,
                     evaluation_name,
                 ) in facet_rows:
-                    target_counts[facet_dataset_id][(target_kind, target_key, input_version)] += 1
+                    target_counts[facet_dataset_id][
+                        (target_kind, target_key, target_name, input_version)
+                    ] += 1
                     evaluation_counts[facet_dataset_id][evaluation_name] += 1
 
         next_cursor = None
@@ -651,12 +657,14 @@ class EvaluationRepository:
                         EvaluationTargetFacet(
                             target_kind=target_kind,
                             target_key=target_key,
+                            target_name=target_name,
                             input_version=input_version,
                             case_count=count,
                         )
                         for (
                             target_kind,
                             target_key,
+                            target_name,
                             input_version,
                         ), count in sorted(target_counts[dataset.id].items())
                     ],

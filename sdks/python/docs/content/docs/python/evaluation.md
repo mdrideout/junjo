@@ -13,6 +13,21 @@ Studio client, dataset and result DTOs, target lifecycles, evaluator contracts,
 sequential executor, resume behavior, telemetry context, evidence queries, and
 the `junjo eval` CLI.
 
+For a developer with a configured application harness, the intended interaction
+is a product-quality request to a coding agent:
+
+> Use Junjo to create and run a baseline evaluation of our assistant's ability
+> to recommend authentic local places. Store the dataset and results in Studio,
+> inspect the failed cases and their traces, and report what should improve. Do
+> not change the application yet.
+
+The coding agent discovers the application's targets and evaluator schemas,
+authors representative inputs and schema-valid expectations, operates the CLI,
+tracks Studio identifiers, retrieves evidence, and reports results. With an LLM
+judge, the expectation is a binary decision rubric rather than an expected
+prose answer. The developer does not need to create JSON files, copy IDs, choose
+CLI flags, or poll telemetry evidence.
+
 ## What belongs where
 
 | Owner | Responsibility |
@@ -31,7 +46,7 @@ Sign in to Studio, open **Access Tokens**, choose the required scopes and
 expiration, and create a developer access token. Copy it to the environment:
 
 ```dotenv
-JUNJO_STUDIO_URL=http://localhost:26154
+JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
 JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 ```
 
@@ -45,17 +60,38 @@ HTTP.
 
 ## Give a coding agent the runbook
 
-The Junjo wheel ships the Agent Skills-compatible `junjo-evaluation` skill at
-`share/junjo/skills/junjo-evaluation` inside the active Python environment.
-Point the coding agent's normal skill installer at that directory, or install
-the source-owned
-[`junjo-evaluation` skill](https://github.com/mdrideout/junjo/tree/master/sdks/python/skills/junjo-evaluation)
-from the Junjo release tag in use by the application.
+The installed Junjo wheel ships an Agent Skills-compatible
+`junjo-evaluation` skill. Locate the exact skill matching the installed SDK:
+
+```bash
+junjo eval skill path
+```
+
+The command requires no application harness, Studio connection, or credential.
+Its versioned JSON response contains the absolute skill directory and
+`SKILL.md` path. Point the coding agent's normal skill installer at that
+directory once.
 
 Installing the Python package does not silently activate a coding-agent skill.
 The explicit installation keeps agent configuration under the application
 developer's control while the versioned skill, SDK, CLI, and documentation
 remain owned and released together by Junjo.
+
+After installation, a normal request should contain intent rather than Junjo
+mechanics:
+
+> Use Junjo to evaluate whether this workflow extracts complete invoice data.
+> Establish a baseline in Studio and explain the failures from their traces.
+
+For an improvement iteration:
+
+> Improve refund-answer accuracy using our existing Junjo dataset, then compare
+> the candidate with the baseline.
+
+The skill owns discovery, scenario design, temporary schema-valid artifacts,
+dataset operations, execution, evidence queries, and product-oriented
+reporting. It asks the developer only for a real missing prerequisite,
+materially ambiguous product intent, or authority to modify and commit code.
 
 ## Declare one harness
 
@@ -100,6 +136,7 @@ harness = EvaluationHarness(
     targets=(
         NodeTarget(
             key="answer",
+            name="Create Answer Node",
             input_version=1,
             input_type=AnswerInputV1,
             factory=create_node,
@@ -118,11 +155,18 @@ Configure the import explicitly in the application repository:
 harness = "my_application.evaluation:harness"
 ```
 
-`junjo eval targets list` returns stable target identities plus JSON input
-schemas. `junjo eval evaluators list` returns stable evaluator identities,
-roles, and JSON expectation schemas. Both import the harness without entering
-`evaluation_runtime`, so discovery does not create providers, connect to
-application databases, or start telemetry.
+`junjo eval targets list` returns each stable target key, its human-readable
+Node, Workflow, or Agent name, and its JSON input schema. The CLI records that
+name with authored and generated cases so Studio can label historical results
+without presenting the dispatch key as an entity name. `junjo eval evaluators
+list` returns stable evaluator identities, roles, and JSON expectation schemas.
+Both import the harness without entering `evaluation_runtime`, so discovery
+does not create providers, connect to application databases, or start
+telemetry.
+
+The runner verifies that a case's stored target name still matches its
+registered target. Renaming a target therefore requires a new dataset rather
+than silently relabeling immutable historical tests.
 
 `NodeTarget`, `WorkflowTarget`, and `AgentTarget` own the correct public Junjo
 lifecycle. Their application factories receive typed input, immutable

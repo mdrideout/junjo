@@ -255,8 +255,7 @@ only for applications running directly on the local machine.
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 
 junjo_exporter = JunjoOtelExporter(
-    host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
-    port="26155",
+    endpoint="ingestion:26155",  # AI Studio ingestion on this Docker network
     api_key=api_key,
     insecure=True
 )
@@ -269,8 +268,7 @@ For production, use the public Junjo AI Studio ingestion host and TLS:
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 
 junjo_exporter = JunjoOtelExporter(
-    host="ingestion.example.com",
-    port="443",
+    endpoint="ingestion.example.com:443",
     api_key=api_key,
     insecure=False
 )
@@ -343,8 +341,7 @@ tracer_provider = TracerProvider(resource=resource)
 
 # Add Junjo AI Studio exporter
 junjo_exporter = JunjoOtelExporter(
-    host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
-    port="26155",
+    endpoint="ingestion:26155",  # AI Studio ingestion on this Docker network
     api_key=junjo_api_key,
     insecure=True
 )
@@ -548,8 +545,7 @@ def init_telemetry(service_name: str):
 
     # Configure Junjo AI Studio exporter.
     junjo_exporter = JunjoOtelExporter(
-        host="ingestion",  # The AI Studio ingestion service name on your Docker network ("ingestion" in the example compose file)
-        port="26155",
+        endpoint="ingestion:26155",  # AI Studio ingestion on this Docker network
         api_key=api_key,
         insecure=True
     )
@@ -579,13 +575,12 @@ finally:
 
 ## Production Junjo AI Studio Exporter
 
-For production, configure `JunjoOtelExporter` with the public ingestion host
+For production, configure `JunjoOtelExporter` with the public OTLP/gRPC target
 and TLS:
 
 ```python
 junjo_exporter = JunjoOtelExporter(
-    host="ingestion.example.com",
-    port="443",
+    endpoint="ingestion.example.com:443",
     api_key=api_key,
     insecure=False
 )

@@ -8,6 +8,7 @@ import { SemanticExecutionLink } from './components/SemanticExecutionLink'
 import { EvaluationIdSchema } from './schemas/evaluation-runs'
 import { selectEvaluationRunDetailRequest } from './store/selectors'
 import { EvaluationRunsActions } from './store/slice'
+import { evaluationTargetLabel } from './target-label'
 
 const filterClassName =
   'min-h-9 rounded-lg border border-[var(--studio-border-strong)] bg-[var(--studio-surface-raised)] px-2 py-1 text-sm'
@@ -99,15 +100,10 @@ export default function EvaluationRunDetailPage() {
 
       <header className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface-raised)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-sm font-semibold text-[var(--studio-text-muted)]">
-              {dataset.name}
-            </div>
-            <h1 className="m-0 mt-1">{run.run_label}</h1>
-          </div>
+          <h1 className="m-0">{run.run_label}</h1>
           <EvaluationStatusBadge status={run.status} />
         </div>
-        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-[var(--studio-page)] p-3">
             <dt className="text-xs text-[var(--studio-text-subtle)]">Dataset</dt>
             <dd className="mt-1 text-sm font-semibold">
@@ -115,10 +111,6 @@ export default function EvaluationRunDetailPage() {
                 {dataset.name}
               </AppLink>
             </dd>
-          </div>
-          <div className="rounded-lg bg-[var(--studio-page)] p-3">
-            <dt className="text-xs text-[var(--studio-text-subtle)]">Git Commit</dt>
-            <dd className="mt-1 break-all font-mono text-xs">{run.source_revision}</dd>
           </div>
           <div className="rounded-lg bg-[var(--studio-page)] p-3">
             <dt className="text-xs text-[var(--studio-text-subtle)]">Created</dt>
@@ -139,9 +131,6 @@ export default function EvaluationRunDetailPage() {
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="m-0">Evaluation results</h2>
-            <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
-              Binary results for each Node, Workflow, or Agent test in the dataset.
-            </p>
           </div>
           <dl className="flex flex-wrap gap-2 text-xs">
             <div className="rounded-lg bg-[var(--studio-surface)] px-3 py-2">
@@ -162,14 +151,14 @@ export default function EvaluationRunDetailPage() {
         <div className="mb-3 flex flex-wrap gap-2" aria-label="Evaluation result filters">
           <select
             className={filterClassName}
-            aria-label="Target scope"
+            aria-label="Targets"
             value={targetFilter}
             onChange={(event) => setTargetFilter(event.target.value)}
           >
             <option value="">All targets</option>
             {targetOptions.map(([identity, item]) => (
               <option key={identity} value={identity}>
-                {item.target_kind} · {item.target_key} · input v{item.input_version}
+                {evaluationTargetLabel(item.target_kind, item.target_name)}
               </option>
             ))}
           </select>
@@ -207,7 +196,7 @@ export default function EvaluationRunDetailPage() {
             <table className="w-full min-w-[68rem] text-left text-sm">
               <thead className="bg-[var(--studio-surface)] text-xs uppercase tracking-wide text-[var(--studio-text-subtle)]">
                 <tr>
-                  <th scope="col" className="px-3 py-3">Scope</th>
+                  <th scope="col" className="px-3 py-3">Target</th>
                   <th scope="col" className="px-3 py-3">Evaluation</th>
                   <th scope="col" className="px-3 py-3">Result</th>
                   <th scope="col" className="px-3 py-3">Reason</th>
@@ -218,12 +207,8 @@ export default function EvaluationRunDetailPage() {
                 {visibleCases.map((item) => (
                   <tr key={item.case.id} className="border-b border-[var(--studio-border)] last:border-0 align-top">
                     <th scope="row" className="px-3 py-3 text-left">
-                      <span className="font-semibold capitalize">{item.case.target_kind}</span>
-                      <span className="mt-1 block font-mono text-xs font-normal">
-                        {item.case.target_key}
-                      </span>
-                      <span className="mt-1 block text-xs font-normal text-[var(--studio-text-subtle)]">
-                        Input v{item.case.input_version}
+                      <span className="font-semibold">
+                        {evaluationTargetLabel(item.case.target_kind, item.case.target_name)}
                       </span>
                     </th>
                     <td className="max-w-md px-3 py-3">
@@ -246,6 +231,12 @@ export default function EvaluationRunDetailPage() {
                           <div>
                             <dt className="font-semibold">Internal case key</dt>
                             <dd className="font-mono">{item.case.case_key}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">Target implementation</dt>
+                            <dd className="font-mono">
+                              {item.case.target_key} · input v{item.case.input_version}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">Evaluator implementation</dt>

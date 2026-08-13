@@ -4,8 +4,24 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+### Breaking Changes
+
+- Replaced `JunjoOtelExporter(host=..., port=...)` with the ordinary
+  OTLP/gRPC target form `JunjoOtelExporter(endpoint=..., insecure=...)` while
+  preserving explicit OpenTelemetry transport-security selection.
+- Renamed the evaluation CLI's Studio REST configuration from
+  `JUNJO_STUDIO_URL` / `--studio-url` to
+  `JUNJO_AI_STUDIO_BACKEND_BASE_URL` / `--studio-backend-base-url`.
+- Added a required human-readable `name` to Node, Workflow, and Agent
+  evaluation target declarations. Studio cases now snapshot that name as
+  `target_name` while retaining `target_key` as the stable dispatch identity.
+
 ### Evaluation
 
+- Updated the shipped `junjo-evaluation` coding-agent skill to turn concise
+  product-quality objectives into complete baseline and candidate workflows,
+  and added `junjo eval skill path` for repository-independent discovery of the
+  skill bundled with the installed wheel.
 - Added the public `junjo.studio` client and strict DTOs for bounded,
   authenticated Studio datasets, cases, runs, attempts, comparisons,
   execution membership, and opt-in trace evidence.

@@ -81,6 +81,9 @@ describe('EvaluationRunDetailPage', () => {
     )
     expect(screen.getByText('Pending')).toBeInTheDocument()
     expect(screen.getAllByText('Response place realism').length).toBeGreaterThan(0)
-    expect(screen.getByText('Git Commit')).toBeInTheDocument()
+    expect(screen.queryByText('Git Commit')).not.toBeInTheDocument()
+    expect(screen.queryByText(
+      'Binary results for each Node, Workflow, or Agent test in the dataset.',
+    )).not.toBeInTheDocument()
   })
 })

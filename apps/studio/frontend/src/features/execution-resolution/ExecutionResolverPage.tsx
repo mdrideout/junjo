@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { resolveExecution } from './fetch/resolve-execution'
 import {
   ExecutionResolutionRequestSchema,
   type ExecutionResolution,
   type ExecutionResolutionRequest,
 } from './schemas'
-import { ResolvedExecutionDetail } from './ResolvedExecutionDetail'
 
 const INITIAL_RESOLUTION_RETRY_DELAY_MS = 1_000
 const MAX_RESOLUTION_RETRY_DELAY_MS = 5_000
@@ -91,7 +90,14 @@ function ExecutionResolver({ request }: { request: ExecutionResolutionRequest })
   }, [attempt, request])
 
   if (state.phase === 'resolved') {
-    return <ResolvedExecutionDetail request={request} resolution={state.resolution} />
+    return (
+      <Navigate
+        to={request.destination === 'trace'
+          ? state.resolution.trace_path
+          : state.resolution.detail_path}
+        replace
+      />
+    )
   }
 
   return (

@@ -13,6 +13,7 @@ import {
   type EvaluationTransition,
 } from './store/selectors'
 import { EvaluationRunsActions } from './store/slice'
+import { evaluationTargetLabel } from './target-label'
 
 const EMPTY_COMPARISON_QUERY = {
   baseline_run_id: '',
@@ -185,7 +186,7 @@ export default function EvaluationRunComparisonPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <label className="text-xs font-medium">
-              Scope
+              Target
               <select
                 className={`${filterClassName} ml-2`}
                 value={selectedTarget}
@@ -208,7 +209,7 @@ export default function EvaluationRunComparisonPage() {
                 <option value="">All targets</option>
                 {[...targetOptions.entries()].map(([identity, item]) => (
                   <option key={identity} value={identity}>
-                    {item.target_kind} · {item.target_key} · input v{item.input_version}
+                    {evaluationTargetLabel(item.target_kind, item.target_name)}
                   </option>
                 ))}
               </select>
@@ -271,7 +272,7 @@ export default function EvaluationRunComparisonPage() {
           <table className="w-full min-w-[76rem] text-left text-sm">
             <thead className="bg-[var(--studio-surface)] text-xs uppercase tracking-wide text-[var(--studio-text-subtle)]">
               <tr>
-                <th scope="col" className="px-3 py-3">Scope</th>
+                <th scope="col" className="px-3 py-3">Target</th>
                 <th scope="col" className="px-3 py-3">Evaluation</th>
                 <th scope="col" className="px-3 py-3">Change</th>
                 <th scope="col" className="px-3 py-3">Result</th>
@@ -283,12 +284,8 @@ export default function EvaluationRunComparisonPage() {
               {visibleRows.map((row) => (
                 <tr key={row.case.id} className="border-b border-[var(--studio-border)] last:border-0 align-top">
                   <th scope="row" className="px-3 py-3 text-left">
-                    <span className="font-semibold capitalize">{row.case.target_kind}</span>
-                    <span className="mt-1 block font-mono text-xs font-normal">
-                      {row.case.target_key}
-                    </span>
-                    <span className="mt-1 block text-xs font-normal text-[var(--studio-text-subtle)]">
-                      Input v{row.case.input_version}
+                    <span className="font-semibold">
+                      {evaluationTargetLabel(row.case.target_kind, row.case.target_name)}
                     </span>
                   </th>
                   <td className="px-3 py-3 font-semibold">{row.case.evaluation_name}</td>
