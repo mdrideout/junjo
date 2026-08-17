@@ -9,10 +9,11 @@ interface NestedOtelSpansProps {
   traceId: string
   selectedSpanId: string | null
   onSelectSpan: (span: OtelSpan) => void
+  onOpenFailures: (span: OtelSpan) => void
 }
 
 export default function NestedOtelSpans(props: NestedOtelSpansProps) {
-  const { spans, traceId, selectedSpanId, onSelectSpan } = props
+  const { spans, traceId, selectedSpanId, onSelectSpan, onOpenFailures } = props
 
   // Find the root span (the one with matching traceId as spanId or null parent)
   const rootSpan =
@@ -74,7 +75,12 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
           id={`nested-span-${rowData.span.span_id}`}
           className={`rounded-md ${hasChildren ? 'mb-2' : 'mb-0'} last-of-type:mb-0 ${layer > 0 ? 'ml-3 text-sm' : 'ml-0'}`}
         >
-          <SpanRow span={rowData.span} isActiveSpan={isActiveSpan} onClick={onSelectSpan} />
+          <SpanRow
+            span={rowData.span}
+            isActiveSpan={isActiveSpan}
+            onClick={onSelectSpan}
+            onOpenFailures={onOpenFailures}
+          />
           {hasChildren && (
             <div
               className={`border-l ml-[13px] ${isActiveSpan ? 'border-amber-500' : 'border-zinc-300 dark:border-zinc-700'}`}
@@ -113,6 +119,7 @@ export default function NestedOtelSpans(props: NestedOtelSpansProps) {
           span={rootRowData.span}
           isActiveSpan={selectedSpanId === rootRowData.span.span_id}
           onClick={onSelectSpan}
+          onOpenFailures={onOpenFailures}
         />
         {rootRowData.childRows.length > 0 && (
           <div className="border-l ml-[13px] border-zinc-300 dark:border-zinc-700">

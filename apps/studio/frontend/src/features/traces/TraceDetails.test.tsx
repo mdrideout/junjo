@@ -1,13 +1,26 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAppStore } from '../../root-store/store'
 import type { OtelSpan } from './schemas/schemas'
 import { TracesStateActions } from './store/slice'
 import { makeTraceEvidence } from './testing/make-trace-evidence'
 import TraceDetails from './TraceDetails'
+
+const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  'scrollIntoView',
+)
+
+afterEach(() => {
+  if (originalScrollIntoView === undefined) {
+    delete (Element.prototype as Partial<Element>).scrollIntoView
+    return
+  }
+  Object.defineProperty(Element.prototype, 'scrollIntoView', originalScrollIntoView)
+})
 
 function span(traceId: string, spanId: string, serviceName: string, name: string): OtelSpan {
   return {
@@ -109,5 +122,82 @@ describe('TraceDetails navigation', () => {
 
     expect(router.state.location.pathname).toBe('/resolve/executable')
     expect(screen.getAllByText('resolver-child')).toHaveLength(2)
+  })
+
+  it('scrolls the independent details column to a selected span exception', async () => {
+    const user = userEvent.setup()
+    const traceId = 'dddddddddddddddddddddddddddddddd'
+    const failedSpan: OtelSpan = {
+      ...span(traceId, '5555555555555555', 'service-d', 'failed-span'),
+      attributes_json: { 'error.type': 'ValueError' },
+      events_json: [{
+        name: 'exception',
+        timeUnixNano: '1775391300150000000',
+        attributes: {
+          'exception.type': 'ValueError',
+          'exception.message': 'validation failed',
+        },
+        droppedAttributesCount: 0,
+      }],
+    }
+    const normalSpan: OtelSpan = {
+      ...span(traceId, '6666666666666666', 'service-d', 'normal-span'),
+      parent_span_id: failedSpan.span_id,
+    }
+    const store = storeWithEvidence([failedSpan, normalSpan])
+    const router = createMemoryRouter(
+      [{ path: '/traces/:serviceName/:traceId/:spanId?', element: <TraceDetails /> }],
+      { initialEntries: [`/traces/service-d/${traceId}`] },
+    )
+    const scrollTargets: Element[] = []
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(function (this: Element) {
+        scrollTargets.push(this)
+      }),
+    })
+
+    render(
+      <Provider store={store}>
+        <RouterProvider router={router} />
+      </Provider>,
+    )
+
+    expect(screen.getByRole('region', { name: 'Trace spans' })).toHaveClass('overflow-y-auto')
+    expect(screen.getByRole('region', { name: 'Selected span details' })).toHaveClass(
+      'overflow-y-auto',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'failures' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(
+        `/traces/service-d/${traceId}/${failedSpan.span_id}`,
+      )
+      expect(scrollTargets).toHaveLength(1)
+    })
+    expect(scrollTargets[0]).toHaveTextContent('exception')
+    expect(scrollTargets[0]).toHaveTextContent('validation failed')
+
+    const detailsRegion = screen.getByRole('region', { name: 'Selected span details' })
+    const spansRegion = screen.getByRole('region', { name: 'Trace spans' })
+    detailsRegion.scrollTop = 420
+    await user.click(within(spansRegion).getByText('normal-span'))
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(
+        `/traces/service-d/${traceId}/${normalSpan.span_id}`,
+      )
+    })
+    expect(screen.getByRole('region', { name: 'Selected span details' }).scrollTop).toBe(0)
+
+    screen.getByRole('region', { name: 'Selected span details' }).scrollTop = 420
+    await user.click(within(spansRegion).getByText('failed-span'))
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(
+        `/traces/service-d/${traceId}/${failedSpan.span_id}`,
+      )
+    })
+    expect(screen.getByRole('region', { name: 'Selected span details' }).scrollTop).toBe(0)
+    expect(scrollTargets).toHaveLength(1)
   })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import JsonView from '@uiw/react-json-view'
 import { lightTheme } from '@uiw/react-json-view/light'
 import { vscodeTheme } from '@uiw/react-json-view/vscode'
@@ -77,7 +77,6 @@ export default function WorkflowDetailStateDiff({
   activeStoreWorkflowSpan,
   storeDiagnosticRequest,
 }: WorkflowDetailStateDiffProps) {
-  const hasMountedRef = useRef(false)
   const openFailuresTrigger = useAppSelector(
     (state: RootState) => state.workflowDetailState.openFailuresTrigger,
   )
@@ -146,14 +145,6 @@ export default function WorkflowDetailStateDiff({
   }, [])
 
   useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true
-      return
-    }
-    if (openFailuresTrigger != null) setActiveTab(DiffTabOptions.FAILURES)
-  }, [openFailuresTrigger])
-
-  useEffect(() => {
     if (activeTab === DiffTabOptions.FAILURES && !hasFailures) setActiveTab(defaultTab)
   }, [activeTab, defaultTab, hasFailures])
 
@@ -165,7 +156,11 @@ export default function WorkflowDetailStateDiff({
     setActiveTab((currentTab) =>
       currentTab === DiffTabOptions.SPAN_DETAILS ? DiffTabOptions.AFTER : currentTab,
     )
-  }, [activeStateEvent])
+  }, [activeSpan?.span_id, activeStateEvent])
+
+  useEffect(() => {
+    if (openFailuresTrigger != null && hasFailures) setActiveTab(DiffTabOptions.FAILURES)
+  }, [hasFailures, openFailuresTrigger])
 
   useEffect(() => {
     if (!stateViewsAvailable && STATE_TABS.has(activeTab)) {

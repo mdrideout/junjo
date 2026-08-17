@@ -62,11 +62,13 @@ function renderStateDiff({
   activeSpan,
   defaultWorkflowSpan,
   diagnostic,
+  openFailuresTrigger = null,
 }: {
   spans: OtelSpan[]
   activeSpan: OtelSpan
   defaultWorkflowSpan: OtelSpan
   diagnostic: WorkflowStoreDiagnostic
+  openFailuresTrigger?: number | null
 }) {
   const store = configureStore({
     reducer: {
@@ -78,7 +80,7 @@ function renderStateDiff({
         activeSpanIdentity: spanSelection(activeSpan),
         activeStateEvent: null,
         stateEventScrollTarget: null,
-        openFailuresTrigger: null,
+        openFailuresTrigger,
       },
       tracesState: {
         serviceNames: {
@@ -161,5 +163,24 @@ describe('WorkflowDetailStateDiff', () => {
     expect(screen.queryByRole('button', { name: 'Before' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'After' })).not.toBeInTheDocument()
     expect(screen.getByText('patch_replay_mismatch')).toBeInTheDocument()
+  })
+
+  it('opens Failures when a failure-chip trigger arrives with the selected span', async () => {
+    const spans = loadFixtureSpans('failed_executable_with_error_type')
+    const workflowSpan = spans.find((span) => span.span_id === '4444444444444441')
+    const failedSpan = spans.find((span) => span.span_id === '4444444444444443')
+    if (!workflowSpan || !failedSpan) throw new Error('Expected failed Workflow fixture spans')
+
+    renderStateDiff({
+      spans,
+      activeSpan: failedSpan,
+      defaultWorkflowSpan: workflowSpan,
+      diagnostic: loadBasicWorkflowProjection(),
+      openFailuresTrigger: 1,
+    })
+
+    expect(await screen.findByText('Exception')).toBeInTheDocument()
+    expect(screen.getByText('validation failed')).toBeInTheDocument()
+    expect(screen.queryByText('Basic Information')).not.toBeInTheDocument()
   })
 })

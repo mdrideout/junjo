@@ -1,17 +1,25 @@
+import type { RefObject } from 'react'
 import SpanAttributeKeyValueViewer from '../../components/SpanAttributeKeyValueViewer'
 import { OtelSpan } from './schemas/schemas'
 import { isLLMSpan } from './utils/span-utils'
 import { Link } from 'react-router'
 import { promptPlaygroundPath, tracesPath, workflowPath } from '../../util/telemetry-paths'
+import { wrapSpan } from './utils/span-accessor'
 
 interface SpanAttributesContentProps {
   span: OtelSpan
   origin?: 'traces' | 'workflows'
   workflowSpanId?: string
+  failureSectionRef?: RefObject<HTMLDivElement | null>
 }
 
 export default function SpanAttributesContent(props: SpanAttributesContentProps) {
-  const { span, origin = 'traces', workflowSpanId } = props
+  const { span, origin = 'traces', workflowSpanId, failureSectionRef } = props
+  const firstFailureEventIndex = span.events_json.findIndex(
+    (event) => event.name === 'exception' || event.name === 'junjo.hook_error',
+  )
+  const attributesAreFailureTarget =
+    firstFailureEventIndex === -1 && Boolean(wrapSpan(span).errorType)
 
   // Generate playground link based on origin
   const getPlaygroundLink = () => {
@@ -70,7 +78,7 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
         </div>
       </div>
 
-      <div className="mb-6">
+      <div ref={attributesAreFailureTarget ? failureSectionRef : undefined} className="mb-6">
         <div className="font-semibold text-md mb-2 text-lg">Attributes</div>
         {Object.keys(span.attributes_json).length > 0 ? (
           <div className="grid grid-cols-1 gap-2">
@@ -93,7 +101,11 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
         {span.events_json.length > 0 ? (
           <div className="space-y-3">
             {span.events_json.map((event, index) => (
-              <div key={index} className="border border-zinc-200 dark:border-zinc-700 rounded p-2">
+              <div
+                key={index}
+                ref={index === firstFailureEventIndex ? failureSectionRef : undefined}
+                className="border border-zinc-200 dark:border-zinc-700 rounded p-2"
+              >
                 <div className="font-semibold">{event.name}</div>
                 {event.attributes && Object.keys(event.attributes).length > 0 ? (
                   <div className="mt-2 grid grid-cols-1 gap-1">

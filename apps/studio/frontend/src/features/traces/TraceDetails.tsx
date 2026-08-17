@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { OtelSpan } from '../traces/schemas/schemas'
 import NestedOtelSpans from './NestedOtelSpans'
 import SpanAttributesPanel from './SpanAttributesPanel'
@@ -28,6 +28,7 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
   const { traceId, serviceName, spanId } = routeIdentity ?? routeParameters
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
+  const detailColumnRef = useRef<HTMLDivElement>(null)
   const spans: OtelSpan[] = useAppSelector((state) => selectTraceSpansForTraceId(state, { traceId }))
   const request = useAppSelector((state) =>
     selectTraceEvidenceRequestForTraceId(state, { traceId }),
@@ -38,6 +39,10 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
   const [resolverSelection, setResolverSelection] = useState<{
     resolverIdentity: string
     spanId: string
+  } | null>(null)
+  const [failureFocus, setFailureFocus] = useState<{
+    spanId: string
+    trigger: number
   } | null>(null)
   const selectedSpanId = routeIdentity === undefined
     ? spanId
@@ -54,12 +59,24 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
     dispatch(TracesStateActions.fetchTraceEvidence({ traceId }))
   }, [dispatch, traceId, spans.length])
 
-  const selectSpan = (span: OtelSpan) => {
+  const selectSpan = (span: OtelSpan, detailTarget: 'top' | 'failure' = 'top') => {
+    if (detailTarget === 'top') {
+      setFailureFocus(null)
+      if (detailColumnRef.current !== null) detailColumnRef.current.scrollTop = 0
+    }
     if (routeIdentity !== undefined && resolverIdentity !== null) {
       setResolverSelection({ resolverIdentity, spanId: span.span_id })
       return
     }
     navigate(tracesPath(serviceName ?? '', traceId, span.span_id), { replace: true })
+  }
+
+  const openSpanFailures = (span: OtelSpan) => {
+    selectSpan(span, 'failure')
+    setFailureFocus((current) => ({
+      spanId: span.span_id,
+      trigger: (current?.trigger ?? 0) + 1,
+    }))
   }
 
   if (!traceId || !serviceName) {
@@ -101,19 +118,37 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
         </div>
         <div className={'text-zinc-400 text-xs'}>{spans[0]?.start_time}</div>
       </div>
-      <div className={'grow overflow-scroll'}>
-        <hr className={'my-6'} />
-        <div className="grow flex overflow-hidden">
-          <div className="w-2/3 overflow-y-auto">
+      <div className={'flex min-h-0 grow flex-col'}>
+        <hr className={'my-6 shrink-0'} />
+        <div className="flex min-h-0 grow overflow-hidden">
+          <div
+            role="region"
+            aria-label="Trace spans"
+            className="min-h-0 w-2/3 overflow-y-auto"
+          >
             <NestedOtelSpans
               spans={spans}
               traceId={traceId}
               selectedSpanId={selectedSpan?.span_id || null}
               onSelectSpan={selectSpan}
+              onOpenFailures={openSpanFailures}
             />
           </div>
-          <div className="w-1/3 border-l border-zinc-300 dark:border-zinc-700 overflow-y-auto">
-            <SpanAttributesPanel span={selectedSpan} origin="traces" />
+          <div
+            ref={detailColumnRef}
+            role="region"
+            aria-label="Selected span details"
+            className="min-h-0 w-1/3 overflow-y-auto border-l border-zinc-300 dark:border-zinc-700"
+          >
+            <SpanAttributesPanel
+              span={selectedSpan}
+              origin="traces"
+              focusFailuresTrigger={
+                failureFocus !== null && failureFocus.spanId === selectedSpan?.span_id
+                  ? failureFocus.trigger
+                  : null
+              }
+            />
           </div>
         </div>
       </div>

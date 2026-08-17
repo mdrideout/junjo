@@ -4,6 +4,9 @@ import { OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from '../span-lists/determine-span-icon'
 import { spanSelection, WorkflowDetailStateActions } from './store/slice'
 import { wrapSpan } from '../../traces/utils/span-accessor'
+import { useNavigate } from 'react-router'
+import { useWorkflowDetailRoute } from './workflow-detail-route-context'
+import { workflowPath } from '../../../util/telemetry-paths'
 
 interface SpanFailuresListProps {
   spans: OtelSpan[]
@@ -21,6 +24,8 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
   const { spans } = props
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const { serviceName, traceId, workflowSpanId } = useWorkflowDetailRoute()
 
   if (spans.length === 0) {
     return <div className={'p-2'}>Select a span to view any failures.</div>
@@ -65,6 +70,12 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
                 onClick={() => {
                   dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
                   dispatch(WorkflowDetailStateActions.setActiveStateEvent(null))
+                  if (serviceName && traceId && workflowSpanId) {
+                    navigate(
+                      workflowPath(serviceName, traceId, workflowSpanId, span.span_id),
+                      { replace: true },
+                    )
+                  }
                   dispatch(WorkflowDetailStateActions.setOpenFailuresTrigger())
                 }}
               >

@@ -36,6 +36,7 @@ describe('SpanRow', () => {
     const user = userEvent.setup()
     const span = workflowSpan()
     const selectSpan = vi.fn()
+    const openFailures = vi.fn()
 
     function RowWithTraceSelection() {
       const navigate = useNavigate()
@@ -51,6 +52,7 @@ describe('SpanRow', () => {
               selectedSpan.span_id,
             ))
           }}
+          onOpenFailures={openFailures}
         />
       )
     }
@@ -74,5 +76,31 @@ describe('SpanRow', () => {
 
     expect(selectSpan).not.toHaveBeenCalled()
     expect(router.state.location.pathname).toBe(destination)
+  })
+
+  it('gives a failure chip its own selection intent', async () => {
+    const user = userEvent.setup()
+    const failedSpan = {
+      ...workflowSpan(),
+      attributes_json: {
+        'error.type': 'ValueError',
+      },
+    }
+    const selectSpan = vi.fn()
+    const openFailures = vi.fn()
+
+    render(
+      <SpanRow
+        span={failedSpan}
+        isActiveSpan={false}
+        onClick={selectSpan}
+        onOpenFailures={openFailures}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'failures' }))
+
+    expect(openFailures).toHaveBeenCalledWith(failedSpan)
+    expect(selectSpan).not.toHaveBeenCalled()
   })
 })

@@ -9,10 +9,11 @@ interface SpanRowProps {
   span: OtelSpan
   isActiveSpan: boolean
   onClick: (span: OtelSpan) => void
+  onOpenFailures: (span: OtelSpan) => void
 }
 
 export default function SpanRow(props: SpanRowProps) {
-  const { span, isActiveSpan, onClick } = props
+  const { span, isActiveSpan, onClick, onOpenFailures } = props
 
   const start_time = span.start_time
   const end_time = span.end_time
@@ -49,6 +50,10 @@ export default function SpanRow(props: SpanRowProps) {
                 className={
                   'mt-[1px] cursor-pointer text-white bg-red-700 hover:bg-red-600 rounded-lg px-1.5 text-xs'
                 }
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onOpenFailures(span)
+                }}
               >
                 failures
               </button>

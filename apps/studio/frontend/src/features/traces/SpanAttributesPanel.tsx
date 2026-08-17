@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { OtelSpan } from './schemas/schemas'
 import SpanAttributesContent from './SpanAttributesContent'
 
@@ -5,10 +6,17 @@ interface SpanAttributesPanelProps {
   span: OtelSpan | null
   origin?: 'traces' | 'workflows'
   workflowSpanId?: string
+  focusFailuresTrigger?: number | null
 }
 
 export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
-  const { span, origin = 'traces', workflowSpanId } = props
+  const { span, origin = 'traces', workflowSpanId, focusFailuresTrigger } = props
+  const failureSectionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (focusFailuresTrigger == null) return
+    failureSectionRef.current?.scrollIntoView({ block: 'start' })
+  }, [focusFailuresTrigger, span?.span_id])
 
   if (!span) {
     return (
@@ -20,9 +28,14 @@ export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
   }
 
   return (
-    <div className="p-4 h-full flex flex-col overflow-auto">
+    <div className="flex flex-col p-4">
       <div className="text-xl font-semibold mb-4">Span Details</div>
-      <SpanAttributesContent span={span} origin={origin} workflowSpanId={workflowSpanId} />
+      <SpanAttributesContent
+        span={span}
+        origin={origin}
+        workflowSpanId={workflowSpanId}
+        failureSectionRef={failureSectionRef}
+      />
     </div>
   )
 }
