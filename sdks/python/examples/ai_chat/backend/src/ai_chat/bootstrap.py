@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -28,6 +29,8 @@ from ai_chat.config import ModelProvider, Settings, StudioDiagnosticsSettings
 from ai_chat.domain.errors import TurnExecutionError
 from ai_chat.domain.models import ConversationOverview, Turn
 from ai_chat.domain.ports import ApplicationStore, ImageModel, LanguageModel
+
+logger = logging.getLogger(__name__)
 
 AsyncClose = Callable[[], Awaitable[None]]
 ImageModelFactory = Callable[[Path], ImageModel]
@@ -117,8 +120,14 @@ class ChatApplication:
     async def _execute_turn(self, turn_id: str) -> None:
         try:
             await self.turns.execute(turn_id)
-        except TurnExecutionError:
+        except TurnExecutionError as error:
             # The service has already persisted safe terminal failure evidence.
+            logger.exception(
+                "Turn execution failed (turn_id=%s, workflow_run_id=%s, agent_run_id=%s)",
+                error.turn_id,
+                error.workflow_run_id,
+                error.agent_run_id,
+            )
             return
 
 

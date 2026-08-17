@@ -8,9 +8,9 @@ from junjo import ModelDriverBinding, WorkflowCancelledError, WorkflowExecutionE
 from junjo.agent import AgentModelError, FinalOutputResponse, ModelRequest
 from junjo.agent.testing import ScriptedError
 
-from ai_chat.domain.errors import TurnExecutionError
-from ai_chat.domain.models import ContactSex, TurnStatus
-from conftest import FakeLanguageModel, make_harness, scripted_descriptor
+from ai_chat.domain.errors import ImageEditRefusedError, TurnExecutionError
+from ai_chat.domain.models import ContactSex, ImageArtifact, ImageEditResult, TurnStatus
+from conftest import FakeLanguageModel, RecordingImageModel, make_harness, scripted_descriptor
 
 
 @pytest.mark.asyncio
@@ -50,6 +50,42 @@ async def test_image_directive_runs_shared_avatar_conditioned_workflow_without_a
     assert completed.assistant_message.image.url.endswith("edited-image.png")
     assert completed.execution_references.agent_run_id is None
     assert len(harness.images.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_image_edit_refusal_becomes_safe_typed_turn_failure(tmp_path: Path) -> None:
+    class RefusingImageModel(RecordingImageModel):
+        async def edit(
+            self,
+            *,
+            source: ImageArtifact,
+            prompt: str,
+            alt_text: str,
+        ) -> ImageEditResult:
+            raise ImageEditRefusedError(
+                provider="Gemini",
+                reason="I can't generate that image edit.",
+            )
+
+    harness = make_harness(
+        tmp_path,
+        language=FakeLanguageModel(directive="image_response"),
+        images=RefusingImageModel(),
+    )
+
+    with pytest.raises(TurnExecutionError) as raised:
+        await harness.turns.submit(
+            conversation_id="demo",
+            text="Can you send a picture?",
+        )
+
+    persisted = await harness.store.get_turn(raised.value.turn_id)
+    assert persisted.failure is not None
+    assert persisted.failure.code == "image_edit_refused"
+    assert persisted.failure.detail == "Gemini declined to edit the image: I can't generate that image edit."
+    assert persisted.failure.termination_reason == "provider_refusal"
+    assert persisted.execution_references.workflow_run_id == raised.value.workflow_run_id
+    assert persisted.execution_references.agent_run_id is None
 
 
 @pytest.mark.asyncio

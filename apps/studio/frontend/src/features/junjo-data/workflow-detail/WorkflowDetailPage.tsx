@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import ErrorPage from '../../../components/errors/ErrorPage'
 import { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
@@ -24,6 +24,7 @@ import { logsPath } from '../../../util/telemetry-paths'
 
 export default function WorkflowDetailPage() {
   const { serviceName, traceId, workflowSpanId, spanId } = useWorkflowDetailRoute()
+  const location = useLocation()
   const dispatch = useAppDispatch()
   const [mermaidEdgeLabels, setMermaidEdgeLabels] = useState<boolean>(false)
 
@@ -58,6 +59,8 @@ export default function WorkflowDetailPage() {
   const initializedWorkflowIdentityRef = useRef<string | null>(null)
   const initializedRouteTargetIdentityRef = useRef<string | null>(null)
   const pendingRouteTargetIdentityRef = useRef<string | null>(null)
+  const openedFailuresRouteIdentityRef = useRef<string | null>(null)
+  const openFailuresFromRoute = new URLSearchParams(location.search).get('tab') === 'failures'
   const routeSelectionAlreadyMatches = routeTargetSpan !== undefined
     && activeSpan?.trace_id === traceId
     && activeSpan?.span_id === routeTargetSpan.span_id
@@ -121,6 +124,22 @@ export default function WorkflowDetailPage() {
       dispatch(WorkflowDetailStateActions.initializeWorkflowRoute(null))
     }
   }, [activeSpan, dispatch, routeTargetIdentity, routeTargetSpan, traceId, workflowIdentity, workflowSpan])
+
+  useEffect(() => {
+    if (!openFailuresFromRoute) {
+      openedFailuresRouteIdentityRef.current = null
+      return
+    }
+    if (
+      routeTargetIdentity === null
+      || !routeSelectionAlreadyMatches
+      || openedFailuresRouteIdentityRef.current === routeTargetIdentity
+    ) {
+      return
+    }
+    openedFailuresRouteIdentityRef.current = routeTargetIdentity
+    dispatch(WorkflowDetailStateActions.setOpenFailuresTrigger())
+  }, [dispatch, openFailuresFromRoute, routeSelectionAlreadyMatches, routeTargetIdentity])
 
   if (request.loading) return null
 

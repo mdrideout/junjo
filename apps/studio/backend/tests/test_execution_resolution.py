@@ -67,6 +67,7 @@ async def test_service_resolves_exact_owner_and_builds_existing_destinations(
 
     assert resolved is not None
     assert resolved.detail_path == expected_detail
+    assert resolved.failure_path == expected_detail
     assert resolved.trace_path == f"/traces/ai-chat/{TRACE_ID}/{SPAN_ID}"
 
 
@@ -120,6 +121,59 @@ async def test_service_selects_the_real_node_in_a_one_node_workflow() -> None:
     assert resolved is not None
     assert resolved.detail_path == (
         f"/workflows/ai-chat/{TRACE_ID}/{SPAN_ID}/{node_span_id}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_service_selects_the_single_failed_node_inside_a_workflow() -> None:
+    failed_node_span_id = "b" * 16
+    agent_span_id = "c" * 16
+    owner = _owner()
+    owner["attributes_json"]["error.type"] = "AgentError"
+    trace_spans = [
+        {
+            "trace_id": TRACE_ID,
+            "span_id": failed_node_span_id,
+            "parent_span_id": SPAN_ID,
+            "attributes_json": {
+                "junjo.telemetry.contract_version": 2,
+                "junjo.span_type": "node",
+                "error.type": "AgentError",
+            },
+            "events_json": [{"name": "exception"}],
+        },
+        {
+            "trace_id": TRACE_ID,
+            "span_id": agent_span_id,
+            "parent_span_id": failed_node_span_id,
+            "attributes_json": {
+                "junjo.telemetry.contract_version": 2,
+                "junjo.span_type": "agent",
+                "error.type": "AgentError",
+            },
+            "events_json": [{"name": "exception"}],
+        },
+    ]
+    with (
+        patch(
+            "app.features.execution_resolution.repository.list_owner_candidates",
+            new=AsyncMock(return_value=[owner]),
+        ),
+        patch(
+            "app.features.execution_resolution.repository.list_trace_spans",
+            new=AsyncMock(return_value=trace_spans),
+        ),
+    ):
+        resolved = await service.resolve_execution(
+            service_namespace="junjo.examples",
+            service_name="ai-chat",
+            executable_type="workflow",
+            runtime_id="workflow-run",
+        )
+
+    assert resolved is not None
+    assert resolved.failure_path == (
+        f"/workflows/ai-chat/{TRACE_ID}/{SPAN_ID}/{failed_node_span_id}"
     )
 
 
@@ -198,6 +252,7 @@ async def test_route_returns_typed_resolution(authenticated_app) -> None:
         trace_id=TRACE_ID,
         span_id=SPAN_ID,
         detail_path=f"/workflows/ai-chat/{TRACE_ID}/{SPAN_ID}",
+        failure_path=f"/workflows/ai-chat/{TRACE_ID}/{SPAN_ID}",
         trace_path=f"/traces/ai-chat/{TRACE_ID}/{SPAN_ID}",
     )
     with patch(

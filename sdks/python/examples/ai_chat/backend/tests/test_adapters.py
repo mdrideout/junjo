@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from PIL import Image
 
-from ai_chat.adapters.images import GrokImageModel
+from ai_chat.adapters.images import GeminiImageModel, GrokImageModel
 from ai_chat.adapters.persistence import SqliteChatStore
-from ai_chat.domain.errors import TurnInProgressError
+from ai_chat.domain.errors import ImageEditRefusedError, TurnInProgressError
 from ai_chat.domain.models import (
     ChatAgentOutput,
     ContextPolicyReference,
@@ -41,6 +42,19 @@ class FakeGrokImageClient:
     async def sample(self, **request: Any) -> FakeGrokImageResponse:
         self.requests.append(request)
         return FakeGrokImageResponse(self._image_bytes)
+
+
+class FakeGeminiImageModels:
+    def __init__(self, response: object) -> None:
+        self._response = response
+
+    async def generate_content(self, **_request: object) -> object:
+        return self._response
+
+
+class FakeGeminiImageClient:
+    def __init__(self, response: object) -> None:
+        self.models = FakeGeminiImageModels(response)
 
 
 @pytest.mark.asyncio
@@ -279,3 +293,50 @@ async def test_grok_image_adapter_awaits_and_persists_sdk_image_response(
     assert client.requests[0]["image_format"] == "base64"
     assert client.requests[0]["aspect_ratio"] == "1:1"
     assert client.requests[1]["image_url"].startswith("data:image/png;base64,")
+
+
+@pytest.mark.asyncio
+async def test_gemini_image_adapter_preserves_text_only_edit_refusal(
+    tmp_path: Path,
+) -> None:
+    image_directory = tmp_path / "images"
+    image_directory.mkdir()
+    Image.new("RGB", (2, 2), color="purple").save(image_directory / "source.png", format="PNG")
+    response = SimpleNamespace(
+        candidates=[
+            SimpleNamespace(
+                content=SimpleNamespace(
+                    parts=[
+                        SimpleNamespace(
+                            text="I can't generate that image edit.",
+                            inline_data=None,
+                        )
+                    ]
+                )
+            )
+        ]
+    )
+    images = GeminiImageModel(
+        client=FakeGeminiImageClient(response),  # type: ignore[arg-type]
+        model="gemini-3.1-flash-image",
+        timeout_seconds=1,
+        directory=image_directory,
+        id_factory=SequenceIds("gemini-image"),
+    )
+
+    with pytest.raises(
+        ImageEditRefusedError,
+        match="Gemini declined to edit the image: I can't generate that image edit.",
+    ) as raised:
+        await images.edit(
+            source=ImageArtifact(
+                id="source",
+                url="/api/images/source.png",
+                alt_text="Source portrait",
+            ),
+            prompt="Edit the portrait",
+            alt_text="Edited portrait",
+        )
+
+    assert raised.value.provider == "Gemini"
+    assert raised.value.reason == "I can't generate that image edit."

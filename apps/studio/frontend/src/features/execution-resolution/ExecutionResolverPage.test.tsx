@@ -6,19 +6,19 @@ import ExecutionResolverPage from './ExecutionResolverPage'
 
 vi.mock('./fetch/resolve-execution', () => ({ resolveExecution: vi.fn() }))
 
-const resolverUrl = (
+const resolverUrl = (destination: 'detail' | 'failures' | 'trace' = 'detail') => (
   '/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat'
-  + '&executable_type=workflow&runtime_id=workflow-run&destination=detail'
+  + `&executable_type=workflow&runtime_id=workflow-run&destination=${destination}`
 )
 
-function renderResolver() {
+function renderResolver(destination: 'detail' | 'failures' | 'trace' = 'detail') {
   const router = createMemoryRouter(
     [
       { path: '/resolve/executable', element: <ExecutionResolverPage /> },
-      { path: '/workflows/:serviceName/:traceId/:workflowSpanId', element: <div>Workflow detail</div> },
+      { path: '/workflows/:serviceName/:traceId/:workflowSpanId/:spanId?', element: <div>Workflow detail</div> },
       { path: '/traces/:serviceName/:traceId/:spanId', element: <div>Trace detail</div> },
     ],
-    { initialEntries: [resolverUrl] },
+    { initialEntries: [resolverUrl(destination)] },
   )
   render(<RouterProvider router={router} />)
   return router
@@ -32,6 +32,7 @@ const resolution = {
   trace_id: '1'.repeat(32),
   span_id: 'a'.repeat(16),
   detail_path: `/workflows/ai-chat/${'1'.repeat(32)}/${'a'.repeat(16)}`,
+  failure_path: `/workflows/ai-chat/${'1'.repeat(32)}/${'a'.repeat(16)}/${'b'.repeat(16)}`,
   trace_path: `/traces/ai-chat/${'1'.repeat(32)}/${'a'.repeat(16)}`,
 }
 
@@ -73,6 +74,15 @@ describe('ExecutionResolverPage', () => {
     expect(await screen.findByText('Workflow detail')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe(resolution.detail_path)
     expect(router.state.location.search).toBe('')
+  })
+
+  it('opens the resolved failed node with its Failures tab selected', async () => {
+    vi.mocked(resolveExecution).mockResolvedValue(resolution)
+    const router = renderResolver('failures')
+
+    expect(await screen.findByText('Workflow detail')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(resolution.failure_path)
+    expect(router.state.location.search).toBe('?tab=failures')
   })
 
   it('continues polling beyond the former deadline with capped backoff', async () => {

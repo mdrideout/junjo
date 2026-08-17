@@ -24,6 +24,10 @@ const ResolutionSurfaceSchema = z.object({
 describe('API Contract: execution resolution', () => {
   const operation = ResolutionSurfaceSchema.parse(openapiSpec)
     .paths['/api/v1/execution-resolution'].get
+  const resolutionSchema = z.object({
+    required: z.array(z.string()),
+    properties: z.record(z.unknown()),
+  }).parse(openapiSpec.components.schemas.ExecutionResolution)
 
   it('requires one exact service-scoped executable identity', () => {
     expect(operation.parameters.map((parameter) => parameter.name)).toEqual([
@@ -62,6 +66,14 @@ describe('API Contract: execution resolution', () => {
           schema: { $ref: '#/components/schemas/HTTPValidationError' },
         },
       },
+    })
+  })
+
+  it('publishes the canonical failed-node destination', () => {
+    expect(resolutionSchema.required).toContain('failure_path')
+    expect(resolutionSchema.properties.failure_path).toMatchObject({
+      type: 'string',
+      pattern: '^/',
     })
   })
 })

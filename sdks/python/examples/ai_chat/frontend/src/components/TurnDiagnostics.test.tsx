@@ -62,4 +62,28 @@ describe('TurnDiagnostics', () => {
     expect(screen.getByText('workflow-run')).toBeInTheDocument()
     expect(screen.getByText('agent-run')).toBeInTheDocument()
   })
+
+  it('expands terminal failure evidence', () => {
+    const failedTurn: Turn = {
+      ...turn,
+      status: 'failed',
+      assistant_message: null,
+      failure: {
+        code: 'agent_execution_failed',
+        detail: 'Agent execution failed.',
+        termination_reason: 'tool_input_validation_error',
+      },
+    }
+
+    render(<TurnDiagnostics turn={failedTurn} config={studioConfig} />)
+
+    expect(screen.getByText('Turn diagnostics').closest('details')).toHaveAttribute('open')
+    expect(screen.getByText('agent_execution_failed')).toBeInTheDocument()
+    expect(screen.getByText('Agent execution failed.')).toBeInTheDocument()
+    expect(screen.getByText('tool_input_validation_error')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open failures in Studio' })).toHaveAttribute(
+      'href',
+      'http://localhost:26151/resolve/executable?service_namespace=junjo.examples&service_name=ai-chat&executable_type=workflow&runtime_id=workflow-run&destination=failures',
+    )
+  })
 })

@@ -63,8 +63,8 @@ Contact Tool. Optional older-history search and image creation remain Tools.
   language, image, and Agent-driver adapters.
 - `api`: strict HTTP projections, durable Turn admission, polling, and safe
   Studio diagnostic-link configuration.
-- `frontend`: the original multi-contact chat experience plus an optional
-  per-Turn Studio diagnostics layer.
+- `frontend`: the original multi-contact chat experience plus per-Turn failure
+  diagnostics and optional Studio deep links.
 
 `LanguageModel` and `ImageModel` are application ports for bounded Node work.
 Junjo's `ModelDriver` is a separate boundary for translating the Agent
@@ -74,6 +74,10 @@ startup; there is no demo provider, SVG substitute, or fallback chain.
 SQLite stores canonical versioned Contact, Conversation, and Turn JSON with
 only identity/order relationship projections. The browser reloads durable
 Turns and runtime references rather than maintaining a second evidence model.
+Text-only Gemini image-edit refusals become safe `image_edit_refused` Turn
+failures with the provider explanation. Background Turn failures are also
+written to the container log with their Turn, Workflow, and Agent run IDs;
+Studio retains the full execution evidence.
 
 ## Run the full stack
 

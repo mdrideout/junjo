@@ -65,7 +65,7 @@ class Settings:
     model_provider: ModelProvider = ModelProvider.GEMINI
     gemini_api_key: str | None = None
     xai_api_key: str | None = None
-    gemini_text_model: str = "gemini-3.5-flash"
+    gemini_text_model: str = "gemini-3.7-flash"
     gemini_image_model: str = "gemini-3.1-flash-image"
     grok_text_model: str = "grok-4.3"
     grok_image_model: str = "grok-imagine-image-quality"
@@ -120,7 +120,7 @@ class Settings:
             model_provider=provider,
             gemini_api_key=gemini_api_key,
             xai_api_key=xai_api_key,
-            gemini_text_model=os.getenv("AI_CHAT_GEMINI_TEXT_MODEL", "gemini-3.5-flash"),
+            gemini_text_model=os.getenv("AI_CHAT_GEMINI_TEXT_MODEL", "gemini-3.7-flash"),
             gemini_image_model=os.getenv("AI_CHAT_GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"),
             grok_text_model=os.getenv("AI_CHAT_GROK_TEXT_MODEL", "grok-4.3"),
             grok_image_model=os.getenv("AI_CHAT_GROK_IMAGE_MODEL", "grok-imagine-image-quality"),

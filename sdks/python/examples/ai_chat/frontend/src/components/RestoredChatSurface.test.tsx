@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Conversation, Turn } from '../api/schemas'
 import ChatForm from './ChatForm'
+import ChatWindow from './ChatWindow'
 import ChatReceiveImageBubble from './bubbles/ChatReceiveImageBubble'
 import ChatSidebar from './sidebar/ChatSidebar'
 
@@ -57,6 +58,29 @@ const imageTurn: Turn = {
   completed_at: '2026-07-14T12:00:02.000Z',
 }
 
+const failedTurn: Turn = {
+  ...imageTurn,
+  id: 'turn-failed',
+  revision: 2,
+  status: 'failed',
+  user_message: {
+    ...imageTurn.user_message,
+    id: 'user-failed',
+    turn_id: 'turn-failed',
+    content: 'Search my history',
+  },
+  assistant_message: null,
+  execution_references: {
+    workflow_run_id: 'workflow-failed',
+    agent_run_id: 'agent-failed',
+  },
+  failure: {
+    code: 'agent_execution_failed',
+    detail: 'Agent execution failed.',
+    termination_reason: 'tool_input_validation_error',
+  },
+}
+
 afterEach(cleanup)
 
 describe('restored AI Chat surface', () => {
@@ -94,6 +118,20 @@ describe('restored AI Chat surface', () => {
     await user.click(screen.getByRole('img', { name: 'A generated scene' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getAllByRole('img', { name: 'A generated scene' })).toHaveLength(2)
+  })
+
+  it('renders durable failures as red response bubbles with expanded diagnostics', () => {
+    render(<ChatWindow chatId={conversation.id} turns={[failedTurn]} config={null} loading={false} />)
+
+    expect(screen.getByText('Search my history')).toBeInTheDocument()
+    const failureBubble = screen.getByRole('alert')
+    expect(failureBubble).toHaveClass('from-red-800', 'to-red-950')
+    expect(failureBubble).toHaveTextContent('Agent execution failed.')
+    expect(failureBubble).toHaveTextContent('Failure code: agent_execution_failed')
+    expect(screen.getByText('Turn diagnostics').closest('details')).toHaveAttribute('open')
+    expect(screen.getByText('tool_input_validation_error')).toBeInTheDocument()
+    expect(screen.getByText('workflow-failed')).toBeInTheDocument()
+    expect(screen.getByText('agent-failed')).toBeInTheDocument()
   })
 
   it('clears the composer as soon as a message is submitted', async () => {

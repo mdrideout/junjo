@@ -29,9 +29,29 @@ class TurnNotFoundError(LookupError):
         super().__init__(f"Turn {turn_id} does not exist.")
 
 
+class ImageEditRefusedError(RuntimeError):
+    """An image provider returned a safe text refusal instead of an image."""
+
+    def __init__(self, *, provider: str, reason: str) -> None:
+        self.provider = provider
+        self.reason = reason.strip()
+        if not self.reason:
+            raise ValueError("Image edit refusal reason cannot be blank.")
+        super().__init__(f"{provider} declined to edit the image: {self.reason}")
+
+
 class TurnExecutionError(RuntimeError):
     """A Turn reached a durable failed state during execution."""
 
-    def __init__(self, turn_id: str, detail: str = "Turn execution failed.") -> None:
+    def __init__(
+        self,
+        turn_id: str,
+        detail: str = "Turn execution failed.",
+        *,
+        workflow_run_id: str | None = None,
+        agent_run_id: str | None = None,
+    ) -> None:
         self.turn_id = turn_id
+        self.workflow_run_id = workflow_run_id
+        self.agent_run_id = agent_run_id
         super().__init__(detail)

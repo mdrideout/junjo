@@ -32,6 +32,7 @@ class ExecutionResolution(BaseModel):
     trace_id: str = Field(pattern="^[0-9a-f]{32}$")
     span_id: str = Field(pattern="^[0-9a-f]{16}$")
     detail_path: str = Field(pattern="^/")
+    failure_path: str = Field(pattern="^/")
     trace_path: str = Field(pattern="^/")
 
 

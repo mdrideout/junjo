@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError, createTurn, getConversationTurns, getTurn } from '../api/client'
 import type { Turn } from '../api/schemas'
-import { failureFrom, failureFromTurn, type ChatFailure } from './chatFailure'
+import { failureFrom, type ChatFailure } from './chatFailure'
 
 const TERMINAL_STATUSES = new Set<Turn['status']>(['completed', 'failed', 'cancelled'])
 const ACTIVE_TURN_POLL_INTERVAL_MS = 2000
@@ -109,6 +109,10 @@ export function useConversationTurns(conversationId: string): ConversationTurnsS
       const failedTurn = reason instanceof ApiError ? reason.turn : null
       if (failedTurn !== null && failedTurn.conversation_id === conversationId) {
         setTurns((current) => upsertTurn(current, failedTurn))
+        if (failedTurn.failure !== null) {
+          setRequestError(null)
+          return false
+        }
       }
       setRequestError(failureFrom(reason))
       return false
@@ -117,14 +121,11 @@ export function useConversationTurns(conversationId: string): ConversationTurnsS
     }
   }, [activeTurnId, conversationId, submitting])
 
-  const latestTurn = turns[turns.length - 1]
-  const durableFailure = latestTurn === undefined ? null : failureFromTurn(latestTurn)
-
   return {
     turns,
     loading,
     sending: submitting || activeTurnId !== null,
-    error: requestError ?? durableFailure,
+    error: requestError,
     sendTurn,
   }
 }

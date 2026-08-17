@@ -14,7 +14,7 @@ from junjo import (
 )
 
 from ai_chat.application.dependencies import ChatDependencies
-from ai_chat.domain.errors import TurnExecutionError
+from ai_chat.domain.errors import ImageEditRefusedError, TurnExecutionError
 from ai_chat.domain.models import (
     ChatAgentInput,
     ChatAgentOutput,
@@ -121,26 +121,43 @@ class ChatTurnService:
         except Exception as cause:
             workflow_run_id = _workflow_run_id(cause) or workflow_run_id
             agent_error = _find_agent_error(cause)
+            image_refusal = _find_image_edit_refusal(cause)
             agent_run_id = (
                 agent_error.run_id if agent_error is not None else _workflow_state_agent_run_id(cause) or agent_run_id
             )
-            termination_reason = agent_error.termination_reason if agent_error is not None else None
+            if agent_error is not None:
+                failure = TurnFailure(
+                    code="agent_execution_failed",
+                    detail="Agent execution failed.",
+                    termination_reason=agent_error.termination_reason,
+                )
+            elif image_refusal is not None:
+                failure = TurnFailure(
+                    code="image_edit_refused",
+                    detail=str(image_refusal),
+                    termination_reason="provider_refusal",
+                )
+            else:
+                failure = TurnFailure(
+                    code="turn_execution_failed",
+                    detail="Turn execution failed.",
+                )
             _, terminal_write_cancellation = await _drain_terminal_write(
                 self._turns.terminate_turn(
                     turn_id=turn.id,
                     status=TurnStatus.FAILED,
-                    failure=TurnFailure(
-                        code=("agent_execution_failed" if agent_error is not None else "turn_execution_failed"),
-                        detail=("Agent execution failed." if agent_error is not None else "Turn execution failed."),
-                        termination_reason=termination_reason,
-                    ),
+                    failure=failure,
                     workflow_run_id=workflow_run_id,
                     agent_run_id=agent_run_id,
                 )
             )
             if terminal_write_cancellation is not None:
                 raise terminal_write_cancellation from cause
-            raise TurnExecutionError(turn.id) from cause
+            raise TurnExecutionError(
+                turn.id,
+                workflow_run_id=workflow_run_id,
+                agent_run_id=agent_run_id,
+            ) from cause
 
         if completion_cancellation is not None:
             raise completion_cancellation
@@ -159,6 +176,19 @@ def _find_agent_error(error: BaseException) -> AgentError | None:
     visited: set[int] = set()
     while current is not None and id(current) not in visited:
         if isinstance(current, AgentError):
+            return current
+        visited.add(id(current))
+        current = current.__cause__
+    return None
+
+
+def _find_image_edit_refusal(error: BaseException) -> ImageEditRefusedError | None:
+    """Return the first typed image refusal in one explicit cause chain."""
+
+    current: BaseException | None = error
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        if isinstance(current, ImageEditRefusedError):
             return current
         visited.add(id(current))
         current = current.__cause__

@@ -90,11 +90,14 @@ function ExecutionResolver({ request }: { request: ExecutionResolutionRequest })
   }, [attempt, request])
 
   if (state.phase === 'resolved') {
+    const destination = request.destination === 'trace'
+      ? state.resolution.trace_path
+      : request.destination === 'failures'
+        ? `${state.resolution.failure_path}?tab=failures`
+        : state.resolution.detail_path
     return (
       <Navigate
-        to={request.destination === 'trace'
-          ? state.resolution.trace_path
-          : state.resolution.detail_path}
+        to={destination}
         replace
       />
     )

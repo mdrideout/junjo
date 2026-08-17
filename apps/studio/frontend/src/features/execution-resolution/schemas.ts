@@ -8,7 +8,7 @@ export const ExecutionResolutionRequestSchema = z.object({
   service_name: z.string().min(1),
   executable_type: ExecutableTypeSchema,
   runtime_id: z.string().min(1),
-  destination: z.enum(['detail', 'trace']),
+  destination: z.enum(['detail', 'failures', 'trace']),
 }).strict()
 export type ExecutionResolutionRequest = z.infer<typeof ExecutionResolutionRequestSchema>
 
@@ -20,6 +20,7 @@ export const ExecutionResolutionSchema = z.object({
   trace_id: z.string().regex(/^[0-9a-f]{32}$/),
   span_id: z.string().regex(/^[0-9a-f]{16}$/),
   detail_path: z.string().startsWith('/'),
+  failure_path: z.string().startsWith('/'),
   trace_path: z.string().startsWith('/'),
 }).strict()
 export type ExecutionResolution = z.infer<typeof ExecutionResolutionSchema>

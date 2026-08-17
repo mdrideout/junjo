@@ -45,7 +45,7 @@ export interface SemanticExecutionIdentity {
 
 export function executionResolverPath(
   identity: SemanticExecutionIdentity,
-  destination: 'detail' | 'trace' = 'detail',
+  destination: 'detail' | 'failures' | 'trace' = 'detail',
 ): string {
   const parameters = new URLSearchParams({
     service_namespace: identity.service_namespace,

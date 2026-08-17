@@ -195,7 +195,7 @@ describe('useConversationTurns', () => {
     })
   })
 
-  it('derives durable failure presentation from loaded Turn state', async () => {
+  it('keeps a loaded durable failure in Turn state instead of raising a request alert', async () => {
     const failedTurn: Turn = {
       ...completedTurn,
       revision: 2,
@@ -214,12 +214,8 @@ describe('useConversationTurns', () => {
     })
     const hook = await renderLoadedConversation()
 
-    expect(hook.result.current.error).toEqual({
-      message: 'Agent execution failed.',
-      workflowRunId: null,
-      agentRunId: 'failed-agent-run',
-      terminationReason: 'tool_error',
-    })
+    expect(hook.result.current.turns).toEqual([failedTurn])
+    expect(hook.result.current.error).toBeNull()
   })
 
   it('does not admit a second Turn in the same active conversation', async () => {

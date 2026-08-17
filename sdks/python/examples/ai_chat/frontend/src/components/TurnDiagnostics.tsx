@@ -43,9 +43,13 @@ export function TurnDiagnostics({ turn, config }: TurnDiagnosticsProps) {
   const traceUrl = config === null || workflowRunId === null
     ? null
     : studioResolutionUrl(config, 'workflow', workflowRunId, 'trace')
+  const failure = turn.failure
+  const failureUrl = config === null || workflowRunId === null || failure === null
+    ? null
+    : studioResolutionUrl(config, 'workflow', workflowRunId, 'failures')
 
   return (
-    <details className="turn-diagnostics">
+    <details className="turn-diagnostics" open={failure !== null}>
       <summary>Turn diagnostics</summary>
       <dl aria-label="Turn diagnostics">
         <div>
@@ -56,8 +60,32 @@ export function TurnDiagnostics({ turn, config }: TurnDiagnosticsProps) {
           <dt>Status</dt>
           <dd>{turn.status}</dd>
         </div>
+        {failure !== null && (
+          <>
+            <div>
+              <dt>Failure code</dt>
+              <dd>{failure.code}</dd>
+            </div>
+            <div>
+              <dt>Detail</dt>
+              <dd>{failure.detail}</dd>
+            </div>
+            {failure.termination_reason !== null && (
+              <div>
+                <dt>Termination</dt>
+                <dd>{failure.termination_reason}</dd>
+              </div>
+            )}
+          </>
+        )}
         <RunReference label="Workflow run" runtimeId={workflowRunId} studioUrl={workflowUrl} />
         <RunReference label="Agent run" runtimeId={agentRunId} studioUrl={agentUrl} />
+        {failureUrl !== null && (
+          <div>
+            <dt>Failed node</dt>
+            <dd><a href={failureUrl} target="_blank" rel="noreferrer">Open failures in Studio</a></dd>
+          </div>
+        )}
         {traceUrl !== null && (
           <div>
             <dt>Full trace</dt>

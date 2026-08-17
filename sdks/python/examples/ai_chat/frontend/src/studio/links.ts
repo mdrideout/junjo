@@ -6,7 +6,7 @@ export function studioResolutionUrl(
   config: PublicConfig,
   executableType: ResolvableExecutableType,
   runtimeId: string,
-  destination: 'detail' | 'trace' = 'detail',
+  destination: 'detail' | 'failures' | 'trace' = 'detail',
 ): string | null {
   if (config.studio_frontend_base_url === null) return null
 

@@ -37,10 +37,15 @@ survives reload without becoming server-owned product data.
 
 An admitted execution failure is a typed problem containing the terminal Turn.
 The client keeps that durable failure and its known runtime identities visible
-after reload. When the backend provides a Studio frontend base URL, the
-diagnostics panel links those identities through Studio's authenticated
-resolver; no Studio credential is exposed to this application. Relative image
-paths are resolved against the same API origin used for JSON requests.
+after reload. Failed Turns appear as red assistant-side response bubbles with
+the failure code and expanded Turn diagnostics. Their Studio link resolves the
+exact failed Workflow node and opens its Failures tab. Request failures without
+a durable Turn remain page-level alerts. When the backend provides a Studio
+frontend base URL, the diagnostics panel links those identities through
+Studio's authenticated resolver; no Studio credential is exposed to this
+application. Relative image paths are resolved against the same API origin
+used for JSON requests. A text-only Gemini image-edit refusal is shown as an
+`image_edit_refused` failure with Gemini's explanation.
 
 ## Run
 
@@ -75,7 +80,8 @@ npm run build
 ```
 
 The tests lock the JSON contracts and prove that admitted, completed, and
-failed Turns retain execution references, contact creation and the restored UI
-remain available, navigation cannot mix conversation-local state, active Turns
-resume from authoritative history, obsolete polling is cleaned up, and the
-optional diagnostics controls construct exact Studio resolver links.
+failed Turns retain execution references, failed response bubbles expose
+expanded diagnostics, contact creation and the restored UI remain available,
+navigation cannot mix conversation-local state, active Turns resume from
+authoritative history, obsolete polling is cleaned up, and optional Studio
+links use the exact resolver contract.

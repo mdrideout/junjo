@@ -233,4 +233,37 @@ describe('WorkflowDetailPage route lifecycle', () => {
     expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
       .toBe(child.span_id)
   })
+
+  it('opens failure diagnostics when a canonical child URL requests the Failures tab', async () => {
+    const basicSpans = loadSpans('basic_workflow_success')
+    const subflowSpans = loadSpans('subflow_with_parent_store')
+    const workflow = findSpan(basicSpans, '1111111111111111')
+    const child = findSpan(basicSpans, '1111111111111112')
+    const store = makeStore(basicSpans, subflowSpans)
+    const route = (
+      `/workflows/basic-service/${workflow.trace_id}/${workflow.span_id}/${child.span_id}`
+      + '?tab=failures'
+    )
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/workflows/:serviceName/:traceId/:workflowSpanId/:spanId?',
+          element: <WorkflowDetailPage />,
+        },
+      ],
+      { initialEntries: [route] },
+    )
+
+    render(
+      <Provider store={store}>
+        <RouterProvider router={router} />
+      </Provider>,
+    )
+
+    await waitFor(() => {
+      expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId)
+        .toBe(child.span_id)
+      expect(store.getState().workflowDetailState.openFailuresTrigger).toBe(1)
+    })
+  })
 })

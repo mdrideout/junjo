@@ -248,6 +248,7 @@ async def test_health_check_returns_503_before_lifespan_initialization(tmp_path:
 @pytest.mark.asyncio
 async def test_background_agent_failure_is_persisted_and_pollable(
     tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     harness = make_harness(
         tmp_path,
@@ -279,12 +280,19 @@ async def test_background_agent_failure_is_persisted_and_pollable(
             )
             assert admitted.status_code == 202
             body = await _terminal_turn(client, admitted.json()["id"])
+            if harness.application._turn_tasks:
+                await asyncio.gather(*harness.application._turn_tasks)
 
     assert body["status"] == "failed"
     assert body["execution_references"]["workflow_run_id"]
     assert body["execution_references"]["agent_run_id"]
     assert body["failure"]["termination_reason"] == "tool_input_validation_error"
     assert body["failure"]["code"] == "agent_execution_failed"
+    failure_log = next(record for record in caplog.records if record.name == "ai_chat.bootstrap")
+    assert body["id"] in failure_log.getMessage()
+    assert body["execution_references"]["workflow_run_id"] in failure_log.getMessage()
+    assert body["execution_references"]["agent_run_id"] in failure_log.getMessage()
+    assert failure_log.exc_info is not None
 
 
 @pytest.mark.asyncio
@@ -869,3 +877,4 @@ def test_gemini_is_the_explicit_default_and_requires_its_key(
     settings = Settings.from_environment()
     assert settings.model_provider is ModelProvider.GEMINI
     assert settings.gemini_api_key == "gemini-key"
+    assert settings.gemini_text_model == "gemini-3.7-flash"

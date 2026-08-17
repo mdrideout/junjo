@@ -4519,6 +4519,11 @@
             "pattern": "^/",
             "title": "Detail Path"
           },
+          "failure_path": {
+            "type": "string",
+            "pattern": "^/",
+            "title": "Failure Path"
+          },
           "trace_path": {
             "type": "string",
             "pattern": "^/",
@@ -4535,6 +4540,7 @@
           "trace_id",
           "span_id",
           "detail_path",
+          "failure_path",
           "trace_path"
         ],
         "title": "ExecutionResolution"

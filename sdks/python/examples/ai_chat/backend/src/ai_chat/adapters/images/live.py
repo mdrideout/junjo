@@ -16,6 +16,7 @@ from PIL import Image
 from xai_sdk import AsyncClient
 
 from ai_chat.adapters.provider_call import await_provider_call
+from ai_chat.domain.errors import ImageEditRefusedError
 from ai_chat.domain.models import ImageArtifact, ImageEditResult
 from ai_chat.domain.ports import IdFactory
 
@@ -110,6 +111,9 @@ class GeminiImageModel:
                 if part.inline_data is not None and part.inline_data.data:
                     image_bytes = part.inline_data.data
         if image_bytes is None:
+            refusal = "\n".join(part for part in text_parts if part)
+            if refusal:
+                raise ImageEditRefusedError(provider="Gemini", reason=refusal)
             raise ValueError("Gemini returned no edited image artifact.")
         return ImageEditResult(
             artifact=self._writer.write(image_bytes=image_bytes, alt_text=alt_text),
