@@ -1,8 +1,6 @@
 import { JSX } from 'react'
 import { OtelSpan } from '../../traces/schemas/schemas'
 import {
-  CubeIcon,
-  Square3Stack3DIcon,
   Squares2X2Icon,
   CircleStackIcon,
   QuestionMarkCircleIcon,
@@ -13,6 +11,7 @@ import {
 import { OpenInferenceSpanKind } from '../../traces/schemas/attribute-schemas-openinference'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 import { OpenAILogoIcon } from './openai-logo-icon'
+import { JunjoLogoIcon } from './junjo-logo-icon'
 
 /**
  * Span Icon Constructor
@@ -35,15 +34,22 @@ export function SpanIconConstructor(props: {
   const attributes = span.attributes_json
   const accessor = wrapSpan(span)
 
-  // ============ JUNJO SPAN ICONS ============>
-  // Junjo Subflow Span
-  if (accessor.isSubflow) {
-    return <Square3Stack3DIcon className={`${size} ${iconColor}`} />
+  // Fixture-backed model spans performed no provider request. Keep the model
+  // kind in the adjacent chip while using the code mark for its scripted source.
+  if (attributes['junjo.model.fixture'] === true) {
+    return <CodeBracketIcon data-span-icon="fixture" className={`${size} ${iconColor}`} />
   }
 
-  // Junjo Node Span
-  if (accessor.isNode) {
-    return <CubeIcon className={`${size} ${iconColor}`} />
+  // ============ JUNJO SPAN ICONS ============>
+  // Native Junjo execution boundaries use the Junjo fish mark. Subflows are
+  // presented as Workflows elsewhere in the trace tree.
+  if (
+    attributes['junjo.span_type'] === 'agent' ||
+    accessor.isWorkflow ||
+    accessor.isSubflow ||
+    accessor.isNode
+  ) {
+    return <JunjoLogoIcon className={`${size} shrink-0 object-contain dark:invert`} />
   }
 
   // Junjo RunConcurrent Span
@@ -68,14 +74,17 @@ export function SpanIconConstructor(props: {
   const openAIAgentsSchemaVersion = attributes['junjo.openai_agents.schema_version']
   const openAIAgentsSpanType = attributes['junjo.openai_agents.span.type']
 
-  // OpenAI Agent, tool, turn, and model boundaries receive the OpenAI mark
-  // when Junjo's versioned source marker proves their framework identity.
+  // OpenAI workflow, Agent, task, tool, turn, guardrail, and model boundaries receive the
+  // OpenAI mark when Junjo's versioned source marker proves their identity.
   // Unrelated GenAI and native Junjo spans retain their normal icons.
   if (
     openAIAgentsSchemaVersion === 1 &&
-    (genAiOperation === 'invoke_agent' ||
+    (genAiOperation === 'invoke_workflow' ||
+      genAiOperation === 'invoke_agent' ||
       genAiOperation === 'execute_tool' ||
+      openAIAgentsSpanType === 'task' ||
       openAIAgentsSpanType === 'turn' ||
+      openAIAgentsSpanType === 'guardrail' ||
       openAIAgentsSpanType === 'generation' ||
       openAIAgentsSpanType === 'response')
   ) {
@@ -116,5 +125,5 @@ export function SpanIconConstructor(props: {
 
   // ============= DEFAULT SPAN ICONS =============>
   // Default
-  return <CodeBracketIcon className={`${size} ${iconColor}`} />
+  return <CodeBracketIcon data-span-icon="code" className={`${size} ${iconColor}`} />
 }

@@ -12,10 +12,17 @@ OpenTelemetry provider and appear in one Junjo AI Studio trace. The same
 application declarations expose external-Agent, native-Workflow, and
 native-Agent targets to Junjo's Studio-controlled evaluation runner.
 
+The example names the outer OpenAI workflow `Authentic local place
+recommendation` and its nested reviewer task `Local place realism review`, so
+Studio presents domain operations instead of the SDK's generic `Agent workflow`
+default.
+
 The checked-in model is deterministic and offline. This keeps normal runs,
 tests, and evaluation plumbing reproducible without an API key. Replace the
 `ScriptedModel` in `application.py` with any OpenAI Agents SDK model when
-adapting the example to a real application.
+adapting the example to a real application. Its model spans explicitly carry
+the fixture marker that Studio renders with a `Fixture` chip and code icon;
+ordinary provider-backed spans do not.
 
 ## Run the application
 
@@ -28,6 +35,29 @@ Set `JUNJO_AI_STUDIO_API_KEY` to send the mixed trace to the local Studio.
 `JUNJO_AI_STUDIO_OTLP_ENDPOINT` remains the ordinary OTLP host-and-port value;
 transport security is selected independently with
 `JUNJO_AI_STUDIO_OTLP_INSECURE`.
+
+## Run the HTTP application
+
+The FastAPI entrypoint demonstrates the same execution beneath a real inbound
+application request:
+
+```bash
+uv run --env-file .env uvicorn base_openai_agents.web:app \
+  --host 127.0.0.1 --port 8000
+```
+
+From another terminal:
+
+```bash
+curl -X POST http://127.0.0.1:8000/recommendations \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Recommend a realistic local place for a weekend afternoon."}'
+```
+
+Standard OpenTelemetry FastAPI instrumentation emits the HTTP `SERVER` span.
+The OpenAI workflow and every nested OpenAI and Junjo operation remain in the
+same trace beneath that request. The `/healthz` endpoint is excluded from
+tracing so readiness traffic does not add noise.
 
 ## Inspect and run evaluations
 

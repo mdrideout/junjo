@@ -80,6 +80,8 @@ def initialize_model_span(
     span.set_attribute("junjo.agent.model.driver_key", descriptor.driver_key)
     span.set_attribute("junjo.agent.model.provider", descriptor.provider)
     span.set_attribute("junjo.agent.model.name", descriptor.model)
+    if descriptor.fixture:
+        span.set_attribute("junjo.model.fixture", True)
 
 
 def initialize_tool_span(

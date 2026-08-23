@@ -141,9 +141,7 @@ class AgentNode(Node[WorkflowStore]):
 
     async def service(self, store: WorkflowStore) -> None:
         state = await store.get_state()
-        await self.agent.execute(
-            Question(question=state.question), dependencies=None
-        )
+        await self.agent.execute(Question(question=state.question), dependencies=None)
 
 
 class NestedNode(Node[NestedStore]):
@@ -170,9 +168,7 @@ class NestedNode(Node[NestedStore]):
             self.entered.set()
             await asyncio.Event().wait()
         if self.inner_agent is not None:
-            await self.inner_agent.execute(
-                Question(question="fixture?"), dependencies=None
-            )
+            await self.inner_agent.execute(Question(question="fixture?"), dependencies=None)
 
 
 @pytest.fixture
@@ -255,6 +251,7 @@ def _agent(
                 driver_key="scripted",
                 provider="junjo",
                 model="scripted-v1",
+                fixture=True,
             ),
             driver=selected_driver,  # type: ignore[arg-type]
         ),
@@ -265,9 +262,7 @@ def _agent(
     )
 
 
-async def _successful_service(
-    input: LookupInput, context: object
-) -> LookupOutput:
+async def _successful_service(input: LookupInput, context: object) -> LookupOutput:
     del context
     return LookupOutput(value=f"result-{input.query.removeprefix('q')}")
 
@@ -340,17 +335,17 @@ async def _execute_scenario(  # noqa: C901
         return
 
     if scenario == "admission_internal_error":
+
         def fail_initial_evidence(self: AgentStore) -> None:
             raise RuntimeError("admission setup failed")
 
-        monkeypatch.setattr(
-            AgentStore, "_get_initial_store_owner_evidence", fail_initial_evidence
-        )
+        monkeypatch.setattr(AgentStore, "_get_initial_store_owner_evidence", fail_initial_evidence)
         with pytest.raises(AgentAdmissionError):
             await _agent([_final()]).execute(question, dependencies=None)
         return
 
     if scenario == "unexpected_internal_error":
+
         async def fail_completion(self: object, response: object) -> None:
             raise RuntimeError("unexpected admitted runtime failure")
 
@@ -360,6 +355,7 @@ async def _execute_scenario(  # noqa: C901
         return
 
     if scenario == "terminal_commit_internal_error_partial":
+
         async def fail_commit(self: AgentStore, output: object) -> None:
             raise RuntimeError("terminal Store commit failed")
 
@@ -438,11 +434,7 @@ async def _execute_scenario(  # noqa: C901
         return
 
     if scenario in {"agent_inside_workflow_node", "agent_failure_inside_workflow_node"}:
-        script: list[object] = (
-            [ScriptedError(RuntimeError("model_error"))]
-            if "failure" in scenario
-            else [_final()]
-        )
+        script: list[object] = [ScriptedError(RuntimeError("model_error"))] if "failure" in scenario else [_final()]
         with suppress(Exception):
             await _run_workflow_parent(_agent(script))
         return
@@ -497,7 +489,10 @@ async def _execute_scenario(  # noqa: C901
             input_type=Question,
             model=ModelDriverBinding.per_run(
                 descriptor=ModelDriverDescriptor(
-                    driver_key="scripted", provider="junjo", model="scripted-v1"
+                    driver_key="scripted",
+                    provider="junjo",
+                    model="scripted-v1",
+                    fixture=True,
                 ),
                 factory=lambda: next(drivers),
             ),
@@ -536,9 +531,7 @@ async def _execute_scenario(  # noqa: C901
     elif scenario == "malformed_tool_arguments":
         script = [
             ToolCallsResponse(
-                tool_calls=[
-                    ToolCall(id="call-1", name="lookup", arguments={"wrong": True})
-                ],
+                tool_calls=[ToolCall(id="call-1", name="lookup", arguments={"wrong": True})],
                 assistant_text="Using tools",
                 usage=_usage(),
             )
@@ -692,9 +685,7 @@ def _actual_records(spans: tuple[ReadableSpan, ...]) -> list[dict[str, object]]:
         if kind == "other":
             continue
         parent = by_id.get(span.parent.span_id) if span.parent is not None else None
-        parent_kind = (
-            _kind(parent.attributes or {}, parent.name) if parent is not None else None
-        )
+        parent_kind = _kind(parent.attributes or {}, parent.name) if parent is not None else None
         result.append(
             {
                 "kind": kind,
@@ -740,9 +731,7 @@ def _canonical_records(fixture: dict[str, Any]) -> list[dict[str, object]]:
         attributes = span["attributes_json"]
         kind = _kind(attributes, span["name"])
         parent = by_id.get(span["parent_span_id"])
-        parent_kind = (
-            _kind(parent["attributes_json"], parent["name"]) if parent else None
-        )
+        parent_kind = _kind(parent["attributes_json"], parent["name"]) if parent else None
         status = "ERROR" if span["status_code"] == "2" else "UNSET"
         result.append(
             {
@@ -765,9 +754,7 @@ def _canonical_records(fixture: dict[str, Any]) -> list[dict[str, object]]:
                 "kind_code": span["kind"],
                 "trace_flags": span["trace_flags"],
                 "resource": span["resource_attributes_json"],
-                "resource_dropped_attributes_count": span[
-                    "resource_dropped_attributes_count"
-                ],
+                "resource_dropped_attributes_count": span["resource_dropped_attributes_count"],
                 "dropped_attributes_count": span["dropped_attributes_count"],
                 "dropped_events_count": span["dropped_events_count"],
                 "dropped_links_count": span["dropped_links_count"],
@@ -782,8 +769,7 @@ def _store_evidence_from_actual(
     owners = [
         span
         for span in spans
-        if (span.attributes or {}).get("junjo.span_type")
-        in {"agent", "workflow", "subflow"}
+        if (span.attributes or {}).get("junjo.span_type") in {"agent", "workflow", "subflow"}
         and (
             (span.attributes or {}).get("junjo.span_type") != "agent"
             or (span.attributes or {}).get("junjo.agent.state.available") is True
@@ -800,16 +786,15 @@ def _store_evidence_from_actual(
                 event
                 for span in spans
                 for event in span.events
-                if event.name == "set_state"
-                and event.attributes.get("junjo.store.id") == store_id
+                if event.name == "set_state" and event.attributes.get("junjo.store.id") == store_id
             ),
             key=lambda event: event.attributes["junjo.store.transition.sequence"],
         )
         projection = json.loads(attributes[f"junjo.{namespace}.state.start"])
         for event in events:
-            projection = jsonpatch.JsonPatch(
-                json.loads(event.attributes["junjo.state_json_patch"])
-            ).apply(projection, in_place=False)
+            projection = jsonpatch.JsonPatch(json.loads(event.attributes["junjo.state_json_patch"])).apply(
+                projection, in_place=False
+            )
         assert projection == json.loads(attributes[f"junjo.{namespace}.state.end"])
         evidence.append(
             (
@@ -830,8 +815,7 @@ def _store_evidence_from_canonical(
         attributes = owner["attributes_json"]
         owner_kind = attributes.get("junjo.span_type")
         if owner_kind not in {"agent", "workflow", "subflow"} or (
-            owner_kind == "agent"
-            and not attributes.get("junjo.agent.state.available")
+            owner_kind == "agent" and not attributes.get("junjo.agent.state.available")
         ):
             continue
         namespace = "agent" if owner_kind == "agent" else "workflow"
@@ -841,16 +825,15 @@ def _store_evidence_from_canonical(
                 event
                 for span in fixture["spans"]
                 for event in span["events_json"]
-                if event["name"] == "set_state"
-                and event["attributes"].get("junjo.store.id") == store_id
+                if event["name"] == "set_state" and event["attributes"].get("junjo.store.id") == store_id
             ),
             key=lambda event: event["attributes"]["junjo.store.transition.sequence"],
         )
         projection = json.loads(attributes[f"junjo.{namespace}.state.start"])
         for event in events:
-            projection = jsonpatch.JsonPatch(
-                json.loads(event["attributes"]["junjo.state_json_patch"])
-            ).apply(projection, in_place=False)
+            projection = jsonpatch.JsonPatch(json.loads(event["attributes"]["junjo.state_json_patch"])).apply(
+                projection, in_place=False
+            )
         assert projection == json.loads(attributes[f"junjo.{namespace}.state.end"])
         evidence.append(
             (
@@ -878,22 +861,18 @@ def _assert_actual_parent_identities(spans: tuple[ReadableSpan, ...]) -> None:
                 expected_type is None or candidate_type == expected_type
             ):
                 break
-            candidate = (
-                by_id.get(candidate.parent.span_id)
-                if candidate.parent is not None
-                else None
-            )
+            candidate = by_id.get(candidate.parent.span_id) if candidate.parent is not None else None
         assert candidate is not None
         candidate_attributes = candidate.attributes or {}
-        assert attributes["junjo.parent_executable_definition_id"] == candidate_attributes[
-            "junjo.executable_definition_id"
-        ]
-        assert attributes["junjo.parent_executable_runtime_id"] == candidate_attributes[
-            "junjo.executable_runtime_id"
-        ]
-        assert attributes["junjo.parent_executable_structural_id"] == candidate_attributes[
-            "junjo.executable_structural_id"
-        ]
+        assert (
+            attributes["junjo.parent_executable_definition_id"]
+            == candidate_attributes["junjo.executable_definition_id"]
+        )
+        assert attributes["junjo.parent_executable_runtime_id"] == candidate_attributes["junjo.executable_runtime_id"]
+        assert (
+            attributes["junjo.parent_executable_structural_id"]
+            == candidate_attributes["junjo.executable_structural_id"]
+        )
 
 
 def _assert_canonical_parent_identities(fixture: dict[str, Any]) -> None:
@@ -914,15 +893,15 @@ def _assert_canonical_parent_identities(fixture: dict[str, Any]) -> None:
             candidate = by_id.get(candidate["parent_span_id"])
         assert candidate is not None
         candidate_attributes = candidate["attributes_json"]
-        assert attributes["junjo.parent_executable_definition_id"] == candidate_attributes[
-            "junjo.executable_definition_id"
-        ]
-        assert attributes["junjo.parent_executable_runtime_id"] == candidate_attributes[
-            "junjo.executable_runtime_id"
-        ]
-        assert attributes["junjo.parent_executable_structural_id"] == candidate_attributes[
-            "junjo.executable_structural_id"
-        ]
+        assert (
+            attributes["junjo.parent_executable_definition_id"]
+            == candidate_attributes["junjo.executable_definition_id"]
+        )
+        assert attributes["junjo.parent_executable_runtime_id"] == candidate_attributes["junjo.executable_runtime_id"]
+        assert (
+            attributes["junjo.parent_executable_structural_id"]
+            == candidate_attributes["junjo.executable_structural_id"]
+        )
 
 
 def test_canonical_agent_producer_fixture_discovery_is_exact() -> None:
@@ -945,6 +924,4 @@ async def test_actual_sdk_export_is_canonical_producer_equivalent(
     assert _actual_records(spans) == _canonical_records(fixture)
     _assert_actual_parent_identities(spans)
     _assert_canonical_parent_identities(fixture)
-    assert _store_evidence_from_actual(spans) == _store_evidence_from_canonical(
-        fixture
-    )
+    assert _store_evidence_from_actual(spans) == _store_evidence_from_canonical(fixture)

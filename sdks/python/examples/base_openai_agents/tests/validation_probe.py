@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from agents import Runner, set_trace_processors
+from agents import RunConfig, Runner, set_trace_processors
 from junjo.plugins.openai_agents import instrument_openai_agents
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
@@ -11,7 +11,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from base_openai_agents.application import build_openai_agent
+from base_openai_agents.application import OPENAI_WORKFLOW_NAME, build_openai_agent
 from base_openai_agents.evals import harness
 from base_openai_agents.telemetry import SERVICE_NAME, SERVICE_NAMESPACE
 
@@ -32,8 +32,16 @@ async def main() -> None:
     integration = instrument_openai_agents(tracer_provider=provider)
     try:
         results = [
-            await Runner.run(build_openai_agent(), "Find a local place."),
-            await Runner.run(build_openai_agent(), "Find another local place."),
+            await Runner.run(
+                build_openai_agent(),
+                "Find a local place.",
+                run_config=RunConfig(workflow_name=OPENAI_WORKFLOW_NAME),
+            ),
+            await Runner.run(
+                build_openai_agent(),
+                "Find another local place.",
+                run_config=RunConfig(workflow_name=OPENAI_WORKFLOW_NAME),
+            ),
         ]
         provider.force_flush()
         spans = exporter.get_finished_spans()
@@ -88,6 +96,28 @@ async def main() -> None:
                             for span in translated
                             if isinstance(
                                 agent_name := attributes_by_span[span].get("gen_ai.agent.name"),
+                                str,
+                            )
+                        }
+                    ),
+                    "task_names": sorted(
+                        {
+                            payload["data"]["name"]
+                            for span, payload in payloads.items()
+                            if attributes_by_span[span].get("junjo.openai_agents.span.type") == "task"
+                        }
+                    ),
+                    "fixture_model_names": sorted(
+                        {
+                            model_name
+                            for span in spans
+                            if attributes_by_span[span].get("junjo.model.fixture") is True
+                            and isinstance(
+                                model_name := (
+                                    attributes_by_span[span].get("junjo.agent.model.name")
+                                    or attributes_by_span[span].get("gen_ai.response.model")
+                                    or attributes_by_span[span].get("gen_ai.request.model")
+                                ),
                                 str,
                             )
                         }

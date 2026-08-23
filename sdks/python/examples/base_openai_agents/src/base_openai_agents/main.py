@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 
-from agents import Runner
+from agents import RunConfig, Runner
 
-from .application import build_openai_agent
+from .application import OPENAI_WORKFLOW_NAME, build_openai_agent
 from .telemetry import start_telemetry
 
 
@@ -16,6 +16,7 @@ async def _run() -> None:
         result = await Runner.run(
             build_openai_agent(),
             "Recommend a realistic local place for a weekend afternoon.",
+            run_config=RunConfig(workflow_name=OPENAI_WORKFLOW_NAME),
         )
         print(result.final_output)
     finally:

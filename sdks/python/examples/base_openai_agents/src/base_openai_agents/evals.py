@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from agents import RunConfig
 from junjo.evaluation import (
     AgentInvocation,
     AgentTarget,
@@ -20,6 +21,7 @@ from pydantic import BaseModel, ConfigDict
 from .application import (
     JUNJO_AGENT_NAME,
     OPENAI_AGENT_NAME,
+    OPENAI_WORKFLOW_NAME,
     WORKFLOW_NAME,
     LocalPlaceInput,
     build_junjo_agent,
@@ -64,6 +66,7 @@ harness = EvaluationHarness(
             factory=lambda input_value, _context, _resources: OpenAIAgentInvocation(
                 agent=build_openai_agent(),
                 input=input_value.message,
+                run_config=RunConfig(workflow_name=OPENAI_WORKFLOW_NAME),
             ),
             projector=lambda result, _input, _context, _resources: result.final_output,
         ),

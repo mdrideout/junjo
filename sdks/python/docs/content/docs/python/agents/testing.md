@@ -8,7 +8,9 @@ provider dependency.
 
 `ScriptedModelDriver` consumes fixed response or error steps and captures the
 immutable `ModelRequest` values it received. Prefer a per-run factory when
-the same Agent definition is executed concurrently.
+the same Agent definition is executed concurrently. Set `fixture=True` on its
+`ModelDriverDescriptor` when telemetry should identify the resulting model
+operations as deterministic fixture executions.
 
 ```python
 from junjo.agent import FinalOutputResponse, ToolCall, ToolCallsResponse

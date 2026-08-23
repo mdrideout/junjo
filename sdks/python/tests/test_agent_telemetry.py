@@ -73,6 +73,7 @@ def agent_for(script, *, tools=()) -> Agent:
                 driver_key="scripted",
                 provider="junjo",
                 model="scripted-v1",
+                fixture=True,
             ),
             driver=ScriptedModelDriver(script),
         ),
@@ -98,9 +99,7 @@ async def test_agent_owner_and_operations_emit_complete_v2_reconstructable_evide
     result = await agent.execute(Input(value="question"), dependencies=None)
     spans = span_exporter.get_finished_spans()
     owner = next(span for span in spans if span.attributes.get("junjo.span_type") == "agent")
-    model = next(
-        span for span in spans if span.attributes.get("junjo.agent.operation_type") == "model_request"
-    )
+    model = next(span for span in spans if span.attributes.get("junjo.agent.operation_type") == "model_request")
 
     assert owner.attributes["junjo.telemetry.contract_version"] == 2
     assert owner.attributes["junjo.executable_definition_id"] == agent.definition_id
@@ -116,6 +115,7 @@ async def test_agent_owner_and_operations_emit_complete_v2_reconstructable_evide
     assert owner.attributes["junjo.store.reconstructable"] is True
     assert owner.attributes["junjo.agent.outcome"] == "completed"
     assert owner.attributes["junjo.agent.termination_reason"] == "final_output"
+    assert model.attributes["junjo.model.fixture"] is True
     assert json.loads(owner.attributes["junjo.agent.usage"])["fields"]["inputTokens"] == {
         "sum": 0,
         "observations": 1,
@@ -141,12 +141,7 @@ async def test_agent_owner_and_operations_emit_complete_v2_reconstructable_evide
     start = json.loads(owner.attributes["junjo.agent.state.start"])
     expected_end = json.loads(owner.attributes["junjo.agent.state.end"])
     transitions = sorted(
-        (
-            event
-            for span in spans
-            for event in span.events
-            if event.name == "set_state"
-        ),
+        (event for span in spans for event in span.events if event.name == "set_state"),
         key=lambda event: event.attributes["junjo.store.transition.sequence"],
     )
     projection = start
@@ -178,11 +173,7 @@ async def test_standalone_agent_under_non_junjo_span_keeps_only_physical_parenta
 
     spans = span_exporter.get_finished_spans()
     owner = next(span for span in spans if span.attributes.get("junjo.span_type") == "agent")
-    model = next(
-        span
-        for span in spans
-        if span.attributes.get("junjo.agent.operation_type") == "model_request"
-    )
+    model = next(span for span in spans if span.attributes.get("junjo.agent.operation_type") == "model_request")
 
     assert result.output.value == "done"
     assert owner.parent is not None
@@ -206,11 +197,7 @@ async def test_standalone_agent_correlation_is_owner_only(
 
     spans = span_exporter.get_finished_spans()
     owner = next(span for span in spans if span.attributes.get("junjo.span_type") == "agent")
-    model = next(
-        span
-        for span in spans
-        if span.attributes.get("junjo.agent.operation_type") == "model_request"
-    )
+    model = next(span for span in spans if span.attributes.get("junjo.agent.operation_type") == "model_request")
     assert owner.attributes["junjo.correlation.type"] == "test.turn"
     assert owner.attributes["junjo.correlation.id"] == "turn-1"
     assert "junjo.correlation.type" not in model.attributes
@@ -318,9 +305,7 @@ async def test_tool_operation_sequence_counts_and_state_revisions_are_owner_scop
     )
     agent = agent_for(
         [
-            ToolCallsResponse(
-                tool_calls=[ToolCall(id="upper-1", name="upper", arguments={"value": "x"})]
-            ),
+            ToolCallsResponse(tool_calls=[ToolCall(id="upper-1", name="upper", arguments={"value": "x"})]),
             FinalOutputResponse(output={"value": "X"}),
         ],
         tools=[tool],
@@ -368,10 +353,7 @@ async def test_nonserializable_model_and_tool_candidates_are_explicitly_unavaila
         if span.attributes.get("junjo.agent.operation_type") == "model_request"
     )
     assert model_span.attributes["junjo.agent.model.response_candidate.available"] is False
-    assert (
-        model_span.attributes["junjo.agent.model.response_candidate.unavailable_reason"]
-        == "not_json_serializable"
-    )
+    assert model_span.attributes["junjo.agent.model.response_candidate.unavailable_reason"] == "not_json_serializable"
 
     async def bad_result(input: Args, context):
         return NonJson()
@@ -384,11 +366,7 @@ async def test_nonserializable_model_and_tool_candidates_are_explicitly_unavaila
         shared_service=bad_result,
     )
     tool_agent = agent_for(
-        [
-            ToolCallsResponse(
-                tool_calls=[ToolCall(id="bad", name="bad", arguments={"value": "x"})]
-            )
-        ],
+        [ToolCallsResponse(tool_calls=[ToolCall(id="bad", name="bad", arguments={"value": "x"})])],
         tools=[tool],
     )
     with pytest.raises(AgentToolOutputValidationError):
@@ -399,10 +377,7 @@ async def test_nonserializable_model_and_tool_candidates_are_explicitly_unavaila
         if span.attributes.get("junjo.agent.operation_type") == "tool"
     )
     assert tool_span.attributes["junjo.agent.tool.result_candidate.available"] is False
-    assert (
-        tool_span.attributes["junjo.agent.tool.result_candidate.unavailable_reason"]
-        == "not_json_serializable"
-    )
+    assert tool_span.attributes["junjo.agent.tool.result_candidate.unavailable_reason"] == "not_json_serializable"
 
 
 @pytest.mark.asyncio
@@ -425,11 +400,7 @@ async def test_explicit_null_usage_remains_failed_candidate_evidence(
 
     spans = span_exporter.get_finished_spans()
     owner = next(span for span in spans if span.attributes.get("junjo.span_type") == "agent")
-    model = next(
-        span
-        for span in spans
-        if span.attributes.get("junjo.agent.operation_type") == "model_request"
-    )
+    model = next(span for span in spans if span.attributes.get("junjo.agent.operation_type") == "model_request")
     assert owner.attributes["junjo.agent.outcome"] == "failed"
     assert owner.attributes["junjo.agent.termination_reason"] == "model_response_error"
     assert model.attributes["junjo.agent.model.response_candidate.available"] is True

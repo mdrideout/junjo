@@ -29,6 +29,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -46,7 +47,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -147,7 +148,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "internal_error",
         "trace_id": "3348c5525b22f59d28b942e6fb60deef",
         "usage": {
@@ -185,7 +186,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "internal_error",
       "trace_id": "3348c5525b22f59d28b942e6fb60deef",
       "usage": {
@@ -226,6 +227,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -243,7 +245,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -752,7 +754,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "cancelled",
         "trace_id": "393e8acdbb79c37c39cdf7d1c36993de",
         "usage": {
@@ -790,7 +792,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "cancelled",
       "trace_id": "393e8acdbb79c37c39cdf7d1c36993de",
       "usage": {
@@ -829,6 +831,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -846,7 +849,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -1361,7 +1364,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "model_error",
         "trace_id": "7a39bce75e943ab29ce853535f351ac7",
         "usage": {
@@ -1399,7 +1402,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "model_error",
       "trace_id": "7a39bce75e943ab29ce853535f351ac7",
       "usage": {
@@ -1438,6 +1441,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -1455,7 +1459,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -2227,7 +2231,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "cc4fbaf9f745e14ceda80147ab2e75fb",
         "usage": {
@@ -2278,7 +2282,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "cc4fbaf9f745e14ceda80147ab2e75fb",
       "usage": {
@@ -2330,6 +2334,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -2347,7 +2352,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -2460,7 +2465,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "input_validation_error",
         "trace_id": "892d98a004cc2790ca034bb8d0b906c2",
         "usage": {
@@ -2498,7 +2503,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "input_validation_error",
       "trace_id": "892d98a004cc2790ca034bb8d0b906c2",
       "usage": {
@@ -2537,6 +2542,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -2554,7 +2560,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -2672,7 +2678,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "history_validation_error",
         "trace_id": "892d98a004cc2790ca034bb8d0b906c2",
         "usage": {
@@ -2710,7 +2716,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "history_validation_error",
       "trace_id": "892d98a004cc2790ca034bb8d0b906c2",
       "usage": {
@@ -2751,6 +2757,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -2768,7 +2775,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -3263,7 +3270,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "cancelled",
         "trace_id": "5ae31e00b4bfcfc481d7ed7010581c22",
         "usage": {
@@ -3301,7 +3308,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "cancelled",
       "trace_id": "5ae31e00b4bfcfc481d7ed7010581c22",
       "usage": {
@@ -3342,6 +3349,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -3359,7 +3367,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -4647,7 +4655,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "cancelled",
         "trace_id": "fc29f6be40452c563cfb81a97a968d59",
         "usage": {
@@ -4698,7 +4706,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "cancelled",
       "trace_id": "fc29f6be40452c563cfb81a97a968d59",
       "usage": {
@@ -4752,6 +4760,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -4769,7 +4778,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -6074,7 +6083,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "cancelled",
         "trace_id": "5bb78a2c145b19f539b4228ebd245175",
         "usage": {
@@ -6125,7 +6134,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "cancelled",
       "trace_id": "5bb78a2c145b19f539b4228ebd245175",
       "usage": {
@@ -6177,6 +6186,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -6194,7 +6204,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -6952,7 +6962,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "6acd3824a98c34660977118a4981cb37",
         "usage": {
@@ -7003,7 +7013,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "6acd3824a98c34660977118a4981cb37",
       "usage": {
@@ -7055,6 +7065,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -7072,7 +7083,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -7830,7 +7841,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "6acd3824a98c34660977118a4981cb37",
         "usage": {
@@ -7881,7 +7892,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "6acd3824a98c34660977118a4981cb37",
       "usage": {
@@ -7933,6 +7944,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -7950,7 +7962,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -8708,7 +8720,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
         "usage": {
@@ -8759,7 +8771,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
       "usage": {
@@ -8811,6 +8823,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -8828,7 +8841,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -9586,7 +9599,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "becd27d4c7aa67e537da8d7678629198",
         "usage": {
@@ -9637,7 +9650,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "becd27d4c7aa67e537da8d7678629198",
       "usage": {
@@ -9689,6 +9702,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -9706,7 +9720,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -10436,7 +10450,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "output_validation_error",
         "trace_id": "27960e3b2bedeafd8c2ddabebdc53ba6",
         "usage": {
@@ -10487,7 +10501,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "output_validation_error",
       "trace_id": "27960e3b2bedeafd8c2ddabebdc53ba6",
       "usage": {
@@ -10539,6 +10553,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -10556,7 +10571,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -11314,7 +11329,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "5debea8b2db2c748efb48b5d4bc58204",
         "usage": {
@@ -11365,7 +11380,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "5debea8b2db2c748efb48b5d4bc58204",
       "usage": {
@@ -11417,6 +11432,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -11434,7 +11450,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -11943,7 +11959,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "model_response_error",
         "trace_id": "58a34980a2d753d4aeaea4213cce554a",
         "usage": {
@@ -11981,7 +11997,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "model_response_error",
       "trace_id": "58a34980a2d753d4aeaea4213cce554a",
       "usage": {
@@ -12020,6 +12036,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -12037,7 +12054,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -12905,7 +12922,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "tool_input_validation_error",
         "trace_id": "6878b4e267ba87a7277114d8f2196f4e",
         "usage": {
@@ -12956,7 +12973,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "tool_input_validation_error",
       "trace_id": "6878b4e267ba87a7277114d8f2196f4e",
       "usage": {
@@ -13008,6 +13025,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -13025,7 +13043,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -13526,7 +13544,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "model_error",
         "trace_id": "469edd17d4a36a87a6329c7279677cdf",
         "usage": {
@@ -13564,7 +13582,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "model_error",
       "trace_id": "469edd17d4a36a87a6329c7279677cdf",
       "usage": {
@@ -13603,6 +13621,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -13620,7 +13639,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:3d6c28189567f7edaaaf2d4176f36d129ef57f481e7605b68ad7feb07ff2521f",
+          "structuralId": "agent_sha256:67de2c2716c9f68a5f352bb8c2679df418c90ceeecc31abd82affb4a348cee6c",
           "tools": [
             {
               "description": "Run lookup",
@@ -15177,7 +15196,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:3d6c28189567f7edaaaf2d4176f36d129ef57f481e7605b68ad7feb07ff2521f",
+        "structural_id": "agent_sha256:67de2c2716c9f68a5f352bb8c2679df418c90ceeecc31abd82affb4a348cee6c",
         "termination_reason": "limit_exceeded",
         "trace_id": "eb7654f050d548652d6c6527ec8ff11e",
         "usage": {
@@ -15228,7 +15247,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:3d6c28189567f7edaaaf2d4176f36d129ef57f481e7605b68ad7feb07ff2521f",
+      "structural_id": "agent_sha256:67de2c2716c9f68a5f352bb8c2679df418c90ceeecc31abd82affb4a348cee6c",
       "termination_reason": "limit_exceeded",
       "trace_id": "eb7654f050d548652d6c6527ec8ff11e",
       "usage": {
@@ -15282,6 +15301,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -15299,7 +15319,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+          "structuralId": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
           "tools": [
             {
               "description": "Run lookup",
@@ -16768,7 +16788,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+        "structural_id": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
         "termination_reason": "cancelled",
         "trace_id": "ed2681100a17a5780614450be6c1e4f0",
         "usage": {
@@ -16819,7 +16839,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+      "structural_id": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
       "termination_reason": "cancelled",
       "trace_id": "ed2681100a17a5780614450be6c1e4f0",
       "usage": {
@@ -16871,6 +16891,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -16888,7 +16909,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+          "structuralId": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
           "tools": [
             {
               "description": "Run lookup",
@@ -18363,7 +18384,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+        "structural_id": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
         "termination_reason": "tool_error",
         "trace_id": "474fc7c8c05ccbe03dd1ac63ba3071a5",
         "usage": {
@@ -18414,7 +18435,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+      "structural_id": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
       "termination_reason": "tool_error",
       "trace_id": "474fc7c8c05ccbe03dd1ac63ba3071a5",
       "usage": {
@@ -18466,6 +18487,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -18483,7 +18505,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -20690,7 +20712,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "e8d6980d7d5cc8b548ff525599b82e41",
         "usage": {
@@ -20741,7 +20763,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "e8d6980d7d5cc8b548ff525599b82e41",
       "usage": {
@@ -20793,6 +20815,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -20810,7 +20833,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -21582,7 +21605,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "e8d6980d7d5cc8b548ff525599b82e41",
         "usage": {
@@ -21633,7 +21656,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "e8d6980d7d5cc8b548ff525599b82e41",
       "usage": {
@@ -21685,6 +21708,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -21702,7 +21726,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -23013,7 +23037,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "tool_error",
         "trace_id": "a9c3e10152e11beddda43db1f0230f81",
         "usage": {
@@ -23064,7 +23088,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "tool_error",
       "trace_id": "a9c3e10152e11beddda43db1f0230f81",
       "usage": {
@@ -23393,7 +23417,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "9f881a30792edc17992ddf5ed808695e",
         "usage": {
@@ -23444,7 +23468,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "9f881a30792edc17992ddf5ed808695e",
       "usage": {
@@ -23496,6 +23520,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -23513,7 +23538,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -24014,7 +24039,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "model_response_error",
         "trace_id": "db414df5c9bafb2808d56307d892431e",
         "usage": {
@@ -24052,7 +24077,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "model_response_error",
       "trace_id": "db414df5c9bafb2808d56307d892431e",
       "usage": {
@@ -24091,6 +24116,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -24108,7 +24134,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -25402,7 +25428,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "tool_output_validation_error",
         "trace_id": "2c678eda079fe7e900f0666f7cf062d5",
         "usage": {
@@ -25453,7 +25479,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "tool_output_validation_error",
       "trace_id": "2c678eda079fe7e900f0666f7cf062d5",
       "usage": {
@@ -25505,6 +25531,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -25522,7 +25549,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+          "structuralId": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
           "tools": [
             {
               "description": "Run lookup",
@@ -28684,7 +28711,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+        "structural_id": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
         "termination_reason": "final_output",
         "trace_id": "c63a776fba800e4b48be0ab2f9eadd14",
         "usage": {
@@ -28735,7 +28762,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:9dc7c395db8fc82c49c0a2e8c815236b6d1de29bb504958117e40e7f8ec1132f",
+      "structural_id": "agent_sha256:a927ce9d0ea3d168fdb5dff87614b2e8540af56c0ec887da012b4dcd87061bc7",
       "termination_reason": "final_output",
       "trace_id": "c63a776fba800e4b48be0ab2f9eadd14",
       "usage": {
@@ -28787,6 +28814,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -28804,7 +28832,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:e2053324b5bb2c4003c4be6652d348b03abb8c5d2cfb0da1bda5bf0ecb58188f",
+          "structuralId": "agent_sha256:62bfded92e203407e97e9da8eeaa3cd5fb16174f3350ba481d02f76f719fc098",
           "tools": [
             {
               "description": "Run lookup",
@@ -29756,7 +29784,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:e2053324b5bb2c4003c4be6652d348b03abb8c5d2cfb0da1bda5bf0ecb58188f",
+        "structural_id": "agent_sha256:62bfded92e203407e97e9da8eeaa3cd5fb16174f3350ba481d02f76f719fc098",
         "termination_reason": "limit_exceeded",
         "trace_id": "8165f5ef1aedfb7c92d1529e59a0d5ae",
         "usage": {
@@ -29807,7 +29835,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:e2053324b5bb2c4003c4be6652d348b03abb8c5d2cfb0da1bda5bf0ecb58188f",
+      "structural_id": "agent_sha256:62bfded92e203407e97e9da8eeaa3cd5fb16174f3350ba481d02f76f719fc098",
       "termination_reason": "limit_exceeded",
       "trace_id": "8165f5ef1aedfb7c92d1529e59a0d5ae",
       "usage": {
@@ -29859,6 +29887,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -29876,7 +29905,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -30184,7 +30213,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "ae0cfd424f8af8ac431ff976808885cc",
         "usage": {
@@ -30235,7 +30264,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "ae0cfd424f8af8ac431ff976808885cc",
       "usage": {
@@ -30287,6 +30316,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -30304,7 +30334,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -32298,7 +32328,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "1546a671f89fbc4c93dcdebf9461ab6a",
         "usage": {
@@ -32349,7 +32379,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "1546a671f89fbc4c93dcdebf9461ab6a",
       "usage": {
@@ -32401,6 +32431,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -32418,7 +32449,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -33176,7 +33207,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "09fa9bad0ef1843065b641d7d150a241",
         "usage": {
@@ -33227,7 +33258,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "09fa9bad0ef1843065b641d7d150a241",
       "usage": {
@@ -33279,6 +33310,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -33296,7 +33328,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -34032,7 +34064,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "internal_error",
         "trace_id": "a3a7607da424f596383acd113b7fbae3",
         "usage": {
@@ -34083,7 +34115,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "internal_error",
       "trace_id": "a3a7607da424f596383acd113b7fbae3",
       "usage": {
@@ -34135,6 +34167,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -34152,7 +34185,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -34910,7 +34943,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "f90560f338bed80d2c6d58b8473893bf",
         "usage": {
@@ -34961,7 +34994,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "f90560f338bed80d2c6d58b8473893bf",
       "usage": {
@@ -35013,6 +35046,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -35030,7 +35064,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -37237,7 +37271,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "20914bc415d35fcb78a88cdfda34fba9",
         "usage": {
@@ -37288,7 +37322,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "20914bc415d35fcb78a88cdfda34fba9",
       "usage": {
@@ -37340,6 +37374,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -37357,7 +37392,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -38659,7 +38694,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "tool_output_validation_error",
         "trace_id": "d6fe621741257d36042b572b5de7f3af",
         "usage": {
@@ -38710,7 +38745,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "tool_output_validation_error",
       "trace_id": "d6fe621741257d36042b572b5de7f3af",
       "usage": {
@@ -38762,6 +38797,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -38779,7 +38815,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -40073,7 +40109,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "tool_error",
         "trace_id": "820239209122e8b4dfb60db7080982f7",
         "usage": {
@@ -40124,7 +40160,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "tool_error",
       "trace_id": "820239209122e8b4dfb60db7080982f7",
       "usage": {
@@ -40176,6 +40212,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -40193,7 +40230,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -40923,7 +40960,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "internal_error",
         "trace_id": "38e364fb7cdf5881955875aaf9d8f6f1",
         "usage": {
@@ -40974,7 +41011,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "internal_error",
       "trace_id": "38e364fb7cdf5881955875aaf9d8f6f1",
       "usage": {
@@ -41026,6 +41063,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -41043,7 +41081,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -41874,7 +41912,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "unknown_tool",
         "trace_id": "95e29b1a619bea995ba129735f028470",
         "usage": {
@@ -41925,7 +41963,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "unknown_tool",
       "trace_id": "95e29b1a619bea995ba129735f028470",
       "usage": {
@@ -41977,6 +42015,7 @@
           },
           "model": {
             "driverKey": "scripted",
+            "fixture": true,
             "model": "scripted-v1",
             "provider": "junjo",
             "settings": {}
@@ -41994,7 +42033,7 @@
             ],
             "type": "object"
           },
-          "structuralId": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
           "tools": [
             {
               "description": "Run lookup",
@@ -43994,7 +44033,7 @@
           "version": "2.0.0"
         },
         "start_time": "2026-07-13T12:00:00Z",
-        "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
         "termination_reason": "final_output",
         "trace_id": "b3fdc612a8c9a24b5eaa5a3247748935",
         "usage": {
@@ -44037,7 +44076,7 @@
         "version": "2.0.0"
       },
       "start_time": "2026-07-13T12:00:00Z",
-      "structural_id": "agent_sha256:cc0f7d6ba95347efc1879a4fc604bbd014a90ca6e8cf5a740ab979ce379a0923",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
       "termination_reason": "final_output",
       "trace_id": "b3fdc612a8c9a24b5eaa5a3247748935",
       "usage": {

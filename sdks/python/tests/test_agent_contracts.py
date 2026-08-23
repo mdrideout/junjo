@@ -160,6 +160,7 @@ def binding(*, settings: dict[str, object] | None = None) -> ModelDriverBinding:
             provider="junjo",
             model="scripted-v1",
             settings=settings,
+            fixture=True,
         ),
         driver=ScriptedModelDriver([]),
     )

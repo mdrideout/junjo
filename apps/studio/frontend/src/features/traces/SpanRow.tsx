@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { wrapSpan } from './utils/span-accessor'
 import { workflowPath } from '../../util/telemetry-paths'
 import { SpanKindChip } from '../junjo-data/span-lists/SpanKindChip'
+import { SpanFixtureChip } from '../junjo-data/span-lists/SpanFixtureChip'
 import { spanPresentation } from '../junjo-data/span-lists/span-presentation'
 
 interface SpanRowProps {
@@ -37,6 +38,7 @@ export default function SpanRow(props: SpanRowProps) {
         >
           <div className={'flex gap-x-2 items-center text-sm'}>
             <SpanKindChip kind={presentation.kind} />
+            <SpanFixtureChip fixture={presentation.fixture === true} />
             <div>{presentation.name}</div>
             {isJunjoWorkflowSpan && (
               <Link

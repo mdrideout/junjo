@@ -130,6 +130,7 @@ def _agent_factory(
             driver_key="example.scripted",
             provider="junjo",
             model="deterministic",
+            fixture=True,
         ),
         driver=driver,
     )

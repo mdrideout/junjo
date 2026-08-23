@@ -27,6 +27,7 @@ from agents.tracing.span_data import (
 from pydantic import BaseModel
 
 from junjo.plugins.openai_agents._span_mapping import (
+    MODEL_FIXTURE_ATTRIBUTE,
     SCHEMA_VERSION_ATTRIBUTE,
     SOURCE_PARENT_SPAN_ID_ATTRIBUTE,
     SOURCE_SPAN_ID_ATTRIBUTE,
@@ -239,6 +240,20 @@ def test_response_payload_keeps_complete_public_model_and_usage() -> None:
     assert attributes["gen_ai.usage.output_tokens"] == 4
 
 
+def test_generation_fixture_marker_is_projected_without_model_name_inference() -> None:
+    data = GenerationSpanData(
+        input=[],
+        output=[],
+        model="ordinary-model-name",
+        model_config={MODEL_FIXTURE_ATTRIBUTE: True},
+        usage={},
+    )
+
+    start = map_span_start(source_span(data))
+
+    assert start.attributes[MODEL_FIXTURE_ATTRIBUTE] is True
+
+
 def test_agent_and_task_metadata_omitted_by_source_export_are_retained() -> None:
     agent = AgentSpanData(name="Coordinator", metadata={"private_source_field": "retained"})
     task = TaskSpanData(name="Task", metadata={"experiment": "baseline"})
@@ -281,10 +296,7 @@ def test_coverage_sentinel_matches_every_concrete_locked_source_type() -> None:
 def test_sdk_attribute_names_match_the_shared_integration_contract() -> None:
     repository_root = Path(__file__).resolve().parents[5]
     contract = json.loads(
-        (
-            repository_root
-            / "contracts/telemetry/integrations/openai_agents/v1/attribute-names.json"
-        ).read_text()
+        (repository_root / "contracts/telemetry/integrations/openai_agents/v1/attribute-names.json").read_text()
     )
 
     assert contract["schema_version"] == 1
@@ -350,12 +362,12 @@ def test_json_safe_serialization_handles_structured_and_unusual_application_valu
 
 
 def test_source_tracing_credential_is_never_serialized() -> None:
-    raw = final_span_attributes(
-        source_span(AgentSpanData(name="Coordinator"), tracing_api_key="secret-api-key")
-    )[SPAN_DATA_ATTRIBUTE]
+    raw = final_span_attributes(source_span(AgentSpanData(name="Coordinator"), tracing_api_key="secret-api-key"))[
+        SPAN_DATA_ATTRIBUTE
+    ]
 
     assert "secret-api-key" not in raw
-    assert "tracing_api_key\"" not in raw
+    assert 'tracing_api_key"' not in raw
     assert json.loads(raw)["tracing_api_key_configured"] is True
 
 

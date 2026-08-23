@@ -670,10 +670,15 @@ def validate_definition_snapshot(
         and isinstance(value["instructions"], str)
         and isinstance(value["inputSchema"], dict)
         and isinstance(value["outputSchema"], dict)
-        and _exact_keys(model, {"driverKey", "provider", "model", "settings"})
+        and _exact_keys(
+            model,
+            {"driverKey", "provider", "model", "settings"},
+            {"fixture"},
+        )
         and _is_nonempty_string(model.get("driverKey"))
         and _is_nonempty_string(model.get("provider"))
         and _is_nonempty_string(model.get("model"))
+        and ("fixture" not in model or model["fixture"] is True)
         and isinstance(model.get("settings"), dict)
         and isinstance(tools, list)
         and all(_valid_tool_descriptor(tool, structural=True) for tool in tools)

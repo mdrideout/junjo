@@ -24,6 +24,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {}
         },
         "tools": [
@@ -73,8 +74,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:355a6391a8e34b5c4745536b911105618e4e47d82bf490c39222a8c835adc841"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:b2b6dc28c566b96bcb9c667fe4d04875d766528cf071e3e64d3e3f40b1638bb2"
     },
     {
       "name": "safe_integer_boundaries",
@@ -99,6 +100,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {
             "min": -9007199254740991,
             "max": 9007199254740991
@@ -151,8 +153,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"max\":9007199254740991,\"min\":-9007199254740991}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:b7c9b326e77c499c0a5ec3ccf4d1220a28a8eb254bd5b86284e8dcf04a9d0d9f"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"max\":9007199254740991,\"min\":-9007199254740991}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:73993b05a456b42b9fa71e8278eb656cf9ef72e0204310606ec748e547566518"
     },
     {
       "name": "negative_zero",
@@ -177,6 +179,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {
             "value": -0.0
           }
@@ -228,8 +231,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":0}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:431fe05366b4bf4eab3d3b9a758db045d25203e4f8943d5dd883e80ef4ceaf98"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":0}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:515d8ede953e29ea644bfa454ac8f4aca027696f28cca110c9690e7cbdc3aacd"
     },
     {
       "name": "exponent",
@@ -254,6 +257,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {
             "large": 1e+30,
             "small": 1e-07
@@ -306,8 +310,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"large\":1e+30,\"small\":1e-7}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:b40fddcdb44163030d47d5548995205b161788636bf72cd19da9685b14eb60b8"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"large\":1e+30,\"small\":1e-7}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:2a14373f20f9513357e48d31d8870c92e693c0690a8634aac70dd93e38ca9878"
     },
     {
       "name": "unicode_composed",
@@ -332,6 +336,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {
             "value": "é"
           }
@@ -383,8 +388,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":\"é\"}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:05ac23f6309dc9884692ee98433f71ed30ee171c9e18144fb3b30923899c345c"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":\"é\"}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:3d5835d2bbd857a0aab61d36ea4a1c82cd7093fd17464e07274bf9b5e687502c"
     },
     {
       "name": "unicode_decomposed",
@@ -409,6 +414,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {
             "value": "é"
           }
@@ -460,8 +466,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":\"é\"}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:313c05736b8a3c7f174d64cb7946853d4a38fc694deaedfc8cb2fccb45af2b0d"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"question\":{\"type\":\"string\"}},\"required\":[\"question\"],\"type\":\"object\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"value\":\"é\"}},\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"answer\":{\"type\":\"string\"}},\"required\":[\"answer\"],\"type\":\"object\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:7838f458e82e81cebc75d9e61e52e825df84d029dbcaf40fcc4a5de9aeb9b48d"
     },
     {
       "name": "tool_plain",
@@ -538,6 +544,7 @@
           "driverKey": "scripted",
           "provider": "junjo",
           "model": "scripted-v1",
+          "fixture": true,
           "settings": {
             "profile": "normalized-schema"
           }
@@ -639,8 +646,8 @@
           "toolCalls": 4
         }
       },
-      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"nested\":{\"$ref\":\"#/$defs/d1\"}},\"required\":[\"nested\"],\"type\":\"object\"},\"d1\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}},\"$ref\":\"#/$defs/d0\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"profile\":\"normalized-schema\"}},\"outputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"children\":{\"items\":{\"$ref\":\"#/$defs/d0\"},\"type\":\"array\"},\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}},\"$ref\":\"#/$defs/d0\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"title\":{\"type\":\"string\"}},\"required\":[\"title\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"dependentRequired\":{\"first\":[\"second\"],\"second\":[\"first\",\"third\"]},\"examples\":[{\"second\":\"beta\"},{\"second\":\"alpha\"}],\"oneOf\":[{\"required\":[\"first\"]},{\"required\":[\"second\"]}],\"properties\":{\"first\":{\"type\":[\"null\",\"string\"]},\"second\":{\"enum\":[\"alpha\",\"beta\"]}},\"required\":[\"first\",\"second\"],\"type\":\"object\"}}],\"v\":1}",
-      "structural_id": "agent_sha256:68f4664de288c762b7f2e312af736931ef9fb39d80e4a3ad7f76b173e0c20638"
+      "canonical": "{\"agentKey\":\"fingerprint_agent\",\"inputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"nested\":{\"$ref\":\"#/$defs/d1\"}},\"required\":[\"nested\"],\"type\":\"object\"},\"d1\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}},\"$ref\":\"#/$defs/d0\"},\"instructions\":\"Answer with deterministic fixture evidence.\",\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"model\":{\"driverKey\":\"scripted\",\"fixture\":true,\"model\":\"scripted-v1\",\"provider\":\"junjo\",\"settings\":{\"profile\":\"normalized-schema\"}},\"outputSchema\":{\"$defs\":{\"d0\":{\"additionalProperties\":false,\"properties\":{\"children\":{\"items\":{\"$ref\":\"#/$defs/d0\"},\"type\":\"array\"},\"value\":{\"type\":\"string\"}},\"required\":[\"value\"],\"type\":\"object\"}},\"$ref\":\"#/$defs/d0\"},\"tools\":[{\"description\":\"Run lookup\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"title\":{\"type\":\"string\"}},\"required\":[\"title\"],\"type\":\"object\"},\"name\":\"lookup\",\"outputSchema\":{\"additionalProperties\":false,\"dependentRequired\":{\"first\":[\"second\"],\"second\":[\"first\",\"third\"]},\"examples\":[{\"second\":\"beta\"},{\"second\":\"alpha\"}],\"oneOf\":[{\"required\":[\"first\"]},{\"required\":[\"second\"]}],\"properties\":{\"first\":{\"type\":[\"null\",\"string\"]},\"second\":{\"enum\":[\"alpha\",\"beta\"]}},\"required\":[\"first\",\"second\"],\"type\":\"object\"}}],\"v\":1}",
+      "structural_id": "agent_sha256:54136ed5e337e13140a045407cbec8b4e47c03feaef404f71354b4b2a2a7373b"
     },
     {
       "name": "tool_normalized_schema_profile",

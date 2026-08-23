@@ -1091,6 +1091,7 @@ def _validate_definition_snapshot(
     return {
         "agentKey": definition["agentKey"],
         "instructions": definition["instructions"],
+        "modelFixture": definition["model"].get("fixture") is True,
         "requestTools": request_tools,
         "toolByName": tool_by_name,
         "outputSchema": definition["outputSchema"],
@@ -1135,6 +1136,14 @@ def _validate_model_operation(
         _require(
             _is_portable_text(attributes.get(key), nonempty=True),
             "invalid_model_identity",
+            fixture_name,
+        )
+    fixture = attributes.get("junjo.model.fixture")
+    _require(fixture is None or fixture is True, "invalid_model_fixture", fixture_name)
+    if definition is not None:
+        _require(
+            (fixture is True) == definition["modelFixture"],
+            "model_fixture_mismatch",
             fixture_name,
         )
     request = _validate_payload_slot(attributes, "junjo.agent.model.request", fixture_name)

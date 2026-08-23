@@ -40,6 +40,7 @@ TRACE_ID_ATTRIBUTE = "junjo.openai_agents.trace.id"
 TRACE_DATA_ATTRIBUTE = "junjo.openai_agents.trace.data"
 TRANSLATION_ERROR_TYPE_ATTRIBUTE = "junjo.openai_agents.translation.error.type"
 TRANSLATION_ERROR_MESSAGE_ATTRIBUTE = "junjo.openai_agents.translation.error.message"
+MODEL_FIXTURE_ATTRIBUTE = "junjo.model.fixture"
 
 SUPPORTED_SPAN_DATA_CLASSES: frozenset[type[SpanData]] = frozenset(
     {
@@ -112,6 +113,8 @@ def map_span_start(span: OpenAISpan[Any]) -> MappedSpanStart:  # noqa: C901
         attributes["gen_ai.operation.name"] = "chat"
         if data.model:
             attributes["gen_ai.request.model"] = data.model
+        if isinstance(data.model_config, Mapping) and data.model_config.get(MODEL_FIXTURE_ATTRIBUTE) is True:
+            attributes[MODEL_FIXTURE_ATTRIBUTE] = True
         return MappedSpanStart(_model_span_name("chat", data.model), source_type, attributes)
     if isinstance(data, ResponseSpanData):
         attributes["gen_ai.operation.name"] = "chat"
@@ -183,9 +186,7 @@ def final_span_attributes(span: OpenAISpan[Any]) -> dict[str, str | int | float 
         "data": _known_span_data(data),
         "error": span.error,
     }
-    attributes: dict[str, str | int | float | bool] = {
-        SPAN_DATA_ATTRIBUTE: _json_payload(payload)
-    }
+    attributes: dict[str, str | int | float | bool] = {SPAN_DATA_ATTRIBUTE: _json_payload(payload)}
 
     model = _model(data)
     if isinstance(data, ResponseSpanData) and model:
@@ -265,20 +266,14 @@ def _json_safe(value: object, *, active: set[int]) -> object:  # noqa: C901
     if is_dataclass(value) and not isinstance(value, type):
         active.add(identity)
         try:
-            return {
-                item.name: _json_safe(getattr(value, item.name), active=active)
-                for item in fields(value)
-            }
+            return {item.name: _json_safe(getattr(value, item.name), active=active) for item in fields(value)}
         finally:
             active.discard(identity)
 
     if isinstance(value, Mapping):
         active.add(identity)
         try:
-            return {
-                _mapping_key(key): _json_safe(item, active=active)
-                for key, item in value.items()
-            }
+            return {_mapping_key(key): _json_safe(item, active=active) for key, item in value.items()}
         finally:
             active.discard(identity)
 

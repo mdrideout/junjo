@@ -35,6 +35,7 @@ class ModelDriverDescriptor:
     provider: str
     model: str
     settings: Mapping[str, FrozenJsonValue]
+    fixture: bool
 
     def __init__(
         self,
@@ -43,6 +44,7 @@ class ModelDriverDescriptor:
         provider: str,
         model: str,
         settings: Mapping[str, object] | None = None,
+        fixture: bool = False,
     ) -> None:
         """Create credential-free model identity used in evidence and hashes.
 
@@ -51,6 +53,8 @@ class ModelDriverDescriptor:
         :param model: Provider model identity.
         :param settings: Portable behavior-affecting settings. Credentials and
             runtime clients do not belong here.
+        :param fixture: Whether this binding returns deterministic fixture
+            responses without making a provider request.
         :raises ModelDriverConfigurationError: If identity or settings are not
             portable I-JSON.
         """
@@ -67,20 +71,24 @@ class ModelDriverDescriptor:
         try:
             frozen_settings = freeze_json(settings or {})
         except Exception as exc:
-            raise ModelDriverConfigurationError(
-                "ModelDriver settings must be JSON-compatible."
-            ) from exc
+            raise ModelDriverConfigurationError("ModelDriver settings must be JSON-compatible.") from exc
         if not isinstance(frozen_settings, Mapping):
             raise ModelDriverConfigurationError("ModelDriver settings must be a JSON object.")
+        if type(fixture) is not bool:
+            raise ModelDriverConfigurationError("ModelDriver fixture must be a boolean.")
         object.__setattr__(self, "settings", frozen_settings)
+        object.__setattr__(self, "fixture", fixture)
 
     def to_json(self) -> dict[str, object]:
-        return {
+        value: dict[str, object] = {
             "driverKey": self.driver_key,
             "provider": self.provider,
             "model": self.model,
             "settings": thaw_json(self.settings),
         }
+        if self.fixture:
+            value["fixture"] = True
+        return value
 
 
 @dataclass(frozen=True, slots=True, init=False)
@@ -107,9 +115,7 @@ class ModelDriverBinding:
             is not declared.
         """
         if (shared_driver is None) == (factory is None):
-            raise ModelDriverConfigurationError(
-                "ModelDriverBinding requires exactly one shared_driver or factory."
-            )
+            raise ModelDriverConfigurationError("ModelDriverBinding requires exactly one shared_driver or factory.")
         if not isinstance(descriptor, ModelDriverDescriptor):
             raise ModelDriverConfigurationError("descriptor must be a ModelDriverDescriptor.")
         if shared_driver is not None and not callable(getattr(shared_driver, "request", None)):

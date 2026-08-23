@@ -1467,11 +1467,14 @@ name = "junjo-base-openai-agents-example"
 version = "0.1.0"
 source = { editable = "examples/base_openai_agents" }
 dependencies = [
+    { name = "fastapi", extra = ["standard"] },
     { name = "junjo", extra = ["openai-agents"] },
+    { name = "opentelemetry-instrumentation-fastapi" },
 ]
 
 [package.optional-dependencies]
 dev = [
+    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -1479,6 +1482,7 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -1486,7 +1490,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.115.10" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28.1" },
     { name = "junjo", extras = ["openai-agents"], editable = "." },
+    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.59b0" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-asyncio", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "~=0.15.0" },
@@ -1495,6 +1502,7 @@ provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff", specifier = "~=0.15.0" },

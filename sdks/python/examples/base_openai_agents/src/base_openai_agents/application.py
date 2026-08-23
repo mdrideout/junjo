@@ -16,6 +16,7 @@ from agents import (
     ModelSettings,
     ModelTracing,
     OutputGuardrail,
+    RunConfig,
     Tool,
     TResponseInputItem,
 )
@@ -45,6 +46,8 @@ from pydantic import BaseModel, ConfigDict
 
 OPENAI_AGENT_NAME = "Local place coordinator"
 OPENAI_REVIEWER_NAME = "Local place reviewer"
+OPENAI_WORKFLOW_NAME = "Authentic local place recommendation"
+OPENAI_REVIEW_WORKFLOW_NAME = "Local place realism review"
 WORKFLOW_NAME = "Local place workflow"
 JUNJO_AGENT_NAME = "Local place specialist"
 
@@ -89,10 +92,14 @@ class CompleteTracingScriptedModel(ScriptedModel):
                 trace_input_items.insert(0, {"role": "system", "content": system_instructions})
             trace_input = trace_input_items
 
+        trace_model_config = {
+            **model_settings.to_traceable_dict(),
+            "junjo.model.fixture": True,
+        }
         with generation_span(
             input=trace_input,
             model=self.model_name,
-            model_config=model_settings.to_traceable_dict(),
+            model_config=trace_model_config,
             disabled=tracing.is_disabled(),
         ) as span:
             response = await super().get_response(
@@ -183,6 +190,7 @@ def build_junjo_agent(input_value: LocalPlaceInput) -> Agent:
                 driver_key="scripted",
                 provider="example",
                 model="deterministic-local-place-v1",
+                fixture=True,
             ),
             driver=driver,
         ),
@@ -224,6 +232,7 @@ def build_openai_agent() -> OpenAIAgent[None]:
     reviewer_tool = reviewer.as_tool(
         tool_name="review_local_place_options",
         tool_description="Review local-place recommendations for geographic plausibility.",
+        run_config=RunConfig(workflow_name=OPENAI_REVIEW_WORKFLOW_NAME),
     )
     model = CompleteTracingScriptedModel(
         [

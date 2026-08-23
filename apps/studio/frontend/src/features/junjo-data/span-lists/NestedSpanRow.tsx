@@ -12,6 +12,7 @@ import { wrapSpan } from '../../traces/utils/span-accessor'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 import { workflowPath } from '../../../util/telemetry-paths'
 import { SpanKindChip } from './SpanKindChip'
+import { SpanFixtureChip } from './SpanFixtureChip'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -43,6 +44,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
         <div className={'w-full flex gap-x-2 justify-between items-end'}>
           <div className={'flex gap-x-2 items-center'}>
             <SpanKindChip kind={presentation.kind} />
+            <SpanFixtureChip fixture={presentation.fixture === true} />
             {junjoSpan && (
               <div className={'flex gap-x-2 items-center'}>
                 <button

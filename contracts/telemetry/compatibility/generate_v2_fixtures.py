@@ -307,6 +307,7 @@ def _agent_material(
             "driverKey": "scripted",
             "provider": "junjo",
             "model": "scripted-v1",
+            "fixture": True,
             "settings": {},
         },
         "tools": [
@@ -463,6 +464,7 @@ def _base_agent_case(
         "junjo.agent.model.driver_key": "scripted",
         "junjo.agent.model.provider": "junjo",
         "junjo.agent.model.name": "scripted-v1",
+        "junjo.model.fixture": True,
         "junjo.agent.model.response_candidate.available": True,
         "junjo.agent.model.response_type": first_response["type"],
         "junjo.agent.model.usage": _json(first_response["usage"]),
@@ -531,6 +533,7 @@ def _base_agent_case(
             "junjo.agent.model.driver_key": "scripted",
             "junjo.agent.model.provider": "junjo",
             "junjo.agent.model.name": "scripted-v1",
+            "junjo.model.fixture": True,
             "junjo.agent.model.response_candidate.available": True,
             "junjo.agent.model.response_type": "final_output",
             "junjo.agent.model.usage": _json(response["usage"]),

@@ -58,6 +58,7 @@ agent = Agent(
             driver_key="scripted",
             provider="junjo",
             model="scripted-v1",
+            fixture=True,
         ),
         driver=driver,
     ),

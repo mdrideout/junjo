@@ -77,7 +77,14 @@ describe('spanPresentation', () => {
     })
   })
 
-  it('labels marker-proven OpenAI turn and generation spans', () => {
+  it('labels marker-proven OpenAI task, turn, and generation spans', () => {
+    expect(spanPresentation(span({
+      'junjo.openai_agents.schema_version': 1,
+      'junjo.openai_agents.span.type': 'task',
+    }, 'task Agent workflow'))).toEqual({
+      kind: 'Task',
+      name: 'Agent workflow',
+    })
     expect(spanPresentation(span({
       'junjo.openai_agents.schema_version': 1,
       'junjo.openai_agents.span.type': 'turn',
@@ -90,7 +97,8 @@ describe('spanPresentation', () => {
       'junjo.openai_agents.span.type': 'generation',
       'gen_ai.operation.name': 'chat',
       'gen_ai.request.model': 'scripted-model',
-    }))).toEqual({ kind: 'LLM', name: 'scripted-model' })
+      'junjo.model.fixture': true,
+    }))).toEqual({ kind: 'LLM', name: 'scripted-model', fixture: true })
   })
 
   it('falls back to the received span name when standard attributes are absent', () => {

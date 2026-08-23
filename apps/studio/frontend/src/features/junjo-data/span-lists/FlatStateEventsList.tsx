@@ -21,6 +21,7 @@ import {
 } from '../workflow-detail/state-event-identity'
 import { SpanIconConstructor } from './determine-span-icon'
 import { SpanKindChip } from './SpanKindChip'
+import { SpanFixtureChip } from './SpanFixtureChip'
 import { spanPresentation } from './span-presentation'
 import { useNavigate } from 'react-router'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
@@ -160,6 +161,7 @@ export default function FlatStateEventsList({
               <div className="font-normal text-xs">
                 <div className="mb-0.5 flex items-center gap-x-1 font-bold">
                   <SpanKindChip kind={presentation?.kind ?? null} />
+                  <SpanFixtureChip fixture={presentation?.fixture === true} />
                   <span>{presentation?.name}</span>
                 </div>
                 <div className="flex gap-x-1 items-center">

@@ -106,4 +106,29 @@ describe('SpanRow', () => {
     expect(openFailures).toHaveBeenCalledWith(failedSpan)
     expect(selectSpan).not.toHaveBeenCalled()
   })
+
+  it('labels explicitly fixture-backed model spans', () => {
+    const fixtureSpan = {
+      ...workflowSpan(),
+      name: 'deterministic-local-place-v1',
+      attributes_json: {
+        'junjo.agent.operation_type': 'model_request',
+        'junjo.agent.model.name': 'deterministic-local-place-v1',
+        'junjo.model.fixture': true,
+      },
+    }
+
+    render(
+      <SpanRow
+        span={fixtureSpan}
+        isActiveSpan={false}
+        onClick={vi.fn()}
+        onOpenFailures={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('LLM', { selector: '[data-span-kind="llm"]' })).toBeVisible()
+    expect(screen.getByText('Fixture', { selector: '[data-span-modifier="fixture"]' })).toBeVisible()
+    expect(screen.getByText('deterministic-local-place-v1')).toBeVisible()
+  })
 })
