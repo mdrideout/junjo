@@ -144,7 +144,11 @@ try {
   resolverUrl.searchParams.set('destination', 'detail')
   await page.goto(resolverUrl.href, { waitUntil: 'domcontentloaded', timeout })
   await visible(page.getByRole('heading', { level: 1, name: evidence.agent_name, exact: true }), 'Agent heading', timeout)
-  assert.equal(page.url(), resolverUrl.href, 'semantic execution URL should remain canonical')
+  const agentDetailUrl = new URL(
+    `/agents/${encodeURIComponent(evidence.trace_id)}/${encodeURIComponent(evidence.agent_span_id)}`,
+    frontendOrigin,
+  ).href
+  assert.equal(page.url(), agentDetailUrl, 'semantic execution should resolve to the canonical Agent detail URL')
   await visible(page.getByRole('region', { name: 'Evidence integrity' }), 'evidence integrity', timeout)
   await visible(page.getByText('Contract evidence: complete', { exact: true }), 'complete evidence label', timeout)
   await visible(page.getByText(`run ${evidence.agent_run_id.slice(0, 6)}…${evidence.agent_run_id.slice(-6)}`, { exact: true }), 'Agent run identity', timeout)
