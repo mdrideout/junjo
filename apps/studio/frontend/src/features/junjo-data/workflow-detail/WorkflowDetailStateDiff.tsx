@@ -30,7 +30,6 @@ enum DiffTabOptions {
 }
 
 interface WorkflowDetailStateDiffProps {
-  defaultWorkflowSpan: OtelSpan
   activeStoreWorkflowSpan: OtelSpan | undefined
   storeDiagnosticRequest: WorkflowStoreDiagnosticRequest
 }
@@ -73,7 +72,6 @@ const TabButton = ({
  * telemetry patches in the browser.
  */
 export default function WorkflowDetailStateDiff({
-  defaultWorkflowSpan,
   activeStoreWorkflowSpan,
   storeDiagnosticRequest,
 }: WorkflowDetailStateDiffProps) {
@@ -226,7 +224,7 @@ export default function WorkflowDetailStateDiff({
       )}
       {activeSpan && activeTab === DiffTabOptions.SPAN_DETAILS && (
         <div className="grow overflow-y-scroll border-t border-zinc-200 dark:border-zinc-700 p-4">
-          <SpanAttributesContent span={activeSpan} origin="workflows" workflowSpanId={defaultWorkflowSpan.span_id} />
+          <SpanAttributesContent span={activeSpan} />
         </div>
       )}
       {stateViewsAvailable && STATE_TABS.has(activeTab) && (

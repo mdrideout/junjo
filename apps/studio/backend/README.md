@@ -7,7 +7,6 @@ FastAPI backend service for the Junjo AI Studio LLM observability platform.
 The backend service provides:
 - **HTTP REST API** for frontend and programmatic access
 - **User authentication** with session management
-- **LLM playground** for testing prompts across providers (OpenAI, Anthropic, Gemini)
 - **Span querying & analytics** using DataFusion (Parquet) + SQLite metadata index
 - **Internal gRPC server** for authentication (port 50053)
 
@@ -153,9 +152,6 @@ Tests use pytest markers for organization:
 - **`unit`**: Fast, isolated unit tests (no external dependencies)
 - **`integration`**: Integration tests (require running backend service)
 - **`requires_grpc_server`**: Tests requiring gRPC server on port 50053
-- **`requires_gemini_api`**: Tests requiring `GEMINI_API_KEY` environment variable
-- **`requires_openai_api`**: Tests requiring `OPENAI_API_KEY` environment variable
-- **`requires_anthropic_api`**: Tests requiring `ANTHROPIC_API_KEY` environment variable
 - **`security`**: Security tests (auth bypass, SQL injection)
 - **`concurrency`**: Concurrency and race condition tests
 - **`error_recovery`**: Error recovery and resilience tests
@@ -186,23 +182,10 @@ uv run pytest -m "integration" -v
 
 Do not start `uvicorn` or `docker compose up` just to run these tests; the gRPC tests need to bind their own isolated test server.
 
-#### LLM Playground Tests (Requires API Keys)
-
-```bash
-# Run Gemini tests (requires GEMINI_API_KEY in .env)
-uv run pytest -m "requires_gemini_api" -v
-
-# Run OpenAI tests (requires OPENAI_API_KEY in .env)
-uv run pytest -m "requires_openai_api" -v
-
-# Run Anthropic tests (requires ANTHROPIC_API_KEY in .env)
-uv run pytest -m "requires_anthropic_api" -v
-```
-
 #### All Tests
 
 ```bash
-# Run everything (requires backend running + API keys)
+# Run everything
 uv run pytest -v
 ```
 
@@ -225,14 +208,6 @@ CI uses hardcoded test values for security settings (these protect only ephemera
 JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="  # Base64-encoded 32 bytes
 ```
-
-LLM API keys are stored as GitHub Secrets (optional - tests skip if not present):
-- `OPENAI_API_KEY` - For OpenAI integration tests
-- `ANTHROPIC_API_KEY` - For Anthropic integration tests
-- `GEMINI_API_KEY` - For Gemini integration tests
-
-**For Repository Maintainers**: To enable LLM integration tests in CI, add these secrets in:
-`Settings → Secrets and variables → Actions → New repository secret`
 
 ---
 
@@ -345,7 +320,6 @@ backend/
 │   ├── features/               # Feature modules
 │   │   ├── auth/               # Authentication & sessions
 │   │   ├── api_keys/           # API key management
-│   │   ├── llm_playground/     # LLM playground
 │   │   ├── otel_spans/         # Span querying
 │   │   └── span_ingestion/     # Span ingestion from gRPC
 │   ├── common/                 # Shared utilities
@@ -385,11 +359,6 @@ JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
 # Logging
 JUNJO_LOG_LEVEL=info            # debug | info | warn | error
 JUNJO_LOG_FORMAT=text           # json | text
-
-# LLM API keys (optional, for playground)
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GEMINI_API_KEY=...
 ```
 
 Configuration is loaded using **Pydantic Settings** with precedence:

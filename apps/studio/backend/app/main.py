@@ -36,7 +36,6 @@ from app.features.config.router import router as config_router
 from app.features.evaluation.router import router as evaluation_router
 from app.features.evaluation_tokens.router import router as evaluation_tokens_router
 from app.features.execution_resolution.router import router as execution_resolution_router
-from app.features.llm_playground.router import router as llm_playground_router
 from app.features.otel_spans.router import router as otel_spans_router
 from app.features.trace_evidence.router import router as trace_evidence_router
 from app.grpc_server import start_grpc_server, stop_grpc_server
@@ -95,17 +94,6 @@ async def lifespan(app: FastAPI):
     logger.info(f"Internal auth gRPC (container): [::]:{settings.GRPC_PORT}")
     logger.info(f"CORS origins: {settings.cors_origins}")
     logger.info("=" * 60)
-
-    # Configure LiteLLM environment variables
-    if settings.llm.openai_api_key:
-        os.environ["OPENAI_API_KEY"] = settings.llm.openai_api_key
-        logger.info("OpenAI API key configured")
-    if settings.llm.anthropic_api_key:
-        os.environ["ANTHROPIC_API_KEY"] = settings.llm.anthropic_api_key
-        logger.info("Anthropic API key configured")
-    if settings.llm.gemini_api_key:
-        os.environ["GEMINI_API_KEY"] = settings.llm.gemini_api_key
-        logger.info("Gemini API key configured")
 
     # Initialize SQLite metadata index
     from app.db_sqlite.metadata import init_metadata_db
@@ -219,7 +207,6 @@ app.include_router(admin_router, prefix="/api")
 app.include_router(auth_router, tags=["auth"])
 app.include_router(api_keys_router)
 app.include_router(config_router, prefix="/api")
-app.include_router(llm_playground_router, prefix="/llm", tags=["llm"])
 app.include_router(
     otel_spans_router,
     prefix="/api/v1/observability",

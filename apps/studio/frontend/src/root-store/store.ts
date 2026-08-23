@@ -6,7 +6,6 @@ import { apiKeysReducer } from '../features/api-keys/slice'
 import { apiKeysStateListenerMiddleware } from '../features/api-keys/listeners'
 import { settingsReducer } from '../features/settings/slice'
 import { settingsStateListenerMiddleware } from '../features/settings/listeners'
-import promptPlaygroundSlice from '../features/prompt-playground/store/slice'
 import workflowSpanListSlice from '../features/junjo-data/list-spans-workflow/store/slice'
 import { workflowExecutionsListenerMiddleware } from '../features/junjo-data/list-spans-workflow/store/listeners'
 import tracesSlice from '../features/traces/store/slice'
@@ -25,7 +24,6 @@ export function createAppStore() {
       usersState: usersSlice,
       apiKeysState: apiKeysReducer,
       settingsState: settingsReducer,
-      promptPlaygroundState: promptPlaygroundSlice,
       workflowSpanListState: workflowSpanListSlice,
       tracesState: tracesSlice,
       agentExecutionsState: agentExecutionsReducer,

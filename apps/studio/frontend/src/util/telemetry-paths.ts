@@ -32,10 +32,6 @@ export function workflowPath(
   return spanId === undefined ? base : `${base}/${segment(spanId)}`
 }
 
-export function promptPlaygroundPath(basePath: string): string {
-  return `${basePath}/prompt-playground`
-}
-
 export interface SemanticExecutionIdentity {
   service_namespace: string
   service_name: string

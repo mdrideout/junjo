@@ -225,7 +225,6 @@ export default function WorkflowDetailPage() {
           storeDiagnosticRequest={activeStoreDiagnostic.request}
         />
         <WorkflowDetailStateDiff
-          defaultWorkflowSpan={workflowSpan}
           activeStoreWorkflowSpan={activeStoreDiagnostic.ownerSpan}
           storeDiagnosticRequest={activeStoreDiagnostic.request}
         />

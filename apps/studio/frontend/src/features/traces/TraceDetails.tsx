@@ -142,7 +142,6 @@ export default function TraceDetails({ routeIdentity }: TraceDetailsProps = {}) 
           >
             <SpanAttributesPanel
               span={selectedSpan}
-              origin="traces"
               focusFailuresTrigger={
                 failureFocus !== null && failureFocus.spanId === selectedSpan?.span_id
                   ? failureFocus.trigger

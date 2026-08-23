@@ -4,13 +4,11 @@ import SpanAttributesContent from './SpanAttributesContent'
 
 interface SpanAttributesPanelProps {
   span: OtelSpan | null
-  origin?: 'traces' | 'workflows'
-  workflowSpanId?: string
   focusFailuresTrigger?: number | null
 }
 
 export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
-  const { span, origin = 'traces', workflowSpanId, focusFailuresTrigger } = props
+  const { span, focusFailuresTrigger } = props
   const failureSectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,8 +30,6 @@ export default function SpanAttributesPanel(props: SpanAttributesPanelProps) {
       <div className="text-xl font-semibold mb-4">Span Details</div>
       <SpanAttributesContent
         span={span}
-        origin={origin}
-        workflowSpanId={workflowSpanId}
         failureSectionRef={failureSectionRef}
       />
     </div>

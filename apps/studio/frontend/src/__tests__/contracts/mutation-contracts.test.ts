@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { api, generateMock } from '../../auth/test-utils/openapi-mock-generator'
 import { UserResponseSchema } from '../../auth/response-schemas'
 import { ApiKeyCreateResponseSchema } from '../../features/api-keys/response-schemas'
-import { ModelsResponseSchema } from '../../features/prompt-playground/schemas/model-discovery-schemas'
 import { FlushWALResponseSchema } from '../../features/settings/schemas'
 
 describe('API Contract: Mutation Operations Response Schemas', () => {
@@ -73,28 +72,6 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
     })
   })
 
-  describe('LLM Operations', () => {
-    it('ModelsResponse schema matches refresh models endpoint', () => {
-      const { mock } = generateMock(
-        'refresh_provider_models_llm_providers__provider__models_refresh_post',
-      )
-      const result = ModelsResponseSchema.parse(mock)
-
-      expect(Array.isArray(result.models)).toBe(true)
-      expect(result.models.length).toBeGreaterThan(0)
-
-      // Validate first model has expected structure
-      const firstModel = result.models[0]
-      expect(firstModel.id).toBeDefined()
-      expect(typeof firstModel.id).toBe('string')
-      expect(firstModel.provider).toBeDefined()
-      expect(typeof firstModel.provider).toBe('string')
-      expect(firstModel.display_name).toBeDefined()
-      expect(typeof firstModel.supports_reasoning).toBe('boolean')
-      expect(typeof firstModel.supports_vision).toBe('boolean')
-    })
-  })
-
   describe('Admin Operations', () => {
     it('FlushWALResponse schema matches flush-wal endpoint', () => {
       const { mock } = generateMock('flush_wal_api_admin_flush_wal_post')
@@ -130,19 +107,5 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
       )
     })
 
-    it('POST /llm/providers/{provider}/models/refresh parameter is defined as string', () => {
-      const operation = api.getOperation(
-        'refresh_provider_models_llm_providers__provider__models_refresh_post',
-      )
-      const providerParam = operation?.parameters?.find(
-        (p) => 'name' in p && p.name === 'provider',
-      )
-
-      expect(providerParam).toBeDefined()
-      const schema = providerParam && 'schema' in providerParam ? providerParam.schema : undefined
-      expect(schema && typeof schema === 'object' && 'type' in schema ? schema.type : undefined).toBe(
-        'string',
-      )
-    })
   })
 })

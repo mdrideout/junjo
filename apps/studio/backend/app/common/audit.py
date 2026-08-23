@@ -45,7 +45,7 @@ def audit_log(
             Common values: "create", "read", "update", "delete", "list"
             Data layer: "db_insert", "db_query", "db_update", "db_delete"
         resource_type: Type of resource affected (lowercase, singular).
-            Examples: "api_key", "user", "llm_generation", "session"
+            Examples: "api_key", "user", "session"
         resource_id: Unique identifier of the affected resource.
             None for list operations or when ID not yet assigned.
         user: Authenticated user who performed the action.
@@ -215,6 +215,5 @@ class AuditResource:
     EVALUATION_TOKEN = "evaluation_token"
     USER = "user"
     SESSION = "session"
-    LLM_GENERATION = "llm_generation"
     OTEL_SPAN = "otel_span"
     WORKFLOW = "workflow"
