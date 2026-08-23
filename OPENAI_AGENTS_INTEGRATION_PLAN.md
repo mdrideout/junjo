@@ -152,8 +152,8 @@ required abstraction.
 ### Evaluation remains application-executed
 
 Datasets and results live in Studio, while the coding agent runs the real
-application code in the application repository. There is no hosted prompt
-playground, uploaded application bundle, or separate cloud execution runtime.
+application code in the application repository. There is no uploaded
+application bundle or separate cloud execution runtime.
 
 ### Evaluation results remain binary
 
@@ -1528,7 +1528,7 @@ This plan does not:
 - force an application to disable its existing OpenAI trace export;
 - make OpenAI Agents look like native Junjo Agents;
 - add evaluation scores;
-- add a prompt playground or hosted application execution service;
+- add a hosted application execution service;
 - upload application bundles to Studio;
 - add Studio metrics ingestion;
 - redesign Studio's WAL, Parquet, hot, or cold query architecture;

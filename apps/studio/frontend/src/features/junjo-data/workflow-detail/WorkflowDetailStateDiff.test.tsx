@@ -100,7 +100,6 @@ function renderStateDiff({
     <Provider store={store}>
       <BrowserRouter>
         <WorkflowDetailStateDiff
-          defaultWorkflowSpan={defaultWorkflowSpan}
           activeStoreWorkflowSpan={defaultWorkflowSpan}
           storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }}
         />

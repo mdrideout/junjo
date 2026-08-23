@@ -19,7 +19,6 @@ import ApiKeysPage from './features/api-keys/ApiKeysPage.tsx'
 import SettingsPage from './features/settings/SettingsPage.tsx'
 import TracesListPage from './features/traces/TracesListPage.tsx'
 import TraceDetails from './features/traces/TraceDetails.tsx'
-import PromptPlaygroundPage from './features/prompt-playground/PromptPlaygroundPage.tsx'
 import AgentExecutionsPage from './features/agent-executions/AgentExecutionsPage.tsx'
 import AgentExecutionDetailPage from './features/agent-executions/AgentExecutionDetailPage.tsx'
 import ExecutionResolverPage from './features/execution-resolution/ExecutionResolverPage.tsx'
@@ -68,14 +67,6 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <WorkflowDetailPage />
-                    </AuthGuard>
-                  }
-                />
-                <Route
-                  path="/workflows/:serviceName/:traceId/:workflowSpanId/:spanId/prompt-playground"
-                  element={
-                    <AuthGuard>
-                      <PromptPlaygroundPage />
                     </AuthGuard>
                   }
                 />
@@ -180,14 +171,6 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <TraceDetails />
-                    </AuthGuard>
-                  }
-                />
-                <Route
-                  path="/traces/:serviceName/:traceId/:spanId/prompt-playground"
-                  element={
-                    <AuthGuard>
-                      <PromptPlaygroundPage />
                     </AuthGuard>
                   }
                 />

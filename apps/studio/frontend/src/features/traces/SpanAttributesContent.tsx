@@ -1,9 +1,6 @@
 import type { RefObject } from 'react'
 import SpanAttributeKeyValueViewer from '../../components/SpanAttributeKeyValueViewer'
 import { OtelSpan } from './schemas/schemas'
-import { isLLMSpan } from './utils/span-utils'
-import { Link } from 'react-router'
-import { promptPlaygroundPath, tracesPath, workflowPath } from '../../util/telemetry-paths'
 import { wrapSpan } from './utils/span-accessor'
 import OpenAIAgentsSpanDetails from './OpenAIAgentsSpanDetails'
 import {
@@ -14,13 +11,11 @@ import {
 
 interface SpanAttributesContentProps {
   span: OtelSpan
-  origin?: 'traces' | 'workflows'
-  workflowSpanId?: string
   failureSectionRef?: RefObject<HTMLDivElement | null>
 }
 
 export default function SpanAttributesContent(props: SpanAttributesContentProps) {
-  const { span, origin = 'traces', workflowSpanId, failureSectionRef } = props
+  const { span, failureSectionRef } = props
   const firstFailureEventIndex = span.events_json.findIndex(
     (event) => event.name === 'exception' || event.name === 'junjo.hook_error',
   )
@@ -33,29 +28,8 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
       (key !== OPENAI_AGENTS_SPAN_DATA_ATTRIBUTE && key !== OPENAI_AGENTS_TRACE_DATA_ATTRIBUTE),
   )
 
-  // Generate playground link based on origin
-  const getPlaygroundLink = () => {
-    if (origin === 'workflows' && workflowSpanId) {
-      return promptPlaygroundPath(
-        workflowPath(span.service_name, span.trace_id, workflowSpanId, span.span_id),
-      )
-    }
-    return promptPlaygroundPath(tracesPath(span.service_name, span.trace_id, span.span_id))
-  }
-
   return (
     <>
-      {isLLMSpan(span) && (
-        <div className="mb-4">
-          <Link
-            to={getPlaygroundLink()}
-            className="px-3 py-1.5 text-sm font-semibold rounded-md bg-zinc-900 dark:bg-zinc-700 text-white hover:bg-zinc-800"
-          >
-            Open in Playground
-          </Link>
-        </div>
-      )}
-
       <div className="mb-6">
         <div className="font-semibold text-md mb-2 text-lg">Basic Information</div>
         <div className="grid grid-cols-1 gap-2">

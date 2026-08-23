@@ -20,7 +20,6 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 - 📊 **OpenTelemetry Native** - Standards-based telemetry ingestion via gRPC
 - 🎯 **Workflow Debugging Interface** - Visual step-by-step debugging of AI graph workflows
 - 🧾 **Evidence Integrity** - Verify Store reconstruction, payload availability, loss signals, and nested execution parentage
-- 🪶 **Prompt Playground** - Experiment with different models and prompt tweaks while you debug
 - 🔒 **Production-Ready Security** - Authentication, user accounts, and encrypted sessions
 - 🚀 **Low Resource, High-Performance Ingestion** - Designed for high-throughput in low resource environments
 - 💾 **Shared vCPU, 1GB RAM** - Production grade telemetry on a $5 / month virtual machine
@@ -202,11 +201,6 @@ For service-specific development notes, see [backend/README.md](./backend/README
 - Follow semantic parents and causally nested Workflows or Agents
 - Monitor performance and latency
 
-**LLM Playground:**
-- Test prompts with multiple providers (OpenAI, Anthropic, Google Gemini)
-- Compare responses across models
-- Experiment with temperature and reasoning modes
-
 **OpenTelemetry Integration:**
 - Standards-compliant OTLP/gRPC ingestion endpoint
 - Automatic trace collection from Junjo Python Library
@@ -228,7 +222,6 @@ The Junjo AI Studio is composed of three primary services:
 - **Responsibilities**:
   - HTTP REST API
   - User authentication & session management
-  - LLM playground
   - Span querying & analytics
   - Semantic Workflow and Agent diagnostics
   - Shared Store reconstruction and evidence-integrity verification
@@ -248,7 +241,6 @@ The Junjo AI Studio is composed of three primary services:
   - Web UI for Workflow Graph visualization
   - Dynamic Agent operation timelines and evidence inspection
   - Verified Store state navigation and nested executable links
-  - LLM playground interface
   - User management
 
 **Data Flow (Two-Tier Architecture):**
@@ -338,11 +330,6 @@ JUNJO_HOST_DB_DATA_PATH=./.dbdata
 # === Logging =======================================================
 JUNJO_LOG_LEVEL=info        # debug | info | warn | error
 JUNJO_LOG_FORMAT=json       # json | text
-
-# === LLM API Keys (optional) =======================================
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GEMINI_API_KEY=...
 ```
 
 **See `.env.example` for complete configuration with detailed comments.**

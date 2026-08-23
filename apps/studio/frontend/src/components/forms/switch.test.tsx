@@ -24,8 +24,8 @@ function ControlledSwitch({
 
   return (
     <Switch
-      label="Structured output"
-      description="Require a JSON response."
+      label="Edge labels"
+      description="Show labels on graph edges."
       checked={checked}
       disabled={disabled}
       onCheckedChange={(nextChecked) => {
@@ -43,11 +43,11 @@ describe('Switch', () => {
 
     render(<ControlledSwitch onCheckedChange={onCheckedChange} />)
 
-    const toggle = screen.getByRole('switch', { name: 'Structured output' })
-    expect(toggle).toHaveAccessibleDescription('Require a JSON response.')
+    const toggle = screen.getByRole('switch', { name: 'Edge labels' })
+    expect(toggle).toHaveAccessibleDescription('Show labels on graph edges.')
     expect(toggle).toHaveAttribute('aria-checked', 'false')
 
-    await user.click(screen.getByText('Structured output'))
+    await user.click(screen.getByText('Edge labels'))
     expect(onCheckedChange).toHaveBeenLastCalledWith(true)
     expect(toggle).toHaveAttribute('aria-checked', 'true')
 
@@ -63,8 +63,8 @@ describe('Switch', () => {
 
     render(<ControlledSwitch disabled onCheckedChange={onCheckedChange} />)
 
-    const toggle = screen.getByRole('switch', { name: 'Structured output' })
-    await user.click(screen.getByText('Structured output'))
+    const toggle = screen.getByRole('switch', { name: 'Edge labels' })
+    await user.click(screen.getByText('Edge labels'))
     toggle.focus()
     await user.keyboard(' ')
 

@@ -612,9 +612,6 @@ it('handles server errors gracefully', async () => {
 @pytest.mark.security          # Security tests (auth bypass, SQL injection)
 @pytest.mark.concurrency       # Concurrency and race condition tests
 @pytest.mark.error_recovery    # Error recovery and resilience tests
-@pytest.mark.requires_gemini_api   # Tests requiring GEMINI_API_KEY
-@pytest.mark.requires_openai_api   # Tests requiring OPENAI_API_KEY
-@pytest.mark.requires_anthropic_api # Tests requiring ANTHROPIC_API_KEY
 ```
 
 ### Usage Examples
@@ -642,15 +639,6 @@ async def test_sql_injection_prevention():
         response = await client.get("/users?email='; DROP TABLE users; --")
         assert response.status_code in [400, 404]  # Not 500
 
-@pytest.mark.requires_openai_api
-@pytest.mark.asyncio
-async def test_openai_generation():
-    """Test requiring actual OpenAI API key"""
-    if not os.getenv("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set")
-
-    response = await generate_completion(model="gpt-4o", prompt="Hello")
-    assert response.content
 ```
 
 ### gRPC Integration Tests
@@ -676,9 +664,6 @@ pytest -m unit
 
 # Run integration tests
 pytest -m integration
-
-# Run everything except tests requiring API keys
-pytest -m "not (requires_openai_api or requires_gemini_api or requires_anthropic_api)"
 
 # Run security and error recovery tests
 pytest -m "security or error_recovery"

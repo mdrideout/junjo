@@ -251,14 +251,6 @@ When `JUNJO_ENV=production`, these variables configure public access points.
 
 : The public URL for the ingestion service (e.g., `https://ingestion.example.com`).
 
-### AI Service Keys (Optional)
-
-API keys for LLM features in the prompt playground.
-
-- `GEMINI_API_KEY`
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
-
 ## Volume Mounts
 
 The backend and ingestion services require persistent storage for their databases; the frontend is stateless. The recommended approach is to use either local directories or block storage volumes.
