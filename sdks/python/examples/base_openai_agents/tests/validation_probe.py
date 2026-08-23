@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from agents import Runner
+from agents import Runner, set_trace_processors
 from junjo.plugins.openai_agents import instrument_openai_agents
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
@@ -28,24 +28,36 @@ async def main() -> None:
     )
     provider.add_span_processor(SimpleSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
-    integration = instrument_openai_agents(
-        tracer_provider=provider,
-        disable_openai_trace_export=True,
-    )
+    set_trace_processors([])
+    integration = instrument_openai_agents(tracer_provider=provider)
     try:
-        result = await Runner.run(build_openai_agent(), "Find a local place.")
+        results = [
+            await Runner.run(build_openai_agent(), "Find a local place."),
+            await Runner.run(build_openai_agent(), "Find another local place."),
+        ]
         provider.force_flush()
         spans = exporter.get_finished_spans()
+        spans_by_id = {format(span.context.span_id, "016x"): span for span in spans}
+        attributes_by_span = {span: span.attributes or {} for span in spans}
+        translated = [span for span in spans if attributes_by_span[span].get("junjo.openai_agents.schema_version") == 1]
+        native_owners = [
+            span for span in spans if attributes_by_span[span].get("junjo.span_type") in {"workflow", "agent"}
+        ]
+        payloads = {}
+        for span in translated:
+            raw_payload = attributes_by_span[span].get("junjo.openai_agents.span.data")
+            if isinstance(raw_payload, str):
+                payloads[span] = json.loads(raw_payload)
         print(
             json.dumps(
                 {
-                    "output": result.final_output,
+                    "outputs": [result.final_output for result in results],
                     "operations": sorted(
                         {
                             operation
                             for span in spans
                             if isinstance(
-                                operation := span.attributes.get("gen_ai.operation.name"),
+                                operation := attributes_by_span[span].get("gen_ai.operation.name"),
                                 str,
                             )
                         }
@@ -55,10 +67,66 @@ async def main() -> None:
                             span_type
                             for span in spans
                             if isinstance(
-                                span_type := span.attributes.get("junjo.span_type"),
+                                span_type := attributes_by_span[span].get("junjo.span_type"),
                                 str,
                             )
                         }
+                    ),
+                    "source_types": sorted(
+                        {
+                            source_type
+                            for span in translated
+                            if isinstance(
+                                source_type := attributes_by_span[span].get("junjo.openai_agents.span.type"),
+                                str,
+                            )
+                        }
+                    ),
+                    "agent_names": sorted(
+                        {
+                            agent_name
+                            for span in translated
+                            if isinstance(
+                                agent_name := attributes_by_span[span].get("gen_ai.agent.name"),
+                                str,
+                            )
+                        }
+                    ),
+                    "translated_payloads_complete": all(
+                        isinstance(
+                            attributes_by_span[span].get("junjo.openai_agents.span.data")
+                            or attributes_by_span[span].get("junjo.openai_agents.trace.data"),
+                            str,
+                        )
+                        for span in translated
+                    ),
+                    "model_payloads_complete": all(
+                        payload["data"]["input"] is not None and payload["data"]["output"] is not None
+                        for span, payload in payloads.items()
+                        if attributes_by_span[span].get("junjo.openai_agents.span.type") == "generation"
+                    ),
+                    "tool_payloads_complete": all(
+                        payload["data"]["input"] is not None and payload["data"]["output"] is not None
+                        for span, payload in payloads.items()
+                        if attributes_by_span[span].get("junjo.openai_agents.span.type") == "function"
+                    ),
+                    "source_trace_count": len(
+                        {
+                            trace_id
+                            for span in translated
+                            if isinstance(
+                                trace_id := attributes_by_span[span].get("junjo.openai_agents.trace.id"),
+                                str,
+                            )
+                        }
+                    ),
+                    "native_owners_beneath_openai_tools": all(
+                        span.parent is not None
+                        and attributes_by_span[spans_by_id[format(span.parent.span_id, "016x")]].get(
+                            "gen_ai.operation.name"
+                        )
+                        == "execute_tool"
+                        for span in native_owners
                     ),
                     "targets": sorted(descriptor.name for descriptor in harness.target_descriptors()),
                 }

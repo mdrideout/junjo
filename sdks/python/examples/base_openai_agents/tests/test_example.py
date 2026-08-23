@@ -16,9 +16,20 @@ def test_mixed_runtime_trace_and_evaluation_declarations() -> None:
     )
     result = json.loads(completed.stdout)
 
-    assert "Brooklyn" in result["output"]
-    assert {"invoke_workflow", "invoke_agent", "execute_tool"}.issubset(result["operations"])
+    assert len(result["outputs"]) == 2
+    assert all("Brooklyn" in output for output in result["outputs"])
+    assert {"invoke_workflow", "invoke_agent", "execute_tool", "chat"}.issubset(result["operations"])
+    assert {"agent", "function", "generation", "guardrail", "task", "turn"}.issubset(result["source_types"])
+    assert set(result["agent_names"]) == {
+        "Local place coordinator",
+        "Local place reviewer",
+    }
     assert {"workflow", "agent", "node"}.issubset(result["junjo_types"])
+    assert result["translated_payloads_complete"] is True
+    assert result["model_payloads_complete"] is True
+    assert result["tool_payloads_complete"] is True
+    assert result["source_trace_count"] == 2
+    assert result["native_owners_beneath_openai_tools"] is True
     assert set(result["targets"]) == {
         "Local place coordinator",
         "Local place specialist",

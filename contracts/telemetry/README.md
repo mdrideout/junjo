@@ -28,6 +28,10 @@ serialized payload such as the Workflow execution graph snapshot (`v: 2`).
   expected diagnostic codes;
 - `fixtures/fingerprints` and `fixtures/store` contain language-independent RFC
   8785 identity, generated-schema normalization, and RFC 6902 replay vectors;
+- `integrations/openai_agents/v1` owns the independent, versioned attribute and
+  payload contract used to preserve OpenAI Agents SDK source traces inside
+  ordinary OTLP spans. Its valid, invalid, and mixed-runtime fixtures are
+  consumed by both the optional Python SDK producer and Studio frontend;
 - `compatibility/generate_v2_fixtures.py` is the canonical fixture generator;
   it removes stale generated cases before writing the complete current set;
 - `compatibility/validate_contract.py` performs dependency-free structural and

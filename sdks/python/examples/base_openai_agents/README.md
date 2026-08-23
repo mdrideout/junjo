@@ -53,7 +53,9 @@ requests or copy telemetry into Studio.
 
 ## Privacy
 
-The local `.env.example` enables span content capture so prompts, responses,
-and tool payloads are inspectable. Those spans can contain user data or
-secrets. Choose the OpenTelemetry GenAI content-capture setting deliberately
-for production deployments.
+OpenAI Agents SDK `RunConfig.trace_include_sensitive_data` owns source-content
+capture. Its upstream default is enabled, which makes this example's prompts,
+responses, and tool payloads inspectable in Studio. Those spans can contain
+user data or secrets; set that option to `False` when adapting the example to
+a deployment that must not export the content. Junjo never serializes the
+OpenAI tracing API key.

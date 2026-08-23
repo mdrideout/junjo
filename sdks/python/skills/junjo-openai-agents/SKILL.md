@@ -34,10 +34,10 @@ Read the application's instructions, dependency manifest, telemetry startup,
 shutdown path, Agent construction, Junjo definitions, and evaluation harness.
 Inspect the installed public API and docs rather than guessing signatures.
 
-Determine whether OpenAI Agents instrumentation is already active. Junjo
-preserves pre-existing instrumentation, but cannot retroactively change its
-tracer provider or native OpenAI trace-export choice. Reuse the established
-provider and make one owner responsible for shutdown.
+Determine how the application configures OpenAI Agents tracing processors.
+Junjo wraps the active first-party tracing provider and preserves its
+processors and export policy. Reuse the application's OpenTelemetry provider
+and make one owner responsible for shutdown.
 
 ## Compose explicit tools
 
@@ -57,16 +57,17 @@ Junjo Agents.
 
 ## Connect telemetry
 
-Install the official OpenTelemetry GenAI instrumentors through Junjo's
-integration helper using the application's provider. Let the official
-instrumentation emit standard Agent, tool, model, handoff, guardrail, and
-custom-span coverage it supports. Let Junjo native execution emit its existing
-semantic Workflow, Agent, Node, Store, and operation spans into that provider.
+Install Junjo's first-party OpenAI Agents tracing bridge using the
+application's provider. It translates the SDK's native Trace and Span objects,
+including complete versioned source payloads, while Junjo native execution
+emits its existing semantic Workflow, Agent, Node, Store, and operation spans
+into that same provider.
 
-Choose OpenAI's native hosted trace export deliberately. Disabling it is an
-explicit application policy; Junjo AI Studio does not require that dashboard.
-Choose GenAI prompt and response content capture deliberately because it may
-contain user data or secrets.
+Choose OpenAI's native hosted trace processors deliberately; Junjo AI Studio
+does not require that dashboard. Choose the OpenAI Agents SDK
+`RunConfig.trace_include_sensitive_data` policy deliberately because source
+payloads may contain user data or secrets. Never put tracing API keys into span
+attributes.
 
 Validate one mixed trace in Studio:
 

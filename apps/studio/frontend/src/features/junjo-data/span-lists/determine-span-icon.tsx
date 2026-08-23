@@ -65,11 +65,16 @@ export function SpanIconConstructor(props: {
   const openInferenceKind = attributes['openinference.span.kind']
   const genAiProvider = attributes['gen_ai.provider.name']
   const genAiOperation = attributes['gen_ai.operation.name']
+  const openAIAgentsSchemaVersion = attributes['junjo.openai_agents.schema_version']
 
   // OpenAI Agents SDK Agent and function-tool boundaries receive the OpenAI
-  // mark. Runner, model, and native Junjo spans retain their own icons.
-  if (genAiOperation === 'invoke_agent' || genAiOperation === 'execute_tool') {
-    return <OpenAILogoIcon className={`${size} scale-110 ${iconColor}`} />
+  // mark when Junjo's versioned source marker proves their framework identity.
+  // Runner, model, unrelated GenAI, and native Junjo spans retain their icons.
+  if (
+    openAIAgentsSchemaVersion === 1 &&
+    (genAiOperation === 'invoke_agent' || genAiOperation === 'execute_tool')
+  ) {
+    return <OpenAILogoIcon className={`${size} scale-[1.2] ${iconColor}`} />
   }
 
   const isLLMSpan =

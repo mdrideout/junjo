@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "service_namespace": "junjo.examples",
+  "service_name": "base-openai-agents",
+  "spans": [
+    {
+      "attributes": {
+        "gen_ai.operation.name": "invoke_workflow",
+        "gen_ai.workflow.name": "Local place workflow",
+        "junjo.openai_agents.schema_version": 1,
+        "junjo.openai_agents.trace.data": "{\"ended_at\":\"2026-08-23T12:00:01+00:00\",\"group_id\":null,\"metadata\":null,\"name\":\"Local place workflow\",\"source_class\":\"agents.tracing.traces.TraceImpl\",\"started_at\":\"2026-08-23T12:00:00+00:00\",\"trace_id\":\"trace_example\",\"tracing_api_key_configured\":false}",
+        "junjo.openai_agents.trace.id": "trace_example"
+      },
+      "name": "invoke_workflow Local place workflow",
+      "parent_span_id": null,
+      "span_id": "1111111111111111"
+    },
+    {
+      "attributes": {
+        "gen_ai.agent.name": "Local place coordinator",
+        "gen_ai.operation.name": "invoke_agent",
+        "junjo.openai_agents.schema_version": 1,
+        "junjo.openai_agents.source.parent_span_id": "span_task",
+        "junjo.openai_agents.source.span_id": "span_agent",
+        "junjo.openai_agents.source.trace_id": "trace_example",
+        "junjo.openai_agents.span.data": "{\"data\":{\"handoffs\":[],\"metadata\":null,\"name\":\"Local place coordinator\",\"output_type\":\"str\",\"tools\":[\"run_local_place_workflow\"]},\"ended_at\":\"2026-08-23T12:00:00.9+00:00\",\"error\":null,\"parent_span_id\":\"span_task\",\"source_class\":\"agents.tracing.span_data.AgentSpanData\",\"source_type\":\"agent\",\"span_id\":\"span_agent\",\"started_at\":\"2026-08-23T12:00:00.1+00:00\",\"trace_id\":\"trace_example\",\"trace_metadata\":null,\"tracing_api_key_configured\":false}",
+        "junjo.openai_agents.span.type": "agent"
+      },
+      "name": "invoke_agent Local place coordinator",
+      "parent_span_id": "1111111111111111",
+      "span_id": "2222222222222222"
+    },
+    {
+      "attributes": {
+        "junjo.executable_runtime_id": "native_workflow_runtime",
+        "junjo.span_type": "workflow",
+        "junjo.telemetry.contract_version": 2
+      },
+      "name": "Local place workflow",
+      "parent_span_id": "2222222222222222",
+      "span_id": "3333333333333333"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junjo.ai/contracts/telemetry/integrations/openai_agents/v1/payload.schema.json",
+  "title": "Junjo OpenAI Agents telemetry payload version 1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/tracePayload"
+    },
+    {
+      "$ref": "#/$defs/spanPayload"
+    }
+  ],
+  "$defs": {
+    "error": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "message",
+            "data"
+          ],
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "data": {
+              "type": [
+                "object",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "tracePayload": {
+      "type": "object",
+      "required": [
+        "source_class",
+        "trace_id",
+        "name",
+        "group_id",
+        "metadata",
+        "started_at",
+        "ended_at",
+        "tracing_api_key_configured"
+      ],
+      "properties": {
+        "source_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "group_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tracing_api_key_configured": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "spanPayload": {
+      "type": "object",
+      "required": [
+        "source_class",
+        "source_type",
+        "trace_id",
+        "span_id",
+        "parent_span_id",
+        "started_at",
+        "ended_at",
+        "trace_metadata",
+        "tracing_api_key_configured",
+        "data",
+        "error"
+      ],
+      "properties": {
+        "source_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_span_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "trace_metadata": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "tracing_api_key_configured": {
+          "type": "boolean"
+        },
+        "data": true,
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

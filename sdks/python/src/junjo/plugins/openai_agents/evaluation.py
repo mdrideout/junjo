@@ -22,7 +22,7 @@ from ...evaluation.targets import (
     TargetExecutionError,
 )
 from ...studio import OpenTelemetrySpanReference, TargetKind
-from ._instrumentation import _Capture, capture_openai_agent_evidence
+from ._evidence import OpenAIAgentEvidenceCapture, capture_openai_agent_evidence
 
 InputT = TypeVar("InputT")
 ContextT = TypeVar("ContextT")
@@ -183,7 +183,7 @@ class OpenAIAgentTarget(EvaluationTarget, Generic[InputT, ContextT, ResourcesT])
 
 @overload
 def _single_evidence(
-    capture: _Capture | None,
+    capture: OpenAIAgentEvidenceCapture | None,
     *,
     required: Literal[True],
 ) -> OpenTelemetrySpanReference: ...
@@ -191,14 +191,14 @@ def _single_evidence(
 
 @overload
 def _single_evidence(
-    capture: _Capture | None,
+    capture: OpenAIAgentEvidenceCapture | None,
     *,
     required: Literal[False],
 ) -> OpenTelemetrySpanReference | None: ...
 
 
 def _single_evidence(
-    capture: _Capture | None,
+    capture: OpenAIAgentEvidenceCapture | None,
     *,
     required: bool,
 ) -> OpenTelemetrySpanReference | None:
@@ -207,8 +207,8 @@ def _single_evidence(
         return values[0]
     if required:
         if not values:
-            raise RuntimeError("OpenAI Agent instrumentation did not emit the expected invoke_agent span.")
-        raise RuntimeError("OpenAI Agent instrumentation emitted multiple matching Agent spans.")
+            raise RuntimeError("OpenAI Agent telemetry did not emit the expected invoke_agent span.")
+        raise RuntimeError("OpenAI Agent telemetry emitted multiple matching Agent spans.")
     return None
 
 

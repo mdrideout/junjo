@@ -45,31 +45,30 @@ bootstrap. Pass that same provider to `instrument_openai_agents`, retain the
 returned integration handle, and close the handle before shutting down the
 provider.
 
-The helper installs the official OpenTelemetry OpenAI Agents and OpenAI client
-instrumentors. It does not replace or shut down the supplied provider. If the
-official instrumentors are already active, Junjo preserves them rather than
-installing a duplicate. Because an active instrumentor already owns its
-provider and OpenAI native-export policy, Junjo cannot retroactively change
-those choices; configure one owner during startup.
+The helper wraps the OpenAI Agents SDK's active first-party tracing provider
+and mirrors each source Trace and Span into the supplied OpenTelemetry
+provider. It does not patch an HTTP client, replace the supplied provider,
+or shut down application telemetry. The original OpenAI provider remains
+responsible for its processors, including any application-selected hosted
+trace export. Closing the integration restores that exact provider.
 
-OpenAI's own hosted trace export remains enabled by default. An application may
-explicitly disable that native export when it wants OpenTelemetry to be the
-only tracing destination. Junjo AI Studio never reads or copies data from the
-OpenAI trace dashboard.
+An application that wants Studio to be its only tracing destination can use
+the OpenAI Agents SDK's ordinary processor configuration before installing
+the bridge. Junjo does not silently remove or configure another destination,
+and Studio never reads or copies data from the OpenAI trace dashboard.
 
 ## Treat content capture as a privacy choice
 
-The official GenAI instrumentation does not capture prompt and response
-content by default. Enabling
-`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` can place messages, tool
-arguments, and results in spans. Those values may contain user data, source
-code, credentials, or other sensitive content. Choose the setting explicitly
-for each deployment and apply the same access-control and retention policy as
-the application data.
+The bridge preserves the source tracing payload. OpenAI Agents SDK
+`RunConfig.trace_include_sensitive_data` therefore owns whether model inputs,
+outputs, function arguments, and results are available to copy into Studio.
+The upstream default is `True`; set it to `False` when those values should not
+leave the application process. Captured values may contain user data, source
+code, credentials, or other sensitive content, so Studio access and retention
+must follow the same policy as the application data.
 
-The deterministic repository example enables span-only content capture so its
-local trace is inspectable. That is an example policy, not a production
-default imposed by Junjo.
+Junjo never serializes the OpenAI tracing API key. It records only whether one
+was configured.
 
 ## Expose native Junjo execution as tools
 
@@ -124,47 +123,50 @@ junjo eval skill path --name junjo-openai-agents
 
 ## Current telemetry coverage
 
-Coverage follows the official instrumentors resolved by the optional extra.
-Junjo does not maintain a second copy of spans they already emit.
+Junjo translates every concrete SpanData type exposed by the validated OpenAI
+Agents SDK version. A contract test fails when upstream adds a new concrete
+type until Junjo deliberately maps and documents it. Known source types get
+queryable semantic projections plus a complete, versioned JSON source payload;
+an unexpected source type is retained through a generic raw-payload fallback
+rather than dropped.
 
 | OpenAI Agents activity | Current OpenTelemetry representation |
 | --- | --- |
-| Runner workflow | Standard `invoke_workflow` span |
-| Agent invocation | Standard `invoke_agent` span |
-| Function tool call | Standard `execute_tool` span with optional arguments and result content |
-| OpenAI Chat Completions or Responses model call | Standard model-client span from the official OpenAI client instrumentor |
+| Runner workflow | `invoke_workflow` span plus complete workflow Trace payload |
+| Agent invocation | `invoke_agent` span plus Agent configuration and metadata |
+| Function tool call | `execute_tool` span plus arguments, result, and MCP metadata |
+| Generation or Responses model call | `chat` span plus source input, output/response model, configuration, and usage; the source discriminator distinguishes `generation` from `response` |
 | Nested Junjo Workflow, Agent, Node, Store, and operation | Existing native Junjo telemetry inside the active tool context |
-| Handoff, guardrail, generation/response callback, speech, transcription, or arbitrary custom OpenAI trace span | Not separately translated by the current official OpenAI Agents instrumentor when no stable GenAI semantic convention exists |
+| Handoff, guardrail, task, turn, MCP tool listing, speech, transcription, and custom spans | Dedicated source-type span with complete versioned source payload |
 
-The last row is a known visibility limit, not a reason to invent Junjo-specific
-duplicates. Junjo will add a narrow companion representation only when a
-material application use case and stable semantics justify it.
+The versioned integration attributes are defined in the repository telemetry
+contract. Studio recognizes the marker before applying OpenAI-specific icons
+or details, so unrelated applications that happen to use the same GenAI
+operation names are not mislabeled.
 
 ## Observed deterministic local baseline
 
-The 2026-08-18 validation used the built Junjo 0.66.0 wheel, OpenAI Agents
-0.21.1, OpenTelemetry Python 1.44.0, Python 3.12.9 on Apple Silicon macOS, and
-the local Studio 0.82.1 Compose stack. These are observations from the small
-offline example, not product limits or capacity claims.
+The previous third-party-instrumentor baseline is obsolete. The current
+first-party bridge was measured with the small deterministic example. These
+numbers are regression evidence for that fixture; they are not product limits
+or capacity claims.
 
-| Measurement | Observed value |
-| --- | ---: |
-| Spans per ordinary outer-Agent run | 8 |
-| OTLP protobuf bytes with `NO_CONTENT` | 11,314 bytes |
-| OTLP protobuf bytes with `SPAN_ONLY` | 11,523 bytes |
-| Peak example-process memory across 10 runs | about 145 MiB |
-| Retained traced-allocation delta after 10 runs | about 529 KiB |
-| One 8-span OTLP force-flush round trip | 16.78 ms |
-| Trace query availability after flush | 43.96 ms |
-| Recent-cold trace query after the ingestion flush interval | 28.79 ms |
+| Measurement | Native Junjo spans only | First-party bridge enabled |
+| --- | ---: | ---: |
+| Spans per deterministic run | 4 | 23 |
+| OTLP protobuf bytes per run | 10,382 | 36,574 |
+| Median deterministic run time | 47.63 ms | 50.84 ms |
+| CPU time per deterministic run | 10.25 ms | 10.85 ms |
 
-The content-enabled fixture added 209 serialized bytes because its prompts and
-tool values are intentionally small. Real payload cost is proportional to the
-application content captured. The retained-allocation observation includes
-normal Python and upstream SDK caches; it is not evidence of a steady-state
-memory ceiling. Repeated-run lifecycle tests remain the guard against leaked
-Junjo-owned registrations or run-scoped resources. No Studio ingestion,
-batching, hot/cold storage, or query architecture changed for this integration.
+Fifty concurrent deterministic runs produced 50 separate source traces and 50
+separate OpenTelemetry traces. The live Compose validation produced the same
+23-span mixed tree in Studio and exposed full scripted model and tool inputs
+and outputs through the structured source-data view.
+
+Real payload cost is proportional to the source content captured. Repeated-run
+and concurrent-run lifecycle tests guard against leaked Junjo-owned state and
+cross-run evidence. No Studio ingestion, batching, hot/cold storage, or query
+architecture changes for this integration.
 
 ## Run the canonical example
 

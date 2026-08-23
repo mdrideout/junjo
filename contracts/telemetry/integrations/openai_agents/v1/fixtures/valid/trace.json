@@ -1,0 +1,12 @@
+{
+  "ended_at": "2026-08-23T12:00:01+00:00",
+  "group_id": "group_example",
+  "metadata": {
+    "experiment": "baseline"
+  },
+  "name": "Local place workflow",
+  "source_class": "agents.tracing.traces.TraceImpl",
+  "started_at": "2026-08-23T12:00:00+00:00",
+  "trace_id": "trace_example",
+  "tracing_api_key_configured": false
+}

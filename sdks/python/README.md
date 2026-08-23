@@ -100,8 +100,9 @@ high-accuracy, repeatable process such as RAG retrieval or complex document
 parsing. That adapter does not turn the Workflow itself into an Agent.
 
 OpenAI Agents SDK applications can install `junjo[openai-agents]` for
-first-party Workflow and Agent function-tool adapters, official OpenTelemetry
-GenAI instrumentation, and an exact-span evaluation target. See the
+first-party Workflow and Agent function-tool adapters, a complete bridge from
+the SDK's native tracing interfaces into OpenTelemetry, and an exact-span
+evaluation target. See the
 [OpenAI Agents integration guide](https://junjo.ai/docs/python/integrations/openai-agents/).
 
 You can execute autonomous agent capabilities from other libraries inside a Junjo AI workflow. For example, a Junjo workflow node can run a [smolagents](https://github.com/huggingface/smolagents) tool calling agent as a single step within a greater Junjo workflow or subflow.

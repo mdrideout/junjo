@@ -6,6 +6,13 @@
 - Scope: Optional OpenAI Agents SDK integration, mixed-runtime telemetry,
   evaluation support, canonical example, validation, and documentation
 
+The original composition and evaluation strategy in this document remains
+authoritative. Its telemetry mechanics were superseded during implementation
+by [the first-party telemetry plan](OPENAI_AGENTS_FIRST_PARTY_TELEMETRY_PLAN.md)
+and accepted in ADR 0015: Junjo now wraps the OpenAI Agents SDK's first-party
+TraceProvider and does not use third-party OpenAI instrumentors or patch the
+OpenAI HTTP client.
+
 ## Document purpose and authority
 
 This document is the persistent cross-platform strategy and implementation
@@ -162,7 +169,7 @@ flowchart LR
     FT --> JW["Junjo Workflow"]
     FT --> JA["Junjo Agent"]
 
-    OA --> OI["Official OpenTelemetry<br/>OpenAI instrumentation"]
+    OA --> OI["Junjo first-party<br/>TraceProvider bridge"]
     JW --> JT["Junjo native telemetry"]
     JA --> JT
 
@@ -254,8 +261,6 @@ Add a first-party optional dependency group to
 [project.optional-dependencies]
 openai-agents = [
     "openai-agents>=<validated-version>",
-    "opentelemetry-instrumentation-genai-openai-agents>=1.0b0",
-    "opentelemetry-instrumentation-genai-openai>=1.0b0",
 ]
 ```
 
@@ -290,7 +295,7 @@ from junjo.plugins.openai_agents.evaluation import OpenAIAgentTarget
 ```
 
 The default `junjo` package must not import the optional module. Installing
-base Junjo must not install OpenAI Agents or its instrumentation. Importing the
+base Junjo must not install OpenAI Agents or its integration dependencies. Importing the
 optional module without the extra may raise one direct installation error that
 instructs the developer to install `junjo[openai-agents]`; it must not install
 packages dynamically or add compatibility fallbacks.
@@ -327,12 +332,11 @@ The plugin provides one explicit process-startup function:
 ```python
 integration = instrument_openai_agents(
     tracer_provider=tracer_provider,
-    disable_openai_trace_export=True,
 )
 ```
 
-The returned `OpenAIAgentsIntegration` handle records ownership of only the
-processors and instrumentors it installed:
+The returned `OpenAIAgentsIntegration` handle records ownership of only its
+TraceProvider wrapper:
 
 ```python
 integration.close()
@@ -349,11 +353,10 @@ The integration must:
 - never replace the global provider;
 - never shut down the provider;
 - never shut down an application-owned Junjo exporter;
-- install each official instrumentor at most once;
-- detect already-installed official instrumentation;
-- avoid duplicate OpenAI tracing processors and duplicate OpenTelemetry spans;
-- preserve processors it does not own;
-- remove only processors installed by this integration;
+- install one reference-counted wrapper around the active OpenAI TraceProvider;
+- preserve the original provider and all processors it owns;
+- avoid HTTP-client patching and duplicate model spans;
+- restore the exact original provider after the final integration handle closes;
 - support repeated application and evaluation runs in one Python process; and
 - remain safe when multiple asynchronous Agent runs execute concurrently.
 
@@ -366,19 +369,18 @@ remains outside that inverse.
 
 The integration must handle these common starting points:
 
-1. **OpenAI Agents already installed, no OpenTelemetry instrumentation.**
-   The helper installs the official instrumentation and uses the supplied
-   provider.
+1. **OpenAI Agents already installed.** The helper wraps its active first-party
+   tracing provider and emits corresponding spans through the supplied
+   OpenTelemetry provider.
 2. **Junjo telemetry already configured.** The helper adds only the OpenAI
-   instrumentation; both emit into the same provider.
-3. **Official OpenAI OpenTelemetry instrumentation already configured.** The
-   helper must not instrument a second time. Composition adapters still work,
-   and evaluation evidence capture attaches to the supplied provider.
-4. **OpenAI native trace export already active.** It remains active unless the
-   developer explicitly requests `disable_openai_trace_export=True`.
-5. **Studio-only local or private deployment.** The developer disables native
-   OpenAI export and sends the OpenTelemetry representation through Junjo's
-   OTLP exporter.
+   tracing bridge; both emit into the same provider.
+3. **OpenAI trace processors already configured.** The wrapper preserves them.
+   Composition adapters and evaluation evidence still use the supplied
+   OpenTelemetry provider.
+4. **OpenAI native trace export already active.** It remains application-owned.
+5. **Studio-only local or private deployment.** The application configures the
+   OpenAI provider without hosted processors before installing the bridge and
+   sends the OpenTelemetry representation through Junjo's OTLP exporter.
 
 Package installation order is irrelevant. Runtime initialization must occur
 after the application creates its tracer provider and before its first OpenAI
@@ -466,36 +468,23 @@ Official OpenAI reference:
 
 - [OpenAI Agents integrations and observability](https://developers.openai.com/api/docs/guides/agents/integrations-observability)
 
-### Use official OpenTelemetry instrumentation
+### Translate the first-party tracing source
 
-The plugin adopts the official OpenTelemetry packages:
+The plugin wraps the OpenAI Agents SDK's public TraceProvider interface. It
+delegates all source behavior to the provider that was already active and
+mirrors source Trace and Span lifecycle into the application-owned
+OpenTelemetry provider. This provides one complete hierarchy without patching
+the OpenAI client or depending on another telemetry package's release cadence.
 
-- [OpenTelemetry instrumentation for OpenAI Agents](https://pypi.org/project/opentelemetry-instrumentation-genai-openai-agents/)
-- [OpenTelemetry instrumentation for the OpenAI client](https://pypi.org/project/opentelemetry-instrumentation-genai-openai/)
-- [OpenTelemetry GenAI Agent semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md)
+Stable standard `gen_ai.*` attributes make common operations queryable. A
+versioned `junjo.openai_agents.*` contract retains the complete source payload
+and source identity needed for audit and future rendering. Native Junjo spans
+continue through the same provider and exporter.
 
-The current Agent instrumentor emits standard operations for:
+### Coverage ownership
 
-- `invoke_workflow`;
-- `invoke_agent`; and
-- `execute_tool`.
-
-The companion OpenAI client instrumentor emits underlying model-client spans.
-The combined hierarchy is delivered through the same application-owned
-provider and Junjo OTLP exporter as native Junjo telemetry.
-
-### Do not write a competing general translator
-
-Junjo should not maintain a full duplicate mapping for OpenAI Agent, tool, and
-model operations while an official OpenTelemetry implementation exists. Doing
-so would create duplicate spans, competing semantic interpretations, and a
-permanent compatibility burden.
-
-### Coverage gaps
-
-The official OpenAI Agents runtime records more native event types than the
-current official OpenTelemetry Agent instrumentor emits. The implementation
-must maintain a tested coverage matrix for at least:
+The implementation maintains an explicit, tested mapping for every concrete
+OpenAI Agents SpanData type in the validated dependency version, including:
 
 - runner/workflow boundary;
 - Agent invocation;
@@ -508,63 +497,30 @@ must maintain a tested coverage matrix for at least:
 - speech and transcription, when applicable; and
 - error and cancellation state.
 
-The first implementation adopts the official spans and measures the actual
-gaps. If a missing operation materially hides application behavior, Junjo may
-add one narrow companion processor for unsupported OpenAI trace types.
-
-Such a processor must:
-
-- emit only types the official instrumentor does not emit;
-- never duplicate model, Agent, Workflow, or tool operations;
-- use standard OpenTelemetry semantics where available;
-- use clearly versioned integration-local attributes where no standard exists;
-- include direct fixture coverage against the supported OpenAI Agents version;
-  and
-- be removed or narrowed when official instrumentation adds equivalent
-  support.
-
-Non-OpenAI model clients remain outside this plugin's model-provider policy.
-Their model-level telemetry should come from the applicable OpenTelemetry
-instrumentation for that provider. The OpenAI Agents integration continues to
-provide the surrounding Agent and tool topology.
+An upstream-coverage sentinel fails when a new concrete SpanData type appears,
+so it cannot be silently omitted. Unexpected custom implementations still get
+a generic raw-payload span. Non-OpenAI model clients remain outside this
+plugin's provider policy, while the OpenAI Agents source generation or response
+span preserves the surrounding model activity and payload it observed.
 
 ### Content capture and privacy
 
-The standard trace hierarchy can exist without prompt or response content.
-The official GenAI instrumentation defaults to not capturing message content.
-The canonical local example explicitly enables:
-
-```env
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
-```
-
-This supplies the evidence expected from a local Junjo AI Studio development
-environment: prompts, completions, function arguments, and return values are
-available on spans where supported.
-
-The plugin must not silently change this process-wide privacy choice. Public
-documentation must explain that captured content may include application
-secrets, user data, and model inputs or outputs. Production deployments choose
-their own setting.
+The OpenAI Agents SDK's `RunConfig.trace_include_sensitive_data` setting owns
+whether source model inputs, outputs, function arguments, and results are
+available to translate. Junjo preserves that source policy and does not add a
+second content-capture switch. Public documentation explains that captured
+content may include application secrets, user data, and model inputs or
+outputs. The tracing API key itself is never serialized; telemetry records only
+whether one was configured.
 
 ### Native OpenAI trace export
 
-Adding Junjo must not silently disable an existing OpenAI trace destination.
-The helper preserves native OpenAI trace export by default and exposes the
-official disable choice explicitly.
-
-The canonical self-hosted example uses:
-
-```python
-instrument_openai_agents(
-    tracer_provider=tracer_provider,
-    disable_openai_trace_export=True,
-)
-```
-
-This proves that Studio does not require an OpenAI trace dashboard. The docs
-must also explain that retaining both exporters introduces two delivery queues
-and two network destinations.
+Adding Junjo does not silently disable an existing OpenAI trace destination.
+The wrapper preserves the original TraceProvider and its processors. The
+canonical self-hosted example configures the OpenAI provider without hosted
+processors before installing the bridge, proving Studio does not require an
+OpenAI trace dashboard. Applications that retain another exporter own its
+additional queue and network destination.
 
 ## 5. Junjo AI Studio treatment
 
@@ -589,8 +545,11 @@ bridging, and DataFusion query architecture remain unchanged.
 
 ### Truthful recognition
 
-Studio recognizes external Agent telemetry from standard `gen_ai.*`
-attributes. It does not transform those spans into native Junjo executables.
+Studio recognizes the external framework through the versioned
+`junjo.openai_agents.schema_version` marker and uses standard `gen_ai.*`
+attributes for names and operations. It does not transform those spans into
+native Junjo executables or identify a framework from generic semantic
+attributes alone.
 
 Specifically, Studio must not:
 
@@ -728,14 +687,14 @@ span and returns:
   and
 - the measured target duration.
 
-If official instrumentation does not emit the exact expected Agent span, the
+If the first-party bridge does not emit the exact expected Agent span, the
 target fails clearly. It must not fabricate evidence or fall back to a nearby
 unrelated span.
 
 ### Exact external span capture
 
-The plugin adds a lightweight, non-exporting span observer to the supplied
-application tracer provider when external Agent evaluation support is used.
+The bridge records the exact translated Agent span reference into one
+task-local capture context when external Agent evaluation support is used.
 
 The flow is:
 
@@ -743,22 +702,21 @@ The flow is:
 2. The runner creates its bounded subject role span.
 3. `OpenAIAgentTarget` activates one target-local capture context.
 4. OpenAI `Runner.run()` executes normally.
-5. The official OpenTelemetry instrumentation ends the matching
-   `invoke_agent` span.
-6. The observer records that span's service namespace, service name, trace ID,
+5. The Junjo provider bridge ends the matching `invoke_agent` span.
+6. The bridge records that span's service namespace, service name, trace ID,
    and span ID into the active target capture.
 7. The target returns its subject and evidence.
 8. The runner binds evidence to the Studio Attempt.
 9. The evaluator runs and records a binary result.
 
-The observer must:
+The task-local bridge capture must:
 
 - mutate no spans;
 - export no spans;
 - retain no completed run state after the target returns;
 - use task-local context so concurrent evaluations do not cross-bind;
 - match the declared Agent operation and name;
-- work with instrumentation installed by either Junjo or the application; and
+- use the one process-lifetime bridge installed with the application provider; and
 - add only a constant early-return check to non-evaluation span completion.
 
 ### Studio API changes
@@ -849,8 +807,8 @@ The example contains:
 - meaningful typed state and input models;
 - one application-owned tracer provider;
 - the existing Junjo OTLP exporter;
-- both official OpenAI OpenTelemetry instrumentors;
-- explicit message-content capture for local development;
+- Junjo's first-party OpenAI Agents TraceProvider bridge;
+- explicit use of the OpenAI Agents source sensitive-data policy;
 - explicit Studio-only versus dual trace-export configuration;
 - process-lifetime telemetry infrastructure;
 - run-scoped application execution resources; and
@@ -868,7 +826,7 @@ The example provides two modes:
    `OPENAI_API_KEY`.
 
 The deterministic mode must not bypass the actual OpenAI Agents runner, tool
-dispatch, official tracing processor, Junjo adapters, or Junjo execution
+dispatch, first-party tracing interfaces, Junjo adapters, or Junjo execution
 engines. Only model response generation is replaced.
 
 ### Evaluation capabilities
@@ -907,8 +865,6 @@ JUNJO_AI_STUDIO_OTLP_INSECURE=true
 # JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
 
-# Local full-evidence OpenTelemetry capture
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
 ```
 
 The final names must match the current SDK and Studio configuration contracts.
@@ -931,8 +887,8 @@ The integration adds telemetry proportional to actual OpenAI operations:
 - one Agent-run or workflow boundary span;
 - one span per invoked Agent;
 - one span per function tool;
-- model-client spans from the relevant model instrumentation;
-- optional spans for material unsupported OpenAI trace types; and
+- generation or response spans from the OpenAI Agents source trace;
+- source spans for every other supported OpenAI trace type; and
 - larger span payloads when content capture is enabled.
 
 It does not add:
@@ -952,8 +908,8 @@ control API calls remain outside ordinary application execution.
 
 When native OpenAI trace export remains active, the process has two telemetry
 destinations and therefore two delivery queues and network paths. This is an
-explicit developer choice. The local and privacy-oriented example disables
-native OpenAI export.
+explicit developer choice. The local and privacy-oriented example installs no
+hosted OpenAI trace processor.
 
 ### Measurement plan
 
@@ -961,7 +917,7 @@ Before release, record the observed impact instead of inventing arbitrary
 limits:
 
 - span count per deterministic example run;
-- serialized OTLP bytes per run with and without message content;
+- serialized OTLP bytes per deterministic run;
 - application peak memory;
 - exporter queue and shutdown behavior;
 - repeated-run memory retention;
@@ -980,16 +936,15 @@ introduced unless a repeatable measured problem requires it.
 Documentation work is part of each implementation phase, not a cleanup task
 after code completion.
 
-### New cross-platform ADR
+### Cross-platform ADR
 
-Create the next numbered ADR for optional external Agent framework
-integrations. It owns:
+[ADR 0015](docs/adr/0015-optional-agent-framework-integrations.md) owns:
 
 - optional dependency and namespaced module strategy;
 - no generic plugin registry in the first version;
 - explicit and reversible runtime lifecycle;
 - application-owned provider and exporter lifecycle;
-- official OpenTelemetry instrumentation as the primary bridge;
+- the first-party OpenAI Agents TraceProvider bridge;
 - truthful external versus native execution identity;
 - framework-specific composition adapters; and
 - native versus external Studio presentation boundaries.
@@ -1034,9 +989,9 @@ Add a source-owned public guide under the Python SDK documentation for
 
 - installation with `junjo[openai-agents]`;
 - application telemetry bootstrap;
-- pre-existing instrumentation behavior;
+- pre-existing OpenAI tracing processor behavior;
 - native OpenAI trace export behavior;
-- message-content privacy;
+- source sensitive-data privacy;
 - Workflow and Agent tool adapters;
 - direct and outer Agent evaluation targets;
 - supported telemetry coverage;
@@ -1102,7 +1057,7 @@ The Python SDK changelog must describe:
 
 - the additive optional extra;
 - the new plugin imports;
-- OpenTelemetry instrumentation requirements;
+- first-party bridge lifecycle requirements;
 - privacy behavior; and
 - the example and evaluation target.
 
@@ -1198,14 +1153,15 @@ Work:
 - resolve and inspect the current OpenAI Agents and OpenTelemetry packages;
 - prove one mixed trace using an in-memory exporter;
 - prove repeated runs in one process;
-- prove existing-instrumentation and fresh-instrumentation startup paths;
+- prove wrapper installation around the default and an application-configured
+  source TraceProvider;
 - inventory native OpenAI trace types against emitted OpenTelemetry spans; and
 - record the first telemetry coverage matrix.
 
 Definition of done:
 
 - every cross-system contract change has an accepted owner;
-- official instrumentation produces the required Agent, tool, and model
+- the first-party bridge produces the required Agent, tool, and model
   hierarchy;
 - no duplicate spans occur in either startup path; and
 - known coverage gaps are explicit before production implementation.
@@ -1279,7 +1235,7 @@ Definition of done:
 
 Work:
 
-- implement the target-local span observer;
+- implement the target-local bridge capture;
 - implement `OpenAIAgentTarget`;
 - integrate dataset generation and evaluation execution;
 - bind the exact Agent span before evaluator judgment;
@@ -1358,8 +1314,8 @@ Validate:
 - concurrent tool calls;
 - integration install and close ownership;
 - repeated runs in one process;
-- existing official instrumentation detection;
-- native OpenAI exporter retained and disabled modes;
+- original TraceProvider processor preservation and exact restoration;
+- native OpenAI processor retained and Studio-only modes;
 - no duplicate OpenTelemetry spans; and
 - exact parentage with an in-memory exporter.
 
@@ -1370,7 +1326,7 @@ Validate:
 - native semantic evidence still binds;
 - OTLP span evidence validates and serializes;
 - `OpenAIAgentTarget` returns final output and exact evidence;
-- missing instrumentation fails clearly;
+- a missing first-party bridge fails clearly;
 - the wrong Agent name cannot bind evidence;
 - concurrent Attempts retain task-local evidence;
 - evidence binds before pass/fail result recording;
@@ -1474,40 +1430,45 @@ Because the repository is greenfield, use a direct breaking contract update
 instead of maintaining legacy endpoints, aliases, dual writes, or migration
 compatibility layers.
 
-### Upstream beta dependencies
+### Upstream tracing and semantic-convention changes
 
-The official OpenTelemetry GenAI instrumentors and semantic conventions may
-still be beta or under active development. Treat the example lockfile and
-in-memory span fixture as the compatibility alarm:
+The OpenAI Agents tracing interfaces and OpenTelemetry GenAI semantic
+conventions remain active compatibility surfaces. Treat the example lockfile,
+source-type coverage sentinel, shared contract, and in-memory span fixtures as
+the compatibility alarms:
 
 - validate each dependency update intentionally;
 - inspect span names and standard attributes;
-- detect coverage additions and remove duplicate gap handling;
+- detect source-type additions and update the localized mapping deliberately;
 - update the published compatibility statement; and
-- avoid vendoring an upstream translator unless the official project is no
-  longer viable and a separate decision approves that ownership.
+- preserve the runtime generic fallback without letting it replace explicit
+  current-version coverage.
 
 ## 14. Risks and mitigations
 
-### Duplicate instrumentation
+### Duplicate model instrumentation
 
-Risk: applications may already have official OpenAI instrumentation, producing
-duplicate spans if Junjo installs it again.
+Risk: an application may separately patch the OpenAI HTTP client while Junjo
+translates the Agents SDK's authoritative model span, producing two model
+spans for one operation.
 
-Mitigation: explicit provider, installation detection, ownership handle, and
-tests for both fresh and pre-instrumented startup.
+Mitigation: Junjo never patches the HTTP client, public guidance names the
+Agents source span as the single owner, and the deterministic trace locks the
+expected span count.
 
-### Incomplete OpenAI event coverage
+### Incomplete OpenAI source coverage
 
-Risk: the official Agent instrumentor may omit handoff, guardrail, task, turn,
-custom, or audio operations.
+Risk: the OpenAI Agents SDK may add a concrete source span type or fields that
+Junjo has not reviewed.
 
-Mitigation: published coverage matrix and narrowly scoped gap handling only
-for materially missing behavior.
+Mitigation: explicit mappings for the locked dependency, a dynamic concrete
+type sentinel, complete source fixtures, and a generic runtime fallback that
+prevents silent loss.
 
 ### Upstream semantic churn
 
-Risk: beta OpenTelemetry GenAI packages may change names or attributes.
+Risk: development-stage OpenTelemetry GenAI semantic conventions may change
+names or attributes.
 
 Mitigation: locked example, direct span fixtures, versioned compatibility
 statement, and no Studio coupling to Python runtime internals.

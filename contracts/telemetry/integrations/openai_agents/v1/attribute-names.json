@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "attributes": {
+    "schema_version": "junjo.openai_agents.schema_version",
+    "source_parent_span_id": "junjo.openai_agents.source.parent_span_id",
+    "source_span_id": "junjo.openai_agents.source.span_id",
+    "source_trace_id": "junjo.openai_agents.source.trace_id",
+    "span_data": "junjo.openai_agents.span.data",
+    "span_type": "junjo.openai_agents.span.type",
+    "trace_data": "junjo.openai_agents.trace.data",
+    "trace_id": "junjo.openai_agents.trace.id",
+    "translation_error_message": "junjo.openai_agents.translation.error.message",
+    "translation_error_type": "junjo.openai_agents.translation.error.type"
+  },
+  "known_span_types": [
+    "agent",
+    "custom",
+    "function",
+    "generation",
+    "guardrail",
+    "handoff",
+    "mcp_tools",
+    "response",
+    "speech",
+    "speech_group",
+    "task",
+    "transcription",
+    "turn"
+  ]
+}

@@ -23,6 +23,7 @@ from schema_normalization import (
 CONTRACT_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = CONTRACT_ROOT / "fixtures"
 SCHEMA_ROOT = CONTRACT_ROOT / "schemas"
+OPENAI_AGENTS_V1_ROOT = CONTRACT_ROOT / "integrations" / "openai_agents" / "v1"
 WORKFLOW_SCENARIOS = {
     "basic_workflow_success",
     "cancelled_executable",
@@ -2625,6 +2626,135 @@ def _validate_bounded_malformed_agent_scalars(
     return checked
 
 
+def _validate_openai_agents_integration() -> int:
+    schema_path = OPENAI_AGENTS_V1_ROOT / "payload.schema.json"
+    schema = _load_json(schema_path)
+    _audit_schema_definition(schema, str(schema_path))
+
+    attribute_contract = _load_json(OPENAI_AGENTS_V1_ROOT / "attribute-names.json")
+    _require(
+        attribute_contract.get("schema_version") == 1,
+        "schema_version_mismatch",
+        "OpenAI Agents integration",
+    )
+    attributes = attribute_contract.get("attributes")
+    _require(
+        attributes
+        == {
+            "schema_version": "junjo.openai_agents.schema_version",
+            "source_parent_span_id": "junjo.openai_agents.source.parent_span_id",
+            "source_span_id": "junjo.openai_agents.source.span_id",
+            "source_trace_id": "junjo.openai_agents.source.trace_id",
+            "span_data": "junjo.openai_agents.span.data",
+            "span_type": "junjo.openai_agents.span.type",
+            "trace_data": "junjo.openai_agents.trace.data",
+            "trace_id": "junjo.openai_agents.trace.id",
+            "translation_error_message": "junjo.openai_agents.translation.error.message",
+            "translation_error_type": "junjo.openai_agents.translation.error.type",
+        },
+        "integration_attribute_mismatch",
+        "OpenAI Agents integration",
+    )
+    _require(
+        set(attribute_contract.get("known_span_types", []))
+        == {
+            "agent",
+            "custom",
+            "function",
+            "generation",
+            "guardrail",
+            "handoff",
+            "mcp_tools",
+            "response",
+            "speech",
+            "speech_group",
+            "task",
+            "transcription",
+            "turn",
+        },
+        "integration_source_type_mismatch",
+        "OpenAI Agents integration",
+    )
+
+    valid_paths = sorted((OPENAI_AGENTS_V1_ROOT / "fixtures" / "valid").glob("*.json"))
+    invalid_paths = sorted((OPENAI_AGENTS_V1_ROOT / "fixtures" / "invalid").glob("*.json"))
+    _require(bool(valid_paths), "incomplete_scenario_set", "OpenAI Agents valid fixtures")
+    _require(bool(invalid_paths), "incomplete_scenario_set", "OpenAI Agents invalid fixtures")
+    for path in valid_paths:
+        payload = _load_json(path)
+        _require(
+            _schema_matches(payload, schema, schema),
+            "invalid_openai_agents_payload",
+            path.name,
+        )
+        _require(
+            not _contains_object_key(payload, "tracing_api_key"),
+            "openai_agents_credential_leak",
+            path.name,
+        )
+    for path in invalid_paths:
+        payload = _load_json(path)
+        _require(
+            not _schema_matches(payload, schema, schema),
+            "invalid_openai_agents_payload_accepted",
+            path.name,
+        )
+
+    mixed_path = OPENAI_AGENTS_V1_ROOT / "fixtures" / "mixed-trace.json"
+    mixed = _load_json(mixed_path)
+    _require(mixed.get("schema_version") == 1, "schema_version_mismatch", mixed_path.name)
+    spans = mixed.get("spans")
+    _require(isinstance(spans, list) and spans, "missing_spans", mixed_path.name)
+    span_ids = {
+        span.get("span_id")
+        for span in spans
+        if isinstance(span, dict) and isinstance(span.get("span_id"), str)
+    }
+    for span in spans:
+        _require(isinstance(span, dict), "invalid_span", mixed_path.name)
+        parent_id = span.get("parent_span_id")
+        _require(parent_id is None or parent_id in span_ids, "unknown_parent_span", mixed_path.name)
+        span_attributes = span.get("attributes")
+        _require(isinstance(span_attributes, dict), "invalid_attributes", mixed_path.name)
+        if span_attributes.get("junjo.openai_agents.schema_version") != 1:
+            continue
+        for native_key in (
+            "junjo.span_type",
+            "junjo.executable_runtime_id",
+            "junjo.agent.runtime_id",
+        ):
+            _require(
+                native_key not in span_attributes,
+                "external_span_has_native_identity",
+                f"{mixed_path.name}: {span.get('span_id')}",
+            )
+        raw_payload = span_attributes.get("junjo.openai_agents.span.data")
+        if raw_payload is None:
+            raw_payload = span_attributes.get("junjo.openai_agents.trace.data")
+        _require(isinstance(raw_payload, str), "missing_openai_agents_payload", mixed_path.name)
+        payload = _decode_json(
+            raw_payload,
+            "invalid_openai_agents_payload_json",
+            mixed_path.name,
+            enforce_portable=True,
+        )
+        _require(
+            _schema_matches(payload, schema, schema),
+            "invalid_openai_agents_payload",
+            mixed_path.name,
+        )
+
+    return 2 + len(valid_paths) + len(invalid_paths) + 1
+
+
+def _contains_object_key(value: object, key: str) -> bool:
+    if isinstance(value, dict):
+        return key in value or any(_contains_object_key(item, key) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_object_key(item, key) for item in value)
+    return False
+
+
 def main() -> None:
     contract_version = int((CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8").strip())
     _require(contract_version == 2, "wrong_contract_version", "active VERSION must be 2")
@@ -2691,12 +2821,14 @@ def main() -> None:
 
     fingerprint_count = _validate_fingerprints()
     patch_vector_count = _validate_patch_vectors()
+    openai_agents_count = _validate_openai_agents_integration()
 
     print(
         f"Telemetry contract {contract_version}: validated {schema_count} schemas and "
         f"{len(workflow_paths)} Workflow, {len(producer_paths)} Agent producer, "
         f"{len(consumer_paths)} Agent consumer, {len(invalid_paths)} invalid, and "
-        f"{fingerprint_count} fingerprint plus {patch_vector_count} RFC 6902 vectors; "
+        f"{fingerprint_count} fingerprint, {patch_vector_count} RFC 6902, and "
+        f"{openai_agents_count} OpenAI Agents integration vectors; "
         f"rejected {malformed_scalar_count} bounded malformed scalar mutations."
     )
 

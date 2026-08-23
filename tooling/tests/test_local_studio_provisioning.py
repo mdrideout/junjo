@@ -134,7 +134,6 @@ def create_example_templates(root: Path) -> dict[Path, bytes]:
             b"JUNJO_AI_STUDIO_OTLP_INSECURE=false\n"
             b"JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://old:2\n"
             b"JUNJO_AI_STUDIO_CLI_TOKEN=\n"
-            b"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY\n"
         ),
         Path("sdks/python/examples/base/.env.example"): (
             b"JUNJO_AI_STUDIO_OTLP_ENDPOINT=old:1\n"

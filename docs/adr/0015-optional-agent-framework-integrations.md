@@ -47,35 +47,47 @@ parent identity.
 
 ### The application owns telemetry lifecycle
 
-One explicit integration operation attaches the supported official OpenAI
-OpenTelemetry instrumentors to an application-owned `TracerProvider`. The
-operation returns an ownership handle that removes only registrations it made.
-It never replaces or shuts down the provider or a Junjo exporter.
+One explicit integration operation wraps the active OpenAI Agents
+`TraceProvider` and translates its first-party Trace and Span objects into an
+application-owned OpenTelemetry `TracerProvider`. The operation returns an
+ownership handle that restores the exact original OpenAI provider. It never
+replaces or shuts down the OpenTelemetry provider or a Junjo exporter.
 
-Existing official instrumentation is not installed a second time. Existing
-OpenAI-hosted trace export remains enabled unless the application explicitly
-disables it. Importing the integration does not mutate process-global state.
+The wrapper delegates normal OpenAI tracing behavior to the original provider,
+including application-configured native processors. Whether OpenAI-hosted trace
+export remains configured is an application decision made before installing
+Junjo. Importing the integration does not mutate process-global state.
 
-### Standard OpenTelemetry is the evidence boundary
+### First-party OpenAI traces are translated to OpenTelemetry
 
-The integration uses official OpenTelemetry GenAI instrumentation for OpenAI
-Agent, tool, and model operations. Studio receives those spans through its
-existing authenticated OTLP trace path. Studio does not copy OpenAI-hosted
-traces or add an OpenAI-specific ingestion endpoint.
+The OpenAI Agents SDK's own Trace and Span objects are the authoritative source
+for Agent, tool, model, handoff, guardrail, task, turn, MCP, custom, speech, and
+transcription activity. The integration translates those objects directly to
+OpenTelemetry spans in the application's existing provider. It does not patch
+the OpenAI HTTP client or emit a second model span for the same Agents SDK
+operation.
 
-External spans retain standard `gen_ai.*` semantics. They do not receive
+Studio receives the translated spans through its existing authenticated OTLP
+trace path. Studio does not copy OpenAI-hosted traces or add an OpenAI-specific
+ingestion endpoint.
+
+External spans retain appropriate standard `gen_ai.*` projections plus one
+versioned Junjo OpenAI Agents envelope containing the complete structured
+source data available for that Trace or Span. They do not receive
 `junjo.span_type`, Junjo executable definition or runtime IDs, or native Junjo
 Agent semantics. Native Junjo descendants continue to emit the active Junjo
 telemetry contract unchanged.
 
-The integration maintains an explicit coverage matrix for OpenAI-native trace
-types. A narrow companion processor may represent materially missing runtime
-operations only when the official instrumentor does not emit them. It must not
-duplicate officially emitted Agent, Workflow, Tool, or model spans.
+The OpenAI Agents per-run sensitive-data setting owns whether prompts,
+responses, arguments, and results are present in the source objects. Junjo
+records what that source policy makes available and does not independently
+recover redacted data. Source tracing API keys are credentials, not telemetry,
+and are never serialized into the Junjo envelope.
 
-Prompt, response, argument, and result capture remains an explicit application
-privacy choice. The integration does not silently enable process-wide content
-capture.
+Every concrete source span type in the locked OpenAI Agents dependency has an
+explicit mapping and test. Unknown future types retain a generic, lossless
+representation at runtime while a coverage sentinel requires maintainers to
+review new current types deliberately.
 
 ### Studio presents one mixed trace
 
@@ -105,10 +117,15 @@ evaluation framework.
 - The optional integration adds no dependency or runtime work to base Junjo.
 - Mixed traces use one application provider and Studio's existing trace-only
   ingestion architecture.
+- The application can preserve or replace OpenAI-native trace processors before
+  installing Junjo without Junjo silently changing that policy.
+- One versioned integration envelope preserves source-specific fields without
+  pretending they are native Junjo telemetry.
 - A second external framework integration can be evaluated from concrete
   repetition rather than anticipated abstractions.
-- Official GenAI instrumentation maturity becomes an explicit compatibility
-  surface backed by locked examples and span fixtures.
+- OpenAI Agents tracing interfaces and concrete source types become an explicit
+  compatibility surface backed by locked examples, coverage sentinels, and span
+  fixtures.
 
 ## Rejected alternatives
 
@@ -120,6 +137,11 @@ evaluation framework.
 - Copy data from the OpenAI trace dashboard: Studio consumes live OTLP evidence.
 - Retag external spans as Junjo executables: this makes identity and native
   semantic views untruthful.
+- Use third-party OpenTelemetry instrumentors as the primary bridge: they omit
+  current OpenAI Agents source types and duplicate model activity when combined
+  with direct HTTP-client instrumentation.
+- Patch the OpenAI HTTP client in addition to translating Agents spans: the
+  Agents SDK source span is the single owner for an Agents model operation.
 - Configure telemetry on import: process lifecycle remains application-owned.
 - Add Studio metrics for the integration: Studio remains trace-only under ADR
   0012.

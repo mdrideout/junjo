@@ -2,8 +2,25 @@
 
 from __future__ import annotations
 
-from agents import Agent as OpenAIAgent
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, cast
+
+from agents import (
+    Agent as OpenAIAgent,
+)
+from agents import (
+    AgentOutputSchemaBase,
+    GuardrailFunctionOutput,
+    Handoff,
+    ModelResponse,
+    ModelSettings,
+    ModelTracing,
+    OutputGuardrail,
+    Tool,
+    TResponseInputItem,
+)
 from agents.testing import ScriptedModel, assistant_message, function_call
+from agents.tracing import generation_span
 from junjo import (
     Agent,
     AgentLimits,
@@ -23,11 +40,81 @@ from junjo.plugins.openai_agents import (
     agent_as_tool,
     workflow_as_tool,
 )
+from openai.types.responses.response_prompt_param import ResponsePromptParam
 from pydantic import BaseModel, ConfigDict
 
 OPENAI_AGENT_NAME = "Local place coordinator"
+OPENAI_REVIEWER_NAME = "Local place reviewer"
 WORKFLOW_NAME = "Local place workflow"
 JUNJO_AGENT_NAME = "Local place specialist"
+
+
+class CompleteTracingScriptedModel(ScriptedModel):
+    """Deterministic model that demonstrates a normally populated model span.
+
+    The upstream test-only ``ScriptedModel`` emits an intentionally empty
+    Generation span. This example adapter disables that placeholder and uses
+    the public model-tracing arguments to populate the same source fields a
+    real model adapter provides. Junjo's bridge only translates source data;
+    it does not reach into a model implementation to reconstruct missing data.
+    """
+
+    def __init__(self, script: Iterable[Any], *, model_name: str) -> None:
+        super().__init__(script, emit_traces=False)
+        self.model_name = model_name
+
+    async def get_response(
+        self,
+        system_instructions: str | None,
+        input: str | list[TResponseInputItem],
+        model_settings: ModelSettings,
+        tools: list[Tool],
+        output_schema: AgentOutputSchemaBase | None,
+        handoffs: list[Handoff],
+        tracing: ModelTracing,
+        *,
+        previous_response_id: str | None,
+        conversation_id: str | None,
+        prompt: ResponsePromptParam | None,
+    ) -> ModelResponse:
+        include_data = tracing.include_data()
+        trace_input: Sequence[Mapping[str, Any]] | None = None
+        if include_data:
+            trace_input_items = (
+                cast(list[Mapping[str, Any]], list(input))
+                if isinstance(input, list)
+                else [{"role": "user", "content": input}]
+            )
+            if system_instructions:
+                trace_input_items.insert(0, {"role": "system", "content": system_instructions})
+            trace_input = trace_input_items
+
+        with generation_span(
+            input=trace_input,
+            model=self.model_name,
+            model_config=model_settings.to_traceable_dict(),
+            disabled=tracing.is_disabled(),
+        ) as span:
+            response = await super().get_response(
+                system_instructions,
+                input,
+                model_settings,
+                tools,
+                output_schema,
+                handoffs,
+                tracing,
+                previous_response_id=previous_response_id,
+                conversation_id=conversation_id,
+                prompt=prompt,
+            )
+            if include_data:
+                span.span_data.output = [item.model_dump(mode="json") for item in response.output]
+                span.span_data.usage = {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "total_tokens": response.usage.total_tokens,
+                }
+            return response
 
 
 class LocalPlaceInput(BaseModel):
@@ -126,7 +213,19 @@ def build_openai_agent() -> OpenAIAgent[None]:
         ),
         output_projector=lambda result, _input: result.output.response,
     )
-    model = ScriptedModel(
+    reviewer = OpenAIAgent(
+        name=OPENAI_REVIEWER_NAME,
+        instructions="Review whether the proposed places are geographically plausible.",
+        model=CompleteTracingScriptedModel(
+            [[assistant_message("The Brooklyn places are geographically plausible.")]],
+            model_name="deterministic-reviewer-v1",
+        ),
+    )
+    reviewer_tool = reviewer.as_tool(
+        tool_name="review_local_place_options",
+        tool_description="Review local-place recommendations for geographic plausibility.",
+    )
+    model = CompleteTracingScriptedModel(
         [
             [
                 function_call(
@@ -137,17 +236,46 @@ def build_openai_agent() -> OpenAIAgent[None]:
             ],
             [
                 function_call(
+                    "review_local_place_options",
+                    {"input": "Review the Brooklyn Botanic Garden and Brooklyn Museum suggestions."},
+                    call_id="reviewer-call",
+                )
+            ],
+            [
+                function_call(
                     "run_local_place_agent",
                     {"message": "a rainy afternoon"},
                     call_id="agent-call",
                 )
             ],
             [assistant_message("Try the Brooklyn Botanic Garden, Brooklyn Museum, and nearby Prospect Park.")],
-        ]
+        ],
+        model_name="deterministic-coordinator-v1",
     )
     return OpenAIAgent(
         name=OPENAI_AGENT_NAME,
         instructions="Use the available Junjo tools, then provide one concise answer.",
         model=model,
-        tools=[workflow_tool, agent_tool],
+        tools=[workflow_tool, reviewer_tool, agent_tool],
+        output_guardrails=[
+            OutputGuardrail(
+                guardrail_function=_local_place_output_guardrail,
+                name="local place realism",
+            )
+        ],
+    )
+
+
+def _local_place_output_guardrail(
+    _context: object,
+    _agent: object,
+    output: object,
+) -> GuardrailFunctionOutput:
+    """Record one deterministic, passing application guardrail."""
+
+    text = str(output)
+    is_local = "Brooklyn" in text or "Prospect Park" in text
+    return GuardrailFunctionOutput(
+        output_info={"contains_local_place": is_local},
+        tripwire_triggered=not is_local,
     )

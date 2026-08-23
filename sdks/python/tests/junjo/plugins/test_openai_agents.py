@@ -1,3 +1,4 @@
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -55,10 +56,7 @@ async def test_openai_agent_target_returns_exact_invoke_agent_span_evidence() ->
         )
     )
     provider.add_span_processor(SimpleSpanProcessor(exporter))
-    integration = instrument_openai_agents(
-        tracer_provider=provider,
-        disable_openai_trace_export=True,
-    )
+    integration = instrument_openai_agents(tracer_provider=provider)
     model = ScriptedModel([[assistant_message("A realistic local answer.")]])
     agent = Agent(name="OpenAI coordinator", model=model)
     target = OpenAIAgentTarget[
@@ -114,3 +112,91 @@ async def test_openai_agent_target_returns_exact_invoke_agent_span_evidence() ->
     assert len(matching) == 1
     assert result.evidence.trace_id == format(matching[0].context.trace_id, "032x")
     assert result.evidence.span_id == format(matching[0].context.span_id, "016x")
+
+
+@pytest.mark.asyncio
+async def test_concurrent_openai_agent_targets_capture_only_their_task_local_evidence() -> None:
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider(
+        resource=Resource.create(
+            {
+                "service.namespace": "junjo.examples",
+                "service.name": "base-openai-agents",
+            }
+        )
+    )
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    integration = instrument_openai_agents(tracer_provider=provider)
+
+    def invocation(
+        input_value: ExampleInput,
+        _context: EvaluationContext,
+        _resources: None,
+    ) -> OpenAIAgentInvocation[None]:
+        model = ScriptedModel([[assistant_message(f"Response for {input_value.message}")]])
+        return OpenAIAgentInvocation(
+            agent=Agent(name="Shared coordinator", model=model),
+            input=input_value.message,
+        )
+
+    target = OpenAIAgentTarget[ExampleInput, None, None](
+        key="shared_coordinator",
+        name="Shared coordinator",
+        input_version=1,
+        input_type=ExampleInput,
+        expected_agent_name="Shared coordinator",
+        factory=invocation,
+        projector=lambda result, _input, _context, _resources: result.final_output,
+    )
+
+    def context(case_id: str) -> EvaluationContext:
+        return EvaluationContext(
+            run_class=EvaluationRunClass.EVALUATION,
+            dataset_id="dataset",
+            run_id="run",
+            case_id=case_id,
+            attempt_id=f"attempt-{case_id}",
+            source_revision="1" * 40,
+        )
+
+    service_identity = ExecutionServiceIdentity(
+        service_namespace="junjo.examples",
+        service_name="base-openai-agents",
+    )
+    try:
+        first, second = await asyncio.gather(
+            target.execute(
+                ExampleInput(message="first"),
+                context=context("first"),
+                service_identity=service_identity,
+                resources=None,
+            ),
+            target.execute(
+                ExampleInput(message="second"),
+                context=context("second"),
+                service_identity=service_identity,
+                resources=None,
+            ),
+        )
+        provider.force_flush()
+    finally:
+        integration.close()
+        provider.shutdown()
+
+    assert first.subject == "Response for first"
+    assert second.subject == "Response for second"
+    assert first.evidence.trace_id != second.evidence.trace_id
+    assert first.evidence.span_id != second.evidence.span_id
+    emitted_references = {
+        (
+            format(span.context.trace_id, "032x"),
+            format(span.context.span_id, "016x"),
+        )
+        for span in exporter.get_finished_spans()
+        if span.attributes.get("gen_ai.operation.name") == "invoke_agent"
+        and span.attributes.get("gen_ai.agent.name") == "Shared coordinator"
+    }
+    assert {
+        (first.evidence.trace_id, first.evidence.span_id),
+        (second.evidence.trace_id, second.evidence.span_id),
+    } == emitted_references

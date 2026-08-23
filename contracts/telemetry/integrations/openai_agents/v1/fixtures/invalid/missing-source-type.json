@@ -1,0 +1,12 @@
+{
+  "data": {},
+  "ended_at": "2026-08-23T12:00:00.800000+00:00",
+  "error": null,
+  "parent_span_id": null,
+  "source_class": "example.FutureSpanData",
+  "span_id": "span_future",
+  "started_at": "2026-08-23T12:00:00.200000+00:00",
+  "trace_id": "trace_example",
+  "trace_metadata": null,
+  "tracing_api_key_configured": false
+}

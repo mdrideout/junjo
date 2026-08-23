@@ -1,0 +1,27 @@
+{
+  "data": {
+    "handoffs": [
+      "Local place reviewer"
+    ],
+    "metadata": {
+      "role": "coordinator"
+    },
+    "name": "Local place coordinator",
+    "output_type": "str",
+    "tools": [
+      "run_local_place_workflow"
+    ]
+  },
+  "ended_at": "2026-08-23T12:00:00.900000+00:00",
+  "error": null,
+  "parent_span_id": "span_task",
+  "source_class": "agents.tracing.span_data.AgentSpanData",
+  "source_type": "agent",
+  "span_id": "span_agent",
+  "started_at": "2026-08-23T12:00:00.100000+00:00",
+  "trace_id": "trace_example",
+  "trace_metadata": {
+    "experiment": "baseline"
+  },
+  "tracing_api_key_configured": false
+}

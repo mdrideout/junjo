@@ -33,11 +33,12 @@ function renderIcon(attributes: Record<string, unknown>) {
 }
 
 describe('SpanIconConstructor', () => {
-  it('uses a 22px OpenAI mark for every OpenAI Agent and tool span', () => {
+  it('uses a 24px OpenAI mark for every OpenAI Agent and tool span', () => {
     const { container } = render(
       <>
         <SpanIconConstructor
           span={span({
+            'junjo.openai_agents.schema_version': 1,
             'gen_ai.operation.name': 'invoke_agent',
             'gen_ai.agent.name': 'Coordinator',
           })}
@@ -45,6 +46,7 @@ describe('SpanIconConstructor', () => {
         />
         <SpanIconConstructor
           span={span({
+            'junjo.openai_agents.schema_version': 1,
             'gen_ai.operation.name': 'invoke_agent',
             'gen_ai.agent.name': 'Specialist subagent',
           })}
@@ -52,6 +54,7 @@ describe('SpanIconConstructor', () => {
         />
         <SpanIconConstructor
           span={span({
+            'junjo.openai_agents.schema_version': 1,
             'gen_ai.operation.name': 'execute_tool',
             'gen_ai.tool.name': 'run_local_place_workflow',
           })}
@@ -62,7 +65,7 @@ describe('SpanIconConstructor', () => {
 
     const marks = container.querySelectorAll('[data-span-icon="openai-agents"]')
     expect(marks).toHaveLength(3)
-    expect(marks[0]).toHaveClass('size-5', 'scale-110')
+    expect(marks[0]).toHaveClass('size-5', 'scale-[1.2]')
   })
 
   it.each([
@@ -85,4 +88,15 @@ describe('SpanIconConstructor', () => {
 
     expect(container.querySelector('[data-span-icon="openai-agents"]')).toBeNull()
   })
+
+  it.each(['invoke_agent', 'execute_tool'])(
+    'does not label an unrelated %s operation as OpenAI Agents SDK',
+    (operation) => {
+      const { container } = renderIcon({
+        'gen_ai.operation.name': operation,
+      })
+
+      expect(container.querySelector('[data-span-icon="openai-agents"]')).toBeNull()
+    },
+  )
 })

@@ -5,6 +5,12 @@ import { isLLMSpan } from './utils/span-utils'
 import { Link } from 'react-router'
 import { promptPlaygroundPath, tracesPath, workflowPath } from '../../util/telemetry-paths'
 import { wrapSpan } from './utils/span-accessor'
+import OpenAIAgentsSpanDetails from './OpenAIAgentsSpanDetails'
+import {
+  OPENAI_AGENTS_SPAN_DATA_ATTRIBUTE,
+  OPENAI_AGENTS_TRACE_DATA_ATTRIBUTE,
+  parseOpenAIAgentsTelemetry,
+} from './schemas/openai-agents-telemetry'
 
 interface SpanAttributesContentProps {
   span: OtelSpan
@@ -20,6 +26,12 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
   )
   const attributesAreFailureTarget =
     firstFailureEventIndex === -1 && Boolean(wrapSpan(span).errorType)
+  const openAIAgentsTelemetry = parseOpenAIAgentsTelemetry(span.attributes_json)
+  const visibleAttributes = Object.entries(span.attributes_json).filter(
+    ([key]) =>
+      openAIAgentsTelemetry === null ||
+      (key !== OPENAI_AGENTS_SPAN_DATA_ATTRIBUTE && key !== OPENAI_AGENTS_TRACE_DATA_ATTRIBUTE),
+  )
 
   // Generate playground link based on origin
   const getPlaygroundLink = () => {
@@ -78,11 +90,13 @@ export default function SpanAttributesContent(props: SpanAttributesContentProps)
         </div>
       </div>
 
+      {openAIAgentsTelemetry && <OpenAIAgentsSpanDetails telemetry={openAIAgentsTelemetry} />}
+
       <div ref={attributesAreFailureTarget ? failureSectionRef : undefined} className="mb-6">
         <div className="font-semibold text-md mb-2 text-lg">Attributes</div>
-        {Object.keys(span.attributes_json).length > 0 ? (
+        {visibleAttributes.length > 0 ? (
           <div className="grid grid-cols-1 gap-2">
-            {Object.entries(span.attributes_json).map(([key, value]) => (
+            {visibleAttributes.map(([key, value]) => (
               <div key={key} className="border-b border-zinc-200 dark:border-zinc-700 pb-2">
                 <div className="text-xs text-zinc-500">{key}</div>
                 <div className="text-sm">

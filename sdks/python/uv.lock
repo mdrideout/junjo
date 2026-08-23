@@ -1388,8 +1388,6 @@ dev = [
 ]
 openai-agents = [
     { name = "openai-agents" },
-    { name = "opentelemetry-instrumentation-genai-openai" },
-    { name = "opentelemetry-instrumentation-genai-openai-agents" },
 ]
 
 [package.metadata]
@@ -1402,8 +1400,6 @@ requires-dist = [
     { name = "nanoid", specifier = ">=2.0.0" },
     { name = "openai-agents", marker = "extra == 'openai-agents'", specifier = ">=0.21.1" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.37.0" },
-    { name = "opentelemetry-instrumentation-genai-openai", marker = "extra == 'openai-agents'", specifier = ">=1.0b0" },
-    { name = "opentelemetry-instrumentation-genai-openai-agents", marker = "extra == 'openai-agents'", specifier = ">=1.0b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.37.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydantic", specifier = ">=2.12.0" },
@@ -1865,7 +1861,7 @@ wheels = [
 
 [[package]]
 name = "openai-agents"
-version = "0.21.1"
+version = "0.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "griffelib" },
@@ -1876,9 +1872,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/23/8a/c05a23ead7c349971505c4364e5dac139c26373c60609ce44d0fe450c2da/openai_agents-0.21.1.tar.gz", hash = "sha256:7d6519bed92542b2a7160cd50edca0721c64d5f06616d85c6de477f237b8423c", size = 6352641, upload-time = "2026-08-16T22:29:35.173Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/17/2a92451547a66d56bd5f10128aa64aa0fc282420421775c390902e7dfa42/openai_agents-0.22.0.tar.gz", hash = "sha256:6c3d7b9e34d3ca4bf763d4557d01ec844685290f0d80cb72e10a304029c0d7ee", size = 6390140, upload-time = "2026-08-19T13:45:22.482Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/af/a219a1f020ffa6bed3332c7bc4023ce5d0a1a922c843361b62f368286692/openai_agents-0.21.1-py3-none-any.whl", hash = "sha256:47cdc36c70aa1c0bd4337d040b605b1ea4ac598f178b59f4040208884785f0d0", size = 1107970, upload-time = "2026-08-16T22:29:33.011Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/88/220a5a9283fba72107db7cb549fd127a0e532dbcbc89dda82cd28b9765a1/openai_agents-0.22.0-py3-none-any.whl", hash = "sha256:985a74a8024123980c2d4dc329d19b2332a0f86919fa7b3f6b9c2abaae022680", size = 1117078, upload-time = "2026-08-19T13:45:19.876Z" },
 ]
 
 [[package]]
@@ -2012,36 +2008,6 @@ wheels = [
 ]
 
 [[package]]
-name = "opentelemetry-instrumentation-genai-openai"
-version = "1.0b0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-instrumentation" },
-    { name = "opentelemetry-semantic-conventions" },
-    { name = "opentelemetry-util-genai" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/24/01/9dc2e2c8faf526d3e37d4de28bc9f8b34ca7800109f91a59f9171c9667a0/opentelemetry_instrumentation_genai_openai-1.0b0.tar.gz", hash = "sha256:2177c2d8b2073dd0043c33b59f5f8e26bfe8f39a3121ca4c41530629e214c3a8", size = 235368, upload-time = "2026-07-09T21:36:26.323Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/15/cb94a87db121e47c0d714831be3ca5a502749f87d5b33c936e51a990f20d/opentelemetry_instrumentation_genai_openai-1.0b0-py3-none-any.whl", hash = "sha256:e84d66c8605a11cfb3ab65403e86483fb7017787c64959e200ac7cd6d6c1693a", size = 26384, upload-time = "2026-07-09T21:36:25.239Z" },
-]
-
-[[package]]
-name = "opentelemetry-instrumentation-genai-openai-agents"
-version = "1.0b0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-instrumentation" },
-    { name = "opentelemetry-semantic-conventions" },
-    { name = "opentelemetry-util-genai" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/27/41/90257e4f085cd15b8d75ebe0272716e1e35d9358e09316de99185b109169/opentelemetry_instrumentation_genai_openai_agents-1.0b0.tar.gz", hash = "sha256:7f8da01fa992b61a35a63cda72bb9bfba05cbeacf97438415543bf42630e10f0", size = 9861, upload-time = "2026-07-09T21:36:35.134Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4e/55/959947674959d789b92c4625acc1db1802f201e193cf5f296ec48d45b7fa/opentelemetry_instrumentation_genai_openai_agents-1.0b0-py3-none-any.whl", hash = "sha256:3848374be8f6050f9d698218f12bdd31acac15070a8cde2fd63ac537ceb21e59", size = 12360, upload-time = "2026-07-09T21:36:34.043Z" },
-]
-
-[[package]]
 name = "opentelemetry-proto"
 version = "1.44.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2078,21 +2044,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8f/73/0cbdebcb4cf545fdd328da14f5137e37d0770c3f26185e478b0d15d94f50/opentelemetry_semantic_conventions-0.65b0.tar.gz", hash = "sha256:f9b2b81e9d5b64f11bc952075e7e9c7fb0aab075c7fd1c46d597f1b919852d60", size = 148774, upload-time = "2026-07-16T15:25:46.902Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a6/0e/49df70d9b81fb5cbae4bbf2a49d865b09bcbcbc4eb53f5851b1027738d78/opentelemetry_semantic_conventions-0.65b0-py3-none-any.whl", hash = "sha256:1cacde7b0ad306f84c5ef08c3dbe1bbaf20165bba6f8bff43b670e555a086bcb", size = 204645, upload-time = "2026-07-16T15:25:30.688Z" },
-]
-
-[[package]]
-name = "opentelemetry-util-genai"
-version = "1.0b0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-instrumentation" },
-    { name = "opentelemetry-semantic-conventions" },
-    { name = "wrapt" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/88/1f/c667b221dcb84a8fcb5e3324753e1dfb295938cb71e10c979588605bd66d/opentelemetry_util_genai-1.0b0.tar.gz", hash = "sha256:d5f2ab950d08b965f4f090c415eca6f0b02a87a0f07814534c38ff9bdb407c11", size = 53584, upload-time = "2026-07-09T21:36:24.836Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/47/a512818b21940a99124432c2ba44c77b20505ef2b716b7bb426a9bdec7da/opentelemetry_util_genai-1.0b0-py3-none-any.whl", hash = "sha256:e6d27cb630bd99a265474a7bf3a91942ef701217906fc3b72aaf6a29526c0cc7", size = 42266, upload-time = "2026-07-09T21:36:23.539Z" },
 ]
 
 [[package]]

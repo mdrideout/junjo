@@ -26,10 +26,12 @@ All notable changes to Junjo will be documented in this file.
   `junjo.plugins.openai_agents`. It exposes native Junjo Workflows and Agents
   as explicit OpenAI function tools while keeping the OpenAI Agents SDK as the
   outer runtime.
-- Added explicit process-lifetime instrumentation using the official
-  OpenTelemetry OpenAI Agents and OpenAI client instrumentors. Applications
-  retain ownership of the tracer provider, exporter, native OpenAI trace
-  export policy, and GenAI message-content privacy setting.
+- Added a process-lifetime first-party bridge over the OpenAI Agents SDK
+  TraceProvider. It translates every concrete `SpanData` type, preserves a
+  complete versioned payload, nests native Junjo execution correctly, and
+  requires no HTTP-client patching or third-party OpenAI instrumentor.
+  Applications retain ownership of the OpenTelemetry provider, exporter,
+  OpenAI processors, and source sensitive-data policy.
 - Added `OpenAIAgentTarget`, which evaluates a real outer Agent and returns its
   exact standard `invoke_agent` span as evidence, plus the deterministic
   `base_openai_agents` mixed-runtime example and bundled

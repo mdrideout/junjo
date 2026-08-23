@@ -1,0 +1,33 @@
+{
+  "data": {
+    "input": "Recommend a realistic local place.",
+    "response": {
+      "id": "resp_example",
+      "model": "gpt-example",
+      "output": [
+        {
+          "content": "Try Prospect Park.",
+          "type": "message"
+        }
+      ],
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 5
+      }
+    },
+    "usage": {
+      "input_tokens": 12,
+      "output_tokens": 5
+    }
+  },
+  "ended_at": "2026-08-23T12:00:00.800000+00:00",
+  "error": null,
+  "parent_span_id": "span_agent",
+  "source_class": "agents.tracing.span_data.ResponseSpanData",
+  "source_type": "response",
+  "span_id": "span_response",
+  "started_at": "2026-08-23T12:00:00.200000+00:00",
+  "trace_id": "trace_example",
+  "trace_metadata": null,
+  "tracing_api_key_configured": false
+}
