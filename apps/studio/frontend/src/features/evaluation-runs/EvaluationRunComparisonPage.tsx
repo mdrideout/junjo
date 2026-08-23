@@ -4,7 +4,7 @@ import ErrorPage from '../../components/errors/ErrorPage'
 import { AppLink } from '../../components/navigation/app-link'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { EvaluationStatusBadge } from './components/EvaluationStatusBadge'
-import { SemanticExecutionLink } from './components/SemanticExecutionLink'
+import { ExecutionEvidenceLink } from './components/ExecutionEvidenceLink'
 import type { EvaluationCase } from './schemas/evaluation-runs'
 import { evaluationRunComparisonQueryFromSearchParams } from './schemas/query'
 import {
@@ -311,19 +311,19 @@ export default function EvaluationRunComparisonPage() {
                   </td>
                   <td className="px-3 py-3 text-xs">
                     <div className="flex flex-col items-start gap-2">
-                      {row.baseline_attempt.subject_execution === null ? (
+                      {row.baseline_attempt.subject_evidence === null ? (
                         <span className="text-[var(--studio-text-subtle)]">Baseline pending</span>
                       ) : (
-                        <SemanticExecutionLink
-                          execution={row.baseline_attempt.subject_execution}
+                        <ExecutionEvidenceLink
+                          evidence={row.baseline_attempt.subject_evidence}
                           label="View baseline spans"
                         />
                       )}
-                      {row.candidate_attempt.subject_execution === null ? (
+                      {row.candidate_attempt.subject_evidence === null ? (
                         <span className="text-[var(--studio-text-subtle)]">Candidate pending</span>
                       ) : (
-                        <SemanticExecutionLink
-                          execution={row.candidate_attempt.subject_execution}
+                        <ExecutionEvidenceLink
+                          evidence={row.candidate_attempt.subject_evidence}
                           label="View candidate spans"
                         />
                       )}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   EvaluationRunDetailSchema,
   EvaluationRunListPageSchema,
+  OpenTelemetrySpanReferenceSchema,
   SemanticExecutionReferenceSchema,
 } from './evaluation-runs'
 import {
@@ -22,6 +23,7 @@ describe('evaluation run schemas', () => {
 
   it('requires an exact semantic execution identity', () => {
     const reference = {
+      kind: 'junjo_execution' as const,
       service_namespace: '',
       service_name: 'ai-chat-evaluation',
       executable_type: 'workflow',
@@ -38,6 +40,23 @@ describe('evaluation run schemas', () => {
       SemanticExecutionReferenceSchema.safeParse({
         ...reference,
         trace_id: 'not-part-of-the-semantic-reference',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('requires an exact OpenTelemetry span evidence identity', () => {
+    const reference = {
+      kind: 'otel_span' as const,
+      service_namespace: 'junjo.examples',
+      service_name: 'base-openai-agents',
+      trace_id: '1'.repeat(32),
+      span_id: 'a'.repeat(16),
+    }
+    expect(OpenTelemetrySpanReferenceSchema.parse(reference)).toEqual(reference)
+    expect(
+      OpenTelemetrySpanReferenceSchema.safeParse({
+        ...reference,
+        trace_id: 'not-a-trace-id',
       }).success,
     ).toBe(false)
   })

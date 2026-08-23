@@ -62,6 +62,7 @@ export function makeEvaluationRunDetailFixture({
               : null
       const subjectExecution = terminal
         ? {
+            kind: 'junjo_execution' as const,
             service_namespace: '',
             service_name: 'ai-chat-evaluation',
             executable_type: 'workflow' as const,
@@ -86,8 +87,9 @@ export function makeEvaluationRunDetailFixture({
           },
           evaluator_key: 'qualitative_response',
           evaluator_version: 1,
-          source_execution: generated
+          source_evidence: generated
             ? {
+                kind: 'junjo_execution',
                 service_namespace: 'junjo.examples',
                 service_name: 'ai-chat',
                 executable_type: 'workflow',
@@ -106,8 +108,8 @@ export function makeEvaluationRunDetailFixture({
           status,
           reason,
           duration_ms: terminal ? ordinal * 100 : null,
-          subject_execution: subjectExecution,
-          execution_bound_at: subjectExecution === null ? null : '2026-07-27T16:10:00Z',
+          subject_evidence: subjectExecution,
+          evidence_bound_at: subjectExecution === null ? null : '2026-07-27T16:10:00Z',
           recorded_at: terminal ? RECORDED_AT : null,
         },
       }

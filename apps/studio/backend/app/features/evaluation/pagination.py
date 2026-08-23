@@ -88,7 +88,7 @@ def encode_membership_cursor(cursor: MembershipCursor) -> str:
     return _encode(
         {
             "v": 1,
-            "kind": "execution-membership",
+            "kind": "evidence-membership",
             "role": cursor.role,
             "id": cursor.record_id,
         }
@@ -104,7 +104,7 @@ def decode_membership_cursor(value: str | None) -> MembershipCursor | None:
         record_id = payload["id"]
         if (
             payload.get("v") != 1
-            or payload.get("kind") != "execution-membership"
+            or payload.get("kind") != "evidence-membership"
             or role not in ("case_source", "attempt_subject")
             or not isinstance(record_id, str)
             or not record_id

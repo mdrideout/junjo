@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from .models import ExecutionResolutionConflict, SemanticExecutionReference
+from .models import (
+    ExecutionEvidenceReference,
+    ExecutionResolutionConflict,
+    SemanticExecutionReference,
+)
 
 
 class StudioError(RuntimeError):
@@ -88,10 +92,10 @@ class StudioTransientError(StudioError):
 
 
 class ExecutionEvidencePending(StudioError):
-    """Studio has not received or indexed one semantic execution yet."""
+    """Studio has not received or indexed one execution evidence record yet."""
 
-    def __init__(self, execution: SemanticExecutionReference) -> None:
-        self.execution = execution
+    def __init__(self, evidence: ExecutionEvidenceReference) -> None:
+        self.evidence = evidence
         super().__init__("Studio has not received or indexed this execution yet.")
 
 
@@ -108,12 +112,12 @@ class ExecutionIdentityAmbiguous(StudioError):
         super().__init__(f"Studio found {conflict.match_count} executions for the supplied semantic identity.")
 
 
-class AttemptExecutionUnavailable(StudioError):
-    """An evaluation attempt has not been bound to a subject execution."""
+class AttemptEvidenceUnavailable(StudioError):
+    """An evaluation attempt has not been bound to subject evidence."""
 
     def __init__(self, attempt_id: str) -> None:
         self.attempt_id = attempt_id
-        super().__init__(f"Evaluation attempt {attempt_id} has no bound execution.")
+        super().__init__(f"Evaluation attempt {attempt_id} has no bound evidence.")
 
 
 class RunComparisonError(StudioError):

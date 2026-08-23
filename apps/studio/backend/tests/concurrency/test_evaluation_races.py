@@ -106,9 +106,9 @@ async def test_concurrent_final_attempt_updates_complete_run_once(
     )
 
     for ordinal, run_case in enumerate(run.cases, start=1):
-        await EvaluationRepository.bind_attempt_execution(
+        await EvaluationRepository.bind_attempt_evidence(
             attempt_id=run_case.attempt.id,
-            execution=SemanticExecutionReference(
+            evidence=SemanticExecutionReference(
                 service_namespace="junjo.examples",
                 service_name="ai-chat-evaluation",
                 executable_type="workflow",
@@ -135,7 +135,7 @@ async def test_concurrent_final_attempt_updates_complete_run_once(
     assert [item.attempt.status for item in completed.cases] == ["passed", "passed"]
 
 
-async def test_subject_execution_can_bind_to_only_one_attempt(
+async def test_subject_evidence_can_bind_to_only_one_attempt(
     test_db,
     mock_authenticated_user,
 ) -> None:
@@ -161,9 +161,9 @@ async def test_subject_execution_can_bind_to_only_one_attempt(
 
     results = await asyncio.gather(
         *[
-            EvaluationRepository.bind_attempt_execution(
+            EvaluationRepository.bind_attempt_evidence(
                 attempt_id=run_case.attempt.id,
-                execution=execution,
+                evidence=execution,
             )
             for run_case in run.cases
         ],
@@ -175,4 +175,4 @@ async def test_subject_execution_can_bind_to_only_one_attempt(
     assert len(successes) == 1
     assert len(failures) == 1
     assert isinstance(failures[0], EvaluationConflictError)
-    assert failures[0].code == "execution_already_bound"
+    assert failures[0].code == "evidence_already_bound"

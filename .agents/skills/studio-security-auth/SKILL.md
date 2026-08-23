@@ -30,6 +30,7 @@ description: Use when changing or reviewing Junjo AI Studio API-key authenticati
 - `apps/studio/ingestion/src/server/auth.rs`
 - `apps/studio/ingestion/src/backend/client.rs`
 - `apps/studio/proto/auth.proto`
+- `tooling/scripts/provision_local_studio.py`
 - `tooling/scripts/validate_agent_studio_e2e.py`
 
 ## Workflow
@@ -45,6 +46,9 @@ description: Use when changing or reviewing Junjo AI Studio API-key authenticati
    crosses those subsystem boundaries.
 7. Local E2E users are explicit setup-API actions, never runtime or migration
    seeds. `apps/studio/TESTING.md` owns reset and validation procedures.
+8. For repository-local stack setup, persistent development credentials, or
+   example environment preparation, use `junjo-local-development` and its
+   owning runbook.
 
 ## Validation
 

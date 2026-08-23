@@ -55,7 +55,7 @@ def _case() -> dict[str, Any]:
         "expectation_json": {"rubric": "Name a plausible Brooklyn place."},
         "evaluator_key": "text.quality",
         "evaluator_version": 1,
-        "source_execution": None,
+        "source_evidence": None,
         "source_revision": None,
         "created_at": NOW,
     }
@@ -88,8 +88,8 @@ def _attempt(
         "status": "passed",
         "reason": "Plausible.",
         "duration_ms": duration_ms,
-        "subject_execution": None,
-        "execution_bound_at": None,
+        "subject_evidence": None,
+        "evidence_bound_at": None,
         "recorded_at": NOW,
     }
 
@@ -183,7 +183,7 @@ def test_case_provenance_and_payload_bounds_match_studio() -> None:
             input_json={},
             evaluator_key="exact",
             evaluator_version=1,
-            source_execution=execution,
+            source_evidence=execution,
             source_revision="a" * 40,
         )
     with pytest.raises(ValidationError, match="require both"):
@@ -198,7 +198,7 @@ def test_case_provenance_and_payload_bounds_match_studio() -> None:
             input_json={},
             evaluator_key="exact",
             evaluator_version=1,
-            source_execution=execution,
+            source_evidence=execution,
         )
     with pytest.raises(ValidationError, match="16384"):
         CaseCreate(

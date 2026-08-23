@@ -13,6 +13,8 @@ from app.features.evaluation.schemas import (
     EvaluationDatasetCreate,
     EvaluationRunScope,
     EvaluationRunStart,
+    ExecutionEvidenceReference,
+    OpenTelemetrySpanReference,
     SemanticExecutionReference,
     TargetKind,
 )
@@ -46,7 +48,7 @@ def _case(
     *,
     case_key: str = "specific_place_1",
     origin: str = "authored",
-    source_execution: SemanticExecutionReference | None = None,
+    source_evidence: ExecutionEvidenceReference | None = None,
     target_kind: TargetKind = "node",
     target_key: str = "date_response_node",
     target_name: str = "CreateDateIdeaResponseNode",
@@ -65,8 +67,8 @@ def _case(
         expectation_json={"rubric": "Names one specific place."},
         evaluator_key=evaluator_key,
         evaluator_version=1,
-        source_execution=source_execution,
-        source_revision=REVISION if source_execution else None,
+        source_evidence=source_evidence,
+        source_revision=REVISION if source_evidence else None,
     )
 
 
@@ -120,10 +122,10 @@ async def test_complete_control_loop_is_idempotent_and_exact(
 
     case = await EvaluationRepository.add_case(
         dataset_id=dataset.id,
-        request=_case(origin="generated", source_execution=source),
+        request=_case(origin="generated", source_evidence=source),
     )
     assert case.ordinal == 1
-    assert case.source_execution == source
+    assert case.source_evidence == source
 
     locked = await EvaluationRepository.lock_dataset(dataset.id)
     assert locked.status == "locked"
@@ -132,7 +134,7 @@ async def test_complete_control_loop_is_idempotent_and_exact(
 
     identical_case = await EvaluationRepository.add_case(
         dataset_id=dataset.id,
-        request=_case(origin="generated", source_execution=source),
+        request=_case(origin="generated", source_evidence=source),
     )
     assert identical_case.id == case.id
 
@@ -150,18 +152,18 @@ async def test_complete_control_loop_is_idempotent_and_exact(
         executable_type="workflow",
         runtime_id="subject-workflow-run",
     )
-    bound = await EvaluationRepository.bind_attempt_execution(
+    bound = await EvaluationRepository.bind_attempt_evidence(
         attempt_id=attempt_id,
-        execution=subject,
+        evidence=subject,
     )
-    assert bound.subject_execution == subject
-    assert bound.execution_bound_at is not None
+    assert bound.subject_evidence == subject
+    assert bound.evidence_bound_at is not None
     assert (
-        await EvaluationRepository.bind_attempt_execution(
+        await EvaluationRepository.bind_attempt_evidence(
             attempt_id=attempt_id,
-            execution=subject,
+            evidence=subject,
         )
-    ).execution_bound_at == bound.execution_bound_at
+    ).evidence_bound_at == bound.evidence_bound_at
 
     result = EvaluationAttemptResult(
         status="passed",
@@ -183,7 +185,7 @@ async def test_complete_control_loop_is_idempotent_and_exact(
     completed = await EvaluationRepository.get_run(detail.run.id)
     assert completed.run.status == "completed"
     assert completed.run.completed_at is not None
-    assert completed.cases[0].attempt.subject_execution == subject
+    assert completed.cases[0].attempt.subject_evidence == subject
 
     resumed = await EvaluationRepository.start_run(
         _run(dataset.id),
@@ -225,21 +227,81 @@ async def test_complete_control_loop_is_idempotent_and_exact(
         }
     ]
 
-    source_membership = await EvaluationRepository.find_execution_membership(
-        execution=source,
+    source_membership = await EvaluationRepository.find_evidence_membership(
+        evidence=source,
         cursor=None,
         limit=50,
     )
     assert [item.role for item in source_membership.items] == ["case_source"]
     assert source_membership.items[0].case_id == case.id
 
-    subject_membership = await EvaluationRepository.find_execution_membership(
-        execution=subject,
+    subject_membership = await EvaluationRepository.find_evidence_membership(
+        evidence=subject,
         cursor=None,
         limit=50,
     )
     assert [item.role for item in subject_membership.items] == ["attempt_subject"]
     assert subject_membership.items[0].attempt_id == attempt_id
+
+
+async def test_external_span_evidence_is_bound_and_reverse_queryable(
+    test_db,
+    mock_authenticated_user,
+) -> None:
+    await _persist_authenticated_user(test_db, mock_authenticated_user)
+    dataset = await EvaluationRepository.create_dataset(_dataset(), mock_authenticated_user)
+    await EvaluationRepository.add_case(dataset_id=dataset.id, request=_case())
+    await EvaluationRepository.lock_dataset(dataset.id)
+    run = await EvaluationRepository.start_run(_run(dataset.id), mock_authenticated_user)
+    attempt_id = run.cases[0].attempt.id
+    evidence = OpenTelemetrySpanReference(
+        service_namespace="junjo.examples",
+        service_name="base-openai-agents",
+        trace_id="1" * 32,
+        span_id="a" * 16,
+    )
+
+    bound = await EvaluationRepository.bind_attempt_evidence(
+        attempt_id=attempt_id,
+        evidence=evidence,
+    )
+    membership = await EvaluationRepository.find_evidence_membership(
+        evidence=evidence,
+        cursor=None,
+        limit=50,
+    )
+
+    assert bound.subject_evidence == evidence
+    assert bound.evidence_bound_at is not None
+    assert [item.attempt_id for item in membership.items] == [attempt_id]
+
+
+async def test_external_span_evidence_can_identify_a_generated_case_source(
+    test_db,
+    mock_authenticated_user,
+) -> None:
+    await _persist_authenticated_user(test_db, mock_authenticated_user)
+    dataset = await EvaluationRepository.create_dataset(_dataset(), mock_authenticated_user)
+    evidence = OpenTelemetrySpanReference(
+        service_namespace="junjo.examples",
+        service_name="base-openai-agents",
+        trace_id="2" * 32,
+        span_id="b" * 16,
+    )
+
+    case = await EvaluationRepository.add_case(
+        dataset_id=dataset.id,
+        request=_case(origin="generated", source_evidence=evidence),
+    )
+    membership = await EvaluationRepository.find_evidence_membership(
+        evidence=evidence,
+        cursor=None,
+        limit=50,
+    )
+
+    assert case.source_evidence == evidence
+    assert [item.role for item in membership.items] == ["case_source"]
+    assert membership.items[0].case_id == case.id
 
 
 async def test_conflicting_natural_keys_and_terminal_writes_are_rejected(
@@ -298,17 +360,17 @@ async def test_conflicting_natural_keys_and_terminal_writes_are_rejected(
         executable_type="workflow",
         runtime_id="workflow-run",
     )
-    await EvaluationRepository.bind_attempt_execution(
+    await EvaluationRepository.bind_attempt_evidence(
         attempt_id=attempt_id,
-        execution=execution,
+        evidence=execution,
     )
     try:
-        await EvaluationRepository.bind_attempt_execution(
+        await EvaluationRepository.bind_attempt_evidence(
             attempt_id=attempt_id,
-            execution=execution.model_copy(update={"runtime_id": "other-run"}),
+            evidence=execution.model_copy(update={"runtime_id": "other-run"}),
         )
     except EvaluationConflictError as error:
-        assert error.code == "attempt_execution_conflict"
+        assert error.code == "attempt_evidence_conflict"
     else:
         raise AssertionError("conflicting execution binding was accepted")
 
@@ -413,7 +475,7 @@ async def test_error_without_execution_is_terminal_and_preserves_history_after_u
             reason="Target setup failed before execution identity existed.",
         ),
     )
-    assert recorded.subject_execution is None
+    assert recorded.subject_evidence is None
     assert recorded.status == "error"
 
     async with test_db() as session:
@@ -476,7 +538,7 @@ async def test_dataset_run_and_membership_keyset_pages_do_not_repeat_rows(
             request=_case(
                 case_key=f"generated_{index}",
                 origin="generated",
-                source_execution=source,
+                source_evidence=source,
             ),
         )
     await EvaluationRepository.lock_dataset(selected.id)
@@ -505,13 +567,13 @@ async def test_dataset_run_and_membership_keyset_pages_do_not_repeat_rows(
     assert second_runs.next_cursor is None
     assert first_runs.items[0].run.id != second_runs.items[0].run.id
 
-    first_membership = await EvaluationRepository.find_execution_membership(
-        execution=source,
+    first_membership = await EvaluationRepository.find_evidence_membership(
+        evidence=source,
         cursor=None,
         limit=1,
     )
-    second_membership = await EvaluationRepository.find_execution_membership(
-        execution=source,
+    second_membership = await EvaluationRepository.find_evidence_membership(
+        evidence=source,
         cursor=first_membership.next_cursor,
         limit=1,
     )

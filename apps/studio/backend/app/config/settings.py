@@ -8,7 +8,7 @@ Pattern validated for high-concurrency asyncio environments.
 """
 
 from pathlib import Path
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import AliasChoices, Field, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -278,7 +278,7 @@ class AppSettings(BaseSettings):
 
     # Environment
     junjo_env: Annotated[
-        str,
+        Literal["development", "production"],
         Field(
             default="development",
             description="Environment (development/production)",

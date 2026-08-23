@@ -56,6 +56,7 @@ HARNESS = EvaluationHarness(
 
 class FakeStudioClient:
     created_request = None
+    membership_evidence = None
     configuration: dict[str, object] | None = None
 
     def __init__(self, **configuration: object) -> None:
@@ -81,6 +82,10 @@ class FakeStudioClient:
             "application_key": request.application_key,
             "key": request.key,
         }
+
+    async def get_evidence_membership(self, evidence, *, cursor=None, limit=50):
+        type(self).membership_evidence = evidence
+        return {"kind": evidence.kind, "cursor": cursor, "limit": limit}
 
 
 def _payload(capsys) -> dict:
@@ -148,7 +153,7 @@ def test_skill_path_is_local_and_requires_no_harness_or_studio(
     skill_directory.mkdir()
     skill_file = skill_directory / "SKILL.md"
     skill_file.write_text("---\nname: junjo-evaluation\n---\n", encoding="utf-8")
-    monkeypatch.setattr(cli, "_evaluation_skill_directory", lambda: skill_directory)
+    monkeypatch.setattr(cli, "_skill_directory", lambda name: skill_directory)
 
     exit_code = cli.main(["eval", "skill", "path"])
 
@@ -163,6 +168,28 @@ def test_skill_path_is_local_and_requires_no_harness_or_studio(
         },
         "ok": True,
         "schema_version": 1,
+    }
+
+
+def test_openai_agents_skill_path_uses_the_same_installed_skill_contract(
+    tmp_path,
+    monkeypatch,
+    capsys,
+) -> None:
+    skill_directory = tmp_path / "junjo-openai-agents"
+    skill_directory.mkdir()
+    skill_file = skill_directory / "SKILL.md"
+    skill_file.write_text("---\nname: junjo-openai-agents\n---\n", encoding="utf-8")
+    monkeypatch.setattr(cli, "_skill_directory", lambda name: skill_directory)
+
+    exit_code = cli.main(["eval", "skill", "path", "--name", "junjo-openai-agents"])
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_OK
+    assert payload["data"] == {
+        "name": "junjo-openai-agents",
+        "path": str(skill_directory),
+        "skill_file": str(skill_file),
     }
 
 
@@ -232,9 +259,7 @@ def test_backend_base_url_comes_from_the_explicit_environment_variable(
 
     _payload(capsys)
     assert exit_code == EXIT_OK
-    assert FakeStudioClient.configuration == {
-        "base_url": "http://studio-api.test:26154"
-    }
+    assert FakeStudioClient.configuration == {"base_url": "http://studio-api.test:26154"}
 
 
 def test_backend_base_url_defaults_to_the_local_studio_api(
@@ -256,9 +281,7 @@ def test_backend_base_url_defaults_to_the_local_studio_api(
 
     _payload(capsys)
     assert exit_code == EXIT_OK
-    assert FakeStudioClient.configuration == {
-        "base_url": "http://localhost:26154"
-    }
+    assert FakeStudioClient.configuration == {"base_url": "http://localhost:26154"}
 
 
 def test_backend_base_url_rejects_an_empty_environment_variable(
@@ -280,9 +303,7 @@ def test_backend_base_url_rejects_an_empty_environment_variable(
 
     payload = _payload(capsys)
     assert exit_code == EXIT_USAGE
-    assert payload["error"]["message"] == (
-        "JUNJO_AI_STUDIO_BACKEND_BASE_URL cannot be empty."
-    )
+    assert payload["error"]["message"] == ("JUNJO_AI_STUDIO_BACKEND_BASE_URL cannot be empty.")
     assert FakeStudioClient.configuration is None
 
 
@@ -310,9 +331,7 @@ def test_backend_base_url_flag_overrides_the_environment_variable(
 
     _payload(capsys)
     assert exit_code == EXIT_OK
-    assert FakeStudioClient.configuration == {
-        "base_url": "http://explicit.test:26154"
-    }
+    assert FakeStudioClient.configuration == {"base_url": "http://explicit.test:26154"}
 
 
 def test_control_commands_require_environment_token_without_echoing_it(
@@ -412,6 +431,56 @@ def test_dataset_create_uses_harness_application_and_scoped_client(
     assert exit_code == EXIT_OK
     assert payload["data"]["application_key"] == "cli_test"
     assert FakeStudioClient.created_request.application_key == "cli_test"
+
+
+def test_evidence_membership_accepts_native_and_external_evidence(
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", "jcli_test-token")
+
+    native_exit = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "evidence",
+            "membership",
+            "--kind",
+            "junjo_execution",
+            "--executable-type",
+            "workflow",
+            "--runtime-id",
+            "workflow-run",
+        ]
+    )
+    native_payload = _payload(capsys)
+
+    assert native_exit == EXIT_OK
+    assert native_payload["data"]["kind"] == "junjo_execution"
+    assert FakeStudioClient.membership_evidence.service_name == "cli"
+
+    external_exit = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "evidence",
+            "membership",
+            "--kind",
+            "otel_span",
+            "--trace-id",
+            "1" * 32,
+            "--span-id",
+            "a" * 16,
+        ]
+    )
+    external_payload = _payload(capsys)
+
+    assert external_exit == EXIT_OK
+    assert external_payload["data"]["kind"] == "otel_span"
+    assert FakeStudioClient.membership_evidence.trace_id == "1" * 32
 
 
 def test_run_exit_codes_distinguish_completion_regression_and_error() -> None:

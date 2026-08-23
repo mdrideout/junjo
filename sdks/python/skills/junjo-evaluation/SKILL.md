@@ -63,14 +63,19 @@ junjo eval --help
 
 If no harness exists and the developer asked to set up Junjo Evaluation,
 implement the narrow application-owned declaration with public
-`junjo.evaluation` APIs. If the developer asked only to run an evaluation,
+`junjo.evaluation` APIs. When the application uses the OpenAI Agents SDK and
+needs an outer-Agent target, use the optional APIs installed by
+`junjo[openai-agents]`; keep those declarations in application code and do not
+replace the application's Agent framework. If the developer asked only to run an evaluation,
 report the missing harness as a blocker instead of inventing an unrelated
 application architecture.
 
 Use the harness's runtime context for process-lifetime telemetry, providers,
 and shared clients. Keep mutable state and cleanup invocation-scoped. Register
-only useful application-owned `NodeTarget`, `WorkflowTarget`, and `AgentTarget`
-boundaries plus strict, versioned evaluator expectations.
+only useful application-owned target boundaries plus strict, versioned
+evaluator expectations. Treat an optional external-Agent target as conceptual
+kind `agent`; its exact OpenTelemetry span identifies evidence without turning
+it into a native Junjo Agent.
 
 ## 2. Translate intent into a dataset
 
@@ -138,8 +143,10 @@ Use current CLI help for all other status and argument details.
 
 Retrieve the completed Run and exact evidence for every Attempt. Confirm each
 Attempt resolves to the intended Node, Workflow, or Agent execution and the
-application's truthful service identity. Use execution membership only when a
-known execution must be followed upstream or downstream.
+application's truthful service identity. Native Junjo targets bind semantic
+execution evidence; external Agent targets bind the exact standard
+OpenTelemetry span. Use evidence membership only when a known execution must
+be followed upstream or downstream.
 
 Explain failures from both the evaluator reason and trace evidence. Locate the
 first meaningful behavioral difference rather than blaming the last visible

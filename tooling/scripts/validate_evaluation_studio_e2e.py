@@ -355,9 +355,7 @@ def poll_attempt_evidence(
             )
             return data
         if time.monotonic() >= deadline:
-            raise StudioE2EError(
-                "evaluation Attempt evidence did not become queryable before timeout"
-            )
+            raise StudioE2EError("evaluation Attempt evidence did not become queryable before timeout")
         time.sleep(1)
 
 
@@ -378,18 +376,17 @@ def assert_attempt_evidence(
         attempt.get("status") == expected_status,
         "deterministic Attempt status changed",
     )
-    execution = _object(
-        attempt.get("subject_execution"),
-        "Attempt subject execution",
+    subject_evidence = _object(
+        attempt.get("subject_evidence"),
+        "Attempt subject evidence",
     )
     resolution = _object(payload.get("resolution"), "execution resolution")
     require(
-        resolution.get("runtime_id") == execution.get("runtime_id"),
+        resolution.get("runtime_id") == subject_evidence.get("runtime_id"),
         "execution resolution runtime identity changed",
     )
     require(
-        resolution.get("service_namespace") == SERVICE_NAMESPACE
-        and resolution.get("service_name") == SERVICE_NAME,
+        resolution.get("service_namespace") == SERVICE_NAMESPACE and resolution.get("service_name") == SERVICE_NAME,
         "evaluation evidence changed application service identity",
     )
     evidence = _object(payload.get("evidence"), "trace evidence")
@@ -416,8 +413,7 @@ def assert_attempt_evidence(
             "trace span Resource",
         )
         require(
-            resource.get("service.namespace") == SERVICE_NAMESPACE
-            and resource.get("service.name") == SERVICE_NAME,
+            resource.get("service.namespace") == SERVICE_NAMESPACE and resource.get("service.name") == SERVICE_NAME,
             "evaluation span Resource changed application identity",
         )
     require(
@@ -459,9 +455,7 @@ def execute_proof(
     cleanup_error: BaseException | None = None
     try:
         credential = create_evaluation_credential(backend)
-        with tempfile.TemporaryDirectory(
-            prefix="junjo-evaluation-e2e-"
-        ) as raw_workspace:
+        with tempfile.TemporaryDirectory(prefix="junjo-evaluation-e2e-") as raw_workspace:
             workspace = Path(raw_workspace)
             junjo, application_root = build_installed_application(
                 repository_root=repository_root,
@@ -576,8 +570,8 @@ def execute_proof(
             require(
                 generated_case.get("origin") == "generated"
                 and generated_case.get("target_name") == TARGETS[0][2]
-                and isinstance(generated_case.get("source_execution"), dict),
-                "generated Case did not retain its target name and source execution",
+                and isinstance(generated_case.get("source_evidence"), dict),
+                "generated Case did not retain its target name and source evidence",
             )
 
             case_ids = [generated_case.get("id")]
@@ -656,17 +650,13 @@ def execute_proof(
                 )
                 detail = command_data(run_envelope)
                 run = _object(detail.get("run"), "Run")
-                require(
-                    run.get("status") == "completed", "evaluation Run did not complete"
-                )
+                require(run.get("status") == "completed", "evaluation Run did not complete")
                 attempts = [
                     _object(_object(item, "Run Case").get("attempt"), "Attempt")
                     for item in _list(detail.get("cases"), "Run Cases")
                 ]
                 require(
-                    len(attempts) == 3
-                    and [attempt.get("status") for attempt in attempts]
-                    == expected_statuses,
+                    len(attempts) == 3 and [attempt.get("status") for attempt in attempts] == expected_statuses,
                     "deterministic evaluation Attempt outcomes changed",
                 )
                 run_details.append(detail)
@@ -778,8 +768,7 @@ def execute_proof(
                 (
                     _object(item, "scoped Run item")
                     for item in scoped_items
-                    if _object(item, "scoped Run item").get("run", {}).get("id")
-                    == candidate_run_id
+                    if _object(item, "scoped Run item").get("run", {}).get("id") == candidate_run_id
                 ),
                 None,
             )
@@ -807,8 +796,7 @@ def execute_proof(
             )
             resumed = command_data(resume_envelope)
             require(
-                _object(resumed.get("run"), "resumed Run").get("id")
-                == candidate_run_id,
+                _object(resumed.get("run"), "resumed Run").get("id") == candidate_run_id,
                 "resume returned a different Run",
             )
             time.sleep(1)
@@ -847,8 +835,7 @@ def execute_proof(
             require(
                 exit_code == 3
                 and envelope.get("ok") is False
-                and _object(envelope.get("error"), "CLI error").get("code")
-                == "authentication",
+                and _object(envelope.get("error"), "CLI error").get("code") == "authentication",
                 "deleted evaluation token remained authorized",
             )
     finally:

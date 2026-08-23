@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: dc353c05b122
+Revision ID: eec3757c7c24
 Revises:
-Create Date: 2026-08-12 22:29:32.641069
+Create Date: 2026-08-18 01:42:45.870794
 
 """
 from collections.abc import Sequence
@@ -13,7 +13,7 @@ from alembic import op
 from app.common.datetime_utils import UTCDateTime
 
 # revision identifiers, used by Alembic.
-revision: str = 'dc353c05b122'
+revision: str = 'eec3757c7c24'
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -100,15 +100,21 @@ def upgrade() -> None:
     sa.Column('expectation_json', sa.Text(), nullable=True),
     sa.Column('evaluator_key', sa.String(length=128), nullable=False),
     sa.Column('evaluator_version', sa.Integer(), nullable=False),
+    sa.Column('source_evidence_kind', sa.String(length=15), nullable=True),
     sa.Column('source_service_namespace', sa.String(length=256), nullable=True),
     sa.Column('source_service_name', sa.String(length=256), nullable=True),
     sa.Column('source_executable_type', sa.String(length=8), nullable=True),
     sa.Column('source_runtime_id', sa.String(length=256), nullable=True),
+    sa.Column('source_trace_id', sa.String(length=32), nullable=True),
+    sa.Column('source_span_id', sa.String(length=16), nullable=True),
     sa.Column('source_revision', sa.String(length=64), nullable=True),
     sa.Column('created_at', UTCDateTime(), nullable=False),
-    sa.CheckConstraint("(origin = 'authored' AND source_service_namespace IS NULL AND source_service_name IS NULL AND source_executable_type IS NULL AND source_runtime_id IS NULL AND source_revision IS NULL) OR (origin = 'generated' AND source_service_namespace IS NOT NULL AND source_service_name IS NOT NULL AND source_executable_type IS NOT NULL AND source_runtime_id IS NOT NULL AND source_revision IS NOT NULL)", name='eval_cases_source_provenance'),
+    sa.CheckConstraint("(origin = 'authored' AND source_evidence_kind IS NULL AND source_service_namespace IS NULL AND source_service_name IS NULL AND source_executable_type IS NULL AND source_runtime_id IS NULL AND source_trace_id IS NULL AND source_span_id IS NULL AND source_revision IS NULL) OR (origin = 'generated' AND source_revision IS NOT NULL AND ((source_evidence_kind = 'junjo_execution' AND source_service_namespace IS NOT NULL AND source_service_name IS NOT NULL AND source_executable_type IS NOT NULL AND source_runtime_id IS NOT NULL AND source_trace_id IS NULL AND source_span_id IS NULL) OR (source_evidence_kind = 'otel_span' AND source_service_namespace IS NOT NULL AND source_service_name IS NOT NULL AND source_executable_type IS NULL AND source_runtime_id IS NULL AND source_trace_id IS NOT NULL AND source_span_id IS NOT NULL)))", name='eval_cases_source_provenance'),
     sa.CheckConstraint("origin IN ('authored', 'generated')", name='eval_cases_origin'),
+    sa.CheckConstraint("source_evidence_kind IS NULL OR source_evidence_kind IN ('junjo_execution', 'otel_span')", name='eval_cases_source_evidence_kind'),
     sa.CheckConstraint("source_executable_type IS NULL OR source_executable_type IN ('workflow', 'subflow', 'agent')", name='eval_cases_source_executable_type'),
+    sa.CheckConstraint("source_span_id IS NULL OR (length(source_span_id) = 16 AND source_span_id NOT GLOB '*[^0-9a-f]*')", name='eval_cases_source_span_id'),
+    sa.CheckConstraint("source_trace_id IS NULL OR (length(source_trace_id) = 32 AND source_trace_id NOT GLOB '*[^0-9a-f]*')", name='eval_cases_source_trace_id'),
     sa.CheckConstraint("target_kind IN ('node', 'workflow', 'agent')", name='eval_cases_target_kind'),
     sa.CheckConstraint('evaluator_version BETWEEN 1 AND 2147483647', name='eval_cases_evaluator_version'),
     sa.CheckConstraint('expectation_json IS NULL OR (json_valid(expectation_json) AND length(CAST(expectation_json AS BLOB)) <= 16384)', name='eval_cases_expectation_json'),
@@ -131,7 +137,8 @@ def upgrade() -> None:
     )
     with op.batch_alter_table('eval_cases', schema=None) as batch_op:
         batch_op.create_index('ix_eval_cases_dataset_ordinal_id', ['dataset_id', 'ordinal', 'id'], unique=False)
-        batch_op.create_index('ix_eval_cases_source_execution', ['source_service_namespace', 'source_service_name', 'source_executable_type', 'source_runtime_id'], unique=False, sqlite_where=sa.text('source_runtime_id IS NOT NULL'))
+        batch_op.create_index('ix_eval_cases_source_junjo_execution', ['source_service_namespace', 'source_service_name', 'source_executable_type', 'source_runtime_id'], unique=False, sqlite_where=sa.text("source_evidence_kind = 'junjo_execution'"))
+        batch_op.create_index('ix_eval_cases_source_otel_span', ['source_service_namespace', 'source_service_name', 'source_trace_id', 'source_span_id'], unique=False, sqlite_where=sa.text("source_evidence_kind = 'otel_span'"))
 
     op.create_table('eval_runs',
     sa.Column('id', sa.String(length=22), nullable=False),
@@ -164,16 +171,22 @@ def upgrade() -> None:
     sa.Column('status', sa.String(length=6), nullable=False),
     sa.Column('reason', sa.Text(), nullable=True),
     sa.Column('duration_ms', sa.Integer(), nullable=True),
+    sa.Column('subject_evidence_kind', sa.String(length=15), nullable=True),
     sa.Column('subject_service_namespace', sa.String(length=256), nullable=True),
     sa.Column('subject_service_name', sa.String(length=256), nullable=True),
     sa.Column('subject_executable_type', sa.String(length=8), nullable=True),
     sa.Column('subject_runtime_id', sa.String(length=256), nullable=True),
-    sa.Column('execution_bound_at', UTCDateTime(), nullable=True),
+    sa.Column('subject_trace_id', sa.String(length=32), nullable=True),
+    sa.Column('subject_span_id', sa.String(length=16), nullable=True),
+    sa.Column('evidence_bound_at', UTCDateTime(), nullable=True),
     sa.Column('recorded_at', UTCDateTime(), nullable=True),
-    sa.CheckConstraint("(status = 'queued' AND reason IS NULL AND duration_ms IS NULL AND recorded_at IS NULL) OR (status IN ('passed', 'failed') AND reason IS NOT NULL AND subject_runtime_id IS NOT NULL AND recorded_at IS NOT NULL) OR (status = 'error' AND reason IS NOT NULL AND recorded_at IS NOT NULL)", name='eval_case_attempts_terminal_fields'),
+    sa.CheckConstraint("(status = 'queued' AND reason IS NULL AND duration_ms IS NULL AND recorded_at IS NULL) OR (status IN ('passed', 'failed') AND reason IS NOT NULL AND subject_evidence_kind IS NOT NULL AND recorded_at IS NOT NULL) OR (status = 'error' AND reason IS NOT NULL AND recorded_at IS NOT NULL)", name='eval_case_attempts_terminal_fields'),
+    sa.CheckConstraint("(subject_evidence_kind IS NULL AND subject_service_namespace IS NULL AND subject_service_name IS NULL AND subject_executable_type IS NULL AND subject_runtime_id IS NULL AND subject_trace_id IS NULL AND subject_span_id IS NULL AND evidence_bound_at IS NULL) OR ((subject_evidence_kind = 'junjo_execution' AND subject_service_namespace IS NOT NULL AND subject_service_name IS NOT NULL AND subject_executable_type IS NOT NULL AND subject_runtime_id IS NOT NULL AND subject_trace_id IS NULL AND subject_span_id IS NULL AND evidence_bound_at IS NOT NULL) OR (subject_evidence_kind = 'otel_span' AND subject_service_namespace IS NOT NULL AND subject_service_name IS NOT NULL AND subject_executable_type IS NULL AND subject_runtime_id IS NULL AND subject_trace_id IS NOT NULL AND subject_span_id IS NOT NULL AND evidence_bound_at IS NOT NULL))", name='eval_case_attempts_subject_evidence'),
     sa.CheckConstraint("status IN ('queued', 'passed', 'failed', 'error')", name='eval_case_attempts_status'),
+    sa.CheckConstraint("subject_evidence_kind IS NULL OR subject_evidence_kind IN ('junjo_execution', 'otel_span')", name='eval_case_attempts_subject_evidence_kind'),
     sa.CheckConstraint("subject_executable_type IS NULL OR subject_executable_type IN ('workflow', 'subflow', 'agent')", name='eval_case_attempts_subject_executable_type'),
-    sa.CheckConstraint('(subject_service_namespace IS NULL AND subject_service_name IS NULL AND subject_executable_type IS NULL AND subject_runtime_id IS NULL AND execution_bound_at IS NULL) OR (subject_service_namespace IS NOT NULL AND subject_service_name IS NOT NULL AND subject_executable_type IS NOT NULL AND subject_runtime_id IS NOT NULL AND execution_bound_at IS NOT NULL)', name='eval_case_attempts_subject_execution'),
+    sa.CheckConstraint("subject_span_id IS NULL OR (length(subject_span_id) = 16 AND subject_span_id NOT GLOB '*[^0-9a-f]*')", name='eval_case_attempts_subject_span_id'),
+    sa.CheckConstraint("subject_trace_id IS NULL OR (length(subject_trace_id) = 32 AND subject_trace_id NOT GLOB '*[^0-9a-f]*')", name='eval_case_attempts_subject_trace_id'),
     sa.CheckConstraint('duration_ms IS NULL OR duration_ms BETWEEN 0 AND 86400000', name='eval_case_attempts_duration'),
     sa.CheckConstraint('reason IS NULL OR length(CAST(reason AS BLOB)) BETWEEN 1 AND 4096', name='eval_case_attempts_reason_bytes'),
     sa.CheckConstraint('subject_runtime_id IS NULL OR length(CAST(subject_runtime_id AS BLOB)) BETWEEN 1 AND 256', name='eval_case_attempts_subject_runtime_id_bytes'),
@@ -187,7 +200,8 @@ def upgrade() -> None:
     with op.batch_alter_table('eval_case_attempts', schema=None) as batch_op:
         batch_op.create_index('ix_eval_case_attempts_case_run', ['case_id', 'run_id'], unique=False)
         batch_op.create_index('ix_eval_case_attempts_run_status', ['run_id', 'status'], unique=False)
-        batch_op.create_index('uq_eval_case_attempts_subject_execution', ['subject_service_namespace', 'subject_service_name', 'subject_executable_type', 'subject_runtime_id'], unique=True, sqlite_where=sa.text('subject_runtime_id IS NOT NULL'))
+        batch_op.create_index('uq_eval_case_attempts_subject_junjo_execution', ['subject_service_namespace', 'subject_service_name', 'subject_executable_type', 'subject_runtime_id'], unique=True, sqlite_where=sa.text("subject_evidence_kind = 'junjo_execution'"))
+        batch_op.create_index('uq_eval_case_attempts_subject_otel_span', ['subject_service_namespace', 'subject_service_name', 'subject_trace_id', 'subject_span_id'], unique=True, sqlite_where=sa.text("subject_evidence_kind = 'otel_span'"))
 
     # ### end Alembic commands ###
 
@@ -196,7 +210,8 @@ def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
     with op.batch_alter_table('eval_case_attempts', schema=None) as batch_op:
-        batch_op.drop_index('uq_eval_case_attempts_subject_execution', sqlite_where=sa.text('subject_runtime_id IS NOT NULL'))
+        batch_op.drop_index('uq_eval_case_attempts_subject_otel_span', sqlite_where=sa.text("subject_evidence_kind = 'otel_span'"))
+        batch_op.drop_index('uq_eval_case_attempts_subject_junjo_execution', sqlite_where=sa.text("subject_evidence_kind = 'junjo_execution'"))
         batch_op.drop_index('ix_eval_case_attempts_run_status')
         batch_op.drop_index('ix_eval_case_attempts_case_run')
 
@@ -207,7 +222,8 @@ def downgrade() -> None:
 
     op.drop_table('eval_runs')
     with op.batch_alter_table('eval_cases', schema=None) as batch_op:
-        batch_op.drop_index('ix_eval_cases_source_execution', sqlite_where=sa.text('source_runtime_id IS NOT NULL'))
+        batch_op.drop_index('ix_eval_cases_source_otel_span', sqlite_where=sa.text("source_evidence_kind = 'otel_span'"))
+        batch_op.drop_index('ix_eval_cases_source_junjo_execution', sqlite_where=sa.text("source_evidence_kind = 'junjo_execution'"))
         batch_op.drop_index('ix_eval_cases_dataset_ordinal_id')
 
     op.drop_table('eval_cases')

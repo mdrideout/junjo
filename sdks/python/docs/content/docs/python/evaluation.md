@@ -33,8 +33,8 @@ CLI flags, or poll telemetry evidence.
 | Owner | Responsibility |
 | --- | --- |
 | Application | Typed inputs, real dependency construction, Node/Workflow/Agent factories, output projection, and domain-specific evaluator meaning |
-| Junjo SDK | `EvaluationHarness`, targets, evaluators, Studio transport, Attempt lifecycle, execution binding, resume, comparison, and CLI |
-| Junjo AI Studio | Canonical datasets, cases, runs, attempts, results, execution membership, and received trace evidence |
+| Junjo SDK | `EvaluationHarness`, targets, evaluators, Studio transport, Attempt lifecycle, evidence binding, resume, comparison, and CLI |
+| Junjo AI Studio | Canonical datasets, cases, runs, attempts, results, evidence membership, and received trace evidence |
 
 Studio never executes uploaded source code. Complete telemetry still enters
 Studio through authenticated OTLP; evaluation REST operations store only
@@ -304,7 +304,8 @@ only when requested:
 junjo eval run get --run-id RUN_ID
 junjo eval attempt get --attempt-id ATTEMPT_ID
 junjo eval attempt evidence --attempt-id ATTEMPT_ID
-junjo eval execution membership \
+junjo eval evidence membership \
+  --kind junjo_execution \
   --executable-type workflow \
   --runtime-id WORKFLOW_RUN_ID
 ```
@@ -354,7 +355,7 @@ Junjo adds one bounded orchestration span and role spans:
 The spans carry `junjo.evaluation.*` Dataset, Run, Case, Attempt, source
 revision, class, and role attributes. Junjo does not copy this metadata onto
 every descendant model, Tool, Node, or Store span. Studio's Attempt-to-
-execution binding remains the canonical result/evidence join.
+evidence binding remains the canonical result/evidence join.
 
 ## Machine contract and low-resource defaults
 

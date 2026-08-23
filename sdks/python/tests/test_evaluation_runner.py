@@ -43,6 +43,7 @@ from junjo.studio import (
     DatasetRead,
     DatasetStatus,
     ExecutableType,
+    ExecutionEvidenceReference,
     RunCaseRead,
     RunDetail,
     RunRead,
@@ -80,7 +81,7 @@ def _case(
     *,
     message: str | None = None,
     origin: CaseOrigin = CaseOrigin.AUTHORED,
-    source_execution: SemanticExecutionReference | None = None,
+    source_evidence: ExecutionEvidenceReference | None = None,
     source_revision: str | None = None,
 ) -> CaseRead:
     return CaseRead(
@@ -98,7 +99,7 @@ def _case(
         expectation_json={"expected": "pass"},
         evaluator_key="fake-evaluator",
         evaluator_version=1,
-        source_execution=source_execution,
+        source_evidence=source_evidence,
         source_revision=source_revision,
         created_at=NOW,
     )
@@ -127,8 +128,8 @@ def _attempt(
         status=status,
         reason="already passed" if status is AttemptStatus.PASSED else None,
         duration_ms=1 if terminal else None,
-        subject_execution=execution,
-        execution_bound_at=NOW if execution is not None else None,
+        subject_evidence=execution,
+        evidence_bound_at=NOW if execution is not None else None,
         recorded_at=NOW if terminal else None,
     )
 
@@ -181,17 +182,18 @@ class FakeClient:
         self.events.append("get-run")
         return self.detail
 
-    async def bind_attempt_execution(
+    async def bind_attempt_evidence(
         self,
         attempt_id: str,
-        execution: SemanticExecutionReference,
+        evidence: ExecutionEvidenceReference,
     ) -> AttemptRead:
-        self.events.append(f"bind:{attempt_id}:{execution.runtime_id}")
+        assert isinstance(evidence, SemanticExecutionReference)
+        self.events.append(f"bind:{attempt_id}:{evidence.runtime_id}")
         membership = next(item for item in self.detail.cases if item.attempt.id == attempt_id)
         return membership.attempt.model_copy(
             update={
-                "subject_execution": execution,
-                "execution_bound_at": NOW,
+                "subject_evidence": evidence,
+                "evidence_bound_at": NOW,
             }
         )
 
@@ -226,7 +228,7 @@ class FakeClient:
             1,
             message=str(input_json["message"]),
             origin=request.origin,
-            source_execution=request.source_execution,
+            source_evidence=request.source_evidence,
             source_revision=request.source_revision,
         )
 
@@ -277,12 +279,12 @@ class FakeTarget(EvaluationTarget):
         if message == "target-error":
             raise TargetExecutionError(
                 "Target failed safely.",
-                execution=execution,
+                evidence=execution,
                 duration_ms=9,
             )
         return TargetExecution(
             subject=f"subject:{message}",
-            execution=execution,
+            evidence=execution,
             duration_ms=7,
         )
 
@@ -632,7 +634,7 @@ async def test_resume_rejects_a_different_clean_source_revision() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generation_retains_curated_contract_and_source_execution() -> None:
+async def test_generation_retains_curated_contract_and_source_evidence() -> None:
     events: list[str] = []
     placeholder = _case("placeholder", 1)
     detail = _run_detail(
@@ -668,8 +670,8 @@ async def test_generation_retains_curated_contract_and_source_execution() -> Non
     assert client.added_case.expectation_json == {"expected": "pass"}
     assert client.added_case.expectation_json != {"subject": "subject:generated-message"}
     assert client.added_case.source_revision == REVISION
-    assert client.added_case.source_execution is not None
-    assert client.added_case.source_execution.runtime_id == "runtime-generated-message"
+    assert isinstance(client.added_case.source_evidence, SemanticExecutionReference)
+    assert client.added_case.source_evidence.runtime_id == "runtime-generated-message"
     assert len(target.resources) == 1
     assert evaluator.resources == []
     assert events == [
@@ -688,7 +690,7 @@ async def test_generation_retry_and_conflict_fail_before_execution() -> None:
         1,
         message="generated-message",
         origin=CaseOrigin.GENERATED,
-        source_execution=_execution("source-runtime"),
+        source_evidence=_execution("source-runtime"),
         source_revision=REVISION,
     )
     detail = _run_detail(

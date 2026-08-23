@@ -153,7 +153,7 @@ The SDK-owned MVP does not start from zero:
 - OTLP ingestion already preserves the attributes and parentage required for
   the execution tree.
 - The validated Studio walking skeleton already proves immutable datasets,
-  run/attempt coordination, exact execution membership, and bounded evidence
+  run/attempt coordination, exact evidence membership, and bounded evidence
   retrieval on the supported small deployment.
 
 These are the critical path. The MVP should compose them rather than introduce
@@ -212,7 +212,7 @@ The system has three cooperating planes:
 | --- | --- | --- |
 | Code and execution | Junjo SDK evaluation harness loaded in the application checkout | Coordinate cases and attempts, invoke declared targets, apply evaluator contracts, capture provenance, bind executions, record outcomes, and flush telemetry |
 | Application binding | AI Chat target and evaluator declarations | Supply input types, construct real dependencies and executable objects, project outputs, and implement domain-specific checks that Junjo cannot infer |
-| Evaluation control | Studio REST API and `junjo.db` | Own datasets, cases, runs, attempts, source revisions, outcomes, and exact execution bindings |
+| Evaluation control | Studio REST API and `junjo.db` | Own datasets, cases, runs, attempts, source revisions, outcomes, and exact evidence bindings |
 | Execution evidence | Existing OTLP ingestion, Parquet, execution resolver, and `TraceEvidence` | Receive and return all supported trace and span evidence without copying it into evaluation tables |
 
 The coding agent may choose the source change and invoke the SDK harness, but
@@ -375,8 +375,8 @@ Required fields:
 | `expectation_json` | Optional bounded evaluator input |
 | `evaluator_key` | Application-owned evaluator dispatch key |
 | `evaluator_version` | Application-owned positive integer evaluator contract version |
-| `source_execution` | Optional real execution that generated this case |
-| `source_revision` | Required clean application Git revision for a generated source execution |
+| `source_evidence` | Optional exact native execution or OpenTelemetry span that generated this case |
+| `source_revision` | Required clean application Git revision for generated source evidence |
 | `created_at` | Server timestamp |
 
 The MVP does not define a universal input schema. `target_key` selects an
@@ -410,9 +410,11 @@ version. There is no Studio evaluator registry or DSL. Changing an evaluator
 contract requires a new dataset; otherwise baseline/candidate results could
 appear comparable while being produced by different rules.
 
-`source_execution` and case `source_revision` are either both present for a
-generated case or both absent for an authored case. This makes the evidence and
-application/SDK revision that generated a dataset case queryable together.
+`source_evidence` and case `source_revision` are either both present for a
+generated case or both absent for an authored case. The evidence is either a
+native Junjo semantic execution reference or an exact OpenTelemetry span
+reference. This makes the evidence and application/SDK revision that generated
+a dataset case queryable together.
 
 ### Evaluation Run
 
@@ -462,27 +464,28 @@ Required fields:
 | `status` | `queued`, `passed`, `failed`, or `error` |
 | `reason` | Optional bounded human-readable judgment or error |
 | `duration_ms` | Optional non-negative duration |
-| `subject_execution` | Optional exact semantic execution reference |
-| `execution_bound_at` | Nullable timestamp set when execution identity is bound |
+| `subject_evidence` | Optional exact native execution or OpenTelemetry span reference |
+| `evidence_bound_at` | Nullable timestamp set when evidence is bound |
 | `recorded_at` | Nullable while queued; server timestamp after terminal write |
 
 `passed` and `failed` mean the application evaluator completed. `error` means
 the target or evaluator did not produce a valid judgment. A missing
-`subject_execution` is valid only when setup failed before Junjo created a
-trustworthy execution identity. When a Workflow error exposes its run ID, the
-attempt retains that reference even though execution failed.
+`subject_evidence` is valid only when setup failed before the target produced
+trustworthy evidence. When a native Workflow error exposes its run ID, or an
+external Agent emitted its exact span before a later failure, the Attempt
+retains that reference.
 
 The attempt record is authoritative for evaluation status and reason.
 Telemetry is authoritative for execution evidence. The MVP does not write a
 second canonical result into span attributes or copy subject prompts,
 responses, state, or traces into SQLite.
 
-Execution binding and terminal judgment are separate idempotent writes. As soon
-as the target returns a trustworthy runtime ID, the SDK runner binds the semantic
-execution reference to the pre-created attempt before invoking a potentially
-slow or fallible judge. An identical retry succeeds and a conflicting rebind
-returns a conflict. This preserves the evidence link if the runner stops after
-execution but before judgment.
+Evidence binding and terminal judgment are separate idempotent writes. As soon
+as the target returns a trustworthy native execution or exact external span,
+the SDK runner binds the evidence reference to the pre-created Attempt before
+invoking a potentially slow or fallible judge. An identical retry succeeds and
+a conflicting rebind returns a conflict. This preserves the evidence link if
+the runner stops after execution but before judgment.
 
 Recording the result is one atomic transition from `queued` to a terminal
 status without changing the bound execution. When it is the final queued
@@ -491,12 +494,12 @@ retry succeeds, a conflicting terminal write returns a conflict, and a
 terminal attempt never reopens.
 
 On SDK command resume, an unbound queued attempt executes normally. A queued
-attempt that already has `subject_execution` is never executed again: the
+attempt that already has `subject_evidence` is never executed again: the
 previous process completed execution but did not durably record a judgment.
 The resumed command records a bounded `error` reason for that interrupted
 attempt and continues. A fresh evaluation run is the explicit retry boundary.
 This simple rule prevents duplicate provider work and competing semantic
-execution bindings without adding attempt leases, persisted evaluator
+evidence bindings without adding attempt leases, persisted evaluator
 subjects, or a distributed scheduler. Concurrent runners for the same run are
 unsupported in the MVP.
 
@@ -508,9 +511,10 @@ discoverable in telemetry but is not canonical membership. Solving this crash
 window would require a new trusted telemetry-to-attempt reconciliation
 contract and is not hidden inside this MVP.
 
-### Semantic Execution Reference
+### Evidence Reference
 
-Both `source_execution` and `subject_execution` reuse ADR 0007 identity:
+Both `source_evidence` and `subject_evidence` use one discriminated union. A
+native `junjo_execution` reuses ADR 0007 identity:
 
 | Field | Meaning |
 | --- | --- |
@@ -519,8 +523,11 @@ Both `source_execution` and `subject_execution` reuse ADR 0007 identity:
 | `executable_type` | `workflow`, `subflow`, or `agent` |
 | `runtime_id` | Exact Junjo executable runtime ID |
 
-The UI and SDK client link this reference to the existing semantic resolver.
-The SDK runner does not block waiting for a physical trace ID.
+An external `otel_span` instead records normalized service namespace and name,
+the exact trace ID, and the exact span ID. The UI and SDK client link native
+evidence through the semantic resolver and external evidence directly to the
+ordinary full trace page. The SDK runner does not wait for a physical trace ID
+when a native semantic identity is already truthful.
 
 For a Node case, `evaluate_node()` supplies the generated one-Node Workflow
 runtime ID. The execution reference therefore uses executable type `workflow`.
@@ -601,7 +608,7 @@ read-only UI:
 | Record attempt result | Idempotently store one terminal case outcome |
 | List evaluation runs | Discover bounded runs, optionally filtered by dataset |
 | Get run | Return run, dataset summary, ordered cases, and attempts |
-| Find execution membership | Resolve one exact semantic execution tuple to its case, dataset, run, and attempt role |
+| Find evidence membership | Resolve one exact native execution or OpenTelemetry span to its case, dataset, run, and attempt role |
 
 There is no update-case, delete-case, clone, cancel, retry, saved-search, bulk
 import, or arbitrary query endpoint in the MVP. Baseline and candidate
@@ -628,9 +635,9 @@ follow the idempotency rules in the attempt model.
 The critical write and lookup routes are deliberately separate:
 
 ```text
-PUT /api/v1/evaluation/attempts/{attempt_id}/execution
+PUT /api/v1/evaluation/attempts/{attempt_id}/evidence
 PUT /api/v1/evaluation/attempts/{attempt_id}/result
-GET /api/v1/evaluation/execution-membership
+GET /api/v1/evaluation/evidence-membership
     ?service_namespace=...
     &service_name=...
     &executable_type=...
@@ -657,7 +664,7 @@ The SDK client retrieves execution evidence by composing existing APIs:
    `/api/v1/trace-evidence/{trace_id}` endpoint.
 
 No new broad trace-query endpoint or automatic per-case evidence hydration is
-required. The exact execution-membership operation supplies the reverse
+required. The exact evidence-membership operation supplies the reverse
 control-plane lookup when the agent starts with a semantic runtime identity.
 Starting with a trace ID, the agent first reads `TraceEvidence`, selects the
 relevant exact executable-owner identity, and performs that same lookup.
@@ -780,7 +787,7 @@ The CLI is a thin adapter over the same public Python APIs:
 - `junjo eval case generate`;
 - `junjo eval run execute|resume|list|get|compare`;
 - `junjo eval attempt get|evidence`; and
-- `junjo eval execution membership`.
+- `junjo eval evidence membership --kind junjo_execution`.
 
 Execution commands require one explicit `module:object` application
 declaration rather than plugin discovery. Data output is versioned JSON by
@@ -950,8 +957,8 @@ broad benchmark matrix.
 - authenticated API contract tests;
 - atomic dataset locking and attempt creation;
 - create/start idempotency and conflicting-content rejection;
-- idempotent execution binding and terminal result recording;
-- exact forward and reverse execution-membership lookup;
+- idempotent evidence binding and terminal result recording;
+- exact forward and reverse evidence-membership lookup;
 - generated-case source execution/revision all-or-none validation;
 - evaluator key/version immutability and unknown-version rejection;
 - bounded input and list tests; and
@@ -963,7 +970,7 @@ broad benchmark matrix.
   tests with no provider calls;
 - run resume executes only unbound queued attempts, marks a bound
   no-result attempt interrupted, and skips terminal attempts;
-- execution binding survives a later judge or result-write failure;
+- evidence binding survives a later judge or result-write failure;
 - identical bind/result retries succeed and conflicting writes fail;
 - input-validation failure creates an error attempt;
 - Node, Workflow, and Agent targets return correct semantic references;

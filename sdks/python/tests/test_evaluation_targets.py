@@ -102,9 +102,7 @@ def _workflow(value: str) -> Workflow[ExampleState, ExampleStore]:
     return Workflow(
         name="Example Workflow",
         graph_factory=graph_factory,
-        store_factory=lambda: ExampleStore(
-            initial_state=ExampleState(value=value)
-        ),
+        store_factory=lambda: ExampleStore(initial_state=ExampleState(value=value)),
     )
 
 
@@ -134,9 +132,7 @@ async def test_node_target_validates_before_construction_and_uses_evaluate_node(
         factory_inputs.append(input_value)
         return NodeInvocation(
             node=UppercaseNode(),
-            store=ExampleStore(
-                initial_state=ExampleState(value=input_value.value)
-            ),
+            store=ExampleStore(initial_state=ExampleState(value=input_value.value)),
         )
 
     target = NodeTarget(
@@ -159,9 +155,9 @@ async def test_node_target_validates_before_construction_and_uses_evaluate_node(
     )
 
     assert result.subject == "HELLO"
-    assert result.execution.service_name == "chat"
-    assert result.execution.executable_type is ExecutableType.WORKFLOW
-    assert result.execution.runtime_id
+    assert result.evidence.service_name == "chat"
+    assert result.evidence.executable_type is ExecutableType.WORKFLOW
+    assert result.evidence.runtime_id
     assert factory_inputs == [CaseInput(value="hello")]
 
 
@@ -179,9 +175,7 @@ async def test_node_failure_retains_truthful_generated_workflow_identity() -> No
         input_type=CaseInput,
         factory=lambda input_value, _context, _resources: NodeInvocation(
             node=FailingNode(),
-            store=ExampleStore(
-                initial_state=ExampleState(value=input_value.value)
-            ),
+            store=ExampleStore(initial_state=ExampleState(value=input_value.value)),
             cleanup=cleanup,
         ),
         projector=lambda result, _input, _context, _resources: result.state.output,
@@ -195,12 +189,10 @@ async def test_node_failure_retains_truthful_generated_workflow_identity() -> No
             resources=None,
         )
 
-    assert str(raised.value) == (
-        "Node target execution failed: WorkflowExecutionError."
-    )
-    assert raised.value.execution is not None
-    assert raised.value.execution.executable_type is ExecutableType.WORKFLOW
-    assert raised.value.execution.runtime_id
+    assert str(raised.value) == ("Node target execution failed: WorkflowExecutionError.")
+    assert raised.value.evidence is not None
+    assert raised.value.evidence.executable_type is ExecutableType.WORKFLOW
+    assert raised.value.evidence.runtime_id
     assert cleanups == ["node"]
 
 
@@ -211,9 +203,7 @@ async def test_workflow_target_invokes_public_workflow_lifecycle() -> None:
         name="Uppercase Workflow",
         input_version=1,
         input_type=CaseInput,
-        factory=lambda input_value, _context, _resources: WorkflowInvocation(
-            workflow=_workflow(input_value.value)
-        ),
+        factory=lambda input_value, _context, _resources: WorkflowInvocation(workflow=_workflow(input_value.value)),
         projector=lambda result, _input, _context, _resources: result.state.output,
     )
 
@@ -225,7 +215,7 @@ async def test_workflow_target_invokes_public_workflow_lifecycle() -> None:
     )
 
     assert result.subject == "WORKFLOW"
-    assert result.execution.executable_type is ExecutableType.WORKFLOW
+    assert result.evidence.executable_type is ExecutableType.WORKFLOW
 
 
 @pytest.mark.asyncio
@@ -264,10 +254,8 @@ async def test_workflow_projection_failure_closes_per_case_resources() -> None:
             resources=None,
         )
 
-    assert str(raised.value) == (
-        "Workflow target projection failed: RuntimeError."
-    )
-    assert raised.value.execution is not None
+    assert str(raised.value) == ("Workflow target projection failed: RuntimeError.")
+    assert raised.value.evidence is not None
     assert cleanups == ["workflow"]
 
 
@@ -278,9 +266,7 @@ async def test_agent_target_invokes_public_agent_lifecycle() -> None:
     async def cleanup() -> None:
         cleanups.append("agent")
 
-    driver = ScriptedModelDriver(
-        [FinalOutputResponse(output={"value": "agent-output"})]
-    )
+    driver = ScriptedModelDriver([FinalOutputResponse(output={"value": "agent-output"})])
     agent = Agent(
         key="example-agent",
         name="Example Agent",
@@ -320,6 +306,6 @@ async def test_agent_target_invokes_public_agent_lifecycle() -> None:
     )
 
     assert result.subject == "agent-output"
-    assert result.execution.executable_type is ExecutableType.AGENT
+    assert result.evidence.executable_type is ExecutableType.AGENT
     assert len(driver.requests) == 1
     assert cleanups == ["agent"]

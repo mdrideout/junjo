@@ -15,6 +15,7 @@ from app.features.evaluation.schemas import (
 
 REVISION = "a" * 40
 EXECUTION = {
+    "kind": "junjo_execution",
     "service_namespace": "junjo.examples",
     "service_name": "ai-chat-evaluation",
     "executable_type": "workflow",
@@ -43,7 +44,7 @@ def _case(**overrides):
 def test_case_provenance_is_all_or_none_and_origin_specific() -> None:
     with pytest.raises(ValidationError):
         EvaluationCaseCreate.model_validate(
-            _case(source_execution=EXECUTION, source_revision=REVISION)
+            _case(source_evidence=EXECUTION, source_revision=REVISION)
         )
 
     with pytest.raises(ValidationError):
@@ -52,11 +53,11 @@ def test_case_provenance_is_all_or_none_and_origin_specific() -> None:
     generated = EvaluationCaseCreate.model_validate(
         _case(
             origin="generated",
-            source_execution=EXECUTION,
+            source_evidence=EXECUTION,
             source_revision=REVISION,
         )
     )
-    assert generated.source_execution == SemanticExecutionReference.model_validate(EXECUTION)
+    assert generated.source_evidence == SemanticExecutionReference.model_validate(EXECUTION)
 
 
 def test_agent_is_a_supported_evaluation_target_kind() -> None:

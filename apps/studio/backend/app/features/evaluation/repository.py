@@ -51,8 +51,8 @@ from app.features.evaluation.schemas import (
     EvaluationDatasetList,
     EvaluationDatasetRead,
     EvaluationDatasetSummary,
-    EvaluationExecutionMembership,
-    EvaluationExecutionMembershipList,
+    EvaluationEvidenceMembership,
+    EvaluationEvidenceMembershipList,
     EvaluationNameFacet,
     EvaluationOutcomeSummary,
     EvaluationRunCase,
@@ -63,6 +63,8 @@ from app.features.evaluation.schemas import (
     EvaluationRunStart,
     EvaluationRunSummary,
     EvaluationTargetFacet,
+    ExecutionEvidenceReference,
+    OpenTelemetrySpanReference,
     SemanticExecutionReference,
     dump_bounded_json,
     load_stored_json,
@@ -94,20 +96,30 @@ def _dataset_read(row: EvaluationDatasetTable) -> EvaluationDatasetRead:
     )
 
 
-def _execution_reference(
+def _evidence_reference(
     *,
+    evidence_kind: str | None,
     service_namespace: str | None,
     service_name: str | None,
     executable_type: str | None,
     runtime_id: str | None,
-) -> SemanticExecutionReference | None:
-    if runtime_id is None:
+    trace_id: str | None,
+    span_id: str | None,
+) -> ExecutionEvidenceReference | None:
+    if evidence_kind is None:
         return None
-    return SemanticExecutionReference(
+    if evidence_kind == "junjo_execution":
+        return SemanticExecutionReference(
+            service_namespace=service_namespace,
+            service_name=service_name,
+            executable_type=executable_type,
+            runtime_id=runtime_id,
+        )
+    return OpenTelemetrySpanReference(
         service_namespace=service_namespace,
         service_name=service_name,
-        executable_type=executable_type,
-        runtime_id=runtime_id,
+        trace_id=trace_id,
+        span_id=span_id,
     )
 
 
@@ -129,11 +141,14 @@ def _case_read(row: EvaluationCaseTable) -> EvaluationCaseRead:
         ),
         evaluator_key=row.evaluator_key,
         evaluator_version=row.evaluator_version,
-        source_execution=_execution_reference(
+        source_evidence=_evidence_reference(
+            evidence_kind=row.source_evidence_kind,
             service_namespace=row.source_service_namespace,
             service_name=row.source_service_name,
             executable_type=row.source_executable_type,
             runtime_id=row.source_runtime_id,
+            trace_id=row.source_trace_id,
+            span_id=row.source_span_id,
         ),
         source_revision=row.source_revision,
         created_at=row.created_at,
@@ -197,13 +212,16 @@ def _attempt_read(row: EvaluationCaseAttemptTable) -> EvaluationAttemptRead:
         status=row.status,
         reason=row.reason,
         duration_ms=row.duration_ms,
-        subject_execution=_execution_reference(
+        subject_evidence=_evidence_reference(
+            evidence_kind=row.subject_evidence_kind,
             service_namespace=row.subject_service_namespace,
             service_name=row.subject_service_name,
             executable_type=row.subject_executable_type,
             runtime_id=row.subject_runtime_id,
+            trace_id=row.subject_trace_id,
+            span_id=row.subject_span_id,
         ),
-        execution_bound_at=row.execution_bound_at,
+        evidence_bound_at=row.evidence_bound_at,
         recorded_at=row.recorded_at,
     )
 
@@ -221,7 +239,9 @@ def _same_dataset(
 
 
 def _case_storage_values(request: EvaluationCaseCreate) -> dict[str, object]:
-    source = request.source_execution
+    source = request.source_evidence
+    semantic_source = source if isinstance(source, SemanticExecutionReference) else None
+    span_source = source if isinstance(source, OpenTelemetrySpanReference) else None
     return {
         "case_key": request.case_key,
         "evaluation_name": request.evaluation_name,
@@ -238,10 +258,13 @@ def _case_storage_values(request: EvaluationCaseCreate) -> dict[str, object]:
         ),
         "evaluator_key": request.evaluator_key,
         "evaluator_version": request.evaluator_version,
+        "source_evidence_kind": source.kind if source else None,
         "source_service_namespace": source.service_namespace if source else None,
         "source_service_name": source.service_name if source else None,
-        "source_executable_type": source.executable_type if source else None,
-        "source_runtime_id": source.runtime_id if source else None,
+        "source_executable_type": semantic_source.executable_type if semantic_source else None,
+        "source_runtime_id": semantic_source.runtime_id if semantic_source else None,
+        "source_trace_id": span_source.trace_id if span_source else None,
+        "source_span_id": span_source.span_id if span_source else None,
         "source_revision": request.source_revision,
     }
 
@@ -720,10 +743,10 @@ class EvaluationRepository:
             )
 
     @staticmethod
-    async def bind_attempt_execution(
+    async def bind_attempt_evidence(
         *,
         attempt_id: str,
-        execution: SemanticExecutionReference,
+        evidence: ExecutionEvidenceReference,
     ) -> EvaluationAttemptRead:
         try:
             async with db_config.async_session() as session:
@@ -731,36 +754,44 @@ class EvaluationRepository:
                 attempt = await session.get(EvaluationCaseAttemptTable, attempt_id)
                 if attempt is None:
                     raise EvaluationNotFoundError("Attempt")
-                current = _execution_reference(
+                current = _evidence_reference(
+                    evidence_kind=attempt.subject_evidence_kind,
                     service_namespace=attempt.subject_service_namespace,
                     service_name=attempt.subject_service_name,
                     executable_type=attempt.subject_executable_type,
                     runtime_id=attempt.subject_runtime_id,
+                    trace_id=attempt.subject_trace_id,
+                    span_id=attempt.subject_span_id,
                 )
                 if current is not None:
-                    if current == execution:
+                    if current == evidence:
                         return _attempt_read(attempt)
                     raise EvaluationConflictError(
-                        "attempt_execution_conflict",
-                        "Attempt is already bound to a different execution.",
+                        "attempt_evidence_conflict",
+                        "Attempt is already bound to different evidence.",
                     )
                 if attempt.status != "queued":
                     raise EvaluationConflictError(
                         "attempt_terminal",
-                        "A terminal attempt cannot acquire an execution binding.",
+                        "A terminal attempt cannot acquire an evidence binding.",
                     )
 
-                attempt.subject_service_namespace = execution.service_namespace
-                attempt.subject_service_name = execution.service_name
-                attempt.subject_executable_type = execution.executable_type
-                attempt.subject_runtime_id = execution.runtime_id
-                attempt.execution_bound_at = _db_now()
+                attempt.subject_evidence_kind = evidence.kind
+                attempt.subject_service_namespace = evidence.service_namespace
+                attempt.subject_service_name = evidence.service_name
+                if isinstance(evidence, SemanticExecutionReference):
+                    attempt.subject_executable_type = evidence.executable_type
+                    attempt.subject_runtime_id = evidence.runtime_id
+                else:
+                    attempt.subject_trace_id = evidence.trace_id
+                    attempt.subject_span_id = evidence.span_id
+                attempt.evidence_bound_at = _db_now()
                 await session.commit()
                 return _attempt_read(attempt)
         except IntegrityError as error:
             raise EvaluationConflictError(
-                "execution_already_bound",
-                "Execution is already bound to another attempt.",
+                "evidence_already_bound",
+                "Evidence is already bound to another attempt.",
             ) from error
 
     @staticmethod
@@ -785,10 +816,10 @@ class EvaluationRepository:
                     "attempt_result_conflict",
                     "Attempt already has a different terminal result.",
                 )
-            if result.status in ("passed", "failed") and attempt.subject_runtime_id is None:
+            if result.status in ("passed", "failed") and attempt.subject_evidence_kind is None:
                 raise EvaluationConflictError(
-                    "attempt_execution_required",
-                    "Passed and failed attempts require a bound execution.",
+                    "attempt_evidence_required",
+                    "Passed and failed attempts require bound evidence.",
                 )
 
             attempt.status = result.status
@@ -819,13 +850,44 @@ class EvaluationRepository:
             return _attempt_read(attempt)
 
     @staticmethod
-    async def find_execution_membership(
+    async def find_evidence_membership(
         *,
-        execution: SemanticExecutionReference,
+        evidence: ExecutionEvidenceReference,
         cursor: str | None,
         limit: int,
-    ) -> EvaluationExecutionMembershipList:
+    ) -> EvaluationEvidenceMembershipList:
         decoded = decode_membership_cursor(cursor)
+        if isinstance(evidence, SemanticExecutionReference):
+            source_filters = (
+                EvaluationCaseTable.source_evidence_kind == evidence.kind,
+                EvaluationCaseTable.source_service_namespace == evidence.service_namespace,
+                EvaluationCaseTable.source_service_name == evidence.service_name,
+                EvaluationCaseTable.source_executable_type == evidence.executable_type,
+                EvaluationCaseTable.source_runtime_id == evidence.runtime_id,
+            )
+            subject_filters = (
+                EvaluationCaseAttemptTable.subject_evidence_kind == evidence.kind,
+                EvaluationCaseAttemptTable.subject_service_namespace == evidence.service_namespace,
+                EvaluationCaseAttemptTable.subject_service_name == evidence.service_name,
+                EvaluationCaseAttemptTable.subject_executable_type == evidence.executable_type,
+                EvaluationCaseAttemptTable.subject_runtime_id == evidence.runtime_id,
+            )
+        else:
+            source_filters = (
+                EvaluationCaseTable.source_evidence_kind == evidence.kind,
+                EvaluationCaseTable.source_service_namespace == evidence.service_namespace,
+                EvaluationCaseTable.source_service_name == evidence.service_name,
+                EvaluationCaseTable.source_trace_id == evidence.trace_id,
+                EvaluationCaseTable.source_span_id == evidence.span_id,
+            )
+            subject_filters = (
+                EvaluationCaseAttemptTable.subject_evidence_kind == evidence.kind,
+                EvaluationCaseAttemptTable.subject_service_namespace == evidence.service_namespace,
+                EvaluationCaseAttemptTable.subject_service_name == evidence.service_name,
+                EvaluationCaseAttemptTable.subject_trace_id == evidence.trace_id,
+                EvaluationCaseAttemptTable.subject_span_id == evidence.span_id,
+            )
+
         source = select(
             literal("case_source").label("role"),
             EvaluationCaseTable.id.label("record_id"),
@@ -833,12 +895,7 @@ class EvaluationRepository:
             EvaluationCaseTable.id.label("case_id"),
             null().cast(String).label("run_id"),
             null().cast(String).label("attempt_id"),
-        ).where(
-            EvaluationCaseTable.source_service_namespace == execution.service_namespace,
-            EvaluationCaseTable.source_service_name == execution.service_name,
-            EvaluationCaseTable.source_executable_type == execution.executable_type,
-            EvaluationCaseTable.source_runtime_id == execution.runtime_id,
-        )
+        ).where(*source_filters)
         subject = (
             select(
                 literal("attempt_subject").label("role"),
@@ -852,12 +909,7 @@ class EvaluationRepository:
                 EvaluationRunTable,
                 EvaluationRunTable.id == EvaluationCaseAttemptTable.run_id,
             )
-            .where(
-                EvaluationCaseAttemptTable.subject_service_namespace == execution.service_namespace,
-                EvaluationCaseAttemptTable.subject_service_name == execution.service_name,
-                EvaluationCaseAttemptTable.subject_executable_type == execution.executable_type,
-                EvaluationCaseAttemptTable.subject_runtime_id == execution.runtime_id,
-            )
+            .where(*subject_filters)
         )
         memberships = union_all(source, subject).subquery()
         stmt = select(memberships)
@@ -886,9 +938,9 @@ class EvaluationRepository:
             next_cursor = encode_membership_cursor(
                 MembershipCursor(role=last["role"], record_id=last["record_id"])
             )
-        return EvaluationExecutionMembershipList(
+        return EvaluationEvidenceMembershipList(
             items=[
-                EvaluationExecutionMembership(
+                EvaluationEvidenceMembership(
                     role=row["role"],
                     dataset_id=row["dataset_id"],
                     case_id=row["case_id"],

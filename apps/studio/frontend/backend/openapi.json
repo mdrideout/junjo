@@ -1797,13 +1797,13 @@
         }
       }
     },
-    "/api/v1/evaluation/attempts/{attempt_id}/execution": {
+    "/api/v1/evaluation/attempts/{attempt_id}/evidence": {
       "put": {
         "tags": [
           "evaluation"
         ],
-        "summary": "Bind Attempt Execution",
-        "operationId": "bind_evaluation_attempt_execution",
+        "summary": "Bind Attempt Evidence",
+        "operationId": "bind_evaluation_attempt_evidence",
         "security": [
           {
             "EvaluationControlToken": []
@@ -1827,7 +1827,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EvaluationExecutionBind"
+                "$ref": "#/components/schemas/EvaluationEvidenceBind"
               }
             }
           }
@@ -1941,19 +1941,32 @@
         }
       }
     },
-    "/api/v1/evaluation/execution-membership": {
+    "/api/v1/evaluation/evidence-membership": {
       "get": {
         "tags": [
           "evaluation"
         ],
-        "summary": "Find Execution Membership",
-        "operationId": "find_evaluation_execution_membership",
+        "summary": "Find Evidence Membership",
+        "operationId": "find_evaluation_evidence_membership",
         "security": [
           {
             "EvaluationControlToken": []
           }
         ],
         "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "junjo_execution",
+                "otel_span"
+              ],
+              "type": "string",
+              "title": "Kind"
+            }
+          },
           {
             "name": "service_namespace",
             "in": "query",
@@ -1978,26 +1991,74 @@
           {
             "name": "executable_type",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "enum": [
-                "workflow",
-                "subflow",
-                "agent"
+              "anyOf": [
+                {
+                  "enum": [
+                    "workflow",
+                    "subflow",
+                    "agent"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ],
-              "type": "string",
               "title": "Executable Type"
             }
           },
           {
             "name": "runtime_id",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Runtime Id"
+            }
+          },
+          {
+            "name": "trace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trace Id"
+            }
+          },
+          {
+            "name": "span_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{16}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Span Id"
             }
           },
           {
@@ -2037,7 +2098,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EvaluationExecutionMembershipList"
+                  "$ref": "#/components/schemas/EvaluationEvidenceMembershipList"
                 }
               }
             }
@@ -2974,17 +3035,32 @@
             ],
             "title": "Duration Ms"
           },
-          "subject_execution": {
+          "subject_evidence": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SemanticExecutionReference"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SemanticExecutionReference"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OpenTelemetrySpanReference"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "junjo_execution": "#/components/schemas/SemanticExecutionReference",
+                    "otel_span": "#/components/schemas/OpenTelemetrySpanReference"
+                  }
+                }
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Subject Evidence"
           },
-          "execution_bound_at": {
+          "evidence_bound_at": {
             "anyOf": [
               {
                 "type": "string",
@@ -2994,7 +3070,7 @@
                 "type": "null"
               }
             ],
-            "title": "Execution Bound At"
+            "title": "Evidence Bound At"
           },
           "recorded_at": {
             "anyOf": [
@@ -3017,8 +3093,8 @@
           "case_id",
           "status",
           "reason",
-          "subject_execution",
-          "execution_bound_at",
+          "subject_evidence",
+          "evidence_bound_at",
           "recorded_at"
         ],
         "title": "EvaluationAttemptRead"
@@ -3151,15 +3227,30 @@
             "minimum": 1.0,
             "title": "Evaluator Version"
           },
-          "source_execution": {
+          "source_evidence": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SemanticExecutionReference"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SemanticExecutionReference"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OpenTelemetrySpanReference"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "junjo_execution": "#/components/schemas/SemanticExecutionReference",
+                    "otel_span": "#/components/schemas/OpenTelemetrySpanReference"
+                  }
+                }
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Source Evidence"
           },
           "source_revision": {
             "anyOf": [
@@ -3281,15 +3372,30 @@
             "minimum": 1.0,
             "title": "Evaluator Version"
           },
-          "source_execution": {
+          "source_evidence": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SemanticExecutionReference"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SemanticExecutionReference"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OpenTelemetrySpanReference"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "junjo_execution": "#/components/schemas/SemanticExecutionReference",
+                    "otel_span": "#/components/schemas/OpenTelemetrySpanReference"
+                  }
+                }
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Source Evidence"
           },
           "source_revision": {
             "anyOf": [
@@ -3326,7 +3432,7 @@
           "expectation_json",
           "evaluator_key",
           "evaluator_version",
-          "source_execution",
+          "source_evidence",
           "source_revision",
           "created_at"
         ],
@@ -3592,20 +3698,35 @@
         ],
         "title": "EvaluationDatasetSummary"
       },
-      "EvaluationExecutionBind": {
+      "EvaluationEvidenceBind": {
         "properties": {
-          "execution": {
-            "$ref": "#/components/schemas/SemanticExecutionReference"
+          "evidence": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SemanticExecutionReference"
+              },
+              {
+                "$ref": "#/components/schemas/OpenTelemetrySpanReference"
+              }
+            ],
+            "title": "Evidence",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "junjo_execution": "#/components/schemas/SemanticExecutionReference",
+                "otel_span": "#/components/schemas/OpenTelemetrySpanReference"
+              }
+            }
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "execution"
+          "evidence"
         ],
-        "title": "EvaluationExecutionBind"
+        "title": "EvaluationEvidenceBind"
       },
-      "EvaluationExecutionMembership": {
+      "EvaluationEvidenceMembership": {
         "properties": {
           "role": {
             "type": "string",
@@ -3663,13 +3784,13 @@
           "run_id",
           "attempt_id"
         ],
-        "title": "EvaluationExecutionMembership"
+        "title": "EvaluationEvidenceMembership"
       },
-      "EvaluationExecutionMembershipList": {
+      "EvaluationEvidenceMembershipList": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/EvaluationExecutionMembership"
+              "$ref": "#/components/schemas/EvaluationEvidenceMembership"
             },
             "type": "array",
             "maxItems": 100,
@@ -3693,7 +3814,7 @@
           "items",
           "next_cursor"
         ],
-        "title": "EvaluationExecutionMembershipList"
+        "title": "EvaluationEvidenceMembershipList"
       },
       "EvaluationNameFacet": {
         "properties": {
@@ -5351,6 +5472,53 @@
         "title": "NormalizedSpanEvidence",
         "description": "One normalized span, including every field preserved by Studio storage."
       },
+      "OpenTelemetrySpanReference": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "otel_span",
+            "title": "Kind",
+            "default": "otel_span"
+          },
+          "service_namespace": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Service Namespace",
+            "description": "Exact normalized service.namespace; empty is explicit",
+            "examples": [
+              "junjo.examples"
+            ]
+          },
+          "service_name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Service Name",
+            "examples": [
+              "openai-agents-example"
+            ]
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id"
+          },
+          "span_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "title": "Span Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "service_namespace",
+          "service_name",
+          "trace_id",
+          "span_id"
+        ],
+        "title": "OpenTelemetrySpanReference"
+      },
       "ParentExecutableReference": {
         "properties": {
           "executable_type": {
@@ -5549,6 +5717,12 @@
       },
       "SemanticExecutionReference": {
         "properties": {
+          "kind": {
+            "type": "string",
+            "const": "junjo_execution",
+            "title": "Kind",
+            "default": "junjo_execution"
+          },
           "service_namespace": {
             "type": "string",
             "maxLength": 256,

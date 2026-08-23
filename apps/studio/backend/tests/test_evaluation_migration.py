@@ -52,6 +52,7 @@ def test_generated_initial_migration_round_trips_without_schema_drift(
         subject_indexes = {
             row[1] for row in connection.execute("PRAGMA index_list('eval_case_attempts')")
         }
+        source_indexes = {row[1] for row in connection.execute("PRAGMA index_list('eval_cases')")}
         token_indexes = {
             row[1] for row in connection.execute("PRAGMA index_list('evaluation_tokens')")
         }
@@ -60,7 +61,10 @@ def test_generated_initial_migration_round_trips_without_schema_drift(
         ).fetchone()
 
     assert APPLICATION_TABLES.issubset(tables)
-    assert "uq_eval_case_attempts_subject_execution" in subject_indexes
+    assert "uq_eval_case_attempts_subject_junjo_execution" in subject_indexes
+    assert "uq_eval_case_attempts_subject_otel_span" in subject_indexes
+    assert "ix_eval_cases_source_junjo_execution" in source_indexes
+    assert "ix_eval_cases_source_otel_span" in source_indexes
     assert "ix_evaluation_tokens_token" in token_indexes
     assert eval_cases_sql is not None
     assert "target_kind IN ('node', 'workflow', 'agent')" in eval_cases_sql[0]

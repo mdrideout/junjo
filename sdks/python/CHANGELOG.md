@@ -15,6 +15,25 @@ All notable changes to Junjo will be documented in this file.
 - Added a required human-readable `name` to Node, Workflow, and Agent
   evaluation target declarations. Studio cases now snapshot that name as
   `target_name` while retaining `target_key` as the stable dispatch identity.
+- Replaced native-only evaluation execution binding with a discriminated
+  evidence contract. Native targets bind `junjo_execution`; external targets
+  may bind an exact `otel_span`. The SDK, CLI, Studio API, and persistence use
+  evidence terminology without compatibility aliases.
+
+### Integrations
+
+- Added the optional `junjo[openai-agents]` integration under
+  `junjo.plugins.openai_agents`. It exposes native Junjo Workflows and Agents
+  as explicit OpenAI function tools while keeping the OpenAI Agents SDK as the
+  outer runtime.
+- Added explicit process-lifetime instrumentation using the official
+  OpenTelemetry OpenAI Agents and OpenAI client instrumentors. Applications
+  retain ownership of the tracer provider, exporter, native OpenAI trace
+  export policy, and GenAI message-content privacy setting.
+- Added `OpenAIAgentTarget`, which evaluates a real outer Agent and returns its
+  exact standard `invoke_agent` span as evidence, plus the deterministic
+  `base_openai_agents` mixed-runtime example and bundled
+  `junjo-openai-agents` coding-agent skill.
 
 ### Evaluation
 
@@ -24,12 +43,12 @@ All notable changes to Junjo will be documented in this file.
   skill bundled with the installed wheel.
 - Added the public `junjo.studio` client and strict DTOs for bounded,
   authenticated Studio datasets, cases, runs, attempts, comparisons,
-  execution membership, and opt-in trace evidence.
+  evidence membership, and opt-in trace evidence.
 - Added the public `junjo.evaluation` harness with typed Node, Workflow, and
   Agent targets, deterministic and callback evaluators, clean source
   provenance, generated cases, an async-context-managed `EvaluationExecutor`
   with a lazy reusable application runtime, sequential resume-safe execution,
-  exact execution binding, and bounded evaluation telemetry context.
+  exact evidence binding, and bounded evaluation telemetry context.
 - Added the installed JSON-first `junjo eval` CLI, explicit
   `module:object`/`pyproject.toml` harness selection, stable exit classes, and
   environment-only Studio control credentials.

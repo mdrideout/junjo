@@ -95,8 +95,13 @@ data, then restart Studio and run either live validator:
 ```bash
 docker compose down --volumes --remove-orphans
 rm -rf .dbdata
+mkdir -p .dbdata
 docker compose up --build --detach
 ```
+
+Create the empty shared root before Compose starts. This avoids making the
+backend and ingestion containers race to create the same bind-mount root on a
+warm local rebuild.
 
 The validator asks Studio whether setup is required and, only on an empty
 deployment, submits `admin@test.com` through `/users/create-first-user`. It uses
@@ -109,6 +114,46 @@ The running containers exclusively own the SQLite database and its WAL files.
 Never open, query, or modify the bind-mounted SQLite files from the host while
 Studio is running. Use Studio's HTTP APIs for live validation; stop the entire
 stack before a greenfield wipe or offline database maintenance.
+
+### Persistent Local Development Credentials
+
+After Studio is running in development mode, provision the retained local
+owner, one Application Telemetry API Key, one Developer Access Token, and the
+ignored environment files used by the repository examples:
+
+```bash
+cd ../..
+python3 tooling/scripts/provision_local_studio.py
+```
+
+Run the command from the repository root. It accepts only the repository-local
+loopback backend and stops unless Studio reports `development`. It creates the
+owner only through the public first-user setup contract, then creates or reuses
+these authenticated Studio records:
+
+- `Local Development Application Telemetry`
+- `Local Development Developer Access`
+
+The access token has evaluation read/write and evidence-read authority with no
+expiration. The provisioner writes the resulting credentials and local Studio
+endpoints to the ignored `.env` files for AI Chat, the base OpenAI Agents
+integration, and the base SDK example. Existing provider credentials and other
+unrelated settings are preserved. Templates are never modified, and canonical
+credential values are never printed.
+
+The command is idempotent: ordinary restarts and repeated provisioning reuse
+the exact named records. A greenfield `.dbdata` wipe removes those records, so
+rerun the provisioner afterward to create new credentials and update the
+example environments.
+
+These persistent credentials are for local human and coding-agent iteration.
+Live validators continue to create and delete their own disposable users and
+credentials so automated proofs remain isolated. See the example-owned setup
+and run instructions:
+
+- [AI Chat](../../sdks/python/examples/ai_chat/README.md)
+- [Base OpenAI Agents integration](../../sdks/python/examples/base_openai_agents/README.md)
+- [Base SDK example](../../sdks/python/examples/base/README.md)
 
 ---
 

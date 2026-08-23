@@ -1,7 +1,7 @@
 """Typed Junjo AI Studio evaluation control and evidence client.
 
 The :mod:`junjo.studio` package is the supported SDK boundary for evaluation
-datasets, runs, attempts, exact execution membership, and opt-in trace evidence
+datasets, runs, attempts, exact evidence membership, and opt-in trace evidence
 queries.  It does not upload telemetry and does not import Studio runtime code.
 """
 
@@ -15,7 +15,7 @@ from .comparison import (
     project_run_comparison,
 )
 from .errors import (
-    AttemptExecutionUnavailable,
+    AttemptEvidenceUnavailable,
     ExecutionEvidencePending,
     ExecutionIdentityAmbiguous,
     RunComparisonError,
@@ -33,7 +33,7 @@ from .models import (
     TERMINAL_ATTEMPT_STATUSES,
     AttemptDetail,
     AttemptEvidence,
-    AttemptExecutionBind,
+    AttemptEvidenceBind,
     AttemptRead,
     AttemptResultWrite,
     AttemptStatus,
@@ -48,11 +48,14 @@ from .models import (
     DatasetStatus,
     DatasetSummary,
     EvaluationNameFacet,
+    EvidenceMembershipItem,
+    EvidenceMembershipList,
     ExecutableType,
-    ExecutionMembershipItem,
-    ExecutionMembershipList,
+    ExecutionEvidenceReference,
     ExecutionResolutionConflict,
     ExecutionResolutionRead,
+    OpenTelemetrySpanReference,
+    OpenTelemetrySpanResolutionRead,
     OutcomeSummary,
     RunCaseRead,
     RunDetail,
@@ -74,8 +77,8 @@ __all__ = [
     "TERMINAL_ATTEMPT_STATUSES",
     "AttemptDetail",
     "AttemptEvidence",
-    "AttemptExecutionBind",
-    "AttemptExecutionUnavailable",
+    "AttemptEvidenceBind",
+    "AttemptEvidenceUnavailable",
     "AttemptRead",
     "AttemptResultWrite",
     "AttemptStatus",
@@ -90,14 +93,17 @@ __all__ = [
     "DatasetStatus",
     "DatasetSummary",
     "ExecutableType",
+    "ExecutionEvidenceReference",
     "EvaluationNameFacet",
     "ExecutionEvidencePending",
     "ExecutionIdentityAmbiguous",
-    "ExecutionMembershipItem",
-    "ExecutionMembershipList",
+    "EvidenceMembershipItem",
+    "EvidenceMembershipList",
     "ExecutionResolutionConflict",
     "ExecutionResolutionRead",
     "OutcomeSummary",
+    "OpenTelemetrySpanReference",
+    "OpenTelemetrySpanResolutionRead",
     "RunCaseRead",
     "RunComparison",
     "RunComparisonError",

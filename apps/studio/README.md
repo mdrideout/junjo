@@ -361,7 +361,10 @@ JUNJO_HOST_DB_DATA_PATH=./.dbdata
 JUNJO_BUILD_TARGET=development
 ```
 
-This stores databases in `./.dbdata` directory next to your `compose.yaml`. Docker creates this directory automatically.
+This stores databases in `./.dbdata` directory next to your `compose.yaml`.
+Docker can create the directory automatically for an ordinary first start. For
+a greenfield reset, follow `TESTING.md` and create the empty shared root before
+starting Compose so backend and ingestion do not race to create it.
 
 **Benefits:**
 - Easy to reset by deleting the directory

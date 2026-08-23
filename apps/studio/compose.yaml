@@ -87,6 +87,7 @@ services:
 
   frontend:
     restart: unless-stopped
+    init: true
     build:
       context: .
       dockerfile: frontend/Dockerfile

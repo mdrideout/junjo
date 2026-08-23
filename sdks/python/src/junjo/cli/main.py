@@ -36,7 +36,7 @@ from ..evaluation import (
 )
 from ..evaluation.context import EVALUATION_CONTEXT_VERSION
 from ..studio import (
-    AttemptExecutionUnavailable,
+    AttemptEvidenceUnavailable,
     AttemptStatus,
     CaseCreate,
     CaseOrigin,
@@ -44,6 +44,7 @@ from ..studio import (
     ExecutableType,
     ExecutionEvidencePending,
     ExecutionIdentityAmbiguous,
+    OpenTelemetrySpanReference,
     RunComparisonError,
     SemanticExecutionReference,
     StudioAuthenticationError,
@@ -117,19 +118,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
     command = arguments.command_path
     if command == "eval.skill.path":
-        skill_directory = _evaluation_skill_directory()
+        skill_directory = _skill_directory(arguments.name)
         return CommandResult(
             {
-                "name": "junjo-evaluation",
+                "name": arguments.name,
                 "path": str(skill_directory),
                 "skill_file": str(skill_directory / "SKILL.md"),
             }
         )
     if command == "eval.capabilities":
         harness = _load_optional_harness(arguments.harness)
-        async with StudioClient(
-            base_url=_studio_backend_base_url(arguments.studio_backend_base_url)
-        ) as client:
+        async with StudioClient(base_url=_studio_backend_base_url(arguments.studio_backend_base_url)) as client:
             health = await client.get_health()
         data: dict[str, object] = {
             "sdk": {
@@ -198,8 +197,8 @@ async def _dispatch_studio(
         return await _dispatch_run(arguments, client=client, harness=harness)
     if command.startswith("eval.attempt."):
         return await _dispatch_attempt(arguments, client=client, harness=harness)
-    if command == "eval.execution.membership":
-        return await _execution_membership(
+    if command == "eval.evidence.membership":
+        return await _evidence_membership(
             arguments,
             client=client,
             harness=harness,
@@ -376,26 +375,42 @@ async def _dispatch_attempt(
     raise AssertionError(f"Unhandled attempt command {command}.")
 
 
-async def _execution_membership(
+async def _evidence_membership(
     arguments: argparse.Namespace,
     *,
     client: StudioClient,
     harness: EvaluationHarness,
 ) -> CommandResult:
-    reference = SemanticExecutionReference(
-        service_namespace=(
-            harness.service_identity.service_namespace
-            if arguments.service_namespace is None
-            else arguments.service_namespace
-        ),
-        service_name=(
-            harness.service_identity.service_name if arguments.service_name is None else arguments.service_name
-        ),
-        executable_type=ExecutableType(arguments.executable_type),
-        runtime_id=arguments.runtime_id,
+    service_namespace = (
+        harness.service_identity.service_namespace
+        if arguments.service_namespace is None
+        else arguments.service_namespace
     )
+    service_name = harness.service_identity.service_name if arguments.service_name is None else arguments.service_name
+    if arguments.kind == "junjo_execution":
+        if arguments.executable_type is None or arguments.runtime_id is None:
+            raise CliUsageError("junjo_execution evidence requires --executable-type and --runtime-id.")
+        if arguments.trace_id is not None or arguments.span_id is not None:
+            raise CliUsageError("junjo_execution evidence does not accept --trace-id or --span-id.")
+        reference = SemanticExecutionReference(
+            service_namespace=service_namespace,
+            service_name=service_name,
+            executable_type=ExecutableType(arguments.executable_type),
+            runtime_id=arguments.runtime_id,
+        )
+    else:
+        if arguments.trace_id is None or arguments.span_id is None:
+            raise CliUsageError("otel_span evidence requires --trace-id and --span-id.")
+        if arguments.executable_type is not None or arguments.runtime_id is not None:
+            raise CliUsageError("otel_span evidence does not accept --executable-type or --runtime-id.")
+        reference = OpenTelemetrySpanReference(
+            service_namespace=service_namespace,
+            service_name=service_name,
+            trace_id=arguments.trace_id,
+            span_id=arguments.span_id,
+        )
     return CommandResult(
-        await client.get_execution_membership(
+        await client.get_evidence_membership(
             reference,
             cursor=arguments.cursor,
             limit=arguments.limit,
@@ -423,9 +438,7 @@ def _parser() -> JsonArgumentParser:
     evaluation.add_argument(
         "--studio-backend-base-url",
         help=(
-            "Studio backend origin. Defaults to "
-            "JUNJO_AI_STUDIO_BACKEND_BASE_URL or "
-            f"{DEFAULT_STUDIO_BACKEND_BASE_URL}."
+            f"Studio backend origin. Defaults to JUNJO_AI_STUDIO_BACKEND_BASE_URL or {DEFAULT_STUDIO_BACKEND_BASE_URL}."
         ),
     )
     commands = evaluation.add_subparsers(dest="eval_command", required=True)
@@ -437,7 +450,12 @@ def _parser() -> JsonArgumentParser:
     skill_commands = skill.add_subparsers(dest="skill_command", required=True)
     skill_path = skill_commands.add_parser(
         "path",
-        help="Return the installed junjo-evaluation skill directory.",
+        help="Return an installed Junjo coding-agent skill directory.",
+    )
+    skill_path.add_argument(
+        "--name",
+        choices=("junjo-evaluation", "junjo-openai-agents"),
+        default="junjo-evaluation",
     )
     _select(skill_path, "eval.skill.path")
 
@@ -540,22 +558,28 @@ def _parser() -> JsonArgumentParser:
     attempt_evidence.add_argument("--attempt-id", required=True)
     _select(attempt_evidence, "eval.attempt.evidence")
 
-    execution = commands.add_parser("execution")
-    execution_commands = execution.add_subparsers(
-        dest="execution_command",
+    evidence = commands.add_parser("evidence")
+    evidence_commands = evidence.add_subparsers(
+        dest="evidence_command",
         required=True,
     )
-    membership = execution_commands.add_parser("membership")
+    membership = evidence_commands.add_parser("membership")
+    membership.add_argument(
+        "--kind",
+        choices=("junjo_execution", "otel_span"),
+        required=True,
+    )
     membership.add_argument("--service-namespace")
     membership.add_argument("--service-name")
     membership.add_argument(
         "--executable-type",
         choices=tuple(item.value for item in ExecutableType),
-        required=True,
     )
-    membership.add_argument("--runtime-id", required=True)
+    membership.add_argument("--runtime-id")
+    membership.add_argument("--trace-id")
+    membership.add_argument("--span-id")
     _add_pagination(membership)
-    _select(membership, "eval.execution.membership")
+    _select(membership, "eval.evidence.membership")
     return parser
 
 
@@ -611,23 +635,13 @@ def _read_json(location: str, *, label: str) -> JsonValue:
         raise CliUsageError(f"The {label} document is not valid JSON.") from error
 
 
-def _evaluation_skill_directory() -> Path:
-    installed = (
-        Path(sysconfig.get_path("data"))
-        / "share"
-        / "junjo"
-        / "skills"
-        / "junjo-evaluation"
-    )
-    source_checkout = (
-        Path(__file__).resolve().parents[3] / "skills" / "junjo-evaluation"
-    )
+def _skill_directory(name: str) -> Path:
+    installed = Path(sysconfig.get_path("data")) / "share" / "junjo" / "skills" / name
+    source_checkout = Path(__file__).resolve().parents[3] / "skills" / name
     for candidate in (installed, source_checkout):
         if (candidate / "SKILL.md").is_file():
             return candidate.resolve()
-    raise CliUsageError(
-        "This Junjo installation does not contain the junjo-evaluation skill."
-    )
+    raise CliUsageError(f"This Junjo installation does not contain the {name} skill.")
 
 
 def _load_optional_harness(explicit: str | None) -> EvaluationHarness | None:
@@ -806,7 +820,7 @@ def _handle_error(*, command: str, error: BaseException) -> int:
             EXIT_CONFLICT,
         ),
         (
-            (ExecutionEvidencePending, AttemptExecutionUnavailable),
+            (ExecutionEvidencePending, AttemptEvidenceUnavailable),
             "pending_evidence",
             EXIT_PENDING_EVIDENCE,
         ),

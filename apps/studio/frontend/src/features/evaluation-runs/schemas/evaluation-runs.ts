@@ -10,6 +10,7 @@ export const EvaluationIdSchema = z.string().min(1)
 
 export const SemanticExecutionReferenceSchema = z
   .object({
+    kind: z.literal('junjo_execution'),
     service_namespace: z.string(),
     service_name: z.string().min(1),
     executable_type: z.enum(['workflow', 'subflow', 'agent']),
@@ -17,6 +18,23 @@ export const SemanticExecutionReferenceSchema = z
   })
   .strict()
 export type SemanticExecutionReference = z.infer<typeof SemanticExecutionReferenceSchema>
+
+export const OpenTelemetrySpanReferenceSchema = z
+  .object({
+    kind: z.literal('otel_span'),
+    service_namespace: z.string(),
+    service_name: z.string().min(1),
+    trace_id: z.string().regex(/^[0-9a-f]{32}$/),
+    span_id: z.string().regex(/^[0-9a-f]{16}$/),
+  })
+  .strict()
+export type OpenTelemetrySpanReference = z.infer<typeof OpenTelemetrySpanReferenceSchema>
+
+export const ExecutionEvidenceReferenceSchema = z.discriminatedUnion('kind', [
+  SemanticExecutionReferenceSchema,
+  OpenTelemetrySpanReferenceSchema,
+])
+export type ExecutionEvidenceReference = z.infer<typeof ExecutionEvidenceReferenceSchema>
 
 export const EvaluationDatasetStatusSchema = z.enum(['draft', 'locked'])
 export type EvaluationDatasetStatus = z.infer<typeof EvaluationDatasetStatusSchema>
@@ -152,7 +170,7 @@ export const EvaluationCaseSchema = z
     expectation_json: JsonValueSchema.nullable(),
     evaluator_key: z.string().min(1),
     evaluator_version: SafePositiveIntegerSchema,
-    source_execution: SemanticExecutionReferenceSchema.nullable(),
+    source_evidence: ExecutionEvidenceReferenceSchema.nullable(),
     source_revision: z.string().min(1).nullable(),
     created_at: utcDatetimeSchema,
   })
@@ -170,8 +188,8 @@ export const EvaluationAttemptSchema = z
     status: EvaluationAttemptStatusSchema,
     reason: z.string().nullable(),
     duration_ms: SafeNonNegativeIntegerSchema.nullable(),
-    subject_execution: SemanticExecutionReferenceSchema.nullable(),
-    execution_bound_at: utcDatetimeSchema.nullable(),
+    subject_evidence: ExecutionEvidenceReferenceSchema.nullable(),
+    evidence_bound_at: utcDatetimeSchema.nullable(),
     recorded_at: utcDatetimeSchema.nullable(),
   })
   .strict()

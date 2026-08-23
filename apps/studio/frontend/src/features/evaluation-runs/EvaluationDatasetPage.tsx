@@ -4,7 +4,7 @@ import ErrorPage from '../../components/errors/ErrorPage'
 import { AppLink } from '../../components/navigation/app-link'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { EvaluationStatusBadge } from './components/EvaluationStatusBadge'
-import { SemanticExecutionLink } from './components/SemanticExecutionLink'
+import { ExecutionEvidenceLink } from './components/ExecutionEvidenceLink'
 import { EvaluationIdSchema } from './schemas/evaluation-runs'
 import {
   selectEvaluationDatasetDetailRequest,
@@ -166,10 +166,10 @@ export default function EvaluationDatasetPage() {
                     </td>
                     <td className="px-3 py-3 text-xs">
                       <span className="capitalize">{item.origin}</span>
-                      {item.source_execution !== null && (
+                      {item.source_evidence !== null && (
                         <div className="mt-2">
-                          <SemanticExecutionLink
-                            execution={item.source_execution}
+                          <ExecutionEvidenceLink
+                            evidence={item.source_evidence}
                             label="View source spans"
                           />
                         </div>

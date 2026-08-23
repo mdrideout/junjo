@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from junjo.studio import (
-    AttemptExecutionUnavailable,
+    AttemptEvidenceUnavailable,
     AttemptResultWrite,
     AttemptStatus,
     CaseCreate,
@@ -64,7 +64,7 @@ def _case() -> dict[str, Any]:
         "expectation_json": {"rubric": "Name a plausible Brooklyn place."},
         "evaluator_key": "text.quality",
         "evaluator_version": 1,
-        "source_execution": None,
+        "source_evidence": None,
         "source_revision": None,
         "created_at": NOW,
     }
@@ -91,6 +91,7 @@ def _run(
 
 def _execution() -> dict[str, Any]:
     return {
+        "kind": "junjo_execution",
         "service_namespace": "junjo.examples",
         "service_name": "ai-chat-evals",
         "executable_type": "workflow",
@@ -111,8 +112,8 @@ def _attempt(
         "status": "queued",
         "reason": None,
         "duration_ms": None,
-        "subject_execution": execution,
-        "execution_bound_at": NOW if execution is not None else None,
+        "subject_evidence": execution,
+        "evidence_bound_at": NOW if execution is not None else None,
         "recorded_at": None,
     }
 
@@ -234,7 +235,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
             },
             (
                 "PUT",
-                "/api/v1/evaluation/attempts/attempt-1/execution",
+                "/api/v1/evaluation/attempts/attempt-1/evidence",
             ): lambda: _attempt(execution=execution),
             (
                 "PUT",
@@ -242,7 +243,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
             ): _attempt,
             (
                 "GET",
-                "/api/v1/evaluation/execution-membership",
+                "/api/v1/evaluation/evidence-membership",
             ): lambda: {
                 "items": [
                     {
@@ -312,7 +313,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
         )
         await client.get_run("run-1")
         await client.get_attempt("attempt-1")
-        await client.bind_attempt_execution("attempt-1", _reference())
+        await client.bind_attempt_evidence("attempt-1", _reference())
         await client.record_attempt_result(
             "attempt-1",
             AttemptResultWrite(
@@ -320,7 +321,7 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
                 reason="interrupted",
             ),
         )
-        membership = await client.get_execution_membership(
+        membership = await client.get_evidence_membership(
             _reference(),
             cursor="membership-cursor",
             limit=23,
@@ -350,9 +351,10 @@ async def test_token_authentication_redaction_and_all_control_operations() -> No
         "evaluation_name": "Response place realism",
     }
     membership_request = next(
-        request for request in requests if request.url.path == "/api/v1/evaluation/execution-membership"
+        request for request in requests if request.url.path == "/api/v1/evaluation/evidence-membership"
     )
     assert dict(membership_request.url.params) == {
+        "kind": "junjo_execution",
         "service_namespace": "junjo.examples",
         "service_name": "ai-chat-evals",
         "executable_type": "workflow",
@@ -551,11 +553,12 @@ async def test_attempt_evidence_is_explicit_and_preserves_pending_states() -> No
             return httpx.Response(
                 200,
                 json={
-                    **execution,
+                    **{key: value for key, value in execution.items() if key != "kind"},
                     "trace_id": trace_id,
                     "span_id": "b" * 16,
                     "detail_path": "/workflows/workflow-run",
                     "trace_path": f"/traces/{trace_id}",
+                    "failure_path": "/workflows/workflow-run",
                 },
             )
         if mode == "pending-trace":
@@ -587,7 +590,7 @@ async def test_attempt_evidence_is_explicit_and_preserves_pending_states() -> No
         ]
 
         mode = "unbound"
-        with pytest.raises(AttemptExecutionUnavailable):
+        with pytest.raises(AttemptEvidenceUnavailable):
             await client.get_attempt_evidence("attempt-1")
 
         mode = "pending-trace"

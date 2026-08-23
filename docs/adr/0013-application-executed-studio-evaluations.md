@@ -17,7 +17,7 @@ remote source executor.
 
 That execution boundary does not mean each application should implement its own
 evaluation system. Dataset and run DTOs, Studio transport, retry and resume
-rules, execution binding, target and evaluator contracts, evaluation context,
+rules, evidence binding, target and evaluator contracts, evaluation context,
 revision capture, and command-line orchestration are Junjo product mechanics.
 Putting them in AI Chat would make the reference application a second
 framework, force every application to copy policy-sensitive code, and leave a
@@ -114,7 +114,8 @@ Studio owns canonical, bounded records for:
 - labeled runs over one exact dataset;
 - one pre-created attempt per run case;
 - evaluator outcomes;
-- exact semantic links between cases or attempts and Junjo executions; and
+- exact evidence links between cases or attempts and their subject executions;
+  and
 - bounded programmatic queries and comparisons over received evidence.
 
 Studio is authoritative for evaluation status, reason, and membership.
@@ -147,17 +148,19 @@ Node, Workflow, Agent, and complete-flow execution. Application-domain
 `ExecutionCorrelation` remains truthful and is not overloaded with dataset or
 candidate identity.
 
-Evaluation membership is bound to the exact semantic execution identity, not
-inferred from a span name, service-name workaround, or replacement
-application correlation.
+Native Junjo evaluation membership is bound to the exact semantic execution
+identity. An external application-flow target accepted by ADR 0015 instead
+binds one exact OpenTelemetry span reference because it has no truthful Junjo
+runtime identity. Membership is never inferred from a span name, service-name
+workaround, evaluation attribute, or replacement application correlation.
 
-### Execution binding precedes terminal judgment
+### Evidence binding precedes terminal judgment
 
 Starting a run creates one attempt for every locked case. After application
-execution yields a trustworthy runtime identity, the SDK runner binds that
-identity to the attempt before invoking a potentially slow or fallible
-evaluator. Binding and terminal result recording are separate idempotent
-operations.
+execution yields trustworthy native semantic or physical span evidence, the
+SDK runner binds that evidence to the attempt before invoking a potentially
+slow or fallible evaluator. Binding and terminal result recording are separate
+idempotent operations.
 
 This preserves an exact evidence link when judging or result submission fails.
 A resumed runner never executes an already-bound attempt again. If a bound
@@ -210,7 +213,7 @@ smaller window.
   complete trace evidence remains in its existing evidence plane.
 - Target construction, dependency wiring, output projection, and domain
   evaluator meaning remain explicit application code.
-- A process failure before durable execution binding can leave a visibly
+- A process failure before durable evidence binding can leave a visibly
   distinguishable but unassociated trace.
 
 ## Rejected alternatives
@@ -233,7 +236,9 @@ smaller window.
 - Make MCP the primary implementation: MCP is useful agent ergonomics, but it
   must adapt stable SDK and API semantics rather than create another contract.
 - Use trace IDs as evaluation identity: physical telemetry identity remains
-  distinct from datasets, attempts, and Junjo runtime identity.
+  distinct from datasets, attempts, and Junjo runtime identity. An exact span
+  reference may locate external subject evidence without becoming membership
+  identity.
 - Store result files or trace bundles as the primary contract: they are not a
   queryable shared control plane and duplicate evidence already received by
   Studio.
@@ -244,6 +249,7 @@ smaller window.
 - [ADR 0010: Node Evaluation Execution](0010-node-evaluation-execution.md)
 - [ADR 0012: Studio integration is trace-only](0012-studio-trace-only-telemetry-integration.md)
 - [ADR 0014: Bounded evaluation telemetry context](0014-evaluation-telemetry-context.md)
+- [ADR 0015: Optional external Agent framework integrations](0015-optional-agent-framework-integrations.md)
 - [Studio ADR 010: Evaluation control persistence and API](../../apps/studio/docs/adr/010-evaluation-control-persistence-and-api.md)
 - [Horizon 3 Evaluation Lean MVP](../roadmaps/AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md)
 - [Horizon 3 Evaluation User Stories](../roadmaps/AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md)

@@ -19,9 +19,9 @@ from ..studio import (
     CaseRead,
     DatasetDetail,
     DatasetStatus,
+    ExecutionEvidenceReference,
     RunDetail,
     RunStart,
-    SemanticExecutionReference,
     TargetKind,
 )
 from .context import (
@@ -50,10 +50,10 @@ class EvaluationControlClient(Protocol):
 
     async def get_run(self, run_id: str) -> RunDetail: ...
 
-    async def bind_attempt_execution(
+    async def bind_attempt_evidence(
         self,
         attempt_id: str,
-        execution: SemanticExecutionReference,
+        evidence: ExecutionEvidenceReference,
     ) -> AttemptRead: ...
 
     async def record_attempt_result(
@@ -200,7 +200,7 @@ class EvaluationExecutor:
             return
         if attempt.status is not AttemptStatus.QUEUED:
             raise EvaluationRunError(f"Attempt {attempt.id} has unsupported status {attempt.status}.")
-        if attempt.subject_execution is not None:
+        if attempt.subject_evidence is not None:
             await self._record_error(
                 attempt_id=attempt.id,
                 reason=INTERRUPTED_REASON,
@@ -234,10 +234,10 @@ class EvaluationExecutor:
                         resources=resources,
                     )
             except TargetExecutionError as error:
-                if error.execution is not None:
-                    await self._client.bind_attempt_execution(
+                if error.evidence is not None:
+                    await self._client.bind_attempt_evidence(
                         attempt.id,
-                        error.execution,
+                        error.evidence,
                     )
                 mark_evaluation_span_failed(orchestration_span, error)
                 await self._record_error(
@@ -254,9 +254,9 @@ class EvaluationExecutor:
                 )
                 return
 
-            await self._client.bind_attempt_execution(
+            await self._client.bind_attempt_evidence(
                 attempt.id,
-                target.execution,
+                target.evidence,
             )
             evaluator_context = context.for_role(prepared.evaluator.role)
             try:
@@ -359,7 +359,7 @@ class EvaluationExecutor:
                 expectation_json=request.expectation_json,
                 evaluator_key=request.evaluator_key,
                 evaluator_version=request.evaluator_version,
-                source_execution=result.execution,
+                source_evidence=result.evidence,
                 source_revision=revision,
             ),
         )
@@ -419,7 +419,7 @@ def _same_generated_case(
         and case.expectation_json == request.expectation_json
         and case.evaluator_key == request.evaluator_key
         and case.evaluator_version == request.evaluator_version
-        and case.source_execution is not None
+        and case.source_evidence is not None
         and case.source_revision == source_revision
     )
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
@@ -28,8 +28,8 @@ from app.features.evaluation.schemas import (
     EvaluationDatasetDetail,
     EvaluationDatasetList,
     EvaluationDatasetRead,
-    EvaluationExecutionBind,
-    EvaluationExecutionMembershipList,
+    EvaluationEvidenceBind,
+    EvaluationEvidenceMembershipList,
     EvaluationRunDetail,
     EvaluationRunList,
     EvaluationRunScope,
@@ -38,6 +38,7 @@ from app.features.evaluation.schemas import (
     ExecutionIdentityText,
     KeyText,
     NameText,
+    OpenTelemetrySpanReference,
     RecordId,
     SemanticExecutionReference,
     ServiceNamespaceText,
@@ -247,23 +248,23 @@ async def get_attempt(
 
 
 @router.put(
-    "/attempts/{attempt_id}/execution",
+    "/attempts/{attempt_id}/evidence",
     response_model=EvaluationAttemptRead,
-    operation_id="bind_evaluation_attempt_execution",
+    operation_id="bind_evaluation_attempt_evidence",
     responses={
         404: {"description": "Attempt not found"},
         409: {"model": EvaluationConflictResponse},
     },
 )
-async def bind_attempt_execution(
+async def bind_attempt_evidence(
     attempt_id: Annotated[RecordId, Path()],
-    request: Annotated[EvaluationExecutionBind, Body()],
+    request: Annotated[EvaluationEvidenceBind, Body()],
     authenticated_user: EvaluationWriteAccess,
 ) -> EvaluationAttemptRead | JSONResponse:
     try:
-        return await service.bind_attempt_execution(
+        return await service.bind_attempt_evidence(
             attempt_id=attempt_id,
-            execution=request.execution,
+            evidence=request.evidence,
             authenticated_user=authenticated_user,
         )
     except EvaluationNotFoundError as error:
@@ -299,27 +300,56 @@ async def record_attempt_result(
 
 
 @router.get(
-    "/execution-membership",
-    response_model=EvaluationExecutionMembershipList,
-    operation_id="find_evaluation_execution_membership",
+    "/evidence-membership",
+    response_model=EvaluationEvidenceMembershipList,
+    operation_id="find_evaluation_evidence_membership",
 )
-async def find_execution_membership(
+async def find_evidence_membership(
     _authenticated_user: EvaluationReadAccess,
+    evidence_kind: Annotated[
+        Literal["junjo_execution", "otel_span"],
+        Query(alias="kind"),
+    ],
     service_namespace: Annotated[ServiceNamespaceText, Query()],
     service_name: Annotated[ExecutionIdentityText, Query()],
-    executable_type: Annotated[ExecutableType, Query()],
-    runtime_id: Annotated[ExecutionIdentityText, Query()],
+    executable_type: Annotated[ExecutableType | None, Query()] = None,
+    runtime_id: Annotated[ExecutionIdentityText | None, Query()] = None,
+    trace_id: Annotated[str | None, Query(pattern=r"^[0-9a-f]{32}$")] = None,
+    span_id: Annotated[str | None, Query(pattern=r"^[0-9a-f]{16}$")] = None,
     cursor: Annotated[CursorText | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
-) -> EvaluationExecutionMembershipList:
+) -> EvaluationEvidenceMembershipList:
+    if evidence_kind == "junjo_execution":
+        if (
+            executable_type is None
+            or runtime_id is None
+            or trace_id is not None
+            or span_id is not None
+        ):
+            raise HTTPException(status_code=422, detail="Invalid junjo_execution evidence identity")
+        evidence = SemanticExecutionReference(
+            service_namespace=service_namespace,
+            service_name=service_name,
+            executable_type=executable_type,
+            runtime_id=runtime_id,
+        )
+    else:
+        if (
+            trace_id is None
+            or span_id is None
+            or executable_type is not None
+            or runtime_id is not None
+        ):
+            raise HTTPException(status_code=422, detail="Invalid otel_span evidence identity")
+        evidence = OpenTelemetrySpanReference(
+            service_namespace=service_namespace,
+            service_name=service_name,
+            trace_id=trace_id,
+            span_id=span_id,
+        )
     try:
-        return await service.find_execution_membership(
-            execution=SemanticExecutionReference(
-                service_namespace=service_namespace,
-                service_name=service_name,
-                executable_type=executable_type,
-                runtime_id=runtime_id,
-            ),
+        return await service.find_evidence_membership(
+            evidence=evidence,
             cursor=cursor,
             limit=limit,
         )

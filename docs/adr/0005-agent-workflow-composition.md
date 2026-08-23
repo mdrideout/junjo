@@ -36,6 +36,13 @@ Applications compose the runtimes through the boundaries they already own:
 The mapping code remains visible application code until repeated use proves a
 small adapter would remove brittle duplication without hiding policy.
 
+The OpenAI Agents integration accepted by ADR 0015 is the first proven,
+framework-specific adapter boundary. Its `workflow_as_tool` and
+`agent_as_tool` helpers preserve the explicit application-owned factories,
+dependency mapping, result projection, cleanup, failure, cancellation, and
+telemetry rules in this ADR. They are not a universal executable adapter and
+do not make Junjo's native Agent Tool contract depend on OpenAI.
+
 ### Workflow executes Agent through an application Node
 
 An application Node owns this sequence:
@@ -331,3 +338,4 @@ repetition supplies evidence for any future adapter.
 - [ADR 0004: Agent ModelDriver and Tool contracts](0004-agent-model-driver-and-tool-contracts.md)
 - [ADR 0006: Agent telemetry contract](0006-agent-telemetry-contract.md)
 - [ADR 0011: Workflow execution failure identity](0011-workflow-execution-failure-identity.md)
+- [ADR 0015: Optional external Agent framework integrations](0015-optional-agent-framework-integrations.md)

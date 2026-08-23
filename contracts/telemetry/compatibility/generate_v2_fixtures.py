@@ -251,7 +251,9 @@ def _span(
         "attributes_json": attributes,
         "events_json": events or [],
         "links_json": [],
-        "trace_flags": 1,
+        # OpenTelemetry Python 1.43+ marks locally generated trace IDs with the
+        # W3C random-trace-id flag in addition to the sampled flag.
+        "trace_flags": 3,
         "trace_state": "junjo=fixture",
         "dropped_attributes_count": 0,
         "dropped_events_count": 0,

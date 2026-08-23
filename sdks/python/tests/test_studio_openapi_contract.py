@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from junjo.studio import (
     AttemptDetail,
-    AttemptExecutionBind,
+    AttemptEvidenceBind,
     AttemptRead,
     AttemptResultWrite,
     CaseCreate,
@@ -22,10 +22,11 @@ from junjo.studio import (
     DatasetRead,
     DatasetSummary,
     EvaluationNameFacet,
-    ExecutionMembershipItem,
-    ExecutionMembershipList,
+    EvidenceMembershipItem,
+    EvidenceMembershipList,
     ExecutionResolutionConflict,
     ExecutionResolutionRead,
+    OpenTelemetrySpanReference,
     OutcomeSummary,
     RunCaseRead,
     RunDetail,
@@ -146,9 +147,9 @@ def test_client_operation_routes_and_models_are_the_studio_openapi_contract() ->
             ),
             (
                 "put",
-                "/api/v1/evaluation/attempts/{attempt_id}/execution",
-                "bind_evaluation_attempt_execution",
-                "EvaluationExecutionBind",
+                "/api/v1/evaluation/attempts/{attempt_id}/evidence",
+                "bind_evaluation_attempt_evidence",
+                "EvaluationEvidenceBind",
                 "EvaluationAttemptRead",
             ),
             (
@@ -160,10 +161,10 @@ def test_client_operation_routes_and_models_are_the_studio_openapi_contract() ->
             ),
             (
                 "get",
-                "/api/v1/evaluation/execution-membership",
-                "find_evaluation_execution_membership",
+                "/api/v1/evaluation/evidence-membership",
+                "find_evaluation_evidence_membership",
                 None,
-                "EvaluationExecutionMembershipList",
+                "EvaluationEvidenceMembershipList",
             ),
             (
                 "get",
@@ -198,6 +199,7 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
     components = document["components"]["schemas"]
     model_components: dict[type[BaseModel], str] = {
         SemanticExecutionReference: "SemanticExecutionReference",
+        OpenTelemetrySpanReference: "OpenTelemetrySpanReference",
         DatasetCreate: "EvaluationDatasetCreate",
         DatasetSummary: "EvaluationDatasetSummary",
         DatasetRead: "EvaluationDatasetRead",
@@ -217,10 +219,10 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
         EvaluationNameFacet: "EvaluationNameFacet",
         RunSummary: "EvaluationRunSummary",
         RunList: "EvaluationRunList",
-        AttemptExecutionBind: "EvaluationExecutionBind",
+        AttemptEvidenceBind: "EvaluationEvidenceBind",
         AttemptResultWrite: "EvaluationAttemptResult",
-        ExecutionMembershipItem: "EvaluationExecutionMembership",
-        ExecutionMembershipList: "EvaluationExecutionMembershipList",
+        EvidenceMembershipItem: "EvaluationEvidenceMembership",
+        EvidenceMembershipList: "EvaluationEvidenceMembershipList",
         ConflictResponse: "EvaluationConflictResponse",
         ExecutionResolutionRead: "ExecutionResolution",
         ExecutionResolutionConflict: "ExecutionResolutionConflictResponse",

@@ -19,7 +19,12 @@ from ..eval import NodeEvaluationResult, evaluate_node
 from ..node import Node
 from ..state import BaseState
 from ..store import BaseStore
-from ..studio import ExecutableType, SemanticExecutionReference, TargetKind
+from ..studio import (
+    ExecutableType,
+    ExecutionEvidenceReference,
+    SemanticExecutionReference,
+    TargetKind,
+)
 from ..workflow import ExecutionResult, Workflow
 from ..workflow_errors import WorkflowExecutionError
 from .context import EvaluationContext
@@ -65,10 +70,10 @@ class ExecutionServiceIdentity:
 
 @dataclass(frozen=True, slots=True)
 class TargetExecution:
-    """Successful projected subject plus truthful top-level execution identity."""
+    """Successful projected subject plus truthful top-level evidence identity."""
 
     subject: object
-    execution: SemanticExecutionReference
+    evidence: ExecutionEvidenceReference
     duration_ms: int
 
     def __post_init__(self) -> None:
@@ -81,17 +86,17 @@ class TargetContractError(ValueError):
 
 
 class TargetExecutionError(RuntimeError):
-    """A target failed, retaining execution identity whenever one exists."""
+    """A target failed, retaining evidence identity whenever one exists."""
 
     def __init__(
         self,
         message: str,
         *,
-        execution: SemanticExecutionReference | None,
+        evidence: ExecutionEvidenceReference | None,
         duration_ms: int,
     ) -> None:
         super().__init__(message[:1_000])
-        self.execution = execution
+        self.evidence = evidence
         self.duration_ms = duration_ms
 
 
@@ -284,7 +289,7 @@ class NodeTarget(_TypedTarget[InputT], Generic[InputT, StateT, ResourcesT]):
                     "Node target execution failed",
                     error,
                     started=started,
-                    execution=service_identity.reference(
+                    evidence=service_identity.reference(
                         executable_type=ExecutableType.WORKFLOW,
                         runtime_id=error.run_id,
                     ),
@@ -314,11 +319,11 @@ class NodeTarget(_TypedTarget[InputT], Generic[InputT, StateT, ResourcesT]):
                     "Node target projection failed",
                     error,
                     started=started,
-                    execution=execution,
+                    evidence=execution,
                 ) from error
             return TargetExecution(
                 subject=subject,
-                execution=execution,
+                evidence=execution,
                 duration_ms=_duration_ms(started),
             )
 
@@ -331,7 +336,7 @@ class NodeTarget(_TypedTarget[InputT], Generic[InputT, StateT, ResourcesT]):
                 "Node target cleanup failed",
                 error,
                 started=started,
-                execution=execution,
+                evidence=execution,
             ) from error
 
 
@@ -404,7 +409,7 @@ class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
                     "Workflow target execution failed",
                     error,
                     started=started,
-                    execution=service_identity.reference(
+                    evidence=service_identity.reference(
                         executable_type=ExecutableType.WORKFLOW,
                         runtime_id=error.run_id,
                     ),
@@ -434,11 +439,11 @@ class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
                     "Workflow target projection failed",
                     error,
                     started=started,
-                    execution=execution,
+                    evidence=execution,
                 ) from error
             return TargetExecution(
                 subject=subject,
-                execution=execution,
+                evidence=execution,
                 duration_ms=_duration_ms(started),
             )
 
@@ -451,7 +456,7 @@ class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
                 "Workflow target cleanup failed",
                 error,
                 started=started,
-                execution=execution,
+                evidence=execution,
             ) from error
 
 
@@ -532,7 +537,7 @@ class AgentTarget(
                     "Agent target execution failed",
                     error,
                     started=started,
-                    execution=service_identity.reference(
+                    evidence=service_identity.reference(
                         executable_type=ExecutableType.AGENT,
                         runtime_id=error.run_id,
                     ),
@@ -568,11 +573,11 @@ class AgentTarget(
                     "Agent target projection failed",
                     error,
                     started=started,
-                    execution=execution,
+                    evidence=execution,
                 ) from error
             return TargetExecution(
                 subject=subject,
-                execution=execution,
+                evidence=execution,
                 duration_ms=_duration_ms(started),
             )
 
@@ -585,7 +590,7 @@ class AgentTarget(
                 "Agent target cleanup failed",
                 error,
                 started=started,
-                execution=execution,
+                evidence=execution,
             ) from error
 
 
@@ -621,11 +626,11 @@ def _execution_error(
     error: BaseException,
     *,
     started: float,
-    execution: SemanticExecutionReference | None = None,
+    evidence: ExecutionEvidenceReference | None = None,
 ) -> TargetExecutionError:
     return TargetExecutionError(
         f"{label}: {type(error).__name__}.",
-        execution=execution,
+        evidence=evidence,
         duration_ms=_duration_ms(started),
     )
 

@@ -55,6 +55,15 @@ def test_internal_grpc_token_is_required_and_high_entropy() -> None:
         create_test_settings(JUNJO_INTERNAL_GRPC_TOKEN="too-short")
 
 
+def test_environment_rejects_unsupported_values() -> None:
+    with pytest.raises(ValidationError, match="development.*production"):
+        create_test_settings(
+            JUNJO_ENV="developement",
+            JUNJO_SECURE_COOKIE_KEY=TEST_COOKIE_KEY,
+            JUNJO_SESSION_SECRET=TEST_SESSION_SECRET,
+        )
+
+
 class TestProductionURLValidation:
     """Test production URL requirement and validation."""
 

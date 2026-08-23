@@ -39,7 +39,7 @@ ExecutableType = Literal["workflow", "subflow", "agent"]
 RunStatus = Literal["active", "completed"]
 AttemptStatus = Literal["queued", "passed", "failed", "error"]
 TerminalAttemptStatus = Literal["passed", "failed", "error"]
-ExecutionMembershipRole = Literal["case_source", "attempt_subject"]
+EvidenceMembershipRole = Literal["case_source", "attempt_subject"]
 
 
 def _validate_text(
@@ -197,6 +197,7 @@ class EvaluationContract(BaseModel):
 
 
 class SemanticExecutionReference(EvaluationContract):
+    kind: Literal["junjo_execution"] = "junjo_execution"
     service_namespace: ServiceNamespaceText = Field(
         description="Exact normalized service.namespace; empty is explicit",
         examples=["junjo.examples"],
@@ -204,6 +205,23 @@ class SemanticExecutionReference(EvaluationContract):
     service_name: ExecutionIdentityText = Field(examples=["ai-chat-evaluation"])
     executable_type: ExecutableType
     runtime_id: ExecutionIdentityText = Field(examples=["workflowRun123"])
+
+
+class OpenTelemetrySpanReference(EvaluationContract):
+    kind: Literal["otel_span"] = "otel_span"
+    service_namespace: ServiceNamespaceText = Field(
+        description="Exact normalized service.namespace; empty is explicit",
+        examples=["junjo.examples"],
+    )
+    service_name: ExecutionIdentityText = Field(examples=["openai-agents-example"])
+    trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
+
+
+ExecutionEvidenceReference = Annotated[
+    SemanticExecutionReference | OpenTelemetrySpanReference,
+    Field(discriminator="kind"),
+]
 
 
 class EvaluationDatasetCreate(EvaluationContract):
@@ -240,7 +258,7 @@ class EvaluationCaseCreate(EvaluationContract):
     expectation_json: JsonValue | None = None
     evaluator_key: KeyText = Field(examples=["response_quality"])
     evaluator_version: int = Field(ge=1, le=MAX_VERSION)
-    source_execution: SemanticExecutionReference | None = None
+    source_evidence: ExecutionEvidenceReference | None = None
     source_revision: SourceRevision | None = None
 
     @field_validator("input_json")
@@ -259,11 +277,11 @@ class EvaluationCaseCreate(EvaluationContract):
     @model_validator(mode="after")
     def validate_source_provenance(self) -> EvaluationCaseCreate:
         if self.origin == "authored":
-            if self.source_execution is not None or self.source_revision is not None:
+            if self.source_evidence is not None or self.source_revision is not None:
                 raise ValueError("authored cases cannot include source provenance")
             return self
-        if self.source_execution is None or self.source_revision is None:
-            raise ValueError("generated cases require both source_execution and source_revision")
+        if self.source_evidence is None or self.source_revision is None:
+            raise ValueError("generated cases require both source_evidence and source_revision")
         return self
 
 
@@ -282,7 +300,7 @@ class EvaluationCaseRead(EvaluationContract):
     expectation_json: JsonValue | None
     evaluator_key: KeyText
     evaluator_version: int = Field(ge=1, le=MAX_VERSION)
-    source_execution: SemanticExecutionReference | None
+    source_evidence: ExecutionEvidenceReference | None
     source_revision: SourceRevision | None
     created_at: datetime
 
@@ -323,8 +341,8 @@ class EvaluationAttemptRead(EvaluationContract):
     status: AttemptStatus
     reason: ReasonText | None
     duration_ms: int | None = Field(default=None, ge=0, le=MAX_DURATION_MS)
-    subject_execution: SemanticExecutionReference | None
-    execution_bound_at: datetime | None
+    subject_evidence: ExecutionEvidenceReference | None
+    evidence_bound_at: datetime | None
     recorded_at: datetime | None
 
 
@@ -396,8 +414,8 @@ class EvaluationRunList(EvaluationContract):
     next_cursor: str | None
 
 
-class EvaluationExecutionBind(EvaluationContract):
-    execution: SemanticExecutionReference
+class EvaluationEvidenceBind(EvaluationContract):
+    evidence: ExecutionEvidenceReference
 
 
 class EvaluationAttemptResult(EvaluationContract):
@@ -406,15 +424,15 @@ class EvaluationAttemptResult(EvaluationContract):
     duration_ms: int | None = Field(default=None, ge=0, le=MAX_DURATION_MS)
 
 
-class EvaluationExecutionMembership(EvaluationContract):
-    role: ExecutionMembershipRole
+class EvaluationEvidenceMembership(EvaluationContract):
+    role: EvidenceMembershipRole
     dataset_id: RecordId
     case_id: RecordId
     run_id: RecordId | None
     attempt_id: RecordId | None
 
     @model_validator(mode="after")
-    def validate_role_identity(self) -> EvaluationExecutionMembership:
+    def validate_role_identity(self) -> EvaluationEvidenceMembership:
         if self.role == "case_source":
             if self.run_id is not None or self.attempt_id is not None:
                 raise ValueError("case_source membership cannot include run or attempt IDs")
@@ -423,8 +441,8 @@ class EvaluationExecutionMembership(EvaluationContract):
         return self
 
 
-class EvaluationExecutionMembershipList(EvaluationContract):
-    items: list[EvaluationExecutionMembership] = Field(max_length=MAX_PAGE_SIZE)
+class EvaluationEvidenceMembershipList(EvaluationContract):
+    items: list[EvaluationEvidenceMembership] = Field(max_length=MAX_PAGE_SIZE)
     next_cursor: str | None
 
 

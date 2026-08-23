@@ -137,9 +137,7 @@ async def _single_failed_graph_node_span_id(owner: dict) -> str | None:
 
     trace_spans = await repository.list_trace_spans(trace_id)
     spans_by_id = {
-        span_id: span
-        for span in trace_spans
-        if isinstance((span_id := span.get("span_id")), str)
+        span_id: span for span in trace_spans if isinstance((span_id := span.get("span_id")), str)
     }
     matches = []
     for span in trace_spans:

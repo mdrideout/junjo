@@ -93,7 +93,7 @@
           }
         ],
         "links_json": [],
-        "trace_flags": 1,
+        "trace_flags": 3,
         "trace_state": "junjo=fixture",
         "dropped_attributes_count": 0,
         "dropped_events_count": 0,
@@ -177,7 +177,7 @@
           }
         ],
         "links_json": [],
-        "trace_flags": 1,
+        "trace_flags": 3,
         "trace_state": "junjo=fixture",
         "dropped_attributes_count": 0,
         "dropped_events_count": 0,
@@ -231,7 +231,7 @@
           }
         ],
         "links_json": [],
-        "trace_flags": 1,
+        "trace_flags": 3,
         "trace_state": "junjo=fixture",
         "dropped_attributes_count": 0,
         "dropped_events_count": 0,

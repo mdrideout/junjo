@@ -4,7 +4,7 @@ import ErrorPage from '../../components/errors/ErrorPage'
 import { AppLink } from '../../components/navigation/app-link'
 import { useAppDispatch, useAppSelector } from '../../root-store/hooks'
 import { EvaluationStatusBadge } from './components/EvaluationStatusBadge'
-import { SemanticExecutionLink } from './components/SemanticExecutionLink'
+import { ExecutionEvidenceLink } from './components/ExecutionEvidenceLink'
 import { EvaluationIdSchema } from './schemas/evaluation-runs'
 import { selectEvaluationRunDetailRequest } from './store/selectors'
 import { EvaluationRunsActions } from './store/slice'
@@ -242,12 +242,12 @@ export default function EvaluationRunDetailPage() {
                             <dt className="font-semibold">Evaluator implementation</dt>
                             <dd className="font-mono">{item.case.evaluator_key} v{item.case.evaluator_version}</dd>
                           </div>
-                          {item.case.source_execution !== null && (
+                          {item.case.source_evidence !== null && (
                             <div>
                               <dt className="font-semibold">Generated from</dt>
                               <dd>
-                                <SemanticExecutionLink
-                                  execution={item.case.source_execution}
+                                <ExecutionEvidenceLink
+                                  evidence={item.case.source_evidence}
                                   label="View source spans"
                                 />
                               </dd>
@@ -263,11 +263,11 @@ export default function EvaluationRunDetailPage() {
                       {item.attempt.reason ?? '—'}
                     </td>
                     <td className="px-3 py-3 text-xs">
-                      {item.attempt.subject_execution === null ? (
+                      {item.attempt.subject_evidence === null ? (
                         <span className="text-[var(--studio-text-subtle)]">Pending</span>
                       ) : (
-                        <SemanticExecutionLink
-                          execution={item.attempt.subject_execution}
+                        <ExecutionEvidenceLink
+                          evidence={item.attempt.subject_evidence}
                           label="View spans"
                         />
                       )}

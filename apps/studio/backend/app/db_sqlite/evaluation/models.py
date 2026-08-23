@@ -164,19 +164,37 @@ class EvaluationCaseTable(Base):
         ),
         CheckConstraint(
             "(origin = 'authored' "
+            "AND source_evidence_kind IS NULL "
             "AND source_service_namespace IS NULL "
             "AND source_service_name IS NULL "
             "AND source_executable_type IS NULL "
             "AND source_runtime_id IS NULL "
+            "AND source_trace_id IS NULL "
+            "AND source_span_id IS NULL "
             "AND source_revision IS NULL) "
             "OR "
             "(origin = 'generated' "
+            "AND source_revision IS NOT NULL "
+            "AND ((source_evidence_kind = 'junjo_execution' "
             "AND source_service_namespace IS NOT NULL "
             "AND source_service_name IS NOT NULL "
             "AND source_executable_type IS NOT NULL "
             "AND source_runtime_id IS NOT NULL "
-            "AND source_revision IS NOT NULL)",
+            "AND source_trace_id IS NULL "
+            "AND source_span_id IS NULL) "
+            "OR (source_evidence_kind = 'otel_span' "
+            "AND source_service_namespace IS NOT NULL "
+            "AND source_service_name IS NOT NULL "
+            "AND source_executable_type IS NULL "
+            "AND source_runtime_id IS NULL "
+            "AND source_trace_id IS NOT NULL "
+            "AND source_span_id IS NOT NULL)))",
             name="eval_cases_source_provenance",
+        ),
+        CheckConstraint(
+            "source_evidence_kind IS NULL "
+            "OR source_evidence_kind IN ('junjo_execution', 'otel_span')",
+            name="eval_cases_source_evidence_kind",
         ),
         CheckConstraint(
             "source_executable_type IS NULL "
@@ -205,6 +223,16 @@ class EvaluationCaseTable(Base):
             "source_revision IS NULL OR length(source_revision) IN (40, 64)",
             name="eval_cases_source_revision_length",
         ),
+        CheckConstraint(
+            "source_trace_id IS NULL OR "
+            "(length(source_trace_id) = 32 AND source_trace_id NOT GLOB '*[^0-9a-f]*')",
+            name="eval_cases_source_trace_id",
+        ),
+        CheckConstraint(
+            "source_span_id IS NULL OR "
+            "(length(source_span_id) = 16 AND source_span_id NOT GLOB '*[^0-9a-f]*')",
+            name="eval_cases_source_span_id",
+        ),
         Index(
             "ix_eval_cases_dataset_ordinal_id",
             "dataset_id",
@@ -212,12 +240,20 @@ class EvaluationCaseTable(Base):
             "id",
         ),
         Index(
-            "ix_eval_cases_source_execution",
+            "ix_eval_cases_source_junjo_execution",
             "source_service_namespace",
             "source_service_name",
             "source_executable_type",
             "source_runtime_id",
-            sqlite_where=text("source_runtime_id IS NOT NULL"),
+            sqlite_where=text("source_evidence_kind = 'junjo_execution'"),
+        ),
+        Index(
+            "ix_eval_cases_source_otel_span",
+            "source_service_namespace",
+            "source_service_name",
+            "source_trace_id",
+            "source_span_id",
+            sqlite_where=text("source_evidence_kind = 'otel_span'"),
         ),
     )
 
@@ -243,6 +279,7 @@ class EvaluationCaseTable(Base):
     expectation_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     evaluator_key: Mapped[str] = mapped_column(String(MAX_KEY_BYTES), nullable=False)
     evaluator_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_evidence_kind: Mapped[str | None] = mapped_column(String(15), nullable=True)
     source_service_namespace: Mapped[str | None] = mapped_column(
         String(MAX_EXECUTION_IDENTITY_BYTES),
         nullable=True,
@@ -256,6 +293,8 @@ class EvaluationCaseTable(Base):
         String(MAX_EXECUTION_IDENTITY_BYTES),
         nullable=True,
     )
+    source_trace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    source_span_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
     source_revision: Mapped[str | None] = mapped_column(
         String(MAX_SOURCE_REVISION_BYTES),
         nullable=True,
@@ -360,18 +399,37 @@ class EvaluationCaseAttemptTable(Base):
             name="eval_case_attempts_duration",
         ),
         CheckConstraint(
-            "(subject_service_namespace IS NULL "
+            "(subject_evidence_kind IS NULL "
+            "AND subject_service_namespace IS NULL "
             "AND subject_service_name IS NULL "
             "AND subject_executable_type IS NULL "
             "AND subject_runtime_id IS NULL "
-            "AND execution_bound_at IS NULL) "
+            "AND subject_trace_id IS NULL "
+            "AND subject_span_id IS NULL "
+            "AND evidence_bound_at IS NULL) "
             "OR "
-            "(subject_service_namespace IS NOT NULL "
+            "((subject_evidence_kind = 'junjo_execution' "
+            "AND subject_service_namespace IS NOT NULL "
             "AND subject_service_name IS NOT NULL "
             "AND subject_executable_type IS NOT NULL "
             "AND subject_runtime_id IS NOT NULL "
-            "AND execution_bound_at IS NOT NULL)",
-            name="eval_case_attempts_subject_execution",
+            "AND subject_trace_id IS NULL "
+            "AND subject_span_id IS NULL "
+            "AND evidence_bound_at IS NOT NULL) "
+            "OR (subject_evidence_kind = 'otel_span' "
+            "AND subject_service_namespace IS NOT NULL "
+            "AND subject_service_name IS NOT NULL "
+            "AND subject_executable_type IS NULL "
+            "AND subject_runtime_id IS NULL "
+            "AND subject_trace_id IS NOT NULL "
+            "AND subject_span_id IS NOT NULL "
+            "AND evidence_bound_at IS NOT NULL))",
+            name="eval_case_attempts_subject_evidence",
+        ),
+        CheckConstraint(
+            "subject_evidence_kind IS NULL "
+            "OR subject_evidence_kind IN ('junjo_execution', 'otel_span')",
+            name="eval_case_attempts_subject_evidence_kind",
         ),
         CheckConstraint(
             "subject_executable_type IS NULL "
@@ -397,6 +455,16 @@ class EvaluationCaseAttemptTable(Base):
             name="eval_case_attempts_subject_runtime_id_bytes",
         ),
         CheckConstraint(
+            "subject_trace_id IS NULL OR "
+            "(length(subject_trace_id) = 32 AND subject_trace_id NOT GLOB '*[^0-9a-f]*')",
+            name="eval_case_attempts_subject_trace_id",
+        ),
+        CheckConstraint(
+            "subject_span_id IS NULL OR "
+            "(length(subject_span_id) = 16 AND subject_span_id NOT GLOB '*[^0-9a-f]*')",
+            name="eval_case_attempts_subject_span_id",
+        ),
+        CheckConstraint(
             "(status = 'queued' "
             "AND reason IS NULL "
             "AND duration_ms IS NULL "
@@ -404,7 +472,7 @@ class EvaluationCaseAttemptTable(Base):
             "OR "
             "(status IN ('passed', 'failed') "
             "AND reason IS NOT NULL "
-            "AND subject_runtime_id IS NOT NULL "
+            "AND subject_evidence_kind IS NOT NULL "
             "AND recorded_at IS NOT NULL) "
             "OR "
             "(status = 'error' "
@@ -415,13 +483,22 @@ class EvaluationCaseAttemptTable(Base):
         Index("ix_eval_case_attempts_run_status", "run_id", "status"),
         Index("ix_eval_case_attempts_case_run", "case_id", "run_id"),
         Index(
-            "uq_eval_case_attempts_subject_execution",
+            "uq_eval_case_attempts_subject_junjo_execution",
             "subject_service_namespace",
             "subject_service_name",
             "subject_executable_type",
             "subject_runtime_id",
             unique=True,
-            sqlite_where=text("subject_runtime_id IS NOT NULL"),
+            sqlite_where=text("subject_evidence_kind = 'junjo_execution'"),
+        ),
+        Index(
+            "uq_eval_case_attempts_subject_otel_span",
+            "subject_service_namespace",
+            "subject_service_name",
+            "subject_trace_id",
+            "subject_span_id",
+            unique=True,
+            sqlite_where=text("subject_evidence_kind = 'otel_span'"),
         ),
     )
 
@@ -443,6 +520,7 @@ class EvaluationCaseAttemptTable(Base):
     status: Mapped[str] = mapped_column(String(6), nullable=False, default="queued")
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    subject_evidence_kind: Mapped[str | None] = mapped_column(String(15), nullable=True)
     subject_service_namespace: Mapped[str | None] = mapped_column(
         String(MAX_EXECUTION_IDENTITY_BYTES),
         nullable=True,
@@ -456,5 +534,7 @@ class EvaluationCaseAttemptTable(Base):
         String(MAX_EXECUTION_IDENTITY_BYTES),
         nullable=True,
     )
-    execution_bound_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    subject_trace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    subject_span_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    evidence_bound_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     recorded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

@@ -262,12 +262,31 @@ TERMINAL_ATTEMPT_STATUSES = frozenset(
 class SemanticExecutionReference(StudioDto):
     """Exact ADR 0007 identity used to resolve received execution evidence."""
 
+    kind: Literal["junjo_execution"] = "junjo_execution"
     service_namespace: ServiceNamespaceText = Field(
         description="Exact normalized service.namespace; empty is explicit",
     )
     service_name: ExecutionIdentityText
     executable_type: ExecutableType
     runtime_id: ExecutionIdentityText
+
+
+class OpenTelemetrySpanReference(StudioDto):
+    """Exact OpenTelemetry span identity used for external execution evidence."""
+
+    kind: Literal["otel_span"] = "otel_span"
+    service_namespace: ServiceNamespaceText = Field(
+        description="Exact normalized service.namespace; empty is explicit",
+    )
+    service_name: ExecutionIdentityText
+    trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
+
+
+ExecutionEvidenceReference = Annotated[
+    SemanticExecutionReference | OpenTelemetrySpanReference,
+    Field(discriminator="kind"),
+]
 
 
 class DatasetCreate(StudioDto):
@@ -312,7 +331,7 @@ class CaseCreate(StudioDto):
     expectation_json: JsonValue | None = None
     evaluator_key: KeyText
     evaluator_version: int = Field(ge=1, le=MAX_VERSION)
-    source_execution: SemanticExecutionReference | None = None
+    source_evidence: ExecutionEvidenceReference | None = None
     source_revision: SourceRevision | None = None
 
     @field_validator("input_json")
@@ -337,11 +356,11 @@ class CaseCreate(StudioDto):
         """Require exact provenance for generated cases and forbid it otherwise."""
 
         if self.origin is CaseOrigin.AUTHORED:
-            if self.source_execution is not None or self.source_revision is not None:
+            if self.source_evidence is not None or self.source_revision is not None:
                 raise ValueError("authored cases cannot include source provenance")
             return self
-        if self.source_execution is None or self.source_revision is None:
-            raise ValueError("generated cases require both source_execution and source_revision")
+        if self.source_evidence is None or self.source_revision is None:
+            raise ValueError("generated cases require both source_evidence and source_revision")
         return self
 
 
@@ -362,7 +381,7 @@ class CaseRead(StudioDto):
     expectation_json: JsonValue | None
     evaluator_key: KeyText
     evaluator_version: int = Field(ge=1, le=MAX_VERSION)
-    source_execution: SemanticExecutionReference | None
+    source_evidence: ExecutionEvidenceReference | None
     source_revision: SourceRevision | None
     created_at: datetime
 
@@ -417,8 +436,8 @@ class AttemptRead(StudioDto):
         ge=0,
         le=MAX_DURATION_MS,
     )
-    subject_execution: SemanticExecutionReference | None
-    execution_bound_at: datetime | None
+    subject_evidence: ExecutionEvidenceReference | None
+    evidence_bound_at: datetime | None
     recorded_at: datetime | None
 
 
@@ -504,7 +523,7 @@ class RunList(StudioDto):
     next_cursor: str | None
 
 
-class ExecutionMembershipItem(StudioDto):
+class EvidenceMembershipItem(StudioDto):
     """One exact case-source or attempt-subject membership."""
 
     role: Literal["case_source", "attempt_subject"]
@@ -514,7 +533,7 @@ class ExecutionMembershipItem(StudioDto):
     attempt_id: RecordId | None
 
     @model_validator(mode="after")
-    def validate_role_identity(self) -> ExecutionMembershipItem:
+    def validate_role_identity(self) -> EvidenceMembershipItem:
         """Keep source and subject membership identities coherent."""
 
         if self.role == "case_source":
@@ -525,17 +544,17 @@ class ExecutionMembershipItem(StudioDto):
         return self
 
 
-class ExecutionMembershipList(StudioDto):
+class EvidenceMembershipList(StudioDto):
     """One bounded cursor page of exact evaluation memberships."""
 
-    items: tuple[ExecutionMembershipItem, ...] = Field(max_length=MAX_PAGE_SIZE)
+    items: tuple[EvidenceMembershipItem, ...] = Field(max_length=MAX_PAGE_SIZE)
     next_cursor: str | None
 
 
-class AttemptExecutionBind(StudioDto):
-    """Idempotent execution-binding request for an attempt."""
+class AttemptEvidenceBind(StudioDto):
+    """Idempotent evidence-binding request for an attempt."""
 
-    execution: SemanticExecutionReference
+    evidence: ExecutionEvidenceReference
 
 
 class AttemptResultWrite(StudioDto):
@@ -572,6 +591,18 @@ class ExecutionResolutionRead(StudioDto):
     span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
     detail_path: str = Field(pattern=r"^/")
     trace_path: str = Field(pattern=r"^/")
+    failure_path: str = Field(pattern=r"^/")
+
+
+class OpenTelemetrySpanResolutionRead(StudioDto):
+    """Direct trace paths for an already exact OpenTelemetry span reference."""
+
+    service_namespace: ServiceNamespaceText
+    service_name: ExecutionIdentityText
+    trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
+    detail_path: str = Field(pattern=r"^/")
+    trace_path: str = Field(pattern=r"^/")
 
 
 class ExecutionResolutionConflict(StudioDto):
@@ -603,5 +634,5 @@ class AttemptEvidence(StudioDto):
     """Attempt control context joined to its exact complete trace evidence."""
 
     attempt: AttemptDetail
-    resolution: ExecutionResolutionRead
+    resolution: ExecutionResolutionRead | OpenTelemetrySpanResolutionRead
     evidence: TraceEvidenceRead

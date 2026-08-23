@@ -65,6 +65,16 @@ MODULE_SECTIONS = (
         "junjo.studio",
         "Typed, bounded evaluation-control and evidence queries for Junjo AI Studio.",
     ),
+    ModuleSection(
+        "OpenAI Agents Integration",
+        "junjo.plugins.openai_agents",
+        "Optional first-party OpenAI Agents SDK composition and OpenTelemetry integration.",
+    ),
+    ModuleSection(
+        "OpenAI Agents Evaluation",
+        "junjo.plugins.openai_agents.evaluation",
+        "Optional outer OpenAI Agent evaluation target with exact span evidence.",
+    ),
     ModuleSection("Hooks API", "junjo.hooks"),
     ModuleSection("Telemetry API", "junjo.telemetry.junjo_otel_exporter"),
 )

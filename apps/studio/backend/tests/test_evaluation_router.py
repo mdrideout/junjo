@@ -35,8 +35,9 @@ CASE_BODY = {
     "evaluator_key": "response_quality",
     "evaluator_version": 1,
 }
-EXECUTION_BODY = {
-    "execution": {
+EVIDENCE_BODY = {
+    "evidence": {
+        "kind": "junjo_execution",
         "service_namespace": "junjo.examples",
         "service_name": "ai-chat-evaluation",
         "executable_type": "workflow",
@@ -98,8 +99,8 @@ async def authenticated_app(test_db, mock_authenticated_user) -> AsyncIterator:
         ("GET", "/api/v1/evaluation/attempts/attempt-id", {}),
         (
             "PUT",
-            "/api/v1/evaluation/attempts/attempt-id/execution",
-            {"json": EXECUTION_BODY},
+            "/api/v1/evaluation/attempts/attempt-id/evidence",
+            {"json": EVIDENCE_BODY},
         ),
         (
             "PUT",
@@ -108,8 +109,8 @@ async def authenticated_app(test_db, mock_authenticated_user) -> AsyncIterator:
         ),
         (
             "GET",
-            "/api/v1/evaluation/execution-membership",
-            {"params": EXECUTION_BODY["execution"]},
+            "/api/v1/evaluation/evidence-membership",
+            {"params": EVIDENCE_BODY["evidence"]},
         ),
     ],
 )
@@ -186,11 +187,11 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
         assert set(attempt_detail.json()) == {"run", "dataset", "case", "attempt"}
 
         bound = await client.put(
-            f"/api/v1/evaluation/attempts/{attempt_id}/execution",
-            json=EXECUTION_BODY,
+            f"/api/v1/evaluation/attempts/{attempt_id}/evidence",
+            json=EVIDENCE_BODY,
         )
         assert bound.status_code == 200
-        assert bound.json()["subject_execution"] == EXECUTION_BODY["execution"]
+        assert bound.json()["subject_evidence"] == EVIDENCE_BODY["evidence"]
 
         recorded = await client.put(
             f"/api/v1/evaluation/attempts/{attempt_id}/result",
@@ -292,8 +293,8 @@ async def test_headless_api_loop_and_response_envelopes(authenticated_app) -> No
         assert [item["id"] for item in all_datasets.json()["items"]] == [dataset["id"]]
 
         membership = await client.get(
-            "/api/v1/evaluation/execution-membership",
-            params=EXECUTION_BODY["execution"],
+            "/api/v1/evaluation/evidence-membership",
+            params=EVIDENCE_BODY["evidence"],
         )
         assert membership.status_code == 200
         assert membership.json() == {
@@ -352,17 +353,17 @@ def test_openapi_operation_ids_and_fixed_run_envelopes() -> None:
             "get",
         ): "get_evaluation_attempt",
         (
-            "/api/v1/evaluation/attempts/{attempt_id}/execution",
+            "/api/v1/evaluation/attempts/{attempt_id}/evidence",
             "put",
-        ): "bind_evaluation_attempt_execution",
+        ): "bind_evaluation_attempt_evidence",
         (
             "/api/v1/evaluation/attempts/{attempt_id}/result",
             "put",
         ): "record_evaluation_attempt_result",
         (
-            "/api/v1/evaluation/execution-membership",
+            "/api/v1/evaluation/evidence-membership",
             "get",
-        ): "find_evaluation_execution_membership",
+        ): "find_evaluation_evidence_membership",
     }
     for (path, method), operation_id in expected.items():
         assert schema["paths"][path][method]["operationId"] == operation_id

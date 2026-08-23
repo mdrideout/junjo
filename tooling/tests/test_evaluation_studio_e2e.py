@@ -40,7 +40,7 @@ def attempt_evidence() -> dict[str, object]:
             "attempt": {
                 "id": "attempt-1",
                 "status": "passed",
-                "subject_execution": {
+                "subject_evidence": {
                     "service_namespace": validator.SERVICE_NAMESPACE,
                     "service_name": validator.SERVICE_NAME,
                     "executable_type": "workflow",

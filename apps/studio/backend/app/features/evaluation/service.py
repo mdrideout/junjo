@@ -15,12 +15,12 @@ from app.features.evaluation.schemas import (
     EvaluationDatasetDetail,
     EvaluationDatasetList,
     EvaluationDatasetRead,
-    EvaluationExecutionMembershipList,
+    EvaluationEvidenceMembershipList,
     EvaluationRunDetail,
     EvaluationRunList,
     EvaluationRunScope,
     EvaluationRunStart,
-    SemanticExecutionReference,
+    ExecutionEvidenceReference,
 )
 
 
@@ -118,16 +118,16 @@ async def get_attempt(attempt_id: str) -> EvaluationAttemptDetail:
     return await EvaluationRepository.get_attempt(attempt_id)
 
 
-async def bind_attempt_execution(
+async def bind_attempt_evidence(
     *,
     attempt_id: str,
-    execution: SemanticExecutionReference,
+    evidence: ExecutionEvidenceReference,
     authenticated_user: AuthenticatedUser,
 ) -> EvaluationAttemptRead:
     audit_log("update", "evaluation_attempt", attempt_id, authenticated_user)
-    return await EvaluationRepository.bind_attempt_execution(
+    return await EvaluationRepository.bind_attempt_evidence(
         attempt_id=attempt_id,
-        execution=execution,
+        evidence=evidence,
     )
 
 
@@ -144,14 +144,14 @@ async def record_attempt_result(
     )
 
 
-async def find_execution_membership(
+async def find_evidence_membership(
     *,
-    execution: SemanticExecutionReference,
+    evidence: ExecutionEvidenceReference,
     cursor: str | None,
     limit: int,
-) -> EvaluationExecutionMembershipList:
-    return await EvaluationRepository.find_execution_membership(
-        execution=execution,
+) -> EvaluationEvidenceMembershipList:
+    return await EvaluationRepository.find_evidence_membership(
+        evidence=evidence,
         cursor=cursor,
         limit=limit,
     )

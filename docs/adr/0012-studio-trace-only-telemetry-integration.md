@@ -51,6 +51,10 @@ prevent application metrics. An application may independently configure a
 That provider remains application-owned and is not modified by the Studio
 integration.
 
+Optional external Agent framework integrations follow the same boundary. They
+may attach trace instrumentors to the application-owned `TracerProvider`, but
+they do not install a Studio `MeterProvider`, metric reader, or metric exporter.
+
 Adding Studio metrics later requires a separate accepted decision covering the
 whole signal path together:
 
@@ -96,3 +100,4 @@ whole signal path together:
 - [ADR 0001: Junjo platform monorepo](0001-junjo-platform-monorepo.md)
 - [ADR 0006: Agent telemetry contract](0006-agent-telemetry-contract.md)
 - [ADR 0009: Unified documentation publishing](0009-unified-documentation-publishing.md)
+- [ADR 0015: Optional external Agent framework integrations](0015-optional-agent-framework-integrations.md)

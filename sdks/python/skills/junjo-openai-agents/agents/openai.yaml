@@ -1,0 +1,4 @@
+interface:
+  display_name: "Junjo + OpenAI Agents"
+  short_description: "Add Junjo to an OpenAI Agents application"
+  default_prompt: "Use $junjo-openai-agents to integrate Junjo's native Workflows, Agents, telemetry, and optional evaluation target into this OpenAI Agents SDK application, then validate the mixed trace in Junjo AI Studio."

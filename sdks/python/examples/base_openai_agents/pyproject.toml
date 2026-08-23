@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "junjo-base-openai-agents-example"
+version = "0.1.0"
+description = "OpenAI Agents SDK composition, telemetry, and evaluation example for Junjo"
+requires-python = ">=3.11"
+dependencies = ["junjo[openai-agents]"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff~=0.15.0"]
+
+[dependency-groups]
+dev = ["pytest", "pytest-asyncio", "ruff~=0.15.0"]
+
+[project.scripts]
+junjo-openai-agents-example = "base_openai_agents.main:main"
+
+[tool.junjo.evaluation]
+harness = "base_openai_agents.evals:harness"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+junjo = { workspace = true }
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "C", "B"]
+ignore = ["B006"]
+
+[tool.pytest.ini_options]
+addopts = ["-q"]
+asyncio_mode = "strict"

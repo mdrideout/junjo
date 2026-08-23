@@ -11,7 +11,7 @@ Accepted
 ## Context
 
 Root ADR 0013 assigns Studio ownership of bounded evaluation datasets, runs,
-attempts, outcomes, and semantic execution membership, while the Junjo SDK
+attempts, outcomes, and exact evidence membership, while the Junjo SDK
 owns the Studio client, DTOs, complete evaluation harness, runner, CLI,
 target/evaluator abstractions, and evaluation context. An application supplies
 only typed target declarations, real dependency construction, output
@@ -85,33 +85,35 @@ A Case stores bounded JSON input and optional expectation material plus:
 - SDK-loaded evaluator key and positive version;
 - stable ordinal; and
 - for generated cases, both the clean source revision and exact source
-  execution identity.
+  evidence reference.
 
 Studio stores and validates the envelope but does not interpret application
 input, expectation, target, or evaluator semantics. The SDK harness resolves
 the target/evaluator keys against one explicit application declaration and
 rejects unknown versions before provider work.
 
-### Semantic execution references are indexed scalar fields
+### Execution evidence references are indexed scalar fields
 
-Source and subject execution identities reuse ADR 0007's exact tuple:
+Generated-case source evidence and attempt subject evidence use one
+discriminated reference:
 
-- normalized service namespace;
-- service name;
-- executable type;
-- runtime ID.
+- `junjo_execution` uses the same semantic tuple; or
+- `otel_span` uses normalized service namespace, service name, trace ID, and
+  span ID.
 
-Each tuple is either wholly present or wholly absent. The values are stored as
-scalar columns, not serialized JSON, so exact forward and reverse membership
-queries use bounded indexes.
+Each reference is either wholly present or wholly absent, and fields for the
+other reference kind are absent. Values are stored as scalar columns, not
+serialized JSON, so exact forward and reverse membership queries use bounded
+indexes.
 
-Source execution identity may be shared by multiple cases. Subject execution
-identity is unique across attempts in the Lean MVP because every case run owns
-a fresh application execution.
+Source evidence may be shared by multiple cases. Subject evidence is
+unique across attempts in the Lean MVP because every case run owns a fresh
+application execution.
 
-Studio does not eagerly resolve semantic identities to trace IDs for list
-responses. A caller explicitly composes execution resolution and
-`TraceEvidence` when evidence is requested.
+Studio does not eagerly resolve native semantic identities to trace IDs for
+list responses. A caller explicitly requests evidence. Native evidence uses
+ordinary semantic resolution, while OTLP evidence directly selects its exact
+span in the normal trace view.
 
 ### Run start snapshots exact membership
 
@@ -124,22 +126,22 @@ Run start is idempotent by dataset plus bounded application request key.
 Repeating the same content returns the original run and attempts; conflicting
 content returns an explicit conflict.
 
-### Execution binding and result recording are separate
+### Evidence binding and result recording are separate
 
-Binding an attempt execution is an idempotent write that accepts one complete
-semantic execution tuple. An identical retry succeeds. A conflicting rebind
-returns a conflict.
+Binding attempt evidence is an idempotent write that accepts one complete
+discriminated evidence reference. An identical retry succeeds. A conflicting
+rebind returns a conflict.
 
 Recording an attempt result is a separate atomic transition from queued to
 `passed`, `failed`, or `error`. An identical retry succeeds; a conflicting
 terminal result or attempt reopening returns a conflict. The final terminal
 attempt marks its run complete in the same transaction.
 
-A result may omit execution identity only when setup failed before Junjo
-created a trustworthy runtime ID. Passed and failed judgments require a bound
-execution and bounded reason. Errors retain a bound execution whenever one
-exists. Evaluation judgments are binary; Studio stores no numeric score,
-mean score, confidence, or score delta.
+A result may omit evidence only when setup failed before the subject created a
+trustworthy native identity or external span. Passed and failed judgments
+require bound evidence and a bounded reason. Errors retain bound evidence
+whenever one exists. Evaluation judgments are binary; Studio stores no numeric
+score, mean score, confidence, or score delta.
 
 ### The HTTP surface is authenticated and bounded
 
@@ -149,9 +151,9 @@ The MVP API provides only:
 - add Case and lock Dataset;
 - start, list, and get Run;
 - get Attempt;
-- bind Attempt execution;
+- bind Attempt evidence;
 - record Attempt result; and
-- exact reverse execution-membership lookup.
+- exact reverse evidence-membership lookup.
 
 The SDK client and JSON-first CLI are the primary programmatic consumers. List
 routes use cursor pagination and explicit maximum page sizes. Text and
@@ -187,15 +189,15 @@ normal OpenTelemetry service identity and domain correlation; an eval-only
 service name is not the product contract.
 
 Studio does not copy that context onto every relational span row. The Attempt
-binding remains canonical membership, and the existing resolver plus
-`TraceEvidence` returns the complete received trace. The context makes
+binding remains canonical membership. Native evidence uses the existing
+resolver and external evidence selects its exact trace span. The context makes
 evaluation and dataset-generation telemetry explicit without redesigning the
 four tables or ingestion hot path.
 
 ### Agent queries compose bounded APIs
 
 A coding agent uses the SDK client or CLI to list/get datasets and runs,
-compare two runs over one dataset, resolve exact execution membership, and
+compare two runs over one dataset, resolve exact evidence membership, and
 request evidence for selected attempts. Comparison is a deterministic
 projection over run detail, not new persisted state. The API does not add an
 arbitrary query DSL or eagerly hydrate evidence. MCP may later wrap the same
@@ -222,7 +224,7 @@ SDK runner concurrency defaults to one. Evaluation context adds one bounded
 root span rather than duplicating evaluation attributes onto every descendant.
 
 Indexes are limited to declared dataset, ordered-case, recent-run,
-run-attempt, case-history, and exact execution-membership access paths.
+run-attempt, case-history, and exact evidence-membership access paths.
 Before the complete Workflow slice is released, the supported small deployment
 must measure backend CPU/RSS, SQLite write latency and lock contention,
 ordinary trace-query latency, ingestion throughput/RSS, and runner RSS while
@@ -234,7 +236,7 @@ an evaluation run records results.
   evidence in its existing hot/cold telemetry architecture.
 - SDK commands can retry uncertain writes without duplicating
   datasets, cases, runs, bindings, or outcomes.
-- Exact execution membership is queryable in both directions without scanning
+- Exact evidence membership is queryable in both directions without scanning
   JSON or resolving every trace.
 - Locked datasets make baseline/candidate comparison truthful and simple.
 - The MVP intentionally lacks mutation, distributed leasing, retry-in-place,
@@ -251,13 +253,13 @@ an evaluation run records results.
 
 - Put evaluation records in `metadata.db`: canonical user data must not
   disappear when a rebuildable index is recreated.
-- Store semantic references as JSON: reverse lookup would require serialized
+- Store evidence references as JSON: reverse lookup would require serialized
   scans and weaken all-or-none constraints.
-- Store trace IDs eagerly: telemetry can arrive later and physical identities
-  are not the canonical application link.
+- Store trace IDs for native Junjo targets: native semantic identity remains
+  the canonical application link even when telemetry arrives later.
 - Hydrate trace evidence in run lists: this creates query fan-out and spends
   memory without an explicit evidence request.
-- Add per-span evaluation membership: one attempt-to-execution binding already
+- Add per-span evaluation membership: one Attempt evidence binding already
   reaches complete received trace evidence.
 - Add attempt leases and concurrent workers: the first harness is deliberately
   sequential and local.
@@ -273,6 +275,7 @@ an evaluation run records results.
 - [Root ADR 0013: Application-executed Studio evaluations](../../../../docs/adr/0013-application-executed-studio-evaluations.md)
 - [Root ADR 0007: Application execution correlation and Studio resolution](../../../../docs/adr/0007-execution-correlation-and-studio-resolution.md)
 - [Root ADR 0014: Bounded evaluation telemetry context](../../../../docs/adr/0014-evaluation-telemetry-context.md)
+- [Root ADR 0015: Optional external Agent framework integrations](../../../../docs/adr/0015-optional-agent-framework-integrations.md)
 - [Studio ADR 007: Agent execution diagnostics](007-agent-execution-diagnostics.md)
 - [Studio ADR 009: Bounded ingestion API-key validation](009-bounded-ingestion-api-key-validation.md)
 - [Horizon 3 Evaluation Lean MVP](../../../../docs/roadmaps/AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md)

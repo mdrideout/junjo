@@ -85,10 +85,16 @@ The application's configured `service.namespace`, `service.name`, and optional
 runtime ID is still emitted by its normal public lifecycle. A Node target uses
 the truthful generated one-Node Workflow accepted by ADR 0010.
 
-The Studio Attempt-to-execution binding remains authoritative membership.
-Evaluation attributes make traces classifiable and readable; Studio does not
-infer result membership from them and does not copy them into per-span
-relational rows.
+The Studio Attempt-to-evidence binding remains authoritative membership.
+Native targets bind the semantic Junjo execution identity. An external target
+accepted by ADR 0015 binds the exact standard OpenTelemetry span that
+represents its subject. Evaluation attributes make traces classifiable and
+readable; Studio does not infer result membership from them and does not copy
+them into per-span relational rows.
+
+External target spans remain ordinary descendants of the bounded subject role
+span. Evaluation context is not copied onto those descendants, and they do not
+receive fabricated Junjo executable identity.
 
 ### Contract version 2 remains active
 
@@ -136,3 +142,4 @@ Subflow, Node, RunConcurrent, or Agent owners.
 - [ADR 0010: Node Evaluation Execution](0010-node-evaluation-execution.md)
 - [ADR 0013: SDK-orchestrated, application-executed Studio evaluations](0013-application-executed-studio-evaluations.md)
 - [Studio ADR 010: Evaluation control persistence and API](../../apps/studio/docs/adr/010-evaluation-control-persistence-and-api.md)
+- [ADR 0015: Optional external Agent framework integrations](0015-optional-agent-framework-integrations.md)

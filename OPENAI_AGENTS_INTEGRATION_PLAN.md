@@ -1,6 +1,6 @@
 # Junjo OpenAI Agents Integration Plan
 
-- Status: Planned; not yet implemented
+- Status: Implemented and E2E validated
 - Date: 2026-08-17
 - Owners: Junjo platform, Python SDK, and Junjo AI Studio
 - Scope: Optional OpenAI Agents SDK integration, mixed-runtime telemetry,
@@ -27,6 +27,7 @@ Current related decisions:
 - [ADR 0012: Studio trace-only telemetry integration](docs/adr/0012-studio-trace-only-telemetry-integration.md)
 - [ADR 0013: Application-executed Studio evaluations](docs/adr/0013-application-executed-studio-evaluations.md)
 - [ADR 0014: Evaluation telemetry context](docs/adr/0014-evaluation-telemetry-context.md)
+- [ADR 0015: Optional Agent framework integrations](docs/adr/0015-optional-agent-framework-integrations.md)
 - [Studio ADR 010: Evaluation control persistence and API](apps/studio/docs/adr/010-evaluation-control-persistence-and-api.md)
 
 ## Executive summary
@@ -534,7 +535,7 @@ The official GenAI instrumentation defaults to not capturing message content.
 The canonical local example explicitly enables:
 
 ```env
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=span_only
+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
 ```
 
 This supplies the evidence expected from a local Junjo AI Studio development
@@ -905,14 +906,15 @@ JUNJO_AI_STUDIO_OTLP_INSECURE=true
 # Junjo AI Studio developer and coding-agent control access
 # JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
-JUNJO_AI_STUDIO_FRONTEND_BASE_URL=http://localhost:26151
 
 # Local full-evidence OpenTelemetry capture
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=span_only
+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
 ```
 
 The final names must match the current SDK and Studio configuration contracts.
-Do not introduce alternate example-only names.
+Do not introduce alternate example-only names. The example does not configure a
+Studio frontend URL because neither its application runtime nor its evaluation
+harness opens browser routes; Studio evidence paths remain server-owned data.
 
 ### Workspace and CI ownership
 
@@ -1597,9 +1599,9 @@ The strategy is fully implemented only when all of the following are true:
 - ADRs, public docs, skills, examples, and changelogs agree on ownership and
   behavior.
 
-## Recommended first implementation slice
+## Implemented delivery order
 
-Begin with Phases 0 through 2:
+The implementation followed the planned dependency order:
 
 1. accept the architectural decisions;
 2. implement the optional plugin and explicit tool adapters;
@@ -1607,7 +1609,42 @@ Begin with Phases 0 through 2:
 4. prove lifecycle and hierarchy with in-memory tests; and
 5. ship the deterministic `base_openai_agents` example.
 
-This proves the central product value before changing Studio's evaluation
-contract. After the mixed execution works and its telemetry is observable,
-Phases 3 and 4 generalize evidence and add the outer Agent evaluation loop on
-top of evidence that has already been observed and tested.
+That proof preceded the Phase 3 through 6 evidence, evaluation, Studio UX,
+measurement, documentation, and release-validation work. This kept the
+cross-system contract change grounded in telemetry that had already been
+observed and tested.
+
+## Implementation and validation record
+
+Completed on 2026-08-18:
+
+- built and installed the `junjo[openai-agents]` wheel in a separate clean Git
+  application checkout;
+- ran 391 SDK tests plus Ruff, ty, Griffe public-surface validation, package
+  build, Twine validation, and packaged-skill inspection;
+- validated the deterministic example through its real OpenAI Agents runner,
+  all three target declarations, and its evaluator declaration;
+- regenerated the telemetry-v2 fixtures for OpenTelemetry 1.43+'s W3C
+  random-trace-id flag and validated all canonical, invalid, fingerprint, and
+  RFC 6902 vectors deterministically;
+- ran all six Studio gates: 958 backend tests with 3 skips, 38 ingestion tests,
+  291 frontend tests, lint and builds, REST/OpenAPI parity, and proto
+  staleness;
+- built a fresh Studio deployment from the single greenfield migration and
+  completed the existing native Agent/Workflow OTLP proof;
+- created a real Studio dataset from the published-style wheel, executed one
+  external OpenAI Agent, one native Junjo Workflow, and one native Junjo Agent,
+  and recorded three binary passes;
+- verified one exact `otel_span` and two `junjo_execution` evidence bindings,
+  complete trace hydration, and exact evidence membership;
+- used Chrome to verify sign-in, the evaluation detail page, exact external
+  span selection, standard GenAI labels, and native Workflow Explorer deep
+  linking without blank rendering or refresh;
+- assembled 229 documentation files and built 218 website pages covering 545
+  public Python objects; and
+- validated both packaged coding-agent skills and the repository invariants.
+
+The website dependency audit separately reports current transitive advisories
+in Astro, JS-YAML, nanoid, and PostCSS. This integration changed no website
+dependency or lockfile. That renderer dependency update remains an isolated
+release-hygiene follow-up rather than an expansion of the integration.

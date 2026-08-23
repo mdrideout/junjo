@@ -99,6 +99,11 @@ expose a Junjo Workflow to one of those frameworks as a **tool** for a
 high-accuracy, repeatable process such as RAG retrieval or complex document
 parsing. That adapter does not turn the Workflow itself into an Agent.
 
+OpenAI Agents SDK applications can install `junjo[openai-agents]` for
+first-party Workflow and Agent function-tool adapters, official OpenTelemetry
+GenAI instrumentation, and an exact-span evaluation target. See the
+[OpenAI Agents integration guide](https://junjo.ai/docs/python/integrations/openai-agents/).
+
 You can execute autonomous agent capabilities from other libraries inside a Junjo AI workflow. For example, a Junjo workflow node can run a [smolagents](https://github.com/huggingface/smolagents) tool calling agent as a single step within a greater Junjo workflow or subflow.
 
 ## Code Examples
@@ -108,6 +113,7 @@ _**Find several example Junjo applications inside the [examples](https://github.
 - [AI Chat](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat) - a live-model FastAPI and React application demonstrating model-powered Workflows, bounded Agents, versioned persistence, Studio diagnostics, and eval-driven development.
 - [Getting Started](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/getting_started) - the basis of our getting started documentation
 - [Base Example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base) - a minimal python example showcasing several Junjo patterns
+- [OpenAI Agents Example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base_openai_agents) - an outer OpenAI Agent calling a native Junjo Workflow and Agent with mixed telemetry and evaluations
 
 ### Getting Started Code
 

@@ -41,6 +41,13 @@ describe('EvaluationRunDetailPage', () => {
   it('shows binary results, prominent scope, and exact span links', async () => {
     const user = userEvent.setup()
     const detail = makeEvaluationRunDetailFixture({ runId: 'detail-all-statuses' })
+    detail.cases[1].attempt.subject_evidence = {
+      kind: 'otel_span',
+      service_namespace: 'junjo.examples',
+      service_name: 'base-openai-agents',
+      trace_id: '1'.repeat(32),
+      span_id: 'a'.repeat(16),
+    }
     server.use(
       http.get(`${API_BASE}/api/v1/evaluation/runs/:runId`, ({ params }) => {
         expect(params.runId).toBe(detail.run.id)
@@ -71,6 +78,13 @@ describe('EvaluationRunDetailPage', () => {
     expect(subjectLink).toHaveAttribute(
       'href',
       '/resolve/executable?service_namespace=&service_name=ai-chat-evaluation&executable_type=workflow&runtime_id=detail-all-statuses-runtime-1&destination=detail',
+    )
+    const externalSpanLink = screen.getAllByRole('link', {
+      name: 'View spans',
+    }).find((link) => link.getAttribute('href')?.includes('base-openai-agents'))
+    expect(externalSpanLink).toHaveAttribute(
+      'href',
+      `/traces/base-openai-agents/${'1'.repeat(32)}/${'a'.repeat(16)}`,
     )
     await user.click(screen.getAllByText('Test details')[0])
     expect(screen.getByRole('link', {

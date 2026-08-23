@@ -14,7 +14,7 @@ from pydantic import BaseModel, SecretStr, TypeAdapter, ValidationError
 
 from .comparison import RunComparison, project_run_comparison
 from .errors import (
-    AttemptExecutionUnavailable,
+    AttemptEvidenceUnavailable,
     ExecutionEvidencePending,
     ExecutionIdentityAmbiguous,
     StudioAuthenticationError,
@@ -30,7 +30,7 @@ from .models import (
     MAX_PAGE_SIZE,
     AttemptDetail,
     AttemptEvidence,
-    AttemptExecutionBind,
+    AttemptEvidenceBind,
     AttemptRead,
     AttemptResultWrite,
     CaseCreate,
@@ -41,10 +41,12 @@ from .models import (
     DatasetDetail,
     DatasetList,
     DatasetRead,
-    ExecutionMembershipList,
+    EvidenceMembershipList,
+    ExecutionEvidenceReference,
     ExecutionResolutionConflict,
     ExecutionResolutionRead,
     KeyText,
+    OpenTelemetrySpanResolutionRead,
     RecordId,
     RunDetail,
     RunList,
@@ -370,16 +372,16 @@ class StudioClient:
             AttemptDetail,
         )
 
-    async def bind_attempt_execution(
+    async def bind_attempt_evidence(
         self,
         attempt_id: str,
-        execution: SemanticExecutionReference,
+        evidence: ExecutionEvidenceReference,
     ) -> AttemptRead:
-        """Idempotently bind exact semantic execution identity to an attempt."""
+        """Idempotently bind exact execution evidence to an attempt."""
 
         attempt_id = _validated_record_id(attempt_id)
-        request = AttemptExecutionBind(execution=execution)
-        path = f"{self._EVALUATION_PREFIX}/attempts/{_path_segment(attempt_id)}/execution"
+        request = AttemptEvidenceBind(evidence=evidence)
+        path = f"{self._EVALUATION_PREFIX}/attempts/{_path_segment(attempt_id)}/evidence"
         return await self._model_request(
             "PUT",
             path,
@@ -457,15 +459,29 @@ class StudioClient:
         """Join an attempt to its exact complete Studio trace evidence."""
 
         attempt = await self.get_attempt(attempt_id)
-        execution = attempt.attempt.subject_execution
-        if execution is None:
-            raise AttemptExecutionUnavailable(attempt_id)
-        resolution = await self.resolve_execution(execution)
+        subject_evidence = attempt.attempt.subject_evidence
+        if subject_evidence is None:
+            raise AttemptEvidenceUnavailable(attempt_id)
+        if isinstance(subject_evidence, SemanticExecutionReference):
+            resolution: ExecutionResolutionRead | OpenTelemetrySpanResolutionRead = await self.resolve_execution(
+                subject_evidence
+            )
+        else:
+            encoded_service_name = quote(subject_evidence.service_name, safe="")
+            trace_path = f"/traces/{encoded_service_name}/{subject_evidence.trace_id}/{subject_evidence.span_id}"
+            resolution = OpenTelemetrySpanResolutionRead(
+                service_namespace=subject_evidence.service_namespace,
+                service_name=subject_evidence.service_name,
+                trace_id=subject_evidence.trace_id,
+                span_id=subject_evidence.span_id,
+                detail_path=trace_path,
+                trace_path=trace_path,
+            )
         try:
             evidence = await self.get_trace_evidence(resolution.trace_id)
         except StudioRequestError as error:
             if error.status_code == 404:
-                raise ExecutionEvidencePending(execution) from error
+                raise ExecutionEvidencePending(subject_evidence) from error
             raise
         return AttemptEvidence(
             attempt=attempt,
@@ -473,30 +489,35 @@ class StudioClient:
             evidence=evidence,
         )
 
-    async def get_execution_membership(
+    async def get_evidence_membership(
         self,
-        execution: SemanticExecutionReference,
+        evidence: ExecutionEvidenceReference,
         *,
         cursor: str | None = None,
         limit: int = 50,
-    ) -> ExecutionMembershipList:
+    ) -> EvidenceMembershipList:
         """Return one bounded page of exact evaluation membership."""
 
         cursor = _validated_cursor(cursor)
         _require_page_limit(limit)
         params: dict[str, str | int] = {
-            "service_namespace": execution.service_namespace,
-            "service_name": execution.service_name,
-            "executable_type": execution.executable_type.value,
-            "runtime_id": execution.runtime_id,
+            "kind": evidence.kind,
+            "service_namespace": evidence.service_namespace,
+            "service_name": evidence.service_name,
             "limit": limit,
         }
+        if isinstance(evidence, SemanticExecutionReference):
+            params["executable_type"] = evidence.executable_type.value
+            params["runtime_id"] = evidence.runtime_id
+        else:
+            params["trace_id"] = evidence.trace_id
+            params["span_id"] = evidence.span_id
         if cursor is not None:
             params["cursor"] = cursor
         return await self._model_request(
             "GET",
-            f"{self._EVALUATION_PREFIX}/execution-membership",
-            ExecutionMembershipList,
+            f"{self._EVALUATION_PREFIX}/evidence-membership",
+            EvidenceMembershipList,
             params=params,
         )
 

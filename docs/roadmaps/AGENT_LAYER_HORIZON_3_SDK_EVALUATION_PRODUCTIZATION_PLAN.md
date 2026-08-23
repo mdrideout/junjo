@@ -207,7 +207,7 @@ The initial command groups are:
 - `junjo eval case generate`;
 - `junjo eval run execute|resume|list|get|compare`;
 - `junjo eval attempt get|evidence`; and
-- `junjo eval execution membership`.
+- `junjo eval evidence membership --kind junjo_execution`.
 
 Execution commands load exactly one explicit `module:object`
 `EvaluationHarness`. The harness location may come from a command option or

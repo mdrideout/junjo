@@ -13,6 +13,8 @@
     "junjo.agent.testing",
     "junjo.evaluation",
     "junjo.studio",
+    "junjo.plugins.openai_agents",
+    "junjo.plugins.openai_agents.evaluation",
     "junjo.hooks",
     "junjo.telemetry.junjo_otel_exporter"
   ],
@@ -2099,8 +2101,43 @@
     },
     {
       "kind": "module",
+      "public_name": "junjo.plugins.openai_agents",
+      "anchor": "module-junjo.plugins.openai_agents"
+    },
+    {
+      "kind": "module",
+      "public_name": "junjo.plugins.openai_agents.evaluation",
+      "anchor": "module-junjo.plugins.openai_agents.evaluation"
+    },
+    {
+      "kind": "module",
       "public_name": "junjo.telemetry.junjo_otel_exporter",
       "anchor": "module-junjo.telemetry.junjo_otel_exporter"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.plugins.openai_agents.AgentToolInvocation",
+      "anchor": "junjo.plugins.openai_agents.AgentToolInvocation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.plugins.openai_agents.OpenAIAgentsIntegration",
+      "anchor": "junjo.plugins.openai_agents.OpenAIAgentsIntegration"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.plugins.openai_agents.WorkflowToolInvocation",
+      "anchor": "junjo.plugins.openai_agents.WorkflowToolInvocation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.plugins.openai_agents.evaluation.OpenAIAgentInvocation",
+      "anchor": "junjo.plugins.openai_agents.evaluation.OpenAIAgentInvocation"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget",
+      "anchor": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget"
     },
     {
       "kind": "class",
@@ -2224,6 +2261,11 @@
     },
     {
       "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceBind",
+      "anchor": "junjo.studio.AttemptEvidenceBind"
+    },
+    {
+      "kind": "class",
       "public_name": "junjo.studio.AttemptRead",
       "anchor": "junjo.studio.AttemptRead"
     },
@@ -2284,8 +2326,13 @@
     },
     {
       "kind": "class",
-      "public_name": "junjo.studio.ExecutionMembershipList",
-      "anchor": "junjo.studio.ExecutionMembershipList"
+      "public_name": "junjo.studio.EvidenceMembershipList",
+      "anchor": "junjo.studio.EvidenceMembershipList"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.EvidenceMembershipItem",
+      "anchor": "junjo.studio.EvidenceMembershipItem"
     },
     {
       "kind": "class",
@@ -2301,6 +2348,16 @@
       "kind": "class",
       "public_name": "junjo.studio.OutcomeSummary",
       "anchor": "junjo.studio.OutcomeSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.OpenTelemetrySpanReference",
+      "anchor": "junjo.studio.OpenTelemetrySpanReference"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.OpenTelemetrySpanResolutionRead",
+      "anchor": "junjo.studio.OpenTelemetrySpanResolutionRead"
     },
     {
       "kind": "class",
@@ -2409,6 +2466,16 @@
     },
     {
       "kind": "exception",
+      "public_name": "junjo.studio.AttemptEvidenceUnavailable",
+      "anchor": "junjo.studio.AttemptEvidenceUnavailable"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.plugins.openai_agents.OpenAIAgentsIntegrationError",
+      "anchor": "junjo.plugins.openai_agents.OpenAIAgentsIntegrationError"
+    },
+    {
+      "kind": "exception",
       "public_name": "junjo.studio.ExecutionIdentityAmbiguous",
       "anchor": "junjo.studio.ExecutionIdentityAmbiguous"
     },
@@ -2446,6 +2513,21 @@
       "kind": "function",
       "public_name": "junjo.studio.project_run_comparison",
       "anchor": "junjo.studio.project_run_comparison"
+    },
+    {
+      "kind": "function",
+      "public_name": "junjo.plugins.openai_agents.agent_as_tool",
+      "anchor": "junjo.plugins.openai_agents.agent_as_tool"
+    },
+    {
+      "kind": "function",
+      "public_name": "junjo.plugins.openai_agents.instrument_openai_agents",
+      "anchor": "junjo.plugins.openai_agents.instrument_openai_agents"
+    },
+    {
+      "kind": "function",
+      "public_name": "junjo.plugins.openai_agents.workflow_as_tool",
+      "anchor": "junjo.plugins.openai_agents.workflow_as_tool"
     },
     {
       "kind": "method",
@@ -2494,13 +2576,28 @@
     },
     {
       "kind": "method",
+      "public_name": "junjo.plugins.openai_agents.OpenAIAgentsIntegration.close",
+      "anchor": "junjo.plugins.openai_agents.OpenAIAgentsIntegration.close"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget.execute",
+      "anchor": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget.execute"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget.validate_input",
+      "anchor": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget.validate_input"
+    },
+    {
+      "kind": "method",
       "public_name": "junjo.studio.StudioClient.add_case",
       "anchor": "junjo.studio.StudioClient.add_case"
     },
     {
       "kind": "method",
-      "public_name": "junjo.studio.StudioClient.bind_attempt_execution",
-      "anchor": "junjo.studio.StudioClient.bind_attempt_execution"
+      "public_name": "junjo.studio.StudioClient.bind_attempt_evidence",
+      "anchor": "junjo.studio.StudioClient.bind_attempt_evidence"
     },
     {
       "kind": "method",
@@ -2534,8 +2631,8 @@
     },
     {
       "kind": "method",
-      "public_name": "junjo.studio.StudioClient.get_execution_membership",
-      "anchor": "junjo.studio.StudioClient.get_execution_membership"
+      "public_name": "junjo.studio.StudioClient.get_evidence_membership",
+      "anchor": "junjo.studio.StudioClient.get_evidence_membership"
     },
     {
       "kind": "method",
@@ -2641,6 +2738,11 @@
       "kind": "property",
       "public_name": "junjo.telemetry.junjo_otel_exporter.JunjoOtelExporter.span_processor",
       "anchor": "junjo.telemetry.junjo_otel_exporter.JunjoOtelExporter.span_processor"
+    },
+    {
+      "kind": "property",
+      "public_name": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget.input_schema",
+      "anchor": "junjo.plugins.openai_agents.evaluation.OpenAIAgentTarget.input_schema"
     }
   ]
 }
