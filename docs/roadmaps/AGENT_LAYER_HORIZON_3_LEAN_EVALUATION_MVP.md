@@ -1211,3 +1211,106 @@ Only after the corrected SDK-owned MVP is used should we decide, in this order:
 
 This order keeps implementation pressure attached to demonstrated product
 value rather than the completeness of the north-star model.
+
+## 2026-08-23 Attended Product Validation and Post-MVP Decisions
+
+The coordinated SDK `0.67.0` and Studio `0.83.0` releases were validated by
+giving coding agents product-level requests rather than implementation
+instructions. The agents discovered the installed SDK skill, used the
+JSON-first CLI, created locked Datasets, ran baseline and no-code candidate
+Runs, compared their results, and followed exact evidence links into Studio.
+The OpenAI Agents journey ran the released SDK from an isolated environment,
+not the repository checkout.
+
+### AI Chat local-place evaluation
+
+Dataset `jjrJX1lCi6u5fRokqi38ph` contains six authored Cases split evenly
+across `CreateDateIdeaResponseNode`, `Chat Turn Workflow`, and `AI Chat Agent`.
+Baseline Run `FhgAq2AUSFlY7jlDcGgcGf` and candidate Run
+`dlYUnb0otGenq8ARhPA01o` both completed with six passes. The comparison aligned
+all six immutable Cases and reported six unchanged results. All twelve
+Attempts resolved to exact evidence without diagnostics, and Studio opened the
+expected focused Node, full Workflow, and Agent views.
+
+This apparently clean result exposed a material evaluator weakness. Both Runs
+recommended "The Islands on Franklin Ave," and the LLM judge confidently
+accepted it as a current, correctly located Crown Heights venue. Current place
+evidence instead located the venue at 671 Washington Avenue and marked it
+permanently closed. The qualitative judge therefore produced a repeatable
+false pass for the factual part of the rubric. The attended review used the
+current [Apple Maps place record](https://maps.apple.com/place?place-id=IF58A648E00BC0745)
+and the [NYC Open Data outdoor-dining record](https://data.cityofnewyork.us/api/views/v2it-fmhh/rows.pdf)
+as corroborating evidence.
+
+### OpenAI Agents mixed-trace evaluation
+
+Dataset `rhIqkkBavEsJlaAOKIzU4o` contains six deterministic Cases across the
+outer OpenAI `Local place coordinator`, the native Junjo `Local place
+workflow`, and the native Junjo `Local place specialist` Agent. Baseline Run
+`NRiqhKHSPRjRFd44j7U0gm` and candidate Run `Du1Soxl2EzOhLPL6hMnvNV` each
+reported three Brooklyn passes and three Astoria failures. Their comparison
+reported six unchanged results and no errors.
+
+All twelve Attempts resolved without evidence diagnostics. An outer-agent
+trace contained 26 spans covering named OpenAI workflow, task, agent, turn,
+model, tool, and guardrail spans together with the nested Junjo Workflow,
+Node, Agent, and model spans. Studio rendered the mixed trace coherently while
+native Junjo targets continued to open their semantic Workflow and Agent
+views. This confirms that the released optional integration preserves both
+third-party and Junjo-native execution evidence in one evaluation flow.
+
+The deterministic `contains_text` evaluator correctly exposed the deliberately
+wrong Astoria fallback, but its failure reason was only "The response does not
+contain the expected text." It is useful as a fixture and contract proof, not
+as a general real-place evaluator: it would reject alternate valid venues and
+does not establish whether a named place exists, is open, or belongs to the
+requested neighborhood.
+
+### Decision 1: run a narrow deterministic real-place experiment
+
+Deterministic verification materially improves the current LLM-judged
+local-place evaluation because it catches a demonstrated, repeatable factual
+false pass. The next experiment should add a complementary factual check, not
+replace the qualitative LLM judge or introduce a generic integration
+framework.
+
+Keep the experiment bounded:
+
+- extract the named venue or venues from the response;
+- verify existence, current operating status, address, and requested
+  neighborhood against an authoritative or reputable current source;
+- return a binary result with a specific reason and the source identity or
+  retrieval time needed to understand the decision;
+- run it against the existing locked AI Chat Dataset alongside the current
+  qualitative judge; and
+- review false positives, false negatives, added latency, and source cost
+  before deciding whether it belongs in the SDK's reusable evaluator surface.
+
+Success means the known closed or mislocated venue fails without incorrectly
+rejecting the valid alternatives already produced by the Dataset. This is an
+evaluation experiment owned by the application until repeated use proves a
+general SDK abstraction is warranted.
+
+### Decision 2: defer MCP
+
+MCP did not demonstrate a material advantage over the JSON-first CLI. Both
+coding-agent journeys completed discovery, Dataset construction, locking,
+execution, comparison, and exact evidence resolution through the released
+CLI. The protocol was not the limiting factor.
+
+The material agent friction was narrower:
+
+- raw `attempt evidence` responses were large enough that agents projected
+  the JSON with `jq`; and
+- simple evaluators produced failure reasons that were correct but not very
+  explanatory.
+
+These are response-projection and evaluator-quality concerns. If they remain
+painful in repeated use, improve the CLI's agent-efficient evidence projection
+and the evaluator's reason text before reconsidering another interaction
+protocol. MCP remains deferred.
+
+The remaining post-MVP items retain their prior order. This validation does
+not justify Dataset families, automatic historical input projection,
+automatic descendant Cases, state- or prompt-shape hashing, paired trace
+alignment, higher runner concurrency, or a generic integration framework.
