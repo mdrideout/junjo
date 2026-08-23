@@ -20,6 +20,8 @@ import {
   transitionStateEventIdentity,
 } from '../workflow-detail/state-event-identity'
 import { SpanIconConstructor } from './determine-span-icon'
+import { SpanKindChip } from './SpanKindChip'
+import { spanPresentation } from './span-presentation'
 import { useNavigate } from 'react-router'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 import { workflowPath } from '../../../util/telemetry-paths'
@@ -103,6 +105,7 @@ export default function FlatStateEventsList({
         const identityKey = identity === null ? null : stateEventIdentityKey(identity)
         const event = identityKey === null ? undefined : rawEventsByIdentity.get(identityKey)
         const span = spansById.get(transition.span_id)
+        const presentation = span === undefined ? null : spanPresentation(span)
         const isActivePatch = identityKey !== null
           && activeStateEvent !== null
           && identityKey === stateEventIdentityKey(activeStateEvent)
@@ -155,7 +158,10 @@ export default function FlatStateEventsList({
                 <SpanIconConstructor span={span} active={isActiveSpan} size="size-3.5" />
               </div>
               <div className="font-normal text-xs">
-                <div className="mb-0.5 font-bold">{span?.name}</div>
+                <div className="mb-0.5 flex items-center gap-x-1 font-bold">
+                  <SpanKindChip kind={presentation?.kind ?? null} />
+                  <span>{presentation?.name}</span>
+                </div>
                 <div className="flex gap-x-1 items-center">
                   <PlayIcon className="size-3.5 text-orange-300" />
                   {transition.sequence}. {storeLabel} &rarr; {transition.action}

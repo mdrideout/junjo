@@ -6,11 +6,12 @@ import {
   spanSelection,
   WorkflowDetailStateActions,
 } from '../workflow-detail/store/slice'
-import { spanNameConstructor } from './span-name-constructor'
+import { spanPresentation } from './span-presentation'
 import { useNavigate } from 'react-router'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
 import { workflowPath } from '../../../util/telemetry-paths'
+import { SpanKindChip } from './SpanKindChip'
 
 interface NestedSpanRowProps {
   span: OtelSpan
@@ -33,8 +34,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
 
   const hasFailures = wrapSpan(span).hasFailureSignal
 
-  // Create the name
-  const name = spanNameConstructor(span)
+  const presentation = spanPresentation(span)
 
   return (
     <div className={`p-1 ${nonJunjoSpan ? 'border-b border-zinc-200 dark:border-zinc-700' : ''}`}>
@@ -42,6 +42,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
         <SpanIconConstructor span={span} active={isActiveSpan} />
         <div className={'w-full flex gap-x-2 justify-between items-end'}>
           <div className={'flex gap-x-2 items-center'}>
+            <SpanKindChip kind={presentation.kind} />
             {junjoSpan && (
               <div className={'flex gap-x-2 items-center'}>
                 <button
@@ -57,7 +58,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                     })
                   }}
                 >
-                  {name}
+                  {presentation.name}
                 </button>
               </div>
             )}
@@ -76,7 +77,7 @@ export default function NestedSpanRow(props: NestedSpanRowProps) {
                   })
                 }}
               >
-                {name}
+                {presentation.name}
               </button>
             )}
 

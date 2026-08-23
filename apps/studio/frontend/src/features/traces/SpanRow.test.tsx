@@ -63,6 +63,9 @@ describe('SpanRow', () => {
     )
     render(<RouterProvider router={router} />)
 
+    expect(screen.getByText('Workflow', { selector: '[data-span-kind="workflow"]' })).toBeVisible()
+    expect(screen.getByText('Test Workflow')).toBeVisible()
+
     const link = screen.getByRole('link', { name: /Workflow Explorer/ })
     const destination = workflowPath(
       span.service_name,

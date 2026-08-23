@@ -4,6 +4,8 @@ import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-ico
 import { Link } from 'react-router'
 import { wrapSpan } from './utils/span-accessor'
 import { workflowPath } from '../../util/telemetry-paths'
+import { SpanKindChip } from '../junjo-data/span-lists/SpanKindChip'
+import { spanPresentation } from '../junjo-data/span-lists/span-presentation'
 
 interface SpanRowProps {
   span: OtelSpan
@@ -20,6 +22,7 @@ export default function SpanRow(props: SpanRowProps) {
   const spanDuration = getSpanDurationString(start_time, end_time)
 
   const hasFailures = wrapSpan(span).hasFailureSignal
+  const presentation = spanPresentation(span)
 
   // Is Junjo Workflow Span
   const isJunjoWorkflowSpan = wrapSpan(span).isWorkflow
@@ -33,7 +36,8 @@ export default function SpanRow(props: SpanRowProps) {
           onClick={() => onClick(span)}
         >
           <div className={'flex gap-x-2 items-center text-sm'}>
-            <div>{span.name}</div>
+            <SpanKindChip kind={presentation.kind} />
+            <div>{presentation.name}</div>
             {isJunjoWorkflowSpan && (
               <Link
                 className={

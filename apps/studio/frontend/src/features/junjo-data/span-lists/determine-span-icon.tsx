@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/solid'
 import { OpenInferenceSpanKind } from '../../traces/schemas/attribute-schemas-openinference'
 import { wrapSpan } from '../../traces/utils/span-accessor'
+import { OpenAILogoIcon } from './openai-logo-icon'
 
 /**
  * Span Icon Constructor
@@ -64,6 +65,12 @@ export function SpanIconConstructor(props: {
   const openInferenceKind = attributes['openinference.span.kind']
   const genAiProvider = attributes['gen_ai.provider.name']
   const genAiOperation = attributes['gen_ai.operation.name']
+
+  // OpenAI Agents SDK Agent and function-tool boundaries receive the OpenAI
+  // mark. Runner, model, and native Junjo spans retain their own icons.
+  if (genAiOperation === 'invoke_agent' || genAiOperation === 'execute_tool') {
+    return <OpenAILogoIcon className={`${size} scale-110 ${iconColor}`} />
+  }
 
   const isLLMSpan =
     openInferenceKind === OpenInferenceSpanKind.LLM ||

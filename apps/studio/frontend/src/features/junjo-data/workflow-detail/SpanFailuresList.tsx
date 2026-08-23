@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import { useAppDispatch } from '../../../root-store/hooks'
 import { OtelSpan } from '../../traces/schemas/schemas'
 import { SpanIconConstructor } from '../span-lists/determine-span-icon'
+import { SpanKindChip } from '../span-lists/SpanKindChip'
+import { spanPresentation } from '../span-lists/span-presentation'
 import { spanSelection, WorkflowDetailStateActions } from './store/slice'
 import { wrapSpan } from '../../traces/utils/span-accessor'
 import { useNavigate } from 'react-router'
@@ -35,6 +37,7 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
     <div ref={scrollableContainerRef} className={'flex flex-col pb-10'}>
       {spans.map((span) => {
         const accessor = wrapSpan(span)
+        const presentation = spanPresentation(span)
         const failureDetails: FailureDetail[] = [
           ...accessor.exceptionEvents.map((event) => ({
             key: `exception-${event.timeUnixNano}`,
@@ -65,6 +68,7 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
           <div key={`span-failure-wrap-${span.span_id}`} className={'px-1 pt-2 pb-5 mb-4'}>
             <div className={'flex gap-x-2 items-center'}>
               <SpanIconConstructor span={span} active={false} />
+              <SpanKindChip kind={presentation.kind} />
               <button
                 className={'font-bold cursor-pointer text-left hover:underline'}
                 onClick={() => {
@@ -79,7 +83,7 @@ export default function SpanFailuresList(props: SpanFailuresListProps) {
                   dispatch(WorkflowDetailStateActions.setOpenFailuresTrigger())
                 }}
               >
-                {span.name}
+                {presentation.name}
               </button>
             </div>
             {failureDetails.map((failure) => {
