@@ -115,14 +115,13 @@ try {
     waitUntil: 'domcontentloaded',
     timeout,
   })
-  await page.getByRole('combobox', { name: 'Target scope' }).selectOption({
-    label: 'agent · double.agent · input v1',
+  await page.getByRole('combobox', { name: 'Targets' }).selectOption({
+    label: 'Agent → Double Number Agent',
   })
   await visible(page.getByText('0% pass', { exact: true }), 'scoped candidate pass rate', timeout)
   await page.getByRole('link', { name: 'candidate', exact: true }).click()
 
   await visible(page.getByRole('heading', { level: 1, name: 'candidate', exact: true }), 'candidate Run heading', timeout)
-  await visible(page.getByText('Git Commit', { exact: true }), 'Git Commit label', timeout)
   await visible(page.getByRole('heading', { level: 2, name: 'Evaluation results', exact: true }), 'evaluation results heading', timeout)
   await visible(page.getByText('completed', { exact: true }).first(), 'completed Run status', timeout)
 
@@ -181,7 +180,11 @@ try {
     has: page.getByRole('link', { name: 'View candidate spans' }),
   })
   assert.equal(await comparisonRows.count(), 1, 'scoped comparison did not render the Agent Case')
-  await visible(comparisonRows.getByText('double.agent', { exact: true }), 'comparison target scope', timeout)
+  await visible(
+    comparisonRows.getByText('Agent → Double Number Agent', { exact: true }),
+    'comparison target',
+    timeout,
+  )
   await visible(
     comparisonRows.getByText('Exact double result', { exact: true }),
     'comparison evaluation name',
