@@ -4,6 +4,8 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+## 0.67.0 - 2026-08-23
+
 ### Breaking Changes
 
 - Replaced `JunjoOtelExporter(host=..., port=...)` with the ordinary

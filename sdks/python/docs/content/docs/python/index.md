@@ -92,6 +92,11 @@ parsing. That adapter does not turn the Workflow itself into an Agent.
 
 You can execute autonomous agent capabilities from other libraries inside a Junjo AI workflow. For example, a Junjo workflow node can run a [smolagents](https://github.com/huggingface/smolagents) tool calling agent as a single step within a greater Junjo workflow or subflow.
 
+Junjo's first-party [OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/)
+lets an OpenAI Agent invoke native Junjo Workflows and Agents as tools while
+both runtimes emit one mixed OpenTelemetry trace and remain available to the
+same Studio-connected evaluation loop.
+
 ## Getting Started
 
 See the [Getting Started](/docs/python/get-started/) page for installation and basic usage.

@@ -12,12 +12,18 @@ Junjo requires Python 3.11 or newer. Python 3.13 is the repository-owned
 development, documentation, and release-build version. Every release must pass
 the Python SDK primary library-health checks from `sdks/python` on Python 3.13:
 
+- `uv sync --frozen --package junjo --extra dev --extra openai-agents`
 - `uv run ruff check .`
 - `uv run pytest -q`
 - `uv run ty check --error-on-warning src`
 - `uv run python docs/export_api.py validate`
 - `uv run python -m build`
 - `uv run twine check dist/*`
+
+The full test collection includes the optional OpenAI Agents integration, so
+the release environment installs that extra explicitly. A separate focused
+gate runs the integration suite against the declared minimum
+`openai-agents==0.21.1` version.
 
 Before publishing the GitHub release, update
 `tooling/docs/stable-releases.json` so the `python` entry selects the exact

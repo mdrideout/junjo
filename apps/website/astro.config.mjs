@@ -10,6 +10,14 @@ const hasAgentGuides = existsSync(
     new URL("./src/content/docs/generated/docs/python/agents/index.md", import.meta.url),
   ),
 );
+const hasOpenAIAgentsGuide = existsSync(
+  fileURLToPath(
+    new URL(
+      "./src/content/docs/generated/docs/python/integrations/openai-agents.md",
+      import.meta.url,
+    ),
+  ),
+);
 
 // https://astro.build/config
 export default defineConfig({
@@ -72,6 +80,19 @@ export default defineConfig({
               label: "Studio-Connected Evaluation",
               slug: "docs/python/evaluation",
             },
+            ...(hasOpenAIAgentsGuide
+              ? [
+                  {
+                    label: "Integrations",
+                    items: [
+                      {
+                        label: "OpenAI Agents SDK",
+                        slug: "docs/python/integrations/openai-agents",
+                      },
+                    ],
+                  },
+                ]
+              : []),
             { label: "API Reference", slug: "docs/python/api" },
           ],
         },

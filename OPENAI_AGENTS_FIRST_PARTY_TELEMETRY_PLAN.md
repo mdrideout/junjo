@@ -739,8 +739,10 @@ architecture before evidence requires one.
 ### Implementation validation record
 
 The first-party bridge was validated on 2026-08-23 against the locked
-`openai-agents==0.22.0` dependency. Its coverage sentinel enumerated all 13
-concrete upstream `SpanData` types:
+`openai-agents==0.22.0` dependency. The same lifecycle, mapping, and provider
+suite also passed against the declared minimum `openai-agents==0.21.1`; that
+minimum-version suite is a permanent Python SDK release gate. The coverage
+sentinel enumerated all 13 concrete upstream `SpanData` types:
 
 ```text
 Agent, Custom, Function, Generation, Guardrail, Handoff, MCPListTools,

@@ -35,7 +35,7 @@ jobs:
         run: python -m pip install uv==0.11.7
 
       - name: Sync Junjo library dependencies
-        run: uv sync --frozen --package junjo --extra dev
+        run: uv sync --frozen --package junjo --extra dev --extra openai-agents
 
       - name: Check lockfile
         run: uv lock --check
@@ -45,6 +45,13 @@ jobs:
 
       - name: Pytest
         run: uv run pytest -q
+
+      - name: Validate minimum OpenAI Agents SDK version
+        run: |
+          uv run --with "openai-agents==0.21.1" pytest -q \
+            tests/junjo/plugins/test_openai_agents.py \
+            tests/junjo/plugins/test_openai_agents_span_mapping.py \
+            tests/junjo/plugins/test_openai_agents_trace_provider.py
 
       - name: Ty
         run: uv run ty check --error-on-warning src
@@ -88,7 +95,7 @@ jobs:
         run: python -m pip install uv==0.11.7
 
       - name: Sync Junjo library dependencies
-        run: uv sync --frozen --package junjo --extra dev
+        run: uv sync --frozen --package junjo --extra dev --extra openai-agents
 
       - name: Pytest
         run: uv run pytest -q
