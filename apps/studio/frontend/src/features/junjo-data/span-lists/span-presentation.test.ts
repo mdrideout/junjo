@@ -44,14 +44,24 @@ describe('spanPresentation', () => {
     expect(spanPresentation(span({
       'gen_ai.operation.name': 'chat',
       'gen_ai.response.model': 'scripted-model',
-    }))).toEqual({ kind: null, name: 'Model call — scripted-model' })
+    }))).toEqual({ kind: 'LLM', name: 'scripted-model' })
   })
 
-  it('separates native Junjo Agent, tool, and Workflow kinds from their names', () => {
+  it('separates native Junjo Agent, Node, LLM, tool, and Workflow kinds from their names', () => {
     expect(spanPresentation(span({
       'junjo.span_type': 'agent',
       'junjo.agent.name': 'Local place specialist',
     }, 'raw agent span'))).toEqual({ kind: 'Agent', name: 'Local place specialist' })
+    expect(spanPresentation(span({
+      'junjo.span_type': 'node',
+    }, 'CreateDateIdeaResponseNode'))).toEqual({
+      kind: 'Node',
+      name: 'CreateDateIdeaResponseNode',
+    })
+    expect(spanPresentation(span({
+      'junjo.agent.operation_type': 'model_request',
+      'junjo.agent.model.name': 'gpt-5',
+    }, 'model request 1'))).toEqual({ kind: 'LLM', name: 'gpt-5' })
     expect(spanPresentation(span({
       'junjo.agent.operation_type': 'tool',
       'junjo.agent.tool.name': 'lookup',
@@ -65,6 +75,22 @@ describe('spanPresentation', () => {
       kind: 'Workflow',
       name: 'Nested local place workflow',
     })
+  })
+
+  it('labels marker-proven OpenAI turn and generation spans', () => {
+    expect(spanPresentation(span({
+      'junjo.openai_agents.schema_version': 1,
+      'junjo.openai_agents.span.type': 'turn',
+    }, 'turn 1 Local place coordinator'))).toEqual({
+      kind: 'Turn',
+      name: '1 Local place coordinator',
+    })
+    expect(spanPresentation(span({
+      'junjo.openai_agents.schema_version': 1,
+      'junjo.openai_agents.span.type': 'generation',
+      'gen_ai.operation.name': 'chat',
+      'gen_ai.request.model': 'scripted-model',
+    }))).toEqual({ kind: 'LLM', name: 'scripted-model' })
   })
 
   it('falls back to the received span name when standard attributes are absent', () => {

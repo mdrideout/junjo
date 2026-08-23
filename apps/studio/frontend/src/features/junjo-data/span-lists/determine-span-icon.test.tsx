@@ -33,7 +33,7 @@ function renderIcon(attributes: Record<string, unknown>) {
 }
 
 describe('SpanIconConstructor', () => {
-  it('uses a 24px OpenAI mark for every OpenAI Agent and tool span', () => {
+  it('uses a 24px OpenAI mark for OpenAI Agent, tool, Turn, and LLM spans', () => {
     const { container } = render(
       <>
         <SpanIconConstructor
@@ -60,11 +60,34 @@ describe('SpanIconConstructor', () => {
           })}
           active={false}
         />
+        <SpanIconConstructor
+          span={span({
+            'junjo.openai_agents.schema_version': 1,
+            'junjo.openai_agents.span.type': 'turn',
+          })}
+          active={false}
+        />
+        <SpanIconConstructor
+          span={span({
+            'junjo.openai_agents.schema_version': 1,
+            'junjo.openai_agents.span.type': 'generation',
+            'gen_ai.operation.name': 'chat',
+          })}
+          active={false}
+        />
+        <SpanIconConstructor
+          span={span({
+            'junjo.openai_agents.schema_version': 1,
+            'junjo.openai_agents.span.type': 'response',
+            'gen_ai.operation.name': 'chat',
+          })}
+          active={false}
+        />
       </>,
     )
 
     const marks = container.querySelectorAll('[data-span-icon="openai-agents"]')
-    expect(marks).toHaveLength(3)
+    expect(marks).toHaveLength(6)
     expect(marks[0]).toHaveClass('size-5', 'scale-[1.2]')
   })
 
@@ -84,6 +107,15 @@ describe('SpanIconConstructor', () => {
     const { container } = renderIcon({
       'junjo.span_type': 'node',
       'gen_ai.operation.name': 'invoke_agent',
+    })
+
+    expect(container.querySelector('[data-span-icon="openai-agents"]')).toBeNull()
+  })
+
+  it('does not use the OpenAI mark for a native Junjo model request', () => {
+    const { container } = renderIcon({
+      'junjo.agent.operation_type': 'model_request',
+      'junjo.agent.model.name': 'gpt-5',
     })
 
     expect(container.querySelector('[data-span-icon="openai-agents"]')).toBeNull()

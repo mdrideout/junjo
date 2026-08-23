@@ -4,7 +4,7 @@ import {
 } from '../../traces/schemas/attribute-schemas-openinference'
 import { OtelSpan } from '../../traces/schemas/schemas'
 
-export type SpanKind = 'Agent' | 'Tool' | 'Workflow'
+export type SpanKind = 'Agent' | 'LLM' | 'Node' | 'Tool' | 'Turn' | 'Workflow'
 
 export interface SpanPresentation {
   kind: SpanKind | null
@@ -23,6 +23,15 @@ export function spanPresentation(span: OtelSpan): SpanPresentation {
       name: attributeName(attributes['junjo.agent.name'], span.name),
     }
   }
+  if (junjoSpanType === 'node') {
+    return { kind: 'Node', name: span.name }
+  }
+  if (junjoOperationType === 'model_request') {
+    return {
+      kind: 'LLM',
+      name: attributeName(attributes['junjo.agent.model.name'], span.name, 'model request'),
+    }
+  }
   if (junjoOperationType === 'tool') {
     return {
       kind: 'Tool',
@@ -31,6 +40,11 @@ export function spanPresentation(span: OtelSpan): SpanPresentation {
   }
   if (junjoSpanType === 'workflow' || junjoSpanType === 'subflow') {
     return { kind: 'Workflow', name: span.name }
+  }
+
+  const openAIAgentsSpanType = attributes['junjo.openai_agents.span.type']
+  if (openAIAgentsSpanType === 'turn') {
+    return { kind: 'Turn', name: attributeName(undefined, span.name, 'turn') }
   }
 
   const genAiOperation = attributes['gen_ai.operation.name']
@@ -58,7 +72,7 @@ export function spanPresentation(span: OtelSpan): SpanPresentation {
       }
     }
     if (['chat', 'text_completion', 'generate_content', 'responses'].includes(genAiOperation)) {
-      return { kind: null, name: label('Model call', modelName, span.name) }
+      return { kind: 'LLM', name: attributeName(modelName, span.name, genAiOperation) }
     }
   }
 
@@ -67,8 +81,8 @@ export function spanPresentation(span: OtelSpan): SpanPresentation {
     const parsedAttributes = OpenInferenceLLMAttributesSchema.safeParse(attributes)
     if (parsedAttributes.success) {
       return {
-        kind: null,
-        name: `${parsedAttributes.data['openinference.span.kind']} - ${parsedAttributes.data['llm.provider']} - ${parsedAttributes.data['llm.model_name']}`,
+        kind: 'LLM',
+        name: `${parsedAttributes.data['llm.provider']} — ${parsedAttributes.data['llm.model_name']}`,
       }
     }
   }
@@ -82,10 +96,4 @@ function attributeName(candidate: unknown, fallback: string, fallbackPrefix?: st
 
   const prefix = `${fallbackPrefix} `
   return fallback.startsWith(prefix) ? fallback.slice(prefix.length) : fallback
-}
-
-function label(kind: string, candidate: unknown, fallback: string): string {
-  return typeof candidate === 'string' && candidate.length > 0
-    ? `${kind} — ${candidate}`
-    : `${kind} — ${fallback}`
 }
