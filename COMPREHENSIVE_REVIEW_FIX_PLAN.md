@@ -187,7 +187,7 @@ code, tests, documentation/ADR impact, and validation commands after review.
 - [x] **M7: Centralize URL construction for opaque path segments.** Encode
   service names and every telemetry-derived route segment exactly once in
   shared API/route builders; decode only through router/backend path handling.
-  Inventory all workflow, trace, prompt-playground, and breadcrumb links and
+  Inventory all workflow, trace, and breadcrumb links and
   test names containing slash, percent, question mark, hash, spaces, and
   Unicode.
   Validated shared builders across UI/API routes, including an authenticated

@@ -95,8 +95,8 @@ Studio's evaluation identities; trace and span IDs are only physical evidence
 pointers.
 
 The evaluation result remains binary. This decision adds no score, hosted
-application executor, uploaded source bundle, prompt playground, or alternate
-evaluation framework.
+application executor, uploaded source bundle, or alternate evaluation
+framework.
 
 ## Consequences
 
