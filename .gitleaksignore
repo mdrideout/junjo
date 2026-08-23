@@ -24,3 +24,10 @@ dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/app/features/intern
 dccf102e986c1714ff3ca84306fe10293ed9b95b:apps/studio/backend/tests/concurrency/test_api_key_races.py:generic-api-key:112
 dd2608cf2d0d42915144291c9ba5e80fa1395481:.github/workflows/studio-rest-api-contract-validation.yml:generic-api-key:60
 dd2608cf2d0d42915144291c9ba5e80fa1395481:.github/workflows/studio-rest-api-contract-validation.yml:generic-api-key:61
+
+# Historical frontend test fixtures introduced while this branch was developed
+# outside master. They are deterministic, visibly synthetic telemetry-key
+# examples; keep the exceptions fingerprint-scoped so current code is scanned.
+804b4e6f8c5a6c6233eb9dcb6d5cf8b08644b441:apps/studio/frontend/src/features/api-keys/ApiKeysPage.test.tsx:generic-api-key:52
+804b4e6f8c5a6c6233eb9dcb6d5cf8b08644b441:apps/studio/frontend/src/features/api-keys/ApiKeysPage.test.tsx:generic-api-key:81
+2887061f11300282cc8e420b389d0883616ec403:apps/studio/frontend/src/features/api-keys/ApiKeysPage.test.tsx:generic-api-key:87
