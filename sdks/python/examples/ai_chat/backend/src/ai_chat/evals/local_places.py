@@ -150,6 +150,23 @@ VERIFIED_PLACES = (
         verified_on=_VERIFIED_ON,
     ),
     VerifiedPlace(
+        id="herbert-von-king-park",
+        name="Herbert Von King Park",
+        aliases=("Herbert Von King Park",),
+        neighborhood="Bedford-Stuyvesant",
+        address=(
+            "Marcy Avenue and Tompkins Avenue between Greene Avenue and "
+            "Lafayette Avenue, Brooklyn, NY 11216"
+        ),
+        operating=True,
+        source_name="NYC Open Data accessible parks directory",
+        source_url=(
+            "https://data.cityofnewyork.us/Recreation/"
+            "Directory-of-Accessible-Parks-Facilities-and-Prog/e4ej-j6hn/about_data"
+        ),
+        verified_on=_VERIFIED_ON,
+    ),
+    VerifiedPlace(
         id="ras-plant-based",
         name="RAS Plant Based",
         aliases=("RAS Plant Based", "Ras Plant Based"),

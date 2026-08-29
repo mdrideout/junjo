@@ -236,6 +236,17 @@ def test_neighborhood_claims_accept_local_name_variants() -> None:
     assert border.passed is True
 
 
+def test_calibrated_bed_stuy_park_is_source_verified() -> None:
+    result = verify_local_place_claims(
+        (_claim("Sincerely, Tommy"), _claim("Herbert Von King Park")),
+        verified_place_ids=("sincerely-tommy", "herbert-von-king-park"),
+        minimum_verified_places=2,
+    )
+
+    assert result.passed is True
+    assert "NYC Open Data accessible parks directory" in result.reason
+
+
 def _claim(
     name: str,
     *,
