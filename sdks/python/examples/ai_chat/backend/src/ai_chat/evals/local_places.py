@@ -178,6 +178,17 @@ VERIFIED_PLACES = (
         verified_on=_VERIFIED_ON,
     ),
     VerifiedPlace(
+        id="king-tai",
+        name="King Tai",
+        aliases=("King Tai", "King Tai Bar"),
+        neighborhood="Crown Heights",
+        address="1095 Bergen Street, Brooklyn, NY 11216",
+        operating=True,
+        source_name="King Tai official site",
+        source_url="https://www.kingtaibar.com/about",
+        verified_on=_VERIFIED_ON,
+    ),
+    VerifiedPlace(
         id="la-napa",
         name="La Ñapa",
         aliases=("La Ñapa", "La Napa"),
@@ -235,6 +246,17 @@ VERIFIED_PLACES = (
         operating=True,
         source_name="New York State Literary Tree record",
         source_url="https://nyslittree.org/locations/books-are-magic/",
+        verified_on=_VERIFIED_ON,
+    ),
+    VerifiedPlace(
+        id="center-for-fiction",
+        name="The Center for Fiction",
+        aliases=("The Center for Fiction", "Center for Fiction"),
+        neighborhood="Downtown Brooklyn",
+        address="15 Lafayette Avenue, Brooklyn, NY 11217",
+        operating=True,
+        source_name="The Center for Fiction official site",
+        source_url="https://centerforfiction.org/visit/",
         verified_on=_VERIFIED_ON,
     ),
     VerifiedPlace(
@@ -429,5 +451,11 @@ def _accepted_neighborhood_claims(place: VerifiedPlace) -> tuple[str, ...]:
             place.neighborhood,
             "Boerum Hill",
             "Cobble Hill and Boerum Hill border",
+        )
+    if place.id == "center-for-fiction":
+        return (
+            place.neighborhood,
+            "Fort Greene",
+            "Brooklyn Cultural District",
         )
     return (place.neighborhood,)

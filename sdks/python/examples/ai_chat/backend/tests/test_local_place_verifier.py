@@ -247,6 +247,45 @@ def test_calibrated_bed_stuy_park_is_source_verified() -> None:
     assert "NYC Open Data accessible parks directory" in result.reason
 
 
+def test_calibrated_crown_heights_bar_is_source_verified() -> None:
+    result = verify_local_place_claims(
+        (_claim("RAS Plant Based"), _claim("King Tai Bar")),
+        verified_place_ids=("ras-plant-based", "king-tai"),
+        minimum_verified_places=1,
+    )
+
+    assert result.passed is True
+    assert "King Tai official site" in result.reason
+
+
+@pytest.mark.parametrize(
+    "neighborhood",
+    ["Downtown Brooklyn", "Fort Greene", "Brooklyn Cultural District"],
+)
+def test_calibrated_center_for_fiction_accepts_current_boundary_names(
+    neighborhood: str,
+) -> None:
+    result = verify_local_place_claims(
+        (_claim("The Center for Fiction", neighborhood=neighborhood),),
+        verified_place_ids=("center-for-fiction",),
+        minimum_verified_places=1,
+    )
+
+    assert result.passed is True
+    assert "15 Lafayette Avenue" in result.reason
+
+
+def test_center_for_fiction_is_not_recorded_in_boerum_hill() -> None:
+    result = verify_local_place_claims(
+        (_claim("The Center for Fiction", neighborhood="Boerum Hill"),),
+        verified_place_ids=("center-for-fiction",),
+        minimum_verified_places=1,
+    )
+
+    assert result.passed is False
+    assert "Downtown Brooklyn" in result.reason
+
+
 def _claim(
     name: str,
     *,
