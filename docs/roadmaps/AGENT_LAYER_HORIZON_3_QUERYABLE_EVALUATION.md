@@ -1252,9 +1252,12 @@ After the local-place vertical proof:
   adapter; and
 - add richer aggregate and repeated-run comparison.
 
-Horizon 4 then builds autonomous cohort discovery, improvement proposals, and
-governed agent-led iteration on these stable primitives. Basic agent access to
-datasets and evaluation evidence is part of Horizon 3.
+Horizon 4 then builds read-oriented cohort discovery, evidence analysis, and
+bounded investigation or evaluation-case proposals on these stable primitives.
+Basic agent access to datasets and evaluation evidence is part of Horizon 3;
+attended developer or coding-agent source candidates continue to use the
+Horizon 3 loop. Autonomous Junjo-directed candidate generation, recursive
+iteration, promotion, and rollback remain Horizon 7 responsibilities.
 
 ## AI Chat Local-Place Realism Vertical Proof
 

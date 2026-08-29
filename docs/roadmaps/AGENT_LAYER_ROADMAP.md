@@ -515,9 +515,10 @@ concurrency matrices. AI Chat does not duplicate those kernel tests.
 
 ### Horizon 3: Studio Eval Measurement And Comparison
 
-Status: Lean MVP released in Python SDK 0.67.0 and Studio 0.83.0. Broader
-Horizon 3 work is evidence-led; staged evidence reads and evaluator calibration
-are the immediate post-MVP slice.
+Status: Lean MVP released in Python SDK 0.67.0 and Studio 0.83.0. Staged
+evidence reads, evaluator calibration, and the truthful factual-shortlist
+comparison are complete. Broader Horizon 3 work remains evidence-led; no
+additional P1 platform slice is currently accepted.
 
 Horizon 2 restores application-owned live evals as a core AI Chat development
 practice. Horizon 3 builds platform-level measurement and comparison on top of
@@ -587,8 +588,10 @@ authority.
   and propose bounded dataset cases or an investigation using Horizon 3
   contracts.
 - Studio remains the owner of physical telemetry storage and query mechanics.
-- Analysis remains read-oriented; candidate generation, automated iteration,
-  promotion, and rollback remain Horizon 7 responsibilities.
+- Analysis remains read-oriented. Attended developer or coding-agent source
+  candidates continue to use the Horizon 3 loop; autonomous Junjo-directed
+  candidate generation, recursive iteration, promotion, and rollback remain
+  Horizon 7 responsibilities.
 
 ### Horizon 5: Versioned Object And Schema Substrate
 

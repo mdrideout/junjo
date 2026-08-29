@@ -560,12 +560,13 @@ Exit gate:
 
 ### Next
 
-- Keep the current-place verifier application-local. Use it only for named-fact
-  or closed-set Cases, or add a real current-data resolver in the application
-  before claiming open-ended factual coverage.
-- Run another attended baseline/candidate loop only after that truthful Case
-  contract exists. Reconsider MCP only if the improved JSON-first workflow
-  then demonstrates material protocol friction.
+- Productization, staged evidence ergonomics, and the requested truthful
+  closed-set baseline/candidate proof are complete. The accepted result is
+  recorded in the
+  [Lean Evaluation MVP](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md).
+- Keep open-ended current-fact resolution application-owned. Accept another
+  Horizon 3 P1 slice only when application-developer usage demonstrates the
+  corresponding need; this experiment did not justify one.
 
 ### Deferred
 

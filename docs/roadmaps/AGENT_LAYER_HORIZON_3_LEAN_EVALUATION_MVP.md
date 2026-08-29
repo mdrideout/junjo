@@ -1,6 +1,6 @@
 # Horizon 3 Evaluation: Lean MVP Critical Path
 
-- Status: Released; staged evidence and factual-verifier experiments completed
+- Status: Released; staged evidence and truthful factual-shortlist experiments completed
 - Date: 2026-07-27
 - Owners: Junjo platform
 - Parent strategy:
@@ -1427,3 +1427,65 @@ real current-data resolver as an application capability. Do not move the
 allowlist after candidate results and do not present unknown coverage as a
 regression. The remaining post-MVP decision order stays deferred until that
 truthful evaluation contract demonstrates another concrete need.
+
+## 2026-08-29 Truthful Factual-Shortlist Comparison
+
+Status: completed. The closed-set evaluation contract demonstrated a real
+application improvement without requiring another SDK or Studio abstraction.
+
+An initial six-Case calibration Dataset, `sSt3MPw0LoK389lHh0yH0v`, exercised
+two Node, two Workflow, and two Agent targets. Run `kqeSs90wdtemoLKsjfRKM5`
+passed all four ordinary shortlist Cases and failed both Crown Heights Cases
+when the response selected the permanently closed Islands. This was a useful
+boundary result: the bounded shortlist avoided unknown-output coverage errors
+in this run while keeping evaluator coverage explicit, but a list of names does
+not supply current operating facts to the application. The Agent result was
+also not evidence about the date-response Node because that target executes the
+Agent directly.
+
+The definitive locked Dataset, `NjPLRUCEJ5W6pEPQqdGF8X`, therefore contained
+only the affected focused Node and complete Workflow. Both received the same
+finite candidate set and the same explicit current facts: Gold Star Beer
+Counter is operating and The Islands is permanently closed. The human-named
+evaluation, `Truthful factual shortlist response`, required Gold Star as the
+sole positive recommendation and prohibited invented prior visits or other
+personal history absent from the profile and conversation.
+
+Baseline Run `M4a6QFmA92ksblDANFiDyq` executed revision
+`ab5253d233198e38b39cc359fbee54cea26eed8f`, whose date-response directive asked
+for places the persona had visited or plausibly wanted to visit. Both Cases
+failed after the responses claimed multiple prior visits to Gold Star. Candidate
+Run `El95hPwkt7RT9ErDUvhyf9` executed revision
+`e7d3af09a6a13e09263ffc7f18b6e4f3ba1bc406`, whose isolated application change
+prohibits invented visits and unsupported current-place claims. Both Cases
+passed: the responses explicitly denied prior experience, selected Gold Star,
+and rejected the supplied closed alternative. The comparison reported two
+improvements, zero regressions, and no errors.
+
+Every Attempt manifest had complete integrity, zero evidence diagnostics, and
+zero execution failures. The focused Node traces contained seven spans; the
+complete Workflow traces contained thirteen and showed that the Workflow
+selected `CreateDateIdeaResponseNode`. Selected model-operation spans exposed
+the exact prompt and response difference. Full evidence was unnecessary.
+
+Decision:
+
+- the truthful closed-set pattern provides a useful application evaluation
+  when the target sees the same bounded facts used by the evaluator;
+- the prompt correction materially improved this specific grounded-persona
+  behavior at both focused and end-to-end scope;
+- this two-Case attended proof is causal product evidence, not a statistical
+  reliability claim;
+- a prompt still cannot authoritatively resolve current facts that are not in
+  its input, so open-ended current-place behavior still requires an
+  application-owned current-data capability before it can be judged as factual;
+- the existing JSON-first comparison, manifest, and selected-span interfaces
+  were sufficient; and
+- the run exposed no need for MCP, a generic place service, Dataset families,
+  automatic trace alignment, historical projection, higher concurrency, or
+  another Horizon 3 platform abstraction.
+
+No additional P1 implementation is accepted from this experiment. A future
+Horizon 3 slice should begin with observed application-developer friction; the
+remaining P1 stories stay ordered behind that evidence rather than being built
+for north-star completeness.
