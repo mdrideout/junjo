@@ -23,7 +23,7 @@ from junjo.evaluation import (
     WorkflowInvocation,
     WorkflowTarget,
 )
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ai_chat.application.chat_agent import create_chat_agent
 from ai_chat.application.chat_agent.definition import CHAT_AGENT_NAME
@@ -48,7 +48,8 @@ from ai_chat.domain.models import (
     TurnStatus,
 )
 from ai_chat.evals.fixtures import create_fixed_contact, fixed_contact_profile
-from ai_chat.evals.judges import judge_text
+from ai_chat.evals.judges import judge_local_place_text, judge_text
+from ai_chat.evals.local_places import VERIFIED_PLACES_BY_ID, verify_local_place_claims
 from ai_chat.telemetry import TelemetryRuntime, start_telemetry
 
 APPLICATION_KEY = "ai_chat"
@@ -58,6 +59,8 @@ CHAT_AGENT_TARGET = "chat"
 LOCAL_PLACE_INPUT_VERSION = 1
 TEXT_QUALITY_EVALUATOR = "text.quality"
 TEXT_QUALITY_EVALUATOR_VERSION = 1
+LOCAL_PLACE_QUALITY_EVALUATOR = "local_place.quality"
+LOCAL_PLACE_QUALITY_EVALUATOR_VERSION = 1
 
 
 class LocalPlaceInputV1(BaseModel):
@@ -90,6 +93,36 @@ class TextQualityExpectationV1(BaseModel):
         if not normalized:
             raise ValueError("Text-quality rubric cannot be blank.")
         return normalized
+
+
+class LocalPlaceQualityExpectationV1(BaseModel):
+    """Qualitative rubric plus explicit current-place facts for one Case."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    rubric: str = Field(min_length=1, max_length=8_000)
+    verified_place_ids: tuple[str, ...] = Field(min_length=1)
+    minimum_verified_places: int = Field(default=1, ge=1)
+
+    @field_validator("rubric")
+    @classmethod
+    def normalize_rubric(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Local-place quality rubric cannot be blank.")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_verified_places(self) -> LocalPlaceQualityExpectationV1:
+        if len(set(self.verified_place_ids)) != len(self.verified_place_ids):
+            raise ValueError("Verified place IDs must be unique.")
+        unknown_ids = set(self.verified_place_ids).difference(VERIFIED_PLACES_BY_ID)
+        if unknown_ids:
+            unknown = ", ".join(sorted(unknown_ids))
+            raise ValueError(f"Unknown verified place IDs: {unknown}.")
+        if self.minimum_verified_places > len(self.verified_place_ids):
+            raise ValueError("Minimum verified places cannot exceed the verified place count.")
+        return self
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +165,21 @@ def text_quality_expectation(rubric: str) -> dict[str, object]:
     """Build the explicit version-one text-quality expectation."""
 
     return TextQualityExpectationV1(rubric=rubric).model_dump(mode="json")
+
+
+def local_place_quality_expectation(
+    rubric: str,
+    *,
+    verified_place_ids: tuple[str, ...],
+    minimum_verified_places: int = 1,
+) -> dict[str, object]:
+    """Build the version-one local-place quality expectation."""
+
+    return LocalPlaceQualityExpectationV1(
+        rubric=rubric,
+        verified_place_ids=verified_place_ids,
+        minimum_verified_places=minimum_verified_places,
+    ).model_dump(mode="json")
 
 
 async def _date_node_factory(
@@ -299,6 +347,40 @@ async def _text_quality_callback(
     )
 
 
+async def _local_place_quality_callback(
+    subject: object,
+    expectation: LocalPlaceQualityExpectationV1,
+    context: EvaluationContext,
+    resources: EvaluationRuntime,
+) -> EvaluationResult:
+    del context
+    if not isinstance(subject, str):
+        raise TypeError("AI Chat local-place evaluation requires a string subject.")
+    _assistant_response(subject)
+    judgment = await judge_local_place_text(
+        language=resources.provider.language,
+        rubric=expectation.rubric,
+        subject=subject,
+    )
+    factual = verify_local_place_claims(
+        judgment.places,
+        verified_place_ids=expectation.verified_place_ids,
+        minimum_verified_places=expectation.minimum_verified_places,
+    )
+    if not factual.passed:
+        return EvaluationResult(passed=False, reason=factual.reason)
+
+    if not judgment.passed:
+        return EvaluationResult(
+            passed=False,
+            reason=f"{factual.reason} Qualitative check failed: {judgment.reason}",
+        )
+    return EvaluationResult(
+        passed=True,
+        reason=f"{factual.reason} Qualitative check passed: {judgment.reason}",
+    )
+
+
 @asynccontextmanager
 async def evaluation_runtime() -> AsyncIterator[EvaluationRuntime]:
     """Run the same provider and telemetry lifetime as an application host."""
@@ -409,6 +491,14 @@ def _text_subject(*, profile_json: str, message: str, response: str) -> str:
     return f"PROFILE:\n{profile_json}\n\nCURRENT USER MESSAGE:\n{message}\n\nASSISTANT RESPONSE:\n{response}"
 
 
+def _assistant_response(subject: str) -> str:
+    marker = "\n\nASSISTANT RESPONSE:\n"
+    _, separator, response = subject.partition(marker)
+    if not separator or not response.strip():
+        raise ValueError("AI Chat local-place subject has no assistant response.")
+    return response.strip()
+
+
 harness = EvaluationHarness(
     application_key=APPLICATION_KEY,
     service_identity=ExecutionServiceIdentity(
@@ -447,6 +537,12 @@ harness = EvaluationHarness(
             version=TEXT_QUALITY_EVALUATOR_VERSION,
             expectation_type=TextQualityExpectationV1,
             callback=_text_quality_callback,
+        ),
+        CallbackEvaluator(
+            key=LOCAL_PLACE_QUALITY_EVALUATOR,
+            version=LOCAL_PLACE_QUALITY_EVALUATOR_VERSION,
+            expectation_type=LocalPlaceQualityExpectationV1,
+            callback=_local_place_quality_callback,
         ),
     ),
     runtime_context=evaluation_runtime,

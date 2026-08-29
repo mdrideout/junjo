@@ -113,6 +113,14 @@ judgment, and never re-executes an Attempt whose subject is already bound.
 Evaluation spans retain the truthful `junjo.examples/ai-chat` application
 Resource; there is no fake eval service.
 
+The harness also declares the application-owned
+`local_place.quality:v1` composite evaluator. One structured provider response
+judges the qualitative rubric and transcribes literal recommended-place
+claims; deterministic application code resolves every claim against the
+example's source-attributed current-place snapshot. The snapshot is bounded
+evaluation data, not application retrieval logic: ordinary AI Chat requests do
+not read it, and Studio or the Junjo SDK do not own its place semantics.
+
 Generated cases run the same real Node, Workflow, or Agent before Studio adds
 their explicit provenance. The observed output remains evidence, never an
 automatically accepted expectation:

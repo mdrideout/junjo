@@ -9,7 +9,13 @@ from pydantic import BaseModel
 
 from ai_chat.config import ModelProvider, Settings
 from ai_chat.evals.agent_evidence import tool_transcript_evidence
-from ai_chat.evals.judges import QualityJudgment, judge_text
+from ai_chat.evals.judges import (
+    LocalPlaceQualityJudgment,
+    QualityJudgment,
+    judge_local_place_text,
+    judge_text,
+)
+from ai_chat.evals.local_places import RecommendedPlaceClaim
 from ai_chat.evals.provider import judge_images
 
 StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
@@ -50,6 +56,62 @@ async def test_text_judge_uses_closed_schema_and_explicit_rubric() -> None:
     assert "Junjo is present." in language.prompt
     assert "exact observation" in language.prompt
     assert "do not assume current facts" in language.prompt
+
+
+async def test_local_place_judge_extracts_claims_without_owning_current_facts() -> None:
+    class RecordingLocalPlaceLanguage(RecordingJudgeLanguage):
+        async def generate_structured(
+            self,
+            *,
+            prompt: str,
+            output_type: type[StructuredOutput],
+        ) -> StructuredOutput:
+            self.prompt = prompt
+            return output_type.model_validate(
+                {
+                    "passed": True,
+                    "reason": "Both choices suit a quiet local date.",
+                    "places": [
+                        {
+                            "name": "Books Are Magic",
+                            "street_or_address": "Smith Street",
+                            "neighborhood": None,
+                        },
+                        {
+                            "name": "Bien Cuit",
+                            "street_or_address": None,
+                            "neighborhood": "Boerum Hill",
+                        },
+                    ],
+                }
+            )
+
+    language = RecordingLocalPlaceLanguage()
+
+    judgment = await judge_local_place_text(
+        language=language,
+        rubric="Recommend a nearby bookstore and cafe.",
+        subject="ASSISTANT RESPONSE:\nTry Books Are Magic on Smith Street, then Bien Cuit in Boerum Hill.",
+    )
+
+    assert judgment == LocalPlaceQualityJudgment(
+        passed=True,
+        reason="Both choices suit a quiet local date.",
+        places=(
+            RecommendedPlaceClaim(
+                name="Books Are Magic",
+                street_or_address="Smith Street",
+            ),
+            RecommendedPlaceClaim(
+                name="Bien Cuit",
+                neighborhood="Boerum Hill",
+            ),
+        ),
+    )
+    assert language.prompt is not None
+    assert "every specific venue" in language.prompt
+    assert "Do not infer, correct, omit, or add place facts" in language.prompt
+    assert "separate deterministic verifier" in language.prompt
 
 
 async def test_visual_judge_rejects_missing_inputs_before_provider_access(
