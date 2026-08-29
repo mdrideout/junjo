@@ -1,6 +1,6 @@
 # Horizon 3 Evaluation: Lean MVP Critical Path
 
-- Status: Implemented and validated
+- Status: Released; staged evidence ergonomics implemented
 - Date: 2026-07-27
 - Owners: Junjo platform
 - Parent strategy:
@@ -654,20 +654,17 @@ public client DTOs and typed errors. The frontend adds Zod read schemas only
 for the evaluation-run list and detail responses. Existing `TraceEvidence`,
 execution-resolution, and ingestion structures remain reusable.
 
-The SDK client retrieves execution evidence by composing existing APIs:
+The SDK client resolves an Attempt's semantic execution reference through the
+existing resolver and exposes four explicit evidence levels: the bounded
+Attempt summary, a compact evidence manifest, exact selected spans, and the
+existing lossless full trace evidence. `404` remains telemetry not received or
+indexed yet; `409` remains an ambiguous identity requiring inspection.
 
-1. read the attempt's semantic execution reference;
-2. call the existing `/api/v1/execution-resolution` endpoint;
-3. treat `404` as telemetry not received or indexed yet and `409` as ambiguous
-   identity requiring inspection; and
-4. after resolution, call the existing
-   `/api/v1/trace-evidence/{trace_id}` endpoint.
-
-No new broad trace-query endpoint or automatic per-case evidence hydration is
-required. The exact evidence-membership operation supplies the reverse
-control-plane lookup when the agent starts with a semantic runtime identity.
-Starting with a trace ID, the agent first reads `TraceEvidence`, selects the
-relevant exact executable-owner identity, and performs that same lookup.
+No broad trace-query language or automatic per-case evidence hydration is
+required. Exact evidence membership supplies the reverse control-plane lookup
+when the agent starts with a semantic runtime identity. The accepted contract
+and its low-resource constraints are owned by
+[Studio ADR 010](../../apps/studio/docs/adr/010-evaluation-control-persistence-and-api.md).
 
 ### MVP Programmatic Authentication
 
@@ -1314,3 +1311,46 @@ The remaining post-MVP items retain their prior order. This validation does
 not justify Dataset families, automatic historical input projection,
 automatic descendant Cases, state- or prompt-shape hashing, paired trace
 alignment, higher runner concurrency, or a generic integration framework.
+
+## 2026-08-29 Evidence Ergonomics And Evaluator Calibration Follow-Up
+
+Status: implemented and validated.
+
+The attended runs established that complete evidence is useful and lossless,
+but fetching it for every Attempt is unnecessary agent context. The accepted
+follow-up keeps one evidence model and adds explicit read levels:
+
+1. Run and Attempt control summaries for broad result review;
+2. a compact evidence manifest for failure triage and trace-shape discovery;
+3. complete records for an explicit list of relevant span IDs; and
+4. the existing full evidence envelope for whole-trace analysis.
+
+The manifest includes the evaluated subject, every failed span, executable and
+operation summaries, Store integrity, relationships, diagnostics, and the IDs
+needed for the next query. Full evidence remains lossless. There is no generic
+include/exclude language, automatic list hydration, or new ingestion-path work.
+The durable contract and constraints are owned by
+[Studio ADR 010](../../apps/studio/docs/adr/010-evaluation-control-persistence-and-api.md),
+and the agent acceptance flow is owned by the
+[evaluation user stories](AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md).
+
+The JSON-first CLI also gains `junjo eval explain`: Markdown by default for an
+agent or developer, with a versioned JSON form for tooling. It explains current
+commands, configuration, authentication boundaries, evidence levels, and
+output behavior from the CLI's canonical definitions. It is not a remote
+Markdown endpoint or a second handwritten command reference. Exact REST
+contracts remain in OpenAPI; the installed evaluation skill owns workflow
+judgment.
+
+Evaluator guidance now requires one understandable product claim, observable
+binary conditions, and calibration against known-good, known-bad, and boundary
+examples. Deterministic facts use deterministic checks. An evaluator supplies
+the decision and a concise reason; the coding agent performs deeper source and
+trace diagnosis. This narrows the LLM judge's job without pretending its memory
+is an authoritative current-place database.
+
+Validation for this follow-up covers backend authorization and evidence
+projection, SDK DTO/OpenAPI compatibility, CLI help/explainer generation,
+selected-span and missing-ID behavior, full-evidence equivalence, skill and
+public-doc parity, deterministic example pass/fail behavior, and an attended
+local Studio/AI Chat query from summary through manifest and selected spans.

@@ -80,6 +80,12 @@ EDD accelerates complex workflow development by allowing one to iterate on their
 - The live `node.py` LLM call is executed to generate the result and state update for evaluation
 - Test failures include reasons why the prompt failed to generate output that passed the evaluation. See the `test_schema.py`.
 
+Before relying on an evaluator for comparisons, exercise it against a known-good
+output, a known-bad output, and a boundary case. Each evaluator should answer one
+understandable product claim, make a binary decision, and explain the requirement
+that decided it. Prefer ordinary deterministic checks for deterministic facts;
+use an LLM judge only where the claim genuinely requires judgment.
+
 On mission critical workflows, this setup can be used to orchestrate hundreds or thousands of test inputs against a prompt to ensure it covers all use cases well.
 
 #### Testing Model Changes
@@ -88,7 +94,9 @@ This is also a great way to evaluate whether changing LLM models increases or de
 
 ## Running The Sample Evals: `create_joke_node`
 
-This eval is strict and likely to fail all cases. This is to demonstrate the information provided by this eval pattern, that can inform improvements to prompts and workflow steps.
+This command runs each input through the real Node lifecycle and then applies the
+example's joke-quality evaluator. Inspect both passing and failing explanations
+when calibrating the evaluator for your own application.
 
 ```bash
 # Run the pytest command from this directory.

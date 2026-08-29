@@ -48,6 +48,8 @@ async def test_text_judge_uses_closed_schema_and_explicit_rubric() -> None:
     assert language.prompt is not None
     assert "Must mention Junjo." in language.prompt
     assert "Junjo is present." in language.prompt
+    assert "exact observation" in language.prompt
+    assert "do not assume current facts" in language.prompt
 
 
 async def test_visual_judge_rejects_missing_inputs_before_provider_access(

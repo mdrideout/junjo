@@ -164,6 +164,8 @@ RecordId = Annotated[
     str,
     Field(min_length=1, max_length=MAX_RECORD_ID_BYTES),
 ]
+TraceId = Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
+SpanId = Annotated[str, Field(pattern=r"^[0-9a-f]{16}$")]
 
 
 def dump_bounded_json(value: JsonValue) -> str:
@@ -279,8 +281,8 @@ class OpenTelemetrySpanReference(StudioDto):
         description="Exact normalized service.namespace; empty is explicit",
     )
     service_name: ExecutionIdentityText
-    trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
-    span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
+    trace_id: TraceId
+    span_id: SpanId
 
 
 ExecutionEvidenceReference = Annotated[
@@ -587,8 +589,8 @@ class ExecutionResolutionRead(StudioDto):
     service_name: str = Field(min_length=1)
     executable_type: ExecutableType
     runtime_id: str = Field(min_length=1)
-    trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
-    span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
+    trace_id: TraceId
+    span_id: SpanId
     detail_path: str = Field(pattern=r"^/")
     trace_path: str = Field(pattern=r"^/")
     failure_path: str = Field(pattern=r"^/")
@@ -599,8 +601,8 @@ class OpenTelemetrySpanResolutionRead(StudioDto):
 
     service_namespace: ServiceNamespaceText
     service_name: ExecutionIdentityText
-    trace_id: str = Field(pattern=r"^[0-9a-f]{32}$")
-    span_id: str = Field(pattern=r"^[0-9a-f]{16}$")
+    trace_id: TraceId
+    span_id: SpanId
     detail_path: str = Field(pattern=r"^/")
     trace_path: str = Field(pattern=r"^/")
 
@@ -636,3 +638,178 @@ class AttemptEvidence(StudioDto):
     attempt: AttemptDetail
     resolution: ExecutionResolutionRead | OpenTelemetrySpanResolutionRead
     evidence: TraceEvidenceRead
+
+
+EvidenceSemanticKind = Literal[
+    "agent",
+    "workflow",
+    "subflow",
+    "node",
+    "run_concurrent",
+    "model",
+    "tool",
+    "span",
+]
+EvidenceOutcome = Literal["completed", "failed", "cancelled"]
+
+
+class AttemptEvidenceSubject(StudioDto):
+    """Exact Attempt subject and its resolved Studio evidence paths."""
+
+    attempt_id: RecordId
+    reference: ExecutionEvidenceReference
+    trace_id: TraceId
+    span_id: SpanId
+    detail_path: str = Field(pattern=r"^/")
+    failure_path: str = Field(pattern=r"^/")
+    trace_path: str = Field(pattern=r"^/")
+
+
+class AttemptEvidenceTraceSummary(StudioDto):
+    """Bounded shape of the trace containing an evaluated subject."""
+
+    trace_id: TraceId
+    span_count: int = Field(ge=1)
+    root_span_ids: tuple[SpanId, ...]
+
+
+class AttemptEvidenceSpanSummary(StudioDto):
+    """Compact selectable identity and outcome for one span in a trace."""
+
+    span_id: SpanId
+    parent_span_id: SpanId | None
+    name: str
+    semantic_kind: EvidenceSemanticKind
+    status_code: str
+    start_time: str
+    end_time: str
+    failed: bool
+    span_path: str = Field(pattern=r"^/")
+
+
+class AttemptEvidenceFailureSummary(StudioDto):
+    """Bounded failure facts for one failed span; complete detail is selectable."""
+
+    span_id: SpanId
+    parent_span_id: SpanId | None
+    name: str
+    semantic_kind: EvidenceSemanticKind
+    status_code: str
+    start_time: str
+    end_time: str
+    exception_type: str | None
+    exception_message: str | None
+    stacktrace_available: bool
+    owner_span_id: SpanId | None
+    owner_runtime_id: str | None
+    span_path: str = Field(pattern=r"^/")
+
+
+class AttemptEvidenceExecutableSummary(StudioDto):
+    """Compact semantic executable identity and integrity projection."""
+
+    owner_span_id: SpanId
+    executable_type: Literal["agent", "workflow", "subflow"]
+    name: str
+    runtime_id: str | None
+    store_id: str | None
+    outcome: EvidenceOutcome | None
+    status_code: str
+    failed: bool
+    integrity: JsonObject
+
+
+class AttemptEvidenceOperationSummary(StudioDto):
+    """Compact model or Tool operation identity and terminal outcome."""
+
+    owner_span_id: SpanId | None
+    owner_runtime_id: str | None
+    span_id: SpanId
+    operation_type: Literal["model_request", "tool"]
+    name: str
+    outcome: EvidenceOutcome
+    duration_ns: int | None = Field(ge=0)
+    error_type: str | None
+    error_message: str | None
+
+
+class AttemptEvidenceStoreSummary(StudioDto):
+    """Compact Store reconstruction status for one semantic executable owner."""
+
+    store_id: str | None
+    owner_span_id: SpanId
+    owner_runtime_id: str | None
+    owner_executable_type: Literal["workflow", "subflow", "agent"]
+    available: bool
+    transition_count: int = Field(ge=0)
+    reconstructable: bool
+    reconstruction_status: Literal[
+        "verified",
+        "policy_unavailable",
+        "failed",
+        "not_applicable",
+    ]
+    integrity: JsonObject
+
+
+class AttemptEvidenceRelationships(StudioDto):
+    """Parent and nested executable references attached to one owner span."""
+
+    parent: JsonObject | None = None
+    nested: tuple[JsonObject, ...] = ()
+
+
+class AttemptEvidenceDiagnostic(StudioDto):
+    """One trace- or executable-scoped evidence integrity diagnostic."""
+
+    scope: Literal["trace", "executable"]
+    owner_span_id: SpanId | None = None
+    issue: JsonObject
+
+
+class AttemptEvidenceManifest(StudioDto):
+    """Bounded trace manifest used to select evidence before full hydration."""
+
+    subject: AttemptEvidenceSubject
+    trace: AttemptEvidenceTraceSummary
+    spans: tuple[AttemptEvidenceSpanSummary, ...]
+    failures: tuple[AttemptEvidenceFailureSummary, ...]
+    executables: tuple[AttemptEvidenceExecutableSummary, ...]
+    operations: tuple[AttemptEvidenceOperationSummary, ...]
+    stores: tuple[AttemptEvidenceStoreSummary, ...]
+    relationships_by_owner_span_id: dict[str, AttemptEvidenceRelationships]
+    diagnostics: tuple[AttemptEvidenceDiagnostic, ...]
+
+
+class AttemptEvidenceSpanRequest(StudioDto):
+    """Explicit non-empty set of span identities selected from one Attempt trace."""
+
+    span_ids: tuple[SpanId, ...] = Field(min_length=1)
+
+    @field_validator("span_ids")
+    @classmethod
+    def require_unique_span_ids(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        """Reject ambiguous duplicate selections while preserving request order."""
+
+        if len(value) != len(set(value)):
+            raise ValueError("span_ids must not contain duplicates")
+        return value
+
+
+class AttemptEvidenceSpanItem(StudioDto):
+    """Complete raw and directly associated semantic evidence for one span."""
+
+    span: JsonObject
+    executable: JsonObject | None
+    operation: JsonObject | None
+    stores: tuple[JsonObject, ...]
+    relationships: AttemptEvidenceRelationships | None
+    diagnostics: tuple[AttemptEvidenceDiagnostic, ...]
+
+
+class AttemptEvidenceSpans(StudioDto):
+    """Selected span evidence in request order with explicit missing identities."""
+
+    subject: AttemptEvidenceSubject
+    items: tuple[AttemptEvidenceSpanItem, ...]
+    missing_span_ids: tuple[SpanId, ...]

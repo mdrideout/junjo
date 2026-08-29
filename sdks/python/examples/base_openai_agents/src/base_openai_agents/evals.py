@@ -16,7 +16,7 @@ from junjo.evaluation import (
     WorkflowTarget,
 )
 from junjo.plugins.openai_agents.evaluation import OpenAIAgentInvocation, OpenAIAgentTarget
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .application import (
     JUNJO_AGENT_NAME,
@@ -32,9 +32,19 @@ from .telemetry import SERVICE_NAME, SERVICE_NAMESPACE, TelemetryRuntime, start_
 
 
 class ContainsExpectation(BaseModel):
+    """One nonblank expected substring for deterministic contract verification."""
+
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    text: str
+    text: str = Field(min_length=1)
+
+    @field_validator("text")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Expected text cannot be blank.")
+        return normalized
 
 
 @asynccontextmanager

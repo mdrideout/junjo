@@ -139,9 +139,25 @@ uv run --env-file ../.env junjo eval run get --run-id RUN_ID
 uv run --env-file ../.env junjo eval run compare \
   --baseline-run-id BASELINE_RUN_ID \
   --candidate-run-id CANDIDATE_RUN_ID
-uv run --env-file ../.env junjo eval attempt evidence \
+uv run --env-file ../.env junjo eval attempt evidence manifest \
+  --attempt-id ATTEMPT_ID
+uv run --env-file ../.env junjo eval attempt evidence spans \
+  --attempt-id ATTEMPT_ID \
+  --span-id SPAN_ID
+uv run --env-file ../.env junjo eval attempt evidence full \
   --attempt-id ATTEMPT_ID
 ```
+
+Inspect Run and Attempt summaries first, then manifests for results that need
+attention, then the exact spans named by those manifests. Full evidence is for
+questions that genuinely require the complete trace.
+
+AI Chat's `text.quality` evaluator is a qualitative binary judge. Its rubric
+must be calibrated with known-good, known-bad, and boundary examples. It can
+judge whether a response is useful, specific, and plausible from the supplied
+text, but it is not proof that a named venue currently exists, is open, or is
+located in the requested neighborhood. Verify those current facts separately
+against a trustworthy current source.
 
 Every command writes one versioned JSON envelope to standard output.
 Diagnostics use standard error. Exit status `5` means an Attempt error, `6`

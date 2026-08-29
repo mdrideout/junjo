@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from typing import Any
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from junjo.studio import (
     AttemptEvidenceUnavailable,
@@ -32,6 +34,8 @@ from junjo.studio import (
 )
 
 NOW = "2026-07-27T12:00:00Z"
+TRACE_ID = "a" * 32
+SPAN_ID = "b" * 16
 
 
 def _dataset() -> dict[str, Any]:
@@ -150,6 +154,114 @@ def _reference() -> SemanticExecutionReference:
         executable_type=ExecutableType.WORKFLOW,
         runtime_id="workflow-run",
     )
+
+
+def _evidence_subject() -> dict[str, Any]:
+    return {
+        "attempt_id": "attempt-1",
+        "reference": _execution(),
+        "trace_id": TRACE_ID,
+        "span_id": SPAN_ID,
+        "detail_path": "/workflows/workflow-run",
+        "failure_path": "/workflows/workflow-run?tab=failures",
+        "trace_path": f"/traces/ai-chat-evals/{TRACE_ID}/{SPAN_ID}",
+    }
+
+
+def _normalized_span() -> dict[str, Any]:
+    return {
+        "trace_id": TRACE_ID,
+        "span_id": SPAN_ID,
+        "parent_span_id": None,
+        "service_name": "ai-chat-evals",
+        "name": "Chat Turn Workflow",
+        "kind": "INTERNAL",
+        "start_time": NOW,
+        "end_time": NOW,
+        "status_code": "2",
+        "status_message": "failed",
+        "attributes_json": {"error.type": "ValueError"},
+        "events_json": [],
+        "links_json": [],
+        "trace_flags": 1,
+        "trace_state": None,
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "resource_attributes_json": {"service.name": "ai-chat-evals"},
+        "resource_dropped_attributes_count": 0,
+    }
+
+
+def _evidence_manifest() -> dict[str, Any]:
+    span_path = f"/traces/ai-chat-evals/{TRACE_ID}/{SPAN_ID}"
+    return {
+        "subject": _evidence_subject(),
+        "trace": {
+            "trace_id": TRACE_ID,
+            "span_count": 1,
+            "root_span_ids": [SPAN_ID],
+        },
+        "spans": [
+            {
+                "span_id": SPAN_ID,
+                "parent_span_id": None,
+                "name": "Chat Turn Workflow",
+                "semantic_kind": "workflow",
+                "status_code": "2",
+                "start_time": NOW,
+                "end_time": NOW,
+                "failed": True,
+                "span_path": span_path,
+            }
+        ],
+        "failures": [
+            {
+                "span_id": SPAN_ID,
+                "parent_span_id": None,
+                "name": "Chat Turn Workflow",
+                "semantic_kind": "workflow",
+                "status_code": "2",
+                "start_time": NOW,
+                "end_time": NOW,
+                "exception_type": "ValueError",
+                "exception_message": "bad place",
+                "stacktrace_available": True,
+                "owner_span_id": SPAN_ID,
+                "owner_runtime_id": "workflow-run",
+                "span_path": span_path,
+            }
+        ],
+        "executables": [],
+        "operations": [
+            {
+                "owner_span_id": None,
+                "owner_runtime_id": None,
+                "span_id": SPAN_ID,
+                "operation_type": "model_request",
+                "name": "gemini-3.7-flash",
+                "outcome": "failed",
+                "duration_ns": None,
+                "error_type": "ValueError",
+                "error_message": "bad place",
+            }
+        ],
+        "stores": [],
+        "relationships_by_owner_span_id": {
+            SPAN_ID: {"parent": None, "nested": []},
+        },
+        "diagnostics": [
+            {
+                "scope": "trace",
+                "owner_span_id": None,
+                "issue": {
+                    "code": "partial_fixture",
+                    "path": "trace",
+                    "message": "Fixture diagnostic.",
+                },
+            }
+        ],
+    }
 
 
 @pytest.mark.asyncio
@@ -596,6 +708,139 @@ async def test_attempt_evidence_is_explicit_and_preserves_pending_states() -> No
         mode = "pending-trace"
         with pytest.raises(ExecutionEvidencePending):
             await client.get_attempt_evidence("attempt-1")
+
+
+@pytest.mark.asyncio
+async def test_attempt_manifest_and_selected_spans_are_explicit_staged_queries() -> None:
+    execution = _execution()
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/api/v1/evaluation/attempts/attempt-1":
+            return httpx.Response(
+                200,
+                json={
+                    "run": _run(),
+                    "dataset": _dataset(),
+                    "case": _case(),
+                    "attempt": _attempt(execution=execution),
+                },
+            )
+        if request.url.path.endswith("/manifest"):
+            return httpx.Response(200, json=_evidence_manifest())
+        assert request.url.path.endswith("/spans")
+        assert request.method == "POST"
+        assert json.loads(request.content) == {"span_ids": [SPAN_ID, "c" * 16]}
+        return httpx.Response(
+            200,
+            json={
+                "subject": _evidence_subject(),
+                "items": [
+                    {
+                        "span": _normalized_span(),
+                        "executable": None,
+                        "operation": None,
+                        "stores": [],
+                        "relationships": None,
+                        "diagnostics": [],
+                    }
+                ],
+                "missing_span_ids": ["c" * 16],
+            },
+        )
+
+    async with StudioClient(
+        base_url="https://studio.test",
+        token="control-secret",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        manifest = await client.get_attempt_evidence_manifest("attempt-1")
+        selected = await client.get_attempt_evidence_spans(
+            "attempt-1",
+            [SPAN_ID, "c" * 16],
+        )
+
+    assert manifest.failures[0].span_id == SPAN_ID
+    assert manifest.failures[0].stacktrace_available is True
+    assert manifest.operations[0].name == "gemini-3.7-flash"
+    assert manifest.operations[0].owner_runtime_id is None
+    assert manifest.relationships_by_owner_span_id[SPAN_ID].nested == ()
+    assert manifest.diagnostics[0].issue["code"] == "partial_fixture"
+    assert selected.items[0].span["attributes_json"] == {"error.type": "ValueError"}
+    assert selected.missing_span_ids == ("c" * 16,)
+    assert [request.url.path for request in requests] == [
+        "/api/v1/evaluation/attempts/attempt-1",
+        "/api/v1/trace-evidence/attempts/attempt-1/manifest",
+        "/api/v1/evaluation/attempts/attempt-1",
+        "/api/v1/trace-evidence/attempts/attempt-1/spans",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_staged_evidence_preserves_typed_resolution_conflicts() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/evaluation/attempts/attempt-1":
+            return httpx.Response(
+                200,
+                json={
+                    "run": _run(),
+                    "dataset": _dataset(),
+                    "case": _case(),
+                    "attempt": _attempt(execution=_execution()),
+                },
+            )
+        return httpx.Response(
+            409,
+            json={
+                "code": "ambiguous_execution_identity",
+                "message": "two matches",
+                "match_count": 2,
+            },
+        )
+
+    async with StudioClient(
+        base_url="https://studio.test",
+        token="control-secret",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ExecutionIdentityAmbiguous) as manifest_conflict:
+            await client.get_attempt_evidence_manifest("attempt-1")
+        with pytest.raises(ExecutionIdentityAmbiguous) as spans_conflict:
+            await client.get_attempt_evidence_spans("attempt-1", [SPAN_ID])
+
+    assert manifest_conflict.value.conflict.match_count == 2
+    assert spans_conflict.value.conflict.match_count == 2
+
+
+@pytest.mark.asyncio
+async def test_staged_evidence_rejects_invalid_selection_and_preserves_pending_state() -> None:
+    execution = _execution()
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/evaluation/attempts/attempt-1":
+            return httpx.Response(
+                200,
+                json={
+                    "run": _run(),
+                    "dataset": _dataset(),
+                    "case": _case(),
+                    "attempt": _attempt(execution=execution),
+                },
+            )
+        return httpx.Response(404, json={"detail": "Attempt evidence not found"})
+
+    async with StudioClient(
+        base_url="https://studio.test",
+        token="control-secret",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ValidationError, match="span_ids"):
+            await client.get_attempt_evidence_spans("attempt-1", [])
+        with pytest.raises(ValidationError, match="duplicates"):
+            await client.get_attempt_evidence_spans("attempt-1", [SPAN_ID, SPAN_ID])
+        with pytest.raises(ExecutionEvidencePending):
+            await client.get_attempt_evidence_manifest("attempt-1")
 
 
 @pytest.mark.asyncio

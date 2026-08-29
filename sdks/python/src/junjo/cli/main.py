@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 from importlib.metadata import version as distribution_version
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any, Literal, NoReturn
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -58,9 +58,16 @@ from ..studio import (
     TargetKind,
 )
 from ..telemetry.otel_schema import JUNJO_TELEMETRY_CONTRACT_VERSION
+from .interface import (
+    DEFAULT_STUDIO_BACKEND_BASE_URL,
+    EVALUATION_CONFIG,
+    EVIDENCE_ACCESS_LEVELS,
+    CommandMetadata,
+    build_evaluation_interface,
+    render_evaluation_interface_markdown,
+)
 
 JSON_ENVELOPE_VERSION = 1
-DEFAULT_STUDIO_BACKEND_BASE_URL = "http://localhost:26154"
 
 EXIT_OK = 0
 EXIT_INTERNAL = 1
@@ -89,6 +96,7 @@ class JsonArgumentParser(argparse.ArgumentParser):
 class CommandResult:
     data: object
     exit_code: int = EXIT_OK
+    output_format: Literal["json", "markdown"] = "json"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -111,12 +119,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     except BaseException as error:
         return _handle_error(command=command, error=error)
 
-    _emit_success(command=command, data=result.data)
+    if result.output_format == "markdown":
+        print(result.data)
+    else:
+        _emit_success(command=command, data=result.data)
     return result.exit_code
 
 
 async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
     command = arguments.command_path
+    if command == "eval.explain":
+        interface = build_evaluation_interface(_parser())
+        if arguments.format == "json":
+            return CommandResult(interface)
+        return CommandResult(
+            render_evaluation_interface_markdown(interface),
+            output_format="markdown",
+        )
     if command == "eval.skill.path":
         skill_directory = _skill_directory(arguments.name)
         return CommandResult(
@@ -143,6 +162,13 @@ async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
                 "authentication": "evaluation_control_token",
                 "telemetry_transport": "otlp",
             },
+            "agent_guidance": {
+                "skill_name": "junjo-evaluation",
+                "skill_discovery_command": "junjo eval skill path",
+                "interface_explainer_command": "junjo eval explain",
+                "interface_explainer_json_command": "junjo eval explain --format json",
+            },
+            "evidence_access": EVIDENCE_ACCESS_LEVELS,
         }
         if harness is not None:
             data["application"] = _harness_summary(
@@ -368,10 +394,24 @@ async def _dispatch_attempt(
         detail = await client.get_attempt(arguments.attempt_id)
         _require_application(harness, detail.dataset.application_key)
         return CommandResult(detail)
-    if command == "eval.attempt.evidence":
+    if command == "eval.attempt.evidence.full":
         evidence = await client.get_attempt_evidence(arguments.attempt_id)
         _require_application(harness, evidence.attempt.dataset.application_key)
         return CommandResult(evidence)
+    if command in {
+        "eval.attempt.evidence.manifest",
+        "eval.attempt.evidence.spans",
+    }:
+        attempt = await client.get_attempt(arguments.attempt_id)
+        _require_application(harness, attempt.dataset.application_key)
+        if command == "eval.attempt.evidence.manifest":
+            return CommandResult(await client.get_attempt_evidence_manifest(arguments.attempt_id))
+        return CommandResult(
+            await client.get_attempt_evidence_spans(
+                arguments.attempt_id,
+                arguments.span_id,
+            )
+        )
     raise AssertionError(f"Unhandled attempt command {command}.")
 
 
@@ -429,180 +469,464 @@ def _parser() -> JsonArgumentParser:
         help="Build and execute Studio-backed evaluation datasets.",
         description="Build and execute Studio-backed evaluation datasets.",
     )
+    harness_config, base_url_config, _ = EVALUATION_CONFIG
     evaluation.add_argument(
         "--harness",
-        help=(
-            "Explicit module:object EvaluationHarness. Defaults to [tool.junjo.evaluation].harness in pyproject.toml."
-        ),
+        help=f"{harness_config.purpose} Overrides {harness_config.pyproject}.",
     )
     evaluation.add_argument(
         "--studio-backend-base-url",
         help=(
-            f"Studio backend origin. Defaults to JUNJO_AI_STUDIO_BACKEND_BASE_URL or {DEFAULT_STUDIO_BACKEND_BASE_URL}."
+            f"{base_url_config.purpose} Overrides {base_url_config.environment}; default: {base_url_config.default}."
         ),
     )
     commands = evaluation.add_subparsers(dest="eval_command", required=True)
 
-    skill = commands.add_parser(
+    skill = _group(
+        commands,
         "skill",
-        help="Locate the coding-agent skill shipped with this Junjo installation.",
+        summary="Locate coding-agent guidance shipped with this Junjo installation.",
     )
     skill_commands = skill.add_subparsers(dest="skill_command", required=True)
-    skill_path = skill_commands.add_parser(
+    skill_path = _command(
+        skill_commands,
         "path",
-        help="Return an installed Junjo coding-agent skill directory.",
+        command_path="eval.skill.path",
+        summary="Return the local path to an installed Junjo coding-agent skill.",
+        authentication="none",
+        harness="not_used",
+        executes_evaluation_target=False,
+        response="SkillPath",
     )
     skill_path.add_argument(
         "--name",
         choices=("junjo-evaluation", "junjo-openai-agents"),
         default="junjo-evaluation",
+        help="Installed Junjo skill to locate (default: junjo-evaluation).",
     )
-    _select(skill_path, "eval.skill.path")
 
-    capabilities = commands.add_parser("capabilities")
-    _select(capabilities, "eval.capabilities")
+    _command(
+        commands,
+        "capabilities",
+        command_path="eval.capabilities",
+        summary="Inspect compatible SDK, Studio, agent-guidance, and evidence interfaces.",
+        authentication="none",
+        harness="optional",
+        executes_evaluation_target=False,
+        response="EvaluationCapabilities",
+    )
 
-    targets = commands.add_parser("targets")
+    explain = _command(
+        commands,
+        "explain",
+        command_path="eval.explain",
+        summary="Explain every evaluation command, configuration source, and evidence level.",
+        authentication="none",
+        harness="not_used",
+        executes_evaluation_target=False,
+        response="Markdown by default; EvaluationCliInterface with --format json",
+    )
+    explain.add_argument(
+        "--format",
+        choices=("markdown", "json"),
+        default="markdown",
+        help="Render readable Markdown or a machine-readable JSON contract (default: markdown).",
+    )
+
+    targets = _group(
+        commands,
+        "targets",
+        summary="Inspect evaluation targets declared by the application harness.",
+    )
     target_commands = targets.add_subparsers(dest="targets_command", required=True)
-    target_list = target_commands.add_parser("list")
-    _select(target_list, "eval.targets.list")
+    _command(
+        target_commands,
+        "list",
+        command_path="eval.targets.list",
+        summary="List Node, Workflow, and Agent targets with their input schemas.",
+        authentication="none",
+        harness="required",
+        executes_evaluation_target=False,
+        response="ApplicationTargetList",
+    )
 
-    evaluators = commands.add_parser("evaluators")
+    evaluators = _group(
+        commands,
+        "evaluators",
+        summary="Inspect evaluators declared by the application harness.",
+    )
     evaluator_commands = evaluators.add_subparsers(
         dest="evaluators_command",
         required=True,
     )
-    evaluator_list = evaluator_commands.add_parser("list")
-    _select(evaluator_list, "eval.evaluators.list")
+    _command(
+        evaluator_commands,
+        "list",
+        command_path="eval.evaluators.list",
+        summary="List evaluators with their roles and expectation schemas.",
+        authentication="none",
+        harness="required",
+        executes_evaluation_target=False,
+        response="ApplicationEvaluatorList",
+    )
 
-    dataset = commands.add_parser("dataset")
+    dataset = _group(
+        commands,
+        "dataset",
+        summary="Create, inspect, populate, and lock Studio evaluation datasets.",
+    )
     dataset_commands = dataset.add_subparsers(dest="dataset_command", required=True)
-    dataset_create = dataset_commands.add_parser("create")
-    dataset_create.add_argument("--key", required=True)
-    dataset_create.add_argument("--name", required=True)
-    dataset_create.add_argument("--description")
-    _select(dataset_create, "eval.dataset.create")
+    dataset_create = _studio_command(
+        dataset_commands,
+        "create",
+        command_path="eval.dataset.create",
+        summary="Create or retrieve an application-scoped dataset by its stable key.",
+        response="DatasetRead",
+    )
+    dataset_create.add_argument("--key", required=True, help="Stable application-owned dataset key.")
+    dataset_create.add_argument("--name", required=True, help="Human-readable dataset name.")
+    dataset_create.add_argument("--description", help="Optional human-readable dataset purpose.")
 
-    dataset_list = dataset_commands.add_parser("list")
+    dataset_list = _studio_command(
+        dataset_commands,
+        "list",
+        command_path="eval.dataset.list",
+        summary="List one bounded page of datasets owned by this application.",
+        response="DatasetList",
+    )
     _add_pagination(dataset_list)
-    _select(dataset_list, "eval.dataset.list")
 
-    dataset_get = dataset_commands.add_parser("get")
-    dataset_get.add_argument("--dataset-id", required=True)
-    _select(dataset_get, "eval.dataset.get")
+    dataset_get = _studio_command(
+        dataset_commands,
+        "get",
+        command_path="eval.dataset.get",
+        summary="Get one dataset and its complete bounded Case membership.",
+        response="DatasetDetail",
+    )
+    _add_id_argument(dataset_get, "--dataset-id", "Dataset record ID.")
 
-    dataset_add = dataset_commands.add_parser("add")
+    dataset_add = _studio_command(
+        dataset_commands,
+        "add",
+        command_path="eval.dataset.add",
+        summary="Add one authored Case to a draft dataset after local contract validation.",
+        response="CaseRead",
+    )
     _add_case_arguments(dataset_add)
-    _select(dataset_add, "eval.dataset.add")
 
-    dataset_lock = dataset_commands.add_parser("lock")
-    dataset_lock.add_argument("--dataset-id", required=True)
-    _select(dataset_lock, "eval.dataset.lock")
+    dataset_lock = _studio_command(
+        dataset_commands,
+        "lock",
+        command_path="eval.dataset.lock",
+        summary="Validate every Case locally and permanently lock a dataset for runs.",
+        response="DatasetRead",
+    )
+    _add_id_argument(dataset_lock, "--dataset-id", "Draft dataset record ID.")
 
-    case = commands.add_parser("case")
+    case = _group(
+        commands,
+        "case",
+        summary="Generate dataset Cases by executing real application targets.",
+    )
     case_commands = case.add_subparsers(dest="case_command", required=True)
-    case_generate = case_commands.add_parser("generate")
+    case_generate = _studio_command(
+        case_commands,
+        "generate",
+        command_path="eval.case.generate",
+        summary="Execute one target and save its input plus exact source evidence as a generated Case.",
+        response="CaseRead",
+        executes_evaluation_target=True,
+    )
     _add_case_arguments(case_generate)
-    _select(case_generate, "eval.case.generate")
 
-    run = commands.add_parser("run")
+    run = _group(
+        commands,
+        "run",
+        summary="Execute, resume, inspect, and compare locked evaluation runs.",
+    )
     run_commands = run.add_subparsers(dest="run_command", required=True)
-    run_execute = run_commands.add_parser("execute")
-    run_execute.add_argument("--dataset-id", required=True)
-    run_execute.add_argument("--request-key", required=True)
-    run_execute.add_argument("--run-label", required=True)
-    _select(run_execute, "eval.run.execute")
+    run_execute = _studio_command(
+        run_commands,
+        "execute",
+        command_path="eval.run.execute",
+        summary="Execute every Case in a locked dataset as one labeled source revision.",
+        response="RunDetail",
+        executes_evaluation_target=True,
+    )
+    _add_id_argument(run_execute, "--dataset-id", "Locked dataset record ID.")
+    run_execute.add_argument(
+        "--request-key",
+        required=True,
+        help="Stable idempotency key for this requested run.",
+    )
+    run_execute.add_argument("--run-label", required=True, help="Human-readable run label.")
 
-    run_resume = run_commands.add_parser("resume")
-    run_resume.add_argument("--run-id", required=True)
-    _select(run_resume, "eval.run.resume")
+    run_resume = _studio_command(
+        run_commands,
+        "resume",
+        command_path="eval.run.resume",
+        summary="Continue queued Attempts in an existing run using the current application source.",
+        response="RunDetail",
+        executes_evaluation_target=True,
+    )
+    _add_id_argument(run_resume, "--run-id", "Evaluation run record ID.")
 
-    run_list = run_commands.add_parser("list")
-    run_list.add_argument("--dataset-id", required=True)
+    run_list = _studio_command(
+        run_commands,
+        "list",
+        command_path="eval.run.list",
+        summary="List one bounded page of run summaries using conjunctive Case-scope filters.",
+        response="RunList",
+    )
+    _add_id_argument(run_list, "--dataset-id", "Dataset record ID used to scope run history.")
     run_list.add_argument(
         "--target-kind",
         choices=tuple(item.value for item in TargetKind),
+        help="Optionally restrict results to Cases with this target kind.",
     )
-    run_list.add_argument("--target-key")
-    run_list.add_argument("--input-version", type=int)
-    run_list.add_argument("--evaluation-name")
+    run_list.add_argument("--target-key", help="Optionally restrict results to this target key.")
+    run_list.add_argument(
+        "--input-version",
+        type=int,
+        help="Optionally restrict results to this target input contract version.",
+    )
+    run_list.add_argument(
+        "--evaluation-name",
+        help="Optionally restrict results to Cases with this evaluation name.",
+    )
     _add_pagination(run_list)
-    _select(run_list, "eval.run.list")
 
-    run_get = run_commands.add_parser("get")
-    run_get.add_argument("--run-id", required=True)
-    _select(run_get, "eval.run.get")
+    run_get = _studio_command(
+        run_commands,
+        "get",
+        command_path="eval.run.get",
+        summary="Get one run with its locked dataset and complete Case/Attempt membership.",
+        response="RunDetail",
+    )
+    _add_id_argument(run_get, "--run-id", "Evaluation run record ID.")
 
-    run_compare = run_commands.add_parser("compare")
-    run_compare.add_argument("--baseline-run-id", required=True)
-    run_compare.add_argument("--candidate-run-id", required=True)
+    run_compare = _studio_command(
+        run_commands,
+        "compare",
+        command_path="eval.run.compare",
+        summary="Compare aligned binary outcomes from two runs of the same locked dataset.",
+        response="RunComparison",
+    )
+    _add_id_argument(run_compare, "--baseline-run-id", "Baseline evaluation run record ID.")
+    _add_id_argument(run_compare, "--candidate-run-id", "Candidate evaluation run record ID.")
     run_compare.add_argument(
         "--target-kind",
         choices=tuple(item.value for item in TargetKind),
+        help="Optionally compare only Cases with this target kind.",
     )
-    run_compare.add_argument("--target-key")
-    run_compare.add_argument("--input-version", type=int)
-    run_compare.add_argument("--evaluation-name")
-    _select(run_compare, "eval.run.compare")
+    run_compare.add_argument("--target-key", help="Optionally compare only this target key.")
+    run_compare.add_argument(
+        "--input-version",
+        type=int,
+        help="Optionally compare only this target input contract version.",
+    )
+    run_compare.add_argument(
+        "--evaluation-name",
+        help="Optionally compare only Cases with this evaluation name.",
+    )
 
-    attempt = commands.add_parser("attempt")
+    attempt = _group(
+        commands,
+        "attempt",
+        summary="Inspect one Case Attempt and hydrate its evidence in explicit stages.",
+    )
     attempt_commands = attempt.add_subparsers(
         dest="attempt_command",
         required=True,
     )
-    attempt_get = attempt_commands.add_parser("get")
-    attempt_get.add_argument("--attempt-id", required=True)
-    _select(attempt_get, "eval.attempt.get")
+    attempt_get = _studio_command(
+        attempt_commands,
+        "get",
+        command_path="eval.attempt.get",
+        summary="Get bounded control context for one Attempt without hydrating trace evidence.",
+        response="AttemptDetail",
+        evidence_level="attempt_summary",
+    )
+    _add_id_argument(attempt_get, "--attempt-id", "Evaluation Attempt record ID.")
 
-    attempt_evidence = attempt_commands.add_parser("evidence")
-    attempt_evidence.add_argument("--attempt-id", required=True)
-    _select(attempt_evidence, "eval.attempt.evidence")
+    attempt_evidence = _group(
+        attempt_commands,
+        "evidence",
+        summary="Hydrate one Attempt's trace evidence at an explicit level.",
+    )
+    attempt_evidence_commands = attempt_evidence.add_subparsers(
+        dest="attempt_evidence_command",
+        required=True,
+    )
+    manifest = _studio_command(
+        attempt_evidence_commands,
+        "manifest",
+        command_path="eval.attempt.evidence.manifest",
+        summary="Get bounded execution structure, failures, integrity, and selectable span IDs.",
+        response="AttemptEvidenceManifest",
+        evidence_level="manifest",
+    )
+    _add_id_argument(manifest, "--attempt-id", "Evaluation Attempt record ID.")
 
-    evidence = commands.add_parser("evidence")
+    spans = _studio_command(
+        attempt_evidence_commands,
+        "spans",
+        command_path="eval.attempt.evidence.spans",
+        summary="Get complete evidence for explicitly selected spans in the Attempt trace.",
+        response="AttemptEvidenceSpans",
+        evidence_level="selected_spans",
+    )
+    _add_id_argument(spans, "--attempt-id", "Evaluation Attempt record ID.")
+    spans.add_argument(
+        "--span-id",
+        action="append",
+        required=True,
+        help="Exact 16-character lowercase hexadecimal span ID; repeat for each selected span.",
+    )
+
+    full = _studio_command(
+        attempt_evidence_commands,
+        "full",
+        command_path="eval.attempt.evidence.full",
+        summary="Get complete lossless trace evidence and all semantic annotations for an Attempt.",
+        response="AttemptEvidence",
+        evidence_level="full",
+    )
+    _add_id_argument(full, "--attempt-id", "Evaluation Attempt record ID.")
+
+    evidence = _group(
+        commands,
+        "evidence",
+        summary="Find datasets and Attempts that reference an exact execution identity.",
+    )
     evidence_commands = evidence.add_subparsers(
         dest="evidence_command",
         required=True,
     )
-    membership = evidence_commands.add_parser("membership")
+    membership = _studio_command(
+        evidence_commands,
+        "membership",
+        command_path="eval.evidence.membership",
+        summary="Find one bounded page of Case-source or Attempt-subject memberships.",
+        response="EvidenceMembershipList",
+    )
     membership.add_argument(
         "--kind",
         choices=("junjo_execution", "otel_span"),
         required=True,
+        help="Semantic Junjo execution identity or exact OpenTelemetry span identity.",
     )
-    membership.add_argument("--service-namespace")
-    membership.add_argument("--service-name")
+    membership.add_argument(
+        "--service-namespace",
+        help="Override the application harness service namespace.",
+    )
+    membership.add_argument("--service-name", help="Override the application harness service name.")
     membership.add_argument(
         "--executable-type",
         choices=tuple(item.value for item in ExecutableType),
+        help="Required only for junjo_execution evidence.",
     )
-    membership.add_argument("--runtime-id")
-    membership.add_argument("--trace-id")
-    membership.add_argument("--span-id")
+    membership.add_argument("--runtime-id", help="Required only for junjo_execution evidence.")
+    membership.add_argument("--trace-id", help="Required only for otel_span evidence.")
+    membership.add_argument("--span-id", help="Required only for otel_span evidence.")
     _add_pagination(membership)
-    _select(membership, "eval.evidence.membership")
     return parser
 
 
-def _select(parser: argparse.ArgumentParser, command_path: str) -> None:
-    parser.set_defaults(command_path=command_path)
+def _group(
+    subparsers: argparse._SubParsersAction[JsonArgumentParser],
+    name: str,
+    *,
+    summary: str,
+) -> JsonArgumentParser:
+    return subparsers.add_parser(name, help=summary, description=summary)
+
+
+def _command(
+    subparsers: argparse._SubParsersAction[JsonArgumentParser],
+    name: str,
+    *,
+    command_path: str,
+    summary: str,
+    authentication: str,
+    harness: str,
+    executes_evaluation_target: bool,
+    response: str,
+    evidence_level: str | None = None,
+) -> JsonArgumentParser:
+    parser = subparsers.add_parser(name, help=summary, description=summary)
+    metadata = CommandMetadata(
+        path=command_path,
+        summary=summary,
+        authentication=authentication,
+        harness=harness,
+        executes_evaluation_target=executes_evaluation_target,
+        response=response,
+        evidence_level=evidence_level,
+    )
+    parser.set_defaults(command_path=command_path, _command_metadata=metadata)
+    return parser
+
+
+def _studio_command(
+    subparsers: argparse._SubParsersAction[JsonArgumentParser],
+    name: str,
+    *,
+    command_path: str,
+    summary: str,
+    response: str,
+    executes_evaluation_target: bool = False,
+    evidence_level: str | None = None,
+) -> JsonArgumentParser:
+    return _command(
+        subparsers,
+        name,
+        command_path=command_path,
+        summary=summary,
+        authentication="JUNJO_AI_STUDIO_CLI_TOKEN",
+        harness="required",
+        executes_evaluation_target=executes_evaluation_target,
+        response=response,
+        evidence_level=evidence_level,
+    )
+
+
+def _add_id_argument(parser: argparse.ArgumentParser, flag: str, help_text: str) -> None:
+    parser.add_argument(flag, required=True, help=help_text)
 
 
 def _add_pagination(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--cursor")
-    parser.add_argument("--limit", type=int, choices=range(1, 101), default=50)
+    parser.add_argument("--cursor", help="Opaque cursor returned by the preceding page.")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        choices=range(1, 101),
+        default=50,
+        help="Maximum records in this bounded page (default: 50).",
+    )
 
 
 def _add_case_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--dataset-id", required=True)
-    parser.add_argument("--case-key", required=True)
-    parser.add_argument("--evaluation-name", required=True)
+    _add_id_argument(parser, "--dataset-id", "Draft dataset record ID.")
+    parser.add_argument("--case-key", required=True, help="Stable Case identity within the dataset.")
+    parser.add_argument(
+        "--evaluation-name",
+        required=True,
+        help="Human-readable product claim this Case evaluates.",
+    )
     parser.add_argument(
         "--target-kind",
         choices=tuple(item.value for item in TargetKind),
         required=True,
+        help="Junjo execution scope exercised by this Case.",
     )
-    parser.add_argument("--target-key", required=True)
-    parser.add_argument("--input-version", type=int, required=True)
+    parser.add_argument("--target-key", required=True, help="Application-declared target key.")
+    parser.add_argument(
+        "--input-version",
+        type=int,
+        required=True,
+        help="Application-declared target input contract version.",
+    )
     parser.add_argument(
         "--input",
         required=True,
@@ -612,8 +936,13 @@ def _add_case_arguments(parser: argparse.ArgumentParser) -> None:
         "--expectation",
         help="Path to a JSON expectation document, or - for standard input.",
     )
-    parser.add_argument("--evaluator-key", required=True)
-    parser.add_argument("--evaluator-version", type=int, required=True)
+    parser.add_argument("--evaluator-key", required=True, help="Application-declared evaluator key.")
+    parser.add_argument(
+        "--evaluator-version",
+        type=int,
+        required=True,
+        help="Application-declared evaluator contract version.",
+    )
 
 
 def _case_values(arguments: argparse.Namespace) -> tuple[JsonValue, JsonValue | None]:

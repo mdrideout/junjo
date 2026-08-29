@@ -11,6 +11,19 @@ from pydantic import BaseModel
 from junjo.studio import (
     AttemptDetail,
     AttemptEvidenceBind,
+    AttemptEvidenceDiagnostic,
+    AttemptEvidenceExecutableSummary,
+    AttemptEvidenceFailureSummary,
+    AttemptEvidenceManifest,
+    AttemptEvidenceOperationSummary,
+    AttemptEvidenceRelationships,
+    AttemptEvidenceSpanItem,
+    AttemptEvidenceSpanRequest,
+    AttemptEvidenceSpans,
+    AttemptEvidenceSpanSummary,
+    AttemptEvidenceStoreSummary,
+    AttemptEvidenceSubject,
+    AttemptEvidenceTraceSummary,
     AttemptRead,
     AttemptResultWrite,
     CaseCreate,
@@ -180,6 +193,20 @@ def test_client_operation_routes_and_models_are_the_studio_openapi_contract() ->
                 None,
                 "TraceEvidence",
             ),
+            (
+                "get",
+                "/api/v1/trace-evidence/attempts/{attempt_id}/manifest",
+                "get_attempt_evidence_manifest",
+                None,
+                "AttemptEvidenceManifest",
+            ),
+            (
+                "post",
+                "/api/v1/trace-evidence/attempts/{attempt_id}/spans",
+                "get_attempt_span_evidence",
+                "SelectedSpanRequest",
+                "SelectedSpanEvidenceResponse",
+            ),
         ]
     }
 
@@ -227,6 +254,26 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
         ExecutionResolutionRead: "ExecutionResolution",
         ExecutionResolutionConflict: "ExecutionResolutionConflictResponse",
         TraceEvidenceRead: "TraceEvidence",
+        AttemptEvidenceSubject: "AttemptEvidenceSubject",
+        AttemptEvidenceTraceSummary: "TraceManifestSummary",
+        AttemptEvidenceSpanSummary: "SpanManifestEntry",
+        AttemptEvidenceFailureSummary: "FailureSpanManifestEntry",
+        AttemptEvidenceExecutableSummary: "ExecutableManifestEntry",
+        AttemptEvidenceOperationSummary: "OperationManifestEntry",
+        AttemptEvidenceStoreSummary: "StoreManifestEntry",
+        AttemptEvidenceRelationships: "ExecutableRelationships",
+        AttemptEvidenceDiagnostic: "TraceEvidenceDiagnostic",
+        AttemptEvidenceManifest: "AttemptEvidenceManifest",
+        AttemptEvidenceSpanRequest: "SelectedSpanRequest",
+        AttemptEvidenceSpanItem: "SelectedSpanEvidence",
+        AttemptEvidenceSpans: "SelectedSpanEvidenceResponse",
+    }
+    opaque_nested_fields = {
+        ("ExecutableManifestEntry", "integrity"),
+        ("StoreManifestEntry", "integrity"),
+        ("ExecutableRelationships", "parent"),
+        ("ExecutableRelationships", "nested"),
+        ("TraceEvidenceDiagnostic", "issue"),
     }
 
     for sdk_model, component_name in model_components.items():
@@ -240,7 +287,15 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
         for property_name in sdk_schema.get("properties", {}):
             sdk_property = sdk_schema["properties"][property_name]
             studio_property = studio_schema["properties"][property_name]
-            if component_name == "TraceEvidence" and property_name != "trace_id":
+            if (
+                (component_name == "TraceEvidence" and property_name != "trace_id")
+                or component_name == "SelectedSpanEvidence"
+                or (
+                    component_name,
+                    property_name,
+                )
+                in opaque_nested_fields
+            ):
                 assert _outer_type(sdk_property, sdk_schema) == _outer_type(
                     studio_property,
                     document,
@@ -289,7 +344,7 @@ def _shallow_signature(schema: Schema, root: Schema) -> Any:
 
     schema_type = schema.get("type")
     constraints = tuple(
-        (name, schema[name])
+        (name, _normalized_constraint(name, schema[name]))
         for name in (
             "const",
             "enum",
@@ -316,6 +371,12 @@ def _shallow_signature(schema: Schema, root: Schema) -> Any:
             return ("map", _shallow_signature(additional, root), constraints)
         return ("object", constraints)
     return (schema_type, constraints)
+
+
+def _normalized_constraint(name: str, value: Any) -> Any:
+    if name == "enum":
+        return tuple(sorted(value, key=repr))
+    return value
 
 
 def _resolve_reference(name: str, root: Schema) -> Schema:

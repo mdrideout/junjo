@@ -87,6 +87,13 @@ async def test_create_joke_node(test_case: dict):
     assert eval_result.passed, f"Joke evaluation failed: {eval_result.reason}"
 ```
 
+Calibrate an evaluator before using its results to compare application changes.
+Exercise a known-good output, a known-bad output, and a boundary case; review false
+passes and false failures. Keep each evaluator focused on one understandable
+product claim, return a binary decision with the deciding reason, and prefer a
+deterministic check when the fact itself is deterministic. An LLM judge should
+handle only the part of the claim that genuinely requires judgment.
+
 Run the sample eval from `examples/base`:
 
 ```bash
