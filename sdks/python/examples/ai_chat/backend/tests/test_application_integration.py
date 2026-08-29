@@ -53,6 +53,29 @@ async def test_image_directive_runs_shared_avatar_conditioned_workflow_without_a
 
 
 @pytest.mark.asyncio
+async def test_date_response_prompt_requires_careful_current_place_claims(tmp_path: Path) -> None:
+    language = FakeLanguageModel(directive="date_idea_research")
+    harness = make_harness(tmp_path, language=language)
+
+    completed = await harness.turns.submit(
+        conversation_id="demo",
+        text="Suggest a real rainy-day date place in Bed-Stuy.",
+    )
+
+    assert completed.status is TurnStatus.COMPLETED
+    assert completed.execution_references.agent_run_id is None
+    assert len(language.text_prompts) == 1
+    prompt = language.text_prompts[0]
+    assert "location requested by the user" in prompt
+    assert "currently operates" in prompt
+    assert "correctly located" in prompt
+    assert "Never invent prior visits" in prompt
+    assert "addresses, operating status, or neighborhood details" in prompt
+    assert "acknowledge that instead of presenting a guess as fact" in prompt
+    assert "has visited" not in prompt
+
+
+@pytest.mark.asyncio
 async def test_image_edit_refusal_becomes_safe_typed_turn_failure(tmp_path: Path) -> None:
     class RefusingImageModel(RecordingImageModel):
         async def edit(

@@ -103,8 +103,12 @@ class CreateDateIdeaResponseNode(Node[TurnWorkflowStore]):
                 turns=state.recent_turns,
                 current_message=state.turn.user_message.content,
                 directive=(
-                    "Suggest specific real places in the contact's geographic area that this person "
-                    "has visited or plausibly wants to visit. Respect prior preferences and be concrete."
+                    "Suggest specific real places in the location requested by the user, falling back "
+                    "to the contact's area only when no location is requested. Name a venue only when "
+                    "confident it currently operates and is correctly located. Prefer established "
+                    "places. Never invent prior visits, favorite dishes, addresses, operating status, "
+                    "or neighborhood details. If uncertain, acknowledge that instead of presenting a "
+                    "guess as fact. Respect prior preferences and be concrete."
                 ),
             )
         )
