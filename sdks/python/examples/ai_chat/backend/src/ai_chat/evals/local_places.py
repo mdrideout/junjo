@@ -58,6 +58,10 @@ class PlaceVerification:
     reason: str
 
 
+class PlaceSnapshotCoverageError(RuntimeError):
+    """The bounded snapshot cannot establish the truth of a recommendation."""
+
+
 _VERIFIED_ON = "2026-08-29"
 
 VERIFIED_PLACES = (
@@ -300,17 +304,12 @@ def verify_local_place_claims(
         raise ValueError(f"Unknown verified place IDs: {unknown}.")
 
     matched: list[VerifiedPlace] = []
+    unknown_claims: list[str] = []
     for claim in claims:
         place = _place_for_claim(claim)
         if place is None:
-            return PlaceVerification(
-                passed=False,
-                reason=(
-                    "Current-place check failed: "
-                    f"{claim.name!r} is not in this evaluator's source-verified snapshot "
-                    f"(verified {_VERIFIED_ON})."
-                ),
-            )
+            unknown_claims.append(claim.name)
+            continue
         if not place.operating:
             return PlaceVerification(
                 passed=False,
@@ -334,6 +333,14 @@ def verify_local_place_claims(
             return PlaceVerification(passed=False, reason=location_error)
         if place not in matched:
             matched.append(place)
+
+    if unknown_claims:
+        names = ", ".join(repr(name) for name in unknown_claims)
+        raise PlaceSnapshotCoverageError(
+            f"Current-place check could not verify {names}: the venue is not in "
+            f"this evaluator's bounded source snapshot (verified {_VERIFIED_ON}). "
+            "This is evaluator coverage, not evidence that the recommendation is false."
+        )
 
     if len(matched) < minimum_verified_places:
         observed = ", ".join(place.name for place in matched) or "none"

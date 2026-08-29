@@ -120,6 +120,10 @@ claims; deterministic application code resolves every claim against the
 example's source-attributed current-place snapshot. The snapshot is bounded
 evaluation data, not application retrieval logic: ordinary AI Chat requests do
 not read it, and Studio or the Junjo SDK do not own its place semantics.
+Known closed, mislocated, or disallowed records produce binary failures. A
+venue absent from the snapshot produces an evaluator coverage error, because
+absence from a finite allowlist is not evidence that an open-ended
+recommendation is false.
 
 Generated cases run the same real Node, Workflow, or Agent before Studio adds
 their explicit provenance. The observed output remains evidence, never an

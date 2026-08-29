@@ -551,14 +551,21 @@ Exit gate:
 - Created durable Horizon 3 product user stories.
 - Reopened the Lean MVP for SDK productization.
 - Accepted this implementation plan.
+- Added manifest, selected-span, full-evidence, and CLI-explainer ergonomics;
+  validated them in an attended AI Chat comparison without full-trace
+  hydration.
+- Completed the bounded current-place experiment. It caught known closed and
+  mislocated recommendations, exposed finite-snapshot coverage errors for
+  open-ended output, and did not justify a reusable SDK place verifier.
 
 ### Next
 
-- Staged evidence reads and evaluator calibration are implemented. Continue
-  the measured post-MVP sequence recorded in the
-  [Lean Evaluation MVP](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md) with the
-  bounded application-local factual-verifier experiment. Reconsider MCP only
-  if the improved JSON-first workflow still demonstrates material friction.
+- Keep the current-place verifier application-local. Use it only for named-fact
+  or closed-set Cases, or add a real current-data resolver in the application
+  before claiming open-ended factual coverage.
+- Run another attended baseline/candidate loop only after that truthful Case
+  contract exists. Reconsider MCP only if the improved JSON-first workflow
+  then demonstrates material protocol friction.
 
 ### Deferred
 

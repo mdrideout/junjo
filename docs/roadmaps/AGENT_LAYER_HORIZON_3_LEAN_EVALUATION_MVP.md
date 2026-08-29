@@ -1,6 +1,6 @@
 # Horizon 3 Evaluation: Lean MVP Critical Path
 
-- Status: Released; staged evidence ergonomics implemented
+- Status: Released; staged evidence and factual-verifier experiments completed
 - Date: 2026-07-27
 - Owners: Junjo platform
 - Parent strategy:
@@ -1354,3 +1354,76 @@ projection, SDK DTO/OpenAPI compatibility, CLI help/explainer generation,
 selected-span and missing-ID behavior, full-evidence equivalence, skill and
 public-doc parity, deterministic example pass/fail behavior, and an attended
 local Studio/AI Chat query from summary through manifest and selected spans.
+
+## 2026-08-29 Bounded Current-Place Experiment
+
+Status: completed. Keep the verifier application-local and do not treat a
+finite place snapshot as an open-ended factual authority.
+
+AI Chat now declares `local_place.quality:v1`, which combines one structured
+qualitative judgment with a deterministic, source-attributed place check. The
+snapshot was calibrated with known-current venues, the known-closed Islands,
+wrong address and neighborhood claims, aliases, punctuation, exact house
+numbers, minimum-place counts, unknown extra venues, and real boundary cases.
+This correctly turned the prior Islands false pass into a failure and caught a
+Corto recommendation placed on Tompkins Avenue instead of its current Halsey
+Street address.
+
+The attended comparison used locked Dataset `i69uJThpDKJc8VzQSGSfZC` with two
+Node, two Workflow, and two Agent Cases. Baseline Run
+`1CAvbSIu8eN2rCzYXoWYyg` executed clean source revision
+`ab5253d233198e38b39cc359fbee54cea26eed8f`. Candidate Run
+`XPqxkTYhec3QixbBt2ds5i` executed the same Dataset at
+`e7d3af09a6a13e09263ffc7f18b6e4f3ba1bc406` after one real application change:
+the focused date-response Node stopped inventing personal visits and was told
+to respect requested geography, current operation, correct location, and
+uncertainty. The general Agent target remained unchanged as a control.
+
+Both Runs reported one pass and five failures under the experiment's original
+unknown-as-failure behavior. The comparison reported one improvement, one
+Agent-control regression, and four unchanged Cases. Selected-span evidence
+showed the meaningful differences:
+
+- the Prospect Heights Node changed from Weather Up to source-verified Gold
+  Star Beer Counter and improved;
+- both baseline and candidate still recommended the permanently closed Islands;
+  the prompt-only change did not solve stale place knowledge; and
+- the unchanged Agent sampled a different Bed-Stuy pair, so its apparent
+  regression cannot be attributed to the focused Node change.
+
+Every inspected manifest resolved the exact subject execution, contained no
+execution failure or evidence diagnostic, and supplied the model span IDs
+needed for the selected-span query. Full evidence was unnecessary. This
+validates the staged evidence interface and demonstrates why comparison must
+be interpreted with target ownership rather than pass-rate arithmetic alone.
+
+The experiment also exposed a hard coverage boundary. Weather Up, Brooklyn
+Botanic Garden, and Devoción were initially absent from the finite snapshot,
+but current authoritative sources confirmed they were real and geographically
+plausible recommendations. Other Runs sampled still more names. Repeatedly
+adding sampled outputs would turn calibration into a moving allowlist without
+making it an authoritative current-place resolver. The final application-local
+verifier therefore records an unknown venue as an evaluator coverage error,
+not as a failed product claim. Known closed, mislocated, and explicitly
+disallowed records remain binary failures.
+
+Decision:
+
+- deterministic current facts materially improve the LLM judge when the Case
+  is about a named fact or supplies the same closed candidate set to the
+  target;
+- a finite snapshot does not truthfully judge open-ended recommendation
+  generation;
+- no generic place verifier, lookup abstraction, or new evaluator machinery
+  belongs in the Junjo SDK on this evidence;
+- the prompt improvement remains a sensible application safety correction,
+  but this comparison does not establish a broad quality gain; and
+- MCP remains deferred because the JSON-first CLI, manifest, and selected-span
+  reads completed the analysis without protocol friction.
+
+For the next AI Chat demonstration, either author closed-set or named-fact
+Cases whose target input exposes the verified candidates, or first introduce a
+real current-data resolver as an application capability. Do not move the
+allowlist after candidate results and do not present unknown coverage as a
+regression. The remaining post-MVP decision order stays deferred until that
+truthful evaluation contract demonstrates another concrete need.

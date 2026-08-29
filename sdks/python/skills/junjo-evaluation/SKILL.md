@@ -120,6 +120,14 @@ boundary examples. The evaluator owns the binary decision and a concise reason
 that names the decision-relevant observation. It does not own full root-cause
 analysis; the coding agent uses execution evidence and source code for that.
 
+A finite factual snapshot is authoritative only for a closed-set Case whose
+target input exposes the same candidates, or for a Case about one named fact.
+Do not use absence from an allowlist as proof that an open-ended model output
+is false. When an open-ended current fact has no authoritative resolver, record
+an evaluator coverage error and investigate it separately from application
+quality. Do not expand a snapshot repeatedly just to absorb whichever outputs a
+model sampled in prior runs.
+
 Use `dataset add` for authored cases. Use `case generate` only when executing
 the real target is itself part of dataset authorship. Generated output remains
 evidence and must never be silently promoted to the expectation.

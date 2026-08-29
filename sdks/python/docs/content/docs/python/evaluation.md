@@ -240,6 +240,13 @@ deterministic facts and for current facts that can be verified from a
 trustworthy current source; an LLM judge should not be expected to remember
 whether a venue exists, is open, or is correctly located.
 
+A finite source snapshot supports a closed-set case whose target input exposes
+the same candidates, or a case about one named fact. It is not an authoritative
+resolver for open-ended generation. A recommendation absent from that snapshot
+is an evaluator coverage gap, not proof that the recommendation is false; record
+it as an error or use a real current-data resolver rather than moving the
+allowlist after every run.
+
 The evaluator's reason should identify the observation that determined pass or
 fail. Deeper trace and source diagnosis belongs to the coding agent, which can
 combine that reason with exact execution evidence without turning one judge

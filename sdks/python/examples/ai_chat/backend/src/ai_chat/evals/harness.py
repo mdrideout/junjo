@@ -49,7 +49,11 @@ from ai_chat.domain.models import (
 )
 from ai_chat.evals.fixtures import create_fixed_contact, fixed_contact_profile
 from ai_chat.evals.judges import judge_local_place_text, judge_text
-from ai_chat.evals.local_places import VERIFIED_PLACES_BY_ID, verify_local_place_claims
+from ai_chat.evals.local_places import (
+    VERIFIED_PLACES_BY_ID,
+    PlaceSnapshotCoverageError,
+    verify_local_place_claims,
+)
 from ai_chat.telemetry import TelemetryRuntime, start_telemetry
 
 APPLICATION_KEY = "ai_chat"
@@ -362,11 +366,22 @@ async def _local_place_quality_callback(
         rubric=expectation.rubric,
         subject=subject,
     )
-    factual = verify_local_place_claims(
-        judgment.places,
-        verified_place_ids=expectation.verified_place_ids,
-        minimum_verified_places=expectation.minimum_verified_places,
-    )
+    try:
+        factual = verify_local_place_claims(
+            judgment.places,
+            verified_place_ids=expectation.verified_place_ids,
+            minimum_verified_places=expectation.minimum_verified_places,
+        )
+    except PlaceSnapshotCoverageError as error:
+        if judgment.passed:
+            raise
+        return EvaluationResult(
+            passed=False,
+            reason=(
+                f"Qualitative check failed: {judgment.reason} "
+                f"Current-place coverage was incomplete: {error}"
+            ),
+        )
     if not factual.passed:
         return EvaluationResult(passed=False, reason=factual.reason)
 

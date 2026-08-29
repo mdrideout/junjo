@@ -218,11 +218,16 @@ AI Chat declares two binary evaluators:
 The current-place evaluator is intentionally an application-local experiment,
 not a generic Junjo place service. Its expectation names the place records
 that are valid for that Case and whether one or two verified places are
-required. Unknown recommendations, false location claims, and known closed
-venues fail with source-backed reasons, and every decision reports when the
-snapshot was checked. This bounded contract exists to catch the demonstrated
-false pass for a closed or mislocated venue while measuring false positives
-and false negatives before any reusable SDK abstraction is considered.
+required. Known false location claims and known closed venues fail with
+source-backed reasons. An unknown recommendation raises an evaluator coverage
+error instead of pretending the finite snapshot proves it false. Every
+decision reports when the snapshot was checked.
+
+Use this bounded evaluator for cases about named places or cases whose input
+constrains the response to the same verified candidates. It is not a current
+place database for open-ended recommendations. This experiment exists to catch
+the demonstrated false pass for a closed or mislocated venue while measuring
+coverage limits before any reusable SDK abstraction is considered.
 
 Ordinary tests protect deterministic application mechanics only: versioned
 persistence, server-owned Turn lifecycle, HTTP/schema boundaries, configuration

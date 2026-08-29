@@ -12,7 +12,11 @@ from ai_chat.evals.harness import (
     LocalPlaceQualityExpectationV1,
     _local_place_quality_callback,
 )
-from ai_chat.evals.local_places import RecommendedPlaceClaim, verify_local_place_claims
+from ai_chat.evals.local_places import (
+    PlaceSnapshotCoverageError,
+    RecommendedPlaceClaim,
+    verify_local_place_claims,
+)
 
 StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
 
@@ -76,13 +80,12 @@ def test_accented_place_alias_is_matched_without_fuzzy_guessing() -> None:
     assert result.passed is True
     assert "LunÀtico" in result.reason
 
-    boundary = verify_local_place_claims(
-        (_claim("BierWaxed"),),
-        verified_place_ids=("bierwax",),
-        minimum_verified_places=1,
-    )
-    assert boundary.passed is False
-    assert "not in this evaluator's source-verified snapshot" in boundary.reason
+    with pytest.raises(PlaceSnapshotCoverageError, match="evaluator coverage"):
+        verify_local_place_claims(
+            (_claim("BierWaxed"),),
+            verified_place_ids=("bierwax",),
+            minimum_verified_places=1,
+        )
 
 
 def test_two_place_case_requires_two_verified_matches() -> None:
@@ -175,22 +178,56 @@ async def test_composite_evaluator_requires_both_checks(quality_passed: bool) ->
 
 
 def test_allowed_place_does_not_hide_unknown_extra_or_false_location() -> None:
-    unknown_extra = verify_local_place_claims(
-        (_claim("BierWax"), _claim("Imaginary Unicorn Cafe")),
-        verified_place_ids=("bierwax",),
-        minimum_verified_places=1,
-    )
+    with pytest.raises(PlaceSnapshotCoverageError, match="Imaginary Unicorn Cafe"):
+        verify_local_place_claims(
+            (_claim("BierWax"), _claim("Imaginary Unicorn Cafe")),
+            verified_place_ids=("bierwax",),
+            minimum_verified_places=1,
+        )
     false_location = verify_local_place_claims(
         (_claim("BierWax", street="999 Fake Street", neighborhood="Queens"),),
         verified_place_ids=("bierwax",),
         minimum_verified_places=1,
     )
 
-    assert unknown_extra.passed is False
-    assert "Imaginary Unicorn Cafe" in unknown_extra.reason
     assert false_location.passed is False
     assert "999 Fake Street" in false_location.reason
     assert "556 Vanderbilt Avenue" in false_location.reason
+
+
+def test_unknown_place_does_not_hide_a_definitive_known_failure() -> None:
+    result = verify_local_place_claims(
+        (_claim("Imaginary Unicorn Cafe"), _claim("The Islands")),
+        verified_place_ids=("la-napa", "peppas-jerk-chicken", "savvy-bistro"),
+        minimum_verified_places=1,
+    )
+
+    assert result.passed is False
+    assert "permanently closed" in result.reason
+
+
+async def test_unknown_place_does_not_mask_a_qualitative_failure() -> None:
+    language = _QualityLanguage(
+        passed=False,
+        places=({"name": "Imaginary Unicorn Cafe", "street_or_address": None, "neighborhood": None},),
+    )
+    resources = SimpleNamespace(provider=SimpleNamespace(language=language))
+    expectation = LocalPlaceQualityExpectationV1(
+        rubric="Recommend a current low-key Prospect Heights date place.",
+        verified_place_ids=("bierwax",),
+    )
+
+    result = await _local_place_quality_callback(
+        "PROFILE:\n{}\n\nCURRENT USER MESSAGE:\nDinner?\n\n"
+        "ASSISTANT RESPONSE:\nTry Imaginary Unicorn Cafe.",
+        expectation,
+        cast(EvaluationContext, object()),
+        cast(EvaluationRuntime, resources),
+    )
+
+    assert result.passed is False
+    assert "Qualitative check failed" in result.reason
+    assert "Current-place coverage was incomplete" in result.reason
 
 
 def test_address_number_is_exact_while_normal_punctuation_is_ignored() -> None:
