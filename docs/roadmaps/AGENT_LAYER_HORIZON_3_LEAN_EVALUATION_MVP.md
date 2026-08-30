@@ -1489,3 +1489,80 @@ No additional P1 implementation is accepted from this experiment. A future
 Horizon 3 slice should begin with observed application-developer friction; the
 remaining P1 stories stay ordered behind that evidence rather than being built
 for north-star completeness.
+
+## 2026-08-29 Repeated Stability And Horizon 4 Entry Proof
+
+Status: completed. The released Horizon 3 loop reproduced the factual-shortlist
+improvement across repeated live executions, and its existing read surfaces
+supported the first bounded Horizon 4 analysis without another platform
+feature.
+
+The cohort was every completed Run for locked Dataset
+`NjPLRUCEJ5W6pEPQqdGF8X`: the original comparison plus two new repetitions at
+each exact source revision. Baseline Runs `M4a6QFmA92ksblDANFiDyq`,
+`uZ7nqFB78gbrvrzK5ncpVL`, and `rtUs23vnNoCSevgu02Px8s` executed
+`ab5253d233198e38b39cc359fbee54cea26eed8f`. Candidate Runs
+`El95hPwkt7RT9ErDUvhyf9`, `rpkG3NeHnHhoRk7C69DQuK`, and
+`E5T6PthNb9LzjfQgodFr1a` executed
+`e7d3af09a6a13e09263ffc7f18b6e4f3ba1bc406`. No Run was excluded.
+
+The denominator was twelve judged Attempts with zero errors or queued records.
+The baseline Node failed three of three and the baseline Workflow failed three
+of three; every response invented a prior Gold Star visit. The candidate Node
+passed three of three and the candidate Workflow passed three of three; every
+response denied prior experience, selected Gold Star, and rejected The Islands.
+Each paired comparison reported two improvements. Same-revision comparisons
+reported eight unchanged Case rows across the four checks.
+
+All twelve manifests had complete executable and Store integrity, verified
+Store reconstruction, zero evidence diagnostics, and zero execution failures.
+Focused Node traces contained seven spans and one Store transition. Complete
+Workflow traces contained thirteen spans and five transitions and selected the
+same `CreateDateIdeaResponseNode` route in both revisions. Representative
+selected-span reads exposed the deciding source behavior directly: baseline
+Workflow Attempt `sovqSRsjnlzmNy9xnabr3j`, span `6ebb748f48325829`, claimed
+multiple Gold Star visits under the old directive; candidate Workflow Attempt
+`tLQ4mYJnzcdo6TKfeHFpfg`, span `9ff98c516550e050`, explicitly denied a prior
+visit under the corrected directive. Both selected reads returned every
+requested span. Full evidence was unnecessary.
+
+Observed Node durations overlapped: 3,009–3,133 ms for the baseline and
+2,873–3,421 ms for the candidate. Workflow durations were more variable:
+5,059–12,899 ms for the baseline and 4,722–5,401 ms for the candidate. The
+three Workflow Attempts consumed 7,192 baseline model tokens and 7,115
+candidate model tokens across subject execution and evaluation; the three Node
+Attempts consumed 6,378 and 6,161 respectively. This attended sample shows no
+material token-cost regression, but it is too small and provider-sensitive to
+support a causal latency or cost claim.
+
+The read-oriented analysis used Run filters for the exact Dataset, target, and
+evaluation; pairwise comparisons; all twelve manifests; and selected model
+spans. The agent could state the cohort, denominator, missing-data status,
+route, outcome, usage, and latency evidence without storage access. Two mild
+frictions remained: multi-Run aggregation required client-side composition of
+pairwise results, and selected-span records benefited from `jq` projection.
+Both were tractable for six Runs and twelve Attempts, so this proof does not
+justify a cohort endpoint, saved-query DSL, or another evidence representation.
+
+The analysis proposes one bounded follow-up Case, not an automatic change: in
+a new Dataset version, ask the complete Workflow an indirect false
+presupposition such as “Which did you like better when you went?” while
+supplying the same Gold Star-operating and Islands-closed facts. The evaluator
+should require rejection of the prior-visit premise, Gold Star as the only
+positive recommendation, The Islands only as a rejected closed option, and no
+additional venue. This tests whether the correction holds when the user does
+not directly ask whether the persona has visited either place.
+
+Decision:
+
+- the factual-shortlist improvement is stable across this attended repeat
+  sample, while remaining a product-validation result rather than a
+  statistical reliability claim;
+- the released Horizon 3 loop is now the operating surface for attended
+  developer and coding-agent iteration, with no additional P1 implementation
+  accepted;
+- the first Horizon 4 proof satisfied read-oriented cohort analysis and
+  evidence-grounded proposal boundaries using current contracts; and
+- broader cohort infrastructure, autonomous Case creation, source changes,
+  recursive iteration, promotion, and rollback remain deferred until distinct
+  evidence justifies their owning horizons.

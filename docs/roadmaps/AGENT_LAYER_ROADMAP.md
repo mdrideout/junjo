@@ -516,9 +516,10 @@ concurrency matrices. AI Chat does not duplicate those kernel tests.
 ### Horizon 3: Studio Eval Measurement And Comparison
 
 Status: Lean MVP released in Python SDK 0.67.0 and Studio 0.83.0. Staged
-evidence reads, evaluator calibration, and the truthful factual-shortlist
-comparison are complete. Broader Horizon 3 work remains evidence-led; no
-additional P1 platform slice is currently accepted.
+evidence reads, evaluator calibration, the truthful factual-shortlist
+comparison, and its repeated stability check are complete. Horizon 3 is now an
+operating surface for attended iteration. No additional P1 platform slice is
+currently accepted.
 
 Horizon 2 restores application-owned live evals as a core AI Chat development
 practice. Horizon 3 builds platform-level measurement and comparison on top of
@@ -566,6 +567,14 @@ operable by developers and coding agents without weakening deterministic CI.
 - Probabilistic results never become a required default CI gate.
 
 ### Horizon 4: Agent-Assisted Evidence Analysis
+
+Status: the first attended read-only vertical proof is complete. A six-Run AI
+Chat cohort was analyzed through existing Horizon 3 summaries, filters,
+comparisons, manifests, and selected spans. The agent preserved the complete
+denominator, explained the evidence, and proposed one bounded Dataset Case
+without applying it. Existing interfaces were sufficient at this scale, so no
+Horizon 4 platform implementation is currently accepted. See the
+[validation record](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md#2026-08-29-repeated-stability-and-horizon-4-entry-proof).
 
 #### Objective
 
