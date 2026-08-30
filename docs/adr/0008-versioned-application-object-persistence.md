@@ -1,10 +1,37 @@
 # ADR 0008: Versioned application object persistence
 
-- Status: Accepted
+- Status: Amended; bounded AI Chat Turn accepted, generalized object/schema
+  substrate withdrawn
 - Date: 2026-07-14
+- Amended: 2026-08-30 (generalized substrate withdrawn and Horizon 5 cancelled)
 - Owners: Junjo platform
 
-## Context
+## 2026-08-30 amendment
+
+The generalized versioned-object and schema substrate in this ADR is no longer
+an accepted Junjo platform direction. It prescribed a schema registry,
+immutable application-object revisions, transformations, projections, and
+object authorization before a concrete MBB product story demonstrated that
+runtime user-defined tracker types were required. It is not needed for Junjo's
+execution kernel, Studio evaluation and evidence, or the Git-based
+coding-agent improvement loop.
+
+Applications own their domain models, repositories, database schemas,
+migrations, authorization, and durable product data. Junjo continues to
+execute and observe application-owned capabilities through narrow Node and
+Tool boundaries, while Studio retains execution and evaluation evidence.
+
+AI Chat's fixed, application-owned Turn aggregate remains an implemented and
+useful domain design. Its server-owned identity, lifecycle, typed JSON, and
+execution references do not establish a need for a generalized persistence
+platform. Any future runtime-defined MBB tracker must start from a concrete
+application-owned user story and a new accepted decision.
+
+The generalized material below records the withdrawn historical proposal and
+is not normative. The bounded AI Chat Turn decision and the application-owned
+port boundaries remain accepted.
+
+## Historical context
 
 The long-term product direction requires user-defined tracked concepts,
 schemas, processing behavior, and views to evolve without making relational
@@ -22,9 +49,11 @@ This decision establishes the logical persistence direction. It does not pick
 a permanent object-storage vendor or require every current application table
 to move before the model is proven.
 
-## Decision
+## Amended decision
 
-### Canonical application data is a versioned object
+### Withdrawn generalized canonical-object direction
+
+The following records the former, non-normative direction.
 
 A canonical object is a portable JSON document with an immutable object type,
 schema version, server-owned identity, revision, provenance, lifecycle data,
@@ -41,7 +70,9 @@ version. Historical objects retain their original schema identity. Explicit
 transformations produce a new revision or object; readers do not silently
 reinterpret old data as a newer schema.
 
-### Canonical objects and projections have different ownership
+### Withdrawn generalized object-and-projection direction
+
+The following records the former, non-normative direction.
 
 Canonical objects are the durable source for product data. Relational,
 analytical, full-text, graph, semantic, and vector structures are rebuildable
@@ -57,7 +88,7 @@ identity and integrity material. Telemetry remains in the Studio evidence
 plane and is referenced by execution identity rather than copied into product
 objects.
 
-### Application ports hide physical persistence, not domain semantics
+### Retained application-port boundary
 
 Workflows, Nodes, Agents, and Tools consume narrow application-owned ports.
 They do not receive raw object-store, SQL, search, or vector credentials.
@@ -73,7 +104,7 @@ The persistence adapter owns:
 The domain owns valid transitions and object meaning. The adapter does not
 invent lifecycle semantics from JSON fields.
 
-### Model context is a governed projection
+### Retained model-context boundary
 
 Applications never dump an arbitrary object store into a model request.
 Context assembly selects schema-aware projections under an explicit,
@@ -81,7 +112,7 @@ versioned policy with deterministic ordering and size limits. Conditional or
 large retrieval remains an Agent Tool; context required on every execution is
 prepared by the deterministic Workflow or application boundary.
 
-### AI Chat is the first bounded Turn-object proof
+### Retained bounded AI Chat Turn decision
 
 AI Chat replaces implicit message pairing with one server-created,
 schema-versioned Turn object. A Turn owns:
@@ -95,21 +126,22 @@ schema-versioned Turn object. A Turn owns:
 
 SQLite is the first adapter and stores the canonical Turn JSON document plus
 only the identity and ordering fields required to locate it deterministically.
-Message responses are projections of Turn objects. This proves the logical
-contract without prematurely selecting the permanent object-storage system.
+Message responses are projections of Turn objects. This proves the bounded
+application contract without selecting or requiring a generalized Junjo
+object-storage system.
 
-## Consequences
+## Historical consequences
 
 User-defined data can evolve through explicit schema and object revisions while
 deterministic indexes remain available for exact queries. LLM context becomes
 a deliberate application product instead of an accidental database dump.
 
-The platform must eventually provide a schema registry, transformation
-records, projection rebuilds, and object-level authorization. AI Chat proves
-only the bounded Turn contract and adapter boundary; it is not the complete
-Horizon 5 substrate.
+Under the former direction, the platform would eventually have provided a
+schema registry, transformation records, projection rebuilds, and object-level
+authorization. AI Chat proved only the bounded Turn contract and adapter
+boundary; it did not prove the generalized substrate.
 
-## Rejected alternatives
+## Alternatives rejected by the former decision
 
 - Arbitrary per-user SQL DDL: it makes physical projection shape the product
   definition and creates unbounded migration machinery.

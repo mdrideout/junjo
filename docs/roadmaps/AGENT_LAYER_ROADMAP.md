@@ -16,8 +16,15 @@ have all passed their ownership-specific gates.
 The application restoration and independently versioned production cutover
 are complete. Their implementation record remains in the
 [AI Chat Product Restoration And Eval-Driven Development Plan](AI_CHAT_PRODUCT_RESTORATION_AND_EVAL_DRIVEN_DEVELOPMENT.md).
-The active product work is Horizon 3's released Lean Evaluation MVP and its
-measured post-MVP improvements.
+Horizon 3's released Lean Evaluation MVP is now the operating surface for
+attended developer and coding-agent iteration. Horizon 4 is complete as of
+2026-08-29: its attended proof established bounded, read-oriented cohort
+analysis through the existing Horizon 3 interfaces without another platform
+feature. Horizons 5, 6, and 7 were cancelled on 2026-08-30. They prescribed
+generalized application persistence, generated experience configuration, and
+recursive modification and promotion before concrete product evidence
+justified those systems. Horizon 4 is the end of the accepted numbered roadmap;
+no subsequent numbered-horizon implementation is planned.
 
 The completed Horizon 0 decision and sequencing record lives in
 [AGENT_LAYER_PHASE_0.md](AGENT_LAYER_PHASE_0.md).
@@ -43,9 +50,10 @@ Structured workflows remain the preferred tool for known, repetitive,
 high-value procedures. Autonomous agents handle open-ended requests by deciding
 which bounded capabilities and structured workflows to use.
 
-The long-term product direction is to support user-shaped applications whose
-data structures, workflows, and interfaces can evolve from user requests while
-remaining inspectable, testable, versioned, and observable.
+Junjo's product direction is to help developers build, observe, evaluate, and
+improve agentic applications through ordinary application code, explicit
+runtime boundaries, and evidence-backed iteration. Application data models,
+interfaces, deployment, and promotion remain application-owned concerns.
 
 ## Repository Roles
 
@@ -78,9 +86,10 @@ SDK behavior.
 
 Junjo AI Studio is the evidence and control plane.
 
-It now visualizes and queries Agent execution evidence. Later horizons add
-evaluation datasets, experiments, comparisons, failure analysis, and governed
-improvement proposals.
+It visualizes and queries Agent execution evidence. Horizon 3 added evaluation
+datasets, Runs, comparisons, and exact evidence access; Horizon 4 proved
+attended analysis through those interfaces. No later numbered expansion is
+accepted.
 
 Agent telemetry is part of the shared telemetry contract. Changes to span
 semantics must update the SDK producer, canonical contract, and Studio consumer
@@ -92,9 +101,9 @@ MBB remains the vertical product proving ground.
 
 It should adopt the Agent layer only after the core execution and telemetry
 contracts have been proven in `sdks/python/examples/ai_chat`. MBB will then
-validate whether the foundation creates a valuable personalized application,
-including schema-aware questions, user-defined tracking, and adaptive
-interfaces.
+validate whether the foundation creates a valuable personalized application.
+MBB owns its domain models, persistence, interfaces, deployment, and product
+behavior; it does not require Junjo to generate or own them.
 
 ## Strategic Principles
 
@@ -568,13 +577,14 @@ operable by developers and coding agents without weakening deterministic CI.
 
 ### Horizon 4: Agent-Assisted Evidence Analysis
 
-Status: the first attended read-only vertical proof is complete. A six-Run AI
-Chat cohort was analyzed through existing Horizon 3 summaries, filters,
+Status: Complete as of 2026-08-29. An attended read-only proof analyzed a
+six-Run AI Chat cohort through existing Horizon 3 summaries, filters,
 comparisons, manifests, and selected spans. The agent preserved the complete
 denominator, explained the evidence, and proposed one bounded Dataset Case
-without applying it. Existing interfaces were sufficient at this scale, so no
-Horizon 4 platform implementation is currently accepted. See the
-[validation record](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md#2026-08-29-repeated-stability-and-horizon-4-entry-proof).
+without applying it. Horizon 4 is now an operating analysis practice over the
+Horizon 3 interfaces; no separate Horizon 4 platform implementation was
+required or is accepted. See the
+[validation record](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md#2026-08-29-repeated-stability-and-horizon-4-completion-proof).
 
 #### Objective
 
@@ -598,86 +608,70 @@ authority.
   contracts.
 - Studio remains the owner of physical telemetry storage and query mechanics.
 - Analysis remains read-oriented. Attended developer or coding-agent source
-  candidates continue to use the Horizon 3 loop; autonomous Junjo-directed
+  candidates continue to use the Horizon 3 loop. Autonomous Junjo-directed
   candidate generation, recursive iteration, promotion, and rollback remain
-  Horizon 7 responsibilities.
+  outside the accepted numbered roadmap.
 
 ### Horizon 5: Versioned Object And Schema Substrate
 
-#### Objective
+Status: Cancelled as of 2026-08-30.
 
-Prove a logical persistence model that supports user-defined data without
-making SQL DDL migrations the product-development bottleneck.
+The proposed generalized schema registry, canonical-object substrate,
+transformation framework, and rebuildable projection system will not be
+implemented as a Junjo horizon. The proposal prescribed application database
+architecture before a concrete MBB tracker, workflow, query, evolution, or
+authorization requirement demonstrated the need. It also provides no required
+capability for Horizon 3 evaluation, Horizon 4 analysis, or coding-agent source
+improvement through Git.
 
-#### Scope
+Applications continue to own their domain models, repositories, database
+schemas, migrations, authorization, and durable product data. Junjo executes
+and observes application-owned Nodes, Workflows, Agents, and Tools; Studio owns
+execution and evaluation evidence. AI Chat's bounded, application-owned Turn
+model remains valid implementation history and does not imply a reusable
+Junjo persistence platform.
 
-- versioned schema registry
-- versioned JSON objects and immutable revisions
-- provenance and artifact-version references
-- schema-aware read and write tools
-- explicit transformation and compatibility rules
-- rebuildable SQL, analytical, search, or vector projections
-
-This should first be proven in a bounded MBB tracking capability. The logical
-object contract matters before choosing permanent physical storage.
-
-#### Exit criteria
-
-- A user-defined tracked concept can be added without a SQL DDL migration.
-- Historical objects remain interpretable through explicit schema versions.
-- Exact filtering, aggregation, and authorization use deterministic query
-  capabilities.
-- Derived indexes can be rebuilt from canonical objects.
+If MBB later proves that users must create durable tracker types at runtime,
+that work must begin from a concrete MBB-owned product story and the smallest
+application-local persistence design. It requires a new accepted decision and
+does not reactivate this cancelled horizon by default. The amended historical
+direction remains recorded in
+[ADR 0008](../adr/0008-versioned-application-object-persistence.md).
 
 ### Horizon 6: Versioned Experience Configuration
 
-#### Objective
+Status: Cancelled as of 2026-08-30.
 
-Allow a user request to produce an inspectable and reversible application
-experience revision.
+The proposed configuration-authored application layer will not be implemented
+as a Junjo horizon. It depended on the cancelled Horizon 5 substrate and
+bundled data schemas, processing Workflows, a UI specification system,
+activation and rollback, and an artifact-writing Agent before one concrete MBB
+product story proved the need.
 
-#### Scope
-
-- versioned experience definition
-- logical data schemas
-- capture and processing workflows
-- trusted UI component catalog and declarative view specifications
-- change preview, activation, and rollback
-- configuration agent with bounded artifact-writing authority
-
-#### Exit criteria
-
-- A bounded user request can create a useful new tracker and view.
-- Generated artifacts are versioned and attributable.
-- Activation does not destroy or silently reinterpret historical data.
-- The user can refine or roll back the experience.
+Application experience changes remain ordinary application source, migrations,
+UI code, and configuration reviewed and versioned through the application's
+normal Git and deployment workflow. Coding agents may assist that work and use
+the Horizons 3 and 4 evidence loop; Junjo does not own a parallel application
+definition or generated-UI platform.
 
 ### Horizon 7: Governed Recursive Improvement
 
-#### Objective
+Status: Cancelled as of 2026-08-30.
 
-Use production evidence and evals to propose and validate improvements
-programmatically.
+The proposed recursive-improvement platform will not be implemented as a Junjo
+horizon. It bundled automatic failure discovery, Case and candidate generation,
+historical replay, gates, and promotion and rollback authority into one system
+without evidence that the completed attended loop required those mechanics.
+Schema and UI candidates also depended on the cancelled Horizon 5 and 6
+directions.
 
-#### Scope
-
-- automated failure-cohort discovery
-- evaluation-case generation from real executions
-- candidate prompt, workflow, schema, Agent, and UI revisions
-- historical replay and regression comparison
-- quality, cost, and latency gates
-- promotion and rollback policies
-
-Source-code changes should remain a separate coding-agent workflow until
-configuration-level improvement is proven.
-
-#### Exit criteria
-
-- The system can produce a candidate change with traceable evidence.
-- The candidate is tested against historical and regression cases.
-- Promotion decisions and rollback targets are explicit.
-- Improvement claims are tied to measured outcomes rather than self-judgment
-  alone.
+The useful improvement loop already remains explicit: a developer or
+authorized coding agent changes ordinary application source in Git, runs an
+unchanged Horizon 3 Dataset, uses Horizon 4 evidence analysis, and makes an
+application-owned promotion or rejection decision. Any future improvement to
+that workflow must respond to observed friction and receive its own bounded
+decision; this cancelled horizon grants no autonomous change, deployment,
+promotion, or rollback authority.
 
 ## Initial AI Chat Acceptance Scenarios
 
@@ -702,9 +696,6 @@ Do not settle these until the earlier horizons provide evidence:
 - durable execution infrastructure
 - MCP client and server surfaces
 - declarative executable workflow specifications
-- physical object-storage technology
-- automated promotion authority
-- general-purpose generated UI protocol
 - packaging the Agent layer separately from the main `junjo` distribution
 
 ## Success Definition

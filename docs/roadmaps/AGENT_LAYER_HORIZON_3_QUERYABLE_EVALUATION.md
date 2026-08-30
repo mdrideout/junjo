@@ -594,8 +594,9 @@ state_schema_sha256:<digest>
 
 Workflow and Subflow owner evidence should carry the ID. Studio should retain
 the normalized schema material once as evaluation artifact metadata rather than
-repeating it on every span. This is not Horizon 5's general user-defined schema
-registry. A Node case inherits the state-schema identity from its enclosing
+repeating it on every span. This is not a general user-defined application
+schema registry; the former Horizon 5 proposal for such a substrate was
+cancelled. A Node case inherits the state-schema identity from its enclosing
 Store owner.
 
 A schema mismatch is not silently coerced during case execution. The runner
@@ -1252,12 +1253,14 @@ After the local-place vertical proof:
   adapter; and
 - add richer aggregate and repeated-run comparison.
 
-Horizon 4 then builds read-oriented cohort discovery, evidence analysis, and
-bounded investigation or evaluation-case proposals on these stable primitives.
-Basic agent access to datasets and evaluation evidence is part of Horizon 3;
-attended developer or coding-agent source candidates continue to use the
-Horizon 3 loop. Autonomous Junjo-directed candidate generation, recursive
-iteration, promotion, and rollback remain Horizon 7 responsibilities.
+Horizon 4 subsequently proved read-oriented cohort discovery, evidence
+analysis, and bounded investigation or evaluation-case proposals on these
+stable primitives without another platform feature; the parent roadmap owns
+its completed status. Basic agent access to datasets and evaluation evidence is
+part of Horizon 3; attended developer or coding-agent source candidates
+continue to use the Horizon 3 loop. Autonomous Junjo-directed candidate
+generation, recursive iteration, promotion, and rollback remain outside the
+accepted numbered roadmap.
 
 ## AI Chat Local-Place Realism Vertical Proof
 

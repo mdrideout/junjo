@@ -11,8 +11,12 @@ that connects one server-owned user action to deterministic Workflow steps,
 bounded Agent autonomy, versioned product data, complete telemetry evidence,
 and exact Studio diagnostics.
 
-This plan implements [ADR 0007](../adr/0007-execution-correlation-and-studio-resolution.md)
-and [ADR 0008](../adr/0008-versioned-application-object-persistence.md).
+This plan implements
+[ADR 0007](../adr/0007-execution-correlation-and-studio-resolution.md) and the
+bounded, application-owned AI Chat Turn design retained by the amended
+[ADR 0008](../adr/0008-versioned-application-object-persistence.md). The
+generalized persistence direction formerly associated with that ADR and
+Horizon 5 is cancelled; the implemented Turn remains application behavior.
 
 The Turn, correlation, resolution, and debug mechanics recorded here are
 implemented and integrated with Studio's cohesive trace-evidence model. Their
@@ -167,6 +171,7 @@ infrastructure. This does not establish faithful AI Chat product restoration.
 - whole-Turn automatic retries or a Turn-attempt aggregate;
 - multi-agent chat;
 - incremental public streaming;
-- a permanent cloud object-store vendor;
-- the generalized schema registry and projection rebuild service owned by
-  Horizon 5.
+- a permanent cloud object-store vendor.
+
+The generalized schema registry and projection rebuild service formerly
+proposed for Horizon 5 was later cancelled and is not deferred work.

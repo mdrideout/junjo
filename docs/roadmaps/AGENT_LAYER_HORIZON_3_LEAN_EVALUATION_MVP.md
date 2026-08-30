@@ -1490,12 +1490,12 @@ Horizon 3 slice should begin with observed application-developer friction; the
 remaining P1 stories stay ordered behind that evidence rather than being built
 for north-star completeness.
 
-## 2026-08-29 Repeated Stability And Horizon 4 Entry Proof
+## 2026-08-29 Repeated Stability And Horizon 4 Completion Proof
 
 Status: completed. The released Horizon 3 loop reproduced the factual-shortlist
-improvement across repeated live executions, and its existing read surfaces
-supported the first bounded Horizon 4 analysis without another platform
-feature.
+improvement across repeated live executions, and the resulting bounded analysis
+satisfied the Horizon 4 exit criteria through existing read surfaces without
+another platform feature.
 
 The cohort was every completed Run for locked Dataset
 `NjPLRUCEJ5W6pEPQqdGF8X`: the original comparison plus two new repetitions at
@@ -1561,8 +1561,10 @@ Decision:
 - the released Horizon 3 loop is now the operating surface for attended
   developer and coding-agent iteration, with no additional P1 implementation
   accepted;
-- the first Horizon 4 proof satisfied read-oriented cohort analysis and
-  evidence-grounded proposal boundaries using current contracts; and
+- Horizon 4 is complete and continues as an attended, read-oriented operating
+  practice over the Horizon 3 contracts rather than a separate platform
+  subsystem; and
 - broader cohort infrastructure, autonomous Case creation, source changes,
-  recursive iteration, promotion, and rollback remain deferred until distinct
-  evidence justifies their owning horizons.
+  recursive iteration, promotion, and rollback remain outside the accepted
+  numbered roadmap; any future proposal requires distinct evidence and an
+  independently accepted decision.
