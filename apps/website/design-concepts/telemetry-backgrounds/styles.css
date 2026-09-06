@@ -5,3 +5,4 @@
 .study[href='?concept=memory'] .caption h2::after{content:' ★ Selected';color:#ffbc7c;font-size:11px;letter-spacing:0;margin-left:12px}
 .study[href='?concept=lattice'] .caption h2::after{content:' ★ Selected';color:#ffbc7c;font-size:11px;letter-spacing:0;margin-left:12px}
 .study[href='?concept=executinggraph'] .caption h2::after{content:' ★ Selected';color:#ffbc7c;font-size:11px;letter-spacing:0;margin-left:12px}
+.study[href='?concept=softroutes'] .caption h2::after{content:' ★ Selected';color:#ffbc7c;font-size:11px;letter-spacing:0;margin-left:12px}

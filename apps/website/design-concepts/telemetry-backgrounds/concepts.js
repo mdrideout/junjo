@@ -1,4 +1,5 @@
 import { createSwimlaneStudy } from './swimlane-studies.js';
+import { createStagedRoutes } from './staged-soft-routes.js?revision=22';
 
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],
@@ -22,6 +23,7 @@ const concepts = {
   decisions: ['19', 'Decision lanes', 'Random branches and merges; one selected route through the decision graph.'],
   softroutes: ['20', 'Soft routes', 'One luminous path through a new graph, with emissions from each activated node and edge.'],
   spanrail: ['21', 'Span rails', 'Every activated node and connection sends an ordered packet to its span row.'],
+  stagedroutes: ['22', 'Soft routes · staged', 'Prepare the layer → execute for 2s → record together → archive and rebuild.'],
 };
 const selected = new URLSearchParams(location.search).get('concept');
 if (Object.hasOwn(concepts, selected)) {
@@ -34,7 +36,7 @@ if (Object.hasOwn(concepts, selected)) {
   document.querySelector('#concept-description').textContent = description;
   document.querySelector('#concept-picker').value = selected;
   document.title = `${name} — Junjo motion study`;
-  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph','switchboard','decisions','softroutes','spanrail'].includes(selected)) {
+  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph','switchboard','decisions','softroutes','spanrail','stagedroutes'].includes(selected)) {
     document.querySelector('#copy-toggle').checked=false;
     document.querySelector('.stage').classList.add('art-only');
   }
@@ -56,7 +58,8 @@ function scene(canvas) {
   const ctx = canvas.getContext('2d');
   const kind = canvas.dataset.concept;
   const swimlaneStudy=['switchboard','decisions','softroutes','spanrail'].includes(kind)?createSwimlaneStudy(kind):null;
-  let width = 0, height = 0, visible = false, frame = 0, last = 0, time = 2;
+  const stagedRoutes=kind==='stagedroutes'?createStagedRoutes():null;
+  let width = 0, height = 0, visible = false, frame = 0, last = 0, time = kind==='stagedroutes'?0:2;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const dot = (x, y, radius, alpha = 1, warm = false) => {
     ctx.fillStyle = warm ? `rgba(255,181,112,${alpha})` : `rgba(73,113,255,${alpha})`;
@@ -703,7 +706,8 @@ function scene(canvas) {
     glow.addColorStop(0,'#102559');glow.addColorStop(.45,'#0a1532');glow.addColorStop(1,'#070a12');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1000,650);
     for(let i=0;i<110;i++) dot(random(i+150)*1000,random(i+750)*650,.65,.12+random(i)*.18);
-    if(swimlaneStudy)swimlaneStudy(ctx,time);
+    if(stagedRoutes)stagedRoutes(ctx,time);
+    else if(swimlaneStudy)swimlaneStudy(ctx,time);
     else ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide,cubevortex,executinggraph})[kind](time);
   }
   function animate(now) {

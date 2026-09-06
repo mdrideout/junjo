@@ -1,6 +1,6 @@
 # Telemetry background motion studies
 
-Twenty-one standalone Canvas concepts for reviewing the next Junjo hero background.
+Twenty-two standalone Canvas concepts for reviewing the next Junjo hero background.
 These files are outside Astro's routes and public assets; they are not included
 in the production website. The existing homepage is unchanged.
 
@@ -143,3 +143,30 @@ feed assembly of the next generated graph, with the oldest layer fading before
 a new trace enters. A fresh random seed is used on each page load; randomness
 is stable within each run so stored trace geometry and the next graph do not
 change during an animation cycle. Earlier animations are unchanged.
+
+
+## 22: staged Soft routes refinement
+
+The original 21 studies were saved in local commit `e0ad626`. **20 / Soft
+routes** remains unchanged. Its refinement is **22 / Soft routes · staged**
+(`?concept=stagedroutes`), implemented in `staged-soft-routes.js`.
+
+The stages are explicit:
+
+1. Move the span history back and initialize an empty front layer. The move and
+   initialization finish before graph execution starts.
+2. Execute one selected forward path from 1.6 to 3.6 seconds: exactly two
+   seconds. No telemetry particles move during this stage.
+3. At 3.6 seconds all emitters release together. Origins are randomly sampled
+   from every activated node and edge. Individual curves and speeds scatter
+   the particles into the span rows, with all points settled by 7.1 seconds.
+4. From 8.5 to 10 seconds the completed graph recedes into its version history.
+   Only after that, evidence from all four span layers paints the new graph in
+   front. It is ready before the next 17.5-second cycle begins.
+
+Span rows now have an execution root, child node spans, and nested transition
+spans with parent connectors and labels. Child bar geometry stays within its
+parent. Both columns retain four historical/front layers, fading the oldest
+before a new version enters. Stored trace and graph geometry remain unchanged
+as those versions recede. The current renderer URL includes a revision query
+so the local browser does not reuse a cached module from earlier studies.
