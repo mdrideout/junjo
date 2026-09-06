@@ -1,5 +1,5 @@
 import { createSwimlaneStudy } from './swimlane-studies.js';
-import { createStagedRoutes } from './staged-soft-routes.js?revision=22';
+import { createStagedRoutes } from './staged-soft-routes.js?revision=22b';
 
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],
@@ -23,7 +23,7 @@ const concepts = {
   decisions: ['19', 'Decision lanes', 'Random branches and merges; one selected route through the decision graph.'],
   softroutes: ['20', 'Soft routes', 'One luminous path through a new graph, with emissions from each activated node and edge.'],
   spanrail: ['21', 'Span rails', 'Every activated node and connection sends an ordered packet to its span row.'],
-  stagedroutes: ['22', 'Soft routes · staged', 'Prepare the layer → execute for 2s → record together → archive and rebuild.'],
+  stagedroutes: ['22', 'Soft routes · staged', 'Open span rows, quiet history, and a continuous execution path.'],
 };
 const selected = new URLSearchParams(location.search).get('concept');
 if (Object.hasOwn(concepts, selected)) {

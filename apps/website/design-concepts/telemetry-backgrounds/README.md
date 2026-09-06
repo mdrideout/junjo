@@ -164,9 +164,19 @@ The stages are explicit:
    Only after that, evidence from all four span layers paints the new graph in
    front. It is ready before the next 17.5-second cycle begins.
 
-Span rows now have an execution root, child node spans, and nested transition
-spans with parent connectors and labels. Child bar geometry stays within its
-parent. Both columns retain four historical/front layers, fading the oldest
-before a new version enters. Stored trace and graph geometry remain unchanged
-as those versions recede. The current renderer URL includes a revision query
+The first version of 22 was saved in local commit `a2a723f` before its visual
+refinement. It now uses 21 or 25 open span rows: a root, child node spans, and
+three repeated sibling operations per node, including its selected outgoing
+transition. Child bar geometry stays within its parent. Thin horizontal guides,
+varied dot sizes and opacity, and occasional warm dots reference **01 / Span
+loom**. The canvas has no enclosing boxes, row labels, or stage labels.
+
+Both columns retain four historical/front layers, fading the oldest before a
+new version enters. Right-side layer opacity falls from 86% to 12%, 2.8%, and
+0.4%, before each dot's individual opacity is applied. Stored geometry and dot
+variation remain unchanged as versions recede. A single traversal light crosses
+node interiors and selected edges continuously; visited outlines warm gradually
+and cool as the graph recedes. After the next graph's incoming dots settle, they
+crossfade into its matching outlines from 15.5 to 16.8 seconds, completing the
+handoff before the cycle rolls over. The renderer URL includes a revision query
 so the local browser does not reuse a cached module from earlier studies.
