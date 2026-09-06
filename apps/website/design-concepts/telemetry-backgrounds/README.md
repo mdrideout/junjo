@@ -1,6 +1,6 @@
 # Telemetry background motion studies
 
-Eight standalone Canvas concepts for reviewing the next Junjo hero background.
+Eleven standalone Canvas concepts for reviewing the next Junjo hero background.
 These files are outside Astro's routes and public assets; they are not included
 in the production website. The existing homepage is unchanged.
 
@@ -35,6 +35,28 @@ New studies are separate animations with their own direct links:
 
 These are alternatives for visual review, not successive replacements for the
 selected originals. No concept has been applied to the production homepage.
+
+## Round three: recursion and preserved history
+
+All eight earlier studies were saved in local Git commit `0020b9d` before this
+round began. Their animation functions are unchanged and their URLs still work.
+**05 / Living waterfall** is the selected direction for this round.
+
+- **09 / Evidence return** (`?concept=recursive`): the waterfall gains an evidence
+  collection point and a visible return path. The same particles circulate from
+  execution into spans, into evidence, and back to the next execution.
+- **10 / Recursive singularity** (`?concept=singularity`): a more continuous,
+  densely populated variation of that circuit with fewer diagram labels.
+- **11 / Persistent traces** (`?concept=memory`): a trace's local point geometry
+  is determined by its execution identity. Recession changes only its uniform
+  scale, translation, and opacity. There are four layers total: the current
+  execution plus three predecessors. Opacity falls from 94% to 38%, 13%, and
+  2.8%; the final layer fades out as a new execution enters. At each rollover,
+  the previous current trace becomes the next layer without changing shape.
+
+The recursive circuit represents evidence informing subsequent application
+changes. It does not imply telemetry autonomously changes an application or
+that each new execution is necessarily an improvement.
 
 The animations illustrate telemetry concepts, not exact Junjo ingestion
 mechanics. Reduced-motion preferences render a static composition; animations

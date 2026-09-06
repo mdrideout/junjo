@@ -7,6 +7,9 @@ const concepts = {
   cohort: ['06', 'Collect · seal · release', 'A refinement of 03: each batch fills, holds its shape, and departs together.'],
   braid: ['07', 'Span ribbons', 'Organic streams resolve into ordered execution spans.'],
   folio: ['08', 'Trace folios', 'A trace takes shape, then joins an archive of executions.'],
+  recursive: ['09', 'Evidence return', 'Execution → spans → evidence → the next execution. The same dots complete the circuit.'],
+  singularity: ['10', 'Recursive singularity', 'A continuous field unfolds into spans, gathers evidence, and returns to its own source.'],
+  memory: ['11', 'Persistent traces', 'Four layers, one preserved shape per execution. The fourth fades almost out of sight.'],
 };
 const selected = new URLSearchParams(location.search).get('concept');
 if (Object.hasOwn(concepts, selected)) {
@@ -311,6 +314,121 @@ function scene(canvas) {
     text('EVENTS',208,455,.45);text('TRACE → EVIDENCE',635,541,.5);
   }
 
+  const cubic=(a,b,c,d,p)=>{
+    const q=1-p;
+    return [0,1].map(i=>q*q*q*a[i]+3*q*q*p*b[i]+3*q*p*p*c[i]+p*p*p*d[i]);
+  };
+
+  function recursiveField(t, fluid) {
+    const origin=[fluid?325:205,325];
+    const core=[865,325];
+    const offsets=[0,26,52,52,26,52];
+    const lengths=[310,248,132,199,267,175];
+    const start=fluid?480:450;
+    // A shared evidence core is a visual metaphor, not an autonomous runtime.
+    const halo=ctx.createRadialGradient(...core,2,...core,72);
+    halo.addColorStop(0,'rgba(255,183,114,.18)');
+    halo.addColorStop(.22,'rgba(89,114,255,.12)');halo.addColorStop(1,'rgba(30,60,180,0)');
+    ctx.fillStyle=halo;ctx.fillRect(core[0]-72,core[1]-72,144,144);
+    for(let band=0;band<7;band++)for(let k=0;k<80;k++){
+      const a=k/80*tau+t*.15;
+      const r=13+band*4;
+      dot(core[0]+Math.cos(a)*r,core[1]+Math.sin(a)*r*.67,1,.16+band*.04,band<2);
+    }
+    for(let group=0;group<3;group++)for(let row=0;row<6;row++) {
+      const y=145+group*131+row*17;
+      const x=start+offsets[row];
+      const length=lengths[row]-group*9;
+      for(let guide=0;guide<55;guide++)dot(x+guide/54*length,y,.75,fluid?.085:.13);
+      if(!fluid){line(start-13,y,x-7,y,.14);if(row===0)text(`TRACE 0${group+1}`,start,y-18,.4);}
+      for(let col=0;col<100;col++) {
+        const u=col/99;
+        const seed=group*601+row*101+col;
+        const angle=random(seed)*tau;
+        const source=[origin[0]+Math.cos(angle)*(fluid?26:42),origin[1]+Math.sin(angle)*(fluid?55:83)];
+        const target=[x+u*length,y];
+        const evidence=[core[0]+Math.cos(angle)*7,core[1]+Math.sin(angle)*7];
+        const phase=fract(t/(fluid?26:24)+(fluid?col/100+row*.018+group*.18:group/3-row*.018-col*.0011));
+        let pos;
+        let returning=false;
+        if(phase<.27) {
+          const p=phase/.27;
+          pos=cubic(source,[source[0]+125,source[1]],[x-90,y],target,smooth(p));
+        }else if(phase<.49) {
+          pos=target;
+        }else if(phase<.65) {
+          const p=(phase-.49)/.16;
+          pos=cubic(target,[target[0]+85,y],[core[0]-28,core[1]],evidence,smooth(p));
+        }else {
+          const p=(phase-.65)/.35;
+          const upper=(group+row)%2===0;
+          const spread=fluid?row*5+group*12:row*3;
+          pos=cubic(evidence,[1010,upper?20-spread:625+spread],[origin[0]-175,upper?20-spread:625+spread],source,p);
+          returning=true;
+        }
+        const warm=returning && (col%9===0 || !fluid&&col%4===0);
+        dot(...pos,col%19===0?2:1.25,returning?(fluid?.45:.53):.74,warm);
+      }
+    }
+    if(!fluid) {
+      text('EXECUTION',origin[0]-31,445,.55);
+      text('EVIDENCE',core[0]-26,397,.65);
+      text('INFORMS THE NEXT EXECUTION',345,577,.5);
+    }
+  }
+  function recursive(t) { recursiveField(t,false); }
+  function singularity(t) { recursiveField(t,true); }
+
+  // Trace-local coordinates are deterministic for an execution, never for its age.
+  // Recession changes only the uniform scale, translation, and opacity.
+  function preservedTrace(execution) {
+    const points=[];
+    for(let row=0;row<11;row++) {
+      const indent=[0,24,48,48,24][row%5];
+      const length=285-indent-random(execution*17+row)*65;
+      for(let col=0;col<52;col++) {
+        const x=-145+indent+col/51*length;
+        points.push({x,y:-117+row*23-x*.17,row,col});
+      }
+    }
+    return points;
+  }
+  function memory(t) {
+    const cycle=14;
+    const execution=Math.floor(t/cycle);
+    const phase=fract(t/cycle);
+    const recession=smooth(Math.max(0,Math.min((phase-.7)/.3,1)));
+    const opacityStops=[.94,.38,.13,.028,0];
+    // Four slots: the forming/current execution and its three predecessors.
+    // At rollover each completed point occupies exactly its previous position.
+    for(let slot=3;slot>=0;slot--) {
+      const id=execution-slot;
+      const depth=slot+recession;
+      const low=Math.floor(depth);
+      const alpha=mix(opacityStops[low],opacityStops[Math.min(low+1,4)],depth-low);
+      const scale=1-depth*.045;
+      const project=(x,y)=>[635+x*scale+depth*49,345+y*scale-depth*38];
+      const corners=[[-164,-154],[166,-154],[166,146],[-164,146],[-164,-154]].map(([x,y])=>project(x,y-x*.17));
+      corners.slice(1).forEach((b,i)=>line(...corners[i],...b,alpha*.22));
+      for(const point of preservedTrace(id)) {
+        const target=project(point.x,point.y);
+        let pos=target;
+        let fade=1;
+        if(slot===0) {
+          const arrival=(phase-point.row*.015-point.col*.0011)/.32;
+          if(arrival<0)continue;
+          const p=Math.min(arrival,1);
+          const angle=random(point.row*101+point.col+id*71)*tau;
+          const source=[230+Math.cos(angle)*58,335+Math.sin(angle)*85];
+          pos=cubic(source,[350,source[1]],[430,target[1]],target,smooth(p));
+          fade=Math.min(arrival*5,1);
+        }
+        dot(...pos,(point.col===0?2.2:1.4)*scale,alpha*fade,point.col===0);
+      }
+    }
+    text('EXECUTION',195,474,.45);text('FOUR PRESERVED TRACES',556,541,.5);
+  }
+
   function draw() {
     ctx.setTransform(canvas.width/1000,0,0,canvas.height/650,0,0);
     ctx.fillStyle='#070a12';ctx.fillRect(0,0,1000,650);
@@ -318,7 +436,7 @@ function scene(canvas) {
     glow.addColorStop(0,'#102559');glow.addColorStop(.45,'#0a1532');glow.addColorStop(1,'#070a12');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1000,650);
     for(let i=0;i<110;i++) dot(random(i+150)*1000,random(i+750)*650,.65,.12+random(i)*.18);
-    ({loom,graph,batch,strata,waterfall,cohort,braid,folio})[kind](time);
+    ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory})[kind](time);
   }
   function animate(now) {
     if(last) time+=(now-last)/1000;
