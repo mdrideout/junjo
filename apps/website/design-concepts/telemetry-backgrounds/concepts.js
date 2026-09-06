@@ -10,6 +10,10 @@ const concepts = {
   recursive: ['09', 'Evidence return', 'Execution → spans → evidence → the next execution. The same dots complete the circuit.'],
   singularity: ['10', 'Recursive singularity', 'A continuous field unfolds into spans, gathers evidence, and returns to its own source.'],
   memory: ['11', 'Persistent traces', 'Four layers, one preserved shape per execution. The fourth fades almost out of sight.'],
+  tributaries: ['12', 'Archive confluence', 'Four histories contribute to one machine. It runs once, then adds its own trace.'],
+  lens: ['13', 'History lens', 'One scan reads the full archive and concentrates it into the next execution.'],
+  lattice: ['14', 'Inherited lattice', 'Each trace builds a different part of the next machine, one at a time.'],
+  tide: ['15', 'Memory tide', 'Echoes of all four traces curl into one machine, then a new trace joins the archive.'],
 };
 const selected = new URLSearchParams(location.search).get('concept');
 if (Object.hasOwn(concepts, selected)) {
@@ -22,6 +26,10 @@ if (Object.hasOwn(concepts, selected)) {
   document.querySelector('#concept-description').textContent = description;
   document.querySelector('#concept-picker').value = selected;
   document.title = `${name} — Junjo motion study`;
+  if(['tributaries','lens','lattice','tide'].includes(selected)) {
+    document.querySelector('#copy-toggle').checked=false;
+    document.querySelector('.stage').classList.add('art-only');
+  }
 }
 document.querySelector('#concept-picker').addEventListener('change', (event) => {
   location.search = `?concept=${event.target.value}`;
@@ -429,6 +437,125 @@ function scene(canvas) {
     text('EXECUTION',195,474,.45);text('FOUR PRESERVED TRACES',556,541,.5);
   }
 
+  const ramp=(value,start,end)=>smooth(Math.max(0,Math.min((value-start)/(end-start),1)));
+  function machinePoint(mode,part,index,count) {
+    const u=index/(count-1);
+    let x,y;
+    if(mode==='tributaries') {
+      const latitude=(index%11)/10*Math.PI;
+      const longitude=(part+Math.floor(index/11)/12)*Math.PI/2;
+      x=Math.cos(longitude)*Math.sin(latitude)*82;
+      y=Math.cos(latitude)*92+Math.sin(longitude)*Math.sin(latitude)*19;
+    }else if(mode==='lens') {
+      const corners=[[0,-100],[78,0],[0,100],[-78,0],[0,-100]];
+      const edge=Math.min(3,Math.floor(u*4));
+      const p=u*4-edge;
+      const scale=1-part*.12;
+      x=mix(corners[edge][0],corners[edge+1][0],p)*scale+part*5;
+      y=mix(corners[edge][1],corners[edge+1][1],p)*scale-part*3;
+    }else if(mode==='lattice') {
+      const corners=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+      const edges=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+      const edge=Math.min(2,Math.floor(u*3));
+      const [a,b]=edges[part*3+edge].map(i=>corners[i]);
+      const p=u*3-edge;
+      const v=a.map((n,i)=>mix(n,b[i],p));
+      x=v[0]*58+v[2]*29;y=v[1]*62-v[2]*27;
+    }else {
+      const angle=u*tau;
+      const tilt=(part-1.5)*.30;
+      const px=Math.cos(angle)*(60+part*10),py=Math.sin(angle)*(36+part*5);
+      x=px*Math.cos(tilt)-py*Math.sin(tilt);
+      y=px*Math.sin(tilt)+py*Math.cos(tilt);
+    }
+    return [220+x,337+y];
+  }
+
+  function historyCycle(t,mode) {
+    const duration=24;
+    const generation=Math.floor(t/duration);
+    const phase=fract(t/duration);
+    const recession=ramp(phase,.46,.86);
+    const opacityStops=[.9,.38,.13,.028,0];
+    const project=(point,depth)=>{
+      const scale=.88*(1-depth*.045);
+      return [680+point.x*scale+depth*41,342+point.y*scale-depth*32];
+    };
+    const histories=Array.from({length:4},(_,slot)=>preservedTrace(generation-1-slot));
+    const outline=(depth,alpha)=>{
+      const corners=[[-164,-154],[166,-154],[166,146],[-164,146],[-164,-154]].map(([x,y])=>project({x,y:y-x*.17},depth));
+      corners.slice(1).forEach((b,i)=>line(...corners[i],...b,alpha*.19));
+    };
+    // The oldest trace finishes contributing before it fades; only then does
+    // the new trace enter. Four trace layers remain the visual maximum.
+    for(let slot=3;slot>=0;slot--) {
+      const depth=slot+recession;
+      const lower=Math.floor(depth);
+      let alpha=mix(opacityStops[lower],opacityStops[Math.min(lower+1,4)],depth-lower);
+      if(slot===3)alpha*=1-ramp(phase,.35,.45);
+      if(alpha<=0)continue;
+      outline(depth,alpha);
+      for(const point of histories[slot])dot(...project(point,depth),point.col===0?1.8:1.2,alpha,point.col===0);
+    }
+
+    const count=143;
+    const machineFade=1-ramp(phase,.60,.92);
+    for(let part=0;part<4;part++)for(let index=0;index<count;index++) {
+      const u=index/(count-1);
+      const tracePoint=histories[part][Math.round(u*(histories[part].length-1))];
+      const source=project(tracePoint,part);
+      const target=machinePoint(mode,part,index,count);
+      let arrival;
+      if(mode==='tributaries')arrival=(phase-.025-part*.035-u*.035)/.19;
+      else if(mode==='lens')arrival=(phase-.025-part*.006-u*.07)/.24;
+      else if(mode==='lattice')arrival=(phase-.025-part*.065-u*.012)/.085;
+      else arrival=(phase-.025-part*.03)/.23;
+      if(arrival<0)continue;
+      const p=Math.min(arrival,1);
+      let pos;
+      if(mode==='tributaries') {
+        const gate=[462,240+part*64];
+        if(p<.55)pos=cubic(source,[source[0]-100,source[1]],[gate[0]+20,gate[1]],gate,smooth(p/.55));
+        else pos=cubic(gate,[380,gate[1]],[target[0]+55,target[1]],target,smooth((p-.55)/.45));
+      }else if(mode==='lens') {
+        pos=cubic(source,[493,source[1]],[330,337+(source[1]-342)*.12],target,smooth(p));
+      }else if(mode==='lattice') {
+        pos=cubic(source,[420,source[1]],[330,target[1]],target,smooth(p));
+      }else {
+        // Keep the travelling echo trace-shaped for the first half of its path.
+        const translated=[source[0]-380*p,source[1]+Math.sin(p*Math.PI)*35];
+        const fold=ramp(p,.42,1);
+        pos=[mix(translated[0],target[0],fold),mix(translated[1],target[1],fold)];
+      }
+      const fade=Math.min(arrival*8,1)*machineFade;
+      dot(...pos,index%13===0?1.8:1.35,fade*.8,index%13===0);
+      if(p<.10&&index%13===0)ring(...source,4+p*30,(1-p/.10)*.22);
+    }
+
+    if(phase>.49) {
+      const fade=ramp(phase,.49,.53);
+      outline(0,fade*.9);
+      for(const point of preservedTrace(generation)) {
+        const release=(phase-.49-point.row*.006-point.col*.00045)/.21;
+        if(release<0)continue;
+        const p=Math.min(release,1);
+        const index=point.row*52+point.col;
+        const source=machinePoint(mode,index%4,Math.floor(index/4),count);
+        const target=project(point,0);
+        const pos=cubic(source,[355,source[1]],[445,target[1]],target,smooth(p));
+        dot(...pos,point.col===0?1.9:1.25,Math.min(release*8,1)*.9,point.col===0);
+      }
+    }
+    text('NEXT EXECUTION',165,483,.5);
+    text('TRACE HISTORY',650,523,.5);
+    const phaseName=phase<.35?'HISTORY INFORMS THE MACHINE':phase<.49?'THE NEXT EXECUTION TAKES SHAPE':phase<.82?'EXECUTE → OBSERVE':'PRESERVE THE NEW TRACE';
+    text(phaseName,333,580,.58);
+  }
+  function tributaries(t) { historyCycle(t,'tributaries'); }
+  function lens(t) { historyCycle(t,'lens'); }
+  function lattice(t) { historyCycle(t,'lattice'); }
+  function tide(t) { historyCycle(t,'tide'); }
+
   function draw() {
     ctx.setTransform(canvas.width/1000,0,0,canvas.height/650,0,0);
     ctx.fillStyle='#070a12';ctx.fillRect(0,0,1000,650);
@@ -436,7 +563,7 @@ function scene(canvas) {
     glow.addColorStop(0,'#102559');glow.addColorStop(.45,'#0a1532');glow.addColorStop(1,'#070a12');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1000,650);
     for(let i=0;i<110;i++) dot(random(i+150)*1000,random(i+750)*650,.65,.12+random(i)*.18);
-    ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory})[kind](time);
+    ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide})[kind](time);
   }
   function animate(now) {
     if(last) time+=(now-last)/1000;
