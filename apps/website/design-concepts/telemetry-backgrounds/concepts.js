@@ -1,5 +1,5 @@
 import { createSwimlaneStudy } from './swimlane-studies.js';
-import { createStagedRoutes } from './staged-soft-routes.js?revision=22f';
+import { createStagedRoutes } from './staged-soft-routes.js?revision=22h';
 
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],
@@ -42,6 +42,7 @@ if (Object.hasOwn(concepts, selected)) {
     detail.classList.add('hero-study');
     copy.querySelector('.application').remove();
     copy.querySelector('h1').replaceChildren(document.querySelector('#staged-heading').content.cloneNode(true));
+    copy.querySelector('h1').after(document.querySelector('#staged-description').content.cloneNode(true));
     const introduction=document.createElement('section');
     introduction.className='hero-introduction';
     introduction.setAttribute('aria-label','About Junjo');

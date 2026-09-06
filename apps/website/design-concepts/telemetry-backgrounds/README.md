@@ -196,5 +196,9 @@ still opens an unobstructed animation view. This composition applies only to
 
 The centered overlay was saved in local commit `b322d0f` before expanding the
 span field. Rows now extend from near the top to near the bottom of the canvas,
-and longer spans continue beyond its right edge. A vertical darkening gradient
-peaks behind the centered heading and fades to transparent at both ends.
+and longer spans continue beyond its right edge. The vertical-gradient study
+was saved in `745c9c2`. Disabling that override in browser styles revealed the
+original left-to-right shade, whose left edge was 96% opaque. The current
+composition keeps that preferred direction at roughly 55% of its original
+strength: 53% opacity on the left, 47% at 30% across, 14% at 60% across, and
+transparent on the right. The gradient remains behind the lettering.
