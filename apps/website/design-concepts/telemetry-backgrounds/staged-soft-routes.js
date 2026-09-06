@@ -32,7 +32,8 @@ export function buildStagedRun(graph,rng) {
   });
   const particles=[];
   rows.forEach((row,rowIndex)=>{
-    row.y=135+rowIndex/(rows.length-1)*414;
+    row.y=8+rowIndex/(rows.length-1)*634;
+    row.width*=1.5;
     const count=Math.floor(row.width/5.8)+1;
     for(let col=0;col<count;col++) {
       const origin=row.event.type==='node'?pill(graph.nodes[row.event.id],rng()):edgePoint(graph,graph.edges[row.event.id],rng(),'softroutes');

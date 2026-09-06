@@ -193,3 +193,8 @@ without the old left-side dark overlay. The two existing paragraphs retain
 their exact wording in a separate section below the hero. The Hero copy toggle
 still opens an unobstructed animation view. This composition applies only to
 22; the earlier studies and production homepage keep their existing layout.
+
+The centered overlay was saved in local commit `b322d0f` before expanding the
+span field. Rows now extend from near the top to near the bottom of the canvas,
+and longer spans continue beyond its right edge. A vertical darkening gradient
+peaks behind the centered heading and fades to transparent at both ends.

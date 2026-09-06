@@ -1,5 +1,5 @@
 import { createSwimlaneStudy } from './swimlane-studies.js';
-import { createStagedRoutes } from './staged-soft-routes.js?revision=22e';
+import { createStagedRoutes } from './staged-soft-routes.js?revision=22f';
 
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],

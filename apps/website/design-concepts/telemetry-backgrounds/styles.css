@@ -10,7 +10,7 @@
 /* 22: center the heading over the animation; keep its explanation below. */
 .hero-study .stage:not(.art-only){min-height:max(740px,calc(100svh - 156px));background:#070a12}
 .hero-study .stage:not(.art-only)>canvas{top:0;height:100%}
-.hero-study .shade{background:none}
+.hero-study .shade{background:linear-gradient(180deg,#070a1200 0%,#070a1226 22%,#070a128c 40%,#070a12b8 50%,#070a128c 60%,#070a1226 78%,#070a1200 100%)}
 .hero-study .hero-copy{position:absolute;inset:0;padding:0 4vw;display:flex;flex-direction:column;justify-content:center}
 .hero-study .hero-copy h1{max-width:none;margin:0;font-size:clamp(44px,5.7vw,88px);line-height:1.06}
 .hero-study .hero-copy h1>span{display:block;filter:drop-shadow(0 2px 3px #070a12cc) drop-shadow(0 0 12px #070a1299)}
