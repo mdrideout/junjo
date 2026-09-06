@@ -36,7 +36,7 @@ export function buildStagedRun(graph,rng) {
     const count=Math.floor(row.width/5.8)+1;
     for(let col=0;col<count;col++) {
       const origin=row.event.type==='node'?pill(graph.nodes[row.event.id],rng()):edgePoint(graph,graph.edges[row.event.id],rng(),'softroutes');
-      particles.push({x:row.x+col/(count-1)*row.width,y:row.y,row:rowIndex,col,origin,event:row.event,departure:STAGES.flowEnd,flight:2.3+rng()*1.2,bend:(rng()-.5)*170,drift:(rng()-.5)*65,radius:col%13===0?1.6+rng()*.25:.7+rng()*.55,opacity:.26+rng()*.65,warm:rng()<.026});
+      particles.push({x:row.x+col/(count-1)*row.width,y:row.y,row:rowIndex,col,origin,event:row.event,departure:STAGES.flowEnd,flight:2.3+rng()*1.2,bend:(rng()-.5)*170,drift:(rng()-.5)*65,radius:col===0?2:col%13===0?1.6+rng()*.25:.7+rng()*.55,opacity:col===0?.95:.26+rng()*.65,warm:rng()<.026||col===0});
     }
   });
   return {events,rows,particles};
@@ -86,15 +86,7 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
     const graphOpacities=[.86,.25,.075,.018,0];
     const spanOpacities=[.86,.12,.028,.004,0];
     const opacity=(depth,stops)=>{const low=Math.floor(depth);return mix(stops[low],stops[Math.min(low+1,4)],depth-low);};
-    function spanGuides(item,depth,alpha) {
-      const project=point=>spanPosition(point,depth);
-      for(const row of item.run.rows) {
-        line([{x:row.x,y:row.y},{x:row.x+row.width,y:row.y}].map(project),alpha*.12,false,.65);
-        dot(...project({x:row.x-11,y:row.y}),1.5*(1-depth*.05),alpha*.42);
-      }
-    }
     function trace(item,depth,alpha) {
-      spanGuides(item,depth,alpha);
       for(const p of item.run.particles)dot(...spanPosition(p,depth),p.radius*(1-depth*.05),alpha*p.opacity,p.warm?'warm':'blue');
     }
     function graph(item,depth,alpha,clock,active=0) {
@@ -137,8 +129,8 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
       if(slot===3)alpha*=1-ramp(age,0,.7);
       if(alpha>0)trace(past[slot],depth,alpha);
     }
-    const blankLayer=ramp(age,.75,1.5);
-    spanGuides(current,0,blankLayer*.86);
+    // The new trace has no visible scaffold. Its first marks are arriving dots,
+    // including the orange particle that becomes the start of each span.
 
     // Keep historical graph versions, rather than dissolving the old graph.
     const graphShift=ramp(age,STAGES.archiveStart,STAGES.archiveEnd);

@@ -153,8 +153,8 @@ routes** remains unchanged. Its refinement is **22 / Soft routes · staged**
 
 The stages are explicit:
 
-1. Move the span history back and initialize an empty front layer. The move and
-   initialization finish before graph execution starts.
+1. Move the span history back, leaving the front empty. No new span guides,
+   lines, or markers are drawn before the execution's particles arrive.
 2. Execute one selected forward path from 1.6 to 3.6 seconds: exactly two
    seconds. No telemetry particles move during this stage.
 3. At 3.6 seconds all emitters release together. Origins are randomly sampled
@@ -167,9 +167,10 @@ The stages are explicit:
 The first version of 22 was saved in local commit `a2a723f` before its visual
 refinement. It now uses 21 or 25 open span rows: a root, child node spans, and
 three repeated sibling operations per node, including its selected outgoing
-transition. Child bar geometry stays within its parent. Thin horizontal guides,
-varied dot sizes and opacity, and occasional warm dots reference **01 / Span
-loom**. The canvas has no enclosing boxes, row labels, or stage labels.
+transition. Child bar geometry stays within its parent. Varied dot sizes and
+opacity reference **01 / Span loom**. Each span starts with an orange particle
+that migrates from the graph along with the rest of the row. The canvas has no
+span guide lines, enclosing boxes, row labels, or stage labels.
 
 Both columns retain four historical/front layers, fading the oldest before a
 new version enters. Right-side layer opacity falls from 86% to 12%, 2.8%, and
@@ -184,7 +185,10 @@ so the local browser does not reuse a cached module from earlier studies.
 The open-span version was saved in local commit `0cd63a5` before exploring its
 hero composition. **22** now opens with hero copy enabled: orange Caveat **add**,
 an animated blue gradient on **Recursive Self Improvement**, and **To Your
-Application** below it. The graph and spans occupy the space below the heading
+Application** below it. That separated composition was saved in local commit
+`b39444e` before returning the heading to a vertically centered overlay. The
+smaller **add** sits tightly above the main line, with subtle shadows around
+the lettering for legibility. The graph and spans fill the hero behind it
 without the old left-side dark overlay. The two existing paragraphs retain
 their exact wording in a separate section below the hero. The Hero copy toggle
 still opens an unobstructed animation view. This composition applies only to
