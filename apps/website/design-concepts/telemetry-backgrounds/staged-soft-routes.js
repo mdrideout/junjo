@@ -99,11 +99,12 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
     }
     function graph(item,depth,alpha,clock,active=0) {
       const project=p=>graphPosition(p,depth);
+      const foreground=1-clamp(depth);
       const nodeEvents=new Map(item.run.events.filter(e=>e.type==='node').map(e=>[e.id,e]));
       const edgeEvents=new Map(item.run.events.filter(e=>e.type==='edge').map(e=>[e.id,e]));
       for(const edge of item.graph.edges) {
         const points=Array.from({length:45},(_,i)=>edgePoint(item.graph,edge,i/44,'softroutes'));
-        line(points.map(project),alpha*.37);
+        line(points.map(project),alpha*(.37+foreground*.18));
         const last=points.at(-1);line([[last[0]-4,last[1]-3],last,[last[0]-4,last[1]+3]].map(project),alpha*.42);
         const event=edgeEvents.get(edge.id);
         if(active&&event&&clock>=event.start) {
@@ -116,7 +117,7 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
       for(const node of item.graph.nodes) {
         const event=nodeEvents.get(node.id);
         const border=Array.from({length:41},(_,i)=>pill(node,i/40));
-        line(border.map(project),alpha*.85,false,1.2);
+        line(border.map(project),alpha*(.85+foreground*.1),false,1.2);
         if(active&&event)line(border.map(project),alpha*active*ramp(clock,event.start,event.start+event.duration),true,1.2);
       }
       const head=active?traversalPosition(item,clock):null;

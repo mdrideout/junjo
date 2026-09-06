@@ -1,5 +1,5 @@
 import { createSwimlaneStudy } from './swimlane-studies.js';
-import { createStagedRoutes } from './staged-soft-routes.js?revision=22b';
+import { createStagedRoutes } from './staged-soft-routes.js?revision=22d';
 
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],
@@ -36,7 +36,19 @@ if (Object.hasOwn(concepts, selected)) {
   document.querySelector('#concept-description').textContent = description;
   document.querySelector('#concept-picker').value = selected;
   document.title = `${name} — Junjo motion study`;
-  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph','switchboard','decisions','softroutes','spanrail','stagedroutes'].includes(selected)) {
+  if(selected==='stagedroutes') {
+    const detail=document.querySelector('#detail');
+    const copy=detail.querySelector('.hero-copy');
+    detail.classList.add('hero-study');
+    copy.querySelector('.application').remove();
+    copy.querySelector('h1').replaceChildren(document.querySelector('#staged-heading').content.cloneNode(true));
+    const introduction=document.createElement('section');
+    introduction.className='hero-introduction';
+    introduction.setAttribute('aria-label','About Junjo');
+    introduction.append(copy.querySelector('.description'));
+    detail.append(introduction);
+  }
+  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph','switchboard','decisions','softroutes','spanrail'].includes(selected)) {
     document.querySelector('#copy-toggle').checked=false;
     document.querySelector('.stage').classList.add('art-only');
   }
@@ -46,6 +58,7 @@ document.querySelector('#concept-picker').addEventListener('change', (event) => 
 });
 document.querySelector('#copy-toggle').addEventListener('change', (event) => {
   document.querySelector('.stage').classList.toggle('art-only', !event.target.checked);
+  if(selected==='stagedroutes')document.querySelector('.hero-introduction').hidden=!event.target.checked;
 });
 
 const tau = Math.PI * 2;

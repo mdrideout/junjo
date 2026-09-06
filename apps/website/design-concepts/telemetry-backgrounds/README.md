@@ -180,3 +180,12 @@ and cool as the graph recedes. After the next graph's incoming dots settle, they
 crossfade into its matching outlines from 15.5 to 16.8 seconds, completing the
 handoff before the cycle rolls over. The renderer URL includes a revision query
 so the local browser does not reuse a cached module from earlier studies.
+
+The open-span version was saved in local commit `0cd63a5` before exploring its
+hero composition. **22** now opens with hero copy enabled: orange Caveat **add**,
+an animated blue gradient on **Recursive Self Improvement**, and **To Your
+Application** below it. The graph and spans occupy the space below the heading
+without the old left-side dark overlay. The two existing paragraphs retain
+their exact wording in a separate section below the hero. The Hero copy toggle
+still opens an unobstructed animation view. This composition applies only to
+22; the earlier studies and production homepage keep their existing layout.
