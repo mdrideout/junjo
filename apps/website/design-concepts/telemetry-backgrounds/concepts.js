@@ -14,6 +14,8 @@ const concepts = {
   lens: ['13', 'History lens', 'One scan reads the full archive and concentrates it into the next execution.'],
   lattice: ['14', 'Inherited lattice', 'Each trace builds a different part of the next machine, one at a time.'],
   tide: ['15', 'Memory tide', 'Echoes of all four traces curl into one machine, then a new trace joins the archive.'],
+  cubevortex: ['16', 'Cube into execution', 'Cube → swirling execution → spans → history builds the next cube.'],
+  executinggraph: ['17', 'Graph into execution', 'Execution follows the graph. Its dots become spans; history builds the next graph.'],
 };
 const selected = new URLSearchParams(location.search).get('concept');
 if (Object.hasOwn(concepts, selected)) {
@@ -26,7 +28,7 @@ if (Object.hasOwn(concepts, selected)) {
   document.querySelector('#concept-description').textContent = description;
   document.querySelector('#concept-picker').value = selected;
   document.title = `${name} — Junjo motion study`;
-  if(['tributaries','lens','lattice','tide'].includes(selected)) {
+  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph'].includes(selected)) {
     document.querySelector('#copy-toggle').checked=false;
     document.querySelector('.stage').classList.add('art-only');
   }
@@ -556,6 +558,137 @@ function scene(canvas) {
   function lattice(t) { historyCycle(t,'lattice'); }
   function tide(t) { historyCycle(t,'tide'); }
 
+  function executionGraph(generation) {
+    const variation=((generation%3)+3)%3;
+    const nodes=[[105,337],[185,245],[185,337],[185,429],[279,278],[279,397],[370,337]];
+    nodes[4][1]+=[0,18,-12][variation];
+    nodes[5][1]+=[0,-14,11][variation];
+    const edges=[[0,1],[0,2],[0,3],[1,4],[2,4],[2,5],[3,5],[4,6],[5,6],[[1,5],[2,6],[3,4]][variation]];
+    return {nodes,edges};
+  }
+  function executionMachine(mode,index,generation) {
+    if(mode==='cubevortex')return machinePoint('lattice',index%4,Math.floor(index/4),143);
+    const {nodes,edges}=executionGraph(generation);
+    if(index<140) {
+      const node=nodes[Math.floor(index/20)];
+      const angle=(index%20)/20*tau;
+      return [node[0]+Math.cos(angle)*9,node[1]+Math.sin(angle)*9];
+    }
+    const edgeIndex=(index-140)%edges.length;
+    const step=Math.floor((index-140)/edges.length);
+    const steps=Math.floor((571-140-edgeIndex)/edges.length);
+    const [a,b]=edges[edgeIndex].map(i=>nodes[i]);
+    return [mix(a[0],b[0],step/steps),mix(a[1],b[1],step/steps)];
+  }
+  function executionSpiral(index,age) {
+    const start=machinePoint('lattice',index%4,Math.floor(index/4),143);
+    const angle=Math.atan2(start[1]-337,start[0]-220)+(age-1.4)*3.15+index*.033;
+    const radius=23+Math.sqrt(random(index+210))*88;
+    const x=Math.cos(angle)*radius;
+    return [220+x,337+Math.sin(angle)*radius*.40+x*.14];
+  }
+  const executionTraceProject=(point,depth)=>{
+    const scale=.88*(1-depth*.045);
+    return [680+point.x*scale+depth*41,342+point.y*scale-depth*32];
+  };
+  function executingParticle(mode,index,generation,age,trace) {
+    const point=trace[index];
+    const target=executionTraceProject(point,0);
+    const departure=4.4+point.row*.085+point.col*.009;
+    const machine=executionMachine(mode,index,generation);
+    if(age<departure) {
+      if(mode==='executinggraph')return machine;
+      const spiral=executionSpiral(index,age);
+      const morph=ramp(age,1.4,3.4);
+      return [mix(machine[0],spiral[0],morph),mix(machine[1],spiral[1],morph)];
+    }
+    const source=mode==='cubevortex'?executionSpiral(index,departure):machine;
+    const p=ramp(age,departure,departure+3.2);
+    return cubic(source,[source[0]+120,source[1]-24],[target[0]-100,target[1]+Math.sin(index)*16],target,p);
+  }
+
+  function machineExecution(t,mode) {
+    const duration=22;
+    const generation=Math.floor(t/duration);
+    const age=t%duration;
+    const recession=ramp(age,4.4,9.5);
+    const opacityStops=[.9,.38,.13,.028,0];
+    const history=Array.from({length:4},(_,slot)=>preservedTrace(generation-1-slot));
+    const currentTrace=preservedTrace(generation);
+    const outline=(depth,alpha)=>{
+      const corners=[[-164,-154],[166,-154],[166,146],[-164,146],[-164,-154]].map(([x,y])=>executionTraceProject({x,y:y-x*.17},depth));
+      corners.slice(1).forEach((b,i)=>line(...corners[i],...b,alpha*.19));
+    };
+    for(let slot=3;slot>=0;slot--) {
+      const depth=slot+recession;
+      const low=Math.floor(depth);
+      let alpha=mix(opacityStops[low],opacityStops[Math.min(low+1,4)],depth-low);
+      if(slot===3)alpha*=1-ramp(age,3.4,4.4);
+      if(alpha<=0)continue;
+      outline(depth,alpha);
+      for(const point of history[slot])dot(...executionTraceProject(point,depth),1.35,alpha,point.col===0);
+    }
+
+    if(mode==='cubevortex'&&age>1.4&&age<9.1) {
+      const presence=ramp(age,1.4,3.4)*(1-ramp(age,5.8,9.1));
+      const halo=ctx.createRadialGradient(220,337,12,220,337,118);
+      halo.addColorStop(0,`rgba(0,0,5,${presence*.96})`);
+      halo.addColorStop(.19,`rgba(5,9,24,${presence*.96})`);
+      halo.addColorStop(.32,`rgba(89,109,255,${presence*.18})`);
+      halo.addColorStop(1,'rgba(15,31,90,0)');
+      ctx.fillStyle=halo;ctx.fillRect(100,217,240,240);
+    }
+    if(mode==='executinggraph'&&age<5.8) {
+      const {nodes,edges}=executionGraph(generation);
+      const frontier=105+Math.max(0,Math.min((age-1)/3.4,1))*265;
+      const remaining=1-ramp(age,4.4,5.8);
+      edges.forEach(([a,b])=>line(...nodes[a],...nodes[b],.12*remaining));
+      nodes.forEach(([x,y])=>{
+        const activation=Math.exp(-(((x-frontier)/38)**2))*(age>1?1:0)*remaining;
+        if(activation>.01){ring(x,y,14,activation*.8);ring(x,y,20,activation*.25);}
+      });
+    }
+    if(age>4.4)outline(0,ramp(age,4.4,8.2)*.9);
+
+    // This is the only draw of the executing particle cohort: a stable identity
+    // and opacity from machine to vortex/graph execution to its exact span slot.
+    for(let index=0;index<currentTrace.length;index++) {
+      const point=currentTrace[index];
+      const pos=executingParticle(mode,index,generation,age,currentTrace);
+      let warm=point.col===0;
+      if(mode==='executinggraph'&&age>=1&&age<4.4) {
+        const frontier=105+(age-1)/3.4*265;
+        warm=Math.abs(pos[0]-frontier)<24;
+      }
+      dot(...pos,1.35,.9,warm);
+    }
+
+    // Reading evidence emits a new cohort; archived traces remain in place.
+    // These particles become the next cycle's executing cohort at rollover.
+    if(age>=12.5) {
+      const evidence=[currentTrace,history[0],history[1],history[2]];
+      for(let index=0;index<572;index++) {
+        const part=index%4;
+        const ordinal=Math.floor(index/4);
+        const sourcePoint=evidence[part][Math.round(ordinal/142*571)];
+        const source=executionTraceProject(sourcePoint,part);
+        const target=executionMachine(mode,index,generation+1);
+        const depart=12.5+part*.8+ordinal/142*.35;
+        const p=ramp(age,depart,depart+3.2);
+        if(age<depart)continue;
+        const pos=cubic(source,[445,source[1]],[360,target[1]],target,p);
+        const born=ramp(age,depart,depart+.18);
+        dot(...pos,1.35,.9*born,currentTrace[index].col===0);
+      }
+    }
+    text(mode==='cubevortex'?'EXECUTION MACHINE':'EXECUTION GRAPH',160,491,.5);
+    text('PRESERVED TRACE HISTORY',602,524,.5);
+    const phase=age<1.4?'MACHINE READY':age<4.4?(mode==='cubevortex'?'CUBE → EXECUTION VORTEX':'EXECUTION FLOWS THROUGH THE GRAPH'):age<9.5?'THE SAME DOTS BECOME SPANS':age<12.5?'PRESERVE THIS EXECUTION':'THE FULL HISTORY BUILDS THE NEXT MACHINE';
+    text(phase,280,566,.6);
+  }
+  function cubevortex(t) { machineExecution(t,'cubevortex'); }
+  function executinggraph(t) { machineExecution(t,'executinggraph'); }
+
   function draw() {
     ctx.setTransform(canvas.width/1000,0,0,canvas.height/650,0,0);
     ctx.fillStyle='#070a12';ctx.fillRect(0,0,1000,650);
@@ -563,7 +696,7 @@ function scene(canvas) {
     glow.addColorStop(0,'#102559');glow.addColorStop(.45,'#0a1532');glow.addColorStop(1,'#070a12');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1000,650);
     for(let i=0;i<110;i++) dot(random(i+150)*1000,random(i+750)*650,.65,.12+random(i)*.18);
-    ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide})[kind](time);
+    ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide,cubevortex,executinggraph})[kind](time);
   }
   function animate(now) {
     if(last) time+=(now-last)/1000;

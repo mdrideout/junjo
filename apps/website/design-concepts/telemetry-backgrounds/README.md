@@ -1,6 +1,6 @@
 # Telemetry background motion studies
 
-Fifteen standalone Canvas concepts for reviewing the next Junjo hero background.
+Seventeen standalone Canvas concepts for reviewing the next Junjo hero background.
 These files are outside Astro's routes and public assets; they are not included
 in the production website. The existing homepage is unchanged.
 
@@ -88,3 +88,27 @@ These four studies open without hero copy so the left-hand execution shape is
 visible immediately. The existing Hero copy toggle still allows composition
 review. The four-layer history is retained; moving echoes represent evidence
 being read from that history, not the removal of stored traces.
+
+
+## Round five: continuous machine-to-execution transitions
+
+The first fifteen studies were preserved in local commit `299b58a` before this
+round. **14 / Inherited lattice** is the selected starting point.
+
+- **16 / Cube into execution** (`?concept=cubevortex`): one 572-dot cohort holds
+  a cube, morphs directly into an elliptical execution vortex, swirls fully for
+  one second, then leaves particle by particle to occupy the new trace's span
+  slots. Executing particles keep a constant opacity; the cube is not faded out
+  or replaced with a second moving set.
+- **17 / Graph into execution** (`?concept=executinggraph`): execution advances
+  through the graph as a light wave across nodes and edges. Those same dots
+  stream into spans. The history subsequently builds a graph with an updated
+  connection and layout for the next cycle. The routing variations are visual
+  explorations, not claims of measured quality gains.
+
+Both have a 22-second cycle: ready shape, execution, moving output, preserved
+trace, and history-driven assembly. All four history layers contribute to the
+next machine without removing the stored evidence. At rollover the assembled
+next machine becomes the executing cohort at exactly the same coordinates,
+while the completed trace retains its geometry as the newest historical layer.
+Earlier studies and the production homepage are unchanged.
