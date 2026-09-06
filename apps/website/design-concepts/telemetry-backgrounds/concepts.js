@@ -1,3 +1,5 @@
+import { createSwimlaneStudy } from './swimlane-studies.js';
+
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],
   graph: ['02', 'Causal constellation', 'Activity follows branches; each connection preserves context.'],
@@ -16,6 +18,10 @@ const concepts = {
   tide: ['15', 'Memory tide', 'Echoes of all four traces curl into one machine, then a new trace joins the archive.'],
   cubevortex: ['16', 'Cube into execution', 'Cube → swirling execution → spans → history builds the next cube.'],
   executinggraph: ['17', 'Graph into execution', 'Execution follows the graph. Its dots become spans; history builds the next graph.'],
+  switchboard: ['18', 'Lane switchboard', 'A new flowchart each cycle. Only one forward route activates and emits telemetry.'],
+  decisions: ['19', 'Decision lanes', 'Random branches and merges; one selected route through the decision graph.'],
+  softroutes: ['20', 'Soft routes', 'One luminous path through a new graph, with emissions from each activated node and edge.'],
+  spanrail: ['21', 'Span rails', 'Every activated node and connection sends an ordered packet to its span row.'],
 };
 const selected = new URLSearchParams(location.search).get('concept');
 if (Object.hasOwn(concepts, selected)) {
@@ -28,7 +34,7 @@ if (Object.hasOwn(concepts, selected)) {
   document.querySelector('#concept-description').textContent = description;
   document.querySelector('#concept-picker').value = selected;
   document.title = `${name} — Junjo motion study`;
-  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph'].includes(selected)) {
+  if(['tributaries','lens','lattice','tide','cubevortex','executinggraph','switchboard','decisions','softroutes','spanrail'].includes(selected)) {
     document.querySelector('#copy-toggle').checked=false;
     document.querySelector('.stage').classList.add('art-only');
   }
@@ -49,6 +55,7 @@ const smooth = (t) => t * t * (3 - 2 * t);
 function scene(canvas) {
   const ctx = canvas.getContext('2d');
   const kind = canvas.dataset.concept;
+  const swimlaneStudy=['switchboard','decisions','softroutes','spanrail'].includes(kind)?createSwimlaneStudy(kind):null;
   let width = 0, height = 0, visible = false, frame = 0, last = 0, time = 2;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const dot = (x, y, radius, alpha = 1, warm = false) => {
@@ -696,7 +703,8 @@ function scene(canvas) {
     glow.addColorStop(0,'#102559');glow.addColorStop(.45,'#0a1532');glow.addColorStop(1,'#070a12');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1000,650);
     for(let i=0;i<110;i++) dot(random(i+150)*1000,random(i+750)*650,.65,.12+random(i)*.18);
-    ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide,cubevortex,executinggraph})[kind](time);
+    if(swimlaneStudy)swimlaneStudy(ctx,time);
+    else ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide,cubevortex,executinggraph})[kind](time);
   }
   function animate(now) {
     if(last) time+=(now-last)/1000;

@@ -1,6 +1,6 @@
 # Telemetry background motion studies
 
-Seventeen standalone Canvas concepts for reviewing the next Junjo hero background.
+Twenty-one standalone Canvas concepts for reviewing the next Junjo hero background.
 These files are outside Astro's routes and public assets; they are not included
 in the production website. The existing homepage is unchanged.
 
@@ -112,3 +112,34 @@ next machine without removing the stored evidence. At rollover the assembled
 next machine becomes the executing cohort at exactly the same coordinates,
 while the completed trace retains its geometry as the newest historical layer.
 Earlier studies and the production homepage are unchanged.
+
+
+## Round six: randomized forward swimlane graphs
+
+Round five was saved in local commit `9c73abf`. **17 / Graph into execution** is
+this round's selected starting point. The four new studies share the graph and
+execution model in `swimlane-studies.js`, with separate visual treatments:
+
+- **18 / Lane switchboard** (`?concept=switchboard`): rounded task nodes,
+  orthogonal connectors, subtle lane guides.
+- **19 / Decision lanes** (`?concept=decisions`): decision diamonds, shaded
+  swimlanes, explicit alternatives and merges.
+- **20 / Soft routes** (`?concept=softroutes`): curved connectors and pill nodes,
+  with a narrow luminous path and fine particle emissions.
+- **21 / Span rails** (`?concept=spanrail`): trace-like task nodes and ordered
+  packets emitted into corresponding span rows.
+
+A new randomized graph is generated for each execution. Adjacent generations
+cannot repeat the same structure. All edges advance exactly one rank from left
+to right, every vertex is reachable from the source and can reach the sink,
+and branch and merge points are present. One randomly selected source-to-sink
+path determines all activations. Untaken nodes and edges stay blue and emit
+nothing. Each selected node and edge emits its own chronology row during its
+activation. Blue telemetry particles are visually distinct from the yellow
+execution route.
+
+The complete executed path becomes the new preserved trace. Four trace layers
+feed assembly of the next generated graph, with the oldest layer fading before
+a new trace enters. A fresh random seed is used on each page load; randomness
+is stable within each run so stored trace geometry and the next graph do not
+change during an animation cycle. Earlier animations are unchanged.
