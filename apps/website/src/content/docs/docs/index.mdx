@@ -1,26 +1,57 @@
 ---
 title: Junjo Documentation
-description: Unified documentation for Junjo SDKs, Junjo AI Studio, and OpenTelemetry observability.
+description: Connect your application to Junjo, inspect execution evidence, and compare evaluations with your coding agent.
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { LinkCard, CardGrid, Steps } from "@astrojs/starlight/components";
+
+Junjo connects application execution traces with evaluation results, giving
+developers and coding agents a shared record to investigate failures and
+assess changes.
+
+Your application owns execution and the meaning of quality. Your coding agent
+investigates and changes the code. Junjo preserves the evidence and makes it
+available through Studio and the evaluation CLI.
+
+## Get started
+
+Start with one application feature you want to understand and improve.
+
+<Steps>
+
+1. **Set up Junjo AI Studio.**
+
+   [Deploy Studio](/docs/studio/deployment/) to store traces, datasets, and
+   evaluation results in an environment you control.
+
+2. **Connect your application.**
+
+   Configure [OpenTelemetry traces](/docs/observability/opentelemetry/).
+   The [Python SDK](/docs/python/get-started/) provides native Workflows and
+   Agents with additional execution and state diagnostics. See the integration
+   guides in the sidebar for supported external runtimes.
+
+3. **Evaluate a real feature.**
+
+   Follow [Studio-connected evaluation](/docs/python/evaluation/) to declare
+   your application harness, define cases and criteria, and run a baseline
+   against your application code.
+
+4. **Give your coding agent the evidence.**
+
+   [Connect the evaluation skill](/docs/python/evaluation/#give-a-coding-agent-the-runbook)
+   so your coding agent can inspect failures, make a change, and compare the
+   candidate against the same dataset.
+
+</Steps>
+
+## Explore the platform
 
 <CardGrid>
-  <Card title="Python SDK" icon="seti:python" link="/docs/python/">
-    Install Junjo, build explicit Workflows and bounded Agents, test behavior,
-    and instrument executions.
-  </Card>
-  <Card title="Python API" icon="document" link="/docs/python/api/">
-    Browse the versioned, Griffe-generated reference for every public Python
-    symbol.
-  </Card>
-  <Card title="Junjo AI Studio" icon="monitor" link="/docs/studio/overview/">
-    Deploy and use the open-source observability platform for Workflow and Agent
-    diagnostics.
-  </Card>
-  <Card title="OpenTelemetry" icon="seti:config" link="/docs/observability/opentelemetry/">
-    Understand Junjo's telemetry model and configure OTLP exporters.
-  </Card>
+  <LinkCard title="Evaluation" href="/docs/python/evaluation/" description="Application-owned harnesses, datasets, execution evidence, and run comparisons." />
+  <LinkCard title="Junjo AI Studio" href="/docs/studio/overview/" description="Self-hosted observability for inspecting application execution." />
+  <LinkCard title="Python SDK" href="/docs/python/" description="Build and instrument explicit Workflows and Agents." />
+  <LinkCard title="Python API reference" href="/docs/python/api/" description="Generated reference for the public Python API." />
 </CardGrid>
 
 Python is the currently released SDK. Future language SDKs will appear as

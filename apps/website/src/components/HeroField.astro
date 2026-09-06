@@ -1,0 +1,126 @@
+<hero-field aria-hidden="true">
+  <canvas></canvas>
+</hero-field>
+
+<script>
+  class HeroField extends HTMLElement {
+    private cleanup?: () => void;
+
+    connectedCallback() {
+      const canvas = this.querySelector('canvas');
+      const context = canvas?.getContext('2d');
+      if (!canvas || !context) return;
+
+      const controller = new AbortController();
+      const { signal } = controller;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let frame = 0;
+      let previousTime = 0;
+      let time = 0;
+      let width = 0;
+      let height = 0;
+      let pointerX = 0;
+      let pointerY = 0;
+      let driftX = 0;
+      let driftY = 0;
+
+      // A fixed distribution keeps the field coherent as the surface moves.
+      const points = Array.from({ length: 88 }, (_, ring) =>
+        Array.from({ length: 150 }, (_, point) => ({
+          ring: ring / 87,
+          angle: (point / 150) * Math.PI * 2 + ring * 0.023,
+          shimmer: (Math.sin(ring * 127.1 + point * 311.7) * 43758.5453 % 1 + 1) % 1,
+        })),
+      ).flat();
+      const stars = Array.from({ length: 100 }, (_, i) => ({
+        x: (Math.sin(i * 127.1 + 2) * 43758.5453 % 1 + 1) % 1,
+        y: (Math.sin(i * 311.7 + 4) * 12741.391 % 1 + 1) % 1,
+      }));
+
+      const draw = () => {
+        context.clearRect(0, 0, width, height);
+        const scale = width < 761 ? width / 670 : width / 1360;
+        const centerX = width * (width < 761 ? .86 : .83) + driftX;
+        const centerY = height * (width < 761 ? .65 : .64) + driftY;
+
+        for (let i = 0; i < stars.length; i++) {
+          const star = stars[i];
+          const alpha = .12 + (Math.sin(time * .35 + i) + 1) * .1;
+          context.fillStyle = `rgba(128, 170, 255, ${alpha})`;
+          context.fillRect(star.x * width, star.y * height, 1, 1);
+        }
+
+        for (const point of points) {
+          const angle = point.angle + time * .085;
+          const band = point.ring;
+          const radius = (155 + band * 470) * scale;
+          const fold = Math.sin(angle * 2 + band * 4 - time * .32);
+          const x = centerX + Math.cos(angle) * radius + Math.sin(band * 5 + time * .12) * 24 * scale;
+          const y = centerY + Math.sin(angle) * radius * .72 + fold * (38 + band * 55) * scale;
+          const z = Math.sin(angle + .9) * .5 + .5;
+          const edge = Math.pow(Math.sin(band * Math.PI), .65);
+          const alpha = (.25 + z * .7) * edge * (.7 + point.shimmer * .25);
+          const tone = Math.sin(angle - band * 2) * .5 + .5;
+          const red = Math.round(12 + tone * 28);
+          const green = Math.round(44 + z * 50 + tone * 12);
+          const size = (.8 + z * .8 + (point.shimmer > .8 ? .8 : 0)) * (width < 761 ? .85 : 1);
+          context.fillStyle = `rgba(${red}, ${green}, 255, ${alpha})`;
+          context.fillRect(x, y, size, size);
+        }
+      };
+
+      const animate = (timestamp: number) => {
+        if (previousTime) time += (timestamp - previousTime) / 1000;
+        previousTime = timestamp;
+        driftX += (pointerX - driftX) * .035;
+        driftY += (pointerY - driftY) * .035;
+        draw();
+        frame = requestAnimationFrame(animate);
+      };
+
+      const updateMotion = () => {
+        cancelAnimationFrame(frame);
+        previousTime = 0;
+        if (!reducedMotion.matches && !document.hidden) frame = requestAnimationFrame(animate);
+        else draw();
+      };
+
+      const resize = () => {
+        width = this.clientWidth;
+        height = this.clientHeight;
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        draw();
+      };
+
+      const observer = new ResizeObserver(resize);
+      observer.observe(this);
+      reducedMotion.addEventListener('change', updateMotion, { signal });
+      document.addEventListener('visibilitychange', updateMotion, { signal });
+      this.parentElement?.addEventListener('pointermove', (event) => {
+        if (event.pointerType !== 'mouse' || reducedMotion.matches) return;
+        pointerX = (event.clientX / width - .5) * 25;
+        pointerY = (event.clientY / height - .5) * 20;
+      }, { signal });
+      this.parentElement?.addEventListener('pointerleave', () => { pointerX = 0; pointerY = 0; }, { signal });
+      resize();
+      updateMotion();
+
+      this.cleanup = () => {
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        controller.abort();
+      };
+    }
+
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  customElements.define('hero-field', HeroField);
+</script>
+
+<style>
+  hero-field { position: absolute; inset: 0; display: block; z-index: -2; pointer-events: none; background: radial-gradient(ellipse at 83% 64%, #081342 0%, #090e20 27%, #070a12 64%); }
+  canvas { width: 100%; height: 100%; display: block; }
+</style>

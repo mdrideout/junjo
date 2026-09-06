@@ -1,0 +1,76 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+import HeroField from '../components/HeroField.astro';
+---
+
+<MarketingLayout
+  title="Add Recursive Self Improvement To Your Application"
+  description="Junjo works with any coding agent and any agent framework. We supply an agent-first auditable evidence telemetry layer, unlocking rapid experimentation with grounded evidence of regression or improvement."
+>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-shade" aria-hidden="true"></div>
+    <div class="hero-content container">
+      <h1 id="hero-title">
+        <span class="hero-line">Add Recursive</span>{' '}
+        <span class="hero-line hero-accent">Self Improvement</span>{' '}
+        <span class="hero-outro">To Your Application</span>
+      </h1>
+      <p class="hero-description">Junjo works with any coding agent and any agent framework. We supply an agent-first auditable evidence telemetry layer, unlocking rapid experimentation with grounded evidence of regression or improvement.</p>
+      <div class="hero-actions">
+        <a class="button" href="/docs/#get-started">Get started <span aria-hidden="true">↗</span></a>
+        <a class="text-link" href="/docs/">Explore the docs <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <div class="hero-foundation container">
+      <p>Junjo provides building blocks that unlock recursive self improvement without hijacking your coding and application stack.</p>
+    </div>
+    <HeroField />
+  </section>
+</MarketingLayout>
+
+<style>
+  .hero { position: relative; isolation: isolate; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; overflow: clip; background: #070a12; }
+  .hero-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, rgb(7 10 18 / .92) 0%, rgb(7 10 18 / .65) 39%, rgb(7 10 18 / .08) 78%), linear-gradient(0deg, rgb(7 10 18 / .82), transparent 22%, transparent 88%, rgb(7 10 18 / .4)); }
+  .hero-content { padding-top: 128px; padding-bottom: 110px; }
+  h1 { margin: 0 0 28px; font-weight: 500; letter-spacing: -.065em; }
+  h1 > span { display: block; }
+  .hero-line { font-size: clamp(66px, 7.8vw, 120px); line-height: .98; }
+  .hero-accent { color: #3154ff; background: linear-gradient(105deg, #244bff 0%, #4268ff 43%, #6384ff 85%); background-clip: text; -webkit-text-fill-color: transparent; padding-bottom: .06em; }
+  .hero-outro { font-size: clamp(30px, 3.7vw, 53px); line-height: 1.2; margin-top: 12px; letter-spacing: -.045em; color: #e5eaf4; }
+  .hero-description { max-width: 620px; font-size: 16px; line-height: 1.75; color: #a3adbf; margin: 0 0 28px; text-wrap: pretty; }
+  .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 30px; }
+  .hero-actions a { white-space: nowrap; }
+  .hero-foundation { position: absolute; bottom: 29px; left: 0; right: 0; pointer-events: none; }
+  .hero-foundation p { font-size: 11px; color: #7d889e; line-height: 1.7; margin: 0; max-width: 520px; }
+  .hero-line { animation: arrive 1.1s .13s both; }
+  .hero-accent { animation-delay: .23s; }
+  .hero-outro { animation: arrive 1.1s .32s both; }
+  .hero-description, .hero-actions { animation: arrive 1.2s .4s both; }
+  .hero-foundation { animation: arrive 1.2s .6s both; }
+  @keyframes arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  @media (min-width: 1700px) { .hero-content { padding-block: 160px; } }
+  @media (max-height: 800px) and (min-width: 761px) {
+    .hero-content { padding-top: 108px; padding-bottom: 100px; }
+    .hero-line { font-size: clamp(64px, 7vw, 96px); }
+    .hero-outro { font-size: 38px; margin-top: 8px; }
+    h1 { margin-bottom: 22px; }
+    .hero-description { margin-bottom: 24px; }
+  }
+  @media (max-width: 760px) {
+    .hero-content { padding-top: 140px; padding-bottom: 160px; }
+    .hero-line { font-size: clamp(46px, 8.4vw, 66px); line-height: 1.03; }
+    .hero-outro { font-size: clamp(28px, 4.7vw, 38px); margin-top: 15px; }
+    .hero-description { max-width: 520px; font-size: 15px; margin-bottom: 29px; }
+    h1 { margin-bottom: 28px; }
+    .hero-shade { background: linear-gradient(90deg, rgb(7 10 18 / .7), rgb(7 10 18 / .25)), linear-gradient(0deg, rgb(7 10 18 / .88), transparent 32%, rgb(7 10 18 / .2) 70%); }
+    .hero-foundation { bottom: 64px; }
+    .hero-foundation p { max-width: 340px; font-size: 10px; }
+  }
+  @media (max-width: 400px) {
+    .hero-line { font-size: clamp(38px, 10.8vw, 46px); }
+    .hero-content { padding-top: 118px; padding-bottom: 150px; }
+    .hero-description { font-size: 14px; }
+    .hero-actions { gap: 23px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero-line, .hero-outro, .hero-description, .hero-actions, .hero-foundation { animation: none; } }
+</style>
