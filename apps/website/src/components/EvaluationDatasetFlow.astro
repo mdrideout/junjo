@@ -8,14 +8,12 @@ const runs = ['Run 01', 'Run 02', 'Run 03'];
     <div class="stage">
       <p class="location">Stored in Junjo</p>
       <div class="dataset-art" aria-hidden="true">
-        <span class="dataset-label">Locked target dataset</span>
         {cases.map((name, index) => <div class="case"><span class="case-id">0{index + 1}</span><span>{name}</span><span class="case-marks">······</span></div>)}
       </div>
-      <p class="stage-caption">Same inputs. Same evaluation criteria.</p>
-      <span class="transfer" aria-hidden="true">→<small>Pull cases</small></span>
+      <span class="transfer" aria-hidden="true">→</span>
     </div>
     <div class="stage local-stage">
-      <p class="location">Runs in your checkout</p>
+      <p class="location">Run the scenarios through your local code changes</p>
       <div class="local-art" aria-hidden="true">
         <svg viewBox="0 0 260 110">
           <path class="route" d="M34 56H90C115 56 111 25 135 25H161C183 25 183 56 205 56H229M90 56C115 56 111 87 135 87H161C183 87 183 56 205 56" />
@@ -25,11 +23,10 @@ const runs = ['Run 01', 'Run 02', 'Run 03'];
         </svg>
         <span>Application code <span class="plus">+</span> Your evaluators</span>
       </div>
-      <p class="stage-caption">Your coding agent runs targets and evaluators.</p>
-      <span class="transfer" aria-hidden="true">→<small>Record evidence</small></span>
+      <span class="transfer" aria-hidden="true">→</span>
     </div>
     <div class="stage">
-      <p class="location">Recorded in Junjo</p>
+      <p class="location">Every run recorded for comparison</p>
       <div class="runs-art" aria-hidden="true">
         {runs.map((run, index) => <div class="run"><span>{run}</span><svg viewBox="0 0 170 36">
           {[0,1,2].map(row => <g>
@@ -38,22 +35,19 @@ const runs = ['Run 01', 'Run 02', 'Run 03'];
           </g>)}
         </svg></div>)}
       </div>
-      <p class="stage-caption">Code revisions, outcomes, and traces.</p>
     </div>
   </div>
-  <figcaption>One dataset connects every local experiment to its execution history.</figcaption>
 </figure>
 
 <style>
-  .dataset-flow { margin: 0; padding: 8px 0 26px; border-bottom: 1px solid #334a71; }
+  .dataset-flow { margin: 0; padding: 8px 0 32px; border-bottom: 1px solid #334a71; }
   .flow-stages { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 64px; }
-  .stage { position: relative; min-width: 0; }
-  .location { margin: 0 0 22px; color: #a9c1ef; font-size: 12px; letter-spacing: .035em; }
-  .local-stage .location { color: #ffc495; }
+  .stage { position: relative; min-width: 0; display: grid; grid-template-rows: 1fr 148px; gap: 24px; }
+  .location { max-width: 290px; margin: 0 auto; color: #dce7ff; font-size: clamp(16px,1.5vw,20px); line-height: 1.4; letter-spacing: -.02em; text-align: center; text-wrap: balance; align-self: center; }
   .dataset-art,.local-art,.runs-art { height: 148px; }
-  .dataset-art { padding: 12px 16px; border: 1px solid #436195; border-radius: 7px; background: #10224566; box-shadow: 8px -8px 0 -1px #0c182b,8px -8px 0 0 #2a4062; }
-  .dataset-label { display: block; font-size: 12px; color: #c5d6f4; margin-bottom: 11px; }
+  .dataset-art { display: flex; flex-direction: column; justify-content: center; padding: 12px 16px; border: 1px solid #436195; border-radius: 7px; background: #10224566; box-shadow: 8px -8px 0 -1px #0c182b,8px -8px 0 0 #2a4062; }
   .case { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #38527a66; color: #c1d3f3; font-size: 12px; }
+  .case:first-child { border-top: 0; }
   .case-id { color: #ffc495; font-size: 10px; }
   .case-marks { color: #7ba8ff; letter-spacing: 3px; margin-left: auto; }
   .local-art { display: flex; flex-direction: column; justify-content: center; background: radial-gradient(ellipse,#183a6a66,transparent 72%); }
@@ -70,24 +64,18 @@ const runs = ['Run 01', 'Run 02', 'Run 03'];
   .run svg { width: 100%; min-width: 0; height: 36px; }
   .trace { fill: none; stroke: #94baff; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 5; }
   .trace-start { fill: #ffc495; }
-  .stage-caption { margin: 22px 0 0; color: #98aed2; font-size: 12px; line-height: 1.6; }
-  .transfer { position: absolute; top: 105px; left: calc(100% + 10px); width: 44px; text-align: center; font-size: 24px; color: #8eb4ff; }
-  .transfer small { display: block; width: 70px; margin: 7px 0 0 -13px; font-size: 9px; line-height: 1.4; color: #859fc9; }
-  figcaption { margin-top: 30px; text-align: center; font-size: 13px; color: #8ca4ca; }
+  .transfer { position: absolute; bottom: 74px; transform: translateY(50%); left: calc(100% + 10px); width: 44px; text-align: center; font-size: 24px; line-height: 1; color: #8eb4ff; }
   @media(max-width:1000px) {
     .flow-stages { gap: 36px; }
     .transfer { left: calc(100% + 2px); width: 32px; }
-    .transfer small { display: none; }
     .dataset-art { padding-inline: 10px; }
     .case { gap: 8px; }
     .case-marks { letter-spacing: 1px; }
   }
   @media(max-width:760px) {
     .flow-stages { grid-template-columns: 1fr; gap: 52px; }
-    .stage { max-width: 360px; width: 100%; margin-inline: auto; }
-    .location { margin-bottom: 16px; }
-    .transfer { top: calc(100% + 8px); left: calc(50% - 16px); transform: rotate(90deg); }
-    .stage-caption { margin-top: 16px; }
-    figcaption { margin-top: 32px; }
+    .stage { max-width: 360px; width: 100%; margin-inline: auto; gap: 20px; }
+    .location { font-size: 18px; }
+    .transfer { bottom: auto; top: calc(100% + 14px); left: calc(50% - 16px); transform: rotate(90deg); }
   }
 </style>

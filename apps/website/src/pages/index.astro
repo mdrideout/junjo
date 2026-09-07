@@ -31,7 +31,7 @@ import HostingStrip from '../components/HostingStrip.astro';
 
 <style>
   @font-face { font-family: Caveat; src: url('/fonts/caveat-regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-  .hero { position: relative; isolation: isolate; min-height: calc(100dvh - var(--hero-header-height, 90px)); overflow: hidden; background: #070a12; }
+  .hero { position: relative; isolation: isolate; min-height: 100dvh; overflow: hidden; background: #070a12; }
   .hero-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to top, rgba(7,10,18,1) 0%, rgba(7,10,18,.47) 30%, rgba(7,10,18,.14) 60%, rgba(7,10,18,0) 100%); }
   .hero-content { position: relative; min-height: inherit; padding: clamp(200px,30dvh,280px) 4vw 32px; display: flex; flex-direction: column; justify-content: flex-end; }
   h1 { margin: 0; font-size: clamp(44px,5.7vw,88px); line-height: 1.06; font-weight: 500; letter-spacing: -.065em; }

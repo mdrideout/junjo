@@ -1,5 +1,6 @@
 ---
 import CodingAgentLoop from './CodingAgentLoop.astro';
+import SpanLoomBackground from './SpanLoomBackground.astro';
 import EvaluationDatasetFlow from './EvaluationDatasetFlow.astro';
 const codingAgents = [
   { name: 'ChatGPT Codex', icon: 'codex.png' },
@@ -21,6 +22,7 @@ const workflow = [
 
 <div class="improvement-sections">
   <section class="benefit-section diagnosis" aria-labelledby="diagnosis-title">
+    <SpanLoomBackground />
     <div class="section-inner">
       <div class="section-heading">
         <p class="eyebrow"><span>01</span> Diagnose with evidence</p>
@@ -33,6 +35,12 @@ const workflow = [
         <p>Optimized for Coding Agents</p>
         <ul aria-label="Coding agents">{codingAgents.map(agent => <li>{agent.icon && <img src={`/brands/${agent.icon}`} alt="" aria-hidden="true" width="18" height="18" loading="lazy" decoding="async" />}<span>{agent.name}</span></li>)}</ul>
       </div>
+    </div>
+  </section>
+
+  <hr class="section-divider" />
+  <section class="benefit-section agent-control" aria-labelledby="agent-control-title">
+    <div class="section-inner">
       <CodingAgentLoop />
     </div>
   </section>
@@ -172,7 +180,11 @@ const workflow = [
 <style>
   .improvement-sections { background: #070a12; }
   .benefit-section { padding: clamp(80px,9vw,140px) 4vw; border-top: 1px solid #25324b66; overflow: clip; }
+  .diagnosis { position: relative; isolation: isolate; padding-bottom: 48px; }
+  .section-divider { margin: 0; border: 0; border-top: 1px solid #344767; }
+  .agent-control { border-top: 0; padding-top: 56px; }
   .section-inner { max-width: 1200px; margin-inline: auto; }
+  .agent-control .section-inner { max-width: 1600px; }
   .section-heading { max-width: 890px; margin-bottom: 56px; }
   .eyebrow { display: flex; align-items: center; gap: 14px; font-size: 12px; letter-spacing: .055em; color: #a7b8dc; margin: 0 0 28px; }
   .eyebrow > span { color: #7d98ff; font-variant-numeric: tabular-nums; }

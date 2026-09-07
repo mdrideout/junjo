@@ -56,7 +56,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   [hidden] { display: none !important; }
   ::selection { background: #2145ff; color: #ffffff; }
   .container { width: min(1320px, calc(100% - 160px)); margin-inline: auto; }
-  .site-header { position: relative; width: 100%; z-index: 2; }
+  .site-header { position: absolute; inset: 0 0 auto; width: 100%; z-index: 2; background: linear-gradient(to bottom, #000c 0%, #000c 60%, rgba(0,0,0,.64) 75%, #0000 100%); }
   .header-inner { min-height: 90px; padding-inline: 42px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
   .wordmark { display: inline-flex; gap: 9px; align-items: center; font-size: 27px; font-weight: 600; letter-spacing: -1.4px; }
   .wordmark img { filter: invert(1); }
