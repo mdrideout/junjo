@@ -20,18 +20,29 @@ export function buildStagedRun(graph,rng,peers=3,particleSpacing=5.8) {
   const scale=2/(raw.end-1);
   const events=raw.events.map(event=>({...event,start:STAGES.flowStart+(event.start-1)*scale,duration:event.duration*scale}));
   const rows=[{depth:0,parent:null,event:events[0],start:STAGES.flowStart,end:STAGES.flowEnd,x:562,width:402}];
+  const nestingDepth=2+Math.floor(rng()*3);
   events.forEach((event,i)=>{
     if(event.type!=='node')return;
     const edge=events[i+1]?.type==='edge'?events[i+1]:null;
     const parentIndex=rows.length;
     const parent={depth:1,parent:0,event,start:event.start,end:event.start+event.duration+(edge?.duration??0),x:590+(event.start-STAGES.flowStart)*12,width:284+rng()*46};
     rows.push(parent);
-    // Repeated sibling operations keep nesting visible without textual labels.
-    for(let peer=0;peer<peers;peer++) {
-      const emitter=peer===peers-1&&edge?edge:event;
-      const start=emitter===edge?edge.start:event.start+peer/peers*event.duration;
-      const end=emitter===edge?edge.start+edge.duration:start+event.duration/peers;
-      rows.push({depth:2,parent:parentIndex,event:emitter,start,end,x:parent.x+26,width:parent.width*(.47+rng()*.32)});
+    // Vary both sibling groups and nested sub-operations for each execution.
+    // Keep a preorder stack so every deeper row belongs to a preceding parent.
+    const operationCount=1+Math.floor(rng()*peers*2);
+    const ancestors=[parentIndex];
+    for(let operation=0;operation<operationCount;operation++) {
+      const emitter=operation===operationCount-1&&edge?edge:event;
+      if(emitter===edge)ancestors.length=1;
+      else if(operation>0) {
+        if(ancestors.length<nestingDepth-1&&rng()<.45)ancestors.push(rows.length-1);
+        else if(rng()<.5)ancestors.length=1+Math.floor(rng()*ancestors.length);
+      }
+      const ownerIndex=ancestors[ancestors.length-1],owner=rows[ownerIndex];
+      const start=emitter===edge?edge.start:owner.start+rng()*(owner.end-owner.start)*.35;
+      const end=emitter===edge?edge.start+edge.duration:mix(start,owner.end,.3+rng()*.7);
+      const inset=22;
+      rows.push({depth:owner.depth+1,parent:ownerIndex,event:emitter,start,end,x:owner.x+inset,width:(owner.width-inset)*(.4+rng()*.58)});
     }
   });
   const particles=[];
