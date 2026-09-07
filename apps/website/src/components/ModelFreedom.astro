@@ -1,0 +1,76 @@
+---
+const groups = [
+  {
+    name: 'Model providers',
+    description: 'Use their SDKs or compatible APIs.',
+    brands: [
+      {name:'OpenAI',icon:'codex.png'}, {name:'Anthropic',icon:'claude.png'},
+      {name:'Google Gemini',icon:'models/gemini.png'}, {name:'xAI',icon:'grok.png'},
+      {name:'Mistral',icon:'models/mistral.ico'}, {name:'DeepSeek',icon:'models/deepseek.svg'},
+      {name:'Qwen',icon:'models/qwen.png'}, {name:'Kimi',icon:'models/kimi.png'},
+      {name:'Z.ai',icon:'models/zai.svg'}, {name:'MiniMax',icon:'models/minimax.ico'},
+    ],
+  },
+  {
+    name: 'Model libraries',
+    description: 'Keep your abstractions and structured output tools.',
+    brands: [
+      {name:'LiteLLM',icon:'models/litellm.ico'}, {name:'LangChain',icon:'models/langchain.png'},
+      {name:'PydanticAI',icon:'models/pydantic.png'}, {name:'Instructor',icon:'models/instructor.png'},
+    ],
+  },
+  {
+    name: 'Gateways & inference',
+    description: 'Call through your cloud, gateway, or local model server.',
+    brands: [
+      {name:'OpenRouter',icon:'models/openrouter.png'}, {name:'Amazon Bedrock',icon:'models/bedrock.png'},
+      {name:'Azure AI',icon:'models/azure.ico'}, {name:'Vertex AI',icon:'models/vertex.png'},
+      {name:'Groq',icon:'models/groq.svg'}, {name:'Ollama',icon:'models/ollama.png'},
+      {name:'vLLM',icon:'models/vllm.svg'},
+    ],
+  },
+];
+---
+<section class="model-freedom" aria-labelledby="model-freedom-title">
+  <div class="section-inner">
+    <div class="section-heading">
+      <h2 id="model-freedom-title">Keep your models.<br /><em>Keep your libraries.</em></h2>
+      <p class="lead">Call models the way you already do: directly through a provider’s SDK, through a library such as LiteLLM, or through a gateway such as OpenRouter. Junjo adds structured execution, shared state, and auditable telemetry around those calls.</p>
+      <p class="benefit">Choose the right model for each step, then compare quality, latency, and cost against the same evaluation datasets. Improve your application while keeping control of how you access and use models.</p>
+    </div>
+    <div class="model-groups">
+      {groups.map(group => <div class="model-group">
+        <div class="group-heading"><h3>{group.name}</h3><p>{group.description}</p></div>
+        <ul aria-label={group.name}>{group.brands.map(brand => <li>
+          <img src={`/brands/${brand.icon}`} alt="" aria-hidden="true" width="22" height="22" loading="lazy" decoding="async" />
+          <span>{brand.name}</span>
+        </li>)}</ul>
+      </div>)}
+    </div>
+    <p class="ownership">Your application makes the model calls. Junjo connects instrumented execution to state updates, traces, and evaluation outcomes.</p>
+  </div>
+</section>
+<style>
+  .model-freedom { padding: clamp(80px,8vw,112px) 4vw; border-top: 1px solid #25324b66; background: radial-gradient(ellipse at 78% 25%,#16346a30,transparent 65%),#080e1a; }
+  .section-inner { max-width:1200px; margin-inline:auto; }
+  .section-heading { max-width:940px; margin-bottom:56px; }
+  h2 { font-size:clamp(34px,4.25vw,62px); font-weight:500; letter-spacing:-.055em; line-height:1.08; margin:0 0 28px; text-wrap:balance; }
+  h2 em { font-style:normal; color:#83a5ff; }
+  .lead { font-size:clamp(17px,1.55vw,21px); line-height:1.7; color:#c0cbdd; margin:0; }
+  .benefit { color:#95abcd; font-size:17px; line-height:1.75; margin:22px 0 0; }
+  .model-group { display:grid; grid-template-columns:240px minmax(0,1fr); gap:40px; padding:32px 0; border-top:1px solid #2a3b58; }
+  .group-heading h3 { font-size:20px; font-weight:500; letter-spacing:-.025em; color:#d4e2f8; margin:0 0 10px; }
+  .group-heading p { font-size:14px; line-height:1.65; color:#8fa5c7; margin:0; }
+  ul { display:flex; flex-wrap:wrap; align-content:start; gap:12px; padding:0; margin:0; list-style:none; }
+  li { display:flex; align-items:center; gap:10px; padding:10px 16px; border:1px solid #344767; border-radius:999px; color:#c8d7f1; background:#0d182c; font-size:14px; white-space:nowrap; }
+  img { width:22px; height:22px; flex-shrink:0; object-fit:contain; border-radius:3px; }
+  .ownership { margin:24px 0 0; color:#8fa5c7; font-size:15px; line-height:1.75; max-width:880px; }
+  @media(max-width:900px) { .model-group { grid-template-columns:1fr; gap:22px; } }
+  @media(max-width:760px) {
+    .model-freedom { padding:72px 24px; }
+    h2 { font-size:clamp(32px,7.5vw,44px); }
+    .section-heading { margin-bottom:40px; }
+    li { font-size:13px; padding:9px 13px; gap:8px; }
+    ul { gap:10px; }
+  }
+</style>

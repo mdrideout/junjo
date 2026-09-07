@@ -5,6 +5,9 @@ import EvaluationDatasetFlow from './EvaluationDatasetFlow.astro';
 import DiagnosisComparison from './DiagnosisComparison.astro';
 import AgentPrompt from './AgentPrompt.astro';
 import TaskDecomposition from './TaskDecomposition.astro';
+import SDKBuildingBlocks from './SDKBuildingBlocks.astro';
+import ModelFreedom from './ModelFreedom.astro';
+import SDKComposition from './SDKComposition.astro';
 const codingAgents = [
   { name: 'ChatGPT Codex', icon: 'codex.png' },
   { name: 'Claude Code', icon: 'claude.png' },
@@ -58,7 +61,6 @@ const codingAgents = [
       <EvaluationDatasetFlow />
       <div class="dataset-outcomes">
         <p>Keep the test cases consistent while your implementation changes. Junjo connects each evaluation outcome to its execution chronology, so you and your coding agent can investigate differences throughout the flow.</p>
-        <a class="section-link" href="/docs/python/evaluation/">Explore datasets and local evaluations <span aria-hidden="true">↗</span></a>
       </div>
       <div class="dataset-guide">
         <button class="dataset-guide-toggle" type="button" aria-expanded="false" aria-controls="dataset-steps">How datasets work <span class="guide-toggle" aria-hidden="true">+</span></button>
@@ -98,6 +100,21 @@ const codingAgents = [
       </TaskDecomposition>
     </div>
   </section>
+
+  <section class="benefit-section sdk" aria-labelledby="sdk-title">
+    <div class="section-inner">
+      <div class="sdk-intro">
+      <div class="section-heading sdk-heading">
+        <h2 id="sdk-title">Building blocks<br /><em>for improving AI apps</em></h2>
+        <p class="lead">Junjo’s Python SDK's building blocks include specialist agents, structured workflows, dynamically traversed graphs, and an application state management system. These are used by your coding agent to break down monolithic prompts into optimized flows, with granular control and observability.</p>
+      </div>
+      <SDKComposition />
+      </div>
+      <SDKBuildingBlocks />
+    </div>
+  </section>
+
+  <ModelFreedom />
 
   <section class="benefit-section compare" aria-labelledby="compare-title">
     <div class="section-inner">
@@ -216,17 +233,20 @@ const codingAgents = [
   .dataset-details li::before { content: counter(lifecycle,decimal-leading-zero); color: #ffbd86; font-size: 12px; padding-top: 5px; }
   .dataset-details h3 { font-size: 23px; line-height: 1.25; color: #dce7ff; margin: 0 0 16px; }
   .dataset-details p,.dataset-outcomes p { margin: 0; color: #9aaccb; font-size: 16px; line-height: 1.75; }
-  .dataset-outcomes { display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-top: 56px; }
+  .dataset-outcomes { padding-top: 56px; }
   .dataset-outcomes h3 { margin: 0 0 14px; font-size: clamp(24px,2.3vw,31px); line-height: 1.25; color: #a8c4ff; }
-  .dataset-outcomes p { max-width: 750px; }
+  .dataset-outcomes p { max-width: none; font-size: clamp(20px,2vw,26px); line-height: 1.65; }
   .dataset-outcomes p + p { margin-top: 18px; }
   .evaluation-coverage { padding: 24px; margin-bottom: 30px; border-left: 2px solid #87aaff; background: #10213a66; }
   .evaluation-coverage h3 { margin: 0 0 10px; font-size: 23px; }
   .evaluation-coverage p { margin: 0; color: #9aaccb; font-size: 16px; line-height: 1.7; }
   .pass-formula { color: #c9daff; }
-  .dataset-outcomes .section-link { flex-shrink: 0; max-width: 215px; }
   .simplify { background: linear-gradient(150deg,#0c1529,#080c16 70%); }
   .simplify .section-heading { margin-bottom: 0; }
+  .sdk { background: radial-gradient(ellipse at 85% 38%,#17396830,transparent 58%),#080e1a; }
+  .sdk-intro { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); align-items: center; gap: 48px; margin-bottom: 64px; }
+  .sdk-intro .sdk-heading { max-width: none; margin-bottom: 0; }
+  .sdk-heading h2 { font-size: clamp(34px,3.3vw,54px); }
   .comparison-flow { border-top: 1px solid #35496e; border-bottom: 1px solid #35496e; }
   .shared-cases { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 22px; font-size: 13px; color: #b9cae8; border-bottom: 1px solid #25324b; }
   .case-dots { color: #8cb1ff; letter-spacing: 7px; text-shadow: 0 0 12px #4272ff; }
@@ -275,9 +295,8 @@ const codingAgents = [
   .closing-cta h3 { font-size: clamp(25px,3vw,40px); max-width: 670px; line-height: 1.2; margin: 0; }
   .closing-cta a { flex-shrink: 0; }
   @media(max-width:1000px) {
+    .sdk-intro { grid-template-columns: 1fr; gap: 16px; }
     .diagnosis-layout { grid-template-columns: 1fr; gap: 56px; }
-    .dataset-outcomes { flex-direction: column; align-items: flex-start; gap: 24px; }
-    .dataset-outcomes .section-link { max-width: none; }
     .history-layout { gap: 28px; }
     .stack-footer { flex-direction: column; gap: 18px; }
     .layer-role { display: none; }

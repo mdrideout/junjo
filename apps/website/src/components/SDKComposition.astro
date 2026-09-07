@@ -1,0 +1,200 @@
+---
+// Matching cubic segments let the two halves pinch apart into real circles.
+const lobes = [
+  'M310 220C280 193 260 163 230 177C203 188 195 223 210 245C228 282 269 267 288 240C300 226 305 222 310 220Z',
+  'M310 220C340 247 360 277 390 263C417 252 425 217 410 195C392 158 351 173 332 200C320 214 315 218 310 220Z',
+];
+const connections = {
+  pair: ['M253 220H367'],
+  fork: ['M110 220H235','M365 220H510'],
+  expanded: ['M85 220C120 220 110 160 150 160','M280 160C375 160 370 220 422 220','M85 220C130 220 135 325 180 325','M240 325H308','M362 325C405 325 390 220 422 220','M478 220H535'],
+};
+const nodes = ['entry','upper','lower','exit','upper-step','lower-step','merge'];
+---
+
+<sdk-composition>
+  <svg viewBox="0 0 620 440" role="img" aria-label="A monolithic prompt divides into two circles. A single edge activates two nodes inside RunConcurrent. A separate branch adds sequential work, and both branches merge before the exit.">
+    {Object.entries(connections).map(([stage,paths]) => <g class:list={['connections',stage]}>
+      {paths.map(d => <>
+        <path class="edge-halo" d={d} pathLength="100" />
+        <path class="edge" d={d} pathLength="100" />
+      </>)}
+    </g>)}
+    <g class="concurrent-group">
+      <rect x="235" y="115" width="130" height="210" rx="32" />
+      <text x="300" y="133">RunConcurrent</text>
+    </g>
+    <g class="monolith">
+      {lobes.map((d,index) => <g>
+        <path class:list={['lobe',`lobe-${index}`,'lobe-halo']} d={d} />
+        <path class:list={['lobe',`lobe-${index}`]} d={d} />
+        <path class:list={['lobe',`lobe-${index}`,'lobe-spark']} d={d} />
+      </g>)}
+    </g>
+    {nodes.map(name => <g class:list={['node',name,{'specialist':name==='upper'||name==='lower'}]}>
+      <circle class="node-halo" r="29" />
+      <circle class="node-body" r="29" />
+      <circle class="node-dots" r="29" />
+      <circle class="node-core" r="3" />
+    </g>)}
+  </svg>
+  <div class="composition-caption" aria-hidden="true">
+    <span class="caption-monolith">One monolithic prompt</span>
+    <span class="caption-pair">Separate responsibilities</span>
+    <span class="caption-fork">Branch into concurrent work</span>
+    <span class="caption-expanded">Concurrent or sequential. Shared result.</span>
+  </div>
+</sdk-composition>
+
+<script>
+  class SDKComposition extends HTMLElement {
+    connectedCallback() {
+      const abort = new AbortController();
+      let visible = false;
+      const update = () => this.style.setProperty('--motion-state',visible && !document.hidden ? 'running' : 'paused');
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); });
+      observer.observe(this);
+      document.addEventListener('visibilitychange',update,{signal:abort.signal});
+      this.cleanup = () => { observer.disconnect(); abort.abort(); };
+    }
+    private cleanup?: () => void;
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('sdk-composition')) customElements.define('sdk-composition',SDKComposition);
+</script>
+
+<style>
+  sdk-composition { --motion-state: paused; --cycle: 13s; display: block; min-width: 0; width: 100%; max-width: 720px; margin-inline: auto; }
+  svg { display: block; width: 100%; aspect-ratio: 620 / 440; overflow: visible; }
+  .node { color: #90c3ff; animation: var(--node-motion) var(--cycle) cubic-bezier(.4,0,.2,1) infinite; }
+  .specialist { color: #ffd198; }
+  .node-halo { fill: none; stroke: currentColor; stroke-width: 12; opacity: .06; }
+  .node-body { fill: #0b1424; stroke: currentColor; stroke-width: 1; stroke-opacity: .5; }
+  .node-dots { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: .1 5.6; }
+  .node-core { fill: currentColor; opacity: .75; }
+  .entry { --node-motion: grow-entry; }
+  .exit { --node-motion: grow-exit; }
+  .upper { --node-motion: grow-upper; }
+  .lower { --node-motion: grow-lower; }
+  .upper-step { --node-motion: grow-upper-step; }
+  .lower-step { --node-motion: grow-lower-step; }
+  .merge { --node-motion: grow-merge; }
+  .edge { fill: none; stroke: #9dc6ff; stroke-width: 1.8; stroke-linecap: round; }
+  .edge-halo { fill: none; stroke: #649fff; stroke-width: 7; stroke-opacity: .1; }
+  .connections path { stroke-dasharray: 100; animation: var(--edge-motion) var(--cycle) ease-in-out infinite; }
+  .pair { --edge-motion: connect-pair; }
+  .fork { --edge-motion: connect-fork; }
+  .expanded { --edge-motion: connect-expanded; }
+  .monolith { transform-origin: 310px 220px; animation: monolith var(--cycle) ease-in-out infinite; }
+  .lobe { fill: none; stroke: #ffd198; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: .1 5.6; animation: var(--lobe-motion) var(--cycle) cubic-bezier(.4,0,.2,1) infinite; }
+  .lobe-0 { --lobe-motion: divide-left; }
+  .lobe-1 { --lobe-motion: divide-right; }
+  .lobe-halo { stroke-width: 10; stroke-opacity: .12; stroke-dasharray: none; }
+  .lobe:not(.lobe-halo) { animation: var(--lobe-motion) var(--cycle) cubic-bezier(.4,0,.2,1) infinite, ribbon-flow 2.8s linear infinite; }
+  .lobe.lobe-spark { stroke-width: 4; stroke-dasharray: .1 45.5; }
+  .concurrent-group { animation: enclose-concurrent var(--cycle) cubic-bezier(.4,0,.2,1) infinite; }
+  .concurrent-group rect { fill: #152039; fill-opacity: .65; stroke: #b0c6ee; stroke-width: 1; stroke-opacity: .5; }
+  .concurrent-group text { text-anchor: middle; fill: #c4d6f1; font: 12px system-ui, sans-serif; }
+  .composition-caption { display: grid; text-align: center; color: #b7c7e2; font-size: 14px; line-height: 1.5; margin-top: 18px; }
+  .composition-caption span { grid-area: 1 / 1; animation: var(--caption-motion) var(--cycle) ease-in-out infinite; }
+  .caption-monolith { --caption-motion: caption-monolith; }
+  .caption-pair { --caption-motion: caption-pair; }
+  .caption-fork { --caption-motion: caption-fork; }
+  .caption-expanded { --caption-motion: caption-expanded; }
+  .node,.monolith,.lobe,.lobe:not(.lobe-halo),.concurrent-group,.connections path,.composition-caption span { animation-play-state: var(--motion-state); }
+
+  /* Existing circles move into each new topology; new nodes emerge at the split. */
+  @keyframes monolith {
+    0%,100% { opacity: 1; transform: rotate(-6deg) scale(.97); }
+    5% { opacity: 1; transform: rotate(3deg) scale(1.04); }
+    9%,18% { opacity: 1; transform: rotate(0deg) scale(1); }
+    21%,95% { opacity: 0; transform: rotate(0deg) scale(1); }
+  }
+  @keyframes ribbon-flow { to { stroke-dashoffset: -45.6; } }
+  @keyframes divide-left {
+    0%,8%,100% { d: path('M310 220C280 193 260 163 230 177C203 188 195 223 210 245C228 282 269 267 288 240C300 226 305 222 310 220Z'); stroke: #ffd198; }
+    19%,95% { d: path('M252 220C252 202 238 188 220 188C202 188 188 202 188 220C188 238 202 252 220 252C238 252 252 238 252 220Z'); stroke: #90c3ff; }
+  }
+  @keyframes divide-right {
+    0%,8%,100% { d: path('M310 220C340 247 360 277 390 263C417 252 425 217 410 195C392 158 351 173 332 200C320 214 315 218 310 220Z'); stroke: #ffd198; }
+    19%,95% { d: path('M368 220C368 238 382 252 400 252C418 252 432 238 432 220C432 202 418 188 400 188C382 188 368 202 368 220Z'); stroke: #90c3ff; }
+  }
+  @keyframes enclose-concurrent {
+    0%,34% { transform: translate(0,0); opacity: 0; }
+    43%,54% { transform: translate(0,0); opacity: 1; }
+    64%,90% { transform: translate(-85px,-60px); opacity: 1; }
+    96%,100% { transform: translate(-85px,-60px); opacity: 0; }
+  }
+  @keyframes grow-entry {
+    0%,17% { transform: translate(220px,220px) scale(1.1); opacity: 0; }
+    19%,29% { transform: translate(220px,220px) scale(1.1); opacity: 1; }
+    39%,54% { transform: translate(80px,220px) scale(1); opacity: 1; }
+    64%,90% { transform: translate(55px,220px) scale(1); opacity: 1; }
+    96%,100% { transform: translate(55px,220px) scale(.85); opacity: 0; }
+  }
+  @keyframes grow-exit {
+    0%,17% { transform: translate(400px,220px) scale(1.1); opacity: 0; }
+    19%,29% { transform: translate(400px,220px) scale(1.1); opacity: 1; }
+    39%,54% { transform: translate(540px,220px) scale(1); opacity: 1; }
+    64%,90% { transform: translate(565px,220px) scale(1); opacity: 1; }
+    96%,100% { transform: translate(565px,220px) scale(.85); opacity: 0; }
+  }
+  @keyframes grow-upper {
+    0%,29% { transform: translate(310px,220px) scale(.2); opacity: 0; }
+    39%,54% { transform: translate(300px,175px) scale(1.1); opacity: 1; }
+    64%,90% { transform: translate(215px,115px) scale(1.1); opacity: 1; }
+    96%,100% { transform: translate(215px,115px) scale(.85); opacity: 0; }
+  }
+  @keyframes grow-lower {
+    0%,29% { transform: translate(310px,220px) scale(.2); opacity: 0; }
+    39%,54% { transform: translate(300px,265px) scale(1.1); opacity: 1; }
+    64%,90% { transform: translate(215px,205px) scale(1.1); opacity: 1; }
+    96%,100% { transform: translate(215px,205px) scale(.85); opacity: 0; }
+  }
+  @keyframes grow-upper-step {
+    0%,54% { transform: translate(300px,175px) scale(.2); opacity: 0; }
+    66%,90% { transform: translate(210px,325px) scale(.9); opacity: 1; }
+    96%,100% { transform: translate(210px,325px) scale(.75); opacity: 0; }
+  }
+  @keyframes grow-lower-step {
+    0%,54% { transform: translate(300px,265px) scale(.2); opacity: 0; }
+    66%,90% { transform: translate(335px,325px) scale(.9); opacity: 1; }
+    96%,100% { transform: translate(335px,325px) scale(.75); opacity: 0; }
+  }
+  @keyframes grow-merge {
+    0%,54% { transform: translate(540px,220px) scale(.2); opacity: 0; }
+    66%,90% { transform: translate(450px,220px) scale(.95); opacity: 1; }
+    96%,100% { transform: translate(450px,220px) scale(.75); opacity: 0; }
+  }
+  @keyframes connect-pair {
+    0%,18% { stroke-dashoffset: 100; opacity: 0; }
+    24%,29% { stroke-dashoffset: 0; opacity: 1; }
+    34%,100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes connect-fork {
+    0%,38% { stroke-dashoffset: 100; opacity: 0; }
+    46%,54% { stroke-dashoffset: 0; opacity: 1; }
+    59%,100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes connect-expanded {
+    0%,64% { stroke-dashoffset: 100; opacity: 0; }
+    74%,90% { stroke-dashoffset: 0; opacity: 1; }
+    95%,100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes caption-monolith { 0%,10%,100% { opacity: 1; } 17%,94% { opacity: 0; } }
+  @keyframes caption-pair { 0%,14%,35%,100% { opacity: 0; } 20%,29% { opacity: 1; } }
+  @keyframes caption-fork { 0%,34%,61%,100% { opacity: 0; } 41%,54% { opacity: 1; } }
+  @keyframes caption-expanded { 0%,60%,98%,100% { opacity: 0; } 68%,90% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .node,.monolith,.lobe,.lobe:not(.lobe-halo),.concurrent-group,.connections path,.composition-caption span { animation: none; }
+    .monolith,.pair,.fork,.composition-caption span:not(.caption-expanded) { display: none; }
+    .concurrent-group { transform: translate(-85px,-60px); }
+    .entry { transform: translate(55px,220px); }
+    .upper { transform: translate(215px,115px) scale(1.1); }
+    .lower { transform: translate(215px,205px) scale(1.1); }
+    .exit { transform: translate(565px,220px); }
+    .upper-step { transform: translate(210px,325px) scale(.9); }
+    .lower-step { transform: translate(335px,325px) scale(.9); }
+    .merge { transform: translate(450px,220px) scale(.95); }
+  }
+</style>

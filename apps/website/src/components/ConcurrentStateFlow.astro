@@ -1,0 +1,140 @@
+---
+const operations = [
+  {label:'Order history',y:80,field:'order_summary',value:'Delivered · damaged item'},
+  {label:'Product policy',y:195,field:'policy_eligible',value:'true'},
+  {label:'Payment ledger',y:310,field:'paid_amount',value:'79'},
+];
+---
+<concurrent-state-flow>
+  <svg viewBox="0 0 640 390" role="img" aria-label="One request activates three concurrent calls together. Their responses arrive in a randomized order, 700 milliseconds apart, and update shared application state. The run repeats after two seconds.">
+    <circle class="source" cx="25" cy="195" r="7" />
+    <text class="request-label" x="25" y="220">Request</text>
+    <rect class="store" x="320" y="45" width="305" height="285" rx="17" />
+    <text class="heading" x="472" y="79">Shared workflow state</text>
+    {operations.map((op,index) => {
+      const incoming = `M25 195C65 195 55 ${op.y} 94 ${op.y}`;
+      const outgoing = `M174 ${op.y}C250 ${op.y} 245 ${139+index*75} 320 ${139+index*75}`;
+      return <g data-operation>
+        <path class="route" d={incoming} /><path class="route" d={outgoing} />
+        <g class="ring" transform={`translate(134 ${op.y}) rotate(-12)`}>
+          {[0,1,2,3].map(i => <ellipse rx={27+i*4} ry={9+i*2.5} pathLength="100" />)}
+          <ellipse class="ring-spark" rx="35" ry="14" pathLength="100" />
+          <ellipse class="ring-flash" rx="39" ry="16.5" />
+        </g>
+        <text class="node-label" x="134" y={op.y+44}>{op.label}</text>
+        <g class="packet request-packet" style={`offset-path:path('${incoming}')`}><circle class="packet-halo" r="10" /><circle r="3.5" /></g>
+        <g class="packet response-packet" style={`offset-path:path('${outgoing}')`}><circle class="packet-halo" r="12" /><circle r="4" /></g>
+        <text class="key" x="339" y={119+index*75}>{op.field}</text>
+        <text class="pending" x="339" y={149+index*75}>null</text>
+        <g class="committed"><rect x="335" y={132+index*75} width="280" height="25" fill="#0c1a2e" /><text class="value" x="339" y={149+index*75}>{op.value}</text></g>
+        <rect class="arrival-flash" x="322" y={95+index*75} width="301" height="72" rx="8" />
+        {index < 2 && <path class="divider" d={`M339 ${169+index*75}H605`} />}
+      </g>;
+    })}
+  </svg>
+</concurrent-state-flow>
+<script>
+  class ConcurrentStateFlow extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      const groups = [...this.querySelectorAll('[data-operation]')];
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      const abort = new AbortController();
+      let animations: Animation[] = [];
+      let visible = false;
+      let disposed = false;
+      const ringPhases = groups.map(() => 0);
+      // Last arrival at 3500ms, followed by 2000ms to inspect state.
+      const duration = 5500;
+      const animate = (element: Element, frames: Keyframe[]) => {
+        const animation = element.animate(frames,{duration,fill:'both'});
+        animations.push(animation);
+        return animation;
+      };
+      const packet = (element: Element, start: number, end: number) => animate(element,[
+        {offset:0,opacity:0,offsetDistance:'0%'},
+        {offset:start/duration,opacity:0,offsetDistance:'0%'},
+        {offset:(start+30)/duration,opacity:1,offsetDistance:'0%'},
+        {offset:(end-30)/duration,opacity:1,offsetDistance:'100%'},
+        {offset:end/duration,opacity:0,offsetDistance:'100%'},
+        {offset:1,opacity:0,offsetDistance:'100%'},
+      ]);
+      const flash = (element: Element, at: number) => animate(element,[
+        {offset:0,opacity:0},{offset:at/duration,opacity:0},
+        {offset:(at+30)/duration,opacity:1},{offset:(at+500)/duration,opacity:0},{offset:1,opacity:0},
+      ]);
+      const cancel = () => { animations.forEach(animation => {animation.onfinish=null; animation.cancel();}); animations=[]; };
+      const sync = () => {
+        for (const animation of animations) visible && !document.hidden ? animation.play() : animation.pause();
+      };
+      const run = () => {
+        cancel();
+        if (disposed || motion.matches) return;
+        const order = [0,1,2];
+        for (let i=order.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+        groups.forEach((group,index) => {
+          const departure=1300+order.indexOf(index)*700;
+          const arrival=departure+800;
+          packet(group.querySelector('.request-packet')!,150,850);
+          packet(group.querySelector('.response-packet')!,departure,arrival);
+          flash(group.querySelector('.ring-flash')!,850);
+          flash(group.querySelector('.arrival-flash')!,arrival);
+          // Keep the dots flowing continuously across runs. Ramp up on activation,
+          // spin rapidly during the call, then settle as its response leaves.
+          const slow = 100/32000;
+          const fast = 100/450;
+          const ramp = 150;
+          let phase = ringPhases[index];
+          const rotation: Keyframe[] = [{offset:0,strokeDashoffset:String(-phase)}];
+          const advance = (at: number, distance: number) => {
+            phase += distance;
+            rotation.push({offset:at/duration,strokeDashoffset:String(-phase)});
+          };
+          advance(850,850*slow);
+          advance(850+ramp,ramp*(slow+fast)/2);
+          advance(departure,(departure-850-ramp)*fast);
+          advance(departure+ramp,ramp*(slow+fast)/2);
+          advance(duration,(duration-departure-ramp)*slow);
+          ringPhases[index] = phase%100;
+          animate(group.querySelector('.ring')!,rotation);
+          animate(group.querySelector('.committed')!,[
+            {offset:0,opacity:0},{offset:arrival/duration,opacity:0},
+            {offset:(arrival+30)/duration,opacity:1},{offset:1,opacity:1},
+          ]);
+        });
+        // Browser animation clock: no per-frame JavaScript, and pauses offscreen.
+        animations[0].onfinish=run;
+        sync();
+      };
+      const observer = new IntersectionObserver(([entry]) => {visible=entry.isIntersecting;sync();});
+      observer.observe(this);
+      document.addEventListener('visibilitychange',sync,{signal:abort.signal});
+      motion.addEventListener('change',run,{signal:abort.signal});
+      run();
+      this.cleanup=()=>{disposed=true;cancel();observer.disconnect();abort.abort();};
+    }
+    disconnectedCallback() {this.cleanup?.();}
+  }
+  if (!customElements.get('concurrent-state-flow')) customElements.define('concurrent-state-flow',ConcurrentStateFlow);
+</script>
+<style>
+  concurrent-state-flow { display:block; }
+  svg { display:block; width:100%; height:auto; overflow:visible; }
+  text { font-family:inherit; }
+  .heading,.node-label,.request-label { text-anchor:middle; fill:#bfd1eb; font-size:14px; }
+  .request-label { font-size:10px; fill:#94acd0; }
+  .source { fill:#b7d8ff; }
+  .route { fill:none; stroke:#8db9f0; stroke-width:1.5; stroke-linecap:round; stroke-dasharray:.1 6; opacity:.65; }
+  .ring ellipse { fill:none; stroke:#ffd398; stroke-width:1.5; stroke-linecap:round; stroke-dasharray:.1 1.9; }
+  .ring .ring-spark { stroke:#fff0cc; stroke-width:3; stroke-dasharray:.1 24.9; }
+  .ring .ring-flash { stroke:#fff0cc; stroke-width:4; stroke-dasharray:none; opacity:0; }
+  .packet { offset-anchor:0px 0px; offset-rotate:0deg; opacity:0; fill:#e0f0ff; }
+  .response-packet { fill:#ffe6b8; }
+  .packet-halo { opacity:.2; }
+  .store { fill:#0c1a2e; stroke:#5475a3; stroke-width:1; }
+  .key { fill:#91a9cc; font:13px ui-monospace,monospace; }
+  .pending { fill:#637c9c; font:14px ui-monospace,monospace; }
+  .value { fill:#c3eddb; font:13px ui-monospace,monospace; }
+  .arrival-flash { fill:#bbffe2; fill-opacity:.35; stroke:#e4fff3; stroke-width:2; opacity:0; }
+  .divider { fill:none; stroke:#293f5c; }
+</style>
