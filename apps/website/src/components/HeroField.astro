@@ -76,7 +76,7 @@
         if (!width || !height) return;
         mobile = width <= 760;
         const headingTop = heading.getBoundingClientRect().top - bounds.top;
-        graphBottom = (headingTop - (mobile ? 132 : 56)) * 650 / height;
+        graphBottom = (headingTop - (mobile ? 132 : 26)) * 650 / height;
         graphRight = mobile ? 940 : 562 - 20 * 1000 / width;
         traceTop = (headingTop - 108) * 650 / height;
         traceHeight = 650 - traceTop;

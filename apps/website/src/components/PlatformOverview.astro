@@ -1,0 +1,70 @@
+<section class="platform-overview" aria-label="Junjo SDK and AI Studio">
+  <div class="platform-components">
+    <div class="component">
+      <div class="component-heading">
+        <svg class="product-icon" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <rect class="outline" x="10" y="10" width="60" height="60" rx="14" />
+          <path class="icon-detail" d="m29 28-12 12 12 12m22-24 12 12-12 12" />
+          <path class="accent" d="m44 25-8 30" />
+        </svg>
+        <div><h2>Junjo Python SDK</h2><p class="deployment">Installed in your application.</p></div>
+      </div>
+      <p class="description">Give your coding agent building blocks and telemetry instrumentation needed for recursive self improvement.</p>
+      <ul class="product-benefits" aria-label="SDK integration choices">
+        <li><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="5" width="22" height="18" rx="3" /><path d="m8 10 4 4-4 4m8 0h5" /></svg><strong>Keep your coding agent</strong></li>
+        <li><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="5" cy="14" r="3" /><circle cx="23" cy="5" r="3" /><circle cx="23" cy="23" r="3" /><path d="M8 14h4c5 0 3-9 8-9m-8 9c5 0 3 9 8 9" /></svg><strong>Keep your agent framework</strong></li>
+        <li><svg viewBox="0 0 28 28" aria-hidden="true"><path d="m14 2 11 6v12l-11 6-11-6V8Zm0 12v12M3 8l11 6 11-6M8.5 5 20 11" /></svg><strong>Or build fully with Junjo</strong></li>
+      </ul>
+    </div>
+    <div class="component">
+      <div class="component-heading">
+        <svg class="product-icon" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <rect class="outline" x="10" y="12" width="60" height="24" rx="7" />
+          <rect class="outline" x="10" y="44" width="60" height="24" rx="7" />
+          <path class="icon-detail" d="M36 24h23M36 56h23" />
+          <circle class="status" cx="23" cy="24" r="3" /><circle class="status" cx="23" cy="56" r="3" />
+        </svg>
+        <div><h2>Junjo AI Studio</h2><p class="deployment">Light weight containerized services.</p></div>
+      </div>
+      <p class="description">High performance telemetry and evaluation suite optimized for AI agents and human observation.</p>
+      <ul class="product-benefits" aria-label="Studio hosting">
+        <li><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="3" width="22" height="9" rx="2" /><rect x="3" y="16" width="22" height="9" rx="2" /><path d="M7 7.5h2M7 20.5h2M15 7.5h6M15 20.5h6" /></svg><span><strong>Self-host</strong><small>Your infrastructure. Your telemetry.</small></span></li>
+        <li><span class="performance-signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span><strong>High performance. Small footprint.</strong><small>Small VM deployment · Shared vCPU · &lt; 1GB RAM</small></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .platform-overview { padding: 56px 4vw; background: radial-gradient(ellipse at 76% 50%,#16346a24,transparent 65%),#080e1a; border-block: 1px solid #25324b66; }
+  .platform-components { max-width: 1200px; margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; }
+  .component { padding-right: 48px; }
+  .component + .component { border-left: 1px solid #34496788; padding: 0 0 0 48px; }
+  .component-heading { display: flex; align-items: center; gap: 20px; }
+  .product-icon { flex-shrink: 0; width: 72px; height: 72px; overflow: visible; }
+  .outline { stroke: #7bacf5; stroke-width: 1; fill: #142a4b44; }
+  .icon-detail { stroke: #acd6ff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px #609aff99); }
+  .accent { stroke: #ffbf83; stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 4px #ffae6b88); }
+  .status { fill: #ffcf95; filter: drop-shadow(0 0 4px #ffae6b); }
+  h2 { font-size: clamp(26px,2.6vw,34px); font-weight: 500; letter-spacing: -.04em; line-height: 1.15; margin: 0 0 8px; }
+  .deployment { color: #ffbf83; margin: 0; font-size: 14px; line-height: 1.5; }
+  .description { font-size: clamp(17px,1.55vw,20px); line-height: 1.65; color: #adbed8; margin: 20px 0 0; text-wrap: pretty; }
+  .product-benefits { display: grid; padding: 6px 22px; margin: 24px 0 0; list-style: none; background: linear-gradient(110deg,#0b1425,#10204488); border-top: 1px solid #41609755; }
+  .product-benefits li { display: flex; align-items: center; gap: 14px; padding: 16px 0; min-width: 0; }
+  .product-benefits li + li { border-top: 1px solid #48608944; }
+  .product-benefits svg { width: 26px; height: 26px; fill: none; stroke: #8cacfa; stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; flex-shrink: 0; }
+  .product-benefits strong { display: block; font-weight: 500; font-size: 17px; letter-spacing: -.015em; color: #dce8ff; line-height: 1.5; }
+  .product-benefits small { display: block; margin-top: 6px; font-size: 14px; line-height: 1.5; color: #90a7cb; }
+  .performance-signal { display: flex; align-items: center; gap: 3px; width: 26px; justify-content: center; height: 28px; flex-shrink: 0; }
+  .performance-signal i { display: block; width: 2px; height: 10px; background: #9abdff; box-shadow: 0 0 8px #487eff88; }
+  .performance-signal i:nth-child(2),.performance-signal i:nth-child(4) { height: 19px; }
+  .performance-signal i:nth-child(3) { height: 28px; background: #ffbe8c; box-shadow: 0 0 8px #ffae6b66; }
+  @media(max-width: 1000px) { .component { padding-right: 28px; } .component + .component { padding-left: 28px; } .component-heading { gap: 14px; } .product-icon { width: 60px; height: 60px; } }
+  @media(max-width: 760px) {
+    .platform-overview { padding: 40px 24px; }
+    .platform-components { grid-template-columns: 1fr; gap: 32px; }
+    .component { padding: 0; }
+    .component + .component { border-left: 0; border-top: 1px solid #34496788; padding: 32px 0 0; }
+    .description { margin-top: 16px; }
+  }
+</style>
