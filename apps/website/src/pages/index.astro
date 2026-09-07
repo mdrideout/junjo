@@ -1,6 +1,8 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro';
 import HeroField from '../components/HeroField.astro';
+import ImprovementSections from '../components/ImprovementSections.astro';
+import HostingStrip from '../components/HostingStrip.astro';
 ---
 
 <MarketingLayout
@@ -23,12 +25,8 @@ import HeroField from '../components/HeroField.astro';
       </div>
     </div>
   </section>
-  <section class="hero-introduction" aria-label="About Junjo">
-    <div class="hero-description">
-      <p>Junjo is an agent-first eval-driven-development and ai-app telemetry platform, allowing coding agents to rapidly experiment with AI agent and workflow changes. Recursively make improvements based on grounded auditable evaluation data and detailed execution chronology.</p>
-      <p>Junjo works with any coding agent and any agent framework. We supply agent-first observability for application execution and AI evaluators.</p>
-    </div>
-  </section>
+  <HostingStrip />
+  <ImprovementSections />
 </MarketingLayout>
 
 <style>
@@ -47,10 +45,6 @@ import HeroField from '../components/HeroField.astro';
   .hero-actions a { white-space: nowrap; }
   .hero-actions .button { gap: 4px; padding: 16px 22px; min-height: 52px; font-weight: 400; }
   .hero-actions .text-link { gap: 4px; }
-  .hero-introduction { padding: 90px 7vw 105px; background: #090e1b; border-top: 1px solid #36589e26; }
-  .hero-description { max-width: 920px; margin: auto; font-size: clamp(18px,1.65vw,24px); color: #c1cadc; }
-  .hero-description p { margin: 0; line-height: 1.75; }
-  .hero-description p + p { margin-top: 30px; color: #9eacc6; }
   @keyframes hero-color-flow { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
   @media (max-height: 800px) and (min-width: 761px) {
     h1 { font-size: clamp(44px,5.7vw,72px); }
@@ -62,8 +56,6 @@ import HeroField from '../components/HeroField.astro';
     .hero-content { padding: 24px 24px 30px; }
     h1 { font-size: clamp(42px,8.5vw,62px); max-width: 620px; }
     .hero-actions { gap: 18px 24px; }
-    .hero-introduction { padding: 58px 24px 70px; }
-    .hero-description { font-size: 18px; }
   }
   @media (prefers-reduced-motion: reduce) { .hero-gradient { animation: none; } }
 </style>

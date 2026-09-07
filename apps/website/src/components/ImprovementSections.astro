@@ -1,0 +1,229 @@
+---
+import CodingAgentLoop from './CodingAgentLoop.astro';
+const codingAgents = ['ChatGPT Codex', 'Claude Code', 'Pi Agent', 'OMP', 'OpenCode', 'Cursor', 'Grok Build', 'etc.'];
+const workflow = [
+  { number: '01', title: 'Retrieve evidence', type: 'Tools & APIs', text: 'Fetch the order and the applicable policy.' },
+  { number: '02', title: 'Extract the facts', type: 'Focused model request', text: 'Produce the fields needed for a decision.' },
+  { number: '03', title: 'Apply explicit rules', type: 'Application code', text: 'Check eligibility and handle missing information.' },
+  { number: '04', title: 'Write the response', type: 'Focused model request', text: 'Explain the supported result to the customer.' },
+];
+---
+
+<div class="improvement-sections">
+  <section class="benefit-section diagnosis" aria-labelledby="diagnosis-title">
+    <div class="section-inner">
+      <div class="section-heading">
+        <p class="eyebrow"><span>01</span> Diagnose with evidence</p>
+        <h2 id="diagnosis-title">Give your coding agent <em>complete evidence</em> of what happened.</h2>
+        <p class="lead">Junjo captures standardized OpenTelemetry spans emitted by every facet of your AI application and optimizes them for querying and diagnostic observation by your chosen coding agent.</p>
+        <p class="support">This telemetry and diagnostic layer is the primary foundation of recursive self improving apps.</p>
+      </div>
+      <div class="coding-agents">
+        <p>Optimized for Coding Agents</p>
+        <ul aria-label="Coding agents">{codingAgents.map(agent => <li>{agent}</li>)}</ul>
+      </div>
+      <CodingAgentLoop />
+    </div>
+  </section>
+
+  <section class="benefit-section simplify" aria-labelledby="simplify-title">
+    <div class="section-inner">
+      <div class="section-heading">
+        <p class="eyebrow"><span>02</span> Simplify the work</p>
+        <h2 id="simplify-title">Turn complex agent behavior into <em>simpler, testable work.</em></h2>
+        <p class="lead">Use execution evidence to identify steps that are doing too much. Your coding agent can separate complex behavior into focused requests, explicit workflows, and deterministic code.</p>
+        <p class="support">Evaluate each part independently, run independent work concurrently, and give each model a smaller, clearer task.</p>
+      </div>
+      <div class="workflow-example">
+        <div class="workflow-before"><span class="example-label">The original step</span><p>Research. Interpret. Decide. Respond.</p><span class="before-note">One agent request carries every responsibility.</span></div>
+        <div class="workflow-divider"><span aria-hidden="true">↓</span><p>A candidate workflow to evaluate</p></div>
+        <ol class="workflow-steps">
+          {workflow.map(step => (
+            <li><span class="step-number">{step.number}</span><h3>{step.title}</h3><p>{step.text}</p><span class="step-type">{step.type}</span></li>
+          ))}
+        </ol>
+      </div>
+      <div class="model-benefit">
+        <h3>Smaller tasks.<br /><span>More model choices.</span></h3>
+        <div><p>Simpler tasks create opportunities to use faster, cheaper models while improving reliability. Reserve more capable models for the steps that benefit from them, and measure the resulting application quality, latency, and cost.</p><p class="support">The experiment establishes whether the new workflow is better.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="benefit-section compare" aria-labelledby="compare-title">
+    <div class="section-inner">
+      <div class="section-heading">
+        <p class="eyebrow"><span>03</span> Measure the change</p>
+        <h2 id="compare-title">Know which changes <em>actually improve</em> the application.</h2>
+        <p class="lead">Run the original implementation and a proposed change against the same evaluation cases. Compare which cases improved, which regressed, and how execution changed.</p>
+        <p class="support">Follow each result back to its execution evidence. Evaluate focused steps and the complete workflow so a local improvement does not hide a downstream failure.</p>
+      </div>
+      <div class="comparison-flow" aria-label="Evaluate the original and candidate against the same cases">
+        <div class="shared-cases"><span class="case-dots" aria-hidden="true">•••••</span><span>Same cases. Same evaluation criteria.</span></div>
+        <div class="comparison-pair">
+          <div><span class="example-label">Baseline</span><h3>Original implementation</h3><p>Recorded outcomes & execution evidence</p></div>
+          <span class="comparison-symbol" aria-hidden="true">↔</span>
+          <div><span class="example-label">Candidate</span><h3>Proposed workflow</h3><p>Recorded outcomes & execution evidence</p></div>
+        </div>
+      </div>
+      <div class="measurement-grid">
+        <article><span class="measurement-icon" aria-hidden="true">✓</span><h3>Quality</h3><p>Which cases improved, regressed, or stayed the same?</p></article>
+        <article><span class="measurement-icon" aria-hidden="true">↗</span><h3>Speed</h3><p>How did execution time change, and where is time being spent?</p></article>
+        <article><span class="measurement-icon" aria-hidden="true">↓</span><h3>Efficiency</h3><p>Compare requests, retries, token usage, and cost where measurement is available.</p></article>
+      </div>
+      <a class="section-link" href="/docs/python/evaluation/">Explore evaluation-driven development <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+
+  <section class="benefit-section history" aria-labelledby="history-title">
+    <div class="section-inner history-layout">
+      <div class="section-heading">
+        <p class="eyebrow"><span>04</span> Build on what you learn</p>
+        <h2 id="history-title">Make every experiment useful <em>to the next one.</em></h2>
+        <p class="lead">Keep evaluation results connected to the application revisions and execution traces that produced them. Your coding agent can review previous experiments, investigate recurring failures, and use that history to choose its next change.</p>
+        <p class="support">Each iteration adds evidence that helps guide the next experiment.</p>
+      </div>
+      <div class="history-visual" aria-label="Previous runs retain their revisions, results, and traces to inform the next experiment">
+        <div class="history-sheet oldest"><span>Earlier experiment</span><p>Revision · Results · Traces</p><div class="trace-marks" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <div class="history-sheet previous"><span>Previous experiment</span><p>Revision · Results · Traces</p><div class="trace-marks" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <div class="history-sheet latest"><span>Latest experiment</span><p>Revision · Results · Traces</p><div class="trace-marks" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <p class="next-experiment"><span aria-hidden="true">↳</span> Inform the next change</p>
+      </div>
+      <p class="history-note">The history remains available to both your coding agent and your team.</p>
+    </div>
+  </section>
+
+  <section class="benefit-section stack" aria-labelledby="stack-title">
+    <div class="section-inner">
+      <div class="section-heading">
+        <p class="eyebrow"><span>05</span> Built for your stack</p>
+        <h2 id="stack-title">Keep your coding agent.<br /><em>Keep your application stack.</em></h2>
+        <p class="lead">Run experiments in your application codebase, with your existing agent framework and preferred coding agent. Junjo supplies the telemetry and evaluation building blocks that make the results auditable and comparable.</p>
+      </div>
+      <div class="stack-layers">
+        <article><span class="layer-number">01</span><div><h3>Your coding agent</h3><p>Investigates evidence, changes code, runs experiments, and proposes the next iteration.</p></div><span class="layer-role">Develop & improve</span></article>
+        <article><span class="layer-number">02</span><div><h3>Your application</h3><p>Executes its real workflows, tools, dependencies, and evaluators.</p></div><span class="layer-role">Execute & evaluate</span></article>
+        <article class="junjo-layer"><span class="layer-number">03</span><div><h3>Junjo</h3><p>Supplies telemetry, evaluation tooling, datasets, results, and queryable execution evidence.</p></div><span class="layer-role">Observe & measure</span></article>
+      </div>
+      <div class="stack-footer"><p>Use OpenTelemetry and a self-hostable Studio to keep execution evidence accessible to your agents and your team.</p><a class="section-link" href="/docs/observability/opentelemetry/">Explore OpenTelemetry integration <span aria-hidden="true">↗</span></a></div>
+      <div class="closing-cta"><h3>Give your coding agent the evidence for its next improvement.</h3><a class="button" href="/docs/#get-started">Get started <span aria-hidden="true">↗</span></a></div>
+    </div>
+  </section>
+</div>
+
+
+
+<style>
+  .improvement-sections { background: #070a12; }
+  .benefit-section { padding: clamp(80px,9vw,140px) 4vw; border-top: 1px solid #25324b66; overflow: clip; }
+  .section-inner { max-width: 1200px; margin-inline: auto; }
+  .section-heading { max-width: 890px; margin-bottom: 56px; }
+  .eyebrow { display: flex; align-items: center; gap: 14px; font-size: 12px; letter-spacing: .055em; color: #a7b8dc; margin: 0 0 28px; }
+  .eyebrow > span { color: #7d98ff; font-variant-numeric: tabular-nums; }
+  h2 { font-size: clamp(34px,4.25vw,62px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; margin: 0 0 28px; text-wrap: balance; }
+  h2 em { font-style: normal; color: #83a5ff; }
+  h3 { font-weight: 500; letter-spacing: -.03em; }
+  .lead { max-width: 750px; font-size: clamp(17px,1.55vw,21px); line-height: 1.7; color: #c0cbdd; margin: 0; }
+  .support { max-width: 735px; font-size: 16px; line-height: 1.75; color: #8695ae; margin: 18px 0 0; }
+  .example-label { font-size: 11px; color: #a4b5d6; letter-spacing: .05em; }
+  .coding-agents > p { margin: 0 0 16px; color: #a3b6d8; font-size: 12px; letter-spacing: .035em; }
+  .coding-agents ul { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; list-style: none; }
+  .coding-agents li { padding: 9px 15px; border: 1px solid #344767; border-radius: 999px; color: #c8d7f1; background: #0d182c; font-size: 13px; }
+  .simplify { background: linear-gradient(150deg,#0c1529,#080c16 70%); }
+  .workflow-before { display: flex; flex-direction: column; align-items: center; padding: 28px 20px; border: 1px solid #384359; border-radius: 10px; max-width: 680px; margin: auto; text-align: center; background: #111827; }
+  .workflow-before p { font-size: clamp(21px,2.2vw,31px); letter-spacing: -.035em; margin: 12px 0 8px; }
+  .before-note { color: #8f9cb4; font-size: 13px; }
+  .workflow-divider { text-align: center; color: #91b0ff; padding: 16px 0 25px; }
+  .workflow-divider > span { font-size: 30px; }
+  .workflow-divider p { margin: 4px 0 0; font-size: 12px; color: #9daeca; }
+  .workflow-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; list-style: none; padding: 0; margin: 0; }
+  .workflow-steps li { position: relative; display: flex; flex-direction: column; padding: 25px 22px; background: #0d1a32; border: 1px solid #365083; border-radius: 8px; }
+  .workflow-steps li:not(:last-child)::after { content: '→'; position: absolute; left: calc(100% + 3px); top: 50%; color: #7a9aff; font-size: 15px; }
+  .step-number { color: #ffbb82; font-size: 12px; }
+  .workflow-steps h3 { font-size: 20px; margin: 20px 0 10px; }
+  .workflow-steps p { color: #93a6c8; font-size: 14px; margin: 0 0 26px; }
+  .step-type { margin-top: auto; font-size: 11px; color: #9abaff; }
+  .model-benefit { margin-top: 60px; padding-top: 40px; border-top: 1px solid #334263; display: grid; grid-template-columns: .8fr 1.2fr; gap: 60px; }
+  .model-benefit h3 { font-size: clamp(28px,3vw,40px); line-height: 1.15; margin: 0; }
+  .model-benefit h3 span { color: #8fafff; }
+  .model-benefit p { color: #b4c1d8; margin-top: 0; font-size: 17px; }
+  .model-benefit .support { font-size: 14px; color: #8597b8; margin-bottom: 0; }
+  .comparison-flow { border-top: 1px solid #35496e; border-bottom: 1px solid #35496e; }
+  .shared-cases { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 22px; font-size: 13px; color: #b9cae8; border-bottom: 1px solid #25324b; }
+  .case-dots { color: #8cb1ff; letter-spacing: 7px; text-shadow: 0 0 12px #4272ff; }
+  .comparison-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 40px; padding: 40px; }
+  .comparison-pair > div { text-align: center; }
+  .comparison-pair h3 { font-size: clamp(20px,2.2vw,30px); margin: 14px 0 8px; }
+  .comparison-pair p { color: #8f9fbb; font-size: 13px; margin: 0; }
+  .comparison-symbol { color: #ffb87b; font-size: 30px; }
+  .measurement-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 50px; margin: 42px 0 32px; }
+  .measurement-icon { color: #8baaff; font-size: 22px; }
+  .measurement-grid h3 { font-size: 23px; margin: 14px 0 10px; }
+  .measurement-grid p { font-size: 15px; color: #91a1bc; margin: 0; }
+  .section-link { display: inline-flex; align-items: center; gap: 18px; color: #b6caff; font-size: 14px; line-height: 1.6; }
+  .section-link:hover { color: #fff; }
+  .history { background: radial-gradient(ellipse at 85% 50%,#11234b66,transparent 60%),#0a101e; }
+  .history-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px 90px; align-items: center; }
+  .history .section-heading { margin-bottom: 0; }
+  .history h2 { font-size: clamp(34px,3.5vw,50px); }
+  .history-visual { position: relative; height: 360px; margin-top: 45px; }
+  .history-sheet { position: absolute; width: 85%; border: 1px solid #5779b8; border-radius: 8px; padding: 24px; background: #0f1a31; }
+  .history-sheet > span { font-size: 15px; color: #c3d5f8; }
+  .history-sheet p { color: #88a0c8; font-size: 11px; margin: 10px 0 22px; }
+  .oldest { top: 0; left: 15%; opacity: .25; }
+  .previous { top: 42px; left: 7.5%; opacity: .5; }
+  .latest { top: 84px; left: 0; box-shadow: 0 12px 50px #05091388; }
+  .trace-marks { display: grid; gap: 12px; }
+  .trace-marks i { display: block; height: 2px; background: repeating-linear-gradient(90deg,#ffbb83 0 3px,transparent 3px 7px,#699cff 7px 9px,transparent 9px 15px); }
+  .trace-marks i:nth-child(2) { margin-left: 24px; width: 75%; }
+  .trace-marks i:nth-child(3) { margin-left: 48px; width: 55%; }
+  .next-experiment { position: absolute; bottom: 0; left: 24px; color: #a9c0ec; font-size: 14px; margin: 0; }
+  .next-experiment span { color: #ffbb83; font-size: 22px; margin-right: 10px; }
+  .history-note { grid-column: 1 / -1; font-size: 15px; color: #91a5c7; margin: 26px 0 0; }
+  .stack-layers { border-top: 1px solid #35425c; }
+  .stack-layers article { display: grid; grid-template-columns: 36px 1fr auto; gap: 28px; align-items: center; padding: 30px 20px; border-bottom: 1px solid #35425c; }
+  .layer-number { color: #7d90b3; font-size: 12px; align-self: start; padding-top: 5px; }
+  .stack-layers h3 { font-size: 26px; margin: 0 0 10px; }
+  .stack-layers p { color: #9badc9; font-size: 16px; margin: 0; max-width: 620px; }
+  .layer-role { font-size: 12px; color: #8199c5; }
+  .stack-layers .junjo-layer { background: linear-gradient(90deg,#142e66aa,transparent); }
+  .junjo-layer h3 { color: #8ab0ff; }
+  .junjo-layer .layer-role { color: #ffbd86; }
+  .stack-footer { display: flex; justify-content: space-between; align-items: baseline; gap: 36px; margin-top: 28px; }
+  .stack-footer p { color: #93a6c6; font-size: 15px; max-width: 600px; margin: 0; }
+  .stack-footer a { flex-shrink: 0; }
+  .closing-cta { display: flex; justify-content: space-between; align-items: center; gap: 40px; border-top: 1px solid #2a3b5b; margin-top: 90px; padding-top: 48px; }
+  .closing-cta h3 { font-size: clamp(25px,3vw,40px); max-width: 670px; line-height: 1.2; margin: 0; }
+  .closing-cta a { flex-shrink: 0; }
+  @media(max-width:1000px) {
+    .workflow-steps { grid-template-columns: repeat(2,1fr); }
+    .workflow-steps li:nth-child(2)::after { display: none; }
+    .history-layout { gap: 28px; }
+    .stack-footer { flex-direction: column; gap: 18px; }
+    .layer-role { display: none; }
+    .stack-layers article { grid-template-columns: 30px 1fr; }
+  }
+  @media(max-width:760px) {
+    .benefit-section { padding: 72px 24px; }
+    .section-heading { margin-bottom: 34px; }
+    h2 { font-size: clamp(32px,7.5vw,44px); }
+    .eyebrow { margin-bottom: 22px; }
+    .model-benefit { grid-template-columns: 1fr; gap: 24px; margin-top: 38px; }
+    .comparison-pair { grid-template-columns: 1fr; gap: 22px; padding: 30px 16px; }
+    .comparison-symbol { transform: rotate(90deg); justify-self: center; }
+    .shared-cases { flex-direction: column; gap: 8px; padding: 20px 12px; text-align: center; }
+    .measurement-grid { grid-template-columns: 1fr; gap: 28px; }
+    .measurement-grid article { border-bottom: 1px solid #263550; padding-bottom: 26px; }
+    .history-layout { grid-template-columns: 1fr; }
+    .history-visual { max-width: 450px; width: 100%; margin-top: 16px; height: 320px; }
+    .history-sheet { padding: 20px; }
+    .stack-layers article { padding: 25px 10px; gap: 10px; }
+    .stack-layers h3 { font-size: 23px; }
+    .stack-layers p { font-size: 15px; }
+    .closing-cta { flex-direction: column; align-items: flex-start; margin-top: 60px; gap: 26px; }
+  }
+  @media(max-width:480px) {
+    .workflow-steps { grid-template-columns: 1fr; gap: 26px; }
+    .workflow-steps li:not(:last-child)::after { display: block; content: '↓'; top: calc(100% + 1px); left: 50%; }
+  }
+</style>
