@@ -1,20 +1,17 @@
 <section class="hosting-strip" aria-label="Open source and self-hosting">
   <div class="hosting-inner">
-    <a class="hosting-feature" href="https://github.com/mdrideout/junjo">
+    <div class="hosting-feature">
       <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M9 6 2 14l7 8M19 6l7 8-7 8M16 3l-4 22" /></svg>
       <span><strong>Open source</strong><small>Apache 2.0</small></span>
-      <span class="link-arrow" aria-hidden="true">↗</span>
-    </a>
-    <a class="hosting-feature" href="/docs/studio/deployment/">
+    </div>
+    <div class="hosting-feature">
       <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="3" width="22" height="9" rx="2" /><rect x="3" y="16" width="22" height="9" rx="2" /><path d="M7 7.5h2M7 20.5h2M15 7.5h6M15 20.5h6" /></svg>
       <span><strong>Self-host</strong><small>Your infrastructure. Your telemetry.</small></span>
-      <span class="link-arrow" aria-hidden="true">↗</span>
-    </a>
-    <a class="hosting-feature performance" href="/docs/studio/deployment/">
+    </div>
+    <div class="hosting-feature performance">
       <span class="performance-signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
       <span><strong>High performance. Small footprint.</strong><small>Small VM deployment · Shared vCPU · &lt; 1GB RAM</small></span>
-      <span class="link-arrow" aria-hidden="true">↗</span>
-    </a>
+    </div>
   </div>
 </section>
 
@@ -25,12 +22,10 @@
   .hosting-feature:first-child { padding-left: 0; }
   .hosting-feature:last-child { padding-right: 0; }
   .hosting-feature + .hosting-feature { border-left: 1px solid #48608955; }
-  .hosting-feature > span:not(.link-arrow):not(.performance-signal) { min-width: 0; }
+  .hosting-feature > span:not(.performance-signal) { min-width: 0; }
   .hosting-feature svg { width: 26px; height: 26px; fill: none; stroke: #8cacfa; stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; flex-shrink: 0; }
   strong { display: block; font-weight: 500; font-size: 15px; letter-spacing: -.015em; color: #dce8ff; }
   small { display: block; margin-top: 6px; font-size: 11px; line-height: 1.5; color: #90a7cb; }
-  .link-arrow { color: #7093d3; font-size: 14px; flex-shrink: 0; }
-  .hosting-feature:hover strong,.hosting-feature:hover .link-arrow { color: #fff; }
   .performance-signal { display: flex; align-items: center; gap: 3px; width: 26px; justify-content: center; height: 28px; flex-shrink: 0; }
   .performance-signal i { display: block; width: 2px; height: 10px; background: #9abdff; box-shadow: 0 0 8px #487eff88; }
   .performance-signal i:nth-child(2),.performance-signal i:nth-child(4) { height: 19px; }
@@ -38,7 +33,6 @@
   @media(max-width:1000px) {
     .hosting-inner { grid-template-columns: 1fr 1.25fr 1.65fr; }
     .hosting-feature { gap: 10px; padding-inline: 18px; }
-    .link-arrow { display: none; }
   }
   @media(max-width:760px) {
     .hosting-strip { padding: 24px; }

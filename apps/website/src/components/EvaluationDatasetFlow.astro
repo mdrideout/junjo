@@ -6,7 +6,7 @@ const runs = ['Run 01', 'Run 02', 'Run 03'];
 <figure class="dataset-flow" aria-label="Pull a shared dataset from Junjo, run the application and evaluators locally with your coding agent, and record each run's outcomes and traces back in Junjo.">
   <div class="flow-stages">
     <div class="stage">
-      <p class="location">Stored in Junjo</p>
+      <p class="location">Your Agent Creates and Stores Datasets</p>
       <div class="dataset-art" aria-hidden="true">
         {cases.map((name, index) => <div class="case"><span class="case-id">0{index + 1}</span><span>{name}</span><span class="case-marks">······</span></div>)}
       </div>
@@ -40,7 +40,7 @@ const runs = ['Run 01', 'Run 02', 'Run 03'];
 </figure>
 
 <style>
-  .dataset-flow { margin: 0; padding: 8px 0 32px; border-bottom: 1px solid #334a71; }
+  .dataset-flow { margin: 0; padding: 8px 0 72px; border-bottom: 1px solid #334a71; }
   .flow-stages { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 64px; }
   .stage { position: relative; min-width: 0; display: grid; grid-template-rows: 1fr 148px; gap: 24px; }
   .location { max-width: 290px; margin: 0 auto; color: #dce7ff; font-size: clamp(16px,1.5vw,20px); line-height: 1.4; letter-spacing: -.02em; text-align: center; text-wrap: balance; align-self: center; }
