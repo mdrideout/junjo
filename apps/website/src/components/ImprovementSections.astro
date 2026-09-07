@@ -4,6 +4,7 @@ import SpanLoomBackground from './SpanLoomBackground.astro';
 import EvaluationDatasetFlow from './EvaluationDatasetFlow.astro';
 import DiagnosisComparison from './DiagnosisComparison.astro';
 import AgentPrompt from './AgentPrompt.astro';
+import TaskDecomposition from './TaskDecomposition.astro';
 const codingAgents = [
   { name: 'ChatGPT Codex', icon: 'codex.png' },
   { name: 'Claude Code', icon: 'claude.png' },
@@ -14,17 +15,10 @@ const codingAgents = [
   { name: 'Grok Build', icon: 'grok.png' },
   { name: 'etc.', icon: null },
 ];
-const workflow = [
-  { number: '01', title: 'Retrieve evidence', type: 'Tools & APIs', text: 'Fetch the order and the applicable policy.' },
-  { number: '02', title: 'Extract the facts', type: 'Focused model request', text: 'Produce the fields needed for a decision.' },
-  { number: '03', title: 'Apply explicit rules', type: 'Application code', text: 'Check eligibility and handle missing information.' },
-  { number: '04', title: 'Write the response', type: 'Focused model request', text: 'Explain the supported result to the customer.' },
-];
 ---
 
 <div class="improvement-sections">
   <section class="benefit-section diagnosis" aria-labelledby="diagnosis-title">
-    <SpanLoomBackground />
     <div class="section-inner diagnosis-layout">
       <div class="section-heading">
         <h2 id="diagnosis-title">Diagnose failures <em>without hallucination</em></h2>
@@ -55,65 +49,53 @@ const workflow = [
   </section>
 
   <section class="benefit-section evaluation" aria-labelledby="evaluation-title">
+    <SpanLoomBackground />
     <div class="section-inner">
       <div class="section-heading">
         <h2 id="evaluation-title">Build Targeted Datasets<br /><em>Rapidly test and eval changes.</em></h2>
-        <p class="lead">Junjo datasets are created by your coding agent to feed your evals. Target the E2E app, a workflow, agent, or a single node. Rapidly test and evaluate the inputs and outputs of these application targets as you make code changes.</p>
+        <p class="lead">Give your coding agent repeatable scenarios for the application behavior you want to improve. Target an entire application, a workflow, an agent, or a single operation. Store the cases and evaluation criteria in Junjo, then run them against changes in your own application environment.</p>
       </div>
       <EvaluationDatasetFlow />
-      <ol class="dataset-details" aria-label="Evaluation dataset lifecycle">
-        <li>
-          <h3>Create a draft dataset.</h3>
-          <p>Your application declares its available targets and evaluators in an EvaluationHarness. Your coding agent creates a draft dataset and adds cases through the CLI or Python SDK.</p>
-        </li>
-        <li>
-          <h3>Populate the cases.</h3>
-          <p>Author cases directly, or generate them by executing a real application target and linking its execution evidence. You still supply the evaluation criteria; generated output is not automatically the correct answer.</p>
-        </li>
-        <li>
-          <h3>Lock the dataset.</h3>
-          <p>Locking permanently freezes the ordered cases so subsequent runs use identical tests. Create a new dataset when the cases or evaluation criteria need to change.</p>
-        </li>
-        <li>
-          <h3>Run the evals locally.</h3>
-          <p>Your coding agent pulls the cases through Junjo's CLI or SDK and runs your application's targets and evaluators in its own environment. Studio records one attempt per case, its execution link, and a passed, failed, or error outcome with a reason. Full execution evidence arrives through telemetry and is linked to each attempt.</p>
-        </li>
-        <li>
-          <h3>Change, rerun, compare.</h3>
-          <p>Change your code or prompt, record the source revision, and run the same locked dataset again. Compare improvements, regressions, and errors case by case, with the datasets and results retained in Studio.</p>
-        </li>
-      </ol>
       <div class="dataset-outcomes">
-        <div>
-          <h3>See how outcomes change throughout your agentic flow.</h3>
-          <p>This allows you to seamlessly explore your datasets, the evaluation runs, and inspect the individual traces and chronology of every run.</p>
-          <p>Total transparency to help you and your coding agent diagnose and improve every granular aspect of your AI application.</p>
-        </div>
+        <p>Keep the test cases consistent while your implementation changes. Junjo connects each evaluation outcome to its execution chronology, so you and your coding agent can investigate differences throughout the flow.</p>
         <a class="section-link" href="/docs/python/evaluation/">Explore datasets and local evaluations <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="dataset-guide">
+        <button class="dataset-guide-toggle" type="button" aria-expanded="false" aria-controls="dataset-steps">How datasets work <span class="guide-toggle" aria-hidden="true">+</span></button>
+        <ol id="dataset-steps" class="dataset-details" aria-label="Build and use datasets with your coding agent">
+        <li>
+          <h3>Describe what you want to test.</h3>
+          <div><p>Ask your coding agent in natural language. Tell it which behavior matters and what a good outcome looks like. Your agent turns that request into a targeted dataset.</p><blockquote>“Create a refund evaluation dataset from our recent failed requests. Add scenarios for missing receipts, partial returns, and policy exceptions.”</blockquote></div>
+        </li>
+        <li>
+          <h3>Build on real usage. Explore new scenarios.</h3>
+          <p>Your coding agent can use available execution history and real-world examples to author cases, or create synthetic scenarios that explore behavior you have not encountered yet. Combine common requests, known failures, and edge cases in the same dataset.</p>
+        </li>
+        <li>
+          <h3>Define success and keep it consistent.</h3>
+          <p>Work with your coding agent to define the evaluation criteria. Generated answers are examples, not automatically the correct outcome. Have your agent lock the dataset in Junjo so later experiments use the same cases and criteria.</p>
+        </li>
+        <li>
+          <h3>Ask your agent to run the evaluation.</h3>
+          <p>Your coding agent retrieves the dataset and runs it through your application and evaluators in your own environment. Junjo stores the outcomes and linked execution evidence, keeping the results available for investigation and comparison.</p>
+        </li>
+        <li>
+          <h3>Make a change. Ask what improved.</h3>
+          <p>Ask your coding agent to test a code or prompt change against the same dataset. It can compare outcomes, investigate the traces behind regressions, and explain what the experiment revealed before choosing the next improvement.</p>
+        </li>
+        </ol>
       </div>
     </div>
   </section>
 
   <section class="benefit-section simplify" aria-labelledby="simplify-title">
     <div class="section-inner">
+      <TaskDecomposition>
       <div class="section-heading">
-        <h2 id="simplify-title">Turn complex agent behavior into <em>simpler, testable work.</em></h2>
-        <p class="lead">Use execution evidence to identify steps that are doing too much. Your coding agent can separate complex behavior into focused requests, explicit workflows, and deterministic code.</p>
-        <p class="support">Use targeted datasets to evaluate each extracted node, agent, or workflow independently, then rerun the E2E dataset to check how those changes affect the complete flow.</p>
+        <h2 id="simplify-title">Find a simpler path to <em>better results.</em></h2>
+        <p class="lead">Execution evidence helps your coding agent identify requests that mix too many responsibilities. Junjo helps you strategically break down monolithic agent steps into simpler tasks that can be individually evaluated and iterated on.</p>
       </div>
-      <div class="workflow-example">
-        <div class="workflow-before"><span class="example-label">The original step</span><p>Research. Interpret. Decide. Respond.</p><span class="before-note">One agent request carries every responsibility.</span></div>
-        <div class="workflow-divider"><span aria-hidden="true">↓</span><p>A candidate workflow to evaluate</p></div>
-        <ol class="workflow-steps">
-          {workflow.map(step => (
-            <li><span class="step-number">{step.number}</span><h3>{step.title}</h3><p>{step.text}</p><span class="step-type">{step.type}</span></li>
-          ))}
-        </ol>
-      </div>
-      <div class="model-benefit">
-        <h3>Smaller tasks.<br /><span>More model choices.</span></h3>
-        <div><p>Simpler tasks create opportunities to use faster, cheaper models while improving reliability. Reserve more capable models for the steps that benefit from them, and measure the resulting application quality, latency, and cost.</p><p class="support">The experiment establishes whether the new workflow is better.</p></div>
-      </div>
+      </TaskDecomposition>
     </div>
   </section>
 
@@ -181,10 +163,18 @@ const workflow = [
 
 
 
+<script>
+  const datasetGuide = document.querySelector('.dataset-guide');
+  const datasetToggle = datasetGuide?.querySelector('.dataset-guide-toggle');
+  datasetToggle?.addEventListener('click', () => {
+    const expanded = datasetGuide!.classList.toggle('is-expanded');
+    datasetToggle.setAttribute('aria-expanded', String(expanded));
+  });
+</script>
+
 <style>
   .improvement-sections { background: #070a12; }
   .benefit-section { padding: clamp(80px,8vw,112px) 4vw; border-top: 1px solid #25324b66; overflow: clip; }
-  .diagnosis { position: relative; isolation: isolate; }
   .diagnosis-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
   .diagnosis .section-heading { margin-bottom: 0; }
   .section-divider { margin: 0; border: 0; border-top: 1px solid #344767; }
@@ -209,9 +199,19 @@ const workflow = [
   .coding-agents ul { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; list-style: none; }
   .coding-agents li { display: flex; align-items: center; gap: 8px; padding: 9px 15px; border: 1px solid #344767; border-radius: 999px; color: #c8d7f1; background: #0d182c; font-size: 13px; white-space: nowrap; }
   .coding-agents img { width: 18px; height: 18px; flex-shrink: 0; object-fit: contain; }
-  .evaluation { background: radial-gradient(ellipse at 55% 36%,#132d603d,transparent 65%),#080e1a; }
+  .evaluation { position: relative; isolation: isolate; background: radial-gradient(ellipse at 55% 36%,#132d603d,transparent 65%),#080e1a; }
   .evaluation .section-heading { margin-bottom: 44px; }
-  .dataset-details { list-style: none; counter-reset: lifecycle; padding: 0; margin: 44px 0 0; }
+  .dataset-guide { margin-top: 40px; border-top: 1px solid #334a71; border-bottom: 1px solid #334a71; }
+  .dataset-guide-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 0; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: clamp(23px,2.3vw,30px); letter-spacing: -.03em; color: #dce7ff; transition: color .2s; }
+  .dataset-guide-toggle:is(:hover,:focus-visible) { color: #9ccaff; }
+  .dataset-guide-toggle:is(:hover,:focus-visible) .guide-toggle { color: #e0eeff; text-shadow: 0 0 12px #679dff99; }
+  .dataset-guide-toggle:focus-visible { outline: 2px solid #6082ff; outline-offset: 4px; }
+  .guide-toggle { color: #91b0ff; font-size: 28px; font-weight: 400; transition: color .2s, text-shadow .2s, transform .2s; }
+  .dataset-guide.is-expanded .guide-toggle { transform: rotate(45deg); }
+  .dataset-guide:not(.is-expanded) .dataset-details { max-height: 75px; overflow: hidden; mask-image: linear-gradient(to bottom,#000 0%,#000 45%,transparent 100%); }
+  .dataset-details { list-style: none; counter-reset: lifecycle; padding: 0; margin: 0 0 16px; }
+  .dataset-details li:last-child { border-bottom: 0; }
+  .dataset-details blockquote { margin: 18px 0 0; padding: 12px 18px; border-left: 2px solid #87aaff; color: #d1dfff; background: #10213a66; font-size: 16px; line-height: 1.7; }
   .dataset-details li { counter-increment: lifecycle; display: grid; grid-template-columns: 28px minmax(180px,.65fr) 1.65fr; gap: 24px; padding: 26px 0; border-bottom: 1px solid #2c406155; }
   .dataset-details li::before { content: counter(lifecycle,decimal-leading-zero); color: #ffbd86; font-size: 12px; padding-top: 5px; }
   .dataset-details h3 { font-size: 23px; line-height: 1.25; color: #dce7ff; margin: 0 0 16px; }
@@ -226,24 +226,7 @@ const workflow = [
   .pass-formula { color: #c9daff; }
   .dataset-outcomes .section-link { flex-shrink: 0; max-width: 215px; }
   .simplify { background: linear-gradient(150deg,#0c1529,#080c16 70%); }
-  .workflow-before { display: flex; flex-direction: column; align-items: center; padding: 28px 20px; border: 1px solid #384359; border-radius: 10px; max-width: 680px; margin: auto; text-align: center; background: #111827; }
-  .workflow-before p { font-size: clamp(21px,2.2vw,31px); letter-spacing: -.035em; margin: 12px 0 8px; }
-  .before-note { color: #8f9cb4; font-size: 13px; }
-  .workflow-divider { text-align: center; color: #91b0ff; padding: 16px 0 25px; }
-  .workflow-divider > span { font-size: 30px; }
-  .workflow-divider p { margin: 4px 0 0; font-size: 12px; color: #9daeca; }
-  .workflow-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; list-style: none; padding: 0; margin: 0; }
-  .workflow-steps li { position: relative; display: flex; flex-direction: column; padding: 25px 22px; background: #0d1a32; border: 1px solid #365083; border-radius: 8px; }
-  .workflow-steps li:not(:last-child)::after { content: '→'; position: absolute; left: calc(100% + 3px); top: 50%; color: #7a9aff; font-size: 15px; }
-  .step-number { color: #ffbb82; font-size: 12px; }
-  .workflow-steps h3 { font-size: 20px; margin: 20px 0 10px; }
-  .workflow-steps p { color: #93a6c8; font-size: 14px; margin: 0 0 26px; }
-  .step-type { margin-top: auto; font-size: 11px; color: #9abaff; }
-  .model-benefit { margin-top: 56px; padding-top: 56px; border-top: 1px solid #334263; display: grid; grid-template-columns: .8fr 1.2fr; gap: 60px; }
-  .model-benefit h3 { font-size: clamp(28px,3vw,40px); line-height: 1.15; margin: 0; }
-  .model-benefit h3 span { color: #8fafff; }
-  .model-benefit p { color: #b4c1d8; margin-top: 0; font-size: 17px; }
-  .model-benefit .support { font-size: 14px; color: #8597b8; margin-bottom: 0; }
+  .simplify .section-heading { margin-bottom: 0; }
   .comparison-flow { border-top: 1px solid #35496e; border-bottom: 1px solid #35496e; }
   .shared-cases { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 22px; font-size: 13px; color: #b9cae8; border-bottom: 1px solid #25324b; }
   .case-dots { color: #8cb1ff; letter-spacing: 7px; text-shadow: 0 0 12px #4272ff; }
@@ -295,8 +278,6 @@ const workflow = [
     .diagnosis-layout { grid-template-columns: 1fr; gap: 56px; }
     .dataset-outcomes { flex-direction: column; align-items: flex-start; gap: 24px; }
     .dataset-outcomes .section-link { max-width: none; }
-    .workflow-steps { grid-template-columns: repeat(2,1fr); }
-    .workflow-steps li:nth-child(2)::after { display: none; }
     .history-layout { gap: 28px; }
     .stack-footer { flex-direction: column; gap: 18px; }
     .layer-role { display: none; }
@@ -308,14 +289,13 @@ const workflow = [
     .agent-control .coding-agents ul { justify-content: flex-start; }
     .agent-intro { margin-top: 40px; }
     .dataset-outcomes { padding-top: 40px; }
-    .dataset-details { margin-top: 36px; }
+    .dataset-details { margin-top: 0; }
     .dataset-details li { grid-template-columns: 24px 1fr; gap: 8px 16px; }
-    .dataset-details li p { grid-column: 2; }
+    .dataset-details li > p,.dataset-details li > div { grid-column: 2; }
     .dataset-details h3 { margin-bottom: 4px; }
     .benefit-section { padding: 72px 24px; }
     .section-heading { margin-bottom: 40px; }
     h2 { font-size: clamp(32px,7.5vw,44px); }
-    .model-benefit { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; padding-top: 40px; }
     .comparison-pair { grid-template-columns: 1fr; gap: 22px; padding: 30px 16px; }
     .comparison-symbol { transform: rotate(90deg); justify-self: center; }
     .shared-cases { flex-direction: column; gap: 8px; padding: 20px 12px; text-align: center; }
@@ -328,9 +308,5 @@ const workflow = [
     .stack-layers h3 { font-size: 23px; }
     .stack-layers p { font-size: 15px; }
     .closing-cta { flex-direction: column; align-items: flex-start; margin-top: 40px; padding-top: 40px; gap: 26px; }
-  }
-  @media(max-width:480px) {
-    .workflow-steps { grid-template-columns: 1fr; gap: 26px; }
-    .workflow-steps li:not(:last-child)::after { display: block; content: '↓'; top: calc(100% + 1px); left: 50%; }
   }
 </style>
