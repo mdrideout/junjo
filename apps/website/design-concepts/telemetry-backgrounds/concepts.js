@@ -1,5 +1,5 @@
 import { createSwimlaneStudy } from './swimlane-studies.js';
-import { createStagedRoutes } from './staged-soft-routes.js?revision=22h';
+import { createStagedRoutes } from './staged-soft-routes.js?revision=22r';
 
 const concepts = {
   loom: ['01', 'Span loom', 'Execution events settle into nested span rows.'],
@@ -40,6 +40,12 @@ if (Object.hasOwn(concepts, selected)) {
     const detail=document.querySelector('#detail');
     const copy=detail.querySelector('.hero-copy');
     detail.classList.add('hero-study');
+    const header=document.querySelector('.review-header');
+    const toolbar=detail.querySelector('.detail-toolbar');
+    const fitHero=()=>detail.style.setProperty('--study-header-height',`${header.getBoundingClientRect().height+toolbar.getBoundingClientRect().height}px`);
+    const chromeResize=new ResizeObserver(fitHero);
+    chromeResize.observe(header);chromeResize.observe(toolbar);
+    fitHero();
     copy.querySelector('.application').remove();
     copy.querySelector('h1').replaceChildren(document.querySelector('#staged-heading').content.cloneNode(true));
     copy.querySelector('h1').after(document.querySelector('#staged-description').content.cloneNode(true));
@@ -73,6 +79,8 @@ function scene(canvas) {
   const kind = canvas.dataset.concept;
   const swimlaneStudy=['switchboard','decisions','softroutes','spanrail'].includes(kind)?createSwimlaneStudy(kind):null;
   const stagedRoutes=kind==='stagedroutes'?createStagedRoutes():null;
+  const stagedHeading=stagedRoutes?canvas.closest('.stage')?.querySelector('.hero-copy h1'):null;
+  let stagedGraphBottom,stagedGraphRight;
   let width = 0, height = 0, visible = false, frame = 0, last = 0, time = kind==='stagedroutes'?0:2;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const dot = (x, y, radius, alpha = 1, warm = false) => {
@@ -720,7 +728,7 @@ function scene(canvas) {
     glow.addColorStop(0,'#102559');glow.addColorStop(.45,'#0a1532');glow.addColorStop(1,'#070a12');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1000,650);
     for(let i=0;i<110;i++) dot(random(i+150)*1000,random(i+750)*650,.65,.12+random(i)*.18);
-    if(stagedRoutes)stagedRoutes(ctx,time);
+    if(stagedRoutes)stagedRoutes(ctx,time,stagedGraphBottom,stagedGraphRight);
     else if(swimlaneStudy)swimlaneStudy(ctx,time);
     else ({loom,graph,batch,strata,waterfall,cohort,braid,folio,recursive,singularity,memory,tributaries,lens,lattice,tide,cubevortex,executinggraph})[kind](time);
   }
@@ -733,11 +741,16 @@ function scene(canvas) {
     if(visible&&!document.hidden&&!motion.matches)frame=requestAnimationFrame(animate);
     else if(width&&height)draw();
   }
-  new ResizeObserver(([entry]) => {
-    width=entry.contentRect.width;height=entry.contentRect.height;
+  const resize=new ResizeObserver(() => {
+    const bounds=canvas.getBoundingClientRect();
+    width=bounds.width;height=bounds.height;
+    if(stagedHeading&&height)stagedGraphBottom=(stagedHeading.getBoundingClientRect().top-bounds.top-6)*650/height;
+    if(stagedRoutes&&width)stagedGraphRight=562-20*1000/width;
     canvas.width=Math.round(width*devicePixelRatio);canvas.height=Math.round(height*devicePixelRatio);
     if(width&&height)draw();
-  }).observe(canvas);
+  });
+  resize.observe(canvas);
+  if(stagedHeading){resize.observe(stagedHeading);resize.observe(canvas.closest('.stage').querySelector('.hero-summary'));}
   new IntersectionObserver(([entry]) => {visible=entry.isIntersecting;update();}).observe(canvas);
   motion.addEventListener('change',update);
   document.addEventListener('visibilitychange',update);

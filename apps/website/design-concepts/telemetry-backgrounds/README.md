@@ -2,7 +2,8 @@
 
 Twenty-two standalone Canvas concepts for reviewing the next Junjo hero background.
 These files are outside Astro's routes and public assets; they are not included
-in the production website. The existing homepage is unchanged.
+in the production website. The selected study **22** has now been promoted to
+the homepage; this gallery remains a saved design reference.
 
 From `apps/website`, run:
 
@@ -192,7 +193,7 @@ the lettering for legibility. The graph and spans fill the hero behind it
 without the old left-side dark overlay. The two existing paragraphs retain
 their exact wording in a separate section below the hero. The Hero copy toggle
 still opens an unobstructed animation view. This composition applies only to
-22; the earlier studies and production homepage keep their existing layout.
+22; the earlier studies keep their existing layout.
 
 The centered overlay was saved in local commit `b322d0f` before expanding the
 span field. Rows now extend from near the top to near the bottom of the canvas,
@@ -202,3 +203,36 @@ original left-to-right shade, whose left edge was 96% opaque. The current
 composition keeps that preferred direction at roughly 55% of its original
 strength: 53% opacity on the left, 47% at 30% across, 14% at 60% across, and
 transparent on the right. The gradient remains behind the lettering.
+
+The current glow refinement adds luminous particle centers, cached soft halos,
+and highlighted graph outlines. The rendering reference and implementation
+notes are in [glow-reference-notes.md](./glow-reference-notes.md).
+
+The current composition raises the graph, its history, and its emission and
+assembly endpoints together. The right-side span coordinates are unchanged.
+Node spacing is compressed vertically by 20% around the graph center, and the
+headline and summary's downward offset is increased by 10%.
+**To Your Application** uses a 900 font
+weight and stronger black shadow. The graph's bottom outline sits just above
+**add** (6 CSS pixels above its line box), and its width leaves 20 CSS pixels
+before the span column. Both adapt to the canvas and heading sizes. Graph history
+retains one additional faint past layer (five graph layers total); history can
+recede beyond the top of the canvas. Span history remains four layers.
+Shading runs vertically from opaque at bottom center to transparent at top center.
+
+The hero uses the current viewport height minus the measured review header and
+toolbar. Copy and actions participate in layout instead of absolute positioning;
+short windows scroll naturally when the content itself needs more room. Canvas
+and copy size changes refresh the graph anchor, including font and line wrapping
+changes.
+The current graph compresses vertically when the available space above **add**
+is shorter than its normal height; historical layers may still extend offscreen.
+
+## Homepage promotion
+
+The approved **22** composition is now implemented in `src/pages/index.astro`,
+with its animation lifecycle in `src/components/HeroField.astro` and the
+production renderer in `src/scripts/hero/`. The standalone studies remain saved
+reference snapshots; production does not import or publish the gallery. The
+homepage uses its real navigation and links, retains the exact selected copy,
+and places the longer explanation below the hero.

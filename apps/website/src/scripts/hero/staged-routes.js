@@ -1,4 +1,4 @@
-import { seededRandom, generateGraph, planRun, edgePoint } from './swimlane-studies.js';
+import { seededRandom, generateGraph, planRun, edgePoint } from './graph.js';
 
 export const STAGES=Object.freeze({prepareEnd:1.6,flowStart:1.6,flowEnd:3.6,recordEnd:7.1,archiveStart:8.5,archiveEnd:10,paintStart:10.2,paintEnd:15.5,handoffEnd:16.8,cycle:17.5});
 const tau=Math.PI*2;
