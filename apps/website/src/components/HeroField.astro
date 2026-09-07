@@ -29,6 +29,9 @@
       let visible = false;
       let graphBottom = 0;
       let graphRight = 497;
+      let mobile = false;
+      let traceTop = 0;
+      let traceHeight = 650;
       const random = (i: number) => {
         const value = Math.sin(i * 127.1 + 7.7) * 43758.5453;
         return value - Math.floor(value);
@@ -51,7 +54,7 @@
           context.arc(random(i + 150) * 1000, random(i + 750) * 650, .65, 0, Math.PI * 2);
           context.fill();
         }
-        render(context, reducedMotion.matches ? STAGES.recordEnd : time, graphBottom, graphRight);
+        render(context, reducedMotion.matches ? STAGES.recordEnd : time, graphBottom, graphRight, { width, height, mobile, traceTop, traceHeight });
       };
       const animate = (timestamp: number) => {
         if (previousTime) time += (timestamp - previousTime) / 1000;
@@ -71,8 +74,12 @@
         width = bounds.width;
         height = bounds.height;
         if (!width || !height) return;
-        graphBottom = (heading.getBoundingClientRect().top - bounds.top - 6) * 650 / height;
-        graphRight = 562 - 20 * 1000 / width;
+        mobile = width <= 760;
+        const headingTop = heading.getBoundingClientRect().top - bounds.top;
+        graphBottom = (headingTop - (mobile ? 132 : 6)) * 650 / height;
+        graphRight = mobile ? 940 : 562 - 20 * 1000 / width;
+        traceTop = (headingTop - 108) * 650 / height;
+        traceHeight = 650 - traceTop;
         canvas.width = Math.round(width * devicePixelRatio);
         canvas.height = Math.round(height * devicePixelRatio);
         draw();

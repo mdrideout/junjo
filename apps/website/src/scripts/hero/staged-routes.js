@@ -7,7 +7,7 @@ const clamp=x=>Math.max(0,Math.min(x,1));
 const smooth=x=>{const p=clamp(x);return p*p*(3-2*p);};
 const ramp=(x,a,b)=>smooth((x-a)/(b-a));
 const cubic=(a,b,c,d,p)=>[0,1].map(i=>(1-p)**3*a[i]+3*(1-p)**2*p*b[i]+3*(1-p)*p*p*c[i]+p**3*d[i]);
-const pill=(node,p)=>[node.x+Math.cos(p*tau)*16,node.y+Math.sin(p*tau)*9];
+const pill=(node,p)=>[node.x+Math.cos(p*tau)*(node.radiusX??16),node.y+Math.sin(p*tau)*(node.radiusY??9)];
 const graphOffsetY=-175;
 const graphBottomY=337+(439-337)*.8+graphOffsetY+9;
 const graphHeight=(439-215)*.8+18;
@@ -15,7 +15,7 @@ const placeGraphPoint=([x,y],offsetY,scaleX,scaleY)=>[50+(x-50)*scaleX,graphBott
 export const spanPosition=(point,depth)=>[733+(point.x-733)*(1-depth*.05)+depth*26,340+(point.y-340)*(1-depth*.05)-depth*25];
 export const graphPosition=(point,depth)=>[270+(point[0]-270)*(1-depth*.055)+depth*16,337+graphOffsetY+(point[1]-337-graphOffsetY)*(1-depth*.055)-depth*27];
 
-export function buildStagedRun(graph,rng) {
+export function buildStagedRun(graph,rng,peers=3,particleSpacing=5.8) {
   const raw=planRun(graph,rng,'softroutes');
   const scale=2/(raw.end-1);
   const events=raw.events.map(event=>({...event,start:STAGES.flowStart+(event.start-1)*scale,duration:event.duration*scale}));
@@ -27,10 +27,10 @@ export function buildStagedRun(graph,rng) {
     const parent={depth:1,parent:0,event,start:event.start,end:event.start+event.duration+(edge?.duration??0),x:590+(event.start-STAGES.flowStart)*12,width:284+rng()*46};
     rows.push(parent);
     // Repeated sibling operations keep nesting visible without textual labels.
-    for(let peer=0;peer<3;peer++) {
-      const emitter=peer===2&&edge?edge:event;
-      const start=emitter===edge?edge.start:event.start+peer/3*event.duration;
-      const end=emitter===edge?edge.start+edge.duration:start+event.duration/3;
+    for(let peer=0;peer<peers;peer++) {
+      const emitter=peer===peers-1&&edge?edge:event;
+      const start=emitter===edge?edge.start:event.start+peer/peers*event.duration;
+      const end=emitter===edge?edge.start+edge.duration:start+event.duration/peers;
       rows.push({depth:2,parent:parentIndex,event:emitter,start,end,x:parent.x+26,width:parent.width*(.47+rng()*.32)});
     }
   });
@@ -38,7 +38,7 @@ export function buildStagedRun(graph,rng) {
   rows.forEach((row,rowIndex)=>{
     row.y=8+rowIndex/(rows.length-1)*634;
     row.width*=1.5;
-    const count=Math.floor(row.width/5.8)+1;
+    const count=Math.floor(row.width/particleSpacing)+1;
     for(let col=0;col<count;col++) {
       const origin=row.event.type==='node'?pill(graph.nodes[row.event.id],rng()):edgePoint(graph,graph.edges[row.event.id],rng(),'softroutes');
       particles.push({x:row.x+col/(count-1)*row.width,y:row.y,row:rowIndex,col,origin,event:row.event,departure:STAGES.flowEnd,flight:2.3+rng()*1.2,bend:(rng()-.5)*170,drift:(rng()-.5)*65,radius:col===0?2:col%13===0?1.6+rng()*.25:.7+rng()*.55,opacity:col===0?.95:.26+rng()*.65,warm:rng()<.026||col===0});
@@ -47,10 +47,10 @@ export function buildStagedRun(graph,rng) {
   return {events,rows,particles};
 }
 
-export function stagedParticlePosition(particle,age,graphOffset=0,graphScaleX=1,graphScaleY=1) {
+export function stagedParticlePosition(particle,age,graphOffset=0,graphScaleX=1,graphScaleY=1,placeSpan=point=>point) {
   if(age<particle.departure)return null;
   const p=ramp(age,particle.departure,particle.departure+particle.flight);
-  const source=placeGraphPoint(particle.origin,graphOffset,graphScaleX,graphScaleY),target=[particle.x,particle.y];
+  const source=placeGraphPoint(particle.origin,graphOffset,graphScaleX,graphScaleY),target=placeSpan([particle.x,particle.y]);
   return cubic(source,[source[0]+95+particle.drift,source[1]+particle.bend],[target[0]-105,target[1]-particle.bend*.3],target,p);
 }
 
@@ -60,7 +60,8 @@ export function traversalPosition(item,clock) {
   const p=ramp(clock,event.start,event.start+event.duration);
   if(event.type==='edge')return edgePoint(item.graph,item.graph.edges[event.id],p,'softroutes');
   const node=item.graph.nodes[event.id];
-  return [node.x-17+p*34,node.y];
+  const radius=node.radiusX??16;
+  return [node.x-radius+p*radius*2,node.y];
 }
 
 export const graphHandoff=age=>ramp(age,STAGES.paintEnd,STAGES.handoffEnd);
@@ -82,26 +83,45 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
   const highlights={blue:'211,233,255',warm:'255,229,190',yellow:'255,246,215'};
   const glows=Object.fromEntries(Object.entries(colors).map(([tone,color])=>[tone,glowSprite(color)]));
   const models=new Map();
+  let radiusX=16,radiusY=9,peers=3,particleSpacing=5.8;
+  const mobileSpanScale=1000/(402*1.5);
   function model(generation) {
     if(models.has(generation))return models.get(generation);
     const rng=seededRandom(seed+Math.imul(generation,15485863));
     const previous=models.get(generation-1);
     let graph;
     do{graph=generateGraph(rng,'softroutes');}while(previous&&graph.signature===previous.graph.signature);
-    for(const node of graph.nodes)node.y=337+(node.y-337)*.8+graphOffsetY;
-    const run=buildStagedRun(graph,rng);
+    for(const node of graph.nodes) {
+      node.y=337+(node.y-337)*.8+graphOffsetY;
+      node.radiusX=radiusX;node.radiusY=radiusY;
+    }
+    const run=buildStagedRun(graph,rng,peers,particleSpacing);
     const ink=[];
     for(const node of graph.nodes)for(let i=0;i<38;i++)ink.push(pill(node,i/38));
     for(const edge of graph.edges)for(let i=0;i<48;i++)ink.push(edgePoint(graph,edge,i/47,'softroutes'));
     const paint=ink.map((target,i)=>({target,slot:i%4,sample:rng(),departure:STAGES.paintStart+rng()*.55+(i%4)*.1,flight:3+rng()*1.3,bend:(rng()-.5)*60}));
     const item={graph,run,ink,paint};models.set(generation,item);return item;
   }
-  return (ctx,time,graphBottom,graphRight=497)=>{
+  return (ctx,time,graphBottom,graphRight=497,layout={width:1000,height:650,mobile:false,traceTop:0,traceHeight:650})=>{
     // Anchor the lowest swimlane's outline above the hero, in canvas units.
     const offsetY=graphBottom===undefined?0:graphBottom-graphBottomY;
     const scaleX=(graphRight-50)/(497-50);
     const scaleY=graphBottom===undefined?1:Math.max(0,Math.min(1,graphBottom/graphHeight));
+    // Node spacing follows the layout; outlines keep their size and aspect ratio
+    // in CSS pixels. All emitter, edge and paint geometry uses the same radii.
+    const nodeRadius=layout.mobile?10:20;
+    const nextRadiusX=nodeRadius/(scaleX*layout.width/1000);
+    const nextRadiusY=nodeRadius*9/16/(scaleY*layout.height/650);
+    if(nextRadiusX!==radiusX||nextRadiusY!==radiusY) {
+      radiusX=nextRadiusX;radiusY=nextRadiusY;
+      peers=layout.mobile?2:3;
+      particleSpacing=layout.mobile?4.5/(layout.width/1000*mobileSpanScale):5.8;
+      models.clear();
+    }
     const placeGraph=point=>placeGraphPoint(point,offsetY,scaleX,scaleY);
+    const placeSpan=([x,y])=>layout.mobile
+      ?[150+(x-562)*mobileSpanScale,layout.traceTop+y/650*layout.traceHeight]
+      :[x,y];
     const generation=Math.floor(time/STAGES.cycle),age=time%STAGES.cycle;
     for(let id=generation-4;id<=generation+1;id++)model(id);
     for(const id of models.keys())if(id<generation-4)models.delete(id);
@@ -111,14 +131,16 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
     ctx.globalCompositeOperation='lighter';
     const dot=(x,y,r,alpha=.85,tone='blue')=>{
       if(alpha<=0)return;
-      const halo=r*5;
+      const pixelScale=layout.mobile?1:1.25;
+      const rx=r*pixelScale*1000/layout.width,ry=r*pixelScale*650/layout.height;
+      const haloX=rx*5,haloY=ry*5;
       ctx.globalAlpha=alpha;
-      ctx.drawImage(glows[tone],x-halo,y-halo,halo*2,halo*2);
+      ctx.drawImage(glows[tone],x-haloX,y-haloY,haloX*2,haloY*2);
       ctx.globalAlpha=1;
       ctx.fillStyle=`rgba(${colors[tone]},${alpha})`;
-      ctx.beginPath();ctx.arc(x,y,r,0,tau);ctx.fill();
+      ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,tau);ctx.fill();
       ctx.fillStyle=`rgba(${highlights[tone]},${alpha*.82})`;
-      ctx.beginPath();ctx.arc(x,y,r*.48,0,tau);ctx.fill();
+      ctx.beginPath();ctx.ellipse(x,y,rx*.48,ry*.48,0,0,tau);ctx.fill();
     };
     const line=(points,alpha=.2,yellow=false,width=1)=>{
       if(alpha<=0)return;
@@ -135,7 +157,7 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
     const spanOpacities=[.86,.12,.028,.004,0];
     const opacity=(depth,stops)=>{const low=Math.floor(depth);return mix(stops[low],stops[Math.min(low+1,stops.length-1)],depth-low);};
     function trace(item,depth,alpha) {
-      for(const p of item.run.particles)dot(...spanPosition(p,depth),p.radius*(1-depth*.05),alpha*p.opacity,p.warm?'warm':'blue');
+      for(const p of item.run.particles)dot(...placeSpan(spanPosition(p,depth)),p.radius*(1-depth*.05),alpha*p.opacity,p.warm?'warm':'blue');
     }
     function graph(item,depth,alpha,clock,active=0) {
       const project=p=>placeGraph(graphPosition(p,depth));
@@ -193,7 +215,7 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
     // 2. The route consumes exactly two seconds. No particles exist in flight.
     // 3. Every sampled active node/edge releases its particles at the same time.
     for(const particle of current.run.particles) {
-      const pos=stagedParticlePosition(particle,age,offsetY,scaleX,scaleY);
+      const pos=stagedParticlePosition(particle,age,offsetY,scaleX,scaleY,placeSpan);
       if(!pos)continue;
       const birth=ramp(age,particle.departure,particle.departure+.2);
       dot(...pos,particle.radius,.86*particle.opacity*birth,particle.warm?'warm':'blue');
@@ -207,7 +229,7 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
         if(age<particle.departure)continue;
         const tracePoints=evidence[particle.slot].run.particles;
         const point=tracePoints[Math.floor(particle.sample*tracePoints.length)];
-        const source=spanPosition(point,particle.slot);
+        const source=placeSpan(spanPosition(point,particle.slot));
         const p=ramp(age,particle.departure,particle.departure+particle.flight);
         const target=placeGraph(particle.target);
         const pos=cubic(source,[520,source[1]+particle.bend],[target[0]+70,target[1]],target,p);

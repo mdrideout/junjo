@@ -70,7 +70,7 @@ function cubic(a,b,c,d,p) {
 }
 export function edgePoint(graph,edge,p,style) {
   const a=graph.nodes[edge.from],b=graph.nodes[edge.to];
-  const start=[a.x+17,a.y],end=[b.x-17,b.y];
+  const start=[a.x+(a.radiusX??16)+1,a.y],end=[b.x-(b.radiusX??16)-1,b.y];
   const middle=mix(start[0],end[0],.5+(edge.id%3-1)*.07);
   if(style==='softroutes')return cubic(start,[middle,a.y],[middle,b.y],end,p);
   return polylinePoint([start,[middle,a.y],[middle,b.y],end],p);
