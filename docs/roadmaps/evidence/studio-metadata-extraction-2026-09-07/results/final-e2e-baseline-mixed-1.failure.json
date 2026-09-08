@@ -1,0 +1,114 @@
+{
+  "implementation_label": "final-e2e-baseline-mixed-1",
+  "error": "Command '['docker', 'compose', '--project-name', 'junjo-metadata-benchmark', '--file', '/Users/matt/repos/junjo/apps/studio/compose.yaml', '--file', '/tmp/junjo-metadata-20260907/benchmarks/compose.auth-benchmark.yaml', '--file', '/private/tmp/junjo-metadata-20260907/overlay.yaml', 'exec', '-T', 'backend', 'python', '/metadata-benchmark/finish_indexing.py', '960000']' returned non-zero exit status 143.",
+  "source_sha256": {
+    "/app/app/features/parquet_indexer/parquet_reader.py": "1f8ab8efdd3fa5e9e44e63f8c7e903c56d16c91682d6c6c766c597fb9a0e34d8",
+    "/app/app/db_sqlite/metadata/indexer.py": "c5270e25ff1112db207de56971ad041925b15d6ddf12f67ca3baf87bbe20c350"
+  },
+  "containers": {
+    "backend": {
+      "mounts": [
+        {
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "type": "bind"
+        },
+        {
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-8l_jsl8y/data",
+          "destination": "/app/.dbdata",
+          "type": "bind"
+        }
+      ],
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 0,
+      "nano_cpus": 500000000,
+      "cpuset_cpus": "",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "cpu_usage_seconds": 143.994744,
+      "peak_cgroup_memory_bytes": 471859200,
+      "cpu_stat": {
+        "usage_usec": 143994744,
+        "user_usec": 25376036,
+        "system_usec": 118618708,
+        "nice_usec": 0,
+        "nr_periods": 3082,
+        "nr_throttled": 2536,
+        "throttled_usec": 564936031,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 2014498\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 79861\nwchar: 6614\nsyscr: 46\nsyscw: 7\nread_bytes: 5632000\nwrite_bytes: 0\ncancelled_write_bytes: 0\n"
+    },
+    "ingestion": {
+      "mounts": [
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "destination": "/app/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "destination": "/app/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "destination": "/app/build.rs",
+          "type": "bind"
+        },
+        {
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "destination": "/usr/local/cargo/registry",
+          "type": "volume"
+        },
+        {
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "destination": "/app/target",
+          "type": "volume"
+        },
+        {
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-8l_jsl8y/data",
+          "destination": "/app/.dbdata",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "destination": "/app/src",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "destination": "/proto",
+          "type": "bind"
+        }
+      ],
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 0,
+      "nano_cpus": 500000000,
+      "cpuset_cpus": "",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "cpu_usage_seconds": 8.648294,
+      "peak_cgroup_memory_bytes": 90296320,
+      "cpu_stat": {
+        "usage_usec": 8648294,
+        "user_usec": 4768169,
+        "system_usec": 3880124,
+        "nice_usec": 0,
+        "nr_periods": 1430,
+        "nr_throttled": 15,
+        "throttled_usec": 569771,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 80765\nwchar: 6614\nsyscr: 41\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 0\ncancelled_write_bytes: 0\n"
+    }
+  }
+}
