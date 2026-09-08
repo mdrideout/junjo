@@ -61,7 +61,11 @@ import AgentSetupModal from '../components/AgentSetupModal.astro';
     .hero-content { padding: clamp(300px,44vw,360px) 24px 54px; }
     .hero-shade { background: linear-gradient(to top,#070a1299 0%,#070a12d9 30%,#070a1266 55%,#070a1200 80%); }
     h1 { font-size: clamp(42px,8.5vw,62px); max-width: 620px; }
-    .hero-actions { gap: 18px 24px; margin-top: 28px; }
+    .hero-actions { gap: 14px 18px; margin-top: 28px; }
+    .hero-actions .button, .hero-actions :global(.agent-cta) { padding: 10px 14px; min-height: 44px; }
+    .open-source-chip { gap: 8px; padding: 5px 10px; font-size: 12px; }
+    .open-source-chip svg { width: 15px; height: 15px; }
+    .license { padding-left: 8px; font-size: 11px; }
     .hero-summary { margin-top: 16px; }
   }
   @media (prefers-reduced-motion: reduce) { .hero-gradient { animation: none; } }
