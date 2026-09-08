@@ -1,0 +1,156 @@
+---
+// Build the twisted ribbon once. Off-center lanes make two circuits before
+// returning to their original side; CSS moves dots along these fixed paths.
+const mobiusLanes = [0, 3, 6, 9, 12].map(width => {
+  const turns = width === 0 ? 1 : 2;
+  const samples = turns * 160;
+  return {
+    turns,
+    path: Array.from({length: samples + 1}, (_, index) => {
+      const angle = index / samples * Math.PI * 2 * turns;
+      const twist = width * Math.cos(angle / 2);
+      const tangentX = -51 * Math.sin(angle);
+      const tangentY = 46 * Math.cos(2 * angle);
+      const length = Math.hypot(tangentX, tangentY);
+      const x = 75 + 51 * Math.cos(angle) - twist * tangentY / length;
+      const y = 45 + 23 * Math.sin(2 * angle) + twist * tangentX / length;
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
+    }).join(' ') + ' Z',
+  };
+});
+const steps = [
+  { title: 'Coding agent', detail: 'Your chosen coding agent', kind: 'agent' },
+  { title: 'Junjo CLI', detail: 'Optimized for agents', kind: 'cli' },
+  { title: 'Detailed chronology', detail: 'Audit the events in context', kind: 'spans' },
+  { title: 'Code changes', detail: 'Improve your application', kind: 'code' },
+  { title: 'Run again & compare', detail: 'Assess outcome differences in detail', kind: 'compare' },
+];
+---
+
+<coding-agent-loop>
+<figure class="agent-loop" aria-label="Your coding agent uses the agent-optimized Junjo CLI to inspect a detailed chronology of events, make code changes, run the application again, and assess outcome differences. Those findings inform the next iteration.">
+  <svg class="loop-connections" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-hidden="true">
+    <path class="connection" d="M100 77 H900" />
+    <path class="flow" pathLength="100" d="M100 77 H900" />
+    <path class="return-connection" d="M900 245 V249 Q900 280 865 280 H135 Q100 280 100 249 V245" />
+    <path class="return-flow" pathLength="100" d="M900 245 V249 Q900 280 865 280 H135 Q100 280 100 249 V245" />
+    {[280,480,680,880].map(x => <path class="arrow" d={`M${x-6} 72 L${x} 77 L${x-6} 82`} />)}
+    <path class="arrow" d="M95 251 L100 245 L105 251" />
+  </svg>
+  <ol class="loop-steps">
+    {steps.map((step,index) => (
+      <li class:list={[step.kind,'loop-step']}>
+        <div class="step-art" aria-hidden="true">
+          <svg viewBox="0 0 150 90">
+            {step.kind === 'agent' && <>
+              <g class="mobius-ribbon" transform="rotate(-10 75 45)">
+                {mobiusLanes.map((lane, index) => <path class="mobius-dots" d={lane.path} pathLength={lane.turns * 100} style={`--lane-delay: ${-index * .3}s; opacity: ${1 - index * .12}`} />)}
+                <path class="mobius-dots mobius-sparks" d={mobiusLanes[3].path} pathLength="200" />
+              </g>
+            </>}
+            {step.kind === 'cli' && <>
+              <rect class="terminal" x="26" y="16" width="98" height="58" rx="10" />
+              <path class="terminal-prompt" d="M45 33 L57 44 L45 55 M69 55 H99" />
+              <circle class="warm-dot" cx="35" cy="24" r="2" />
+            </>}
+            {step.kind === 'spans' && Array.from({length:9},(_,row) => {
+              const start=18+(row%4)*8;
+              const count=22-(row%3)*4;
+              return <g>{Array.from({length:count},(_,col) => <circle class={col===0?'warm-dot':'span-dot'} cx={start+col*4.7} cy={9+row*9} r={col===0?1.9:col%9===0?1.4:.8} opacity={col===0?1:.4+((row+col)%5)*.12} />)}</g>;
+            })}
+            {step.kind === 'code' && <>
+              <path class="ink" d="M25 45 C45 45 42 18 64 18 H86 C107 18 105 45 125 45 M25 45 C45 45 42 72 64 72 H86 C107 72 105 45 125 45 M25 45 H125" />
+              {[[25,45],[64,18],[86,18],[64,72],[86,72],[75,45],[125,45]].map(([cx,cy],i) => <ellipse class:list={['node',{'warm-node':i===0||i===5}]} cx={cx} cy={cy} rx="9" ry="6" />)}
+            </>}
+            {step.kind === 'compare' && <>
+              {[0,1].map(side => <g opacity={side===0?.45:1}>{Array.from({length:7},(_,row) => <g>{Array.from({length:8-row%3},(_,col) => <circle class={col===0?'warm-dot':'span-dot'} cx={15+side*80+(row%3)*4+col*5} cy={15+row*10} r={col===0?1.8:1} />)}</g>)}</g>)}
+              <path class="ink" d="M62 40 H84 L79 35 M84 50 H62 L67 55" />
+            </>}
+          </svg>
+        </div>
+        <div class="step-copy"><span class="step-index">0{index+1}</span><h3>{step.title}</h3><p>{step.detail}</p></div>
+      </li>
+    ))}
+  </ol>
+  <figcaption><span aria-hidden="true">↻</span> Evidence informs the next iteration.</figcaption>
+</figure>
+</coding-agent-loop>
+
+<script>
+  class CodingAgentLoop extends HTMLElement {
+    private cleanup?: () => void;
+
+    connectedCallback() {
+      let visible = false;
+      const update = () => this.style.setProperty('--diagram-motion', visible && !document.hidden ? 'running' : 'paused');
+      const observer = new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+        update();
+      });
+      observer.observe(this);
+      document.addEventListener('visibilitychange', update);
+      this.cleanup = () => {
+        observer.disconnect();
+        document.removeEventListener('visibilitychange', update);
+      };
+    }
+
+    disconnectedCallback() {
+      this.cleanup?.();
+    }
+  }
+
+  if (!customElements.get('coding-agent-loop')) customElements.define('coding-agent-loop', CodingAgentLoop);
+</script>
+
+<style>
+  coding-agent-loop { display: block; }
+  .agent-loop { position: relative; isolation: isolate; margin: 28px 0 0; padding: 30px 0 22px; background: radial-gradient(ellipse at 50% 24%,#10285b80,transparent 72%); }
+  .loop-connections { position: absolute; inset: 0; width: 100%; height: 330px; z-index: -1; overflow: visible; }
+  .connection,.return-connection { fill: none; stroke: #5b85e6; stroke-width: .8; opacity: .25; }
+  .return-connection { opacity: .14; }
+  .flow,.return-flow { fill: none; stroke: #bbd9ff; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: .01 6; filter: drop-shadow(0 0 4px #538fff); animation: travel 48s linear infinite; animation-play-state: var(--diagram-motion,paused); }
+  .return-flow { stroke: #ffbd85; stroke-width: 2; opacity: .7; animation-duration: 72s; }
+  .arrow { fill: none; stroke: #86a9f8; stroke-width: 1; opacity: .65; }
+  .loop-steps { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); list-style: none; padding: 0; margin: 0; gap: 14px; }
+  .loop-step { min-width: 0; text-align: center; }
+  .step-art { width: 150px; max-width: 100%; height: 90px; margin: 0 auto 18px; background: radial-gradient(ellipse,#0c1528 40%,#0a1324a0 60%,transparent 73%); }
+  .step-art svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 5px #426bda55); }
+  .ink { fill: none; stroke: #658ddd; stroke-width: 1; }
+  .node { fill: #0a1427; stroke: #90b6ff; stroke-width: 1.2; }
+  .warm-node { stroke: #ffcf99; filter: drop-shadow(0 0 3px #f7a75288); }
+  .terminal { fill: #0b1529; stroke: #719bfb; stroke-width: 1; }
+  .terminal-prompt { fill: none; stroke: #c6dcff; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+  .terminal-prompt { stroke: #ffcb94; }
+  .warm-dot { fill: #ffd3a2; filter: drop-shadow(0 0 3px #ff9d4d); }
+  .span-dot { fill: #a7c9ff; }
+  .agent .step-art svg { filter: none; }
+  .mobius-ribbon { filter: drop-shadow(0 0 2.5px #5596ff); }
+  .mobius-dots { fill: none; stroke: #b8d7ff; stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: .01 1.99; animation: mobius-flow 80s linear infinite; animation-delay: var(--lane-delay,0s); animation-play-state: var(--diagram-motion,paused); }
+  .mobius-sparks { stroke: #ffcd96; stroke-width: 2; stroke-dasharray: .01 19.99; }
+  @keyframes mobius-flow { to { stroke-dashoffset: -100; } }
+  .step-index { color: #7799ec; font-size: 10px; font-variant-numeric: tabular-nums; }
+  h3 { font-size: clamp(16px,1.5vw,20px); letter-spacing: -.03em; font-weight: 500; margin: 10px 0 8px; color: #e6efff; }
+  .step-copy p { max-width: 165px; margin: auto; font-size: 12px; line-height: 1.6; color: #96abcf; }
+  figcaption { margin: 93px 0 0; text-align: center; font-size: 13px; color: #8fa5cb; }
+  figcaption > span { color: #ffbd85; margin-right: 8px; }
+  @keyframes travel { to { stroke-dashoffset: -100; } }
+  @media(max-width:900px) {
+    .agent-loop { padding: 8px 0 0; margin-top: 36px; }
+    .loop-connections { display: none; }
+    .loop-steps { grid-template-columns: 1fr; gap: 32px; }
+    .loop-step { position: relative; display: grid; grid-template-columns: 140px 1fr; gap: 24px; align-items: center; text-align: left; }
+    .loop-step:not(:last-child)::after { content: '↓'; position: absolute; left: 66px; top: calc(100% + 4px); color: #82a6f2; font-size: 20px; }
+    .step-art { margin: 0; width: 140px; }
+    .step-copy p { max-width: none; margin: 0; }
+    h3 { font-size: 20px; margin: 5px 0 6px; }
+    figcaption { margin: 32px 0 0; text-align: left; }
+  }
+  @media(max-width:480px) {
+    .loop-step { grid-template-columns: 104px 1fr; gap: 18px; }
+    .step-art { width: 104px; }
+    .loop-step:not(:last-child)::after { left: 47px; }
+    h3 { font-size: 18px; }
+  }
+  @media(prefers-reduced-motion:reduce) { .flow,.return-flow,.mobius-dots { animation: none; } }
+</style>

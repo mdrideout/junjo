@@ -1,0 +1,120 @@
+---
+import SDKBlockVisual from './SDKBlockVisual.astro';
+
+const blocks = [
+  {
+    id: 'graphs', label: 'Structured Workflows',
+    title: 'Scale and optimize high-volume repetitive tasks.',
+    description: 'Build structured workflows from a graph of nodes and conditional edges. An LLM can interpret a request and write its routing decision into application state. The graph dynamically traverses the matching edges, combining LLM reasoning with explicit application logic.',
+    benefit: 'Turn repeated application tasks into reusable execution paths. Keep the operations predictable, route each request through the work it needs, and evaluate individual nodes or the complete workflow as you optimize for volume, latency, and quality.',
+    href: '/docs/python/concepts/', link: 'Explore structured workflows',
+  },
+  {
+    id: 'agents', label: 'Specialist agents',
+    title: 'Give each specialist its own improvement cycle.',
+    description: 'Junjo gives your coding agent the building blocks and execution evidence to split a monolithic agent into focused subagents—and improve each one through repeated evaluation. Build a dataset for a specialist, run its scenarios, inspect failures in its execution chronology, and refine its prompts, tools, or model against the same cases.',
+    benefit: 'For a support application, this means separate product support, exchange request, and order status specialists, each with its own prompts, tools, and evaluation targets. Your coding agent can test changes and smaller models locally, compare quality, latency, and cost, then rerun the full flow to check whether the improvement holds across the application.',
+    href: '/docs/python/agents/', link: 'Explore specialist agents',
+  },
+  {
+    id: 'concurrent', label: 'RunConcurrent',
+    title: 'Parallel calls. One shared application state.',
+    description: 'Junjo’s RunConcurrent building block makes parallel calls a simple composition pattern: group independent nodes or subflows, let their work overlap, and bring their results into the same workflow state through store actions.',
+    benefit: 'Junjo validates and serializes state commits against the latest state, so independent field updates do not overwrite each other. Spend less time coordinating asynchronous results and more time improving the work each call performs.',
+    href: '/docs/python/workflows/concurrency/', link: 'Explore concurrent execution',
+  },
+  {
+    id: 'state', label: 'State & actions',
+    title: 'Follow every state change through execution.',
+    description: 'Inspired by Redux and the Elm Pattern, Junjo combines typed state, detached read snapshots, and explicit store actions for safe updates in high-concurrency LLM applications. Each committed change records a chronological state diff and the operation that produced it.',
+    benefit: 'Inspect the application state at successive updates: what changed, in which order, and through which action. Give your coding agent the detailed execution history it needs to explain a decision and diagnose the step behind a failure.',
+    href: '/docs/python/workflows/state/', link: 'Explore state management',
+  },
+  {
+    id: 'tools', label: 'Build or integrate',
+    title: 'Build the application. Or extend the one you have.',
+    description: 'Junjo supplies the ingredients for a complete agentic application: agents, tools, structured workflows, graphs, concurrency, state management, telemetry, and evaluation.',
+    benefit: 'These same building blocks can act as tools and support layers for your existing agent framework. For example, expose a Junjo workflow or agent as an OpenAI Agents SDK tool, while the outer framework keeps its conversation, sessions, and agent loop.',
+    href: '/docs/python/integrations/openai-agents/', link: 'Explore the OpenAI Agents SDK integration',
+  },
+];
+---
+
+<sdk-building-blocks>
+  <div class="block-tabs" role="tablist" aria-label="Explore Python SDK building blocks">
+    {blocks.map((block, index) => <button type="button" role="tab" id={`sdk-tab-${block.id}`} aria-controls={`sdk-panel-${block.id}`} aria-selected={index === 0 ? 'true' : 'false'} tabindex={index === 0 ? 0 : -1} data-sdk-tab={block.id}>
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        {block.id === 'graphs' && <><circle cx="4" cy="12" r="2"/><circle cx="20" cy="5" r="2"/><circle cx="20" cy="19" r="2"/><path d="M6 12H10C14 12 12 5 18 5M10 12C14 12 12 19 18 19"/></>}
+        {block.id === 'agents' && <><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-35 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(35 12 12)"/><circle cx="12" cy="12" r="2"/></>}
+        {block.id === 'concurrent' && <><path d="M2 12H5V5H19V12H22M5 12V19H19V12M9 5H15M12 2L15 5L12 8M9 19H15M12 16L15 19L12 22"/></>}
+        {block.id === 'state' && <><path d="M3 6H9M6 3V9M3 18H9M13 6H21M13 12H21M13 18H21"/></>}
+        {block.id === 'tools' && <><rect x="2" y="2" width="8" height="8" rx="2"/><rect x="14" y="2" width="8" height="8" rx="2"/><rect x="2" y="14" width="8" height="8" rx="2"/><path d="M18 14V22M14 18H22"/></>}
+      </svg><span>{block.label}</span>
+    </button>)}
+  </div>
+  {blocks.map((block, index) => <div class="block-panel" role="tabpanel" id={`sdk-panel-${block.id}`} aria-labelledby={`sdk-tab-${block.id}`} hidden={index !== 0} tabindex="0">
+    <div class="block-copy">
+      <h3>{block.title}</h3>
+      <p class="block-description">{block.description}</p>
+      <p class="block-benefit">{block.benefit}</p>
+      <a class="docs-link" href={block.href}>{block.link} <span aria-hidden="true">↗</span></a>
+    </div>
+    <SDKBlockVisual mode={block.id} />
+  </div>)}
+
+</sdk-building-blocks>
+
+<script>
+  class SDKBuildingBlocks extends HTMLElement {
+    private abort?: AbortController;
+    connectedCallback() {
+      this.abort = new AbortController();
+      const tabs = [...this.querySelectorAll<HTMLButtonElement>('[data-sdk-tab]')];
+      const panels = [...this.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+      const select = (selected: HTMLButtonElement) => {
+        for (const tab of tabs) { tab.setAttribute('aria-selected', String(tab === selected)); tab.tabIndex = tab === selected ? 0 : -1; }
+        for (const panel of panels) panel.hidden = panel.id !== selected.getAttribute('aria-controls');
+      };
+      for (const [index, tab] of tabs.entries()) {
+        tab.addEventListener('click', () => select(tab), { signal: this.abort.signal });
+        tab.addEventListener('keydown', (event) => {
+          let next: number;
+          if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+          else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = tabs.length - 1;
+          else return;
+          event.preventDefault(); select(tabs[next]); tabs[next].focus();
+        }, { signal: this.abort.signal });
+      }
+    }
+    disconnectedCallback() { this.abort?.abort(); }
+  }
+  if (!customElements.get('sdk-building-blocks')) customElements.define('sdk-building-blocks', SDKBuildingBlocks);
+</script>
+
+<style>
+  sdk-building-blocks { display: block; }
+  h3,p { margin: 0; }
+  .block-tabs { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); border-bottom: 1px solid #334563; margin-bottom: 48px; }
+  .block-tabs button { display: flex; align-items: center; justify-content: center; gap: 10px; appearance: none; border: 0; border-bottom: 2px solid transparent; background: none; padding: 20px 10px; color: #97a9c8; font: inherit; font-size: 15px; cursor: pointer; transition: color .2s, background .2s, border-color .2s; }
+  .tab-icon { width: 23px; height: 23px; flex-shrink: 0; }
+  .block-tabs button:hover { color: #e3edff; background: #1c33552b; }
+  .block-tabs button[aria-selected="true"] { color: #bcd8ff; border-bottom-color: #7eb1ff; background: linear-gradient(0deg,#294c832b,transparent); }
+  button:focus-visible,summary:focus-visible,a:focus-visible { outline: 2px solid #89b6ff; outline-offset: 4px; }
+  .block-panel { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); gap: 56px; align-items: start; }
+  .block-copy { min-width: 0; }
+  .block-panel[hidden] { display: none; }
+  .block-panel:focus-visible { outline: 1px solid #587daa; outline-offset: 12px; }
+  h3 { font-size: clamp(27px,2.8vw,38px); font-weight: 500; line-height: 1.16; letter-spacing: -.04em; text-wrap: balance; }
+  .block-description { color: #c0cde2; font-size: 17px; line-height: 1.75; margin-top: 24px; }
+  .block-benefit { color: #95abcd; font-size: 16px; line-height: 1.75; margin-top: 20px; }
+  .docs-link { display: inline-flex; align-items: baseline; gap: 10px; color: #adcfff; font-size: 14px; line-height: 1.6; margin-top: 24px; text-decoration: none; }
+  .docs-link:hover { color: #fff; }
+  @media(max-width:1000px) { .block-panel { gap: 32px; grid-template-columns: 1fr 1fr; } .block-tabs button { font-size: 13px; } }
+  @media(max-width:760px) {
+    .block-tabs { display: flex; overflow-x: auto; margin-bottom: 32px; scrollbar-width: thin; scrollbar-color: #3d5680 transparent; }
+    .block-tabs button { flex-shrink: 0; padding: 18px 16px; }
+    .block-panel { grid-template-columns: 1fr; gap: 32px; }
+  }
+</style>

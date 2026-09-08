@@ -1,0 +1,157 @@
+---
+const spans = [
+  { level: 0, length: 174 },
+  { level: 1, length: 144 },
+  { level: 2, length: 102 },
+  { level: 2, length: 84 },
+  { level: 1, length: 142 },
+  { level: 2, length: 108, changed: true },
+  { level: 3, length: 66, changed: true },
+  { level: 2, length: 92 },
+  { level: 1, length: 135 },
+  { level: 2, length: 98, changed: true },
+  { level: 2, length: 75 },
+  { level: 1, length: 125 },
+];
+---
+
+<scenario-comparison>
+<figure class="trace-comparison" aria-label="Illustrative analysis of user scenarios against a baseline and a changed agent. Matching traces are compared, with failed baseline steps in red and improved candidate steps in green.">
+  <div class="comparison-heading">Replay scenarios against prompt and agent changes, at scale</div>
+  <div class="scenario-status" aria-hidden="true"><span class="scenario-name">01 · Eligible refund</span><span class="scenario-phase">Making improvements</span></div>
+  <div class="trace-columns">
+    {['Baseline', 'Candidate'].map((label, index) => (
+      <div class:list={['trace-column', index === 0 ? 'baseline' : 'candidate']}>
+        <div class="trace-heading"><span>{index === 0 ? 'A' : 'B'}</span>{label}</div>
+        <svg viewBox="0 0 200 320" aria-hidden="true">
+          {spans.map((span, row) => (
+            <g class:list={['span-row', { changed: span.changed, resolved: span.changed }]}>
+              {Array.from({ length: 36 }, (_, dot) => (
+                <circle cx={10 + span.level * 13 + dot * 5} cy={12 + row * 26} r={dot === 0 ? 2.3 : dot % 9 === 0 ? 1.5 : .9} class:list={{ origin: dot === 0 }} opacity={dot >= Math.floor(span.length / 5) ? 0 : dot === 0 ? 1 : .4 + ((row * 3 + dot) % 5) * .14} />
+              ))}
+            </g>
+          ))}
+          <g class="analysis-sweep" opacity="0"><rect x="0" y="-8" width="200" height="16" rx="8" /><path d="M0 0H200" /></g>
+        </svg>
+        <p class="trace-key"><span aria-hidden="true">{index === 0 ? '×' : '✓'}</span>{index === 0 ? 'Failed steps' : 'Passing steps'}</p>
+      </div>
+    ))}
+  </div>
+  <div class="scenario-progress" aria-hidden="true">{Array.from({length:6},(_,i)=><span class:list={{current:i===0}}></span>)}</div>
+</figure>
+</scenario-comparison>
+
+<script>
+  class ScenarioComparison extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      const scenarios = [
+        { name: 'Eligible refund', levels: [0,1,2,2,1,2,3,2,1,2,2,1], changes: [5,6,9] },
+        { name: 'Missing receipt', levels: [0,1,2,3,3,2,1,2,2,2,1,2], changes: [3,4,7,10] },
+        { name: 'Partial return', levels: [0,1,1,2,2,3,2,1,2,3,3,1], changes: [4,8] },
+        { name: 'Policy exception', levels: [0,1,2,2,2,1,2,3,3,2,1,2], changes: [2,6,7,9] },
+        { name: 'Duplicate request', levels: [0,1,2,3,2,1,1,2,3,2,2,1], changes: [3,8,10] },
+        { name: 'Expired return window', levels: [0,1,2,2,1,2,2,3,3,2,1,2], changes: [5,7] },
+      ];
+      const columns = Array.from(this.querySelectorAll('.trace-column'), column => ({
+        rows: Array.from(column.querySelectorAll<SVGGElement>('.span-row'), element => ({element, dots: Array.from(element.querySelectorAll('circle'))})),
+        sweep: column.querySelector<SVGGElement>('.analysis-sweep')!,
+      }));
+      const name = this.querySelector('.scenario-name')!;
+      const phase = this.querySelector('.scenario-phase')!;
+      const progress = Array.from(this.querySelectorAll('.scenario-progress span'));
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      let frame = 0, previous = 0, elapsed = 0, generation = -1, visible = false;
+      const clamp = (n: number) => Math.max(0, Math.min(n, 1));
+      const draw = () => {
+        const next = Math.floor(elapsed / 4.8);
+        const age = elapsed % 4.8;
+        if (generation !== next) {
+          generation = next;
+          const scenario = scenarios[generation % scenarios.length];
+          name.textContent = `${String(generation % scenarios.length + 1).padStart(2, '0')} · ${scenario.name}`;
+          progress.forEach((dot,i) => dot.classList.toggle('current', i === generation % scenarios.length));
+          columns.forEach(({rows}) => rows.forEach(({element,dots}, row) => {
+            element.classList.toggle('changed', scenario.changes.includes(row));
+            const level = scenario.levels[row];
+            const count = Math.floor((174 - level * 25 - ((row * 17 + generation * 11) % 34)) / 5);
+            dots.forEach((dot, col) => {
+              dot.setAttribute('cx', String(10 + level * 13 + col * 5));
+              dot.setAttribute('opacity', String(col >= count ? 0 : col === 0 ? 1 : .4 + ((row * 3 + col) % 5) * .14));
+            });
+          }));
+        }
+        const scan = clamp((age - 1.25) / 1.5);
+        const fade = 1 - clamp((age - 4.15) / .65);
+        const label = age < 1.25 ? 'Running scenarios' : age < 2.75 ? 'Evaluating outputs' : 'Making improvements';
+        if (phase.textContent !== label) phase.textContent = label;
+        columns.forEach(({rows,sweep}) => {
+          rows.forEach(({element},row) => {
+            const reveal = clamp((age - row * .055) / .38);
+            element.style.opacity = String(reveal * fade);
+            const sinceResolved = age - (1.25 + row / 11 * 1.5);
+            element.classList.toggle('resolved', sinceResolved >= 0);
+            element.classList.toggle('flashing', !motion.matches && element.classList.contains('changed') && sinceResolved >= 0 && sinceResolved < .65);
+          });
+          sweep.setAttribute('transform', `translate(0 ${12 + scan * 286})`);
+          sweep.setAttribute('opacity', String(clamp((age - 1.25) / .2) * (1 - clamp((age - 2.55) / .2))));
+        });
+      };
+      const animate = (now: number) => {
+        if (previous) elapsed += (now - previous) / 1000;
+        previous = now; draw(); frame = requestAnimationFrame(animate);
+      };
+      const update = () => {
+        cancelAnimationFrame(frame); previous = 0;
+        if (motion.matches) { elapsed = Math.floor(elapsed / 4.8) * 4.8 + 3.5; draw(); }
+        else if (visible && !document.hidden) frame = requestAnimationFrame(animate);
+      };
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); });
+      observer.observe(this);
+      motion.addEventListener('change', update);
+      document.addEventListener('visibilitychange', update);
+      update();
+      this.cleanup = () => { cancelAnimationFrame(frame); observer.disconnect(); motion.removeEventListener('change', update); document.removeEventListener('visibilitychange', update); };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('scenario-comparison')) customElements.define('scenario-comparison', ScenarioComparison);
+</script>
+
+<style>
+  scenario-comparison { display: block; min-width: 0; }
+  .trace-comparison { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 22px 18px; background: radial-gradient(ellipse at center,#10265499,transparent 75%); }
+  .comparison-heading { color: #bfcef0; font-size: 14px; margin-bottom: 28px; text-align: center; }
+  .scenario-status { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; font-size: 11px; font-variant-numeric: tabular-nums; }
+  .scenario-name { color: #d1def4; }
+  .scenario-phase { color: #8ba7d2; white-space: nowrap; }
+  .scenario-progress { display: flex; justify-content: center; gap: 8px; margin-top: 24px; }
+  .scenario-progress span { height: 3px; width: 22px; border-radius: 2px; background: #25375a; transition: background .3s; }
+  .scenario-progress .current { background: #8eb7ff; box-shadow: 0 0 8px #4c7eff55; }
+  .trace-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .trace-heading { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #a9bddf; margin-bottom: 20px; }
+  .trace-heading > span { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #426297; border-radius: 7px; color: #d9e6ff; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .span-row { fill: #83b1ff; filter: drop-shadow(0 0 2px #538aff70); }
+  .origin { fill: #ffc18b; }
+  .span-row circle { transition: fill .25s; }
+  .changed.resolved,.changed.resolved .origin { fill: #ff7b8d; }
+  .candidate .changed.resolved,.candidate .changed.resolved .origin { fill: #75e0bc; }
+  .changed { --result-color: #ff7b8d; --flash-color: #fff0f3; --glow-color: #ff476b; }
+  .candidate .changed { --result-color: #75e0bc; --flash-color: #edfff8; --glow-color: #39ffb6; }
+  .changed.resolved { filter: drop-shadow(0 0 3px var(--glow-color)); }
+  .changed.flashing { animation: outcome-flash .65s ease-out both; }
+  .changed.flashing .origin,.candidate .changed.flashing .origin { fill: inherit; }
+  @keyframes outcome-flash {
+    0%,12% { fill: var(--flash-color); filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px var(--glow-color)) drop-shadow(0 0 13px var(--glow-color)); }
+    100% { fill: var(--result-color); filter: drop-shadow(0 0 3px var(--glow-color)); }
+  }
+  .analysis-sweep rect { fill: #78acff; opacity: .09; }
+  .analysis-sweep path { stroke: #a0c5ff; stroke-width: .65; opacity: .6; }
+  .trace-key { display: flex; align-items: center; gap: 8px; color: #b4c5e0; font-size: 12px; margin: 20px 0 0; }
+  .trace-key span { color: #ff7b8d; font-size: 18px; }
+  .candidate .trace-key span { color: #75e0bc; }
+  @media(max-width:760px) { .trace-comparison { padding-inline: 0; } .trace-columns { gap: 20px; } }
+  @media(prefers-reduced-motion:reduce) { .span-row circle,.scenario-progress span { transition: none; } }
+  @media(prefers-reduced-motion:reduce) { .changed.flashing { animation: none; } }
+</style>

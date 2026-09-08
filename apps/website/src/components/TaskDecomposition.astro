@@ -1,0 +1,239 @@
+---
+const tasks = ['distill order history', 'distill product policy', 'distill payment ledger'];
+// Scenario assumptions, not measured model benchmarks. Luna's input count
+// includes all five calls; concurrent branches contribute their longest duration.
+const timing = { astraTokensPerSecond: 60, lunaTokensPerSecond: 180, astraOutputTokens: 1200, intake: 90, branches: [270, 270, 270], synthesis: 180 };
+const lunaOutputTokens = timing.intake + timing.branches.reduce((sum, tokens) => sum + tokens, 0) + timing.synthesis;
+const monolithicSeconds = timing.astraOutputTokens / timing.astraTokensPerSecond;
+const concurrentSeconds = (timing.intake + Math.max(...timing.branches) + timing.synthesis) / timing.lunaTokensPerSecond;
+// Standard short-context API prices per million tokens, verified September 7, 2026.
+const pricing = { inputTokensPerJob: 6000, astraInput: 10, astraOutput: 50, lunaInput: .2, lunaOutput: 1.2 };
+const astraJobCost = (pricing.inputTokensPerJob * pricing.astraInput + timing.astraOutputTokens * pricing.astraOutput) / 1_000_000;
+const lunaJobCost = (pricing.inputTokensPerJob * pricing.lunaInput + lunaOutputTokens * pricing.lunaOutput) / 1_000_000;
+const mobiusLanes = [0, 6, 12, 18, 24].map(width => {
+  const turns = width === 0 ? 1 : 2;
+  const samples = turns * 160;
+  return { turns, path: Array.from({ length: samples + 1 }, (_, i) => {
+    const angle = i / samples * Math.PI * 2 * turns;
+    const twist = width * Math.cos(angle / 2);
+    const dx = -102 * Math.sin(angle);
+    const dy = 92 * Math.cos(2 * angle);
+    const length = Math.hypot(dx, dy);
+    return `${i === 0 ? 'M' : 'L'}${(260 + 102 * Math.cos(angle) - twist * dy / length).toFixed(2)} ${(160 + 46 * Math.sin(2 * angle) + twist * dx / length).toFixed(2)}`;
+  }).join(' ') + ' Z' };
+});
+---
+
+<task-decomposition>
+  <div class="scenario-intro">
+    <slot />
+    <div class="scenario-chat">
+    <figure class="customer-chat" aria-label="Example customer conversation with an ecommerce support agent">
+      <figcaption class="chat-header"><span class="chat-avatar" aria-hidden="true">✦</span><div><strong>Shop support</strong><span>AI assistant</span></div></figcaption>
+      <div class="chat-messages">
+        <div class="chat-message customer"><span class="chat-author">Customer</span><p>Hi, I’d like a refund for order #1048. One of the items arrived damaged.</p></div>
+        <div class="chat-message assistant"><p class="thinking-bubble">Thinking<span class="thinking-dots" aria-hidden="true"><span>•</span><span>•</span><span>•</span></span></p></div>
+      </div>
+      <div class="chat-composer" aria-hidden="true"><span>Message…</span><span class="chat-send">↑</span></div>
+    </figure>
+    </div>
+  </div>
+  <figure class="experiment" aria-label="Compare a monolithic ecommerce agent query using GPT-6 Astra Medium with focused concurrent steps using GPT-5.6 Luna High.">
+    <div class="experiment-pair">
+      <div class="approach monolithic">
+        <div class="approach-heading"><h4>Monolithic Agent Query</h4><p>GPT-6 Astra <span class="effort">Medium</span></p></div>
+        <svg viewBox="0 30 520 250" role="img" aria-label="Three intertwined gold Möbius ribbons carry moving dots through a monolithic agent query.">
+          {[-1,0,1].map((position, ribbon) => <g class="mobius-ribbon" transform={`translate(${position * 30} ${position * 22}) rotate(-10 260 160)`}>
+            {mobiusLanes.map((lane, index) => <path class="mobius-dots" d={lane.path} pathLength={lane.turns * 100} style={`opacity:${1 - index * .12};--lane-delay:${-ribbon * 4 - index * .3}s`} />)}
+            <path class="mobius-dots mobius-sparks" d={mobiusLanes[3].path} pathLength="200" style={`--lane-delay:${-ribbon * 4}s`} />
+          </g>)}
+        </svg>
+        <dl class="metrics"><div><dt>Accuracy</dt><dd>94<span>%</span></dd></div><div><dt>Execution</dt><dd>{monolithicSeconds}<span>s</span></dd></div><div><dt>Job cost</dt><dd>${astraJobCost.toFixed(2)}</dd></div></dl>
+      </div>
+      <div class="approach composed">
+        <div class="approach-heading"><h4>Optimized With Junjo</h4><p>GPT-5.6 Luna <span class="effort">High</span></p></div>
+        <svg viewBox="0 30 520 250" role="img" aria-label="An intake step fans out into three stacked concurrent rings to distill order history, product policy, and payment ledger. Their outputs converge into synthesis.">
+          <g class="intake">
+            <ellipse class="dot-outline" cx="70" cy="160" rx="35" ry="23" />
+            {Array.from({length:24},(_,i)=><circle class="interior-dot" cx={48 + (i % 6) * 9} cy={150 + Math.floor(i / 6) * 7} r="1" />)}
+          </g>
+          <text class="stage-label" x="70" y="208">Intake</text>
+          <text class="concurrent-label" x="272" y="44">RunConcurrent</text>
+          {tasks.map((name, i) => {
+            const y = 92 + i * 68;
+            const incoming = `M105 160C170 160 170 ${y} 228 ${y}`;
+            const outgoing = `M316 ${y}C380 ${y} 376 160 415 160`;
+            return <g data-task-operation>
+            <path class="route" d={incoming} /><path class="route" d={outgoing} />
+            <g class="concurrent-ring" transform={`translate(272 ${92 + i * 68}) rotate(-12)`}>
+              {[0,1,2,3,4].map(lane => <ellipse class="ring-dots" cx="0" cy="0" rx={32 + lane * 3} ry={10 + lane * 2} pathLength="100" style={`opacity:${.5 + lane * .12}`} />)}
+              <ellipse class="ring-spark" cx="0" cy="0" rx="38" ry="14" pathLength="100" />
+              <ellipse class="ring-flash" rx="44" ry="18" />
+            </g>
+            <text class="task-label" x="272" y={126 + i * 68}>{name}</text>
+            <g class="packet request-packet" style={`offset-path:path('${incoming}')`}><circle class="packet-halo" r="10" /><circle r="3.5" /></g>
+            <g class="packet response-packet" style={`offset-path:path('${outgoing}')`}><circle class="packet-halo" r="12" /><circle r="4" /></g>
+            <ellipse class="arrival-flash" cx="450" cy="160" rx="36" ry="24" />
+          </g>;
+          })}
+          <g class="synthesis">
+            <ellipse class="dot-outline" cx="450" cy="160" rx="35" ry="23" />
+            {Array.from({length:24},(_,i)=><circle class="interior-dot" cx={428 + (i % 6) * 9} cy={150 + Math.floor(i / 6) * 7} r="1" />)}
+          </g>
+          <text class="stage-label" x="450" y="208">Synthesis</text>
+        </svg>
+        <dl class="metrics"><div><dt>Accuracy</dt><dd>95<span>%</span></dd></div><div><dt>Execution</dt><dd>{concurrentSeconds}<span>s</span></dd></div><div><dt>Job cost</dt><dd>${lunaJobCost.toFixed(4)}</dd></div></dl>
+      </div>
+    </div>
+    <figcaption class="example-caption">same outcome, example execution change</figcaption>
+  </figure>
+  <p class="scenario-explanation">A powerful model can take on a complex request. Junjo helps your coding agent explore how to accomplish the same task with smaller, cheaper, faster models—and evaluate whether the new flow performs better.</p>
+</task-decomposition>
+
+<script>
+  class TaskDecomposition extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      const groups = [...this.querySelectorAll('[data-task-operation]')];
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      const abort = new AbortController();
+      let animations: Animation[] = [];
+      let visible = false;
+      let disposed = false;
+      const ringPhases = groups.map(() => 0);
+      // Keep this comparison synchronized: simultaneous requests and responses,
+      // and a two-second hold after the final arrival.
+      const duration = 5500;
+      const animate = (element: Element, frames: Keyframe[]) => {
+        const animation = element.animate(frames, {duration, fill:'both'});
+        animations.push(animation);
+      };
+      const packet = (element: Element, start: number, end: number) => animate(element, [
+        {offset:0, opacity:0, offsetDistance:'0%'},
+        {offset:start/duration, opacity:0, offsetDistance:'0%'},
+        {offset:(start+30)/duration, opacity:1, offsetDistance:'0%'},
+        {offset:(end-30)/duration, opacity:1, offsetDistance:'100%'},
+        {offset:end/duration, opacity:0, offsetDistance:'100%'},
+        {offset:1, opacity:0, offsetDistance:'100%'},
+      ]);
+      const flash = (element: Element, at: number) => animate(element, [
+        {offset:0, opacity:0}, {offset:at/duration, opacity:0},
+        {offset:(at+30)/duration, opacity:1}, {offset:(at+500)/duration, opacity:0}, {offset:1, opacity:0},
+      ]);
+      const cancel = () => {
+        animations.forEach(animation => { animation.onfinish = null; animation.cancel(); });
+        animations = [];
+      };
+      const sync = () => {
+        const running = visible && !document.hidden;
+        this.style.setProperty('--motion-state', running ? 'running' : 'paused');
+        for (const animation of animations) running ? animation.play() : animation.pause();
+      };
+      const run = () => {
+        cancel();
+        if (disposed || motion.matches) return;
+        groups.forEach((group,index) => {
+          const departure = 2700;
+          const arrival = departure + 800;
+          packet(group.querySelector('.request-packet')!,150,850);
+          packet(group.querySelector('.response-packet')!,departure,arrival);
+          flash(group.querySelector('.ring-flash')!,850);
+          flash(group.querySelector('.arrival-flash')!,arrival);
+          const slow = 100/32000;
+          const fast = 100/450;
+          const ramp = 150;
+          let phase = ringPhases[index];
+          const rotation: Keyframe[] = [{offset:0,strokeDashoffset:String(-phase)}];
+          const advance = (at: number, distance: number) => {
+            phase += distance;
+            rotation.push({offset:at/duration,strokeDashoffset:String(-phase)});
+          };
+          advance(850,850*slow);
+          advance(850+ramp,ramp*(slow+fast)/2);
+          advance(departure,(departure-850-ramp)*fast);
+          advance(departure+ramp,ramp*(slow+fast)/2);
+          advance(duration,(duration-departure-ramp)*slow);
+          ringPhases[index] = phase%100;
+          animate(group.querySelector('.concurrent-ring')!,rotation);
+        });
+        animations[0].onfinish = run;
+        sync();
+      };
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); });
+      observer.observe(this);
+      document.addEventListener('visibilitychange',sync,{signal:abort.signal});
+      motion.addEventListener('change',run,{signal:abort.signal});
+      run();
+      this.cleanup = () => { disposed=true; cancel(); observer.disconnect(); abort.abort(); };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('task-decomposition')) customElements.define('task-decomposition', TaskDecomposition);
+</script>
+
+<style>
+  task-decomposition { display: block; --motion-state: paused; }
+  h3,h4,p,figure { margin: 0; }
+  .scenario-intro { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: center; gap: 48px; margin-bottom: 48px; }
+  .scenario-chat { width: 100%; max-width: 390px; justify-self: center; }
+  .customer-chat { justify-self: center; width: 100%; max-width: 390px; border: 1px solid #354d73; border-radius: 18px; background: #0d182c; overflow: hidden; }
+  .chat-header { display: flex; gap: 12px; align-items: center; padding: 20px; border-bottom: 1px solid #263b5d; }
+  .chat-header strong { display: block; font-size: 15px; font-weight: 500; }
+  .chat-header div > span { display: block; margin-top: 5px; color: #8fa7cb; font-size: 12px; }
+  .chat-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #203a62; color: #bdd7ff; font-size: 22px; }
+  .chat-messages { display: flex; flex-direction: column; gap: 24px; padding: 26px 20px 32px; }
+  .chat-message { max-width: 88%; }
+  .chat-message.customer { align-self: flex-end; }
+  .chat-author { display: block; color: #99b4d9; font-size: 11px; margin-bottom: 8px; }
+  .customer .chat-author { text-align: right; }
+  .chat-message p { padding: 14px 16px; font-size: 14px; line-height: 1.65; border-radius: 14px 14px 14px 3px; background: #18283f; color: #cfdaed; }
+  .customer p { border-radius: 14px 14px 3px 14px; background: #264c86; color: #edf4ff; }
+  .chat-message .thinking-bubble { display: flex; align-items: center; gap: 12px; color: #a8bbd9; }
+  .thinking-dots { display: flex; gap: 4px; color: #a9cdff; }
+  .thinking-dots span { animation: thinking-pulse 1.8s ease-in-out infinite; animation-play-state: var(--motion-state); }
+  .thinking-dots span:nth-child(2) { animation-delay: .2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: .4s; }
+  .chat-composer { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 16px 16px; padding: 10px 12px 10px 16px; border: 1px solid #304767; border-radius: 12px; color: #859bbb; font-size: 13px; }
+  .chat-send { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #294773; color: #dceaff; font-size: 20px; }
+  .scenario-explanation { color: #a8bbd9; font-size: 17px; line-height: 1.7; }
+  .scenario-explanation { max-width: 880px; margin: 32px auto 0; text-align: center; }
+  .experiment { position: relative; }
+  .experiment-pair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .approach { padding: 0 20px 12px; min-width: 0; }
+  .approach + .approach { border-left: 1px solid #293b5980; }
+  .approach-heading { min-height: 64px; }
+  h4 { font-size: 24px; font-weight: 500; letter-spacing: -.03em; margin: 0 0 12px; }
+  .approach-heading p { font-size: 14px; color: #92a6c8; line-height: 1.6; }
+  .effort { display: inline-block; margin-left: 8px; font-size: 12px; color: #bbcdec; }
+  svg { display: block; width: 100%; overflow: visible; margin: 0 0 12px; }
+  svg text { text-anchor: middle; font-family: inherit; }
+  .mobius-ribbon,.concurrent-ring { filter: drop-shadow(0 0 3px #ffbc5277); }
+  .mobius-dots { fill: none; stroke: #ffda99; stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .01 1.99; animation: mobius-travel 80s linear infinite; animation-delay: var(--lane-delay); }
+  .mobius-sparks { stroke: #fff0cd; stroke-width: 2.6; stroke-dasharray: .01 19.99; }
+  .ring-dots { fill: none; stroke: #ffd48b; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: .1 1.9; }
+  .ring-spark { fill: none; stroke: #fff0ce; stroke-width: 3; stroke-linecap: round; stroke-dasharray: .1 99.9; filter: drop-shadow(0 0 4px #ffcf77); }
+  .route { fill: none; stroke: #8bbaff; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 6; opacity: .7; }
+  .dot-outline { fill: none; stroke: #b9dbff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: .1 5; }
+  .interior-dot { fill: #a3caff; }
+  .intake,.synthesis { filter: drop-shadow(0 0 3px #71acff); }
+  .ring-flash { fill:none; stroke:#fff0cc; stroke-width:4; opacity:0; }
+  .packet { offset-anchor:0px 0px; offset-rotate:0deg; opacity:0; fill:#e0f0ff; filter:drop-shadow(0 0 3px #71acff); }
+  .response-packet { fill:#ffe6b8; filter:drop-shadow(0 0 3px #ffc777); }
+  .packet-halo { opacity:.2; }
+  .arrival-flash { fill:#b3dcff; fill-opacity:.35; stroke:#e5f4ff; stroke-width:2; opacity:0; filter:drop-shadow(0 0 5px #71acff); }
+  .stage-label { font-size: 17px; fill: #c7daf7; }
+  .task-label { font-size: 13px; fill: #9eb5d7; }
+  .concurrent-label { font-size: 14px; fill: #a4bee4; }
+  .metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 0; padding-top: 12px; gap: 10px; }
+  dt { font-size: 12px; color: #a2b4d1; }
+  dd { margin: 12px 0 0; font-size: clamp(23px,2.2vw,30px); letter-spacing: -.04em; color: #d6e2f6; white-space: nowrap; }
+  dd span { font-size: .7em; margin-left: 5px; letter-spacing: 0; color: #92a8c8; }
+  .composed dd { color: #b3d6ff; }
+  .example-caption { margin-top: 16px; text-align: center; color: #91a8cb; font-size: 12px; }
+  .mobius-dots { animation-play-state: var(--motion-state); }
+  @keyframes mobius-travel { to { stroke-dashoffset: -100; } }
+  @keyframes thinking-pulse { 0%,80%,100% { opacity: .3; } 40% { opacity: 1; } }
+  @media (max-width: 1000px) { .approach { padding-inline: 12px; } }
+  @media (max-width: 760px) { .experiment-pair { grid-template-columns: 1fr; gap: 28px; } .approach { padding-inline: 0; } .approach + .approach { border-left: 0; } .scenario-intro { grid-template-columns: 1fr; gap: 28px; } }
+  @media (prefers-reduced-motion: reduce) { .mobius-dots,.thinking-dots span { animation: none; } }
+</style>
