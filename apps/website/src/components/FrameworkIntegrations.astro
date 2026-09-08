@@ -1,0 +1,217 @@
+---
+const frameworks = [
+  {
+    id: 'openai', name: 'OpenAI Agents SDK', language: 'Python SDK', icon: 'codex.png', available: true,
+    title: 'Your OpenAI agent. Junjo tools inside.',
+    detail: 'Expose a Junjo SDK workflow or specialist agent as a native function tool. The OpenAI Agents SDK keeps its agent loop, sessions, handoffs, and guardrails.',
+    connection: 'OpenAI agent activity and nested Junjo execution appear together in Junjo AI Studio through one OpenTelemetry pipeline.',
+  },
+  {
+    id: 'langchain', name: 'LangChain', language: 'Python SDK', icon: 'models/langchain.png', available: false,
+    title: 'Add Junjo to your agent’s tools.',
+    detail: 'The planned Python integration will expose Junjo SDK capabilities through LangChain’s tool interface, alongside the tools and agent behavior you already use.',
+    connection: 'Connect LangChain activity and nested Junjo execution to the same Studio chronology.',
+  },
+  {
+    id: 'langgraph', name: 'LangGraph', language: 'Python SDK', icon: 'models/langchain.png', available: false,
+    title: 'Extend a step in your existing graph.',
+    detail: 'The planned Python integration will let a selected graph operation invoke a Junjo SDK capability. LangGraph retains the surrounding graph, routing, and persistence.',
+    connection: 'Connect the outer graph and the work performed inside its Junjo capability in Studio.',
+  },
+  {
+    id: 'pydantic', name: 'Pydantic AI', language: 'Python SDK', icon: 'models/pydantic.png', available: false,
+    title: 'Typed tools. Explicit inputs and results.',
+    detail: 'The planned Python integration will expose Junjo SDK capabilities through typed tools while preserving your Pydantic AI agent, dependencies, and output contracts.',
+    connection: 'Connect the framework’s OpenTelemetry instrumentation and nested Junjo execution to Studio.',
+  },
+  {
+    id: 'vercel', name: 'Vercel AI SDK', language: 'TypeScript · Planned', icon: 'frameworks/vercel-ai.ico', available: false,
+    title: 'Keep your TypeScript application.',
+    detail: 'A planned service integration will connect server-side tool calls to Python-based Junjo SDK capabilities, while your application retains its streaming experience.',
+    connection: 'Junjo currently supports Python. Vercel AI SDK support is coming soon; this is a planned service boundary, not an available TypeScript SDK.',
+  },
+  {
+    id: 'claude', name: 'Claude Agent SDK', language: 'Python SDK', icon: 'claude.png', available: false,
+    title: 'Give your Claude agent Junjo tools.',
+    detail: 'The planned Python integration will expose Junjo SDK capabilities through the Claude Agent SDK’s supported tool interfaces, retaining its agent execution and session management.',
+    connection: 'Connect agent activity and the Junjo capabilities it invokes to Studio through application telemetry.',
+  },
+];
+---
+
+<section class="framework-section" aria-labelledby="framework-title">
+  <div class="section-inner">
+    <div class="section-heading">
+      <h2 id="framework-title">Extend your agent framework<br /><em>with Junjo.</em></h2>
+      <p class="lead">Keep your existing agents, conversations, and tools. Connect their execution to Junjo AI Studio, and expose Junjo SDK workflows or specialist agents as tools to go deeper in recursive self improvement optimization.</p>
+    </div>
+
+    <framework-integrations>
+      <div class="framework-tabs" role="tablist" aria-label="Agent framework integrations">
+        {frameworks.map((framework, index) => <button type="button" role="tab" id={`framework-tab-${framework.id}`} aria-controls={`framework-panel-${framework.id}`} aria-selected={index === 0 ? 'true' : 'false'} tabindex={index === 0 ? 0 : -1}>
+          <span class="framework-brand"><img src={`/brands/${framework.icon}`} alt="" width="24" height="24" loading="lazy" decoding="async" /><span>{framework.name}</span></span>
+          <span class="language">{framework.language}</span>
+          <span class:list={['status', { available: framework.available }]}>{framework.available ? 'Available' : 'Coming soon'}</span>
+        </button>)}
+      </div>
+
+      {frameworks.map((framework, index) => <div class="integration-panel" role="tabpanel" id={`framework-panel-${framework.id}`} aria-labelledby={`framework-tab-${framework.id}`} hidden={index !== 0} tabindex="0">
+        <div class="integration-copy">
+          <p class="panel-label">{framework.available ? 'Available for Python' : 'Coming soon'}<span aria-hidden="true"> · </span>{framework.available ? 'OpenAI Agents SDK' : framework.language}</p>
+          <h3>{framework.title}</h3>
+          <p class="detail">{framework.detail}</p>
+          <p class="connection">{framework.connection}</p>
+          {framework.available && <a class="integration-link" href="/docs/python/integrations/openai-agents/">Explore the OpenAI Agents SDK integration <span aria-hidden="true">↗</span></a>}
+        </div>
+
+        <div class="integration-diagram">
+          <svg viewBox="0 0 660 310" role="img" aria-label={`${framework.available ? '' : 'Planned integration: '}${framework.name} calls a Junjo ${framework.id === 'vercel' ? 'Python service' : 'workflow or specialist agent'} and receives its result. Both send execution telemetry to Junjo AI Studio.`}>
+            <rect class="application-box" x="18" y="24" width="218" height="152" rx="18" />
+            <image href={`/brands/${framework.icon}`} x="107" y="49" width="40" height="40" />
+            <text class="diagram-title" x="127" y="119">{framework.name}</text>
+            <text class="diagram-caption" x="127" y="148">Agent loop · Existing tools</text>
+
+            <path class="route" d="M236 85H365M365 125H236" />
+            <path class="moving call" d="M236 85H365" />
+            <path class="moving result" d="M365 125H236" />
+            <path class="arrow" d="m359 81 6 4-6 4m-117 32-6 4 6 4" />
+            <text class="route-label" x="300" y="69">{framework.id === 'vercel' ? 'Service call' : 'Tool call'}</text>
+            <text class="route-label" x="300" y="149">Result</text>
+
+            <rect class="junjo-box" x="365" y="24" width="277" height="152" rx="18" />
+            <text class="diagram-title" x="503" y="54">Junjo SDK{framework.id === 'vercel' ? ' · Python service' : ''}</text>
+            <path class="workflow-route" d="M401 106H423C438 106 434 82 451 82H463C480 82 476 106 494 106H605M423 106C438 106 434 130 451 130H463C480 130 476 106 494 106" />
+            <g class="workflow-nodes">
+              <circle cx="401" cy="106" r="5"/><ellipse cx="456" cy="82" rx="14" ry="8"/><ellipse cx="456" cy="130" rx="14" ry="8"/><ellipse cx="543" cy="106" rx="16" ry="9"/><circle cx="605" cy="106" r="5"/>
+            </g>
+            <text class="diagram-caption" x="503" y="158">Workflow or specialist agent</text>
+
+            <path class="telemetry-route" d="M127 176V236Q127 258 149 258H246M503 176V236Q503 258 481 258H456" />
+            <path class="moving telemetry" d="M127 176V236Q127 258 149 258H246M503 176V236Q503 258 481 258H456" />
+            <text class="route-label" x="329" y="215">Shared execution telemetry</text>
+            <rect class="studio-box" x="246" y="233" width="210" height="56" rx="12" />
+            <circle class="studio-dot" cx="267" cy="261" r="3" />
+            <text class="diagram-title" x="357" y="267">Junjo AI Studio</text>
+          </svg>
+          <div class="mobile-diagram">
+            <div class="mobile-application"><img src={`/brands/${framework.icon}`} alt="" width="28" height="28" loading="lazy" decoding="async" /><strong>{framework.name}</strong><span>Agent loop · Existing tools</span></div>
+            <div class="mobile-junjo"><span class="node-mark" aria-hidden="true">◌ ─ ◌</span><strong>Junjo SDK</strong><span>Workflow or specialist agent</span></div>
+            <p class="mobile-boundary">{framework.id === 'vercel' ? 'Python service call' : 'Tool call'} <span aria-hidden="true">⇄</span> Result</p>
+            <div class="mobile-studio"><span>Shared execution telemetry</span><strong>Junjo AI Studio</strong></div>
+          </div>
+        </div>
+      </div>)}
+    </framework-integrations>
+    <p class="adoption">Start with your existing application. <span>Add Junjo capabilities one at a time.</span></p>
+  </div>
+</section>
+
+<script>
+  class FrameworkIntegrations extends HTMLElement {
+    private abort?: AbortController;
+    connectedCallback() {
+      this.abort = new AbortController();
+      const tabs = [...this.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+      const panels = [...this.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+      const select = (selected: HTMLButtonElement) => {
+        for (const tab of tabs) {
+          tab.setAttribute('aria-selected', String(tab === selected));
+          tab.tabIndex = tab === selected ? 0 : -1;
+        }
+        for (const panel of panels) panel.hidden = panel.id !== selected.getAttribute('aria-controls');
+      };
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => select(tab), { signal: this.abort!.signal });
+        tab.addEventListener('keydown', event => {
+          let next: number;
+          if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+          else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = tabs.length - 1;
+          else return;
+          event.preventDefault();
+          select(tabs[next]);
+          tabs[next].focus();
+        }, { signal: this.abort!.signal });
+      });
+    }
+    disconnectedCallback() { this.abort?.abort(); }
+  }
+  if (!customElements.get('framework-integrations')) customElements.define('framework-integrations', FrameworkIntegrations);
+</script>
+
+<style>
+  .framework-section { padding:clamp(80px,8vw,112px) 4vw; border-top:1px solid #25324b66; background:radial-gradient(ellipse at 80% 65%,#17326738,transparent 65%),#080e1a; }
+  .section-inner { max-width:1200px; margin-inline:auto; }
+  .section-heading { max-width:940px; margin-bottom:44px; }
+  h2 { font-size:clamp(34px,4.25vw,62px); font-weight:500; letter-spacing:-.055em; line-height:1.08; margin:0 0 28px; text-wrap:balance; }
+  h2 em { font-style:normal; color:#83a5ff; }
+  .lead { font-size:clamp(17px,1.55vw,21px); line-height:1.7; color:#c0cbdd; margin:0; }
+  framework-integrations { display:block; }
+  .framework-tabs { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; }
+  .framework-tabs button { display:flex; flex-direction:column; align-items:start; padding:18px 14px; border:1px solid #30425f; border-radius:12px; background:#0d182c88; color:#c8d7f1; text-align:left; font:inherit; cursor:pointer; transition:background .2s,border-color .2s; }
+  .framework-tabs button:hover { border-color:#7095ce; background:#14243e; }
+  .framework-tabs button[aria-selected="true"] { border-color:#89b6ff; background:linear-gradient(130deg,#1b3257,#111b2e); box-shadow:0 0 24px #447bef12; }
+  .framework-brand { display:flex; align-items:center; gap:9px; font-size:14px; line-height:1.4; min-height:40px; }
+  .framework-brand img { width:24px; height:24px; object-fit:contain; flex-shrink:0; border-radius:3px; }
+  .language { font-size:12px; color:#97accb; margin-top:12px; }
+  .status { display:flex; align-items:center; gap:6px; font-size:11px; color:#a4b1c9; margin-top:9px; }
+  .status::before { content:''; width:5px; height:5px; border-radius:50%; background:#6c7d99; }
+  .status.available { color:#a3ddc5; }
+  .status.available::before { background:#a3ddc5; box-shadow:0 0 9px #93e7c4; }
+  .integration-panel { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.4fr); gap:42px; align-items:center; padding:44px 0 36px; }
+  .integration-panel[hidden] { display:none; }
+  .panel-label { margin:0 0 14px; color:#ffc386; font-size:12px; line-height:1.6; }
+  h3 { font-size:clamp(24px,2.2vw,31px); line-height:1.2; letter-spacing:-.035em; font-weight:500; margin:0 0 20px; color:#e5edfb; }
+  .detail { margin:0; color:#c0cbdd; font-size:16px; line-height:1.75; }
+  .connection { margin:16px 0 0; color:#94aacb; font-size:15px; line-height:1.75; }
+  .integration-link { display:inline-block; color:#adcfff; font-size:14px; line-height:1.6; text-decoration:none; margin-top:22px; }
+  .integration-link:hover { color:white; }
+  .integration-link span { margin-left:6px; }
+  button:focus-visible,a:focus-visible,.integration-panel:focus-visible { outline:2px solid #89b6ff; outline-offset:4px; }
+  .integration-diagram { min-width:0; }
+  .mobile-diagram { display:none; }
+  svg { width:100%; height:auto; overflow:visible; }
+  svg text { font-family:inherit; text-anchor:middle; }
+  .application-box { fill:#111d30; stroke:#3e587c; }
+  .junjo-box { fill:#12234488; stroke:#618bc8; stroke-dasharray:2 6; }
+  .studio-box { fill:#0f1c30; stroke:#425f8d; }
+  .diagram-title { fill:#dae8ff; font-size:16px; }
+  .diagram-caption { fill:#97afcf; font-size:12px; }
+  .route-label { fill:#a8bfdc; font-size:12px; }
+  .route,.telemetry-route,.workflow-route { fill:none; stroke:#5d82b5; stroke-width:1.5; stroke-dasharray:1 6; stroke-linecap:round; }
+  .telemetry-route { stroke:#49658a; }
+  .arrow { fill:none; stroke:#aacdff; stroke-width:1.2; }
+  .workflow-nodes { fill:#10223a; stroke:#ffd195; stroke-width:1.4; stroke-dasharray:1 3; stroke-linecap:round; filter:drop-shadow(0 0 4px #e9b95b44); }
+  .moving { fill:none; stroke:#d4eaff; stroke-width:3; stroke-dasharray:1 145; stroke-linecap:round; filter:drop-shadow(0 0 4px #659fff); animation:travel 5s linear infinite; }
+  .result { animation-delay:-2.5s; stroke:#ffd195; }
+  .telemetry { stroke-width:2.5; stroke-dasharray:1 85; animation-duration:7s; }
+  .studio-dot { fill:#ffd195; filter:drop-shadow(0 0 5px #ffc16b); }
+  .adoption { margin:0; color:#d4e2f8; font-size:18px; line-height:1.7; }
+  .adoption span { color:#94aacb; }
+  @keyframes travel { to { stroke-dashoffset:-292; } }
+  @media(prefers-reduced-motion:reduce) { .moving { animation:none; } }
+  @media(max-width:1050px) { .framework-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); } .framework-brand { min-height:24px; } .integration-panel { gap:24px; } }
+  @media(max-width:760px) {
+    .framework-section { padding:72px 24px; }
+    h2 { font-size:clamp(32px,7.5vw,44px); }
+    .framework-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .framework-tabs button { padding:14px 12px; }
+    .framework-brand { min-height:40px; }
+    .integration-panel { grid-template-columns:1fr; gap:28px; padding:32px 0; }
+    .adoption { font-size:16px; }
+    .adoption span { display:block; }
+    .integration-diagram { margin-inline:-12px; }
+    .integration-diagram > svg { display:none; }
+    .mobile-diagram { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .mobile-application,.mobile-junjo { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px 12px; text-align:center; border:1px solid #425f8d; border-radius:12px; background:#111d30; }
+    .mobile-junjo { border-style:dashed; background:#12234488; }
+    .mobile-diagram strong { font-size:14px; line-height:1.5; color:#dae8ff; font-weight:500; }
+    .mobile-diagram span { color:#97afcf; font-size:12px; line-height:1.5; }
+    .mobile-diagram .node-mark { color:#ffd195; font-size:28px; line-height:1; text-shadow:0 0 10px #ffc16b88; }
+    .mobile-boundary { grid-column:1/-1; text-align:center; color:#bdd4f5; font-size:13px; margin:0; padding:2px 0 12px; border-bottom:1px dotted #425f8d; }
+    .mobile-boundary span { margin-inline:12px; color:#ffd195; }
+    .mobile-studio { grid-column:1/-1; display:flex; align-items:center; flex-direction:column; gap:12px; }
+    .mobile-studio strong { padding:14px 28px; border:1px solid #425f8d; background:#0f1c30; border-radius:12px; }
+  }
+</style>
