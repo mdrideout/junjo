@@ -117,7 +117,7 @@ export function createStagedRoutes(seed=Math.floor(Math.random()*4294967296)) {
     // Anchor the lowest swimlane's outline above the hero, in canvas units.
     const offsetY=graphBottom===undefined?0:graphBottom-graphBottomY;
     const scaleX=(graphRight-50)/(497-50);
-    const scaleY=graphBottom===undefined?1:Math.max(0,Math.min(1,graphBottom/graphHeight));
+    const scaleY=(graphBottom===undefined?1:Math.max(0,Math.min(1,graphBottom/graphHeight)))*(layout.mobile?.68:1);
     // Node spacing follows the layout; outlines keep their size and aspect ratio
     // in CSS pixels. All emitter, edge and paint geometry uses the same radii.
     const nodeRadius=layout.mobile?10:20;
