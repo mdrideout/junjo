@@ -1,0 +1,98 @@
+--- a/apps/studio/backend/app/db_sqlite/metadata/indexer.py
++++ b/apps/studio/backend/app/db_sqlite/metadata/indexer.py
+@@ -149,3 +149,6 @@
+         except Exception:
+             pass
+         raise
++
++from app.perf_diagnostic import measured
++index_parquet_file = measured("metadata_index",profile=True)(index_parquet_file)
+--- a/apps/studio/backend/app/features/otel_spans/datafusion_query.py
++++ b/apps/studio/backend/app/features/otel_spans/datafusion_query.py
+@@ -746,3 +746,7 @@
+     dt = datetime.fromtimestamp(seconds, tz=UTC)
+     dt = dt.replace(microsecond=microseconds)
+     return dt.strftime("%Y-%m-%dT%H:%M:%S.%f") + "+00:00"
++
++from app.perf_diagnostic import measured
++for _method in ["__init__", "register_cold", "register_hot", "query_distinct_service_names"]:
++    setattr(UnifiedSpanQuery, _method, measured("datafusion_"+_method)(getattr(UnifiedSpanQuery,_method)))
+--- a/apps/studio/backend/app/features/otel_spans/repository.py
++++ b/apps/studio/backend/app/features/otel_spans/repository.py
+@@ -548,3 +548,7 @@
+ 
+     logger.debug(f"Span not found: {span_id}")
+     return None
++
++from app.perf_diagnostic import measured_async
++_get_ingestion_query_context = measured_async("snapshot_rpc")(_get_ingestion_query_context)
++get_fused_distinct_service_names = measured_async("services_total")(get_fused_distinct_service_names)
+--- a/apps/studio/backend/app/features/parquet_indexer/parquet_reader.py
++++ b/apps/studio/backend/app/features/parquet_indexer/parquet_reader.py
+@@ -212,3 +212,6 @@
+         size_bytes=size_bytes,
+         spans=spans,
+     )
++
++from app.perf_diagnostic import measured
++read_parquet_metadata = measured("metadata_read",profile=True)(read_parquet_metadata)
+--- a/apps/studio/backend/app/main.py
++++ b/apps/studio/backend/app/main.py
+@@ -264,3 +264,13 @@
+         reload=reload,
+         log_config=None,  # Disable uvicorn logging (we use loguru)
+     )
++
++# Diagnostic-only lifespan hook: Uvicorn's SIGTERM exit bypasses atexit.
++from app.perf_diagnostic import dump as _profile_dump
++_profile_lifespan = app.router.lifespan_context
++@asynccontextmanager
++async def _diagnostic_lifespan(app):
++    async with _profile_lifespan(app):
++        yield
++    _profile_dump()
++app.router.lifespan_context = _diagnostic_lifespan
+--- a/apps/studio/backend/app/perf_diagnostic.py
++++ b/apps/studio/backend/app/perf_diagnostic.py
+@@ -0,0 +1,41 @@
++import atexit, cProfile, functools, io, json, os, pstats, sys, threading, time
++from collections import defaultdict
++stats=defaultdict(lambda: {"count":0,"wall_ns":0,"thread_cpu_ns":0,"max_wall_ns":0})
++lock=threading.Lock()
++profiles={}
++def record(name,wall,cpu):
++    with lock:
++        s=stats[name];s["count"]+=1;s["wall_ns"]+=wall;s["thread_cpu_ns"]+=cpu;s["max_wall_ns"]=max(s["max_wall_ns"],wall)
++def measured(name,profile=False):
++    def decorate(f):
++        @functools.wraps(f)
++        def wrap(*a,**k):
++            first=False
++            if profile and os.environ.get("JUNJO_DIAGNOSTIC_CPROFILE")=="1":
++                with lock:
++                    if name not in profiles: profiles[name]=None;first=True
++            started=time.perf_counter_ns();cpu=time.thread_time_ns()
++            try:
++                if first:
++                    p=cProfile.Profile()
++                    try:return p.runcall(f,*a,**k)
++                    finally:
++                        stream=io.StringIO();pstats.Stats(p,stream=stream).sort_stats("tottime").print_stats(35)
++                        with lock: profiles[name]=stream.getvalue()
++                return f(*a,**k)
++            finally:record(name,time.perf_counter_ns()-started,time.thread_time_ns()-cpu)
++        return wrap
++    return decorate
++def measured_async(name):
++    def decorate(f):
++        @functools.wraps(f)
++        async def wrap(*a,**k):
++            started=time.perf_counter_ns()
++            try:return await f(*a,**k)
++            finally:record(name,time.perf_counter_ns()-started,0)
++        return wrap
++    return decorate
++@atexit.register
++def dump():
++    print("JUNJO_BACKEND_PROFILE "+json.dumps(dict(stats)),file=sys.stderr)
++    for name,summary in profiles.items(): print("JUNJO_CPROFILE "+name+"\n"+str(summary),file=sys.stderr)

@@ -70,6 +70,9 @@ jobs:
           name: studio-backend-test-logs
           path: /tmp/backend-test.log
           retention-days: 7
+      - name: Validate benchmark delivery accounting
+        working-directory: apps/studio
+        run: uv run --project backend python -m pytest -q ingestion/benchmarks/test_delivery.py
 
   backend-lint:
     name: Backend Lint and Format

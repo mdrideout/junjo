@@ -11,7 +11,7 @@ The ingestion service receives OTLP spans on the public gRPC path and must make 
 The end-state system has to satisfy all of these at once:
 
 - keep OTLP write latency low
-- survive process crashes without losing accepted batches
+- recover completed WAL segments after process crashes
 - avoid blocking new writes while cold files are being produced
 - support backend reads of unflushed data
 - stay within a small-host memory budget
@@ -39,6 +39,32 @@ The durable flow is:
 5. The backend reads Parquet files directly rather than receiving span payloads over gRPC.
 
 That gives the system one durable source of truth between ingest and queryable Parquet, while keeping backend query transport simple.
+
+### Acknowledgement And Termination
+
+OTLP success means the service accepted the telemetry. It does not mean that
+every span has reached a completed WAL segment. A partial batch may remain in
+memory until the existing batch or background flush mechanism persists it.
+
+Abrupt process termination may lose that pending telemetry, including spans
+whose exporters already received success. This is an accepted product tradeoff:
+individual telemetry spans are not mission-critical records, and preserving
+them through forced termination does not justify adding steady-state CPU,
+memory, I/O, or acknowledgement latency to the low-resource ingestion path.
+This decision was explicitly confirmed on September 6, 2026.
+
+Healthy ingestion and orderly shutdown with working storage must still preserve
+accepted telemetry. Orderly shutdown drains in-flight requests and persists the
+pending batch. Recovery uses completed canonical WAL and Parquet files; this
+decision does not authorize dropping completed data or weakening the existing
+WAL-to-Parquet handoff. It does not promise survival of host power loss or
+storage failure.
+
+Keep batching, background flush cadence, and fast acknowledgement. Per-request
+flushing, completion receipts, and additional storage synchronization are not
+required to cover this accepted termination window. Performance comparisons
+must count actual delivered work; graceful-shutdown checks and abrupt-kill
+characterization are different tests with different expected outcomes.
 
 ### Why Segmented Instead Of Single-File WAL
 

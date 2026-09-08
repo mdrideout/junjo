@@ -1,0 +1,14 @@
+--- a/apps/studio/ingestion/src/wal/arrow_wal.rs
++++ b/apps/studio/ingestion/src/wal/arrow_wal.rs
+@@ -364,9 +364,10 @@
+         // Write to temp file first
+         let tmp_path = final_path.with_extension("ipc.tmp");
+         let file = File::create(&tmp_path)?;
+-        let mut writer = StreamWriter::try_new(file, &SPAN_SCHEMA)?;
++        let mut writer = StreamWriter::try_new_buffered(file, &SPAN_SCHEMA)?;
+         writer.write(batch)?;
+         writer.finish()?;
++        writer.flush()?;
+ 
+         // Atomic rename - segment is now visible to flusher/readers
+         std::fs::rename(&tmp_path, final_path)?;

@@ -13,9 +13,11 @@ This is a production deployment example of Junjo AI Studio, a Junjo python SDK p
 This deployment pins Junjo AI Studio `0.83.0` and Junjo `0.67.0` as a compatible release pair.
 
 > **Required reset for 0.83.0:** This greenfield release replaces Studio's
-> database migration baseline. Existing Studio data volumes are incompatible.
-> Before starting 0.83.0, run `docker compose down --volumes` to delete the old
-> application data, then start the stack normally to initialize a fresh database.
+> database migration baseline. Existing application databases are incompatible.
+> Follow the [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md)
+> to initialize a fresh data directory while retaining the old installation for
+> rollback. `docker compose down --volumes` does not reset Junjo's host-mounted
+> application data.
 
 Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
 

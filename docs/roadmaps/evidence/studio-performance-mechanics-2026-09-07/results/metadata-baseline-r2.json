@@ -1,0 +1,13 @@
+{
+  "label": "metadata-baseline-r2",
+  "rows": 121600,
+  "seconds": 1.6830950700677931,
+  "cpu_seconds": 0.82566929,
+  "rows_per_second": 72247.84990612687,
+  "cpu_us_per_row": 6.790043503289474,
+  "before_rss_mib": 55.796875,
+  "after_rss_mib": 231.7578125,
+  "peak_rss_mib": 243.60546875,
+  "semantic_sha256": "a1bd396a023d9c9b661f39e606016e3cc6d7efc55d3ad3b81e3b51e525ee9311",
+  "after_release_rss_mib": 167.8359375
+}

@@ -1,0 +1,19 @@
+{
+  "completed": 150,
+  "wall_seconds": 1.5689497110433877,
+  "operations_per_second": 95.60535875955294,
+  "cpu_seconds": 0.7690724100000002,
+  "cpu_us_per_operation": 5127.149400000001,
+  "p95_ms": 55.073761963285506,
+  "p99_ms": 56.03047693148255,
+  "peak_rss_mib": 38.9453125,
+  "before_rss_mib": 38.80859375,
+  "after_work_rss_mib": 39.21484375,
+  "after_release_rss_mib": 39.21484375,
+  "label": "sdk-copy-patch-workflow-128-r2",
+  "case": "workflow",
+  "iterations": 150,
+  "size": 128,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "c9d94f8edae61e0d4a1faf07b17df7f568ccceb20e112d611d01d1fac6744e1c"
+}
