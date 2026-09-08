@@ -1,0 +1,114 @@
+<hero-field aria-hidden="true">
+  <canvas></canvas>
+</hero-field>
+
+<script>
+  import { createStagedRoutes, STAGES } from '../scripts/hero/staged-routes.js';
+
+  class HeroField extends HTMLElement {
+    private cleanup?: () => void;
+
+    connectedCallback() {
+      const canvas = this.querySelector('canvas');
+      const context = canvas?.getContext('2d');
+      const hero = this.closest<HTMLElement>('.hero');
+      const heading = hero?.querySelector('h1');
+      const summary = hero?.querySelector('.hero-summary');
+      const header = document.querySelector('.site-header');
+      if (!canvas || !context || !hero || !heading || !summary || !header) return;
+
+      const controller = new AbortController();
+      const { signal } = controller;
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      const render = createStagedRoutes();
+      let frame = 0;
+      let previousTime = 0;
+      let time = 0;
+      let width = 0;
+      let height = 0;
+      let visible = false;
+      let graphBottom = 0;
+      let graphRight = 497;
+      let mobile = false;
+      let traceTop = 0;
+      let traceHeight = 650;
+      const random = (i: number) => {
+        const value = Math.sin(i * 127.1 + 7.7) * 43758.5453;
+        return value - Math.floor(value);
+      };
+
+      const draw = () => {
+        if (!width || !height) return;
+        context.setTransform(canvas.width / 1000, 0, 0, canvas.height / 650, 0, 0);
+        context.fillStyle = '#070a12';
+        context.fillRect(0, 0, 1000, 650);
+        const glow = context.createRadialGradient(710, 330, 0, 710, 330, 520);
+        glow.addColorStop(0, '#102559');
+        glow.addColorStop(.45, '#0a1532');
+        glow.addColorStop(1, '#070a12');
+        context.fillStyle = glow;
+        context.fillRect(0, 0, 1000, 650);
+        for (let i = 0; i < 110; i++) {
+          context.fillStyle = `rgba(73,113,255,${.12 + random(i) * .18})`;
+          context.beginPath();
+          context.arc(random(i + 150) * 1000, random(i + 750) * 650, .65, 0, Math.PI * 2);
+          context.fill();
+        }
+        render(context, reducedMotion.matches ? STAGES.recordEnd : time, graphBottom, graphRight, { width, height, mobile, traceTop, traceHeight });
+      };
+      const animate = (timestamp: number) => {
+        if (previousTime) time += (timestamp - previousTime) / 1000;
+        previousTime = timestamp;
+        draw();
+        frame = requestAnimationFrame(animate);
+      };
+      const updateMotion = () => {
+        cancelAnimationFrame(frame);
+        previousTime = 0;
+        if (visible && !reducedMotion.matches && !document.hidden) frame = requestAnimationFrame(animate);
+        else draw();
+      };
+      const resize = () => {
+        hero.style.setProperty('--hero-header-height', `${header.getBoundingClientRect().height}px`);
+        const bounds = this.getBoundingClientRect();
+        width = bounds.width;
+        height = bounds.height;
+        if (!width || !height) return;
+        mobile = width <= 760;
+        const headingTop = heading.getBoundingClientRect().top - bounds.top;
+        graphBottom = (headingTop - (mobile ? 132 : 26)) * 650 / height;
+        graphRight = mobile ? 940 : 562 - 20 * 1000 / width;
+        traceTop = (headingTop - 108) * 650 / height;
+        traceHeight = 650 - traceTop;
+        canvas.width = Math.round(width * devicePixelRatio);
+        canvas.height = Math.round(height * devicePixelRatio);
+        draw();
+      };
+      const observer = new ResizeObserver(resize);
+      for (const element of [this, heading, summary, header]) observer.observe(element);
+      const intersection = new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+        updateMotion();
+      });
+      intersection.observe(this);
+      reducedMotion.addEventListener('change', updateMotion, { signal });
+      document.addEventListener('visibilitychange', updateMotion, { signal });
+      resize();
+
+      this.cleanup = () => {
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        intersection.disconnect();
+        controller.abort();
+      };
+    }
+
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  customElements.define('hero-field', HeroField);
+</script>
+
+<style>
+  hero-field { position: absolute; inset: 0; display: block; z-index: -2; pointer-events: none; }
+  canvas { width: 100%; height: 100%; display: block; }
+</style>

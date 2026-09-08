@@ -1,0 +1,74 @@
+---
+const prompt = 'Investigate the failed cases in our refund workflow, make a targeted improvement, and compare it against the baseline.';
+---
+
+<agent-prompt>
+  <figure class="prompt-window" aria-label="Example natural-language request to your coding agent">
+    <div class="prompt-heading"><span class="agent-indicator" aria-hidden="true"></span>Your coding agent<span class="example-label">Example request</span></div>
+    <div class="prompt-body">
+      <span class="user-label">You</span>
+      <p class="accessible-prompt">{prompt}</p>
+      <div class="prompt-message" aria-hidden="true">
+        <p class="prompt-layout">{prompt}</p>
+        <p class="typed-prompt"><span class="typed-text">{prompt}</span><span class="caret"></span></p>
+      </div>
+    </div>
+    <div class="prompt-footer" aria-hidden="true"><span>Describe the outcome you want.</span><span class="send-arrow">↑</span></div>
+  </figure>
+</agent-prompt>
+
+<script>
+  class AgentPrompt extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      const text = this.querySelector('.typed-text');
+      if (!text) return;
+      const prompt = text.textContent ?? '';
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      let visible = false, frame = 0, elapsed = 0, previous = 0, length = 0;
+      text.textContent = '';
+      const animate = (now: number) => {
+        if (previous) elapsed += now - previous;
+        previous = now;
+        const next = Math.min(prompt.length, Math.floor(Math.max(0, elapsed - 400) / 35));
+        if (next !== length) { length = next; text.textContent = prompt.slice(0, length); }
+        if (length < prompt.length) frame = requestAnimationFrame(animate);
+      };
+      const update = () => {
+        cancelAnimationFrame(frame); previous = 0;
+        this.style.setProperty('--cursor-motion', visible && !document.hidden ? 'running' : 'paused');
+        if (motion.matches) { length = prompt.length; text.textContent = prompt; }
+        else if (visible && !document.hidden && length < prompt.length) frame = requestAnimationFrame(animate);
+      };
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); });
+      observer.observe(this);
+      document.addEventListener('visibilitychange', update);
+      motion.addEventListener('change', update);
+      update();
+      this.cleanup = () => { cancelAnimationFrame(frame); observer.disconnect(); document.removeEventListener('visibilitychange', update); motion.removeEventListener('change', update); };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('agent-prompt')) customElements.define('agent-prompt', AgentPrompt);
+</script>
+
+<style>
+  agent-prompt { display: block; max-width: 860px; margin-inline: auto; text-align: left; }
+  .prompt-window { margin: 0; border: 1px solid #36517e; border-radius: 16px; background: linear-gradient(135deg,#111e35,#0a1222 80%); box-shadow: 0 16px 70px #03081255,0 0 60px #244eff0a; overflow: hidden; }
+  .prompt-heading { display: flex; align-items: center; gap: 10px; padding: 18px 24px; border-bottom: 1px solid #2b3f6066; color: #a8bcdf; font-size: 12px; }
+  .agent-indicator { width: 7px; height: 7px; background: #82abff; border-radius: 50%; box-shadow: 0 0 12px #477fff; }
+  .example-label { margin-left: auto; color: #7c90b0; font-size: 11px; }
+  .prompt-body { padding: 24px 28px 16px; }
+  .user-label { display: block; color: #ffbc86; font-size: 12px; margin-bottom: 12px; }
+  .prompt-message { position: relative; }
+  .typed-prompt,.prompt-layout { margin: 0; color: #e2ebff; font-size: clamp(17px,1.7vw,21px); line-height: 1.65; }
+  .prompt-layout { visibility: hidden; }
+  .typed-prompt { position: absolute; inset: 0; }
+  .accessible-prompt { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .caret { display: inline-block; width: 2px; height: 1em; margin-left: 3px; vertical-align: -.12em; background: #90b4ff; animation: cursor-blink 1s step-end infinite; animation-play-state: var(--cursor-motion,paused); }
+  @keyframes cursor-blink { 50% { opacity: 0; } }
+  .prompt-footer { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 0 24px 20px 28px; color: #7f94b5; font-size: 12px; }
+  .send-arrow { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #2344cf; color: #dce8ff; font-size: 21px; }
+  @media(max-width:760px) { .prompt-heading { padding-inline: 18px; } .prompt-body { padding-inline: 18px; } .prompt-footer { padding-inline: 18px; } }
+  @media(prefers-reduced-motion:reduce) { .caret { animation: none; } }
+</style>

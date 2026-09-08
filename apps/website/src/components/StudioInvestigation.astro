@@ -1,0 +1,179 @@
+---
+const findings = [
+  { stage: 'Investigate', title: 'Turned a production failure into an eval scenario.', text: 'The policy step incorrectly rejected a damaged item. I added the observed request and expected refund criteria to a draft dataset alongside the existing scenarios.', link: 'Inspect policy execution', id: 'policy' },
+  { stage: 'Change and evaluate', title: 'Updated the policy specialist.', text: 'I locked the expanded dataset, recorded a baseline, then tested updated prompts and code against the same cases.', link: 'Inspect evaluation run', id: 'run' },
+  { stage: 'Demonstrate', title: 'A verified improvement. No regressions in these scenarios.', text: 'The added failure case now passes, and the existing cases still pass. The linked state changes show why.', link: 'Inspect outcome differences', id: 'comparison' },
+];
+---
+<section class="studio-investigation" aria-labelledby="studio-investigation-title">
+  <div class="section-inner">
+    <div class="section-heading">
+      <h2 id="studio-investigation-title">Your coding agent investigates.<br /><em>You can inspect the evidence.</em></h2>
+      <p class="lead">Give your coding agent access to the execution history and evaluation outcomes needed to orchestrate a recursive self improvement cycle. It can investigate failures, make targeted changes, run evaluations, and explain the results with deep links into Junjo AI Studio.</p>
+      <p class="support">You and your coding agent can look at the same data, down to the operations, intermediate results, and state changes behind an outcome.</p>
+    </div>
+
+    <studio-investigation>
+      <div class="demo-context"><span>Junjo instrumented refund workflow</span></div>
+      <div class="investigation-layout">
+        <div class="agent-report">
+          <div class="surface-heading"><span class="agent-mark" aria-hidden="true">✧</span><strong>Your coding agent’s investigation</strong></div>
+          <div class="findings">
+            {findings.map((finding, index) => <button type="button" class="finding" data-evidence={finding.id} aria-pressed={index === 0 ? 'true' : 'false'} aria-controls={`studio-evidence-${finding.id}`}>
+              <span class="stage"><span class="stage-dot" aria-hidden="true"></span>{finding.stage}</span>
+              <strong>{finding.title}</strong>
+              <span class="finding-text">{finding.text}</span>
+              <span class="evidence-link">{finding.link}<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 4h10v10M16 4 4 16" /></svg></span>
+            </button>)}
+          </div>
+        </div>
+
+        <div class="studio-view">
+          <div class="surface-heading"><span class="studio-mark" aria-hidden="true"><i></i><i></i><i></i></span><strong>Junjo AI Studio</strong></div>
+          <div class="evidence-content">
+            <div id="studio-evidence-policy" class="evidence-panel" role="region" aria-label="Policy execution evidence">
+              <div class="record-title"><h3>Investigate improper AI outcome from the production application’s telemetry stored in Junjo AI Studio.</h3></div>
+              <div class="chronology" aria-label="Execution chronology with policy step selected">
+                <div><span>Refund workflow</span><i style="--start:0%;--length:100%"></i></div>
+                <div><span>Order history</span><i style="--start:8%;--length:32%"></i></div>
+                <div class="selected"><span>Product policy</span><i style="--start:16%;--length:50%"></i></div>
+                <div><span>Payment ledger</span><i style="--start:24%;--length:36%"></i></div>
+                <div><span>Synthesis</span><i style="--start:72%;--length:28%"></i></div>
+              </div>
+              <div class="record-detail"><h4>Product policy <span>Input → Output</span></h4>
+                <dl><div><dt>Item condition</dt><dd>Damaged on arrival</dd></div><div><dt>Selected policy</dt><dd class="text-failed">Standard return</dd></div><div><dt>Decision</dt><dd class="text-failed">Refund rejected</dd></div></dl>
+              </div>
+              <div class="evidence-note"><span aria-hidden="true">↳</span><p>Use the failed request and its execution evidence to create an eval case. Define the expected outcome, then include it with the existing scenarios to test the fix and check for regressions.</p></div>
+            </div>
+            <div id="studio-evidence-run" class="evidence-panel" role="region" aria-label="Evaluation run evidence" hidden>
+              <div class="record-title"><h3>Rerun the eval scenarios with updated prompts and code.</h3></div>
+              <div class="run-summary"><div><strong>3</strong><span>Passed</span></div><div><strong>0</strong><span>Failed</span></div></div>
+              <table><thead><tr><th>Scenario</th><th>Outcome</th></tr></thead><tbody><tr><td>Damaged item</td><td class="text-passed">Passed</td></tr><tr><td>Missing receipt</td><td class="text-passed">Passed</td></tr><tr><td>Partial return</td><td class="text-passed">Passed</td></tr></tbody></table>
+              <div class="record-detail"><h4>Evaluation reason <span>Damaged item</span></h4><p>The damaged-item policy was applied and the refund was approved.</p></div>
+              <div class="evidence-note"><span aria-hidden="true">↳</span><p>Validate that the added failure scenario is now handled properly and that existing scenarios have no regressions.</p></div>
+            </div>
+            <div id="studio-evidence-comparison" class="evidence-panel" role="region" aria-label="Evaluation outcome comparison" hidden>
+              <div class="record-title"><h3>Inspectable evidence of improved state handling.</h3></div>
+              <table class="comparison-table"><thead><tr><th>Scenario</th><th>Before</th><th>After</th></tr></thead><tbody><tr class="improved"><td>Damaged item</td><td class="text-failed">Failed</td><td class="text-passed">Passed</td></tr><tr><td>Missing receipt</td><td>Passed</td><td>Passed</td></tr><tr><td>Partial return</td><td>Passed</td><td>Passed</td></tr></tbody></table>
+              <div class="record-detail"><h4>Execution state <span>Damaged-item case</span></h4><div class="diff"><p class="text-failed"><span>−</span> policy: standard_return</p><p class="text-passed"><span>+</span> policy: damaged_item</p></div></div>
+              <div class="evidence-note"><span aria-hidden="true">↳</span><p>Proof of a real improvement without regressions across these scenarios. No whack-a-mole.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </studio-investigation>
+
+  </div>
+</section>
+
+<script>
+  class StudioInvestigation extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      const abort = new AbortController();
+      const buttons = [...this.querySelectorAll<HTMLButtonElement>('[data-evidence]')];
+      const panels = [...this.querySelectorAll<HTMLElement>('.evidence-panel')];
+      let selected = 0;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let visible = false;
+      let controlled = false;
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      const select = (index: number) => {
+        selected = index;
+        buttons.forEach((button, i) => button.setAttribute('aria-pressed', String(index === i)));
+        panels.forEach((panel, i) => panel.hidden = index !== i);
+      };
+      const schedule = () => {
+        clearTimeout(timer);
+        if (!visible || document.hidden || controlled || motion.matches || selected === buttons.length - 1) return;
+        timer = setTimeout(() => { select(selected + 1); schedule(); }, 7000);
+      };
+      const takeControl = () => { controlled = true; clearTimeout(timer); };
+      buttons.forEach((button, index) => button.addEventListener('click', () => {
+        takeControl();
+        select(index);
+        if (matchMedia('(max-width: 800px)').matches) {
+          this.querySelector('.studio-view')!.scrollIntoView({ behavior: motion.matches ? 'instant' : 'smooth', block: 'start' });
+        }
+      }, { signal: abort.signal }));
+      this.addEventListener('focusin', takeControl, { signal: abort.signal });
+      this.addEventListener('pointerenter', takeControl, { signal: abort.signal });
+      document.addEventListener('visibilitychange', schedule, { signal: abort.signal });
+      motion.addEventListener('change', schedule, { signal: abort.signal });
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; schedule(); });
+      observer.observe(this);
+      this.cleanup = () => { clearTimeout(timer); observer.disconnect(); abort.abort(); };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('studio-investigation')) customElements.define('studio-investigation', StudioInvestigation);
+</script>
+
+<style>
+  .studio-investigation { padding: clamp(80px,8vw,112px) 4vw; background: radial-gradient(ellipse at 80% 55%,#173c752b,transparent 65%),#080e1a; border-top: 1px solid #25324b66; }
+  .section-inner { max-width: 1440px; margin: auto; }
+  .section-heading { max-width: 1040px; margin-bottom: 56px; }
+  h2 { font-size: clamp(34px,4.25vw,62px); line-height: 1.08; font-weight: 500; letter-spacing: -.055em; margin: 0 0 28px; }
+  h2 em { font-style: normal; color: #83a5ff; }
+  .lead { color: #c0cbdd; font-size: clamp(17px,1.55vw,21px); line-height: 1.7; margin: 0; }
+  .support { color: #95abcd; font-size: 17px; line-height: 1.75; margin: 22px 0 0; max-width: 900px; }
+  studio-investigation { display: block; }
+  .demo-context { display: flex; justify-content: space-between; gap: 12px; color: #8ea5c7; font-size: 16px; margin-bottom: 18px; }
+  .demo-context span:first-child { color: #ffca91; }
+  .investigation-layout { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); border: 1px solid #334a6b; border-radius: 16px; overflow: hidden; background: #0b1423; }
+  .agent-report { background: linear-gradient(135deg,#0d182b,#080f1c); border-right: 1px solid #334a6b; }
+  .surface-heading { display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 16px 26px; border-bottom: 1px solid #293c58; color: #dce8fc; font-size: 15px; }
+  .surface-heading strong { font-weight: 500; }
+  .agent-mark { color: #b2d9ff; font-size: 25px; text-shadow: 0 0 12px #5298ff; }
+  .studio-mark { display: flex; align-items: center; gap: 3px; }
+  .studio-mark i { width: 3px; height: 15px; border-radius: 2px; background: #8cbaff; box-shadow: 0 0 8px #599aff88; }
+  .studio-mark i:nth-child(2) { height: 22px; background: #ffca91; }
+  .findings { padding: 16px; }
+  .finding { display: flex; flex-direction: column; align-items: flex-start; width: 100%; text-align: left; color: #b7c7df; font: inherit; padding: 22px; border: 1px solid transparent; border-radius: 10px; background: transparent; cursor: pointer; transition: background .25s,border-color .25s; }
+  .finding + .finding { margin-top: 5px; }
+  .finding:hover { background: #14243b; }
+  .finding[aria-pressed="true"] { border-color: #547cad; background: linear-gradient(110deg,#1b3152b3,#13223a66); }
+  .finding:focus-visible { outline: 2px solid #b0d6ff; outline-offset: 2px; }
+  .stage { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8ba6cb; margin-bottom: 10px; }
+  .stage-dot { width: 5px; height: 5px; border-radius: 50%; background: #6680a7; }
+  [aria-pressed="true"] .stage-dot { background: #ffcc98; box-shadow: 0 0 10px #ffb864; }
+  .finding strong { color: #e2ecff; font-size: 19px; font-weight: 500; letter-spacing: -.025em; }
+  .finding-text { font-size: 14px; line-height: 1.7; margin-top: 9px; }
+  .evidence-link { display: flex; gap: 9px; align-items: center; font-size: 13px; color: #a6cbff; margin-top: 15px; }
+  .evidence-link svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.3; flex-shrink: 0; }
+  .studio-view { scroll-margin-top: 90px; display: flex; flex-direction: column; min-width: 0; background: radial-gradient(ellipse at top right,#182c493b,transparent 65%),#0a1322; }
+  .evidence-content { padding: 28px; flex: 1; }
+  .evidence-panel { animation: evidence-in .35s ease-out; }
+  .evidence-panel[hidden] { display: none; }
+  .record-title { margin-bottom: 28px; }
+  .record-title h3 { font-size: clamp(21px,1.85vw,27px); line-height: 1.3; color: #e6efff; font-weight: 500; letter-spacing: -.035em; margin: 0; }
+  .chronology { margin: 0 0 28px; }
+  .chronology > div { display: grid; grid-template-columns: 120px minmax(0,1fr); align-items: center; gap: 12px; height: 40px; padding: 0 10px; color: #afc2de; font-size: 12px; }
+  .chronology .selected { background: #b9466720; border-radius: 5px; color: #ffb9c3; }
+  .chronology i { position: relative; height: 3px; width: var(--length); margin-left: var(--start); background: radial-gradient(circle,#9bceff 1px,transparent 1.5px) 0 0/6px 3px; filter: drop-shadow(0 0 3px #6ba9ff88); }
+  .chronology i::before { content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #ffce98; top: -1px; left: 0; }
+  .chronology .selected i { background-image: radial-gradient(circle,#ff8ba2 1px,transparent 1.5px); filter: drop-shadow(0 0 3px #f3698988); }
+  .record-detail { border: 1px solid #2b405f; background: #0a1020; border-radius: 8px; overflow: hidden; margin-top: 24px; }
+  .record-detail h4 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin: 0; padding: 14px 16px; border-bottom: 1px solid #263954; font-size: 13px; font-weight: 500; color: #d1dff6; }
+  .record-detail h4 span { font-weight: 400; color: #839bbd; font-size: 12px; }
+  dl { margin: 0; padding: 10px 16px; }
+  dl > div { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 9px 0; font-size: 12px; }
+  dt { color: #8da4c5; } dd { margin: 0; color: #ccdaf0; }
+  .record-detail > p { color: #afc4e0; font-size: 13px; line-height: 1.7; margin: 16px; }
+  .evidence-note { display: flex; gap: 10px; margin-top: 24px; color: #8eaacd; font-size: 13px; line-height: 1.7; }
+  .evidence-note > span { color: #ffca91; } .evidence-note p { margin: 0; }
+  .run-summary { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; margin-bottom: 24px; }
+  .run-summary strong { display: block; color: #b9d5ff; font-size: 31px; font-weight: 400; }
+  .run-summary span { color: #8ea5c7; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #809bbf; font-weight: 400; font-size: 12px; }
+  td,th { padding: 13px 10px; border-bottom: 1px solid #263951; }
+  td { color: #bccde4; } .improved { background: #3bcf9720; }
+  .text-failed { color: #ff9bab; } .text-passed { color: #90e3bc; } .text-error { color: #ffcc94 !important; }
+  .diff { padding: 12px 16px; font: 12px/1.8 ui-monospace,monospace; } .diff p { margin: 4px 0; } .diff span { margin-right: 12px; }
+  @keyframes evidence-in { from { opacity: .3; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @media(max-width:1100px) { .evidence-content { padding: 22px; } .finding { padding: 18px; } }
+  @media(max-width:800px) { .investigation-layout { grid-template-columns: 1fr; } .agent-report { border-right: 0; border-bottom: 1px solid #334a6b; } .evidence-content { min-height: 530px; } }
+  @media(max-width:760px) { .studio-investigation { padding: 72px 24px; } h2 { font-size: clamp(32px,7.5vw,44px); } .section-heading { margin-bottom: 40px; } .surface-heading { padding: 16px 20px; } .findings { padding: 10px; } .finding { padding: 18px 14px; } .evidence-content { padding: 22px 16px; } .chronology > div { grid-template-columns: 104px minmax(0,1fr); padding-inline: 4px; gap: 8px; font-size: 11px; } .comparison-table { font-size: 11px; } td,th { padding: 12px 6px; } }
+  @media(prefers-reduced-motion:reduce) { .evidence-panel { animation: none; } .finding { transition: none; } }
+</style>

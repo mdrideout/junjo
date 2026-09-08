@@ -74,7 +74,11 @@ existing component selections.
 
 ## Content ownership
 
-- `src/content/docs/index.mdx` owns the Starlight splash page at `/`.
+- `src/pages/index.astro` owns the marketing homepage at `/`.
+- `src/layouts/MarketingLayout.astro` owns the marketing shell and its styles;
+  Starlight continues to own the documentation layout under `/docs/`.
+- `src/components/HeroField.astro` owns the decorative animated particle field.
+  It respects reduced motion and stops animating while the page is hidden.
 - `src/content/docs` owns hand-authored platform pages.
 - `src/content/docs/generated` is ignored, assembled output owned by its source
   components.
