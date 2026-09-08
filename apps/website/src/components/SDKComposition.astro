@@ -13,7 +13,7 @@ const nodes = ['entry','upper','lower','exit','upper-step','lower-step','merge']
 ---
 
 <sdk-composition>
-  <svg viewBox="0 0 620 440" role="img" aria-label="A monolithic prompt divides into two circles. A single edge activates two nodes inside RunConcurrent. A separate branch adds sequential work, and both branches merge before the exit.">
+  <svg viewBox="0 35 620 340" role="img" aria-label="A monolithic prompt divides into two circles. A single edge activates two nodes inside RunConcurrent. A separate branch adds sequential work, and both branches merge before the exit.">
     {Object.entries(connections).map(([stage,paths]) => <g class:list={['connections',stage]}>
       {paths.map(d => <>
         <path class="edge-halo" d={d} pathLength="100" />
@@ -64,8 +64,8 @@ const nodes = ['entry','upper','lower','exit','upper-step','lower-step','merge']
 </script>
 
 <style>
-  sdk-composition { --motion-state: paused; --cycle: 13s; display: block; min-width: 0; width: 100%; max-width: 720px; margin-inline: auto; }
-  svg { display: block; width: 100%; aspect-ratio: 620 / 440; overflow: visible; }
+  sdk-composition { --motion-state: paused; --cycle: 13s; display: block; min-width: 0; width: 100%; max-width: 576px; margin-inline: auto; }
+  svg { display: block; width: 100%; aspect-ratio: 620 / 340; overflow: visible; }
   .node { color: #90c3ff; animation: var(--node-motion) var(--cycle) cubic-bezier(.4,0,.2,1) infinite; }
   .specialist { color: #ffd198; }
   .node-halo { fill: none; stroke: currentColor; stroke-width: 12; opacity: .06; }
@@ -95,7 +95,7 @@ const nodes = ['entry','upper','lower','exit','upper-step','lower-step','merge']
   .concurrent-group { animation: enclose-concurrent var(--cycle) cubic-bezier(.4,0,.2,1) infinite; }
   .concurrent-group rect { fill: #152039; fill-opacity: .65; stroke: #b0c6ee; stroke-width: 1; stroke-opacity: .5; }
   .concurrent-group text { text-anchor: middle; fill: #c4d6f1; font: 12px system-ui, sans-serif; }
-  .composition-caption { display: grid; text-align: center; color: #b7c7e2; font-size: 14px; line-height: 1.5; margin-top: 18px; }
+  .composition-caption { display: grid; text-align: center; color: #b7c7e2; font-size: 16px; line-height: 1.5; margin-top: 8px; }
   .composition-caption span { grid-area: 1 / 1; animation: var(--caption-motion) var(--cycle) ease-in-out infinite; }
   .caption-monolith { --caption-motion: caption-monolith; }
   .caption-pair { --caption-motion: caption-pair; }

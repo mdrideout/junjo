@@ -53,22 +53,29 @@ const mobiusLanes = [0, 6, 12, 18, 24].map(width => {
       <div class="approach composed">
         <div class="approach-heading"><h4>Optimized With Junjo</h4><p>GPT-5.6 Luna <span class="effort">High</span></p></div>
         <svg viewBox="0 30 520 250" role="img" aria-label="An intake step fans out into three stacked concurrent rings to distill order history, product policy, and payment ledger. Their outputs converge into synthesis.">
-          <g class="connections">
-            <path d="M105 160C170 160 170 92 228 92M105 160H228M105 160C170 160 170 228 228 228M316 92C380 92 376 160 415 160M316 160H415M316 228C380 228 376 160 415 160" />
-          </g>
           <g class="intake">
             <ellipse class="dot-outline" cx="70" cy="160" rx="35" ry="23" />
             {Array.from({length:24},(_,i)=><circle class="interior-dot" cx={48 + (i % 6) * 9} cy={150 + Math.floor(i / 6) * 7} r="1" />)}
           </g>
           <text class="stage-label" x="70" y="208">Intake</text>
           <text class="concurrent-label" x="272" y="44">RunConcurrent</text>
-          {tasks.map((name, i) => <>
+          {tasks.map((name, i) => {
+            const y = 92 + i * 68;
+            const incoming = `M105 160C170 160 170 ${y} 228 ${y}`;
+            const outgoing = `M316 ${y}C380 ${y} 376 160 415 160`;
+            return <g data-task-operation>
+            <path class="route" d={incoming} /><path class="route" d={outgoing} />
             <g class="concurrent-ring" transform={`translate(272 ${92 + i * 68}) rotate(-12)`}>
               {[0,1,2,3,4].map(lane => <ellipse class="ring-dots" cx="0" cy="0" rx={32 + lane * 3} ry={10 + lane * 2} pathLength="100" style={`opacity:${.5 + lane * .12}`} />)}
               <ellipse class="ring-spark" cx="0" cy="0" rx="38" ry="14" pathLength="100" />
+              <ellipse class="ring-flash" rx="44" ry="18" />
             </g>
             <text class="task-label" x="272" y={126 + i * 68}>{name}</text>
-          </>)}
+            <g class="packet request-packet" style={`offset-path:path('${incoming}')`}><circle class="packet-halo" r="10" /><circle r="3.5" /></g>
+            <g class="packet response-packet" style={`offset-path:path('${outgoing}')`}><circle class="packet-halo" r="12" /><circle r="4" /></g>
+            <ellipse class="arrival-flash" cx="450" cy="160" rx="36" ry="24" />
+          </g>;
+          })}
           <g class="synthesis">
             <ellipse class="dot-outline" cx="450" cy="160" rx="35" ry="23" />
             {Array.from({length:24},(_,i)=><circle class="interior-dot" cx={428 + (i % 6) * 9} cy={150 + Math.floor(i / 6) * 7} r="1" />)}
@@ -85,17 +92,81 @@ const mobiusLanes = [0, 6, 12, 18, 24].map(width => {
 
 <script>
   class TaskDecomposition extends HTMLElement {
+    private cleanup?: () => void;
     connectedCallback() {
-      const update = () => { this.style.setProperty('--motion-state', this.visible && !document.hidden ? 'running' : 'paused'); };
-      this.update = update;
-      this.observer = new IntersectionObserver(([entry]) => { this.visible = entry.isIntersecting; update(); });
-      this.observer.observe(this);
-      document.addEventListener('visibilitychange', update);
+      const groups = [...this.querySelectorAll('[data-task-operation]')];
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      const abort = new AbortController();
+      let animations: Animation[] = [];
+      let visible = false;
+      let disposed = false;
+      const ringPhases = groups.map(() => 0);
+      // Keep this comparison synchronized: simultaneous requests and responses,
+      // and a two-second hold after the final arrival.
+      const duration = 5500;
+      const animate = (element: Element, frames: Keyframe[]) => {
+        const animation = element.animate(frames, {duration, fill:'both'});
+        animations.push(animation);
+      };
+      const packet = (element: Element, start: number, end: number) => animate(element, [
+        {offset:0, opacity:0, offsetDistance:'0%'},
+        {offset:start/duration, opacity:0, offsetDistance:'0%'},
+        {offset:(start+30)/duration, opacity:1, offsetDistance:'0%'},
+        {offset:(end-30)/duration, opacity:1, offsetDistance:'100%'},
+        {offset:end/duration, opacity:0, offsetDistance:'100%'},
+        {offset:1, opacity:0, offsetDistance:'100%'},
+      ]);
+      const flash = (element: Element, at: number) => animate(element, [
+        {offset:0, opacity:0}, {offset:at/duration, opacity:0},
+        {offset:(at+30)/duration, opacity:1}, {offset:(at+500)/duration, opacity:0}, {offset:1, opacity:0},
+      ]);
+      const cancel = () => {
+        animations.forEach(animation => { animation.onfinish = null; animation.cancel(); });
+        animations = [];
+      };
+      const sync = () => {
+        const running = visible && !document.hidden;
+        this.style.setProperty('--motion-state', running ? 'running' : 'paused');
+        for (const animation of animations) running ? animation.play() : animation.pause();
+      };
+      const run = () => {
+        cancel();
+        if (disposed || motion.matches) return;
+        groups.forEach((group,index) => {
+          const departure = 2700;
+          const arrival = departure + 800;
+          packet(group.querySelector('.request-packet')!,150,850);
+          packet(group.querySelector('.response-packet')!,departure,arrival);
+          flash(group.querySelector('.ring-flash')!,850);
+          flash(group.querySelector('.arrival-flash')!,arrival);
+          const slow = 100/32000;
+          const fast = 100/450;
+          const ramp = 150;
+          let phase = ringPhases[index];
+          const rotation: Keyframe[] = [{offset:0,strokeDashoffset:String(-phase)}];
+          const advance = (at: number, distance: number) => {
+            phase += distance;
+            rotation.push({offset:at/duration,strokeDashoffset:String(-phase)});
+          };
+          advance(850,850*slow);
+          advance(850+ramp,ramp*(slow+fast)/2);
+          advance(departure,(departure-850-ramp)*fast);
+          advance(departure+ramp,ramp*(slow+fast)/2);
+          advance(duration,(duration-departure-ramp)*slow);
+          ringPhases[index] = phase%100;
+          animate(group.querySelector('.concurrent-ring')!,rotation);
+        });
+        animations[0].onfinish = run;
+        sync();
+      };
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); });
+      observer.observe(this);
+      document.addEventListener('visibilitychange',sync,{signal:abort.signal});
+      motion.addEventListener('change',run,{signal:abort.signal});
+      run();
+      this.cleanup = () => { disposed=true; cancel(); observer.disconnect(); abort.abort(); };
     }
-    visible = false;
-    observer?: IntersectionObserver;
-    update?: () => void;
-    disconnectedCallback() { this.observer?.disconnect(); if (this.update) document.removeEventListener('visibilitychange', this.update); }
+    disconnectedCallback() { this.cleanup?.(); }
   }
   if (!customElements.get('task-decomposition')) customElements.define('task-decomposition', TaskDecomposition);
 </script>
@@ -139,31 +210,30 @@ const mobiusLanes = [0, 6, 12, 18, 24].map(width => {
   .mobius-ribbon,.concurrent-ring { filter: drop-shadow(0 0 3px #ffbc5277); }
   .mobius-dots { fill: none; stroke: #ffda99; stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .01 1.99; animation: mobius-travel 80s linear infinite; animation-delay: var(--lane-delay); }
   .mobius-sparks { stroke: #fff0cd; stroke-width: 2.6; stroke-dasharray: .01 19.99; }
-  .ring-dots { fill: none; stroke: #ffd48b; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: .1 1.9; animation: ring-lap 8s ease-in-out infinite; }
-  .ring-spark { fill: none; stroke: #fff0ce; stroke-width: 3; stroke-linecap: round; stroke-dasharray: .1 99.9; filter: drop-shadow(0 0 4px #ffcf77); animation: ring-lap 8s ease-in-out infinite; }
-  .connections path { fill: none; stroke: #8bbaff; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 6; opacity: .7; animation: travel 4s linear infinite; }
+  .ring-dots { fill: none; stroke: #ffd48b; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: .1 1.9; }
+  .ring-spark { fill: none; stroke: #fff0ce; stroke-width: 3; stroke-linecap: round; stroke-dasharray: .1 99.9; filter: drop-shadow(0 0 4px #ffcf77); }
+  .route { fill: none; stroke: #8bbaff; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 6; opacity: .7; }
   .dot-outline { fill: none; stroke: #b9dbff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: .1 5; }
   .interior-dot { fill: #a3caff; }
   .intake,.synthesis { filter: drop-shadow(0 0 3px #71acff); }
-  .intake { animation: intake-glow 8s ease-in-out infinite; }
-  .synthesis { animation: synthesis-glow 8s ease-in-out infinite; }
+  .ring-flash { fill:none; stroke:#fff0cc; stroke-width:4; opacity:0; }
+  .packet { offset-anchor:0px 0px; offset-rotate:0deg; opacity:0; fill:#e0f0ff; filter:drop-shadow(0 0 3px #71acff); }
+  .response-packet { fill:#ffe6b8; filter:drop-shadow(0 0 3px #ffc777); }
+  .packet-halo { opacity:.2; }
+  .arrival-flash { fill:#b3dcff; fill-opacity:.35; stroke:#e5f4ff; stroke-width:2; opacity:0; filter:drop-shadow(0 0 5px #71acff); }
   .stage-label { font-size: 17px; fill: #c7daf7; }
   .task-label { font-size: 13px; fill: #9eb5d7; }
   .concurrent-label { font-size: 14px; fill: #a4bee4; }
   .metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 0; padding-top: 12px; gap: 10px; }
   dt { font-size: 12px; color: #a2b4d1; }
   dd { margin: 12px 0 0; font-size: clamp(23px,2.2vw,30px); letter-spacing: -.04em; color: #d6e2f6; white-space: nowrap; }
-  dd span { font-size: 12px; margin-left: 5px; letter-spacing: 0; color: #92a8c8; }
+  dd span { font-size: .7em; margin-left: 5px; letter-spacing: 0; color: #92a8c8; }
   .composed dd { color: #b3d6ff; }
   .example-caption { margin-top: 16px; text-align: center; color: #91a8cb; font-size: 12px; }
-  .mobius-dots,.ring-dots,.ring-spark,.connections path,.intake,.synthesis { animation-play-state: var(--motion-state); }
+  .mobius-dots { animation-play-state: var(--motion-state); }
   @keyframes mobius-travel { to { stroke-dashoffset: -100; } }
-  @keyframes ring-lap { 0%,25% { stroke-dashoffset: 0; } 65%,100% { stroke-dashoffset: -100; } }
-  @keyframes travel { to { stroke-dashoffset: -48; } }
   @keyframes thinking-pulse { 0%,80%,100% { opacity: .3; } 40% { opacity: 1; } }
-  @keyframes intake-glow { 0%,25%,100% { opacity: .45; } 8%,18% { opacity: 1; } }
-  @keyframes synthesis-glow { 0%,55%,100% { opacity: .45; } 70%,90% { opacity: 1; } }
   @media (max-width: 1000px) { .approach { padding-inline: 12px; } }
   @media (max-width: 760px) { .experiment-pair { grid-template-columns: 1fr; gap: 28px; } .approach { padding-inline: 0; } .approach + .approach { border-left: 0; } .scenario-intro { grid-template-columns: 1fr; gap: 28px; } }
-  @media (prefers-reduced-motion: reduce) { .mobius-dots,.ring-dots,.ring-spark,.connections path,.intake,.synthesis,.thinking-dots span { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .mobius-dots,.thinking-dots span { animation: none; } }
 </style>

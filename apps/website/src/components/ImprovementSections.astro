@@ -9,6 +9,8 @@ import SDKBuildingBlocks from './SDKBuildingBlocks.astro';
 import ModelFreedom from './ModelFreedom.astro';
 import FrameworkIntegrations from './FrameworkIntegrations.astro';
 import SDKComposition from './SDKComposition.astro';
+import AgentSetupModal from './AgentSetupModal.astro';
+import StudioInvestigation from './StudioInvestigation.astro';
 const codingAgents = [
   { name: 'ChatGPT Codex', icon: 'codex.png' },
   { name: 'Claude Code', icon: 'claude.png' },
@@ -118,33 +120,7 @@ const codingAgents = [
   <FrameworkIntegrations />
   <ModelFreedom />
 
-  <section class="benefit-section compare" aria-labelledby="compare-title">
-    <div class="section-inner">
-      <div class="section-heading">
-        <h2 id="compare-title">Know which changes <em>actually improve</em> the application.</h2>
-        <p class="lead">Run the original implementation and a proposed code or prompt change against the same locked dataset. Compare passed, failed, and error outcomes case by case, then inspect the linked execution evidence to understand what changed.</p>
-        <p class="support">Follow each result back to its execution evidence. Evaluate focused steps and the complete workflow so a local improvement does not hide a downstream failure.</p>
-      </div>
-      <div class="comparison-flow" aria-label="Evaluate the original and candidate against the same cases">
-        <div class="shared-cases"><span class="case-dots" aria-hidden="true">•••••</span><span>Same cases. Same evaluation criteria.</span></div>
-        <div class="comparison-pair">
-          <div><span class="example-label">Baseline</span><h3>Original implementation</h3><p>Recorded outcomes & execution evidence</p></div>
-          <span class="comparison-symbol" aria-hidden="true">↔</span>
-          <div><span class="example-label">Candidate</span><h3>Changed implementation</h3><p>Recorded outcomes & execution evidence</p></div>
-        </div>
-      </div>
-      <div class="measurement-grid">
-        <article><span class="measurement-icon" aria-hidden="true">✓</span><h3>Quality</h3><p>Which cases improved, regressed, or stayed the same?</p></article>
-        <article><span class="measurement-icon" aria-hidden="true">↗</span><h3>Speed</h3><p>How did execution time change, and where is time being spent?</p></article>
-        <article><span class="measurement-icon" aria-hidden="true">↓</span><h3>Efficiency</h3><p>Compare requests, retries, token usage, and cost where measurement is available.</p></article>
-      </div>
-      <div class="evaluation-coverage">
-        <h3>Keep pass rate and coverage visible.</h3>
-        <p>Pass rate counts judged cases only: <span class="pass-formula">passed / (passed + failed)</span>. Coverage is reported separately, keeping operational errors visible alongside the results.</p>
-      </div>
-      <a class="section-link" href="/docs/python/evaluation/">Explore evaluation-driven development <span aria-hidden="true">↗</span></a>
-    </div>
-  </section>
+  <StudioInvestigation />
 
   <section class="benefit-section history" aria-labelledby="history-title">
     <div class="section-inner history-layout">
@@ -175,7 +151,13 @@ const codingAgents = [
         <article class="junjo-layer"><span class="layer-number">03</span><div><h3>Junjo</h3><p>Supplies telemetry, evaluation tooling, datasets, results, and queryable execution evidence.</p></div><span class="layer-role">Observe & measure</span></article>
       </div>
       <div class="stack-footer"><p>Use OpenTelemetry and a self-hostable Studio to keep execution evidence accessible to your agents and your team.</p><a class="section-link" href="/docs/observability/opentelemetry/">Explore OpenTelemetry integration <span aria-hidden="true">↗</span></a></div>
-      <div class="closing-cta"><h3>Give your coding agent the evidence for its next improvement.</h3><a class="button" href="/docs/#get-started">Get started <span aria-hidden="true">↗</span></a></div>
+      <div class="closing-cta">
+        <h3>Give your coding agent the evidence for its next improvement.</h3>
+        <div class="closing-actions">
+          <a class="button" href="/docs/#get-started">Get started <span aria-hidden="true">↗</span></a>
+          <AgentSetupModal id="closing-agent-setup" />
+        </div>
+      </div>
     </div>
   </section>
 </div>
@@ -239,28 +221,13 @@ const codingAgents = [
   .dataset-outcomes h3 { margin: 0 0 14px; font-size: clamp(24px,2.3vw,31px); line-height: 1.25; color: #a8c4ff; }
   .dataset-outcomes p { max-width: none; font-size: clamp(20px,2vw,26px); line-height: 1.65; }
   .dataset-outcomes p + p { margin-top: 18px; }
-  .evaluation-coverage { padding: 24px; margin-bottom: 30px; border-left: 2px solid #87aaff; background: #10213a66; }
-  .evaluation-coverage h3 { margin: 0 0 10px; font-size: 23px; }
-  .evaluation-coverage p { margin: 0; color: #9aaccb; font-size: 16px; line-height: 1.7; }
-  .pass-formula { color: #c9daff; }
   .simplify { background: linear-gradient(150deg,#0c1529,#080c16 70%); }
   .simplify .section-heading { margin-bottom: 0; }
   .sdk { background: radial-gradient(ellipse at 85% 38%,#17396830,transparent 58%),#080e1a; }
   .sdk-intro { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); align-items: center; gap: 48px; margin-bottom: 64px; }
   .sdk-intro .sdk-heading { max-width: none; margin-bottom: 0; }
   .sdk-heading h2 { font-size: clamp(34px,3.3vw,54px); }
-  .comparison-flow { border-top: 1px solid #35496e; border-bottom: 1px solid #35496e; }
-  .shared-cases { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 22px; font-size: 13px; color: #b9cae8; border-bottom: 1px solid #25324b; }
-  .case-dots { color: #8cb1ff; letter-spacing: 7px; text-shadow: 0 0 12px #4272ff; }
-  .comparison-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 40px; padding: 40px; }
-  .comparison-pair > div { text-align: center; }
-  .comparison-pair h3 { font-size: clamp(20px,2.2vw,30px); margin: 14px 0 8px; }
-  .comparison-pair p { color: #8f9fbb; font-size: 13px; margin: 0; }
-  .comparison-symbol { color: #ffb87b; font-size: 30px; }
-  .measurement-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 50px; margin: 56px 0; }
-  .measurement-icon { color: #8baaff; font-size: 22px; }
-  .measurement-grid h3 { font-size: 23px; margin: 14px 0 10px; }
-  .measurement-grid p { font-size: 15px; color: #91a1bc; margin: 0; }
+  .sdk-heading .lead { font-size: clamp(18px,1.65vw,22px); }
   .section-link { display: inline-flex; align-items: center; gap: 18px; color: #b6caff; font-size: 14px; line-height: 1.6; }
   .section-link:hover { color: #fff; }
   .history { background: radial-gradient(ellipse at 85% 50%,#11234b66,transparent 60%),#0a101e; }
@@ -296,8 +263,9 @@ const codingAgents = [
   .closing-cta { display: flex; justify-content: space-between; align-items: center; gap: 40px; border-top: 1px solid #2a3b5b; margin-top: 56px; padding-top: 56px; }
   .closing-cta h3 { font-size: clamp(25px,3vw,40px); max-width: 670px; line-height: 1.2; margin: 0; }
   .closing-cta a { flex-shrink: 0; }
+  .closing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 24px; }
   @media(max-width:1000px) {
-    .sdk-intro { grid-template-columns: 1fr; gap: 16px; }
+    .sdk-intro { grid-template-columns: 1fr; gap: 8px; }
     .diagnosis-layout { grid-template-columns: 1fr; gap: 56px; }
     .history-layout { gap: 28px; }
     .stack-footer { flex-direction: column; gap: 18px; }
@@ -317,11 +285,6 @@ const codingAgents = [
     .benefit-section { padding: 72px 24px; }
     .section-heading { margin-bottom: 40px; }
     h2 { font-size: clamp(32px,7.5vw,44px); }
-    .comparison-pair { grid-template-columns: 1fr; gap: 22px; padding: 30px 16px; }
-    .comparison-symbol { transform: rotate(90deg); justify-self: center; }
-    .shared-cases { flex-direction: column; gap: 8px; padding: 20px 12px; text-align: center; }
-    .measurement-grid { grid-template-columns: 1fr; gap: 28px; margin-block: 40px; }
-    .measurement-grid article { border-bottom: 1px solid #263550; padding-bottom: 26px; }
     .history-layout { grid-template-columns: 1fr; row-gap: 40px; }
     .history-visual { max-width: 450px; width: 100%; height: 320px; }
     .history-sheet { padding: 20px; }
