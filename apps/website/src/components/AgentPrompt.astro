@@ -1,5 +1,6 @@
 ---
-const prompt = 'Investigate the failed cases in our refund workflow, make a targeted improvement, and compare it against the baseline.';
+interface Props { prompt?: string; footer?: string; }
+const { prompt = 'Investigate the failed cases in our refund workflow, make a targeted improvement, and compare it against the baseline.', footer = 'Describe the outcome you want.' } = Astro.props;
 ---
 
 <agent-prompt>
@@ -13,7 +14,7 @@ const prompt = 'Investigate the failed cases in our refund workflow, make a targ
         <p class="typed-prompt"><span class="typed-text">{prompt}</span><span class="caret"></span></p>
       </div>
     </div>
-    <div class="prompt-footer" aria-hidden="true"><span>Describe the outcome you want.</span><span class="send-arrow">↑</span></div>
+    <div class="prompt-footer" aria-hidden="true"><span>{footer}</span><span class="send-arrow">↑</span></div>
   </figure>
 </agent-prompt>
 
@@ -61,7 +62,7 @@ const prompt = 'Investigate the failed cases in our refund workflow, make a targ
   .prompt-body { padding: 24px 28px 16px; }
   .user-label { display: block; color: #ffbc86; font-size: 12px; margin-bottom: 12px; }
   .prompt-message { position: relative; }
-  .typed-prompt,.prompt-layout { margin: 0; color: #e2ebff; font-size: clamp(17px,1.7vw,21px); line-height: 1.65; }
+  .typed-prompt,.prompt-layout { margin: 0; color: #e2ebff; font-size: var(--prompt-font-size,clamp(17px,1.7vw,21px)); line-height: 1.65; }
   .prompt-layout { visibility: hidden; }
   .typed-prompt { position: absolute; inset: 0; }
   .accessible-prompt { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

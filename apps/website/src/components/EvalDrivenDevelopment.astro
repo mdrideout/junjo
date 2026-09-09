@@ -1,0 +1,138 @@
+---
+import AgentPrompt from './AgentPrompt.astro';
+import ImprovementCycleVisual from './ImprovementCycleVisual.astro';
+const runs = ['Baseline', 'Experiment 01', 'Experiment 02', 'Experiment 03', 'Refined flow'];
+const scenarios = [
+  { name: 'Damaged items', passed: [0, 2, 6, 8, 10] },
+  { name: 'Missing receipts', passed: [2, 4, 7, 9, 10] },
+  { name: 'Partial returns', passed: [1, 3, 4, 7, 9] },
+  { name: 'Already refunded', passed: [4, 5, 8, 9, 10] },
+  { name: 'Split payments', passed: [0, 2, 4, 6, 9] },
+  { name: 'Expired return windows', passed: [3, 4, 6, 8, 10] },
+  { name: 'Gift returns', passed: [2, 3, 5, 8, 9] },
+  { name: 'Policy exceptions', passed: [0, 1, 4, 7, 9] },
+];
+const prompt = 'Use Junjo to investigate recent customer service agent failures, build evaluator judges and datasets of new scenarios based on our customer interactions, and iterate until we handle these correctly.';
+---
+<section class="eval-development" aria-labelledby="eval-development-title">
+  <div class="section-inner">
+    <h2 id="eval-development-title">One-shot <em>Recursive Self Improvement</em></h2>
+    <div class="eval-intro">
+      <div class="section-heading">
+        <p class="lead">Recursive self improvement starts with a single prompt. Junjo’s evaluation datasets, evaluator telemetry, and coding-agent skills let your agent target failure modes, generate scenarios, build evaluator judges, and run experiments.</p>
+        <p class="support">Your coding agent owns and runs the code. Junjo AI Studio coordinates the experiment data and telemetry as a single source of truth across multiple agents, work trees, and team members. Scale up and run unlimited fan-out recursive self improvement cycles in parallel.</p>
+      </div>
+      <AgentPrompt prompt={prompt} footer="" />
+    </div>
+
+    <figure class="run-comparison">
+      <div class="comparison-heading"><h3>Target the failure modes. Measure the progress.</h3><p>Cases passed / cases evaluated</p></div>
+      <div class="table-scroll" role="region" aria-label="Evaluation progress across five runs" tabindex="0">
+        <table>
+          <caption class="sr-only">Example refund evaluation progress. Each failure mode has ten test cases, evaluated across the same five runs.</caption>
+          <thead><tr><th scope="col">Failure mode</th>{runs.map(run => <th scope="col">{run}</th>)}</tr></thead>
+          <tbody>{scenarios.map(scenario => <tr><th scope="row">{scenario.name}</th>{scenario.passed.map(passed => <td>
+            <div class:list={['score', passed < 4 ? 'low' : passed < 8 ? 'middle' : 'high']}>
+              <span class="score-number">{passed}<span class="denominator"> / 10</span></span>
+              <span class="score-dots" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i class:list={{ passed: i < passed }}></i>)}</span>
+            </div>
+          </td>)}</tr>)}</tbody>
+          <tfoot><tr><th scope="row">Overall pass rate</th>{runs.map((_, r) => <td>{Math.round(scenarios.reduce((sum, scenario) => sum + scenario.passed[r], 0) / (scenarios.length * 10) * 100)}<span>%</span></td>)}</tr></tfoot>
+        </table>
+      </div>
+      <figcaption>Example results across the same 80 cases. Each row groups ten variations of a failure mode.</figcaption>
+    </figure>
+
+    <div class="improvement-cycle">
+      <div class="cycle-heading">
+        <h3>The engine of<br /><em>recursive self improvement.</em></h3>
+        <p>Each experiment gives your coding agent evidence for the next one. It can harvest failure modes from application telemetry, turn them into targeted datasets and evals, and test prompt or code changes against a baseline.</p>
+      </div>
+      <ol class="cycle-steps">
+        <li><span class="cycle-dot" aria-hidden="true"></span><div><h4>Harvest real failure modes.</h4><p>Investigate production execution history and evaluation failures to identify the behavior that needs attention.</p></div></li>
+        <li><span class="cycle-dot" aria-hidden="true"></span><div><h4>Build the next evaluation.</h4><p>Create scenarios from observed failures, add synthetic variations, and define what success means. Lock the dataset to keep subsequent experiments comparable.</p></div></li>
+        <li><span class="cycle-dot" aria-hidden="true"></span><div><h4>Experiment, compare, repeat.</h4><p>Run prompt and code changes through the same cases. Inspect the outcomes and traces, check for regressions, and use the findings to guide the next change.</p></div></li>
+      </ol>
+    </div>
+    <div class="scale-strategies">
+      <article class="strategy-card recurring-strategy">
+        <h3>Make improvement <em>a recurring task.</em></h3>
+        <ImprovementCycleVisual />
+        <p>Schedule this cycle through your coding agent’s automation or your existing scheduler. Ask it to harvest new failure modes, develop datasets and evals, run experiments with prompt changes, and report the evidence.</p>
+        <p class="strategy-detail">Your coding agent orchestrates the work; your application runs it; Junjo preserves the data for the next cycle.</p>
+      </article>
+      <article class="strategy-card parallel-strategy">
+        <h3>Large Scale <em>Parallel Improvements</em></h3>
+        <ImprovementCycleVisual parallel />
+        <p>Unleash recursive self improvement with fan-out strategies to test multiple architectures and approaches at once, or to handle several failure modes in parallel.</p>
+        <p class="strategy-detail">Run independent recursive self improvement cycles for feature_a, feature_b, failure_mode_1, and failure_mode_2. Each coding agent works in its own work tree, harvesting failures, running experiments, evaluating outcomes, and improving its target with Junjo. Junjo AI Studio brings their results and telemetry together so you can compare improvements and direct the next round of work.</p>
+      </article>
+    </div>
+    <a class="section-link" href="/docs/python/evaluation/">Explore eval-driven development with Junjo <span aria-hidden="true">↗</span></a>
+  </div>
+</section>
+
+<style>
+  .eval-development { padding: clamp(80px,8vw,112px) 4vw; border-top: 1px solid #25324b66; background: radial-gradient(ellipse at 75% 35%,#10275555,transparent 65%),#070a12; }
+  .section-inner { max-width: 1200px; margin-inline: auto; }
+  .eval-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  .section-heading { min-width: 0; }
+  h2 { font-size: clamp(34px,4.25vw,62px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; margin: 0 0 28px; text-wrap: balance; }
+  em { font-style: normal; color: #83a5ff; }
+  .lead { max-width: 800px; font-size: clamp(17px,1.55vw,21px); line-height: 1.7; color: #c0cbdd; margin: 0; }
+  .support { max-width: 800px; font-size: 16px; line-height: 1.75; color: #9cafcd; margin: 20px 0 0; }
+  .eval-intro > :global(agent-prompt) { max-width: 100%; width: 100%; --prompt-font-size: 17px; }
+  h3,h4 { font-weight: 500; letter-spacing: -.03em; margin: 0; }
+  .run-comparison { margin: 56px 0 0; }
+  .comparison-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 24px; }
+  .comparison-heading h3 { font-size: clamp(22px,2.3vw,28px); }
+  .comparison-heading p { font-size: 13px; color: #9eb2d2; margin: 0; }
+  .table-scroll { overflow-x: auto; border: 1px solid #334a71; border-radius: 16px; background: #0b1424b3; }
+  .table-scroll:focus-visible,a:focus-visible { outline: 2px solid #9dc6ff; outline-offset: 4px; }
+  table { width: 100%; min-width: 690px; border-collapse: collapse; text-align: left; font-size: 15px; }
+  th { font-weight: 500; color: #cbd8ee; }
+  th,td { padding: 18px 24px; }
+  thead th { font-size: 13px; color: #a1b8db; padding-block: 24px; white-space: nowrap; }
+  thead th:first-child { width: 25%; }
+  tbody tr { border-top: 1px solid #334a7155; }
+  td:last-child,thead th:last-child { background: #244b6814; }
+  .score { display: inline-flex; flex-direction: column; gap: 10px; }
+  .score-number { font-size: 21px; font-variant-numeric: tabular-nums; }
+  .denominator { color: #91a4c1; font-size: 14px; }
+  .low { color: #ff969f; } .middle { color: #ffcb89; } .high { color: #8fe5c4; }
+  .score-dots { display: flex; gap: 4px; }
+  .score-dots i { width: 4px; height: 4px; border-radius: 50%; background: #33445f; }
+  .score-dots .passed { background: currentColor; box-shadow: 0 0 6px currentColor; }
+  tfoot { border-top: 1px solid #334a71; }
+  tfoot td { font-size: 24px; color: #bfdaff; }
+  tfoot span { font-size: 17px; }
+  figcaption { margin-top: 16px; font-size: 12px; color: #8c9db7; line-height: 1.65; }
+  .improvement-cycle { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; margin-top: 64px; }
+  .cycle-heading h3 { font-size: clamp(28px,3vw,40px); line-height: 1.15; }
+  .cycle-heading p,.cycle-steps p { font-size: 16px; line-height: 1.75; color: #a6b8d3; margin: 18px 0 0; }
+  .cycle-steps { list-style: none; margin: 0; padding: 0; }
+  .cycle-steps li { display: flex; gap: 20px; position: relative; padding: 0 0 30px; }
+  .cycle-steps li:last-child { padding-bottom: 0; }
+  .cycle-steps li:not(:last-child)::before { content: ''; position: absolute; top: 18px; bottom: 0; left: 3px; border-left: 1px dotted #5476a7; }
+  .cycle-dot { width: 7px; height: 7px; border-radius: 50%; background: #ffcb89; box-shadow: 0 0 12px #ffbe8277; flex-shrink: 0; margin-top: 9px; }
+  h4 { font-size: 21px; color: #d9e6fa; }
+  .cycle-steps p { margin-top: 8px; }
+  .scale-strategies { display: grid; grid-template-columns: 1fr; gap: 28px; margin-top: 64px; }
+  .strategy-card { min-width: 0; padding: 36px; border: 1px solid #344968; border-radius: 20px; background: radial-gradient(ellipse at 50% 30%,#18365c55,transparent 65%); }
+  .strategy-card h3 { font-size: clamp(27px,2.8vw,36px); line-height: 1.15; }
+  .strategy-card p { margin: 0; font-size: 17px; line-height: 1.75; color: #c0cee4; }
+  .strategy-card .strategy-detail { margin-top: 18px; font-size: 15px; color: #97adcd; }
+  .section-link { display: inline-block; font-size: 15px; color: #9dc3ff; text-decoration: none; padding-block: 8px; margin-top: 28px; }
+  .section-link:hover { color: #d9eaff; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  @media(max-width: 1000px) { th,td { padding-inline: 16px; } }
+  @media(max-width: 900px) { .eval-intro { grid-template-columns: 1fr; gap: 28px; } }
+  @media(max-width: 760px) {
+    .comparison-heading { display: block; } .comparison-heading p { margin-top: 10px; }
+    .improvement-cycle { grid-template-columns: 1fr; gap: 32px; }
+    .scale-strategies { grid-template-columns: 1fr; gap: 24px; margin-top: 40px; }
+    .strategy-card { padding: 28px 24px; }
+    tbody th,thead th:first-child,tfoot th { position: sticky; left: 0; background: #0c1729; z-index: 1; }
+    th,td { padding: 16px 14px; } tbody th { font-size: 13px; }
+  }
+</style>
