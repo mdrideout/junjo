@@ -1,0 +1,1061 @@
+{
+  "verified_date_utc": "2026-09-12",
+  "purpose": "Persistent evidence for the documentation walkthrough and real Studio screenshots. This is a synthetic application exercise using real provider requests, not a model-quality or performance benchmark.",
+  "environment": {
+    "sdk_version": "0.67.0",
+    "studio_version": "0.83.0",
+    "provider": "Google Gemini",
+    "model": "gemini-3.7-flash",
+    "mocked_provider": false,
+    "studio_web_origin": "http://localhost:26151",
+    "service_namespace": "junjo.docs",
+    "service_name": "refund-walkthrough",
+    "application_provenance": "Two clean commits in an isolated temporary application repository. These are application source revisions, not Junjo repository commits. Exact source snapshots are included below."
+  },
+  "observed_failure_outside_evaluation": {
+    "trace_id": "43d5fd65bf615abf0b30054c79361c1c",
+    "decision": "refuse_outside_window",
+    "state": {
+      "request": {
+        "message": "The blender arrived broken. I need a refund.",
+        "days_since_delivery": 45,
+        "already_refunded": false,
+        "order_found": true
+      },
+      "damaged": true,
+      "explanation": "The customer explicitly mentioned that the blender arrived broken.",
+      "policy_window_days": 30,
+      "decision": "refuse_outside_window"
+    }
+  },
+  "comparison": {
+    "dataset": {
+      "id": "KVFU3NNfKRpFNcxDSJNEGC",
+      "application_key": "docs_refund_walkthrough",
+      "key": "refund-policy-docs-20260911-rsi",
+      "name": "Refund policy scenarios",
+      "status": "locked",
+      "description": "Synthetic documentation walkthrough: damaged goods, ordinary returns, duplicate refunds, and missing evidence.",
+      "created_at": "2026-09-12T03:51:45Z",
+      "locked_at": "2026-09-12T03:55:08Z"
+    },
+    "scope": {
+      "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+      "target_kind": null,
+      "target_key": null,
+      "input_version": null,
+      "evaluation_name": null
+    },
+    "baseline_run": {
+      "id": "1g3kDQTfFzMl4Z82Fh7QBM",
+      "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+      "request_key": "baseline",
+      "run_label": "Baseline: ordinary return policy",
+      "source_revision": "fcc44191f69df2a883e947581cf381fa3bb51644",
+      "status": "completed",
+      "created_at": "2026-09-12T03:55:08Z",
+      "completed_at": "2026-09-12T03:55:15Z"
+    },
+    "candidate_run": {
+      "id": "7LLb6xaDJU8lwu9JrA0xnr",
+      "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+      "request_key": "candidate",
+      "run_label": "Candidate: damaged-item policy",
+      "source_revision": "0e9aac37f83769df57ac284d0679c42813c5332a",
+      "status": "completed",
+      "created_at": "2026-09-12T03:55:43Z",
+      "completed_at": "2026-09-12T03:55:49Z"
+    },
+    "baseline_summary": {
+      "total": 5,
+      "judged": 5,
+      "passed": 4,
+      "failed": 1,
+      "error": 0,
+      "queued": 0,
+      "pass_rate": 0.8
+    },
+    "candidate_summary": {
+      "total": 5,
+      "judged": 5,
+      "passed": 5,
+      "failed": 0,
+      "error": 0,
+      "queued": 0,
+      "pass_rate": 1.0
+    },
+    "transition_counts": {
+      "improved": 1,
+      "regressed": 0,
+      "newly_errored": 0,
+      "recovered": 0,
+      "unchanged": 4,
+      "changed": 0
+    },
+    "rows": [
+      {
+        "case": {
+          "id": "bRmcAmTBv5WO2CJOuAQpkv",
+          "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+          "case_key": "damaged-item",
+          "evaluation_name": "Refund decision",
+          "ordinal": 1,
+          "origin": "generated",
+          "target_kind": "workflow",
+          "target_key": "refund.workflow",
+          "target_name": "Refund resolution",
+          "input_version": 1,
+          "input_json": {
+            "days_since_delivery": 45,
+            "message": "The blender arrived broken. I need a refund."
+          },
+          "expectation_json": {
+            "expected": "approve_refund"
+          },
+          "evaluator_key": "junjo.exact",
+          "evaluator_version": 1,
+          "source_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "CV4Up0AIrsf3BDppyUAFe"
+          },
+          "source_revision": "fcc44191f69df2a883e947581cf381fa3bb51644",
+          "created_at": "2026-09-12T03:55:08Z"
+        },
+        "baseline_attempt": {
+          "id": "DSltbVHxQmTGnjHnxpNDWA",
+          "run_id": "1g3kDQTfFzMl4Z82Fh7QBM",
+          "case_id": "bRmcAmTBv5WO2CJOuAQpkv",
+          "status": "failed",
+          "reason": "Subject did not exactly match the expected value.",
+          "duration_ms": 1710,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "Zi5lcdDjs9u5aR7obO29X"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:10Z",
+          "recorded_at": "2026-09-12T03:55:10Z"
+        },
+        "candidate_attempt": {
+          "id": "fhfRpMzTT8Jz3odd51qbBu",
+          "run_id": "7LLb6xaDJU8lwu9JrA0xnr",
+          "case_id": "bRmcAmTBv5WO2CJOuAQpkv",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1162,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "Rnug1rf4bhIsBoUddiUp9"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:44Z",
+          "recorded_at": "2026-09-12T03:55:44Z"
+        },
+        "transition": "improved",
+        "duration_delta_ms": -548
+      },
+      {
+        "case": {
+          "id": "Vl1sdxpO1zzmpwiirtiJum",
+          "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+          "case_key": "ordinary-return",
+          "evaluation_name": "Refund decision",
+          "ordinal": 2,
+          "origin": "authored",
+          "target_kind": "workflow",
+          "target_key": "refund.workflow",
+          "target_name": "Refund resolution",
+          "input_version": 1,
+          "input_json": {
+            "days_since_delivery": 45,
+            "message": "I changed my mind. The product works fine."
+          },
+          "expectation_json": {
+            "expected": "refuse_outside_window"
+          },
+          "evaluator_key": "junjo.exact",
+          "evaluator_version": 1,
+          "source_evidence": null,
+          "source_revision": null,
+          "created_at": "2026-09-12T03:55:08Z"
+        },
+        "baseline_attempt": {
+          "id": "uyXPkWubeoLa30A7r7I4dw",
+          "run_id": "1g3kDQTfFzMl4Z82Fh7QBM",
+          "case_id": "Vl1sdxpO1zzmpwiirtiJum",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1280,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "lh6B5lGC5hOxDg9SfQ9ug"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:11Z",
+          "recorded_at": "2026-09-12T03:55:11Z"
+        },
+        "candidate_attempt": {
+          "id": "EA6A0tkFOx8IIzlvqfLF3Q",
+          "run_id": "7LLb6xaDJU8lwu9JrA0xnr",
+          "case_id": "Vl1sdxpO1zzmpwiirtiJum",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1295,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "6sM1rdbG7zNqh5PHBboNf"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:46Z",
+          "recorded_at": "2026-09-12T03:55:46Z"
+        },
+        "transition": "unchanged",
+        "duration_delta_ms": 15
+      },
+      {
+        "case": {
+          "id": "NOZWYcfqpXOL06komlfE0t",
+          "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+          "case_key": "already-refunded",
+          "evaluation_name": "Refund decision",
+          "ordinal": 3,
+          "origin": "authored",
+          "target_kind": "workflow",
+          "target_key": "refund.workflow",
+          "target_name": "Refund resolution",
+          "input_version": 1,
+          "input_json": {
+            "already_refunded": true,
+            "days_since_delivery": 10,
+            "message": "I need my refund again."
+          },
+          "expectation_json": {
+            "expected": "refuse_duplicate"
+          },
+          "evaluator_key": "junjo.exact",
+          "evaluator_version": 1,
+          "source_evidence": null,
+          "source_revision": null,
+          "created_at": "2026-09-12T03:55:08Z"
+        },
+        "baseline_attempt": {
+          "id": "KBHkHAqqQmW4zxqsJhQxwS",
+          "run_id": "1g3kDQTfFzMl4Z82Fh7QBM",
+          "case_id": "NOZWYcfqpXOL06komlfE0t",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1081,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "x35jhqweA5y0aAqA8wfrM"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:12Z",
+          "recorded_at": "2026-09-12T03:55:12Z"
+        },
+        "candidate_attempt": {
+          "id": "69jFRkEZLWbWvOCk73FqGD",
+          "run_id": "7LLb6xaDJU8lwu9JrA0xnr",
+          "case_id": "NOZWYcfqpXOL06komlfE0t",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1266,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "Jei1Dx3XjKbfCNWDFVwXI"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:47Z",
+          "recorded_at": "2026-09-12T03:55:47Z"
+        },
+        "transition": "unchanged",
+        "duration_delta_ms": 185
+      },
+      {
+        "case": {
+          "id": "YyzONgHJvpyJC5zb3bH79B",
+          "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+          "case_key": "missing-order",
+          "evaluation_name": "Refund decision",
+          "ordinal": 4,
+          "origin": "authored",
+          "target_kind": "workflow",
+          "target_key": "refund.workflow",
+          "target_name": "Refund resolution",
+          "input_version": 1,
+          "input_json": {
+            "days_since_delivery": 10,
+            "message": "This item is damaged, but I cannot find the order.",
+            "order_found": false
+          },
+          "expectation_json": {
+            "expected": "request_order_evidence"
+          },
+          "evaluator_key": "junjo.exact",
+          "evaluator_version": 1,
+          "source_evidence": null,
+          "source_revision": null,
+          "created_at": "2026-09-12T03:55:08Z"
+        },
+        "baseline_attempt": {
+          "id": "zKFtpar4N3esuHN8LcTYJ2",
+          "run_id": "1g3kDQTfFzMl4Z82Fh7QBM",
+          "case_id": "YyzONgHJvpyJC5zb3bH79B",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 974,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "oapkExU0LwEoMS11VU5iY"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:13Z",
+          "recorded_at": "2026-09-12T03:55:13Z"
+        },
+        "candidate_attempt": {
+          "id": "KnsOc1bAERC2KnzMkblYbX",
+          "run_id": "7LLb6xaDJU8lwu9JrA0xnr",
+          "case_id": "YyzONgHJvpyJC5zb3bH79B",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1010,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "rNwWqKuppePfh89s0nIeB"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:48Z",
+          "recorded_at": "2026-09-12T03:55:48Z"
+        },
+        "transition": "unchanged",
+        "duration_delta_ms": 36
+      },
+      {
+        "case": {
+          "id": "cUh28Vd48D92vuWWYcTKz4",
+          "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+          "case_key": "ordinary-in-window",
+          "evaluation_name": "Refund decision",
+          "ordinal": 5,
+          "origin": "authored",
+          "target_kind": "workflow",
+          "target_key": "refund.workflow",
+          "target_name": "Refund resolution",
+          "input_version": 1,
+          "input_json": {
+            "days_since_delivery": 10,
+            "message": "I changed my mind about this undamaged item."
+          },
+          "expectation_json": {
+            "expected": "approve_refund"
+          },
+          "evaluator_key": "junjo.exact",
+          "evaluator_version": 1,
+          "source_evidence": null,
+          "source_revision": null,
+          "created_at": "2026-09-12T03:55:08Z"
+        },
+        "baseline_attempt": {
+          "id": "Mtkgjtuxt17l5Semqcse0n",
+          "run_id": "1g3kDQTfFzMl4Z82Fh7QBM",
+          "case_id": "cUh28Vd48D92vuWWYcTKz4",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1297,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "tcJYldfRFa8dJQ26OqZpZ"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:15Z",
+          "recorded_at": "2026-09-12T03:55:15Z"
+        },
+        "candidate_attempt": {
+          "id": "n8MAWrBOPSAjaPjMTiczih",
+          "run_id": "7LLb6xaDJU8lwu9JrA0xnr",
+          "case_id": "cUh28Vd48D92vuWWYcTKz4",
+          "status": "passed",
+          "reason": "Subject exactly matched the expected value.",
+          "duration_ms": 1462,
+          "subject_evidence": {
+            "kind": "junjo_execution",
+            "service_namespace": "junjo.docs",
+            "service_name": "refund-walkthrough",
+            "executable_type": "workflow",
+            "runtime_id": "b4FhF91vwfv9WsVDRH7sl"
+          },
+          "evidence_bound_at": "2026-09-12T03:55:49Z",
+          "recorded_at": "2026-09-12T03:55:49Z"
+        },
+        "transition": "unchanged",
+        "duration_delta_ms": 165
+      }
+    ]
+  },
+  "baseline_failed_case_evidence": {
+    "attempt": {
+      "run": {
+        "id": "1g3kDQTfFzMl4Z82Fh7QBM",
+        "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+        "request_key": "baseline",
+        "run_label": "Baseline: ordinary return policy",
+        "source_revision": "fcc44191f69df2a883e947581cf381fa3bb51644",
+        "status": "completed",
+        "created_at": "2026-09-12T03:55:08Z",
+        "completed_at": "2026-09-12T03:55:15Z"
+      },
+      "dataset": {
+        "id": "KVFU3NNfKRpFNcxDSJNEGC",
+        "application_key": "docs_refund_walkthrough",
+        "key": "refund-policy-docs-20260911-rsi",
+        "name": "Refund policy scenarios",
+        "status": "locked",
+        "description": "Synthetic documentation walkthrough: damaged goods, ordinary returns, duplicate refunds, and missing evidence.",
+        "created_at": "2026-09-12T03:51:45Z",
+        "locked_at": "2026-09-12T03:55:08Z"
+      },
+      "case": {
+        "id": "bRmcAmTBv5WO2CJOuAQpkv",
+        "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+        "case_key": "damaged-item",
+        "evaluation_name": "Refund decision",
+        "ordinal": 1,
+        "origin": "generated",
+        "target_kind": "workflow",
+        "target_key": "refund.workflow",
+        "target_name": "Refund resolution",
+        "input_version": 1,
+        "input_json": {
+          "days_since_delivery": 45,
+          "message": "The blender arrived broken. I need a refund."
+        },
+        "expectation_json": {
+          "expected": "approve_refund"
+        },
+        "evaluator_key": "junjo.exact",
+        "evaluator_version": 1,
+        "source_evidence": {
+          "kind": "junjo_execution",
+          "service_namespace": "junjo.docs",
+          "service_name": "refund-walkthrough",
+          "executable_type": "workflow",
+          "runtime_id": "CV4Up0AIrsf3BDppyUAFe"
+        },
+        "source_revision": "fcc44191f69df2a883e947581cf381fa3bb51644",
+        "created_at": "2026-09-12T03:55:08Z"
+      },
+      "attempt": {
+        "id": "DSltbVHxQmTGnjHnxpNDWA",
+        "run_id": "1g3kDQTfFzMl4Z82Fh7QBM",
+        "case_id": "bRmcAmTBv5WO2CJOuAQpkv",
+        "status": "failed",
+        "reason": "Subject did not exactly match the expected value.",
+        "duration_ms": 1710,
+        "subject_evidence": {
+          "kind": "junjo_execution",
+          "service_namespace": "junjo.docs",
+          "service_name": "refund-walkthrough",
+          "executable_type": "workflow",
+          "runtime_id": "Zi5lcdDjs9u5aR7obO29X"
+        },
+        "evidence_bound_at": "2026-09-12T03:55:10Z",
+        "recorded_at": "2026-09-12T03:55:10Z"
+      }
+    },
+    "resolution": {
+      "service_namespace": "junjo.docs",
+      "service_name": "refund-walkthrough",
+      "executable_type": "workflow",
+      "runtime_id": "Zi5lcdDjs9u5aR7obO29X",
+      "trace_id": "a0ca4139155f74316a79d576fe5c93ea",
+      "span_id": "62478745dd37ffb9",
+      "detail_path": "/workflows/refund-walkthrough/a0ca4139155f74316a79d576fe5c93ea/62478745dd37ffb9",
+      "trace_path": "/traces/refund-walkthrough/a0ca4139155f74316a79d576fe5c93ea/62478745dd37ffb9",
+      "failure_path": "/workflows/refund-walkthrough/a0ca4139155f74316a79d576fe5c93ea/62478745dd37ffb9"
+    },
+    "trace_id": "a0ca4139155f74316a79d576fe5c93ea",
+    "span_count": 8,
+    "span_names": [
+      "junjo.evaluation.verifier",
+      "DecideRefund",
+      "SelectRefundPolicy",
+      "Gemini: classify refund request",
+      "ClassifyRequest",
+      "Refund resolution",
+      "junjo.evaluation.subject",
+      "junjo.evaluation.attempt"
+    ],
+    "stores": {
+      "APXEpw90A1pbO67tjEkjB": {
+        "store_id": "APXEpw90A1pbO67tjEkjB",
+        "owner_span_id": "62478745dd37ffb9",
+        "owner_runtime_id": "Zi5lcdDjs9u5aR7obO29X",
+        "owner_executable_type": "workflow",
+        "detail": {
+          "available": true,
+          "store_id": "APXEpw90A1pbO67tjEkjB",
+          "revision_start": 0,
+          "revision_end": 3,
+          "transition_count": 3,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "damaged": null,
+              "decision": null,
+              "explanation": null,
+              "policy_window_days": null,
+              "request": {
+                "already_refunded": false,
+                "days_since_delivery": 45,
+                "message": "The blender arrived broken. I need a refund.",
+                "order_found": true
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "damaged": true,
+              "decision": "refuse_outside_window",
+              "explanation": "The customer stated that the blender arrived broken.",
+              "policy_window_days": 30,
+              "request": {
+                "already_refunded": false,
+                "days_since_delivery": 45,
+                "message": "The blender arrived broken. I need a refund.",
+                "order_found": true
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "transitions": [
+            {
+              "sequence": 1,
+              "revision_before": 0,
+              "revision_after": 1,
+              "span_id": "9e89b26eb7b3bfc3",
+              "event_id": "mppcz2judgMSKu6qS0lxY",
+              "action": "classify_request",
+              "patch": {
+                "mode": "full",
+                "policy": "junjo.full.v1",
+                "value": [
+                  {
+                    "op": "replace",
+                    "path": "/damaged",
+                    "value": true
+                  },
+                  {
+                    "op": "replace",
+                    "path": "/explanation",
+                    "value": "The customer stated that the blender arrived broken."
+                  }
+                ],
+                "reference": null,
+                "reason": null
+              },
+              "before": {
+                "damaged": null,
+                "decision": null,
+                "explanation": null,
+                "policy_window_days": null,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              },
+              "after": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer stated that the blender arrived broken.",
+                "policy_window_days": null,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              }
+            },
+            {
+              "sequence": 2,
+              "revision_before": 1,
+              "revision_after": 2,
+              "span_id": "adb7aa5c5eb27325",
+              "event_id": "EMDSoYQUoTtTznIIPqfba",
+              "action": "select_policy",
+              "patch": {
+                "mode": "full",
+                "policy": "junjo.full.v1",
+                "value": [
+                  {
+                    "op": "replace",
+                    "path": "/policy_window_days",
+                    "value": 30
+                  }
+                ],
+                "reference": null,
+                "reason": null
+              },
+              "before": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer stated that the blender arrived broken.",
+                "policy_window_days": null,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              },
+              "after": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer stated that the blender arrived broken.",
+                "policy_window_days": 30,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              }
+            },
+            {
+              "sequence": 3,
+              "revision_before": 2,
+              "revision_after": 3,
+              "span_id": "590ceb3be41854a4",
+              "event_id": "ZfO0WyIMoMRvynCD85YuA",
+              "action": "record_decision",
+              "patch": {
+                "mode": "full",
+                "policy": "junjo.full.v1",
+                "value": [
+                  {
+                    "op": "replace",
+                    "path": "/decision",
+                    "value": "refuse_outside_window"
+                  }
+                ],
+                "reference": null,
+                "reason": null
+              },
+              "before": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer stated that the blender arrived broken.",
+                "policy_window_days": 30,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              },
+              "after": {
+                "damaged": true,
+                "decision": "refuse_outside_window",
+                "explanation": "The customer stated that the blender arrived broken.",
+                "policy_window_days": 30,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              }
+            }
+          ]
+        },
+        "integrity": {
+          "status": "complete",
+          "diagnostics": [],
+          "loss_counts": {
+            "resource_dropped_attributes": 0,
+            "span_dropped_attributes": 0,
+            "span_dropped_events": 0,
+            "span_dropped_links": 0,
+            "event_dropped_attributes": 0
+          }
+        }
+      }
+    },
+    "diagnostics": []
+  },
+  "candidate_improved_case_evidence": {
+    "attempt": {
+      "run": {
+        "id": "7LLb6xaDJU8lwu9JrA0xnr",
+        "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+        "request_key": "candidate",
+        "run_label": "Candidate: damaged-item policy",
+        "source_revision": "0e9aac37f83769df57ac284d0679c42813c5332a",
+        "status": "completed",
+        "created_at": "2026-09-12T03:55:43Z",
+        "completed_at": "2026-09-12T03:55:49Z"
+      },
+      "dataset": {
+        "id": "KVFU3NNfKRpFNcxDSJNEGC",
+        "application_key": "docs_refund_walkthrough",
+        "key": "refund-policy-docs-20260911-rsi",
+        "name": "Refund policy scenarios",
+        "status": "locked",
+        "description": "Synthetic documentation walkthrough: damaged goods, ordinary returns, duplicate refunds, and missing evidence.",
+        "created_at": "2026-09-12T03:51:45Z",
+        "locked_at": "2026-09-12T03:55:08Z"
+      },
+      "case": {
+        "id": "bRmcAmTBv5WO2CJOuAQpkv",
+        "dataset_id": "KVFU3NNfKRpFNcxDSJNEGC",
+        "case_key": "damaged-item",
+        "evaluation_name": "Refund decision",
+        "ordinal": 1,
+        "origin": "generated",
+        "target_kind": "workflow",
+        "target_key": "refund.workflow",
+        "target_name": "Refund resolution",
+        "input_version": 1,
+        "input_json": {
+          "days_since_delivery": 45,
+          "message": "The blender arrived broken. I need a refund."
+        },
+        "expectation_json": {
+          "expected": "approve_refund"
+        },
+        "evaluator_key": "junjo.exact",
+        "evaluator_version": 1,
+        "source_evidence": {
+          "kind": "junjo_execution",
+          "service_namespace": "junjo.docs",
+          "service_name": "refund-walkthrough",
+          "executable_type": "workflow",
+          "runtime_id": "CV4Up0AIrsf3BDppyUAFe"
+        },
+        "source_revision": "fcc44191f69df2a883e947581cf381fa3bb51644",
+        "created_at": "2026-09-12T03:55:08Z"
+      },
+      "attempt": {
+        "id": "fhfRpMzTT8Jz3odd51qbBu",
+        "run_id": "7LLb6xaDJU8lwu9JrA0xnr",
+        "case_id": "bRmcAmTBv5WO2CJOuAQpkv",
+        "status": "passed",
+        "reason": "Subject exactly matched the expected value.",
+        "duration_ms": 1162,
+        "subject_evidence": {
+          "kind": "junjo_execution",
+          "service_namespace": "junjo.docs",
+          "service_name": "refund-walkthrough",
+          "executable_type": "workflow",
+          "runtime_id": "Rnug1rf4bhIsBoUddiUp9"
+        },
+        "evidence_bound_at": "2026-09-12T03:55:44Z",
+        "recorded_at": "2026-09-12T03:55:44Z"
+      }
+    },
+    "resolution": {
+      "service_namespace": "junjo.docs",
+      "service_name": "refund-walkthrough",
+      "executable_type": "workflow",
+      "runtime_id": "Rnug1rf4bhIsBoUddiUp9",
+      "trace_id": "e3f595ba9332f20d64bdb8a759a5a1d7",
+      "span_id": "9cc6311d1a9ce84c",
+      "detail_path": "/workflows/refund-walkthrough/e3f595ba9332f20d64bdb8a759a5a1d7/9cc6311d1a9ce84c",
+      "trace_path": "/traces/refund-walkthrough/e3f595ba9332f20d64bdb8a759a5a1d7/9cc6311d1a9ce84c",
+      "failure_path": "/workflows/refund-walkthrough/e3f595ba9332f20d64bdb8a759a5a1d7/9cc6311d1a9ce84c"
+    },
+    "trace_id": "e3f595ba9332f20d64bdb8a759a5a1d7",
+    "span_count": 8,
+    "span_names": [
+      "junjo.evaluation.verifier",
+      "DecideRefund",
+      "SelectRefundPolicy",
+      "Gemini: classify refund request",
+      "ClassifyRequest",
+      "Refund resolution",
+      "junjo.evaluation.subject",
+      "junjo.evaluation.attempt"
+    ],
+    "stores": {
+      "MTn6qFlZJjNM5d1x9ABjP": {
+        "store_id": "MTn6qFlZJjNM5d1x9ABjP",
+        "owner_span_id": "9cc6311d1a9ce84c",
+        "owner_runtime_id": "Rnug1rf4bhIsBoUddiUp9",
+        "owner_executable_type": "workflow",
+        "detail": {
+          "available": true,
+          "store_id": "MTn6qFlZJjNM5d1x9ABjP",
+          "revision_start": 0,
+          "revision_end": 3,
+          "transition_count": 3,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "damaged": null,
+              "decision": null,
+              "explanation": null,
+              "policy_window_days": null,
+              "request": {
+                "already_refunded": false,
+                "days_since_delivery": 45,
+                "message": "The blender arrived broken. I need a refund.",
+                "order_found": true
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "damaged": true,
+              "decision": "approve_refund",
+              "explanation": "The customer explicitly states that the blender arrived broken.",
+              "policy_window_days": 90,
+              "request": {
+                "already_refunded": false,
+                "days_since_delivery": 45,
+                "message": "The blender arrived broken. I need a refund.",
+                "order_found": true
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "transitions": [
+            {
+              "sequence": 1,
+              "revision_before": 0,
+              "revision_after": 1,
+              "span_id": "02b23e63e3cdd58e",
+              "event_id": "Zfmk02Ak2g0Lfgzo1pZDr",
+              "action": "classify_request",
+              "patch": {
+                "mode": "full",
+                "policy": "junjo.full.v1",
+                "value": [
+                  {
+                    "op": "replace",
+                    "path": "/damaged",
+                    "value": true
+                  },
+                  {
+                    "op": "replace",
+                    "path": "/explanation",
+                    "value": "The customer explicitly states that the blender arrived broken."
+                  }
+                ],
+                "reference": null,
+                "reason": null
+              },
+              "before": {
+                "damaged": null,
+                "decision": null,
+                "explanation": null,
+                "policy_window_days": null,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              },
+              "after": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer explicitly states that the blender arrived broken.",
+                "policy_window_days": null,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              }
+            },
+            {
+              "sequence": 2,
+              "revision_before": 1,
+              "revision_after": 2,
+              "span_id": "c5b08286b0b51864",
+              "event_id": "6CpSOiyiIJ2srohv8LJym",
+              "action": "select_policy",
+              "patch": {
+                "mode": "full",
+                "policy": "junjo.full.v1",
+                "value": [
+                  {
+                    "op": "replace",
+                    "path": "/policy_window_days",
+                    "value": 90
+                  }
+                ],
+                "reference": null,
+                "reason": null
+              },
+              "before": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer explicitly states that the blender arrived broken.",
+                "policy_window_days": null,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              },
+              "after": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer explicitly states that the blender arrived broken.",
+                "policy_window_days": 90,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              }
+            },
+            {
+              "sequence": 3,
+              "revision_before": 2,
+              "revision_after": 3,
+              "span_id": "e88bab523296d63f",
+              "event_id": "3C5kn1c14DBgHhfJfRGZi",
+              "action": "record_decision",
+              "patch": {
+                "mode": "full",
+                "policy": "junjo.full.v1",
+                "value": [
+                  {
+                    "op": "replace",
+                    "path": "/decision",
+                    "value": "approve_refund"
+                  }
+                ],
+                "reference": null,
+                "reason": null
+              },
+              "before": {
+                "damaged": true,
+                "decision": null,
+                "explanation": "The customer explicitly states that the blender arrived broken.",
+                "policy_window_days": 90,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              },
+              "after": {
+                "damaged": true,
+                "decision": "approve_refund",
+                "explanation": "The customer explicitly states that the blender arrived broken.",
+                "policy_window_days": 90,
+                "request": {
+                  "already_refunded": false,
+                  "days_since_delivery": 45,
+                  "message": "The blender arrived broken. I need a refund.",
+                  "order_found": true
+                }
+              }
+            }
+          ]
+        },
+        "integrity": {
+          "status": "complete",
+          "diagnostics": [],
+          "loss_counts": {
+            "resource_dropped_attributes": 0,
+            "span_dropped_attributes": 0,
+            "span_dropped_events": 0,
+            "span_dropped_links": 0,
+            "event_dropped_attributes": 0
+          }
+        }
+      }
+    },
+    "diagnostics": []
+  },
+  "cli_verification": {
+    "cli-targets": {
+      "ok": true,
+      "command": "eval.targets.list"
+    },
+    "cli-comparison": {
+      "ok": true,
+      "command": "eval.run.compare"
+    }
+  },
+  "comparison_path": "/evaluation-runs/compare?baseline_run_id=1g3kDQTfFzMl4Z82Fh7QBM&candidate_run_id=7LLb6xaDJU8lwu9JrA0xnr",
+  "screenshots": [
+    {
+      "path": "apps/studio/docs/assets/refund-comparison.png",
+      "sha256": "ca8dbcbc4fdf937a026a0feefd34873f887f7c68c06616975aea0db61afabe0c"
+    },
+    {
+      "path": "apps/studio/docs/assets/refund-dataset.png",
+      "sha256": "72777e0c742a34c134898331de6d6d800ab2149bbc6d1251e950781f29d7a66d"
+    },
+    {
+      "path": "apps/studio/docs/assets/refund-state-diff.png",
+      "sha256": "12234511a35c4b0ba92f7047bc3d9eb4d2d04038d2f937cd85874fcd6facfa89"
+    }
+  ],
+  "application_sources": {
+    "baseline": {
+      "source_revision": "fcc44191f69df2a883e947581cf381fa3bb51644",
+      "filename": "refund_app.py",
+      "sha256": "0ec22225bf84585a707d4dd0717f46984a97a8bc362778038d9384a836fb5893",
+      "content": "\"\"\"Synthetic refund feature used to verify the public documentation end to end.\"\"\"\nimport asyncio\nimport json\nimport os\nimport sys\nfrom contextlib import asynccontextmanager\nfrom pathlib import Path\n\nfrom google import genai\nfrom google.genai import types\nfrom opentelemetry import trace\nfrom opentelemetry.sdk.resources import Resource\nfrom opentelemetry.sdk.trace import TracerProvider\nfrom pydantic import BaseModel\nfrom junjo import BaseState, BaseStore, Edge, Graph, Node, Workflow\nfrom junjo.evaluation import EvaluationExecutor, EvaluationHarness, ExactMatchEvaluator, ExecutionServiceIdentity, GenerateCaseRequest, WorkflowInvocation, WorkflowTarget\nfrom junjo.studio import CaseCreate, CaseOrigin, DatasetCreate, StudioClient, TargetKind\nfrom junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter\n\n# Deliberate baseline defect: damaged goods incorrectly use the ordinary window.\nAPPLY_DAMAGED_POLICY = False\nNAMESPACE = 'junjo.docs'\nSERVICE = 'refund-walkthrough'\n\nclass RefundInput(BaseModel):\n    message: str\n    days_since_delivery: int\n    already_refunded: bool = False\n    order_found: bool = True\n\nclass Classification(BaseModel):\n    damaged: bool\n    explanation: str\n\nclass RefundState(BaseState):\n    request: RefundInput\n    damaged: bool | None = None\n    explanation: str | None = None\n    policy_window_days: int | None = None\n    decision: str | None = None\n\nclass RefundStore(BaseStore[RefundState]):\n    async def classify_request(self, result: Classification):\n        await self.set_state({'damaged': result.damaged, 'explanation': result.explanation})\n    async def select_policy(self, days: int):\n        await self.set_state({'policy_window_days': days})\n    async def record_decision(self, decision: str):\n        await self.set_state({'decision': decision})\n\nclass ClassifyRequest(Node[RefundStore]):\n    def __init__(self, client):\n        super().__init__()\n        self.client = client\n    async def service(self, store):\n        state = await store.get_state()\n        prompt = 'Classify whether the customer reports a damaged or broken product. Do not decide refund eligibility. Customer: ' + state.request.message\n        with trace.get_tracer(__name__).start_as_current_span('Gemini: classify refund request') as span:\n            span.set_attribute('gen_ai.request.model', os.environ['DOCS_GEMINI_MODEL'])\n            span.set_attribute('docs.synthetic_input', prompt)\n            response = await self.client.models.generate_content(model=os.environ['DOCS_GEMINI_MODEL'], contents=prompt, config=types.GenerateContentConfig(temperature=0, response_mime_type='application/json', response_schema=Classification))\n            result = Classification.model_validate_json(response.text)\n            span.set_attribute('docs.structured_output', result.model_dump_json())\n        await store.classify_request(result)\n\nclass SelectRefundPolicy(Node[RefundStore]):\n    async def service(self, store):\n        state = await store.get_state()\n        window = 90 if APPLY_DAMAGED_POLICY and state.damaged else 30\n        await store.select_policy(window)\n\nclass DecideRefund(Node[RefundStore]):\n    async def service(self, store):\n        state = await store.get_state()\n        request = state.request\n        if not request.order_found:\n            decision = 'request_order_evidence'\n        elif request.already_refunded:\n            decision = 'refuse_duplicate'\n        elif request.days_since_delivery <= state.policy_window_days:\n            decision = 'approve_refund'\n        else:\n            decision = 'refuse_outside_window'\n        await store.record_decision(decision)\n\ndef workflow(input_value, client):\n    def graph():\n        classify, policy, decide = ClassifyRequest(client), SelectRefundPolicy(), DecideRefund()\n        return Graph(source=classify, sinks=[decide], edges=[Edge(classify, policy), Edge(policy, decide)])\n    return Workflow(name='Refund resolution', graph_factory=graph, store_factory=lambda: RefundStore(initial_state=RefundState(request=input_value)))\n\n@asynccontextmanager\nasync def runtime():\n    provider = TracerProvider(resource=Resource.create({'service.namespace': NAMESPACE, 'service.name': SERVICE}))\n    provider.add_span_processor(JunjoOtelExporter(endpoint=os.environ['JUNJO_AI_STUDIO_OTLP_ENDPOINT'], api_key=os.environ['JUNJO_AI_STUDIO_API_KEY'], insecure=True).span_processor)\n    trace.set_tracer_provider(provider)\n    async with genai.Client(api_key=os.environ['GEMINI_API_KEY']).aio as client:\n        try:\n            yield client\n        finally:\n            provider.force_flush()\n            provider.shutdown()\n\ndef factory(input_value, context, client):\n    return WorkflowInvocation(workflow=workflow(input_value, client))\n\ndef project(result, *_):\n    return result.state.decision\n\nharness = EvaluationHarness(application_key='docs_refund_walkthrough', service_identity=ExecutionServiceIdentity(service_namespace=NAMESPACE, service_name=SERVICE), targets=(WorkflowTarget(key='refund.workflow', name='Refund resolution', input_version=1, input_type=RefundInput, factory=factory, projector=project),), evaluators=(ExactMatchEvaluator(),), runtime_context=runtime)\n\nSCENARIOS = [\n    ('damaged-item', {'message': 'The blender arrived broken. I need a refund.', 'days_since_delivery': 45}, 'approve_refund'),\n    ('ordinary-return', {'message': 'I changed my mind. The product works fine.', 'days_since_delivery': 45}, 'refuse_outside_window'),\n    ('already-refunded', {'message': 'I need my refund again.', 'days_since_delivery': 10, 'already_refunded': True}, 'refuse_duplicate'),\n    ('missing-order', {'message': 'This item is damaged, but I cannot find the order.', 'days_since_delivery': 10, 'order_found': False}, 'request_order_evidence'),\n    ('ordinary-in-window', {'message': 'I changed my mind about this undamaged item.', 'days_since_delivery': 10}, 'approve_refund'),\n]\n\nasync def main():\n    mode = sys.argv[1]\n    async with StudioClient(base_url=os.environ['JUNJO_AI_STUDIO_BACKEND_BASE_URL'], token=os.environ['JUNJO_AI_STUDIO_CLI_TOKEN']) as studio:\n        if mode == 'observe':\n            async with runtime() as client:\n                with trace.get_tracer(__name__).start_as_current_span('Customer refund interaction') as span:\n                    result = await workflow(RefundInput(**SCENARIOS[0][1]), client).execute()\n                    trace_id = format(span.get_span_context().trace_id, '032x')\n            print(json.dumps({'trace_id': trace_id, 'decision': result.state.decision, 'state': result.state.model_dump()}))\n        elif mode == 'evidence':\n            evidence = await studio.get_trace_evidence(sys.argv[2])\n            print(evidence.model_dump_json(indent=2))\n        elif mode == 'baseline':\n            dataset = await studio.create_dataset(DatasetCreate(application_key=harness.application_key, key='refund-policy-docs-' + os.environ['DOCS_DEMO_KEY'], name='Refund policy scenarios', description='Synthetic documentation walkthrough: damaged goods, ordinary returns, duplicate refunds, and missing evidence.'))\n            async with EvaluationExecutor(client=studio, harness=harness) as executor:\n                for key, input_value, expected in SCENARIOS:\n                    common = dict(case_key=key, evaluation_name='Refund decision', target_kind=TargetKind.WORKFLOW, target_key='refund.workflow', input_version=1, input_json=input_value, expectation_json={'expected': expected}, evaluator_key='junjo.exact', evaluator_version=1)\n                    if key == 'damaged-item':\n                        await executor.generate_case(GenerateCaseRequest(dataset_id=dataset.id, **common))\n                    else:\n                        await studio.add_case(dataset.id, CaseCreate(origin=CaseOrigin.AUTHORED, target_name='Refund resolution', **common))\n                await studio.lock_dataset(dataset.id)\n                run = await executor.run(dataset_id=dataset.id, request_key='baseline', run_label='Baseline: ordinary return policy')\n                print(run.model_dump_json(indent=2))\n        elif mode == 'candidate':\n            async with EvaluationExecutor(client=studio, harness=harness) as executor:\n                run = await executor.run(dataset_id=sys.argv[2], request_key='candidate', run_label='Candidate: damaged-item policy')\n                print(run.model_dump_json(indent=2))\n        elif mode == 'compare':\n            result = await studio.compare_runs(sys.argv[2], sys.argv[3])\n            print(result.model_dump_json(indent=2))\n        elif mode == 'attempt':\n            print((await studio.get_attempt_evidence(sys.argv[2])).model_dump_json(indent=2))\n        else:\n            raise ValueError(mode)\n\nif __name__ == '__main__':\n    asyncio.run(main())\n"
+    },
+    "candidate": {
+      "source_revision": "0e9aac37f83769df57ac284d0679c42813c5332a",
+      "filename": "refund_app.py",
+      "sha256": "cdaaf8a6e8a8506e75b9840008d576224dc35bd9f8dda77444050d8d774d8f46",
+      "content": "\"\"\"Synthetic refund feature used to verify the public documentation end to end.\"\"\"\nimport asyncio\nimport json\nimport os\nimport sys\nfrom contextlib import asynccontextmanager\nfrom pathlib import Path\n\nfrom google import genai\nfrom google.genai import types\nfrom opentelemetry import trace\nfrom opentelemetry.sdk.resources import Resource\nfrom opentelemetry.sdk.trace import TracerProvider\nfrom pydantic import BaseModel\nfrom junjo import BaseState, BaseStore, Edge, Graph, Node, Workflow\nfrom junjo.evaluation import EvaluationExecutor, EvaluationHarness, ExactMatchEvaluator, ExecutionServiceIdentity, GenerateCaseRequest, WorkflowInvocation, WorkflowTarget\nfrom junjo.studio import CaseCreate, CaseOrigin, DatasetCreate, StudioClient, TargetKind\nfrom junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter\n\n# Apply the damaged-goods window after the model identifies product damage.\nAPPLY_DAMAGED_POLICY = True\nNAMESPACE = 'junjo.docs'\nSERVICE = 'refund-walkthrough'\n\nclass RefundInput(BaseModel):\n    message: str\n    days_since_delivery: int\n    already_refunded: bool = False\n    order_found: bool = True\n\nclass Classification(BaseModel):\n    damaged: bool\n    explanation: str\n\nclass RefundState(BaseState):\n    request: RefundInput\n    damaged: bool | None = None\n    explanation: str | None = None\n    policy_window_days: int | None = None\n    decision: str | None = None\n\nclass RefundStore(BaseStore[RefundState]):\n    async def classify_request(self, result: Classification):\n        await self.set_state({'damaged': result.damaged, 'explanation': result.explanation})\n    async def select_policy(self, days: int):\n        await self.set_state({'policy_window_days': days})\n    async def record_decision(self, decision: str):\n        await self.set_state({'decision': decision})\n\nclass ClassifyRequest(Node[RefundStore]):\n    def __init__(self, client):\n        super().__init__()\n        self.client = client\n    async def service(self, store):\n        state = await store.get_state()\n        prompt = 'Classify whether the customer reports a damaged or broken product. Do not decide refund eligibility. Customer: ' + state.request.message\n        with trace.get_tracer(__name__).start_as_current_span('Gemini: classify refund request') as span:\n            span.set_attribute('gen_ai.request.model', os.environ['DOCS_GEMINI_MODEL'])\n            span.set_attribute('docs.synthetic_input', prompt)\n            response = await self.client.models.generate_content(model=os.environ['DOCS_GEMINI_MODEL'], contents=prompt, config=types.GenerateContentConfig(temperature=0, response_mime_type='application/json', response_schema=Classification))\n            result = Classification.model_validate_json(response.text)\n            span.set_attribute('docs.structured_output', result.model_dump_json())\n        await store.classify_request(result)\n\nclass SelectRefundPolicy(Node[RefundStore]):\n    async def service(self, store):\n        state = await store.get_state()\n        window = 90 if APPLY_DAMAGED_POLICY and state.damaged else 30\n        await store.select_policy(window)\n\nclass DecideRefund(Node[RefundStore]):\n    async def service(self, store):\n        state = await store.get_state()\n        request = state.request\n        if not request.order_found:\n            decision = 'request_order_evidence'\n        elif request.already_refunded:\n            decision = 'refuse_duplicate'\n        elif request.days_since_delivery <= state.policy_window_days:\n            decision = 'approve_refund'\n        else:\n            decision = 'refuse_outside_window'\n        await store.record_decision(decision)\n\ndef workflow(input_value, client):\n    def graph():\n        classify, policy, decide = ClassifyRequest(client), SelectRefundPolicy(), DecideRefund()\n        return Graph(source=classify, sinks=[decide], edges=[Edge(classify, policy), Edge(policy, decide)])\n    return Workflow(name='Refund resolution', graph_factory=graph, store_factory=lambda: RefundStore(initial_state=RefundState(request=input_value)))\n\n@asynccontextmanager\nasync def runtime():\n    provider = TracerProvider(resource=Resource.create({'service.namespace': NAMESPACE, 'service.name': SERVICE}))\n    provider.add_span_processor(JunjoOtelExporter(endpoint=os.environ['JUNJO_AI_STUDIO_OTLP_ENDPOINT'], api_key=os.environ['JUNJO_AI_STUDIO_API_KEY'], insecure=True).span_processor)\n    trace.set_tracer_provider(provider)\n    async with genai.Client(api_key=os.environ['GEMINI_API_KEY']).aio as client:\n        try:\n            yield client\n        finally:\n            provider.force_flush()\n            provider.shutdown()\n\ndef factory(input_value, context, client):\n    return WorkflowInvocation(workflow=workflow(input_value, client))\n\ndef project(result, *_):\n    return result.state.decision\n\nharness = EvaluationHarness(application_key='docs_refund_walkthrough', service_identity=ExecutionServiceIdentity(service_namespace=NAMESPACE, service_name=SERVICE), targets=(WorkflowTarget(key='refund.workflow', name='Refund resolution', input_version=1, input_type=RefundInput, factory=factory, projector=project),), evaluators=(ExactMatchEvaluator(),), runtime_context=runtime)\n\nSCENARIOS = [\n    ('damaged-item', {'message': 'The blender arrived broken. I need a refund.', 'days_since_delivery': 45}, 'approve_refund'),\n    ('ordinary-return', {'message': 'I changed my mind. The product works fine.', 'days_since_delivery': 45}, 'refuse_outside_window'),\n    ('already-refunded', {'message': 'I need my refund again.', 'days_since_delivery': 10, 'already_refunded': True}, 'refuse_duplicate'),\n    ('missing-order', {'message': 'This item is damaged, but I cannot find the order.', 'days_since_delivery': 10, 'order_found': False}, 'request_order_evidence'),\n    ('ordinary-in-window', {'message': 'I changed my mind about this undamaged item.', 'days_since_delivery': 10}, 'approve_refund'),\n]\n\nasync def main():\n    mode = sys.argv[1]\n    async with StudioClient(base_url=os.environ['JUNJO_AI_STUDIO_BACKEND_BASE_URL'], token=os.environ['JUNJO_AI_STUDIO_CLI_TOKEN']) as studio:\n        if mode == 'observe':\n            async with runtime() as client:\n                with trace.get_tracer(__name__).start_as_current_span('Customer refund interaction') as span:\n                    result = await workflow(RefundInput(**SCENARIOS[0][1]), client).execute()\n                    trace_id = format(span.get_span_context().trace_id, '032x')\n            print(json.dumps({'trace_id': trace_id, 'decision': result.state.decision, 'state': result.state.model_dump()}))\n        elif mode == 'evidence':\n            evidence = await studio.get_trace_evidence(sys.argv[2])\n            print(evidence.model_dump_json(indent=2))\n        elif mode == 'baseline':\n            dataset = await studio.create_dataset(DatasetCreate(application_key=harness.application_key, key='refund-policy-docs-' + os.environ['DOCS_DEMO_KEY'], name='Refund policy scenarios', description='Synthetic documentation walkthrough: damaged goods, ordinary returns, duplicate refunds, and missing evidence.'))\n            async with EvaluationExecutor(client=studio, harness=harness) as executor:\n                for key, input_value, expected in SCENARIOS:\n                    common = dict(case_key=key, evaluation_name='Refund decision', target_kind=TargetKind.WORKFLOW, target_key='refund.workflow', input_version=1, input_json=input_value, expectation_json={'expected': expected}, evaluator_key='junjo.exact', evaluator_version=1)\n                    if key == 'damaged-item':\n                        await executor.generate_case(GenerateCaseRequest(dataset_id=dataset.id, **common))\n                    else:\n                        await studio.add_case(dataset.id, CaseCreate(origin=CaseOrigin.AUTHORED, target_name='Refund resolution', **common))\n                await studio.lock_dataset(dataset.id)\n                run = await executor.run(dataset_id=dataset.id, request_key='baseline', run_label='Baseline: ordinary return policy')\n                print(run.model_dump_json(indent=2))\n        elif mode == 'candidate':\n            async with EvaluationExecutor(client=studio, harness=harness) as executor:\n                run = await executor.run(dataset_id=sys.argv[2], request_key='candidate', run_label='Candidate: damaged-item policy')\n                print(run.model_dump_json(indent=2))\n        elif mode == 'compare':\n            result = await studio.compare_runs(sys.argv[2], sys.argv[3])\n            print(result.model_dump_json(indent=2))\n        elif mode == 'attempt':\n            print((await studio.get_attempt_evidence(sys.argv[2])).model_dump_json(indent=2))\n        else:\n            raise ValueError(mode)\n\nif __name__ == '__main__':\n    asyncio.run(main())\n"
+    }
+  }
+}

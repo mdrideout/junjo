@@ -37,7 +37,9 @@ class UsageAggregateField:
     """Sum and observation count for one optional provider usage fact."""
 
     sum: int
+    """Sum of the non-missing observations of this provider-reported usage field."""
     observations: int
+    """Number of model responses that reported this field; distinguishes absent usage from a reported zero."""
 
     def __post_init__(self) -> None:
         require_ijson_integer(self.sum, "Usage aggregate sum", minimum=0)
@@ -51,7 +53,9 @@ class AgentUsage:
     """Aggregate of validated per-response provider usage facts."""
 
     model_responses: int
+    """Total responses included in the aggregate, including responses with no reported usage."""
     fields: Mapping[str, UsageAggregateField]
+    """Usage field name to aggregate; each field retains its own observation count."""
 
     def __init__(
         self,
@@ -120,19 +124,33 @@ class AgentExecutionResult(Generic[OutputT]):
     """Frozen detached result returned only after validated final output."""
 
     agent_key: str
+    """Application-owned stable key of the Agent definition."""
     name: str
+    """Human-readable Agent name captured for this execution."""
     definition_id: str
+    """Identity of the Agent definition used for this invocation."""
     structural_id: str
+    """Compiled structural identity used to correlate equivalent executable shapes."""
     run_id: str
+    """Identity of this admitted Agent invocation, distinct from an evaluation run ID."""
     output: OutputT
+    """Final output validated against the Agent output type."""
     transcript: tuple[AgentMessage, ...]
+    """Immutable normalized records of the messages and operations captured for this invocation."""
     usage: AgentUsage
+    """Aggregated provider-reported usage; unavailable fields remain absent rather than becoming zero."""
     model_request_count: int
+    """Number of model requests recorded during this invocation."""
     tool_call_requested_count: int
+    """Number of tool calls requested by model responses."""
     tool_call_admitted_count: int
+    """Requested tool calls accepted for execution by the Agent runtime."""
     tool_call_started_count: int
+    """Admitted tool calls whose execution started."""
     tool_call_completed_count: int
+    """Started tool calls whose execution completed."""
     termination_reason: str
+    """Successful result termination reason; currently final_output."""
 
     def __init__(
         self,

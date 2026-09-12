@@ -43,27 +43,57 @@ MODULE_SECTIONS = (
         "junjo.agent.definition",
         "The common definition and binding types are also available from `junjo`.",
     ),
-    ModuleSection("Agent Model Drivers", "junjo.agent.model_driver"),
-    ModuleSection("Agent Tools", "junjo.agent.tool"),
+    ModuleSection(
+        "Agent Model Drivers",
+        "junjo.agent.model_driver",
+        "Connect your provider client with an application-owned adapter. "
+        "See [specialist agents](/docs/python/agents/) "
+        "for model bindings and application-owned provider integration.",
+    ),
+    ModuleSection(
+        "Agent Tools",
+        "junjo.agent.tool",
+        "Declare typed capabilities for an Agent to invoke. "
+        "See [compose agents and workflows](/docs/python/agents/composition/) "
+        "for service ownership, dependencies, and nested execution.",
+    ),
     ModuleSection("Agent Messages", "junjo.agent.messages"),
-    ModuleSection("Agent Results", "junjo.agent.result"),
+    ModuleSection(
+        "Agent Results",
+        "junjo.agent.result",
+        "Inspect validated output, transcript, usage, and execution identity. "
+        "Start with [specialist agents](/docs/python/agents/) and "
+        "[agent testing](/docs/python/agents/testing/) for successful and failed runs.",
+    ),
     ModuleSection("Agent State", "junjo.agent.state"),
-    ModuleSection("Agent JSON", "junjo.agent.json"),
+    ModuleSection(
+        "Agent JSON",
+        "junjo.agent.json",
+        "Portable JSON aliases describe the values accepted by Agent contracts. "
+        "`JsonValue` uses mutable lists and dictionaries; `FrozenJsonValue` describes "
+        "the recursively immutable tuples and mappings exposed in owned execution records.",
+    ),
     ModuleSection("Agent Errors", "junjo.agent.errors"),
     ModuleSection(
         "Agent Testing",
         "junjo.agent.testing",
-        "Deterministic scripted testing support is intentionally public at `junjo.agent.testing`.",
+        "Deterministic scripted testing support is intentionally public at `junjo.agent.testing`. "
+        "See [agent testing](/docs/python/agents/testing/) for scripted runtime tests "
+        "and the separate live evaluation workflow.",
     ),
     ModuleSection(
         "Evaluation API",
         "junjo.evaluation",
-        "Studio-connected evaluation orchestration for real application Nodes, Workflows, and Agents.",
+        "Studio-connected evaluation orchestration for real application Nodes, Workflows, and Agents. "
+        "Use [datasets and local evaluation runs](/docs/python/evaluation/) to register targets, "
+        "run locked cases, and compare outcomes.",
     ),
     ModuleSection(
         "Studio Client API",
         "junjo.studio",
-        "Typed, bounded evaluation-control and evidence queries for Junjo AI Studio.",
+        "Typed, bounded evaluation-control and evidence queries for Junjo AI Studio. "
+        "See [datasets and local evaluation runs](/docs/python/evaluation/) for client use and "
+        "[Junjo AI Studio](/docs/studio/overview/) for investigating the recorded evidence.",
     ),
     ModuleSection(
         "OpenAI Agents Integration",
@@ -200,6 +230,27 @@ def page_for_entry(entry: dict[str, str], pages: list[str]) -> str | None:
     return max(candidates, key=len)
 
 
+def module_for_entry(entry: dict[str, str], sections: tuple[ModuleSection, ...]) -> ModuleSection | None:
+    return next(
+        (section for section in sections if entry["anchor"].rsplit(".", 1)[0] == section.module),
+        None,
+    )
+
+
+def target_for_entry(
+    entry: dict[str, str], pages: list[str], sections: tuple[ModuleSection, ...]
+) -> tuple[str, str]:
+    if entry["kind"] == "module":
+        return module_route(entry["public_name"]), entry["anchor"]
+    page = page_for_entry(entry, pages)
+    if page is not None:
+        return route_for_symbol(page), entry["anchor"]
+    section = module_for_entry(entry, sections)
+    if section is not None:
+        return module_route(section.module), entry["anchor"]
+    raise ValueError(f"Python API public object has no generated page: {entry['public_name']}")
+
+
 def resolve_object(package: Any, public_path: str) -> Any:
     relative = public_path.removeprefix("junjo.")
     obj = package[relative]
@@ -213,7 +264,7 @@ def replace_rst_inline(
     current_page: str,
     symbol_links: dict[str, tuple[str, str]],
 ) -> str:
-    value = re.sub(r"``([^`]+)``", r"`\1`", value)
+    value = re.sub(r"(?<!`)``([^`\n]+)``(?!`)", r"`\1`", value)
 
     def role_replacement(match: re.Match[str]) -> str:
         target = match.group("target").removeprefix("~")
@@ -222,7 +273,8 @@ def replace_rst_inline(
             label = explicit.group("label")
             target = explicit.group("path")
         else:
-            label = target.rsplit(".", 1)[-1]
+            parts = target.split(".")
+            label = ".".join(parts[-2:]) if match.group("role") == "meth" else parts[-1]
         candidates = [target]
         if not target.startswith("junjo."):
             candidates = [
@@ -241,7 +293,7 @@ def replace_rst_inline(
         return f"`{label}`"
 
     value = re.sub(
-        r":(?:class|meth|func|attr|exc|obj):`(?P<target>[^`]+)`",
+        r":(?P<role>class|meth|func|attr|exc|obj):`(?P<target>[^`]+)`",
         role_replacement,
         value,
     )
@@ -262,6 +314,8 @@ def consume_rst_directive_block(lines: list[str], cursor: int) -> tuple[str, int
 
 
 def render_rst_directive(kind: str, argument: str, body: str) -> list[str]:
+    if kind == "rubric":
+        return [f"**{argument}**", "", body]
     if kind != "code-block":
         aside = "note" if kind == "note" else "caution"
         return [f":::{aside}", body, ":::"]
@@ -285,7 +339,7 @@ def replace_rst_blocks(value: str) -> str:
     cursor = 0
     while cursor < len(lines):
         directive = re.fullmatch(
-            r"\.\. (code-block|note|warning)::\s*(.*)",
+            r"\.\. (code-block|note|warning|rubric)::\s*(.*)",
             lines[cursor].strip(),
         )
         if directive is None:
@@ -305,9 +359,12 @@ def replace_rst_blocks(value: str) -> str:
 
 def markdown_text(value: str, current_page: str, symbol_links: dict[str, tuple[str, str]]) -> str:
     value = replace_rst_blocks(value)
-    value = replace_rst_inline(value, current_page, symbol_links)
-    value = re.sub(r"\n{3,}", "\n\n", value)
-    return value.strip()
+    # Inline reST conversion must never rewrite examples inside fenced code.
+    parts = re.split(r"(^```[^\n]*\n[\s\S]*?^```[ \t]*$)", value, flags=re.MULTILINE)
+    return "".join(
+        part if index % 2 else re.sub(r"\n{3,}", "\n\n", replace_rst_inline(part, current_page, symbol_links))
+        for index, part in enumerate(parts)
+    ).strip()
 
 
 def table_cell(value: object, current_page: str, symbol_links: dict[str, tuple[str, str]]) -> str:
@@ -388,9 +445,52 @@ def render_docstring(
             current_page,
             symbol_links,
         )
-        for section in docstring.parsed
+        for section in parse_docstring_sections(docstring)
     )
     return "\n\n".join(part for part in rendered if part).strip()
+
+
+def parse_docstring_sections(docstring: Any) -> list[Any]:
+    """Parse reST field lists separately so following prose/examples survive.
+
+    Griffe's automatic detection misses field-only docstrings. Its Sphinx
+    parser also consumes prose after the final field, and reports duplicate
+    annotations when a :type: follows an annotated :param:. Keep the source
+    intact, order field types first for parsing, and retain every narrative
+    block in its original position.
+    """
+    lines = docstring.value.splitlines()
+    field_pattern = re.compile(r"^:(?:param|parameter|arg|argument|type|returns?|rtype|raises?)\b[^:]*:")
+    if not any(field_pattern.match(line) for line in lines):
+        return docstring.parsed
+
+    sections: list[Any] = []
+    cursor = 0
+    while cursor < len(lines):
+        if not field_pattern.match(lines[cursor]):
+            start = cursor
+            while cursor < len(lines) and not field_pattern.match(lines[cursor]):
+                cursor += 1
+            text = "\n".join(lines[start:cursor]).strip()
+            if text:
+                sections.append(griffe.DocstringSectionText(text))
+            continue
+        fields: list[str] = []
+        while cursor < len(lines) and field_pattern.match(lines[cursor]):
+            start = cursor
+            cursor += 1
+            while cursor < len(lines) and (not lines[cursor].strip() or lines[cursor].startswith((" ", "\t"))):
+                cursor += 1
+            fields.append("\n".join(lines[start:cursor]).rstrip())
+        fields.sort(key=lambda field: not field.startswith((":type ", ":rtype:")))
+        parsed = griffe.Docstring(
+            "\n".join(fields),
+            parent=docstring.parent,
+            lineno=docstring.lineno,
+            parser="sphinx",
+        ).parsed
+        sections.extend(section for section in parsed if section.value)
+    return sections
 
 
 def source_link(obj: Any, revision: str, repository_root: Path) -> str | None:
@@ -413,9 +513,10 @@ def signature_for(obj: Any) -> str | None:
         except (AttributeError, TypeError, ValueError):
             return None
     annotation = getattr(obj, "annotation", None)
-    if annotation is not None:
-        return f"{obj.name}: {annotation}"
     value = getattr(obj, "value", None)
+    if annotation is not None:
+        assignment = f" = {value}" if value is not None else ""
+        return f"{obj.name}: {annotation}{assignment}"
     if value is not None:
         return f"{obj.name} = {value}"
     return None
@@ -581,6 +682,7 @@ def render_module_page(
     version: str,
     revision: str,
     channel: str,
+    attributes: list[str],
 ) -> str:
     output = [
         "---",
@@ -600,6 +702,8 @@ def render_module_page(
         output.extend((section.introduction, ""))
     for symbol in symbols:
         output.append(f"- [`{symbol}`]({route_for_symbol(symbol)})")
+    if attributes:
+        output.extend(("", "## Values and type aliases", "", *attributes))
     return "\n".join(output).rstrip() + "\n"
 
 
@@ -665,21 +769,22 @@ def generate_api(
     surface_entries: list[dict[str, str]] = surface["objects"]
     symbol_links: dict[str, tuple[str, str]] = {}
     for entry in surface_entries:
-        if entry["kind"] == "module":
-            symbol_links[entry["public_name"]] = (
-                module_route(entry["public_name"]),
-                entry["anchor"],
-            )
-            continue
-        page = page_for_entry(entry, pages)
-        if page is None:
-            continue
-        link = (route_for_symbol(page), entry["anchor"])
+        link = target_for_entry(entry, pages, module_sections)
         symbol_links[entry["public_name"]] = link
         symbol_links[entry["anchor"]] = link
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
         package = griffe.load("junjo", search_paths=[sdk_root / "src"], docstring_parser="auto")
+
+    # Public re-exports and defining-module paths should resolve to the same
+    # published object, including inherited methods such as Workflow.execute.
+    for public_path in pages:
+        obj = resolve_object(package, public_path)
+        symbol_links.setdefault(obj.path, symbol_links[public_path])
+        for entry in surface_entries:
+            if entry["anchor"].startswith(f"{public_path}."):
+                suffix = entry["anchor"].removeprefix(public_path)
+                symbol_links.setdefault(f"{obj.path}{suffix}", symbol_links[entry["anchor"]])
 
     output.mkdir(parents=True, exist_ok=True)
     manifest_symbols: list[dict[str, str]] = []
@@ -710,8 +815,23 @@ def generate_api(
         sections.append((section, symbols))
         module_path = output / "docs/python/api" / slug_for_symbol(section.module) / "index.md"
         module_path.parent.mkdir(parents=True, exist_ok=True)
+        attributes = [
+            render_member(
+                entry["anchor"],
+                section.module,
+                resolve_object(package, entry["public_name"]),
+                entry["kind"],
+                revision,
+                repository_root,
+                symbol_links,
+            )
+            for entry in surface_entries
+            if entry["kind"] == "attribute"
+            and page_for_entry(entry, pages) is None
+            and module_for_entry(entry, module_sections) == section
+        ]
         module_path.write_text(
-            render_module_page(section, symbols, version, revision, channel),
+            render_module_page(section, symbols, version, revision, channel, attributes),
             encoding="utf-8",
         )
 
@@ -719,18 +839,8 @@ def generate_api(
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(render_api_index(sections, version, revision, channel), encoding="utf-8")
 
-    unmapped: list[str] = []
     for entry in surface_entries:
-        if entry["kind"] == "module":
-            target_route = module_route(entry["public_name"])
-            target_anchor = entry["anchor"]
-        else:
-            page = page_for_entry(entry, pages)
-            if page is None:
-                unmapped.append(f"{entry['kind']} {entry['public_name']} ({entry['anchor']})")
-                continue
-            target_route = route_for_symbol(page)
-            target_anchor = entry["anchor"]
+        target_route, target_anchor = target_for_entry(entry, pages, module_sections)
         manifest_symbols.append(
             {
                 "kind": entry["kind"],
@@ -739,12 +849,14 @@ def generate_api(
                 "target_anchor": target_anchor,
             }
         )
-    if unmapped:
-        raise ValueError("Python API public objects have no generated page:\n" + "\n".join(unmapped))
-
     module_page_count = len(sections)
     symbol_page_count = len(pages)
     page_count = symbol_page_count + module_page_count + 1
+    diagnostics = [
+        line.replace(f"{repository_root.resolve()}/", "") for line in stderr.getvalue().splitlines() if line.strip()
+    ]
+    if diagnostics:
+        raise ValueError("Griffe reported public documentation diagnostics:\n" + "\n".join(diagnostics))
     manifest = {
         "version": 2,
         "sdk": "python",
@@ -759,9 +871,7 @@ def generate_api(
         "module_page_count": module_page_count,
         "symbol_count": len(manifest_symbols),
         "symbols": manifest_symbols,
-        "griffe_diagnostics": [
-            line.replace(f"{repository_root.resolve()}/", "") for line in stderr.getvalue().splitlines() if line.strip()
-        ],
+        "griffe_diagnostics": diagnostics,
     }
     manifest_path = output / "api-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

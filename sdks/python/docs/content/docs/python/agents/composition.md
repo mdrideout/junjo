@@ -1,10 +1,20 @@
 ---
-title: "Agent and Workflow Composition"
+title: "Compose agents and workflows"
+description: "Combine specialist agents with structured Python workflows through explicit inputs, outputs, and tools while preserving isolated state and execution evidence."
 ---
 <!-- migrated-from: sdks/python/docs/agent_composition.rst; source-hash: sha256:b4fe3c29cc29a98d2e31611874ac7640dbf6a1703c6020807350d10f6395caf9 -->
 
-Composition uses ordinary application boundaries. Junjo does not add a generic
-Agent Node, Workflow Tool, shared Store mapper, or universal executable base.
+Compose a focused specialist with a structured workflow when one application
+request mixes different kinds of work. For example, an exchange agent can call
+a workflow that retrieves order, policy, and payment facts concurrently before
+returning a typed eligibility result. Each boundary remains observable and can
+be evaluated independently.
+
+Composition uses ordinary application boundaries. Native Junjo Agents and
+Workflows use explicit input/output mappings; there is no generic Agent Node,
+shared Store mapper, or universal executable base. The optional
+[OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/) adds
+framework-specific function-tool adapters for that external runtime.
 
 ## Workflow to Agent
 
@@ -35,3 +45,17 @@ and completed side effects are not rolled back.
 Application code may explicitly catch a known typed failure and commit a domain
 recovery result. Junjo does not supply an implicit fallback, transaction,
 compensation, or persistent memory policy.
+
+## Evaluate the part and the whole
+
+Expose focused `AgentTarget`, `WorkflowTarget`, or `NodeTarget` declarations in
+one [evaluation harness](/docs/python/evaluation/#declare-one-harness). A coding
+agent can first test the policy lookup or specialist answer, then rerun the
+outer feature to check the mappings, tool selection, and final synthesis.
+
+The execution trace preserves the parent/child relationships, so an unexpected
+outer answer can be traced back to the nested operation that produced it.
+Compare the same locked cases before and after splitting a monolithic prompt;
+include all added model calls and coordination in latency and usage analysis.
+This is how composition becomes a testable step in
+[recursive self improvement](/docs/recursive-self-improvement/).

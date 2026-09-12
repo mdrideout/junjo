@@ -1,9 +1,19 @@
 ---
-title: "Getting Started"
+title: "Junjo Python SDK quickstart"
+description: "Install Junjo, run a small Python workflow, then connect execution telemetry and evaluation targets to Junjo AI Studio."
 ---
 <!-- migrated-from: sdks/python/docs/getting_started.rst; source-hash: sha256:457b15516ca53dca2c05633f35cd0d0f68c54eec1cc64980128310ab2e5ef379 -->
 
 <a id="getting-started"></a>
+This quickstart introduces the SDK's graph and state building blocks with a
+provider-free example. It runs in your Python environment; it does not deploy
+Studio or configure telemetry by itself.
+
+If you already have an AI application, begin with
+[recursive self improvement](/docs/recursive-self-improvement/) or the
+[OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/).
+You can add observability and evaluation without replacing the outer framework.
+
 ## Installation
 
 Junjo Python Library Installation:
@@ -23,9 +33,8 @@ uv add junjo
 
 The following is a basic, single file example of how to use Junjo to create a simple workflow. This example demonstrates the basic concepts of defining a workflow, creating nodes and edges, and executing the workflow.
 
-<img src="/docs-assets/generated/python/junjo-base-example-screenshot.png" alt="Example telemetry visualization of the getting started example" style="max-width: 100%; width: 100%; display: block; margin-inline: auto" />
-
-*The above screenshot shows the telemetry visualization of this getting started example. Visually step through the workflow nodes and individual state updates.*
+The example counts items and selects a conditional path. These same building
+blocks can separate retrieval, policy checks, and synthesis in an AI workflow.
 
 More advanced examples can be found in the [examples directory](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples) of the Junjo repository.
 
@@ -138,3 +147,25 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 ```
+
+## See the execution in Studio
+
+1. [Start Junjo AI Studio](/docs/studio/deployment/) and create an application
+   telemetry API key in **API Keys**.
+2. Add the [OpenTelemetry setup](/docs/observability/opentelemetry/#complete-configuration-example)
+   to the application's entrypoint. Initialize it once before `main()` runs and
+   shut it down when the application exits.
+3. Run this example again. In Studio, locate **Getting Started Example Workflow**
+   and match its execution to `result.run_id`. Inspect the count update and the
+   even/odd path. A local flush alone does not prove Studio received the trace.
+
+## Evaluate a change
+
+Use a `WorkflowTarget` to evaluate the final count and `NodeTarget` to focus on
+one operation. Ask your coding agent to add representative empty, even, and odd
+input cases, establish a baseline, then compare a changed implementation against
+the same locked dataset. The [evaluation guide](/docs/python/evaluation/)
+owns the harness declaration, separate developer access token, and run commands.
+
+For a step-by-step explanation of the code above, continue to
+[Build your first Junjo workflow](/docs/python/tutorial/).

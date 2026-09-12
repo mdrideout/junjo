@@ -1696,13 +1696,15 @@
       "source_hash": "sha256:08015a69b0639d45716488e64f68def25bc1abf67788ab88338c9cd52f6efa17",
       "source_lines": 41,
       "owner": "website",
-      "disposition": "retained",
+      "disposition": "replaced",
       "target_route": "/",
       "corrections": [
         "Replaced obsolete junjo-server links with the canonical monorepo Studio path.",
-        "Replaced the separate Python-docs call to action with the unified /docs/ route."
+        "Replaced the separate Python-docs call to action with the unified /docs/ route.",
+        "The standalone Astro homepage replaced the former Starlight root page in f0b3b77; the documentation entry point remains at /docs/."
       ],
-      "status": "accounted-for"
+      "status": "accounted-for",
+      "target_path": "apps/website/src/pages/index.astro"
     },
     {
       "source_path": "apps/website/src/content/docs/guides/example.md",

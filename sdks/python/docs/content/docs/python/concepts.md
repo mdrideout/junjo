@@ -1,12 +1,20 @@
 ---
 title: "Core Concepts"
-description: "Understand the core concepts of Junjo, including State, Store, Node, Edge, Condition, Graph, and Workflow. Learn how these components work together to build powerful and scalable Python workflows."
+description: "Understand Junjo Python building blocks: typed state, stores, nodes, conditional edges, graphs, and isolated workflow executions."
 ---
 <!-- migrated-from: sdks/python/docs/core_concepts.rst; source-hash: sha256:9381d0b21cf813e37abc55e320f7454f7cdc8afa84de8690fa0d6a5329965cca -->
 <!-- migrated-keywords: junjo, python, workflow, state management, node, edge, graph, core concepts -->
 
 <a id="core-concepts"></a>
-This page breaks down the fundamental building blocks of the Junjo library. Understanding these concepts is key to effectively designing, building, and debugging your workflows.
+These Python building blocks let your coding agent divide a complex AI task
+into focused, observable operations. A Workflow declares possible paths as a
+graph; model output can update application state, and conditional edges select
+the next path at runtime. To change the graph itself, change application code
+and create a new definition.
+
+Use [specialist Agents](/docs/python/agents/) when a model should instead choose
+among typed tools. Both patterns can become targets in the same
+[evaluation dataset and run lifecycle](/docs/python/evaluation/).
 
 ## State
 
@@ -36,7 +44,7 @@ A `BaseStore` is a class that manages the state of a workflow. It holds the `Bas
 
 - **State Management:** The single source of truth for the workflow's state.
 - **Redux-Inspired:** Follows a pattern where state is updated by dispatching actions, ensuring that state changes are explicit and traceable.
-- **Concurrency Safe:** Uses an `asyncio.Lock` to ensure that state updates are atomic, preventing race conditions.
+- **Atomic Commits:** Uses an `asyncio.Lock` to validate and apply each `set_state` patch against the current state. Application actions still own read/modify/write coordination and domain invariants.
 
 ```python
 from junjo import BaseStore
@@ -237,8 +245,10 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
 from junjo import Workflow
 
 def create_graph() -> Graph:
-    # ... (graph creation logic)
-    return workflow_graph
+    # Instantiate new Nodes and a new Graph for every execution.
+    # ProcessDataNode is defined above and writes processed_data to the Store.
+    process_node = ProcessDataNode()
+    return Graph(source=process_node, sinks=[process_node], edges=[])
 
 def create_workflow() -> Workflow[MyWorkflowState, MyWorkflowStore]:
     """Factory function to create a new instance of the workflow."""
@@ -286,8 +296,8 @@ you create a `Workflow`, you can wrap your factory function call in a
 function with the desired parameters when executed.
 
 This is useful for injecting dependencies like configuration objects or
-API clients into your graph at instantiation time, while preserving
-concurrency safety.
+API clients into your graph at instantiation time, while keeping
+per-execution definitions and state isolated.
 
 ```python
 # Your factory function that requires a dependency

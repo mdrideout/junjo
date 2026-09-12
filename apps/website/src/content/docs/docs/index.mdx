@@ -1,17 +1,28 @@
 ---
-title: Junjo Documentation
-description: Connect your application to Junjo, inspect execution evidence, and compare evaluations with your coding agent.
+title: Junjo docs
+description: Add recursive self improvement to your AI application with the Junjo Python SDK, AI Studio, and your preferred coding agent.
 ---
 
 import { LinkCard, CardGrid, Steps } from "@astrojs/starlight/components";
 
-Junjo connects application execution traces with evaluation results, giving
-developers and coding agents a shared record to investigate failures and
-assess changes.
+Junjo gives your coding agent the building blocks and shared evidence needed
+for **recursive self improvement**: investigate a failure, test a targeted
+change, compare the outcomes, and show you what happened.
 
-Your application owns execution and the meaning of quality. Your coding agent
-investigates and changes the code. Junjo preserves the evidence and makes it
-available through Studio and the evaluation CLI.
+Two pieces fit into your existing stack:
+
+- **Junjo Python SDK lives in your application.** It provides instrumentation,
+  workflow and specialist-agent building blocks, local evaluation tooling,
+  and a CLI and skills for your coding agent.
+- **Junjo AI Studio runs as lightweight containerized services.** It stores
+  telemetry, evaluation datasets, results, and execution history for
+  investigation by coding agents and humans.
+
+Your coding agent makes and tests changes. Your application runs the models,
+tools, and evaluators. Studio connects the outcomes to the execution evidence.
+Keep your supported agent framework, or build fully with Junjo.
+
+<LinkCard title="Run your first recursive self improvement cycle" href="/docs/recursive-self-improvement/" description="Start with a failure, describe the improvement to your coding agent, and inspect the evidence behind the result." />
 
 ## Get started
 
@@ -31,28 +42,32 @@ Start with one application feature you want to understand and improve.
    Agents with additional execution and state diagnostics. See the integration
    guides in the sidebar for supported external runtimes.
 
-3. **Evaluate a real feature.**
+3. **Connect your coding agent.**
 
-   Follow [Studio-connected evaluation](/docs/python/evaluation/) to declare
-   your application harness, define cases and criteria, and run a baseline
-   against your application code.
+   [Install the evaluation skill](/docs/python/evaluation/#give-a-coding-agent-the-runbook)
+   matching your installed SDK. Your agent uses Junjo's CLI to discover the
+   application's targets, manage datasets, run experiments, and inspect evidence.
 
-4. **Give your coding agent the evidence.**
+4. **Improve one real feature.**
 
-   [Connect the evaluation skill](/docs/python/evaluation/#give-a-coding-agent-the-runbook)
-   so your coding agent can inspect failures, make a change, and compare the
-   candidate against the same dataset.
+   Follow the [first improvement guide](/docs/recursive-self-improvement/).
+   Declare a target and its evaluation criteria, establish a baseline, and
+   compare a code or prompt change against the same locked dataset.
+   Open the linked Studio evidence to review the result together.
 
 </Steps>
 
 ## Explore the platform
 
 <CardGrid>
-  <LinkCard title="Evaluation" href="/docs/python/evaluation/" description="Application-owned harnesses, datasets, execution evidence, and run comparisons." />
-  <LinkCard title="Junjo AI Studio" href="/docs/studio/overview/" description="Self-hosted observability for inspecting application execution." />
-  <LinkCard title="Python SDK" href="/docs/python/" description="Build and instrument explicit Workflows and Agents." />
+  <LinkCard title="Datasets and evaluation runs" href="/docs/python/evaluation/" description="Create repeatable scenarios, run application targets locally, and compare outcomes and execution evidence." />
+  <LinkCard title="Investigate with Junjo AI Studio" href="/docs/studio/overview/" description="Let your coding agent and your team inspect the same outcomes, traces, and state changes." />
+  <LinkCard title="Python building blocks" href="/docs/python/" description="Improve focused capabilities with workflows, specialist agents, concurrency, and observable state." />
+  <LinkCard title="Keep your agent framework" href="/docs/python/integrations/openai-agents/" description="Observe OpenAI Agents SDK applications and expose Junjo capabilities as tools. Python integration." />
   <LinkCard title="Python API reference" href="/docs/python/api/" description="Generated reference for the public Python API." />
 </CardGrid>
 
-Python is the currently released SDK. Future language SDKs will appear as
-separate guide and API sections without replacing the Python documentation.
+Python is the currently released SDK. The first-party framework integration is
+for the OpenAI Agents SDK for Python. Other framework adapters are planned;
+receiving standard OpenTelemetry traces does not imply a native adapter for
+every framework or language.

@@ -10,6 +10,11 @@ const hasAgentGuides = existsSync(
     new URL("./src/content/docs/generated/docs/python/agents/index.md", import.meta.url),
   ),
 );
+const hasModelDriversGuide = existsSync(
+  fileURLToPath(
+    new URL("./src/content/docs/generated/docs/python/agents/model-drivers.md", import.meta.url),
+  ),
+);
 const hasOpenAIAgentsGuide = existsSync(
   fileURLToPath(
     new URL(
@@ -25,6 +30,12 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Junjo AI",
+      head: [
+        { tag: "meta", attrs: { property: "og:image", content: "https://junjo.ai/social/junjo-og-image-1.jpg" } },
+        { tag: "meta", attrs: { property: "og:image:alt", content: "Junjo: recursive self improvement for your AI application. Python SDK + AI Studio." } },
+        { tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
+        { tag: "meta", attrs: { name: "twitter:image", content: "https://junjo.ai/social/junjo-og-image-1.jpg" } },
+      ],
       social: [
         {
           icon: "github",
@@ -40,8 +51,12 @@ export default defineConfig({
       customCss: ["./src/styles/global.css"],
       sidebar: [
         {
-          label: "Documentation",
-          items: [{ label: "Documentation Home", slug: "docs" }],
+          label: "Start here",
+          items: [
+            { label: "Junjo in your stack", slug: "docs" },
+            { label: "Recursive self improvement", slug: "docs/recursive-self-improvement" },
+            { label: "Datasets and evaluation runs", slug: "docs/python/evaluation" },
+          ],
         },
         {
           label: "Python SDK",
@@ -49,15 +64,18 @@ export default defineConfig({
             { label: "Overview", slug: "docs/python" },
             { label: "Getting Started", slug: "docs/python/get-started" },
             { label: "Tutorial", slug: "docs/python/tutorial" },
-            { label: "Core Concepts", slug: "docs/python/concepts" },
+            { label: "Structured Workflows", slug: "docs/python/concepts" },
             ...(hasAgentGuides
               ? [
                   {
                     label: "Agents",
                     items: [
-                      { label: "Agents", slug: "docs/python/agents" },
+                      { label: "Specialist Agents", slug: "docs/python/agents" },
                       { label: "Testing", slug: "docs/python/agents/testing" },
                       { label: "Composition", slug: "docs/python/agents/composition" },
+                      ...(hasModelDriversGuide
+                        ? [{ label: "Model Drivers", slug: "docs/python/agents/model-drivers" }]
+                        : []),
                     ],
                   },
                 ]
@@ -75,10 +93,6 @@ export default defineConfig({
             {
               label: "Eval-Driven Development",
               slug: "docs/python/testing/eval-driven-development",
-            },
-            {
-              label: "Studio-Connected Evaluation",
-              slug: "docs/python/evaluation",
             },
             ...(hasOpenAIAgentsGuide
               ? [

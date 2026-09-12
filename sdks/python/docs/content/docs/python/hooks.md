@@ -1,5 +1,5 @@
 ---
-title: "Hooks"
+title: "Workflow and Agent lifecycle hooks"
 description: "Observe Junjo Workflow and Agent lifecycle events with optional in-process Python hook callbacks."
 ---
 <!-- migrated-from: sdks/python/docs/hooks.rst; source-hash: sha256:d4fdd8e32222a2df8291d4694a51d8a802ed11890a30f29dd043719a5f4d255a -->
@@ -10,6 +10,12 @@ Junjo hooks are optional, in-process Python callbacks for observing Workflow
 and Agent lifecycle events. Hooks do not control execution, and they are
 separate from OpenTelemetry, which stays active whether or not you register
 hooks.
+
+Use hooks for local logging and application notifications. Use
+[OpenTelemetry](/docs/observability/opentelemetry/) for durable execution
+evidence, and [evaluation datasets and runs](/docs/python/evaluation/) for
+coding-agent comparisons. You do not need to build a hook-based telemetry
+pipeline to enable recursive self improvement.
 
 ## Simple completion logging
 
