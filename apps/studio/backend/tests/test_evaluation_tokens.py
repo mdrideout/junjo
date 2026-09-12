@@ -210,6 +210,15 @@ async def test_evaluation_read_write_and_evidence_scopes_are_distinct(
                 f"/api/v1/trace-evidence/{'a' * 32}",
                 headers={"Authorization": f"Bearer {evidence['token']}"},
             )
+            evidence_manifest_ok = await client.get(
+                "/api/v1/trace-evidence/attempts/missing/manifest",
+                headers={"Authorization": f"Bearer {evidence['token']}"},
+            )
+            evidence_spans_ok = await client.post(
+                "/api/v1/trace-evidence/attempts/missing/spans",
+                headers={"Authorization": f"Bearer {evidence['token']}"},
+                json={"span_ids": ["a" * 16]},
+            )
             read_cannot_read_evidence = await client.get(
                 "/api/v1/execution-resolution",
                 headers={"Authorization": f"Bearer {read['token']}"},
@@ -220,6 +229,10 @@ async def test_evaluation_read_write_and_evidence_scopes_are_distinct(
                     "runtime_id": "workflow-run",
                 },
             )
+            read_cannot_read_manifest = await client.get(
+                "/api/v1/trace-evidence/attempts/missing/manifest",
+                headers={"Authorization": f"Bearer {read['token']}"},
+            )
     finally:
         app.dependency_overrides[get_authenticated_user] = session_override
 
@@ -229,13 +242,17 @@ async def test_evaluation_read_write_and_evidence_scopes_are_distinct(
     assert write_cannot_read.status_code == 403
     assert evidence_ok.status_code == 404
     assert evidence_trace_ok.status_code == 404
+    assert evidence_manifest_ok.status_code == 404
+    assert evidence_spans_ok.status_code == 404
     assert evidence_cannot_read_control.status_code == 403
     assert read_cannot_read_evidence.status_code == 403
+    assert read_cannot_read_manifest.status_code == 403
     for forbidden in (
         read_cannot_write,
         write_cannot_read,
         evidence_cannot_read_control,
         read_cannot_read_evidence,
+        read_cannot_read_manifest,
     ):
         assert forbidden.json()["detail"]["code"] == "insufficient_evaluation_token_scope"
 
@@ -377,5 +394,7 @@ def test_evaluation_token_openapi_contract_is_explicit() -> None:
         ("/api/v1/evaluation/runs", "post"),
         ("/api/v1/execution-resolution", "get"),
         ("/api/v1/trace-evidence/{trace_id}", "get"),
+        ("/api/v1/trace-evidence/attempts/{attempt_id}/manifest", "get"),
+        ("/api/v1/trace-evidence/attempts/{attempt_id}/spans", "post"),
     ):
         assert schema["paths"][path][method]["security"] == [{"EvaluationControlToken": []}]

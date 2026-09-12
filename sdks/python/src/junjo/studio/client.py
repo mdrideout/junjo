@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+from collections.abc import Sequence
 from dataclasses import dataclass
 from types import TracebackType
 from typing import TypeVar
@@ -31,6 +32,9 @@ from .models import (
     AttemptDetail,
     AttemptEvidence,
     AttemptEvidenceBind,
+    AttemptEvidenceManifest,
+    AttemptEvidenceSpanRequest,
+    AttemptEvidenceSpans,
     AttemptRead,
     AttemptResultWrite,
     CaseCreate,
@@ -103,8 +107,8 @@ class StudioClient:
         first attempt.
     :param retry_backoff_seconds: Initial non-blocking exponential backoff.
     :param max_control_response_bytes: Byte budget for control API responses.
-    :param max_evidence_response_bytes: Byte budget used only for an explicit
-        full trace-evidence request.
+    :param max_evidence_response_bytes: Byte budget used for explicitly
+        selected spans or complete trace evidence.
     :param transport: Optional HTTPX transport, primarily for deterministic
         tests or an explicitly managed application transport.
     """
@@ -440,9 +444,9 @@ class StudioClient:
     async def get_trace_evidence(self, trace_id: str) -> TraceEvidenceRead:
         """Explicitly hydrate complete evidence for one trace.
 
-        This is the only client operation that uses the larger evidence byte
-        budget.  Listing, detail, comparison, and membership operations remain
-        bounded control projections.
+        Complete trace and selected-span operations use the larger evidence
+        byte budget. Listing, detail, comparison, manifest, and membership
+        operations remain bounded control projections.
         """
 
         trace_id = _validate_trace_id(trace_id)
@@ -458,10 +462,7 @@ class StudioClient:
     async def get_attempt_evidence(self, attempt_id: str) -> AttemptEvidence:
         """Join an attempt to its exact complete Studio trace evidence."""
 
-        attempt = await self.get_attempt(attempt_id)
-        subject_evidence = attempt.attempt.subject_evidence
-        if subject_evidence is None:
-            raise AttemptEvidenceUnavailable(attempt_id)
+        attempt, subject_evidence = await self._get_attempt_subject(attempt_id)
         if isinstance(subject_evidence, SemanticExecutionReference):
             resolution: ExecutionResolutionRead | OpenTelemetrySpanResolutionRead = await self.resolve_execution(
                 subject_evidence
@@ -488,6 +489,97 @@ class StudioClient:
             resolution=resolution,
             evidence=evidence,
         )
+
+    async def get_attempt_evidence_manifest(
+        self,
+        attempt_id: str,
+    ) -> AttemptEvidenceManifest:
+        """Return bounded trace structure and selectable identities for an Attempt.
+
+        This is the normal first evidence query after inspecting the Attempt
+        control record. Full prompts, responses, state, events, and stack traces
+        remain available through selected-span or complete-trace hydration.
+
+        :param attempt_id: Studio evaluation Attempt record ID.
+        :return: Bounded subject, trace, failure, executable, operation, Store,
+            relationship, and diagnostic summaries.
+        :raises AttemptEvidenceUnavailable: If the Attempt has no evidence binding.
+        :raises ExecutionEvidencePending: If Studio has not indexed the bound
+            trace evidence yet.
+        :raises ExecutionIdentityAmbiguous: If the semantic execution identity
+            resolves to more than one owner span.
+        """
+
+        attempt_id = _validated_record_id(attempt_id)
+        _, subject_evidence = await self._get_attempt_subject(attempt_id)
+        path = f"/api/v1/trace-evidence/attempts/{_path_segment(attempt_id)}/manifest"
+        response = await self._request(
+            "GET",
+            path,
+            max_response_bytes=self._max_control_response_bytes,
+        )
+        if response.status_code == 404:
+            raise ExecutionEvidencePending(subject_evidence)
+        if response.status_code == 409:
+            conflict = self._parse(response, ExecutionResolutionConflict)
+            if not isinstance(subject_evidence, SemanticExecutionReference):
+                raise StudioContractError("Studio reported ambiguous semantic identity for exact span evidence.")
+            raise ExecutionIdentityAmbiguous(subject_evidence, conflict)
+        self._raise_for_status(response, method="GET", path=path)
+        return self._parse(response, AttemptEvidenceManifest)
+
+    async def get_attempt_evidence_spans(
+        self,
+        attempt_id: str,
+        span_ids: Sequence[str],
+    ) -> AttemptEvidenceSpans:
+        """Return complete evidence for explicitly selected spans in one Attempt trace.
+
+        Requested identities are kept in caller order. Studio returns identities
+        absent from the bound trace in ``missing_span_ids`` rather than silently
+        discarding them.
+
+        :param attempt_id: Studio evaluation Attempt record ID.
+        :param span_ids: Non-empty unique sequence of exact lowercase hexadecimal
+            OpenTelemetry span IDs.
+        :return: Complete raw spans with only their directly associated semantic
+            annotations, plus explicit missing identities.
+        :raises AttemptEvidenceUnavailable: If the Attempt has no evidence binding.
+        :raises ExecutionEvidencePending: If Studio has not indexed the bound
+            trace evidence yet.
+        :raises ExecutionIdentityAmbiguous: If the semantic execution identity
+            resolves to more than one owner span.
+        """
+
+        attempt_id = _validated_record_id(attempt_id)
+        request = AttemptEvidenceSpanRequest(span_ids=tuple(span_ids))
+        _, subject_evidence = await self._get_attempt_subject(attempt_id)
+        path = f"/api/v1/trace-evidence/attempts/{_path_segment(attempt_id)}/spans"
+        response = await self._request(
+            "POST",
+            path,
+            json=request.model_dump(mode="json"),
+            max_response_bytes=self._max_evidence_response_bytes,
+        )
+        if response.status_code == 404:
+            raise ExecutionEvidencePending(subject_evidence)
+        if response.status_code == 409:
+            conflict = self._parse(response, ExecutionResolutionConflict)
+            if not isinstance(subject_evidence, SemanticExecutionReference):
+                raise StudioContractError("Studio reported ambiguous semantic identity for exact span evidence.")
+            raise ExecutionIdentityAmbiguous(subject_evidence, conflict)
+        self._raise_for_status(response, method="POST", path=path)
+        return self._parse(response, AttemptEvidenceSpans)
+
+    async def _get_attempt_subject(
+        self,
+        attempt_id: str,
+    ) -> tuple[AttemptDetail, ExecutionEvidenceReference]:
+        attempt = await self.get_attempt(attempt_id)
+        subject_evidence = attempt.attempt.subject_evidence
+        if subject_evidence is None:
+            raise AttemptEvidenceUnavailable(attempt_id)
+        return attempt, subject_evidence
 
     async def get_evidence_membership(
         self,

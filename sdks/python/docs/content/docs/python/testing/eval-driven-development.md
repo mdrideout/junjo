@@ -1,27 +1,60 @@
 ---
 title: "Eval-Driven Development"
+description: "Design targeted evaluations that ground recursive self improvement in measured outcomes. Use Studio datasets and runs alongside local pytest checks."
 ---
 <!-- migrated-from: sdks/python/docs/eval_driven_dev.rst; source-hash: sha256:86b355297840f3d79ccab212f3e01dc7c3110d01ea7b271d810be5f8a6708255 -->
 
 <a id="eval-driven-dev"></a>
-Eval-Driven Development (EDD) is a critical development strategy for applications powered by Large Language Models (LLMs). This practice places continuous and rigorous evaluation at the heart of the development lifecycle.
+Eval-driven development is the measurement practice inside
+[recursive self improvement](/docs/recursive-self-improvement/). Define the
+behavior you want, run representative scenarios, inspect failures, change the
+application, and compare the results against the same criteria.
 
-Junjo accelerates EDD and complex workflow development by allowing one to iterate on their LLM prompts with many test inputs, and immediately see how the prompt changes impact the evaluation results.
+Junjo's Python SDK supplies targets, evaluators, and local execution tooling.
+Junjo AI Studio stores datasets, outcomes, and execution evidence. Your coding
+agent can operate that cycle from a natural-language request:
 
-<img src="/docs-assets/generated/python/pytest-eval-driven-development-example.gif" alt="Animated demo of eval-driven pytest execution and results" style="max-width: 100%; width: 75%; display: block; margin-inline: auto" />
+> Investigate this failed refund interaction in Junjo: [Studio trace link]. Build scenarios from the affected
+> customer interactions, define the conditions for a correct outcome, and
+> compare a targeted prompt change with the baseline. Show me the failures,
+> regressions, and execution evidence.
 
-*The above example demonstrates a simple pytest execution that gives pass / fail rates for a set of test inputs evaluating against a Junjo node.*
+The [evaluation datasets and runs guide](/docs/python/evaluation/) covers setup,
+the coding-agent skill, the CLI, locking, and exact evidence queries. This page
+focuses on choosing useful evaluations and testing individual implementation
+boundaries.
 
-## Powered by pytest
+## From an observed failure to a useful evaluation
 
-- Evaluate / Judge the output of your Junjo workflows and nodes with LLMs
-- Test individual nodes
-- Test entire workflows
-- Automate testing with CI / CD pipelines
-- Run on-demand as you iterate on your workflows
-- It just uses **pytest**!
-- Use tools like pytest-harvest to gather and track test results
-- No proprietary tools or testing platforms are required - everything happens directly in your codebase
+Suppose a support agent rejects a damaged-item return because it applies the
+ordinary return window. Inspect the recorded policy lookup and decision before
+editing the prompt. Create a scenario with that input and an explicit criterion:
+the damaged-item exception must be considered, without granting refunds for
+unrelated ordinary returns.
+
+Add positive, negative, and boundary cases to a draft dataset. If the existing
+dataset is locked, create a new dataset containing the retained cases and the
+new scenarios, then run both baseline and candidate against that same locked
+set. Generated output is an observation, not the expected answer.
+
+Evaluate the affected specialist or Node for fast feedback, then rerun the
+complete flow to check routing and synthesis. Count operational errors
+separately from failed judgments. A higher pass rate with lower judged coverage
+may hide missing evidence; neither result proves behavior outside the cases
+and criteria you tested.
+
+<a id="powered-by-pytest"></a>
+## Local correctness tests with pytest
+
+Pytest is useful for source-colocated assertions, deterministic fixtures, and
+CI checks. It complements the SDK's Studio-backed dataset and run lifecycle;
+it is not the underlying implementation of `junjo eval`.
+
+- Check an individual Node or complete Workflow through its public execution API.
+- Exercise failure handling with deterministic fixtures.
+- Run live model judgments when the test environment has the required services.
+- Keep local test results in pytest, or use the evaluation framework when shared
+  dataset history, structured outcomes, and evidence queries are needed.
 
 Pytest executions can initialize an input state for the node, execute the real
 Node through Junjo's normal lifecycle, and analyze the detached resulting
@@ -87,13 +120,22 @@ async def test_create_joke_node(test_case: dict):
     assert eval_result.passed, f"Joke evaluation failed: {eval_result.reason}"
 ```
 
+Calibrate an evaluator before using its results to compare application changes.
+Exercise a known-good output, a known-bad output, and a boundary case; review false
+passes and false failures. Keep each evaluator focused on one understandable
+product claim, return a binary decision with the deciding reason, and prefer a
+deterministic check when the fact itself is deterministic. An LLM judge should
+handle only the part of the claim that genuinely requires judgment.
+
 Run the sample eval from `examples/base`:
 
 ```bash
 uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py -v
 ```
 
-On mission critical workflows, this setup can be used to orchestrate hundreds or thousands of test inputs against a prompt to ensure it covers all use cases well.
+Expand the case set as new failure modes appear. A finite test suite measures
+the represented behaviors; review coverage and evaluator quality before using
+its pass rate to justify an application change.
 
 The generated evaluation Workflow is intentional evidence. Junjo AI Studio
 shows it as a one-Node Graph, and `execution.run_id` identifies the exact run
@@ -102,10 +144,14 @@ for a judge result.
 This pytest pattern remains useful for source-colocated experiments. For
 shared, locked input datasets, resumable baseline/candidate Runs, structured
 results, coding-agent operation, and exact Studio evidence queries, use
-[Studio-Connected Evaluation](/docs/python/evaluation/). That supported SDK
+[evaluation datasets and runs](/docs/python/evaluation/). That supported SDK
 surface owns the dataset and Attempt mechanics while the application still
 owns its domain inputs, construction, and judgment meaning.
 
 ## Testing Model Changes
 
-This is also a great way to evaluate whether changing LLM models increases or decreases eval pass / fail rates, or changes the speed at which evals are completed.
+Hold the cases and criteria constant while testing a different model, a focused
+prompt, or concurrent operations. Compare quality together with measured
+duration and available token usage. Include routing and synthesis in the
+end-to-end measurement: faster individual calls do not automatically make the
+whole application faster or cheaper.

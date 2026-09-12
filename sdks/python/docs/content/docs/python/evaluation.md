@@ -1,11 +1,17 @@
 ---
-title: "Studio-Connected Evaluation"
+title: "Evaluation datasets and runs with your coding agent"
+description: "Create targeted datasets, execute local application changes, compare evaluation runs, and inspect their exact Studio evidence with your coding agent."
 ---
 
 Junjo Evaluation is the batteries-included loop for building typed input
 datasets in Junjo AI Studio, executing them against the real application code
 in your checkout, and comparing structured results with the exact traces
 Studio received.
+
+This is the technical lifecycle behind
+[recursive self improvement](/docs/recursive-self-improvement/). Start with that
+guide for the first improvement journey; use this page for target declarations,
+dataset operations, evaluator contracts, and run diagnostics.
 
 The application remains the execution host because it owns prompts, provider
 credentials, Tools, databases, and domain services. The Junjo SDK owns the
@@ -32,6 +38,7 @@ CLI flags, or poll telemetry evidence.
 
 | Owner | Responsibility |
 | --- | --- |
+| Coding agent | Discover targets, curate scenarios, investigate evidence, edit and commit application changes, and orchestrate experiments |
 | Application | Typed inputs, real dependency construction, Node/Workflow/Agent factories, output projection, and domain-specific evaluator meaning |
 | Junjo SDK | `EvaluationHarness`, targets, evaluators, Studio transport, Attempt lifecycle, evidence binding, resume, comparison, and CLI |
 | Junjo AI Studio | Canonical datasets, cases, runs, attempts, results, evidence membership, and received trace evidence |
@@ -39,6 +46,11 @@ CLI flags, or poll telemetry evidence.
 Studio never executes uploaded source code. Complete telemetry still enters
 Studio through authenticated OTLP; evaluation REST operations store only
 bounded control records and exact evidence references.
+
+The lifecycle is **draft cases → lock dataset → execute baseline → commit a
+change → rerun the same dataset → compare and inspect evidence**. Setup happens
+once per application: connect telemetry, configure a developer access token,
+declare the harness, and install the matching coding-agent skill.
 
 ## Credentials stay separate
 
@@ -72,6 +84,20 @@ Its versioned JSON response contains the absolute skill directory and
 `SKILL.md` path. Point the coding agent's normal skill installer at that
 directory once.
 
+The installed CLI also explains its own current interface:
+
+```bash
+junjo eval explain
+junjo eval explain --format json
+```
+
+The Markdown form is the concise command, configuration, authentication, and
+evidence-level reference for a developer or coding agent. The JSON form uses
+the CLI's normal versioned envelope for tooling. Both are generated from the
+same command definitions used by `--help` and capability discovery, so the
+explainer is not a second handwritten command manual. The skill owns workflow
+judgment; the explainer owns exact CLI mechanics.
+
 Installing the Python package does not silently activate a coding-agent skill.
 The explicit installation keeps agent configuration under the application
 developer's control while the versioned skill, SDK, CLI, and documentation
@@ -95,7 +121,13 @@ materially ambiguous product intent, or authority to modify and commit code.
 
 ## Declare one harness
 
-An application exports exactly one explicit `EvaluationHarness` object:
+An application exports exactly one explicit `EvaluationHarness` object.
+
+The following wiring example assumes your application already defines
+`AnswerInputV1`, `AnswerState`, `AnswerStore`, `CreateAnswerNode`, and
+`build_provider`. The runtime context should acquire and close the same
+telemetry and provider resources used by real application execution; it is not
+a separate implementation of the target.
 
 ```python
 from contextlib import asynccontextmanager
@@ -219,6 +251,18 @@ Built-in evaluators intentionally stay small:
 Applications can define domain meaning without owning Attempt transitions or
 Studio writes.
 
+One evaluator should decide one understandable product claim with explicit,
+observable binary conditions. Calibrate it against known-good, known-bad, and
+boundary examples before trusting its result. Use deterministic checks for
+deterministic facts and for current facts that can be verified from a
+trustworthy current source; an LLM judge should not be expected to remember
+whether a venue exists, is open, or is correctly located.
+
+The evaluator's reason should identify the observation that determined pass or
+fail. Deeper trace and source diagnosis belongs to the coding agent, which can
+combine that reason with exact execution evidence without turning one judge
+call into an open-ended investigation.
+
 ## Generate a case through real execution
 
 Dataset generation runs the same declared Node, Workflow, or Agent and records
@@ -240,6 +284,12 @@ junjo eval case generate \
 
 The observed subject is evidence only. Junjo never copies it into the expected
 answer or silently promotes it to truth.
+
+Cases can also be authored directly from reviewed production interactions or
+synthetically constructed inputs using `junjo eval dataset add`. Generation
+through a target is useful when you want the scenario linked to an observed
+execution. In either path, choose the evaluation criterion independently of
+what the current implementation happened to produce.
 
 ## Execute, resume, and compare
 
@@ -295,20 +345,53 @@ Studio and the SDK report `pass_rate` over judged Attempts only
 `newly_errored`, `recovered`, `unchanged`, or `changed`, while retaining both
 exact execution links.
 
+Each Run records one clean committed source revision. An uncommitted prompt
+edit is not an eligible candidate; commit it before execution. Keep a baseline
+checkout or worktree available if you need to rerun the old implementation
+against a newly expanded dataset.
+
+For parallel experiments, separate coding agents or worktrees can execute
+independent Runs against the same locked dataset and Studio service. Give each
+experiment a distinct request key and meaningful Run label. This does not make
+one `EvaluationExecutor` concurrent: each executor still runs its cases
+sequentially. Scheduling and coordination belong to your coding agent, CI, or
+application environment, including ownership of external side effects.
+
 ## Query exact evidence
 
-Control reads return bounded summaries. Complete trace evidence is hydrated
-only when requested:
+Evidence reads are intentionally staged so an agent can diagnose a result
+without downloading every full trace:
+
+1. read the Run and Attempt summaries;
+2. read a manifest for a failed, errored, surprising, or representative
+   Attempt;
+3. request the exact failed or otherwise relevant span IDs exposed by that
+   manifest; and
+4. request full evidence only when the whole trace is needed for relationship,
+   state-reconstruction, or integrity analysis.
 
 ```bash
 junjo eval run get --run-id RUN_ID
 junjo eval attempt get --attempt-id ATTEMPT_ID
-junjo eval attempt evidence --attempt-id ATTEMPT_ID
+junjo eval attempt evidence manifest --attempt-id ATTEMPT_ID
+junjo eval attempt evidence spans \
+  --attempt-id ATTEMPT_ID \
+  --span-id SPAN_ID
+junjo eval attempt evidence full --attempt-id ATTEMPT_ID
 junjo eval evidence membership \
   --kind junjo_execution \
   --executable-type workflow \
   --runtime-id WORKFLOW_RUN_ID
 ```
+
+The manifest includes the evaluated subject, trace shape, failed spans,
+executable and operation summaries, Store integrity, relationships, and
+diagnostics. Operation summaries recognize native Junjo operations plus the
+OpenInference and GenAI model and Tool conventions Studio already uses; an
+external operation can be present without a Junjo executable owner.
+Selected-span reads return complete normalized records for the explicit IDs.
+Full evidence remains lossless. Use `junjo eval explain` and the individual
+command help for the current flags and response contracts.
 
 Normal ingestion/indexing delay has a distinct pending-evidence error. An
 ambiguous semantic execution identity is a conflict, not an arbitrary first
@@ -327,12 +410,16 @@ async with StudioClient(base_url=studio_url, token=studio_token) as studio:
             request_key="baseline-1",
             run_label="baseline",
         )
-        candidate = await evaluation.run(
+        repeat = await evaluation.run(
             dataset_id=dataset_id,
-            request_key="candidate-2",
-            run_label="more-specific-prompt",
+            request_key="repeat-2",
+            run_label="repeat-same-revision",
         )
 ```
+
+Both calls above use the same imported application code. To test a committed
+code change, run from the candidate checkout in a fresh application process;
+changing a Run label does not change prompts or reload Python modules.
 
 `EvaluationExecutor` is one application-host lifetime. It acquires the
 application runtime only before real target execution, reuses process-global

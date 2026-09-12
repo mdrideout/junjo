@@ -173,22 +173,23 @@ requireCondition(
   apiManifest.page_count === apiManifest.symbol_page_count + apiManifest.module_page_count + 1,
   "API page count is inconsistent",
 );
+const apiModuleRoutes = new Set(
+  apiManifest.symbols
+    .filter((symbol) => symbol.kind === "module")
+    .map((symbol) => symbol.target_route),
+);
 requireCondition(
   apiManifest.symbol_page_count ===
     new Set(
       apiManifest.symbols
-        .filter((symbol) => symbol.kind !== "module")
+        // Module-level values and aliases render on their owning module page.
+        .filter((symbol) => !apiModuleRoutes.has(symbol.target_route))
         .map((symbol) => symbol.target_route),
     ).size,
   "API symbol page count is inconsistent",
 );
 requireCondition(
-  apiManifest.module_page_count ===
-    new Set(
-      apiManifest.symbols
-        .filter((symbol) => symbol.kind === "module")
-        .map((symbol) => symbol.target_route),
-    ).size,
+  apiManifest.module_page_count === apiModuleRoutes.size,
   "API module page count is inconsistent",
 );
 requireCondition(existsSync(routeHtmlPath("/docs/python/api/")), "API index route is missing");

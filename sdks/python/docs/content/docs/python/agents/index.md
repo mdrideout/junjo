@@ -1,7 +1,16 @@
 ---
-title: "Agents"
+title: "Specialist agents in Python"
+description: "Define typed, provider-neutral Junjo agents with domain-specific tools, then evaluate and improve each specialist using shared datasets and execution evidence."
 ---
 <!-- migrated-from: sdks/python/docs/agents.rst; source-hash: sha256:f85c88429ba31eb96d804feb3ee8e201dd954ed956dd287f64cfdb272d3c888f -->
+
+Use a Junjo `Agent` for a focused application capability such as product
+support, exchange handling, or order status. Give each specialist its own
+instructions, tools, and evaluation cases so your coding agent can investigate
+and improve that domain without changing every part of the application.
+
+The **coding agent** edits and evaluates your software. The **application Agent**
+described here handles runtime requests inside that software.
 
 `Agent` is a reusable, typed Junjo executable for the case where a model
 chooses the next capability at runtime. It is a sibling of `Workflow`. An
@@ -44,23 +53,21 @@ class Question(BaseModel):
 class Answer(BaseModel):
     text: str
 
-driver = ScriptedModelDriver([
-    FinalOutputResponse(output={"text": "deterministic answer"})
-])
-
 agent = Agent(
     key="answer_question",
     name="Answer Question",
     instructions="Answer using available evidence.",
     input_type=Question,
-    model=ModelDriverBinding.shared(
+    model=ModelDriverBinding.per_run(
         descriptor=ModelDriverDescriptor(
             driver_key="scripted",
             provider="junjo",
             model="scripted-v1",
             fixture=True,
         ),
-        driver=driver,
+        factory=lambda: ScriptedModelDriver([
+            FinalOutputResponse(output={"text": "deterministic answer"})
+        ]),
     ),
     tools=[],
     output_type=Answer,
@@ -76,6 +83,57 @@ result = await agent.execute(
 The successful result always contains validated output, a detached normalized
 transcript, usage evidence, identities, counters, and terminal reason. Failure
 raises a typed `AgentError`; there is no output-less success result.
+
+This example uses a deterministic test driver, not a live model. For a live
+Agent, implement `ModelDriver.request()` around your chosen provider client or
+library and normalize its response into Junjo's typed contract. The
+[model-driver guide](/docs/python/agents/model-drivers/) explains that boundary.
+The
+[AI Chat provider adapters](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat/backend/src/ai_chat/adapters/model)
+show application-owned Gemini and Grok driver wiring; these are example code,
+not built-in provider clients in the Junjo package.
+
+## Improve a specialist independently
+
+Create datasets around a specific capability, then verify the complete user
+journey after each change:
+
+| Specialist | Focused scenarios | Evidence to inspect |
+| --- | --- | --- |
+| Product support | Ambiguous product names, conflicting specifications | Retrieval results and facts used in the response |
+| Exchange requests | Damaged items, expired windows, missing receipts | Policy lookup, eligibility decision, and tool arguments |
+| Order status | Partial shipments, stale tracking, missing orders | Lookup results and whether the answer preserves uncertainty |
+
+An `AgentTarget` makes a native Agent available to the evaluation harness. This
+example wraps the definition above and projects its answer for an evaluator:
+
+```python
+from junjo.evaluation import AgentInvocation, AgentTarget
+
+answer_target = AgentTarget(
+    key="answer_question",
+    name="Answer Question",
+    input_version=1,
+    input_type=Question,
+    factory=lambda input_value, context, resources: AgentInvocation(
+        agent=agent,
+        input=input_value,
+        dependencies=None,
+    ),
+    projector=lambda result, input_value, context, resources: result.output.text,
+)
+```
+
+Register the target and the chosen evaluator in your application's
+[`EvaluationHarness`](/docs/python/evaluation/#declare-one-harness). The
+per-run scripted driver above gives each test fresh fixture state. Real targets
+should construct the actual specialist and pass its real dependencies through
+the same boundary.
+
+Use the [dataset and run lifecycle](/docs/python/evaluation/) to compare prompt,
+tool, or model changes. A specialist's better pass rate is evidence for those
+cases; rerun the intake/routing and end-to-end targets to check the application
+still selects and combines specialists correctly.
 
 ## Tools and dependencies
 

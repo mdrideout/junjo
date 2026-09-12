@@ -27,9 +27,9 @@ work.
 
 ## Boundaries
 
-- Use the installed `junjo eval` CLI as the exact command and schema source of
-  truth. Inspect its current `--help`; do not reproduce its mechanics with ad
-  hoc HTTP or shell clients.
+- Use `junjo eval explain` as the installed command, configuration, and output
+  reference. Use the current command `--help` for exact syntax. Do not
+  reproduce CLI mechanics with ad hoc HTTP or shell clients.
 - Use `junjo.evaluation` and `junjo.studio` when application code or direct
   Python integration is required. Do not copy Studio clients, DTOs, runners, or
   generic evaluation mechanics into the application.
@@ -56,6 +56,7 @@ live machine contracts:
 
 ```bash
 junjo eval capabilities
+junjo eval explain
 junjo eval targets list
 junjo eval evaluators list
 junjo eval --help
@@ -108,6 +109,17 @@ For every case:
 - keep mechanical JSON in a temporary directory unless it is genuinely
   application-owned source material.
 
+Design each evaluator around one understandable product claim. State binary
+pass and fail conditions in terms of evidence the evaluator can actually
+observe. Use deterministic checks for deterministic facts and for current
+facts that can be verified from a trustworthy current source; do not ask an
+LLM judge to supply unstable facts from memory.
+
+Before trusting an evaluator, calibrate it against known-good, known-bad, and
+boundary examples. The evaluator owns the binary decision and a concise reason
+that names the decision-relevant observation. It does not own full root-cause
+analysis; the coding agent uses execution evidence and source code for that.
+
 Use `dataset add` for authored cases. Use `case generate` only when executing
 the real target is itself part of dataset authorship. Generated output remains
 evidence and must never be silently promoted to the expectation.
@@ -141,12 +153,26 @@ Use current CLI help for all other status and argument details.
 
 ## 4. Analyze outcomes and evidence
 
-Retrieve the completed Run and exact evidence for every Attempt. Confirm each
-Attempt resolves to the intended Node, Workflow, or Agent execution and the
+Retrieve the completed Run and bounded Attempt summaries first. Confirm each
+Attempt binds the intended Node, Workflow, or Agent execution and the
 application's truthful service identity. Native Junjo targets bind semantic
 execution evidence; external Agent targets bind the exact standard
 OpenTelemetry span. Use evidence membership only when a known execution must
 be followed upstream or downstream.
+
+Hydrate evidence in stages:
+
+1. inspect manifests for failures, errors, surprising passes, and a useful
+   representative sample;
+2. request the exact failed or otherwise relevant spans named by each manifest;
+   and
+3. request full evidence only when selected spans cannot resolve a relationship
+   or state question, or when the task explicitly requires a complete integrity
+   audit.
+
+Do not fetch full evidence for every Attempt by default. Use `junjo eval
+explain` and command help for the exact evidence commands and response
+contracts.
 
 Explain failures from both the evaluator reason and trace evidence. Locate the
 first meaningful behavioral difference rather than blaming the last visible

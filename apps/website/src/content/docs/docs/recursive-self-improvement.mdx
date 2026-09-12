@@ -1,0 +1,288 @@
+---
+title: Recursive self improvement with your coding agent
+description: Use Junjo to investigate AI application failures, build evaluation scenarios, test changes, and share the execution evidence with your team.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Recursive self improvement starts with a request to your coding agent. Junjo
+gives it the application building blocks, evaluation tooling, and recorded
+evidence to turn that request into a measured development cycle.
+
+Your agent investigates the current behavior, makes a targeted change, runs
+the application again, and compares the results. You can open the same evidence
+in Junjo AI Studio to understand the diagnosis and review the improvement.
+
+This guide follows a refund-handling feature from an observed failure to an
+evaluated change. The same process applies to a complete application, a
+workflow, a specialist agent, or one node. Here, recursive self improvement
+means improving application prompts and code through repeated experiments;
+Junjo does not train or modify model weights.
+
+## What Junjo adds to your stack
+
+| Piece | Role in the improvement cycle |
+| --- | --- |
+| Your coding agent | Investigates evidence, develops cases and evaluators, edits the application, runs experiments, and explains the results. |
+| Junjo Python SDK in your application | Supplies instrumented building blocks, target and evaluator contracts, dataset/run operations, and the `junjo eval` CLI and skill. |
+| Your application | Executes its real models, tools, dependencies, and evaluators in its own environment. |
+| Junjo AI Studio | Stores datasets, outcomes, and execution chronology so agents and people can investigate a shared record. |
+
+Keep your chosen model libraries and supported agent framework. The
+[OpenAI Agents SDK integration for Python](/docs/python/integrations/openai-agents/)
+can observe an existing outer agent and expose a Junjo workflow or specialist
+as a tool. Adopting the telemetry layer and reorganizing application code are
+separate steps.
+
+## Connect once
+
+Your coding agent can help with setup. Before the first measured experiment,
+establish these connections in your application repository:
+
+1. [Deploy Junjo AI Studio](/docs/studio/deployment/) and connect the
+   application's [OpenTelemetry pipeline](/docs/observability/opentelemetry/).
+   Run an existing application operation and verify that its trace is visible
+   in Studio.
+2. Configure the [developer access token](/docs/python/evaluation/#credentials-stay-separate)
+   for the SDK and CLI. This is separate from the application's telemetry API
+   key: one queries and manages experiment records; the other sends spans.
+3. [Declare an evaluation target and evaluator](/docs/python/evaluation/#declare-one-harness)
+   around the feature you want to improve. The application supplies real
+   inputs, dependency construction, output projection, and the meaning of a
+   correct result. Junjo supplies the runner and record-keeping.
+4. [Install the Junjo evaluation skill](/docs/python/evaluation/#give-a-coding-agent-the-runbook)
+   into your coding agent using its normal skill installation process.
+
+The installed SDK locates the matching skill with `junjo eval skill path`.
+After the application declaration is configured, `junjo eval targets list`
+and `junjo eval evaluators list` let the agent discover the available input and
+evaluation contracts.
+
+The [dataset and run guide](/docs/python/evaluation/) owns the detailed setup
+and commands. You do not need to maintain another evaluation runner or a
+separate local results database.
+
+## Start with one prompt
+
+Once connected, describe the product behavior you want to improve:
+
+```text
+Use Junjo to investigate this failed refund interaction: [Studio trace link].
+Build evaluator judges and a dataset of scenarios based on that failure and related
+customer interactions. Make a targeted improvement, compare it against the
+baseline, and show me the Studio links that explain what changed.
+```
+
+Your coding agent uses the skill to translate that intent into target discovery,
+dataset operations, local runs, evidence queries, and a report. Set its editing
+and commit authority to match the task. Junjo's normal CLI records a clean
+committed application revision for each run, so a candidate is a traceable code
+change, not an unrecorded edit in a dirty checkout.
+
+For an investigation-only task, ask it to establish the baseline and report
+its findings before changing application behavior.
+
+## Investigate an observed failure
+
+Suppose a customer reports a damaged item and receives an incorrect refusal.
+The failure is the incorrect application outcome, even if every model request
+returned successfully.
+
+### Give the agent the starting execution
+
+Open the interaction in Studio's **Logs** or **Agents** view
+and copy its execution link into the request. You can also supply a trace ID
+from your application's request logs. This connects the customer report to
+the particular execution the agent should inspect.
+
+The developer-token SDK can read a known production trace. The evaluation CLI
+can discover evaluation runs and inspect their attempts; it does not currently
+search arbitrary production interactions. Studio's production listings use the
+signed-in browser session. A developer access token alone does not grant that
+listing access.
+
+For a known trace ID, your coding agent can use the public Python client below.
+`JUNJO_TRACE_ID` is the ID copied from that interaction, not an additional Junjo
+configuration requirement. The other two variables are the control connection
+configured during setup.
+
+```python
+import asyncio
+import os
+
+from junjo.studio import StudioClient
+
+
+async def inspect_failure():
+    async with StudioClient(
+        base_url=os.environ["JUNJO_AI_STUDIO_BACKEND_BASE_URL"],
+        token=os.environ["JUNJO_AI_STUDIO_CLI_TOKEN"],
+    ) as studio:
+        evidence = await studio.get_trace_evidence(os.environ["JUNJO_TRACE_ID"])
+        print(evidence.model_dump_json(indent=2))
+
+
+asyncio.run(inspect_failure())
+```
+
+For a native execution whose runtime ID is known, use
+[`resolve_execution()`](/docs/python/api/junjo/studio/studioclient/#junjo.studio.StudioClient.resolve_execution)
+with its service namespace, service name, executable type, and runtime ID.
+The response supplies the trace ID and Studio paths. Keep the original link in
+the report so you can reopen the same evidence after the experiment.
+
+Your coding agent inspects the recorded execution: the customer request, the
+policy lookup, the intermediate decision, the resulting state updates, and the
+response. It can identify a specific cause, such as a prompt treating a
+damaged-item claim as an ordinary change-of-mind return.
+
+The report should connect that diagnosis to the exact production trace or
+span. Evidence availability follows the application's instrumentation and
+privacy settings. A missing or redacted intermediate result is a reason to
+improve instrumentation or investigate further, not to invent an explanation.
+
+## Turn the failure mode into repeatable scenarios
+
+Ask your agent to create a draft dataset around the behavior, including both
+the failure and cases that already work. For this example:
+
+| Scenario | Evaluation criterion |
+| --- | --- |
+| Damaged item within the policy window | Applies the damaged-item policy using the supplied order and policy evidence. |
+| Ordinary return outside the policy window | Preserves the correct refusal under the ordinary-return policy. |
+| Order already refunded | Does not authorize a duplicate refund. |
+| Missing order evidence | Requests the missing information instead of inventing an order or decision. |
+
+Adapt these criteria to your application's actual policy and input schema.
+Cases may come from real customer interactions or synthetic boundary scenarios.
+Remove customer details that the test does not need.
+
+The agent can author cases directly or
+[generate cases through real application execution](/docs/python/evaluation/#generate-a-case-through-real-execution).
+A generated case links to the execution that produced it. Its observed output
+is evidence; it does not automatically become the correct answer. Keep the
+original production failure link in the investigation report as well.
+
+Use deterministic checks for facts such as refund amount or duplicate payment.
+For a model-based judge, give it an explicit rubric and check its decisions
+against known-good, known-bad, and boundary examples. Improving a judge so it
+measures the intended behavior is a different experiment from improving the
+application it judges.
+
+## Lock the cases and measure the baseline
+
+Locking freezes the dataset's ordered cases. Run the baseline implementation
+against this dataset before changing the prompt or code. Junjo creates one
+attempt per case, executes the application target, and records its outcome
+and linked execution evidence.
+
+If you discover a new scenario after a dataset is locked, create a new draft
+dataset containing the relevant existing cases and the new case. Lock that
+revised dataset, then run both baseline and candidate against it. A comparison
+must use the same locked cases; adding tests only to the candidate changes the
+question being measured.
+
+See [execute, resume, and compare](/docs/python/evaluation/#execute-resume-and-compare)
+for the CLI workflow and run identity rules.
+
+## Make a targeted change and rerun
+
+The first change might clarify the policy prompt or correct the responsible
+state update. A later experiment might split one complex request into policy
+analysis, order analysis, and a synthesis step. The coding agent chooses a
+change based on the evidence, then runs the candidate from its committed
+revision against the same dataset.
+
+Compare more than the headline pass rate:
+
+- **Improvements:** a previously failed scenario now passes the same criteria.
+- **Regressions:** a previously passed scenario now fails.
+- **Operational errors:** the target or evaluator could not complete; investigate
+  these separately from a judged failure.
+- **Coverage and execution evidence:** determine which cases were actually
+  judged and inspect the operations behind surprising results.
+
+Pass rate counts judged attempts: `passed / (passed + failed)`. Coverage reports
+how many of the total cases were judged. An experiment that errors on difficult
+cases has not demonstrated success on those cases.
+
+Passing the tested scenarios supports a concrete improvement; it does not
+establish correctness for every future input. Extend the scenario set as new
+failure modes appear and keep the history of the earlier experiments.
+
+## Show the evidence to a human
+
+The coding agent's final report should make the change easy to inspect:
+
+> **Diagnosis:** The damaged-item request followed the ordinary-return branch.
+> Open the recorded production execution and the policy decision span.
+>
+> **Change:** State the prompt or code change and its source revision.
+>
+> **Result:** Report the actual improved, regressed, and errored cases, plus
+> coverage. Link the baseline/candidate comparison and the relevant executions.
+>
+> **Next step:** Explain remaining failures or the next experiment supported
+> by these results.
+
+Populate the report with the run results and links returned from your Studio
+instance.
+
+[Junjo AI Studio](/docs/studio/overview/) provides dataset and run views,
+same-dataset comparison, exact trace/span links, and native workflow/agent
+execution views. The agent can resolve evidence paths and link you to the
+same record it inspected. Open those links with access to that Studio instance
+to validate the diagnosis and review the state or operation details.
+
+## Improve a smaller part of the application
+
+Use the same cycle at a narrower boundary when a feature mixes too many
+responsibilities:
+
+<CardGrid>
+  <LinkCard title="Refine a specialist" href="/docs/python/agents/" description="Give a domain its own instructions and tools; evaluate that specialist and check its effect on the full application." />
+  <LinkCard title="Organize a workflow" href="/docs/python/concepts/" description="Split a complex request into nodes and conditional paths with observable inputs, state and results." />
+  <LinkCard title="Run independent work concurrently" href="/docs/python/workflows/concurrency/" description="Evaluate whether parallel operations improve wall time while preserving the required behavior." />
+  <LinkCard title="Keep your framework" href="/docs/python/integrations/openai-agents/" description="Expose a Junjo capability as an OpenAI Agents SDK tool and evaluate the inner capability or the outer agent." />
+</CardGrid>
+
+Test smaller, cheaper models against the same criteria and inspect the
+execution when a change fails. This is how reusable building blocks and shared evidence
+support an ongoing recursive self improvement process.
+
+## Make improvement a recurring task
+
+Your coding agent's scheduler, CI system, or other existing automation can
+start the cycle periodically. Junjo provides the shared datasets, local
+evaluation machinery, and evidence queries; the scheduling and code execution
+remain in your development environment.
+
+A recurring task can inspect failed evaluation attempts or consume production
+trace links supplied by your existing incident/request logging workflow. Junjo
+does not currently provide developer-token production-failure search or a
+built-in harvesting scheduler. With those starting identities, the task can
+investigate newly observed failures, propose additional
+scenarios, establish a baseline, and evaluate a targeted change. Give the task
+clear authority over edits and commits, and have it report the comparison and
+remaining failures with evidence links. Use a new dataset when the scenario
+membership changes and a new run identity for each new experiment.
+
+## Run parallel improvement experiments
+
+Independent coding agents can test different architectures or failure modes in
+separate clean worktrees while recording their runs in the same Studio
+instance. Each experiment has its own committed revision and run identity.
+
+Use the same locked dataset when comparing alternative implementations of the
+same target. Use separate datasets when the target contract or evaluated
+behavior differs; their results remain inspectable, but they are not a
+case-for-case comparison.
+
+The standard `EvaluationExecutor` processes cases sequentially within a run.
+Parallel improvement cycles are separate application/agent invocations, not
+multiple workers claiming attempts from a Studio job queue. Your environment
+owns concurrency and provider capacity. After selecting a useful change, test
+the combined implementation as well as the individual experiment.
+
+For the detailed supporting method, see
+[eval-driven development](/docs/python/testing/eval-driven-development/).

@@ -1,12 +1,100 @@
 ---
-title: "OpenTelemetry Integration"
-description: "Junjo provides automatic OpenTelemetry instrumentation for AI workflows. Learn how it works and how to configure exporters for any observability platform."
+title: "OpenTelemetry for AI application evidence"
+description: "Capture AI execution chronology with Junjo OpenTelemetry instrumentation. Configure export, verify Studio delivery, and understand the evidence available to coding agents."
 ---
 <!-- migrated-from: sdks/python/docs/opentelemetry.rst; source-hash: sha256:4259e6339a291bc04bd394ad87b7d9e81a8eb369c729ecd98f60d1a8e1ff4513 -->
 <!-- migrated-keywords: junjo, opentelemetry, tracing, observability, OTLP, jaeger, grafana, honeycomb -->
 
 <a id="opentelemetry"></a>
-Junjo automatically instruments your workflows with OpenTelemetry spans. Every workflow and node execution is traced without any code changes to your workflow logic.
+OpenTelemetry connects application execution to the evidence your coding agent
+uses for [recursive self improvement](/docs/recursive-self-improvement/). The
+Junjo SDK emits native Workflow, Agent, Node, and state-update spans; your
+application configures the provider, exporter, and content policy. Junjo AI
+Studio stores the received traces for coding-agent queries and human inspection.
+
+Native instrumentation does not automatically capture every call made inside a
+Node. Instrument your model clients, HTTP handlers, retrieval, and other
+libraries when you need their internal operations. Existing external spans can
+appear in Studio's trace view without becoming native Junjo graphs or Stores.
+For the first-party Python adapter, see
+[OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/).
+
+Create an application telemetry credential in Studio's **API Keys** screen.
+That `JUNJO_AI_STUDIO_API_KEY` admits OTLP spans only. The separate developer
+access token used by the [evaluation CLI](/docs/python/evaluation/#credentials-stay-separate)
+grants dataset and evidence-query access; do not swap the two credentials.
+
+## Complete Configuration Example
+
+Configure telemetry once for the lifetime of the application process. If the
+application already owns a provider, attach the Junjo span processor to that
+provider instead of installing another global provider. The following is a
+standalone setup for an application that does not yet have one:
+
+```python title="otel_config.py"
+import os
+from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
+
+def init_telemetry(
+    *, service_name: str, service_namespace: str, endpoint: str, insecure: bool = False
+):
+    """Configure OpenTelemetry with Junjo AI Studio."""
+
+    # Get API key
+    api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
+    if not api_key:
+        raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable not set")
+
+    # Create resource
+    resource = Resource.create({
+        "service.name": service_name,
+        "service.namespace": service_namespace,
+        "service.version": "1.0.0",
+        "deployment.environment": os.getenv("ENV", "development")
+    })
+
+    # Set up tracer provider
+    tracer_provider = TracerProvider(resource=resource)
+
+    # Configure Junjo AI Studio exporter.
+    junjo_exporter = JunjoOtelExporter(
+        endpoint=endpoint,
+        api_key=api_key,
+        insecure=insecure
+    )
+
+    # Add span processor
+    tracer_provider.add_span_processor(junjo_exporter.span_processor)
+
+    # Set as global tracer provider
+    trace.set_tracer_provider(tracer_provider)
+
+    return tracer_provider
+```
+
+Use in your application:
+
+```python
+from otel_config import init_telemetry
+
+# Local application connecting to Studio on the same host.
+# Use the actual application identity here and in EvaluationHarness.
+tracer_provider = init_telemetry(
+    service_name="my-ai-workflow",
+    service_namespace="my-company",
+    endpoint="localhost:26155",
+    insecure=True,
+)
+
+try:
+    # Execute workflows - automatic instrumentation
+    await my_workflow.execute()
+finally:
+    tracer_provider.shutdown()
+```
 
 ## How Junjo Uses OpenTelemetry
 
@@ -20,9 +108,12 @@ Junjo automatically instruments your workflows with OpenTelemetry spans. Every w
 - RunConcurrent concurrent execution
 - State machine updates
 
-**No Manual Instrumentation Required:**
+**Native Junjo Instrumentation:**
 
-Once you configure an OpenTelemetry exporter, Junjo handles the rest. Your workflow code stays clean and focused on business logic.
+Once an OpenTelemetry SDK provider and exporter are configured, native Junjo
+executions emit their supported spans without adding tracing code to each Node.
+Application code remains responsible for additional operations and for any
+fields excluded or redacted from captured payloads.
 
 ```python
 # Your workflow code stays the same
@@ -239,23 +330,28 @@ Junjo works with any OpenTelemetry-compatible platform. Choose based on your nee
 
 ### 1. Junjo AI Studio (Recommended for AI Workflows)
 
-Built specifically for graph workflow debugging with:
+A telemetry and evaluation observation suite with:
 
-- Interactive state stepping
-- Workflow-specific visualization
-- LLM decision tracking
+- queryable execution chronology for coding-agent investigation;
+- recorded Workflow graphs, Agent operation timelines, and state diffs;
+- shared evaluation datasets and comparable Runs linked to exact evidence; and
+- browser views so humans can inspect the records behind an agent's findings.
 
 See [Junjo Ai Studio](/docs/studio/overview/) for complete setup.
 
-When your Junjo application runs in Docker, it only needs to be on the same
-Docker network as the Junjo AI Studio ingestion service. Use `localhost:26155`
-only for applications running directly on the local machine.
+The application must reach the ingestion endpoint and authenticate with its
+telemetry API key. Within the supported Compose deployment's network, the
+service hostname is `junjo-ai-studio-ingestion`. A separate Compose project
+must explicitly join the correct network or use a reachable published endpoint;
+its own `localhost` refers to that application container. Use
+`localhost:26155` only when the application runs on the Studio host and that
+port is published there. See the [deployment guide](/docs/studio/deployment/).
 
 ```python
 from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
 
 junjo_exporter = JunjoOtelExporter(
-    endpoint="ingestion:26155",  # AI Studio ingestion on this Docker network
+    endpoint="junjo-ai-studio-ingestion:26155",  # Same Compose network
     api_key=api_key,
     insecure=True
 )
@@ -341,7 +437,7 @@ tracer_provider = TracerProvider(resource=resource)
 
 # Add Junjo AI Studio exporter
 junjo_exporter = JunjoOtelExporter(
-    endpoint="ingestion:26155",  # AI Studio ingestion on this Docker network
+    endpoint="junjo-ai-studio-ingestion:26155",  # Same Compose network
     api_key=junjo_api_key,
     insecure=True
 )
@@ -357,7 +453,8 @@ trace.set_tracer_provider(tracer_provider)
 
 ## Junjo's Custom Span Attributes
 
-Junjo adds workflow-specific attributes to all spans. These work with any OTLP exporter:
+Junjo adds its contract attributes to native Junjo spans. External spans keep
+their own instrumentation conventions. Both can use the same OTLP exporter:
 
 Failed Workflow, Subflow, Node, concurrent-execution, Agent, model-request, and
 Tool spans also follow the standard OpenTelemetry error contract in addition
@@ -514,65 +611,6 @@ These attributes enable:
 - Viewing state changes over time
 - Understanding graph structure
 
-## Complete Configuration Example
-
-Here's a complete OpenTelemetry setup for Junjo:
-
-```python title="otel_config.py"
-import os
-from junjo.telemetry.junjo_otel_exporter import JunjoOtelExporter
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.resources import Resource
-
-def init_telemetry(service_name: str):
-    """Configure OpenTelemetry with Junjo AI Studio."""
-
-    # Get API key
-    api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
-    if not api_key:
-        raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable not set")
-
-    # Create resource
-    resource = Resource.create({
-        "service.name": service_name,
-        "service.version": "1.0.0",
-        "deployment.environment": os.getenv("ENV", "development")
-    })
-
-    # Set up tracer provider
-    tracer_provider = TracerProvider(resource=resource)
-
-    # Configure Junjo AI Studio exporter.
-    junjo_exporter = JunjoOtelExporter(
-        endpoint="ingestion:26155",  # AI Studio ingestion on this Docker network
-        api_key=api_key,
-        insecure=True
-    )
-
-    # Add span processor
-    tracer_provider.add_span_processor(junjo_exporter.span_processor)
-
-    # Set as global tracer provider
-    trace.set_tracer_provider(tracer_provider)
-
-    return tracer_provider
-```
-
-Use in your application:
-
-```python
-from otel_config import init_telemetry
-
-tracer_provider = init_telemetry(service_name="my-ai-workflow")
-
-try:
-    # Execute workflows - automatic instrumentation
-    await my_workflow.execute()
-finally:
-    tracer_provider.shutdown()
-```
-
 ## Production Junjo AI Studio Exporter
 
 For production, configure `JunjoOtelExporter` with the public OTLP/gRPC target
@@ -590,7 +628,13 @@ junjo_exporter = JunjoOtelExporter(
 
 ### Sampling
 
-Reduce telemetry volume with sampling:
+Sampling reduces telemetry volume by intentionally discarding traces. For
+local evaluation and diagnosis, retain the executions you need to compare.
+Sampling can leave an Attempt's evidence pending or unavailable and can prevent
+state reconstruction; a result record does not restore a discarded trace.
+Choose production sampling separately based on the evidence you need to keep.
+
+For a workload where retaining only a sample is acceptable:
 
 ```python
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
@@ -618,7 +662,9 @@ resource = Resource.create({
 
 ### Context Propagation
 
-Propagate trace context across services:
+Propagate trace context across services using the format agreed by both ends.
+The OpenTelemetry default is W3C Trace Context. If your environment explicitly
+uses B3, install `opentelemetry-propagator-b3` before this configuration:
 
 ```python
 from opentelemetry import propagate
@@ -644,7 +690,7 @@ When viewing Junjo traces in your observability platform, you'll see:
 - State snapshots at workflow start/end
 - Graph structure for understanding workflow design
 
-**Performance Metrics:**
+**Timing Derived from Traces:**
 
 - Node execution duration
 - Workflow total duration
@@ -656,29 +702,50 @@ When viewing Junjo traces in your observability platform, you'll see:
 
 ### No spans appearing
 
+`trace.get_tracer()` returns an object even when no recording provider is
+configured. Check a real span and then verify its delivery:
+
 ```python
-# Verify tracer provider is set
 from opentelemetry import trace
 
-tracer = trace.get_tracer("test")
-assert tracer is not None, "Tracer provider not configured"
+# Run after init_telemetry() has installed the provider.
+with trace.get_tracer("my-app.telemetry-check").start_as_current_span(
+    "junjo.telemetry.check"
+) as span:
+    span.set_attribute("diagnostic.purpose", "verify Studio delivery")
+    context = span.get_span_context()
+    print("recording:", span.is_recording())
+    print("trace_id:", f"{context.trace_id:032x}")
+    print("span_id:", f"{context.span_id:016x}")
+
+tracer_provider.force_flush()
 ```
+
+A recording span proves local instrumentation is active, not that Studio
+received it. Open **Logs** in Studio and locate the printed trace ID. Then
+run a real Workflow or Agent and verify its native execution and state evidence.
+If the diagnostic span is not recording, inspect provider installation and
+sampling. If it records locally but is absent remotely, check the actual
+endpoint, TLS mode, telemetry credential, and exporter logs. Batching and
+indexing can delay visibility; `force_flush()` is not a remote-delivery receipt.
 
 ### Missing Junjo attributes
 
-- Junjo attributes are added automatically - no configuration needed
+- Native Junjo execution adds its contract attributes when the configured provider records the span; a generic external span does not acquire native graph or state semantics
 - Verify you're viewing the correct span (workflow vs node)
 - Check your platform supports custom attributes
 
 ### Performance impact
 
-- OpenTelemetry has minimal overhead (\<1% in most cases)
-- Use sampling for high-throughput workflows
-- Consider async batch exporters for production
+- Measure overhead with your application's payload sizes, span volume, and concurrency; there is no universal percentage.
+- `JunjoOtelExporter` uses a batch span processor. Avoid forcing a flush after each request.
+- Large prompts, responses, and state histories increase serialization, transport, and storage work. Apply an intentional capture policy and document the resulting evidence limits.
+- Use sampling only where incomplete execution coverage is acceptable.
 
 ## Next Steps
 
 - Set up [Junjo Ai Studio](/docs/studio/overview/) for AI workflow-specific debugging
 - Explore [Visualizing Workflows](/docs/python/workflows/visualization/) for static diagrams
 - Learn about [Concurrency](/docs/python/workflows/concurrency/) to understand concurrent execution traces
-- Review [Eval Driven Dev](/docs/python/testing/eval-driven-development/) for testing workflows
+- Use [evaluation datasets and runs](/docs/python/evaluation/) to compare outcomes with their traces
+- Follow [recursive self improvement](/docs/recursive-self-improvement/) to turn a recorded failure into a measured code change

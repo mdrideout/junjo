@@ -1,6 +1,6 @@
 ---
 title: "Subflows"
-description: "Learn how to implement and use Subflows in Junjo to create modular, reusable, and organized Python workflows. Discover how the Graph class simplifies complex workflow construction."
+description: "Break complex AI workflows into subflows with isolated state, explicit parent mappings, and traceable execution boundaries for focused improvement."
 ---
 <!-- migrated-from: sdks/python/docs/subflows.rst; source-hash: sha256:1e93d04f819f9c6b52bd594c655bb337cdf8fb63d58d47a30b0c9ea6e79681b8 -->
 <!-- migrated-keywords: junjo, python, workflow, subflow, modular design, graph, state management, reusable components -->
@@ -18,7 +18,7 @@ A Subflow in Junjo is a specialized workflow that:
 2. Maintains its **own isolated state and store**, ensuring that its internal operations do not directly interfere with the parent's state, except through explicitly defined interactions.
 3. Can **interact with its parent workflow's state** before its execution begins (via `pre_run_actions`) and after it completes (via `post_run_actions`).
 4. Has its **own \`Graph\` instance** defining its internal sequence of nodes and edges.
-5. **Is concurrency safe**: Multiple subflows can be executed concurrently with safe immutable state updates.
+5. **Isolates child state**: Multiple subflows can run concurrently with separate Stores. Parent updates use atomic Store commits; parent read/modify/write coordination remains application-owned.
 
 This design allows you to break down complex processes into smaller, manageable, and testable parts that can be executed concurrently.
 
@@ -149,10 +149,10 @@ def create_subflow_instance() -> SampleSubflow:
 ```
 
 In this example:
-\- `pre_run_actions` copies `items` from the parent's state into the Subflow's state.
-\- `post_run_actions` takes the `joke` and `fact` produced within the Subflow and updates the parent's state.
-\- `subflow_store` is the isolated store for that specific subflow execution.
-\- The `SampleSubflow` is instantiated with its own `Graph` factory (`create_subflow_graph`) and a factory for its `SampleSubflowStore`.
+- `pre_run_actions` copies `items` from the parent's state into the Subflow's state.
+- `post_run_actions` takes the `joke` and `fact` produced within the Subflow and updates the parent's state.
+- `subflow_store` is the isolated store for that specific subflow execution.
+- The `SampleSubflow` is instantiated with its own `Graph` factory (`create_subflow_graph`) and a factory for its `SampleSubflowStore`.
 
 The `Graph` class is used consistently for both main workflows and Subflows, providing a unified way to define execution logic.
 
@@ -197,8 +197,8 @@ def create_parent_graph() -> Graph:
 ```
 
 In this structure:
-\- `sample_subflow_instance` (our `Subflow`) is created fresh in `create_parent_graph` and used directly as the `head` of one edge and the `tail` of another.
-\- The parent workflow's `Graph` orchestrates the flow *to* and *from* the Subflow, but the Subflow manages its own internal execution.
+- `sample_subflow_instance` (our `Subflow`) is created fresh in `create_parent_graph` and used directly as the `head` of one edge and the `tail` of another.
+- The parent workflow's `Graph` orchestrates the flow *to* and *from* the Subflow, but the Subflow manages its own internal execution.
 
 ## Visualizing Subflows
 
@@ -216,9 +216,16 @@ This hierarchical visualization makes it easier to understand complex workflows 
 
 ## Subflows on Junjo AI Studio
 
-[Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) will also intelligently render subflows, allowing one to step through node executions and state updates even in highly concurrent subflow executions.
+[Junjo AI Studio](/docs/studio/overview/) links received parent and child
+executions, letting you inspect the Subflow's Nodes and state updates in
+context. Configure [telemetry](/docs/observability/opentelemetry/) in the owning
+application process; constructing a graph alone does not send evidence.
 
-<img src="/docs-assets/generated/python/subflow-junjo-ai-studio-visual.png" alt="A screenshot of a Junjo workflow graph&#x27;s visual in Junjo AI Studio, featuring" style="max-width: 100%; width: 600px; display: block; margin-inline: auto" />
+For targeted evaluation, expose a `NodeTarget` for an internal step or a
+`WorkflowTarget` for a top-level workflow that constructs the Subflow and
+supplies its parent state. Junjo does not provide a standalone `SubflowTarget`.
+Keep the parent input/output mappings in the evaluation so a passing child
+implementation does not hide an incorrect parent update.
 
 ## Conclusion
 

@@ -10,14 +10,21 @@ from types import SimpleNamespace
 
 from pydantic import BaseModel, ConfigDict
 
-from junjo.cli.main import EXIT_EVALUATION, EXIT_OK, EXIT_SUBJECT, EXIT_USAGE
+from junjo.cli.main import EXIT_CONFLICT, EXIT_EVALUATION, EXIT_OK, EXIT_SUBJECT, EXIT_USAGE
 from junjo.evaluation import (
     EvaluationHarness,
     ExactMatchEvaluator,
     ExecutionServiceIdentity,
     NodeTarget,
 )
-from junjo.studio import AttemptStatus, StudioHealth
+from junjo.studio import (
+    AttemptStatus,
+    ExecutableType,
+    ExecutionIdentityAmbiguous,
+    ExecutionResolutionConflict,
+    SemanticExecutionReference,
+    StudioHealth,
+)
 
 cli = importlib.import_module("junjo.cli.main")
 
@@ -54,10 +61,16 @@ HARNESS = EvaluationHarness(
 )
 
 
+class AttributeDict(dict):
+    def __getattr__(self, name: str):
+        return self[name]
+
+
 class FakeStudioClient:
     created_request = None
     membership_evidence = None
     configuration: dict[str, object] | None = None
+    evidence_calls: list[tuple[str, object]] = []
 
     def __init__(self, **configuration: object) -> None:
         type(self).configuration = configuration
@@ -86,6 +99,27 @@ class FakeStudioClient:
     async def get_evidence_membership(self, evidence, *, cursor=None, limit=50):
         type(self).membership_evidence = evidence
         return {"kind": evidence.kind, "cursor": cursor, "limit": limit}
+
+    async def get_attempt(self, attempt_id):
+        type(self).evidence_calls.append(("attempt", attempt_id))
+        return SimpleNamespace(dataset=SimpleNamespace(application_key="cli_test"))
+
+    async def get_attempt_evidence_manifest(self, attempt_id):
+        type(self).evidence_calls.append(("manifest", attempt_id))
+        return {"attempt_id": attempt_id, "level": "manifest"}
+
+    async def get_attempt_evidence_spans(self, attempt_id, span_ids):
+        type(self).evidence_calls.append(("spans", tuple(span_ids)))
+        return {"attempt_id": attempt_id, "span_ids": list(span_ids)}
+
+    async def get_attempt_evidence(self, attempt_id):
+        type(self).evidence_calls.append(("full", attempt_id))
+        return AttributeDict(
+            attempt=AttributeDict(
+                dataset=AttributeDict(application_key="cli_test"),
+            ),
+            level="full",
+        )
 
 
 def _payload(capsys) -> dict:
@@ -142,6 +176,36 @@ def test_help_uses_argparse_normally_without_an_internal_error(capsys) -> None:
     assert "Build and execute Studio-backed evaluation datasets." in captured.out
     assert '"ok":false' not in captured.out
     assert captured.err == ""
+
+
+def test_explain_markdown_is_local_and_describes_staged_evidence(capsys) -> None:
+    exit_code = cli.main(["eval", "explain"])
+
+    captured = capsys.readouterr()
+    assert exit_code == EXIT_OK
+    assert captured.out.startswith("# Junjo Evaluation CLI\n")
+    assert "`junjo eval attempt evidence manifest --attempt-id ATTEMPT_ID`" in captured.out
+    assert "`junjo eval attempt evidence spans --attempt-id ATTEMPT_ID" in captured.out
+    assert "JUNJO_AI_STUDIO_CLI_TOKEN" in captured.out
+    assert "Executes an evaluation target" in captured.out
+    assert captured.err == ""
+
+
+def test_explain_json_is_generated_from_command_and_argument_metadata(capsys) -> None:
+    exit_code = cli.main(["eval", "explain", "--format", "json"])
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_OK
+    commands = {item["command"]: item for item in payload["data"]["commands"]}
+    spans = commands["junjo eval attempt evidence spans"]
+    assert spans["evidence_level"] == "selected_spans"
+    assert spans["executes_evaluation_target"] is False
+    assert spans["authentication"] == "JUNJO_AI_STUDIO_CLI_TOKEN"
+    span_argument = next(item for item in spans["arguments"] if item["name"] == "span_id")
+    assert span_argument["required"] is True
+    assert span_argument["repeatable"] is True
+    assert commands["junjo eval run execute"]["executes_evaluation_target"] is True
+    assert payload["data"]["configuration"][0]["pyproject"] == ("[tool.junjo.evaluation].harness")
 
 
 def test_skill_path_is_local_and_requires_no_harness_or_studio(
@@ -235,6 +299,18 @@ def test_capabilities_reports_sdk_studio_and_control_boundaries(
         "telemetry_transport": "otlp",
         "version": 1,
     }
+    assert payload["data"]["agent_guidance"] == {
+        "skill_name": "junjo-evaluation",
+        "skill_discovery_command": "junjo eval skill path",
+        "interface_explainer_command": "junjo eval explain",
+        "interface_explainer_json_command": "junjo eval explain --format json",
+    }
+    assert [level["name"] for level in payload["data"]["evidence_access"]] == [
+        "attempt_summary",
+        "manifest",
+        "selected_spans",
+        "full",
+    ]
 
 
 def test_backend_base_url_comes_from_the_explicit_environment_variable(
@@ -481,6 +557,104 @@ def test_evidence_membership_accepts_native_and_external_evidence(
     assert external_exit == EXIT_OK
     assert external_payload["data"]["kind"] == "otel_span"
     assert FakeStudioClient.membership_evidence.trace_id == "1" * 32
+
+
+def test_attempt_evidence_commands_are_explicit_and_select_span_ids(
+    monkeypatch,
+    capsys,
+) -> None:
+    FakeStudioClient.evidence_calls = []
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", "jcli_test-token")
+    prefix = ["eval", "--harness", f"{__name__}:HARNESS", "attempt", "evidence"]
+
+    manifest_exit = cli.main([*prefix, "manifest", "--attempt-id", "attempt-1"])
+    manifest_payload = _payload(capsys)
+    spans_exit = cli.main(
+        [
+            *prefix,
+            "spans",
+            "--attempt-id",
+            "attempt-1",
+            "--span-id",
+            "a" * 16,
+            "--span-id",
+            "b" * 16,
+        ]
+    )
+    spans_payload = _payload(capsys)
+    full_exit = cli.main([*prefix, "full", "--attempt-id", "attempt-1"])
+    full_payload = _payload(capsys)
+
+    assert (manifest_exit, spans_exit, full_exit) == (EXIT_OK, EXIT_OK, EXIT_OK)
+    assert manifest_payload["command"] == "eval.attempt.evidence.manifest"
+    assert spans_payload["data"]["span_ids"] == ["a" * 16, "b" * 16]
+    assert full_payload["command"] == "eval.attempt.evidence.full"
+    assert FakeStudioClient.evidence_calls == [
+        ("attempt", "attempt-1"),
+        ("manifest", "attempt-1"),
+        ("attempt", "attempt-1"),
+        ("spans", ("a" * 16, "b" * 16)),
+        ("full", "attempt-1"),
+    ]
+
+
+def test_attempt_manifest_reports_semantic_resolution_conflict(monkeypatch, capsys) -> None:
+    async def raise_conflict(_client, _attempt_id):
+        raise ExecutionIdentityAmbiguous(
+            SemanticExecutionReference(
+                service_namespace="junjo.tests",
+                service_name="cli",
+                executable_type=ExecutableType.WORKFLOW,
+                runtime_id="workflow-run",
+            ),
+            ExecutionResolutionConflict(
+                code="ambiguous_execution_identity",
+                message="two matches",
+                match_count=2,
+            ),
+        )
+
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setattr(FakeStudioClient, "get_attempt_evidence_manifest", raise_conflict)
+    monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", "jcli_test-token")
+
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "attempt",
+            "evidence",
+            "manifest",
+            "--attempt-id",
+            "attempt-1",
+        ]
+    )
+    payload = _payload(capsys)
+
+    assert exit_code == EXIT_CONFLICT
+    assert payload["error"]["code"] == "conflict"
+    assert "2 executions" in payload["error"]["message"]
+
+
+def test_old_ambiguous_attempt_evidence_command_is_removed(capsys) -> None:
+    exit_code = cli.main(
+        [
+            "eval",
+            "--harness",
+            f"{__name__}:HARNESS",
+            "attempt",
+            "evidence",
+            "--attempt-id",
+            "attempt-1",
+        ]
+    )
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_USAGE
+    assert payload["error"]["code"] == "usage_or_validation"
+    assert "attempt_evidence_command" in payload["error"]["message"]
 
 
 def test_run_exit_codes_distinguish_completion_regression_and_error() -> None:

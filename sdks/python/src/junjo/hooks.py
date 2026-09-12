@@ -26,17 +26,29 @@ class LifecycleEvent:
     """Base payload shared by every public hook event."""
 
     run_id: str
+    """Invocation identity carried by this lifecycle event; not a Studio evaluation run identifier."""
     executable_definition_id: str
+    """Definition identity of the executable that emitted this event."""
     name: str
+    """Display name of the executable that emitted this event."""
     trace_id: str
+    """Active OpenTelemetry trace identity for linking the callback to execution evidence."""
     span_id: str
+    """Active OpenTelemetry span identity associated with this lifecycle event."""
     executable_type: ExecutableType
+    """Kind of executable that emitted this event."""
     executable_runtime_id: str
+    """Per-invocation identity of the executable that emitted this event."""
     executable_structural_id: str
+    """Compiled structural identity of the executable that emitted this event."""
     parent_executable_definition_id: str | None = None
+    """Definition identity of the enclosing executable, when one exists."""
     parent_executable_runtime_id: str | None = None
+    """Invocation identity of the enclosing executable, when one exists."""
     parent_executable_structural_id: str | None = None
+    """Compiled structural identity of the enclosing executable, when one exists."""
     parent_executable_type: ExecutableType | None = None
+    """Kind of the enclosing executable, when one exists."""
 
     @property
     def hook_name(self) -> str:
@@ -67,6 +79,7 @@ class GraphLifecycleEvent(LifecycleEvent):
     """Lifecycle payload for an executable that belongs to a compiled Graph."""
 
     enclosing_graph_structural_id: str
+    """Structural identity of the compiled graph containing this executable."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +87,9 @@ class WorkflowStartedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_workflow_started` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     graph_json: str
+    """Serialized compiled graph captured when this workflow or subflow starts."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,7 +97,9 @@ class WorkflowCompletedEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_workflow_completed` callbacks."""
 
     result: ExecutionResult[StateT]
+    """Detached successful execution result delivered to this observer."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,8 +107,11 @@ class WorkflowFailedEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_workflow_failed` callbacks."""
 
     error: Exception
+    """Execution exception delivered to this observer; callback failures do not replace the application error."""
     state: StateT
+    """Detached application state at this lifecycle point."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,8 +119,11 @@ class WorkflowCancelledEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_workflow_cancelled` callbacks."""
 
     reason: str
+    """Cancellation reason recorded for this execution."""
     state: StateT
+    """Detached application state at this lifecycle point."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,7 +131,9 @@ class SubflowStartedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_subflow_started` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     graph_json: str
+    """Serialized compiled graph captured when this workflow or subflow starts."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,7 +141,9 @@ class SubflowCompletedEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_subflow_completed` callbacks."""
 
     result: ExecutionResult[StateT]
+    """Detached successful execution result delivered to this observer."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,8 +151,11 @@ class SubflowFailedEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_subflow_failed` callbacks."""
 
     error: Exception
+    """Execution exception delivered to this observer; callback failures do not replace the application error."""
     state: StateT
+    """Detached application state at this lifecycle point."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,8 +163,11 @@ class SubflowCancelledEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_subflow_cancelled` callbacks."""
 
     reason: str
+    """Cancellation reason recorded for this execution."""
     state: StateT
+    """Detached application state at this lifecycle point."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,6 +175,7 @@ class NodeStartedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_started` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,6 +183,7 @@ class NodeCompletedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_completed` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,7 +191,9 @@ class NodeFailedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_failed` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     error: Exception
+    """Execution exception delivered to this observer; callback failures do not replace the application error."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,7 +201,9 @@ class NodeCancelledEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_node_cancelled` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     reason: str
+    """Cancellation reason recorded for this execution."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,6 +211,7 @@ class RunConcurrentStartedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_started` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,6 +219,7 @@ class RunConcurrentCompletedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_completed` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,7 +227,9 @@ class RunConcurrentFailedEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_failed` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     error: Exception
+    """Execution exception delivered to this observer; callback failures do not replace the application error."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,7 +237,9 @@ class RunConcurrentCancelledEvent(GraphLifecycleEvent):
     """Payload delivered to :meth:`junjo.Hooks.on_run_concurrent_cancelled` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     reason: str
+    """Cancellation reason recorded for this execution."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,10 +247,15 @@ class StateChangedEvent(GraphLifecycleEvent, Generic[StateT]):
     """Payload delivered to :meth:`junjo.Hooks.on_state_changed` callbacks."""
 
     store_id: str
+    """Identity of the application state store associated with this event."""
     store_name: str
+    """Display name of the state store whose action completed."""
     action_name: str
+    """Store action responsible for the recorded state change."""
     patch: str
+    """Serialized JSON Patch describing the change from the preceding state."""
     state: StateT
+    """Detached application state at this lifecycle point."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,7 +263,9 @@ class AgentStartedEvent(LifecycleEvent):
     """Payload delivered after an Agent invocation is admitted."""
 
     agent_key: str
+    """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
+    """Identity of the application state store associated with this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -221,8 +273,11 @@ class AgentCompletedEvent(LifecycleEvent):
     """Payload delivered after an Agent commits a successful result."""
 
     agent_key: str
+    """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
+    """Identity of the application state store associated with this event."""
     result: AgentExecutionResult[Any]
+    """Detached successful execution result delivered to this observer."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -230,9 +285,13 @@ class AgentFailedEvent(LifecycleEvent):
     """Payload delivered after an admitted Agent execution fails."""
 
     agent_key: str
+    """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
+    """Identity of the application state store associated with this event."""
     error: AgentExecutionError
+    """Execution exception delivered to this observer; callback failures do not replace the application error."""
     state: agent_state.AgentStateSnapshot
+    """Detached application state at this lifecycle point."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,9 +299,13 @@ class AgentCancelledEvent(LifecycleEvent):
     """Payload delivered after an admitted Agent execution is cancelled."""
 
     agent_key: str
+    """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
+    """Identity of the application state store associated with this event."""
     reason: str
+    """Cancellation reason recorded for this execution."""
     state: agent_state.AgentStateSnapshot
+    """Detached application state at this lifecycle point."""
 
 
 class Hooks:

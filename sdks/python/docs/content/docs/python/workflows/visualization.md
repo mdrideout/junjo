@@ -1,5 +1,6 @@
 ---
-title: "Visualizing AI Workflows"
+title: "Visualize workflow graphs and execution evidence"
+description: "Generate static Graphviz and Mermaid workflow diagrams, then inspect actual paths and state changes in Junjo AI Studio."
 ---
 <!-- migrated-from: sdks/python/docs/visualizing_workflows.rst; source-hash: sha256:5f931e46628ab252e251f0a6d3563b189d46904926c6fc14f6e35e9eeadc36bd -->
 
@@ -161,13 +162,18 @@ lightweight graph review in pull requests and design discussions.
 
 ## Dynamic Telemetry with Junjo AI Studio
 
-For real-time observation and debugging of workflow executions, Junjo integrates seamlessly with OpenTelemetry. The optional, open-source [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) ingests these telemetry traces and provides a web interface to:
+For investigation of recorded executions, the separately deployed
+[Junjo AI Studio](/docs/studio/overview/) ingests your application's
+OpenTelemetry spans and provides a web interface to:
 
-- **Visualize live execution graphs:** See the path taken by a specific execution.
+- **Inspect recorded execution graphs:** See the path taken by a specific execution after its spans arrive.
 - **Step through state changes:** Observe how the redux-inspired state machine is updated by each node.
 - **Inspect inputs and outputs:** Understand the data flowing through your workflow at each step.
 
-<img src="/docs-assets/generated/python/junjo-screenshot.png" alt="A screenshot of a Junjo workflow graph&#x27;s telemetry on Junjo AI Studio" style="max-width: 100%; width: 600px; display: block; margin-inline: auto" />
+Junjo batches finished spans; this is not a live debugger that pauses or steps
+the running application. State stepping replays received state evidence. A
+coding agent can query the same records and return Studio links for you to
+inspect its diagnosis.
 
 While Graphviz and Mermaid provide static "blueprints" of your workflow's
 potential paths, Junjo AI Studio offers a dynamic view of actual executions,
@@ -186,5 +192,6 @@ confidence and clarity.
 Next Steps:
   - Explore the [Getting Started](/docs/python/get-started/) guide for installation and basic usage.
   - Dive into the [Api](/docs/python/api/) reference for detailed information on Junjo's components.
-  - Learn about [Eval Driven Dev](/docs/python/testing/eval-driven-development/) for robust testing of your workflows.
+  - Use [evaluation datasets and runs](/docs/python/evaluation/) to compare changed outcomes with their execution evidence.
+  - Follow [recursive self improvement](/docs/recursive-self-improvement/) to turn that evidence into a measured application change.
   - Set up [Junjo Ai Studio](/docs/studio/overview/) for dynamic telemetry visualization.

@@ -1,11 +1,8 @@
-
-
 # Running this test:
 # uv run --package base -m pytest src/base/sample_workflow/sample_subflow/nodes/create_joke_node/test/test_node.py
-#
-# This test is intentionally tough to fail at least a few times for demonstration.
 
 import pytest
+from junjo import ExecutionCorrelation, evaluate_node
 
 from base.sample_workflow.sample_subflow.nodes.create_joke_node.node import CreateJokeNode
 from base.sample_workflow.sample_subflow.nodes.create_joke_node.test.test_cases import test_cases
@@ -16,9 +13,7 @@ from base.sample_workflow.sample_subflow.store import SampleSubflowState, Sample
 class TestCreateJokeNode:
     @pytest.mark.asyncio(loop_scope="session")
     @pytest.mark.parametrize("test_case", test_cases)
-    async def test_create_joke_node_valid_directives(
-        self, test_case: dict
-    ):
+    async def test_create_joke_node_valid_directives(self, test_case: dict):
         """
         Test that the node sets the correct message_directive for valid messages.
         """
@@ -32,11 +27,18 @@ class TestCreateJokeNode:
         store = SampleSubflowStore(initial_state=initial_state)
         node = CreateJokeNode()
 
-        # Execute the node service
-        await node.service(store)
+        # Execute the node through Junjo's normal Node and Store lifecycle.
+        execution = await evaluate_node(
+            node=node,
+            store=store,
+            correlation=ExecutionCorrelation(
+                type="base.eval_case",
+                id="|".join(initial_state.items),
+            ),
+        )
 
         # Get the resulting state
-        state_result = await store.get_state()
+        state_result = execution.state
         joke_result = state_result.joke
 
         # Assert that the joke is not None
