@@ -202,8 +202,32 @@ uv run --env-file ../.env junjo eval dataset list
 ```
 
 The application owns only its typed targets, real dependency construction, and
-`text.quality:v1` evaluator meaning. Junjo owns the Studio client, DTOs,
-runner, lifecycle, resume behavior, telemetry context, and CLI.
+evaluator meaning. Junjo owns the Studio client, DTOs, runner, lifecycle,
+resume behavior, telemetry context, and CLI.
+
+AI Chat declares two binary evaluators:
+
+- `text.quality:v1` applies one explicit qualitative rubric through the live
+  language provider.
+- `local_place.quality:v1` uses one structured provider response to judge the
+  qualitative rubric and transcribe every recommended venue and explicit
+  location claim. A deterministic check then resolves those literal claims
+  against a small, source-attributed current-place snapshot owned by this
+  example. A Case passes only when both checks pass.
+
+The current-place evaluator is intentionally an application-local experiment,
+not a generic Junjo place service. Its expectation names the place records
+that are valid for that Case and whether one or two verified places are
+required. Known false location claims and known closed venues fail with
+source-backed reasons. An unknown recommendation raises an evaluator coverage
+error instead of pretending the finite snapshot proves it false. Every
+decision reports when the snapshot was checked.
+
+Use this bounded evaluator for cases about named places or cases whose input
+constrains the response to the same verified candidates. It is not a current
+place database for open-ended recommendations. This experiment exists to catch
+the demonstrated false pass for a closed or mislocated venue while measuring
+coverage limits before any reusable SDK abstraction is considered.
 
 Ordinary tests protect deterministic application mechanics only: versioned
 persistence, server-owned Turn lifecycle, HTTP/schema boundaries, configuration
