@@ -186,6 +186,14 @@ is not reported as a full diagnostic candidate before this proof succeeds.
 Use `dict[str, T]` for intentionally open data; set-like types, one-shot
 iterables, and non-string mapping keys are not portable Agent boundaries.
 
+Boundary declarations support Pydantic models, dataclasses, typed dictionaries,
+and discriminated unions, including unions nested in lists. An object-only
+union can also be a Tool's root input type. Application field names and
+discriminator values such as `type` have no reserved meaning to Junjo; defaults
+and examples remain application data. Invalid declarations raise
+`AgentConfigurationError` or `ToolConfigurationError` at construction, naming
+the failing `input_type` or `output_type` and explaining the underlying reason.
+
 Agent and Tool structural identities use RFC 8785 canonical JSON and the
 versioned Junjo schema-normalization profile. The profile removes generated
 annotation titles, canonicalizes reachable local definitions and set-valued
