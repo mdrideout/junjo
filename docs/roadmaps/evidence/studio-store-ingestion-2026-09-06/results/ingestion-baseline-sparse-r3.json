@@ -1,0 +1,251 @@
+{
+  "acceptance": {
+    "all_acknowledged_spans_persisted": true,
+    "all_exports_succeeded": true,
+    "all_queries_succeeded": true,
+    "no_oom_or_restarts": true,
+    "orderly_shutdown": true
+  },
+  "acceptance_limits": {
+    "revocation_acceptance_tolerance_seconds": 1.0,
+    "wal_mtime_comparison_tolerance_ms": 2.0
+  },
+  "authorization_proxy": {
+    "status": "not_instrumented"
+  },
+  "config": {
+    "cache_max_entries": 1024,
+    "cache_ttl_seconds": 10,
+    "cadence_mode": "start-to-start",
+    "export_interval_ms": 0,
+    "exporters": 1,
+    "exports_per_exporter": 1000,
+    "implementation_label": "baseline",
+    "key_topology": "shared",
+    "max_retries": 10,
+    "measure_revocation": false,
+    "query_workers": 0,
+    "restart_count": 0,
+    "round_barrier": false,
+    "run_failure_probes": false,
+    "spans_per_export": 1,
+    "timing": "synchronized",
+    "use_auth_proxy": false,
+    "validation_max_concurrency": 8,
+    "validation_max_pending": 32,
+    "validation_timeout_ms": 2000,
+    "verify_delivery": true,
+    "wal_probe_spans": 0,
+    "workload_auth_delay_ms": 0
+  },
+  "constraints": {
+    "backend_cpus": 0.5,
+    "backend_memory_mib": 450,
+    "ingestion_cpus": 0.5,
+    "ingestion_memory_mib": 350,
+    "instrumentation_proxy_cpus": 0,
+    "instrumentation_proxy_memory_mib": 0
+  },
+  "container_after": {
+    "backend": {
+      "cpu_usage_seconds": 2.92607,
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 141918208,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_usage_seconds": 0.072632,
+      "exit_code": 0,
+      "image_id": "sha256:caee27c19686e358bc6492e59ca77ffb991eb1093f9d4b0c461420190642bfa6",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 20926464,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "container_before": {
+    "backend": {
+      "cpu_usage_seconds": 2.914607,
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 141918208,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_usage_seconds": 0.035367,
+      "exit_code": 0,
+      "image_id": "sha256:caee27c19686e358bc6492e59ca77ffb991eb1093f9d4b0c461420190642bfa6",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 16400384,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "delivery": {
+    "acknowledged_spans": 1000,
+    "all_acknowledged_spans_persisted": true,
+    "canonical_files": 1,
+    "canonical_workload_rows": 1000,
+    "duplicate_rows": 0,
+    "missing_acknowledged_spans": 0,
+    "persisted_acknowledged_spans": 1000,
+    "unacknowledged_rows": 0
+  },
+  "exports": {
+    "acknowledged_spans": 1000,
+    "attempt_codes": {
+      "OK": 1000
+    },
+    "exports_per_second": 2109.6762672500263,
+    "final_codes": {
+      "OK": 1000
+    },
+    "mean_ms": 0.4354105881648138,
+    "offered_spans": 1000,
+    "p50_ms": 0.19191601313650608,
+    "p95_ms": 0.3208749694749713,
+    "p99_ms": 0.5874579073861241,
+    "requested": 1000,
+    "spans_per_second": 2109.6762672500263,
+    "successful": 1000,
+    "workload_seconds": 0.47400637506507337
+  },
+  "failure_probes": {
+    "status": "skipped"
+  },
+  "queries": {
+    "mean_ms": 0.0,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "p99_ms": 0.0,
+    "result_codes": {}
+  },
+  "raw_resource_samples": {
+    "backend": [
+      {
+        "cpu_percent": 0.98,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 26.0,
+        "memory_mib": 99.18,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ],
+    "ingestion": [
+      {
+        "cpu_percent": 0.1,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 16.6,
+        "pids": 5.0,
+        "tcp_sockets": 4.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ]
+  },
+  "recorded_at_utc": "2026-09-06T23:12:19Z",
+  "resources": {
+    "backend": {
+      "first_established_tcp_sockets": 2.0,
+      "first_file_descriptors": 26.0,
+      "first_memory_mib": 99.18,
+      "first_tcp_sockets": 5.0,
+      "first_threads": 21.0,
+      "first_time_wait_tcp_sockets": 0.0,
+      "last_established_tcp_sockets": 2.0,
+      "last_file_descriptors": 26.0,
+      "last_memory_mib": 99.18,
+      "last_tcp_sockets": 5.0,
+      "last_threads": 21.0,
+      "last_time_wait_tcp_sockets": 0.0,
+      "max_cpu_percent": 0.98,
+      "max_established_tcp_sockets": 2.0,
+      "max_file_descriptors": 26.0,
+      "max_memory_mib": 99.18,
+      "max_pids": 22.0,
+      "max_tcp_sockets": 5.0,
+      "max_threads": 21.0,
+      "max_time_wait_tcp_sockets": 0.0,
+      "post_workload_established_tcp_sockets": 0,
+      "post_workload_file_descriptors": 0,
+      "post_workload_memory_mib": 0,
+      "post_workload_threads": 0,
+      "sample_count": 1
+    },
+    "ingestion": {
+      "first_established_tcp_sockets": 1.0,
+      "first_file_descriptors": 16.0,
+      "first_memory_mib": 16.6,
+      "first_tcp_sockets": 4.0,
+      "first_threads": 5.0,
+      "first_time_wait_tcp_sockets": 0.0,
+      "last_established_tcp_sockets": 1.0,
+      "last_file_descriptors": 16.0,
+      "last_memory_mib": 16.6,
+      "last_tcp_sockets": 4.0,
+      "last_threads": 5.0,
+      "last_time_wait_tcp_sockets": 0.0,
+      "max_cpu_percent": 0.1,
+      "max_established_tcp_sockets": 1.0,
+      "max_file_descriptors": 16.0,
+      "max_memory_mib": 16.6,
+      "max_pids": 5.0,
+      "max_tcp_sockets": 4.0,
+      "max_threads": 5.0,
+      "max_time_wait_tcp_sockets": 0.0,
+      "post_workload_established_tcp_sockets": 0,
+      "post_workload_file_descriptors": 0,
+      "post_workload_memory_mib": 0,
+      "post_workload_threads": 0,
+      "sample_count": 1
+    }
+  },
+  "revocation": {
+    "status": "skipped"
+  },
+  "shutdown": {
+    "backend": {
+      "exit_code": 143,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "restart_count": 0,
+      "state": "exited"
+    },
+    "ingestion": {
+      "exit_code": 0,
+      "image_id": "sha256:caee27c19686e358bc6492e59ca77ffb991eb1093f9d4b0c461420190642bfa6",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "restart_count": 0,
+      "state": "exited"
+    }
+  },
+  "wal_durability": {
+    "status": "skipped"
+  }
+}

@@ -1,0 +1,69 @@
+diff --git a/sdks/python/src/junjo/store.py b/sdks/python/src/junjo/store.py
+index 33bad01..60c7e83 100644
+--- a/sdks/python/src/junjo/store.py
++++ b/sdks/python/src/junjo/store.py
+@@ -1,6 +1,7 @@
+ import abc
+ import asyncio
+ import inspect
++from copy import deepcopy
+ from types import NoneType
+ from typing import Generic, TypeVar
+ 
+@@ -122,17 +123,19 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
+         """Attach internal lifecycle dispatch context for this execution."""
+         self._lifecycle_context = context
+ 
+-    def _current_runtime_state_data(self) -> dict[str, object]:
++    def _owned_candidate_state_data(self, update: dict) -> dict[str, object]:
+         """
+-        Return current state field values for runtime state transitions.
++        Build an owned candidate from current fields and the incoming patch.
+ 
+         This intentionally avoids ``model_dump()`` because Pydantic
+         serialization controls such as ``Field(exclude=True)`` and
+         ``field_serializer`` are telemetry-facing concerns, not live state
+-        transition mechanics.
++        transition mechanics. Merge before copying so replaced fields are not
++        copied needlessly. One deep copy isolates both retained state and input
++        values before user validators run.
+         """
+-        state_snapshot = self._state.model_copy(deep=True)
+-        return {field_name: getattr(state_snapshot, field_name) for field_name in type(state_snapshot).model_fields}
++        current = {field_name: getattr(self._state, field_name) for field_name in type(self._state).model_fields}
++        return deepcopy({**current, **update})
+ 
+     async def _get_store_owner_evidence(self) -> StoreOwnerEvidence:
+         """Return verified terminal evidence under the Store lock."""
+@@ -163,8 +166,13 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
+         ``set_state`` events and lifecycle state-changed hooks when a commit
+         occurs.
+ 
++        Incoming mutable values become Store-owned copies before validation.
++        Later changes to the caller's objects cannot change committed state,
++        and validators do not modify those original input objects.
++
+         :param update: A dictionary of updates to apply to the state.
+         :type update: dict
++        :raises ValueError: If model validation rejects the update; no state is committed.
+ 
+         .. code-block:: python
+ 
+@@ -212,7 +220,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
+         async with self._lock:
+             validate_json_nesting(update)
+             try:
+-                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **update})
++                new_state = type(self._state).model_validate(self._owned_candidate_state_data(update))
+             except ValidationError as e:
+                 raise ValueError(
+                     f"Invalid state update from caller {store_name} -> {caller_function_name}.\n"
+@@ -311,7 +319,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
+         async with self._lock:
+             validate_json_nesting(update)
+             try:
+-                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **update})
++                new_state = type(self._state).model_validate(self._owned_candidate_state_data(update))
+             except ValidationError as exc:
+                 raise ValueError("Invalid prospective state update.") from exc
+             state_json_before = normalize_json(self._state.model_dump(mode="json"))

@@ -19,7 +19,7 @@ hold the application's active Store.
 ## The Core Principles
 
 1. **Single Source of Truth:** The state of your entire workflow is stored in a single object tree within a single **Store**.
-2. **State is Read-Only:** The only way to change the state is to call a store action method, which commits the change through `set_state` with a partial update. This prevents nodes from directly modifying the state, which could lead to unpredictable behavior.
+2. **State is Read-Only:** Application code changes live state by calling a store action method, which commits the change through `set_state` with a partial update. Public reads return detached snapshots; private Store fields must not be mutated directly.
 3. **Changes are Made with Store Methods:** State modifications are encapsulated within methods in your **Store**. Similar to "reducers" in Redux, these methods are the only place where `set_state` should be called, ensuring that all state changes are predictable and centralized.
 
 ## BaseState: Defining Your State's Shape
@@ -103,7 +103,7 @@ The `set_state` method is the **only** way to update the state in the store. It 
 
 **Key Behaviors of \`set_state\`:**
 
-- **Immutable Updates:** `set_state` creates a *copy* of the state with the updates applied. It does not mutate the original state object. This is crucial for preventing side effects and ensuring predictable state transitions.
+- **Immutable Updates:** `set_state` merges the patch with runtime fields and creates one owned deep copy before validation. It does not mutate the original state object. This is crucial for preventing side effects and ensuring predictable state transitions.
 - **Atomic Commit:** Each `set_state` call is protected by an `asyncio.Lock`. Validation and commit see the latest locked state; code before that call is not automatically locked.
 - **Validation:** Before applying the update, `set_state` validates the new state against your Pydantic model. If the update is invalid, it will raise a `ValueError`.
 - **Top-Level Patches:** Only supplied fields are replaced. Nested objects are replaced as complete field values, not recursively merged. Patching different output fields preserves the other concurrent results.
@@ -131,6 +131,52 @@ class SendMessageNode(Node[ChatWorkflowStore]):
 ```
 
 By following this pattern, you create a clear and predictable data flow in your application. Nodes don't need to know how the state is updated; they just need to know which actions to call on the store. This separation of concerns makes your code easier to test, debug, and reason about.
+
+## Input ownership and mutation mistakes
+
+Store actions keep the same explicit replacement API for nested models:
+
+```python
+from pydantic import BaseModel
+
+class Message(BaseModel):
+    text: str
+
+class MessageState(BaseState):
+    message: Message
+
+class MessageStore(BaseStore[MessageState]):
+    async def set_message(self, message: Message) -> None:
+        await self.set_state({"message": message})
+
+store = MessageStore(MessageState(message=Message(text="Ready")))
+payload = Message(text="Hello")
+await store.set_message(payload)
+
+payload.text = "Changed outside the Store"
+assert (await store.get_state()).message.text == "Hello"
+
+await store.set_message(Message(text="Updated through an action"))
+```
+
+Both incoming values and outgoing snapshots are detached from live Store state.
+Mutating the caller's payload or a `get_state()` snapshot normally raises no
+exception: it changes only that local object. It does not commit a transition,
+validate the Store or emit state-change hooks. Call a named action to commit a
+replacement value. This also means reusing a payload across Stores does not
+share mutable live state between them.
+
+A patch rejected by Pydantic model validation raises `ValueError` from
+`set_state`, with the underlying `ValidationError` as its cause, and leaves the
+committed state unchanged. Validation runs on owned candidate values, so a
+validator cannot accidentally mutate the caller's input while normalizing or
+rejecting that candidate.
+
+Detachment does not freeze Python objects. Application-defined frozen models
+retain their own assignment behavior, but freezing a model alone does not make
+nested lists immutable. `store._state` is private live state; direct mutation
+bypasses the supported API and has no guaranteed exception. Store actions must
+also construct replacements rather than mutate private state in place.
 
 ## Diagnose the state transition that changed the outcome
 

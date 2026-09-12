@@ -251,6 +251,3 @@ smaller window.
 - [ADR 0014: Bounded evaluation telemetry context](0014-evaluation-telemetry-context.md)
 - [ADR 0015: Optional external Agent framework integrations](0015-optional-agent-framework-integrations.md)
 - [Studio ADR 010: Evaluation control persistence and API](../../apps/studio/docs/adr/010-evaluation-control-persistence-and-api.md)
-- [Horizon 3 Evaluation Lean MVP](../roadmaps/AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md)
-- [Horizon 3 Evaluation User Stories](../roadmaps/AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md)
-- [Horizon 3 SDK Evaluation Productization Plan](../roadmaps/AGENT_LAYER_HORIZON_3_SDK_EVALUATION_PRODUCTIZATION_PLAN.md)

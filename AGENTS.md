@@ -14,6 +14,29 @@ the nearest scoped `AGENTS.md` before changing a component.
 - Do not engage in scope creep. Do not take liberties to refactor or change things that do not need to change beyond the requested implementations and ideas. Keep existing user-interfaces, styles, contracts, integrations, system -> system mechanics as they are unless it's required to change them as part of new feature implementation. Keep changes necessary and required. As much as needed, as little as possible.
 - Do not set arbitrary contraints, budgets, caps, limitations. Do not truncate content. Do not set timeouts. Do not make assumptions about how much we can handle. Allow us to run into the exceptions when resources, time lengths, or capacity are exceeded. We will only create constraints as we encounter real exceptions caused by a real repeatable documented problem or limit.
 
+## Low-resource performance is a product requirement
+
+Junjo's throughput, latency, and ability to run on low-end, memory-constrained
+hardware are core product differentiators. Preserve them when reviewing and
+changing SDK execution, telemetry, ingestion, storage, and queries. Generic
+"enterprise readiness" is not authorization to add steady-state CPU, memory,
+I/O, or coordination costs to cover exceptional events.
+
+- Read the owning ADRs and benchmark evidence before recommending changes to
+  these paths. Establish the unchanged baseline before selecting a fix;
+  correctness tests and unconstrained microbenchmarks are not performance proof.
+- Compare actual completed work, latency, CPU, and memory on the existing
+  supported resource profile, including concurrent ingestion and queries where
+  affected. Do not hide regressions by increasing resources, reducing offered
+  work, counting generated-but-undelivered spans, or changing acceptance gates.
+- Describe the failure trigger, evidence of occurrence, affected data, recovery
+  path, and prevention cost separately. A deterministic fault reproduction
+  establishes consequences, not how frequently the event occurs in deployments.
+- Durability and acceptable-loss guarantees are explicit product/ADR decisions.
+  Do not assume rare-event loss is acceptable, silently weaken an accepted
+  guarantee, or strengthen it into a more expensive guarantee without a decision.
+  Present measured tradeoffs; do not select them on the user's behalf.
+
 ## Scope and Complexity
 
 Simplicity is valuable. The more complex we make the systems, the more edge cases for issues there are, the more testing we need to do, the more brittle the system becomes, and the higher the blast radius of all future changes. This is why we avoid scope increases and complexity and avoid these problems.

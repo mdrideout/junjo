@@ -1,0 +1,20 @@
+{
+  "completed": 30000,
+  "wall_seconds": 3.736253411974758,
+  "operations_per_second": 8029.433952164345,
+  "cpu_seconds": 1.885303243,
+  "cpu_us_per_operation": 62.84344143333333,
+  "p95_ms": 0.073749921284616,
+  "p99_ms": 0.1388340024277568,
+  "peak_rss_mib": 53.25,
+  "before_rss_mib": 39.421875,
+  "after_work_rss_mib": 53.265625,
+  "after_release_rss_mib": 53.265625,
+  "label": "sdk-confirm-baseline-scalar-r2",
+  "case": "scalar",
+  "iterations": 30000,
+  "warmup_iterations": 1000,
+  "size": 0,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "0dcdad1dcf36bca806a958188c50b4ce518ffe0386db4e4eaafe5892deb901d7"
+}

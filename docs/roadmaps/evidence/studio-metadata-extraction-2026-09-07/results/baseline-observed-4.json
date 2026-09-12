@@ -1,0 +1,18 @@
+{
+  "rows": 121600,
+  "read_wall_seconds": 1.7047420159215108,
+  "read_cpu_seconds": 0.8481302050000001,
+  "total_wall_seconds": 1.763114075991325,
+  "total_cpu_seconds": 0.891137829,
+  "peak_rss_mib": 233.25,
+  "semantic_sha256": "85b0cf8eb59c909364398edab55a841e9fa36b033cfc5f95f2dd42641a8eb890",
+  "table_rows": {
+    "parquet_files": 1,
+    "trace_files": 3800,
+    "file_services": 1,
+    "llm_traces": 0,
+    "workflow_files": 0,
+    "agent_files": 0,
+    "failed_parquet_files": 0
+  }
+}

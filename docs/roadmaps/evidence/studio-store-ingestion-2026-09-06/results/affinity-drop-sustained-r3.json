@@ -1,0 +1,861 @@
+{
+  "acceptance": {
+    "all_acknowledged_spans_persisted": true,
+    "all_exports_succeeded": true,
+    "all_queries_succeeded": true,
+    "no_oom_or_restarts": true,
+    "orderly_shutdown": true
+  },
+  "acceptance_limits": {
+    "revocation_acceptance_tolerance_seconds": 1.0,
+    "wal_mtime_comparison_tolerance_ms": 2.0
+  },
+  "authorization_proxy": {
+    "status": "not_instrumented"
+  },
+  "config": {
+    "cache_max_entries": 1024,
+    "cache_ttl_seconds": 10,
+    "cadence_mode": "start-to-start",
+    "export_interval_ms": 0,
+    "exporters": 50,
+    "exports_per_exporter": 4000,
+    "implementation_label": "drop",
+    "key_topology": "shared",
+    "max_retries": 10,
+    "measure_revocation": false,
+    "query_workers": 0,
+    "recovery_seconds": 10.0,
+    "restart_count": 0,
+    "round_barrier": false,
+    "run_failure_probes": false,
+    "spans_per_export": 32,
+    "timing": "synchronized",
+    "use_auth_proxy": false,
+    "validation_max_concurrency": 8,
+    "validation_max_pending": 32,
+    "validation_timeout_ms": 2000,
+    "verify_delivery": true,
+    "wal_probe_spans": 0,
+    "workload_auth_delay_ms": 0
+  },
+  "constraints": {
+    "backend_cpus": 0.5,
+    "backend_memory_mib": 450,
+    "ingestion_cpus": 0.5,
+    "ingestion_memory_mib": 350,
+    "instrumentation_proxy_cpus": 0,
+    "instrumentation_proxy_memory_mib": 0
+  },
+  "container_after": {
+    "backend": {
+      "cpu_usage_seconds": 11.405343,
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 471859200,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_usage_seconds": 21.490184,
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 86532096,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "container_after_recovery": {
+    "backend": {
+      "cpu_usage_seconds": 15.538261,
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 471859200,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_usage_seconds": 21.596601,
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 86532096,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "container_before": {
+    "backend": {
+      "cpu_usage_seconds": 3.475245,
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 305389568,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_usage_seconds": 0.055059,
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 44527616,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "delivery": {
+    "acknowledged_spans": 6400000,
+    "all_acknowledged_spans_persisted": true,
+    "canonical_files": 127,
+    "canonical_workload_rows": 6400000,
+    "duplicate_rows": 0,
+    "files_by_tier": {
+      "parquet": 52,
+      "wal": 75
+    },
+    "missing_acknowledged_spans": 0,
+    "persisted_acknowledged_spans": 6400000,
+    "rows_by_tier": {
+      "parquet": 6325568,
+      "wal": 74432
+    },
+    "unacknowledged_rows": 0
+  },
+  "exports": {
+    "acknowledged_spans": 6400000,
+    "attempt_codes": {
+      "OK": 200000,
+      "UNAVAILABLE": 115
+    },
+    "exports_per_second": 4612.490078280459,
+    "final_codes": {
+      "OK": 200000
+    },
+    "mean_ms": 10.788588845512713,
+    "offered_spans": 6400000,
+    "p50_ms": 4.866709001362324,
+    "p95_ms": 53.37241699453443,
+    "p99_ms": 118.71695797890425,
+    "requested": 200000,
+    "spans_per_second": 147599.68250497468,
+    "successful": 200000,
+    "workload_seconds": 43.36052687501069
+  },
+  "failure_probes": {
+    "status": "skipped"
+  },
+  "queries": {
+    "mean_ms": 0.0,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "p99_ms": 0.0,
+    "result_codes": {}
+  },
+  "raw_resource_samples": {
+    "backend": [
+      {
+        "cpu_percent": 0.2,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 26.0,
+        "memory_mib": 232.5,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.19,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 26.0,
+        "memory_mib": 232.9,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.18,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.9,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.19,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.7,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.34,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.7,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.2,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.9,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.16,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.9,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.14,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.7,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.17,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.9,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.38,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.8,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.56,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.9,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.17,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.7,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.22,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 232.7,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 6.09,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 257.6,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.18,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 369.8,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.08,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 296.9,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.08,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 290.2,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.31,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 290.6,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.75,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 294.2,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.16,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 263.8,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.89,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 318.5,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 51.37,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 295.4,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.4,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 296.3,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 40.43,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 220.7,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.28,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 220.5,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ],
+    "ingestion": [
+      {
+        "cpu_percent": 52.61,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 31.28,
+        "pids": 5.0,
+        "tcp_sockets": 5.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.83,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 18.0,
+        "memory_mib": 38.65,
+        "pids": 5.0,
+        "tcp_sockets": 5.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.8,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 38.65,
+        "pids": 5.0,
+        "tcp_sockets": 5.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.11,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 34.01,
+        "pids": 5.0,
+        "tcp_sockets": 5.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.43,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 18.0,
+        "memory_mib": 40.12,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.25,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 18.0,
+        "memory_mib": 32.21,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.25,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 39.95,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.32,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 38.25,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.6,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 18.0,
+        "memory_mib": 32.44,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.03,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 18.0,
+        "memory_mib": 38.57,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 52.82,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 38.41,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.93,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 38.46,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.26,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 19.0,
+        "memory_mib": 39.09,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.53,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 38.48,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.1,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 37.92,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.94,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 39.61,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.85,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 39.82,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.23,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 19.0,
+        "memory_mib": 33.73,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.1,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 38.18,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 45.85,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 35.11,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.83,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.93,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.88,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.7,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 1.96,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.71,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ]
+  },
+  "recorded_at_utc": "2026-09-07T00:06:02Z",
+  "recovery_resource_samples": {
+    "backend": [
+      {
+        "cpu_percent": 49.89,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 318.5,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 51.37,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 295.4,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.4,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 296.3,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 40.43,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 27.0,
+        "memory_mib": 220.7,
+        "pids": 25.0,
+        "tcp_sockets": 5.0,
+        "threads": 24.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ],
+    "ingestion": [
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.83,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.93,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.88,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 25.7,
+        "pids": 4.0,
+        "tcp_sockets": 4.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ]
+  },
+  "resources": {
+    "backend": {
+      "first_established_tcp_sockets": 2.0,
+      "first_file_descriptors": 26.0,
+      "first_memory_mib": 232.5,
+      "first_tcp_sockets": 5.0,
+      "first_threads": 21.0,
+      "first_time_wait_tcp_sockets": 0.0,
+      "last_established_tcp_sockets": 1.0,
+      "last_file_descriptors": 27.0,
+      "last_memory_mib": 220.5,
+      "last_tcp_sockets": 5.0,
+      "last_threads": 24.0,
+      "last_time_wait_tcp_sockets": 0.0,
+      "max_cpu_percent": 51.37,
+      "max_established_tcp_sockets": 2.0,
+      "max_file_descriptors": 27.0,
+      "max_memory_mib": 369.8,
+      "max_pids": 25.0,
+      "max_tcp_sockets": 5.0,
+      "max_threads": 24.0,
+      "max_time_wait_tcp_sockets": 0.0,
+      "post_workload_established_tcp_sockets": 1.0,
+      "post_workload_file_descriptors": 27.0,
+      "post_workload_memory_mib": 263.8,
+      "post_workload_threads": 24.0,
+      "sample_count": 25
+    },
+    "ingestion": {
+      "first_established_tcp_sockets": 2.0,
+      "first_file_descriptors": 17.0,
+      "first_memory_mib": 31.28,
+      "first_tcp_sockets": 5.0,
+      "first_threads": 5.0,
+      "first_time_wait_tcp_sockets": 0.0,
+      "last_established_tcp_sockets": 1.0,
+      "last_file_descriptors": 16.0,
+      "last_memory_mib": 25.71,
+      "last_tcp_sockets": 4.0,
+      "last_threads": 4.0,
+      "last_time_wait_tcp_sockets": 0.0,
+      "max_cpu_percent": 52.82,
+      "max_established_tcp_sockets": 2.0,
+      "max_file_descriptors": 19.0,
+      "max_memory_mib": 40.12,
+      "max_pids": 5.0,
+      "max_tcp_sockets": 5.0,
+      "max_threads": 5.0,
+      "max_time_wait_tcp_sockets": 0.0,
+      "post_workload_established_tcp_sockets": 2.0,
+      "post_workload_file_descriptors": 17.0,
+      "post_workload_memory_mib": 35.11,
+      "post_workload_threads": 4.0,
+      "sample_count": 25
+    }
+  },
+  "revocation": {
+    "status": "skipped"
+  },
+  "shutdown": {
+    "backend": {
+      "cpuset_cpus": "0",
+      "exit_code": 143,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "restart_count": 0,
+      "state": "exited"
+    },
+    "ingestion": {
+      "cpuset_cpus": "0",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "restart_count": 0,
+      "state": "exited"
+    }
+  },
+  "wal_durability": {
+    "status": "skipped"
+  }
+}

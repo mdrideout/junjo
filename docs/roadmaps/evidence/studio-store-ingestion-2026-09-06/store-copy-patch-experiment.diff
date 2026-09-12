@@ -1,0 +1,28 @@
+--- a/sdks/python/src/junjo/store.py
++++ b/sdks/python/src/junjo/store.py
+@@ -1,6 +1,7 @@
+ import abc
+ import asyncio
+ import inspect
++from copy import deepcopy
+ from types import NoneType
+ from typing import Generic, TypeVar
+ 
+@@ -212,7 +213,7 @@
+         async with self._lock:
+             validate_json_nesting(update)
+             try:
+-                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **update})
++                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **deepcopy(update)})
+             except ValidationError as e:
+                 raise ValueError(
+                     f"Invalid state update from caller {store_name} -> {caller_function_name}.\n"
+@@ -311,7 +312,7 @@
+         async with self._lock:
+             validate_json_nesting(update)
+             try:
+-                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **update})
++                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **deepcopy(update)})
+             except ValidationError as exc:
+                 raise ValueError("Invalid prospective state update.") from exc
+             state_json_before = normalize_json(self._state.model_dump(mode="json"))

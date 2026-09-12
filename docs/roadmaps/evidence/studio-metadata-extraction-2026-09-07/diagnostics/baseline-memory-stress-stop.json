@@ -1,0 +1,4 @@
+{
+  "operator_stopped": true,
+  "reason": "Large-payload extraction made no completion progress while cgroup memory-limit events exceeded one million and almost all CPU time was kernel time. Stopped as a memory-pressure diagnostic, not a completed benchmark or an observed OOM kill."
+}

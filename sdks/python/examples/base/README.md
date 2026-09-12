@@ -12,6 +12,34 @@ This is a baseline Junjo example application meant to showcase:
 
 See the **ai_chat** example for a more advanced frontend / backend E2E experience that utilizes LLM API calls.
 
+### Store action discipline
+
+Nodes read with `await store.get_state()` and commit changes through named
+actions such as `await store.set_counter(1)`. A returned snapshot is a local
+copy: changing it raises no exception by default, but does not update the
+workflow. Store actions construct replacements and call `set_state`; they
+must not mutate `self._state` in place.
+
+For example, inside an async function using this example's Store:
+
+```python
+from base.sample_workflow.store import SampleWorkflowState, SampleWorkflowStore
+
+store = SampleWorkflowStore(SampleWorkflowState(items=["apple"], counter=0))
+snapshot = await store.get_state()
+snapshot.items.append("local-only")
+assert (await store.get_state()).items == ["apple"]
+
+await store.set_counter(1)
+assert (await store.get_state()).counter == 1
+```
+
+Nested mutable values supplied to actions are also detached before Store
+validation. Reusing or changing a caller-owned payload cannot silently change
+the committed Store. See the SDK's
+[state-management guide](https://junjo.ai/docs/python/workflows/state/) for
+nested model replacement and validation exceptions.
+
 ### Recommended Setup: Junjo AI Studio
 
 Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) for a turn-key way to see how this example streams debugging telemetry. This is optional. Junjo works with any OpenTelemetry provider.

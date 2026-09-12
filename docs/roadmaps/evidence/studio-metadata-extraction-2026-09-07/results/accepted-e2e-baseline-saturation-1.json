@@ -1,0 +1,1875 @@
+{
+  "acceptance": {
+    "all_acknowledged_spans_persisted": true,
+    "all_exports_succeeded": true,
+    "all_offered_spans_indexed": true,
+    "all_queries_succeeded": true,
+    "no_oom_or_restarts": true,
+    "orderly_shutdown": true
+  },
+  "acceptance_limits": {
+    "revocation_acceptance_tolerance_seconds": 1.0,
+    "wal_mtime_comparison_tolerance_ms": 2.0
+  },
+  "authorization_proxy": {
+    "status": "not_instrumented"
+  },
+  "backend_source_sha256": {
+    "/app/app/db_sqlite/metadata/indexer.py": "c5270e25ff1112db207de56971ad041925b15d6ddf12f67ca3baf87bbe20c350",
+    "/app/app/features/parquet_indexer/parquet_reader.py": "1f8ab8efdd3fa5e9e44e63f8c7e903c56d16c91682d6c6c766c597fb9a0e34d8"
+  },
+  "completed_work_seconds": 80.93802541599143,
+  "config": {
+    "cache_max_entries": 1024,
+    "cache_ttl_seconds": 10,
+    "cadence_mode": "start-to-start",
+    "export_interval_ms": 0,
+    "exporters": 50,
+    "exports_per_exporter": 800,
+    "implementation_label": "accepted-e2e-baseline-saturation-1",
+    "key_topology": "shared",
+    "max_retries": 10,
+    "measure_revocation": false,
+    "query_workers": 0,
+    "recovery_seconds": 0.0,
+    "restart_count": 0,
+    "round_barrier": false,
+    "run_failure_probes": false,
+    "spans_per_export": 32,
+    "timing": "synchronized",
+    "use_auth_proxy": false,
+    "validation_max_concurrency": 8,
+    "validation_max_pending": 32,
+    "validation_timeout_ms": 2000,
+    "verify_delivery": true,
+    "wal_probe_spans": 0,
+    "workload_auth_delay_ms": 0
+  },
+  "constraints": {
+    "backend_cpus": 0.5,
+    "backend_memory_mib": 450,
+    "ingestion_cpus": 0.5,
+    "ingestion_memory_mib": 350,
+    "instrumentation_proxy_cpus": 0,
+    "instrumentation_proxy_memory_mib": 0
+  },
+  "container_after": {
+    "backend": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 507,
+        "nr_throttled": 294,
+        "system_usec": 1541953,
+        "throttled_usec": 15627632,
+        "usage_usec": 15435479,
+        "user_usec": 13893526
+      },
+      "cpu_usage_seconds": 15.435479,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 6642\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77151\nwchar: 6614\nsyscr: 43\nsyscw: 7\nread_bytes: 208896\nwrite_bytes: 0\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "mounts": [
+        {
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 471859200,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 270,
+        "nr_throttled": 88,
+        "system_usec": 2574889,
+        "throttled_usec": 4731127,
+        "usage_usec": 5260289,
+        "user_usec": 2685399
+      },
+      "cpu_usage_seconds": 5.260289,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77985\nwchar: 6614\nsyscr: 39\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 16384\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "mounts": [
+        {
+          "destination": "/app/target",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/src",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "type": "bind"
+        },
+        {
+          "destination": "/proto",
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.toml",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.lock",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/build.rs",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "type": "bind"
+        },
+        {
+          "destination": "/usr/local/cargo/registry",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "type": "volume"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 60010496,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "container_after_ingestion": {
+    "backend": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 106,
+        "nr_throttled": 70,
+        "system_usec": 405560,
+        "throttled_usec": 3480236,
+        "usage_usec": 3631888,
+        "user_usec": 3226327
+      },
+      "cpu_usage_seconds": 3.631888,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77151\nwchar: 6614\nsyscr: 43\nsyscw: 7\nread_bytes: 81920\nwrite_bytes: 0\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "mounts": [
+        {
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 273915904,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 105,
+        "nr_throttled": 88,
+        "system_usec": 2160301,
+        "throttled_usec": 4731127,
+        "usage_usec": 4496545,
+        "user_usec": 2336244
+      },
+      "cpu_usage_seconds": 4.496545,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77985\nwchar: 6614\nsyscr: 39\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 16384\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "mounts": [
+        {
+          "destination": "/usr/local/cargo/registry",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/target",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/src",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "type": "bind"
+        },
+        {
+          "destination": "/proto",
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.toml",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.lock",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/build.rs",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 60010496,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "container_after_recovery": {
+    "backend": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 511,
+        "nr_throttled": 294,
+        "system_usec": 1547039,
+        "throttled_usec": 15627632,
+        "usage_usec": 15453448,
+        "user_usec": 13906409
+      },
+      "cpu_usage_seconds": 15.453448,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 6642\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77151\nwchar: 6614\nsyscr: 43\nsyscw: 7\nread_bytes: 208896\nwrite_bytes: 0\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "mounts": [
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 471859200,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 273,
+        "nr_throttled": 88,
+        "system_usec": 2584704,
+        "throttled_usec": 4731127,
+        "usage_usec": 5278903,
+        "user_usec": 2694199
+      },
+      "cpu_usage_seconds": 5.278903,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77985\nwchar: 6614\nsyscr: 39\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 16384\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "mounts": [
+        {
+          "destination": "/app/target",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/src",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "type": "bind"
+        },
+        {
+          "destination": "/proto",
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.toml",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.lock",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/build.rs",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "type": "bind"
+        },
+        {
+          "destination": "/usr/local/cargo/registry",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "type": "volume"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 60010496,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "container_before": {
+    "backend": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 72,
+        "nr_throttled": 70,
+        "system_usec": 359444,
+        "throttled_usec": 3480236,
+        "usage_usec": 3530004,
+        "user_usec": 3170560
+      },
+      "cpu_usage_seconds": 3.530004,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77151\nwchar: 6614\nsyscr: 43\nsyscw: 7\nread_bytes: 81920\nwrite_bytes: 0\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "mounts": [
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 273915904,
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ingestion": {
+      "cpu_stat": {
+        "burst_usec": 0,
+        "nice_usec": 0,
+        "nr_bursts": 0,
+        "nr_periods": 11,
+        "nr_throttled": 0,
+        "system_usec": 23762,
+        "throttled_usec": 0,
+        "usage_usec": 56167,
+        "user_usec": 32404
+      },
+      "cpu_usage_seconds": 0.056167,
+      "cpuset_cpus": "",
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77985\nwchar: 6614\nsyscr: 39\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 16384\ncancelled_write_bytes: 0\n",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "mounts": [
+        {
+          "destination": "/app/build.rs",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "type": "bind"
+        },
+        {
+          "destination": "/usr/local/cargo/registry",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/target",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/src",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "type": "bind"
+        },
+        {
+          "destination": "/proto",
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.toml",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.lock",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "peak_cgroup_memory_bytes": 19169280,
+      "restart_count": 0,
+      "state": "running"
+    }
+  },
+  "delivery": {
+    "acknowledged_spans": 1280000,
+    "all_acknowledged_spans_persisted": true,
+    "canonical_files": 16,
+    "canonical_workload_rows": 1280000,
+    "duplicate_rows": 0,
+    "files_by_tier": {
+      "parquet": 16,
+      "wal": 0
+    },
+    "missing_acknowledged_spans": 0,
+    "persisted_acknowledged_spans": 1280000,
+    "rows_by_tier": {
+      "parquet": 1280000,
+      "wal": 0
+    },
+    "unacknowledged_rows": 0
+  },
+  "diagnostic_environment": {
+    "JUNJO_BENCHMARK_COMPOSE_OVERLAY": "/tmp/junjo-metadata-20260907/overlay.yaml",
+    "JUNJO_DIAGNOSTIC_CPROFILE": "",
+    "JUNJO_DIAGNOSTIC_NO_SAMPLER": ""
+  },
+  "exports": {
+    "acknowledged_spans": 1280000,
+    "attempt_codes": {
+      "OK": 40000,
+      "UNAVAILABLE": 18
+    },
+    "exports_per_second": 4402.111034512521,
+    "final_codes": {
+      "OK": 40000
+    },
+    "mean_ms": 11.191534387078718,
+    "offered_spans": 1280000,
+    "p50_ms": 4.355624900199473,
+    "p95_ms": 56.157666025683284,
+    "p99_ms": 102.23729198332876,
+    "requested": 40000,
+    "spans_per_second": 140867.55310440066,
+    "successful": 40000,
+    "workload_seconds": 9.08654954098165
+  },
+  "failure_probes": {
+    "status": "skipped"
+  },
+  "indexing": {
+    "catchup_seconds": 71.20409823104274,
+    "distinct_traces": 40000,
+    "failed_files": 0,
+    "indexed_files": 16,
+    "indexed_rows": 1280000,
+    "llm_traces": 40000,
+    "observations": [
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 0.03503476409241557
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 1.0353469650726765
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 2.0369356910232455
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 3.038721504039131
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 4.041147496085614
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 5.043374068103731
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 6.044952127034776
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 7.046881901100278
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 8.050828423001803
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 9.05334229208529
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 10.0550750620896
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 11.05594402400311
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 12.056640649097972
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 13.058289376087487
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 14.058542035054415
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 15.061538830050267
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 16.06267183809541
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 17.063540133996867
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 18.064211717108265
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 19.06560310604982
+      },
+      {
+        "indexed_files": 0,
+        "indexed_rows": 0,
+        "seconds": 20.093238629051484
+      },
+      {
+        "indexed_files": 1,
+        "indexed_rows": 85216,
+        "seconds": 21.09381396009121
+      },
+      {
+        "indexed_files": 2,
+        "indexed_rows": 170272,
+        "seconds": 22.0942491220776
+      },
+      {
+        "indexed_files": 3,
+        "indexed_rows": 254784,
+        "seconds": 23.094884496065788
+      },
+      {
+        "indexed_files": 3,
+        "indexed_rows": 254784,
+        "seconds": 24.097644828027114
+      },
+      {
+        "indexed_files": 4,
+        "indexed_rows": 339584,
+        "seconds": 25.09857599902898
+      },
+      {
+        "indexed_files": 5,
+        "indexed_rows": 423616,
+        "seconds": 26.099208290106617
+      },
+      {
+        "indexed_files": 5,
+        "indexed_rows": 423616,
+        "seconds": 27.10094635200221
+      },
+      {
+        "indexed_files": 6,
+        "indexed_rows": 507712,
+        "seconds": 28.10205431911163
+      },
+      {
+        "indexed_files": 7,
+        "indexed_rows": 592512,
+        "seconds": 29.102913739043288
+      },
+      {
+        "indexed_files": 7,
+        "indexed_rows": 592512,
+        "seconds": 30.10349486209452
+      },
+      {
+        "indexed_files": 8,
+        "indexed_rows": 677568,
+        "seconds": 31.104281406034715
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 32.10807971609756
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 33.10973481903784
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 34.11263019510079
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 35.11294318805449
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 36.11364002106711
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 37.11393405601848
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 38.114979688078165
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 39.11614878010005
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 40.116944908048026
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 41.118663261062466
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 42.120328488061205
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 43.120829235063866
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 44.121782740112394
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 45.12300233403221
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 46.124894566019066
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 47.12532856105827
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 48.12572980602272
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 49.127260739100166
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 50.12835003808141
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 51.12899503810331
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 52.12945486709941
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 53.1324988710694
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 54.13278011302464
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 55.13469172001351
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 56.135133549105376
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 57.13581521611195
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 58.135992914089
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 59.136476494022645
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 60.13855856307782
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 61.140184581046924
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 62.1406120340107
+      },
+      {
+        "indexed_files": 10,
+        "indexed_rows": 772736,
+        "seconds": 63.140801525092684
+      },
+      {
+        "indexed_files": 11,
+        "indexed_rows": 857216,
+        "seconds": 64.14125452004373
+      },
+      {
+        "indexed_files": 12,
+        "indexed_rows": 941248,
+        "seconds": 65.19366694102064
+      },
+      {
+        "indexed_files": 13,
+        "indexed_rows": 1026592,
+        "seconds": 66.19417114602402
+      },
+      {
+        "indexed_files": 13,
+        "indexed_rows": 1026592,
+        "seconds": 67.19648088607937
+      },
+      {
+        "indexed_files": 14,
+        "indexed_rows": 1111712,
+        "seconds": 68.19941692904104
+      },
+      {
+        "indexed_files": 14,
+        "indexed_rows": 1111712,
+        "seconds": 69.2017740040319
+      },
+      {
+        "indexed_files": 15,
+        "indexed_rows": 1195968,
+        "seconds": 70.20293543010484
+      },
+      {
+        "indexed_files": 16,
+        "indexed_rows": 1280000,
+        "seconds": 71.20409452205058
+      }
+    ],
+    "services": [
+      [
+        "metadata-benchmark-0",
+        435200
+      ],
+      [
+        "metadata-benchmark-1",
+        435200
+      ],
+      [
+        "metadata-benchmark-2",
+        409600
+      ]
+    ]
+  },
+  "queries": {
+    "mean_ms": 0.0,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "p99_ms": 0.0,
+    "result_codes": {}
+  },
+  "queries_during_ingestion": {
+    "mean_ms": 0.0,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "p99_ms": 0.0,
+    "result_codes": {}
+  },
+  "raw_resource_samples": {
+    "backend": [
+      {
+        "cpu_percent": 0.16,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 26.0,
+        "memory_mib": 201.5,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.19,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 26.0,
+        "memory_mib": 201.0,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.12,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 201.6,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 0.16,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 25.0,
+        "memory_mib": 201.4,
+        "pids": 22.0,
+        "tcp_sockets": 5.0,
+        "threads": 21.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 9.75,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 206.4,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.19,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 204.9,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.15,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 205.8,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.14,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 205.8,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.12,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 206.0,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.22,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 118.0,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.12,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 117.8,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.12,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 117.6,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.13,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 31.0,
+        "memory_mib": 117.4,
+        "pids": 23.0,
+        "tcp_sockets": 6.0,
+        "threads": 22.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 5.28,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 131.0,
+        "pids": 24.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 49.32,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 346.6,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 50.1,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 396.9,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 49.69,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 364.4,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 49.75,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 416.5,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 50.3,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 445.6,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 49.64,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 422.4,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 7.34,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.6,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.11,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.2,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.14,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.6,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.15,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.4,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.11,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.7,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.13,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.3,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.12,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.1,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.15,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.0,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.16,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.2,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.17,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 335.9,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.15,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 336.1,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.45,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 304.0,
+        "pids": 37.0,
+        "tcp_sockets": 6.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.21,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 306.4,
+        "pids": 37.0,
+        "tcp_sockets": 5.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.2,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 305.6,
+        "pids": 37.0,
+        "tcp_sockets": 5.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.17,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 305.5,
+        "pids": 37.0,
+        "tcp_sockets": 4.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.81,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 385.8,
+        "pids": 37.0,
+        "tcp_sockets": 4.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.71,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 427.9,
+        "pids": 37.0,
+        "tcp_sockets": 4.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.75,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 423.1,
+        "pids": 37.0,
+        "tcp_sockets": 4.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.5,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 440.9,
+        "pids": 37.0,
+        "tcp_sockets": 4.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 49.57,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 33.0,
+        "memory_mib": 402.9,
+        "pids": 37.0,
+        "tcp_sockets": 4.0,
+        "threads": 36.0,
+        "time_wait_tcp_sockets": 0.0
+      }
+    ],
+    "ingestion": [
+      {
+        "cpu_percent": 50.76,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 22.46,
+        "pids": 5.0,
+        "tcp_sockets": 5.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 0.0
+      },
+      {
+        "cpu_percent": 50.44,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 18.0,
+        "memory_mib": 29.38,
+        "pids": 5.0,
+        "tcp_sockets": 6.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 50.16,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 29.29,
+        "pids": 5.0,
+        "tcp_sockets": 6.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 50.18,
+        "established_tcp_sockets": 2.0,
+        "file_descriptors": 17.0,
+        "memory_mib": 24.49,
+        "pids": 5.0,
+        "tcp_sockets": 6.0,
+        "threads": 5.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 2.7,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.35,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.06,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.37,
+        "pids": 4.0,
+        "tcp_sockets": 5.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 1.0
+      },
+      {
+        "cpu_percent": 0.06,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.73,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.21,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 1.06,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.28,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.06,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.5,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.98,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.67,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.34,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 1.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.73,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.12,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.98,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.15,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.05,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.19,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 1.03,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.89,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.84,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.19,
+        "pids": 4.0,
+        "tcp_sockets": 6.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 2.0
+      },
+      {
+        "cpu_percent": 0.05,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.63,
+        "pids": 4.0,
+        "tcp_sockets": 7.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 3.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.68,
+        "pids": 4.0,
+        "tcp_sockets": 7.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 3.0
+      },
+      {
+        "cpu_percent": 1.19,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.9,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.46,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.25,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.4,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 0.06,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.63,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 1.16,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 28.86,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.57,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.09,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 29.09,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.54,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 33.04,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.12,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 35.37,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 1.38,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 35.94,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.08,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 35.54,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.03,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 36.17,
+        "pids": 4.0,
+        "tcp_sockets": 9.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 5.0
+      },
+      {
+        "cpu_percent": 0.05,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 36.46,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 0.04,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 36.35,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 1.18,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 36.25,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      },
+      {
+        "cpu_percent": 0.07,
+        "established_tcp_sockets": 1.0,
+        "file_descriptors": 16.0,
+        "memory_mib": 35.06,
+        "pids": 4.0,
+        "tcp_sockets": 8.0,
+        "threads": 4.0,
+        "time_wait_tcp_sockets": 4.0
+      }
+    ]
+  },
+  "recorded_at_utc": "2026-09-07T21:39:40Z",
+  "recovery_resource_samples": {
+    "backend": [],
+    "ingestion": []
+  },
+  "resources": {
+    "backend": {
+      "first_established_tcp_sockets": 2.0,
+      "first_file_descriptors": 26.0,
+      "first_memory_mib": 201.5,
+      "first_tcp_sockets": 5.0,
+      "first_threads": 21.0,
+      "first_time_wait_tcp_sockets": 0.0,
+      "last_established_tcp_sockets": 1.0,
+      "last_file_descriptors": 33.0,
+      "last_memory_mib": 402.9,
+      "last_tcp_sockets": 4.0,
+      "last_threads": 36.0,
+      "last_time_wait_tcp_sockets": 0.0,
+      "max_cpu_percent": 50.3,
+      "max_established_tcp_sockets": 2.0,
+      "max_file_descriptors": 33.0,
+      "max_memory_mib": 445.6,
+      "max_pids": 37.0,
+      "max_tcp_sockets": 6.0,
+      "max_threads": 36.0,
+      "max_time_wait_tcp_sockets": 1.0,
+      "post_workload_established_tcp_sockets": 1.0,
+      "post_workload_file_descriptors": 33.0,
+      "post_workload_memory_mib": 402.9,
+      "post_workload_threads": 36.0,
+      "sample_count": 40
+    },
+    "ingestion": {
+      "first_established_tcp_sockets": 2.0,
+      "first_file_descriptors": 17.0,
+      "first_memory_mib": 22.46,
+      "first_tcp_sockets": 5.0,
+      "first_threads": 5.0,
+      "first_time_wait_tcp_sockets": 0.0,
+      "last_established_tcp_sockets": 1.0,
+      "last_file_descriptors": 16.0,
+      "last_memory_mib": 35.06,
+      "last_tcp_sockets": 8.0,
+      "last_threads": 4.0,
+      "last_time_wait_tcp_sockets": 4.0,
+      "max_cpu_percent": 50.76,
+      "max_established_tcp_sockets": 2.0,
+      "max_file_descriptors": 18.0,
+      "max_memory_mib": 36.46,
+      "max_pids": 5.0,
+      "max_tcp_sockets": 9.0,
+      "max_threads": 5.0,
+      "max_time_wait_tcp_sockets": 5.0,
+      "post_workload_established_tcp_sockets": 1.0,
+      "post_workload_file_descriptors": 16.0,
+      "post_workload_memory_mib": 35.06,
+      "post_workload_threads": 4.0,
+      "sample_count": 40
+    }
+  },
+  "revocation": {
+    "status": "skipped"
+  },
+  "shutdown": {
+    "backend": {
+      "cpuset_cpus": "",
+      "exit_code": 143,
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "mounts": [
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "type": "bind"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "restart_count": 0,
+      "state": "exited"
+    },
+    "ingestion": {
+      "cpuset_cpus": "",
+      "exit_code": 0,
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "mounts": [
+        {
+          "destination": "/app/.dbdata",
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/src",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "type": "bind"
+        },
+        {
+          "destination": "/proto",
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.toml",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/Cargo.lock",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "destination": "/app/build.rs",
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "type": "bind"
+        },
+        {
+          "destination": "/usr/local/cargo/registry",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "type": "volume"
+        },
+        {
+          "destination": "/app/target",
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "type": "volume"
+        }
+      ],
+      "nano_cpus": 500000000,
+      "oom_killed": false,
+      "restart_count": 0,
+      "state": "exited"
+    }
+  },
+  "wal_durability": {
+    "status": "skipped"
+  }
+}

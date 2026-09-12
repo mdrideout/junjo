@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-09-07T21:46:48.558381014Z",
+    "FinishedAt": "2026-09-07T21:46:50.568481355Z"
+  },
+  "memory_limit_bytes": 471859200,
+  "memory_swap_bytes": 471859200,
+  "nano_cpus": 500000000,
+  "image": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59"
+}

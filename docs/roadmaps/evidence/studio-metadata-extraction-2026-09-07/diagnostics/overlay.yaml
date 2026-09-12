@@ -1,0 +1,8 @@
+services:
+  backend:
+    image: ${JUNJO_METADATA_BACKEND_IMAGE}
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+      - /tmp/junjo-metadata-20260907/finish_indexing.py:/metadata-benchmark/finish_indexing.py:ro
+  ingestion:
+    image: junjo-robustness-explicit-drop:local

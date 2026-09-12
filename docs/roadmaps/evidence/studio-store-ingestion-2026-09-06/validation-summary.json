@@ -1,0 +1,18 @@
+{
+  "ingestion_runs": 88,
+  "ingestion_runs_passing_functional_checks": 86,
+  "offered_spans": 184493200,
+  "acknowledged_spans": 184491056,
+  "missing_acknowledged_spans": 0,
+  "sdk_process_runs": 83,
+  "sdk_tests": 438,
+  "backend_tests": 935,
+  "backend_skipped": 2,
+  "rust_tests": 39,
+  "frontend_tests": 250,
+  "repository_tests": 144,
+  "benchmark_accounting_tests": 5,
+  "ingestion_performance_approved": false,
+  "maintainer_accepted_measured_tradeoff": true,
+  "maintainer_acceptance_date": "2026-09-07"
+}

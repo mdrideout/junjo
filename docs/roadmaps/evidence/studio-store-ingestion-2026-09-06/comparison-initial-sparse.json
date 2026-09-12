@@ -1,0 +1,149 @@
+{
+  "passed": true,
+  "metrics": {
+    "spans_per_second": {
+      "baseline_median": 2109.6762672500263,
+      "candidate_median": 2387.4173533777794,
+      "baseline_range": [
+        2043.1397019974424,
+        2655.239697403588
+      ],
+      "candidate_range": [
+        1999.7443646087363,
+        2450.0013464414346
+      ],
+      "change_percent": 13.165104544205253
+    },
+    "export_p95_ms": {
+      "baseline_median": 0.3208749694749713,
+      "candidate_median": 0.29862497467547655,
+      "baseline_range": [
+        0.230583013035357,
+        0.45966601464897394
+      ],
+      "candidate_range": [
+        0.2845829585567117,
+        0.5311669083312154
+      ],
+      "change_percent": -6.934163433159368
+    },
+    "export_p99_ms": {
+      "baseline_median": 0.5874579073861241,
+      "candidate_median": 0.5643750773742795,
+      "baseline_range": [
+        0.34799997229129076,
+        0.7262909784913063
+      ],
+      "candidate_range": [
+        0.4885829985141754,
+        0.8681250037625432
+      ],
+      "change_percent": -3.9292738631353186
+    },
+    "query_p95_ms": {
+      "baseline_median": 0.0,
+      "candidate_median": 0.0,
+      "baseline_range": [
+        0.0,
+        0.0
+      ],
+      "candidate_range": [
+        0.0,
+        0.0
+      ],
+      "change_percent": null
+    },
+    "backend_cpu_us_per_span": {
+      "baseline_median": 11.463000000000001,
+      "candidate_median": 12.007000000000101,
+      "baseline_range": [
+        10.164000000000062,
+        12.426000000000048
+      ],
+      "candidate_range": [
+        11.692000000000036,
+        13.76299999999997
+      ],
+      "change_percent": 4.7457035680022575
+    },
+    "backend_peak_memory_mib": {
+      "baseline_median": 99.18,
+      "candidate_median": 113.3,
+      "baseline_range": [
+        98.61,
+        99.21
+      ],
+      "candidate_range": [
+        99.19,
+        148.3
+      ],
+      "change_percent": 14.236741278483557
+    },
+    "backend_cgroup_peak_mib": {
+      "baseline_median": 135.34375,
+      "candidate_median": 169.97265625,
+      "baseline_range": [
+        134.8359375,
+        136.24609375
+      ],
+      "candidate_range": [
+        136.91015625,
+        205.62890625
+      ],
+      "change_percent": 25.58589240360194
+    },
+    "ingestion_cpu_us_per_span": {
+      "baseline_median": 37.265,
+      "candidate_median": 38.05199999999999,
+      "baseline_range": [
+        32.467,
+        45.056000000000004
+      ],
+      "candidate_range": [
+        35.682,
+        47.09199999999999
+      ],
+      "change_percent": 2.1119012478196586
+    },
+    "ingestion_peak_memory_mib": {
+      "baseline_median": 16.97,
+      "candidate_median": 27.63,
+      "baseline_range": [
+        16.6,
+        19.1
+      ],
+      "candidate_range": [
+        21.52,
+        40.28
+      ],
+      "change_percent": 62.81673541543902
+    },
+    "ingestion_cgroup_peak_mib": {
+      "baseline_median": 20.61328125,
+      "candidate_median": 32.0625,
+      "baseline_range": [
+        19.95703125,
+        22.67578125
+      ],
+      "candidate_range": [
+        25.8046875,
+        43.625
+      ],
+      "change_percent": 55.54292211483798
+    }
+  },
+  "baseline_files": [
+    "/tmp/junjo-robustness-20260906/results/ingestion-baseline-sparse-r1.json",
+    "/tmp/junjo-robustness-20260906/results/ingestion-baseline-sparse-r2.json",
+    "/tmp/junjo-robustness-20260906/results/ingestion-baseline-sparse-r3.json"
+  ],
+  "candidate_files": [
+    "/tmp/junjo-robustness-20260906/results/ingestion-candidate-sparse-r1.json",
+    "/tmp/junjo-robustness-20260906/results/ingestion-candidate-sparse-r2.json",
+    "/tmp/junjo-robustness-20260906/results/ingestion-candidate-sparse-r3.json"
+  ],
+  "limits": {
+    "throughput_regression_percent": 5.0,
+    "query_p95_regression_percent": 10.0
+  }
+}

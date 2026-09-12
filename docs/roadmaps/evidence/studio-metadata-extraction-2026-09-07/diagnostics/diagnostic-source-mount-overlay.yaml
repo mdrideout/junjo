@@ -1,0 +1,7 @@
+services:
+  backend:
+    image: ${JUNJO_METADATA_BACKEND_IMAGE}
+    volumes:
+      - /tmp/junjo-metadata-20260907/finish_indexing.py:/metadata-benchmark/finish_indexing.py:ro
+  ingestion:
+    image: junjo-robustness-explicit-drop:local

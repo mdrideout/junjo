@@ -305,5 +305,3 @@ an evaluation run records results.
 - [Root ADR 0015: Optional external Agent framework integrations](../../../../docs/adr/0015-optional-agent-framework-integrations.md)
 - [Studio ADR 007: Agent execution diagnostics](007-agent-execution-diagnostics.md)
 - [Studio ADR 009: Bounded ingestion API-key validation](009-bounded-ingestion-api-key-validation.md)
-- [Horizon 3 Evaluation Lean MVP](../../../../docs/roadmaps/AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md)
-- [Horizon 3 Evaluation User Stories](../../../../docs/roadmaps/AGENT_LAYER_HORIZON_3_EVALUATION_USER_STORIES.md)

@@ -1,0 +1,19 @@
+{
+  "completed": 300,
+  "wall_seconds": 10.193856069934554,
+  "operations_per_second": 29.429491444833204,
+  "cpu_seconds": 5.091242978,
+  "cpu_us_per_operation": 16970.80992666667,
+  "p95_ms": 69.39134001731873,
+  "p99_ms": 71.26531400717795,
+  "peak_rss_mib": 39.94140625,
+  "before_rss_mib": 39.62890625,
+  "after_work_rss_mib": 40.03515625,
+  "after_release_rss_mib": 40.03515625,
+  "label": "sdk-copy-patch-scalar-8192-r3",
+  "case": "scalar",
+  "iterations": 300,
+  "size": 8192,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "c9d94f8edae61e0d4a1faf07b17df7f568ccceb20e112d611d01d1fac6744e1c"
+}

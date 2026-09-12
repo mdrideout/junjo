@@ -1,0 +1,19 @@
+{
+  "completed": 3000,
+  "wall_seconds": 1.9020988630363718,
+  "operations_per_second": 1577.205085550085,
+  "cpu_seconds": 0.954106493,
+  "cpu_us_per_operation": 318.0354976666667,
+  "p95_ms": 0.41250395588576794,
+  "p99_ms": 0.6377550307661295,
+  "peak_rss_mib": 41.0625,
+  "before_rss_mib": 38.91015625,
+  "after_work_rss_mib": 41.23828125,
+  "after_release_rss_mib": 41.23828125,
+  "label": "sdk-baseline-replace-32-r2",
+  "case": "replace",
+  "iterations": 3000,
+  "size": 32,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "0dcdad1dcf36bca806a958188c50b4ce518ffe0386db4e4eaafe5892deb901d7"
+}
