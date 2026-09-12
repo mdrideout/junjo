@@ -49,6 +49,22 @@ release replaces its exceptional migration input with its exact release tag.
 
 ## Cloudflare deployment
 
+Component guide links to examples and source files are pinned during assembly
+to that component's selected source revision. Author links against `master` in
+the owning guide; published stable links then open the released implementation,
+while `next` links open the preview's source revision.
+
+Studio owns its screenshots in `apps/studio/docs/assets`. Assembly publishes
+them at `/docs-assets/generated/studio/` from the selected Studio revision and
+includes them in parity validation. Releases that predate these screenshots
+publish no Studio assets. SDK assets remain independently owned in
+`sdks/python/docs/_static` and published at `/docs-assets/generated/python/`.
+
+`content-migration.json` preserves historical migration hashes. Subsequent
+editorial changes are checked through current assembly and link validation,
+not by rewriting those historical hashes. A source replaced by a new page
+records its replacement path explicitly in the ledger.
+
 Cloudflare Pages owns preview and production builds through its Git integration.
 The `junjo-website` project runs this version-controlled command from the
 repository root:

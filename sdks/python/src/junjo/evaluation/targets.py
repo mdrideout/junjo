@@ -44,7 +44,9 @@ class ExecutionServiceIdentity:
     """Application OpenTelemetry service identity used for Studio resolution."""
 
     service_namespace: str
+    """OpenTelemetry service.namespace used to disambiguate execution identity."""
     service_name: str
+    """OpenTelemetry service.name emitted by the application that owns the execution."""
 
     def __post_init__(self) -> None:
         if not isinstance(self.service_namespace, str) or len(self.service_namespace) > 256:
@@ -73,8 +75,11 @@ class TargetExecution:
     """Successful projected subject plus truthful top-level evidence identity."""
 
     subject: object
+    """Projected application result passed to the evaluator."""
     evidence: ExecutionEvidenceReference
+    """Exact top-level target execution reference linked to the evaluation attempt."""
     duration_ms: int
+    """Measured subject execution duration in milliseconds; None means unavailable, not zero."""
 
     def __post_init__(self) -> None:
         if not 0 <= self.duration_ms <= 86_400_000:
@@ -105,9 +110,13 @@ class NodeInvocation(Generic[StateT]):
     """Fresh Node and initialized Store constructed for one case."""
 
     node: Node
+    """Fresh Node instance that the target executes through the public lifecycle."""
     store: BaseStore[StateT]
+    """Initialized application Store containing the case input."""
     correlation: ExecutionCorrelation | None = None
+    """Optional trusted application correlation identity propagated through this execution."""
     cleanup: Cleanup | None = None
+    """Optional per-case cleanup, called after execution or failure, including projection failures."""
 
     def __post_init__(self) -> None:
         if not isinstance(self.node, Node):
@@ -123,8 +132,11 @@ class WorkflowInvocation:
     """Fresh Workflow definition constructed for one case."""
 
     workflow: Workflow
+    """Workflow definition whose execute method creates isolated graph and state for the case."""
     correlation: ExecutionCorrelation | None = None
+    """Optional trusted application correlation identity propagated through this execution."""
     cleanup: Cleanup | None = None
+    """Optional per-case cleanup, called after execution or failure, including projection failures."""
 
     def __post_init__(self) -> None:
         if not isinstance(self.workflow, Workflow):
@@ -138,11 +150,17 @@ class AgentInvocation(Generic[AgentInputT, AgentOutputT, DependenciesT]):
     """Agent definition and application-owned invocation values for one case."""
 
     agent: Agent[AgentInputT, AgentOutputT, DependenciesT]
+    """Agent definition used to execute this case with its chosen model and tools."""
     input: AgentInputT
+    """Typed application input supplied to the Agent."""
     dependencies: DependenciesT
+    """Application services available to this Agent execution and its tools."""
     history: tuple[AgentMessage, ...] = ()
+    """Conversation history supplied by the application for this case."""
     correlation: ExecutionCorrelation | None = None
+    """Optional trusted application correlation identity propagated through this execution."""
     cleanup: Cleanup | None = None
+    """Optional per-case cleanup, called after execution or failure, including projection failures."""
 
     def __post_init__(self) -> None:
         if not isinstance(self.agent, Agent):
@@ -159,9 +177,13 @@ class EvaluationTarget:
     """Runtime interface shared by SDK-owned target declarations."""
 
     kind: TargetKind
+    """Node, workflow, or agent execution boundary provided by this target."""
     key: str
+    """Stable application-owned dispatch key referenced by dataset cases."""
     name: str
+    """Human-readable name retained with this record."""
     input_version: int
+    """Version of the target input contract used to validate the stored case."""
 
     @property
     def input_schema(self) -> dict[str, object]:

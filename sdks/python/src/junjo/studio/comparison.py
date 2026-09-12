@@ -35,46 +35,84 @@ class RunComparisonSummary(StudioDto):
     """Outcome counts for one side of a comparison."""
 
     total: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Number of selected cases on this side of the comparison, including errors and queued attempts."""
     judged: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Attempts judged passed or failed; excludes queued attempts and operational errors."""
     passed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Attempts satisfying the evaluator criteria."""
     failed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Attempts that did not satisfy the evaluator criteria."""
     error: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Attempts whose target or evaluator could not complete successfully."""
     queued: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Attempts that have not received a terminal result."""
     pass_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    """Passed divided by judged attempts, as a fraction from 0 to 1; None when nothing was judged."""
 
 
 class RunComparisonTransitionCounts(StudioDto):
     """Counts for every supported transition category."""
 
     improved: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Cases whose status changed from failed in the baseline to passed in the candidate."""
     regressed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Cases whose status changed from passed in the baseline to failed in the candidate."""
     newly_errored: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Cases with a candidate operational error whose baseline was not an error."""
     recovered: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Cases whose baseline errored and whose candidate no longer errors; inspect whether it passed or failed."""
     unchanged: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Cases with the same attempt status on both sides; output or timing may still differ."""
     changed: int = Field(ge=0, le=MAX_CASES_PER_DATASET)
+    """Other status transitions not classified as improved, regressed, newly errored, recovered, or unchanged."""
 
 
 class RunComparisonRow(StudioDto):
     """One exact dataset case aligned across baseline and candidate runs."""
 
     case: CaseRead
+    """The stored case, including input, evaluation criteria, and provenance."""
     baseline_attempt: AttemptRead
+    """The baseline attempt for this exact immutable case."""
     candidate_attempt: AttemptRead
+    """The candidate attempt for the same immutable case."""
     transition: RunComparisonTransition
+    """Deterministic outcome classification comparing candidate status with baseline status."""
     duration_delta_ms: int | None
+    """Candidate subject duration minus baseline duration in milliseconds; None if either duration is missing."""
 
 
 class RunComparison(StudioDto):
-    """Comparison of two revisions evaluated against one locked dataset."""
+    """Comparison of two revisions evaluated against one locked dataset.
+
+    Use the aligned case outcomes before requesting larger trace payloads.
+    An unchanged status does not mean the output or execution was identical.
+
+    .. code-block:: python
+
+        comparison = await studio.compare_runs(baseline_id, candidate_id)
+        for row in comparison.rows:
+            print(row.case.case_key, row.transition, row.duration_delta_ms)
+        print(comparison.transition_counts.regressed)
+        print(comparison.transition_counts.newly_errored)
+    """
 
     dataset: DatasetRead
+    """Dataset metadata, including its immutable identity and lock status."""
     scope: RunScope
+    """Conjunctive case filters used to select the comparison rows."""
     baseline_run: RunRead
+    """Baseline run metadata and its clean committed application revision."""
     candidate_run: RunRead
+    """Candidate run metadata and its clean committed application revision."""
     baseline_summary: RunComparisonSummary
+    """Outcome totals for the baseline cases selected by the comparison scope."""
     candidate_summary: RunComparisonSummary
+    """Outcome totals for the candidate cases selected by the comparison scope."""
     transition_counts: RunComparisonTransitionCounts
+    """Counts of status transitions across the aligned cases."""
     rows: tuple[RunComparisonRow, ...] = Field(max_length=MAX_CASES_PER_DATASET)
+    """Comparison rows aligned by immutable case identity and ordered by dataset ordinal."""
 
 
 def _transition(

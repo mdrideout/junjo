@@ -23,7 +23,11 @@ class EvaluationResult:
     """Validated terminal judgment returned by every evaluator."""
 
     passed: bool
+    """Whether the subject satisfied the declared evaluation criterion; exceptions become operational errors
+    separately.
+    """
     reason: str
+    """Recorded explanation of the judgment or operational error."""
 
     def __post_init__(self) -> None:
         if not isinstance(self.passed, bool):
@@ -46,9 +50,13 @@ class Evaluator:
     """Runtime interface shared by SDK-owned and application callback evaluators."""
 
     key: str
+    """Application-owned stable evaluator key used with its contract version."""
     version: int
+    """Version of the evaluator contract and its expectation schema."""
     role: EvaluationRole
+    """Judge or verifier role used to distinguish evaluator telemetry from the application subject."""
     timeout_seconds: float
+    """Configured evaluator timeout in seconds; a timeout is an operational error, not a failed judgment."""
 
     @property
     def expectation_schema(self) -> Mapping[str, object]:

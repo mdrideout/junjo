@@ -38,9 +38,15 @@ async def evaluate_node(
     lifecycle dispatch, cancellation, failures, and execution correlation use
     the same public runtime as production Workflows.
 
-    Junjo intentionally does not own datasets, judges, rubrics, thresholds, or
-    reports. Workflow and Agent evals should call their normal ``execute()``
-    methods directly.
+    This low-level helper executes a Node; it does not select dataset cases or
+    judge their outputs. For repeatable experiments recorded in Junjo AI Studio,
+    register a :class:`~junjo.evaluation.NodeTarget` in an
+    :class:`~junjo.evaluation.EvaluationHarness`. Your application runs the
+    targets and evaluators while Studio stores the datasets, outcomes, and
+    linked execution evidence. Workflow and Agent targets use their respective
+    :class:`~junjo.evaluation.WorkflowTarget` and
+    :class:`~junjo.evaluation.AgentTarget` wrappers. Direct ``execute()`` calls
+    remain appropriate for lower-level application tests.
 
     :param node: Fresh Node instance to evaluate.
     :param store: Fresh initialized Store containing the eval case input.

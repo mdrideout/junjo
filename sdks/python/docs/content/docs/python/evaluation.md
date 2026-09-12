@@ -1,11 +1,17 @@
 ---
-title: "Studio-Connected Evaluation"
+title: "Evaluation datasets and runs with your coding agent"
+description: "Create targeted datasets, execute local application changes, compare evaluation runs, and inspect their exact Studio evidence with your coding agent."
 ---
 
 Junjo Evaluation is the batteries-included loop for building typed input
 datasets in Junjo AI Studio, executing them against the real application code
 in your checkout, and comparing structured results with the exact traces
 Studio received.
+
+This is the technical lifecycle behind
+[recursive self improvement](/docs/recursive-self-improvement/). Start with that
+guide for the first improvement journey; use this page for target declarations,
+dataset operations, evaluator contracts, and run diagnostics.
 
 The application remains the execution host because it owns prompts, provider
 credentials, Tools, databases, and domain services. The Junjo SDK owns the
@@ -32,6 +38,7 @@ CLI flags, or poll telemetry evidence.
 
 | Owner | Responsibility |
 | --- | --- |
+| Coding agent | Discover targets, curate scenarios, investigate evidence, edit and commit application changes, and orchestrate experiments |
 | Application | Typed inputs, real dependency construction, Node/Workflow/Agent factories, output projection, and domain-specific evaluator meaning |
 | Junjo SDK | `EvaluationHarness`, targets, evaluators, Studio transport, Attempt lifecycle, evidence binding, resume, comparison, and CLI |
 | Junjo AI Studio | Canonical datasets, cases, runs, attempts, results, evidence membership, and received trace evidence |
@@ -39,6 +46,11 @@ CLI flags, or poll telemetry evidence.
 Studio never executes uploaded source code. Complete telemetry still enters
 Studio through authenticated OTLP; evaluation REST operations store only
 bounded control records and exact evidence references.
+
+The lifecycle is **draft cases → lock dataset → execute baseline → commit a
+change → rerun the same dataset → compare and inspect evidence**. Setup happens
+once per application: connect telemetry, configure a developer access token,
+declare the harness, and install the matching coding-agent skill.
 
 ## Credentials stay separate
 
@@ -109,7 +121,13 @@ materially ambiguous product intent, or authority to modify and commit code.
 
 ## Declare one harness
 
-An application exports exactly one explicit `EvaluationHarness` object:
+An application exports exactly one explicit `EvaluationHarness` object.
+
+The following wiring example assumes your application already defines
+`AnswerInputV1`, `AnswerState`, `AnswerStore`, `CreateAnswerNode`, and
+`build_provider`. The runtime context should acquire and close the same
+telemetry and provider resources used by real application execution; it is not
+a separate implementation of the target.
 
 ```python
 from contextlib import asynccontextmanager
@@ -267,6 +285,12 @@ junjo eval case generate \
 The observed subject is evidence only. Junjo never copies it into the expected
 answer or silently promotes it to truth.
 
+Cases can also be authored directly from reviewed production interactions or
+synthetically constructed inputs using `junjo eval dataset add`. Generation
+through a target is useful when you want the scenario linked to an observed
+execution. In either path, choose the evaluation criterion independently of
+what the current implementation happened to produce.
+
 ## Execute, resume, and compare
 
 Run a locked dataset from a clean committed checkout:
@@ -321,6 +345,18 @@ Studio and the SDK report `pass_rate` over judged Attempts only
 `newly_errored`, `recovered`, `unchanged`, or `changed`, while retaining both
 exact execution links.
 
+Each Run records one clean committed source revision. An uncommitted prompt
+edit is not an eligible candidate; commit it before execution. Keep a baseline
+checkout or worktree available if you need to rerun the old implementation
+against a newly expanded dataset.
+
+For parallel experiments, separate coding agents or worktrees can execute
+independent Runs against the same locked dataset and Studio service. Give each
+experiment a distinct request key and meaningful Run label. This does not make
+one `EvaluationExecutor` concurrent: each executor still runs its cases
+sequentially. Scheduling and coordination belong to your coding agent, CI, or
+application environment, including ownership of external side effects.
+
 ## Query exact evidence
 
 Evidence reads are intentionally staged so an agent can diagnose a result
@@ -374,12 +410,16 @@ async with StudioClient(base_url=studio_url, token=studio_token) as studio:
             request_key="baseline-1",
             run_label="baseline",
         )
-        candidate = await evaluation.run(
+        repeat = await evaluation.run(
             dataset_id=dataset_id,
-            request_key="candidate-2",
-            run_label="more-specific-prompt",
+            request_key="repeat-2",
+            run_label="repeat-same-revision",
         )
 ```
+
+Both calls above use the same imported application code. To test a committed
+code change, run from the candidate checkout in a fresh application process;
+changing a Run label does not change prompts or reload Python modules.
 
 `EvaluationExecutor` is one application-host lifetime. It acquires the
 application runtime only before real target execution, reuses process-global

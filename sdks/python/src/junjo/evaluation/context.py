@@ -60,14 +60,23 @@ class EvaluationContext:
     """
 
     run_class: EvaluationRunClass
+    """Distinguishes execution to generate a dataset case from execution to evaluate a locked case."""
     dataset_id: str
+    """Studio identifier of the dataset containing the ordered cases."""
     source_revision: str
+    """Clean committed application Git revision associated with this execution."""
     role: EvaluationRole = EvaluationRole.ORCHESTRATOR
+    """Whether this span or callback orchestrates, executes the subject, judges, or verifies the result."""
     run_id: str | None = None
+    """Studio identifier of the evaluation run."""
     case_id: str | None = None
+    """Studio identifier of the immutable case used by this attempt."""
     case_key: str | None = None
+    """Requested key during case generation, before a canonical case ID exists."""
     attempt_id: str | None = None
+    """Studio identifier of one case attempt within an evaluation run."""
     version: int = EVALUATION_CONTEXT_VERSION
+    """Version of the evaluation identity context emitted in telemetry."""
 
     def __post_init__(self) -> None:
         if self.version != EVALUATION_CONTEXT_VERSION:

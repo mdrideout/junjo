@@ -25,21 +25,37 @@ class AgentStateSnapshot:
     """
 
     input: FrozenJsonValue
+    """Immutable JSON snapshot of the input admitted for this invocation."""
     history: tuple[FrozenJsonValue, ...]
+    """Immutable JSON snapshot of the supplied conversation history."""
     transcript: tuple[FrozenJsonValue, ...]
+    """Immutable normalized records of the messages and operations captured for this invocation."""
     model_iteration: int
+    """Current model iteration recorded at the time of the diagnostic snapshot."""
     model_request_count: int
+    """Number of model requests recorded during this invocation."""
     tool_call_requested_count: int
+    """Number of tool calls requested by model responses."""
     tool_call_admitted_count: int
+    """Requested tool calls accepted for execution by the Agent runtime."""
     tool_call_started_count: int
+    """Admitted tool calls whose execution started."""
     tool_call_completed_count: int
+    """Started tool calls whose execution completed."""
     usage: AgentUsage
+    """Aggregated provider-reported usage; unavailable fields remain absent rather than becoming zero."""
     admitted_tool_call_ids: tuple[str, ...]
+    """Tool-call identities accepted by the runtime in this invocation."""
     pending_tool_call_ids: tuple[str, ...]
+    """Admitted tool-call identities still awaiting completion at the snapshot."""
     completed_tool_call_ids: tuple[str, ...]
+    """Tool-call identities recorded as completed at the snapshot."""
     final_output_available: bool
+    """Whether a final output exists; distinguishes a valid JSON null output from unavailable output."""
     final_output: FrozenJsonValue
+    """Immutable final output JSON when available; interpret together with final_output_available."""
     terminal_reason: str | None
+    """Recorded terminal reason, or None if no terminal reason had been recorded."""
 
     def __init__(
         self,

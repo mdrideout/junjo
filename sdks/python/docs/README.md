@@ -35,6 +35,13 @@ When an intentional public API change adds or removes a documented symbol,
 update `api-public-surface.json` in the same review. Validation fails if Griffe
 cannot resolve and render any contracted object.
 
+The contract includes Junjo-owned schema fields (including inherited fields),
+enum values, callable protocols, and inherited execution methods. Module-level
+JSON aliases render on their existing module page. The exporter preserves reST
+field lists and all following examples, and fails on Griffe diagnostics. Run
+`uv run pytest -q tests/test_docs_export.py` for reference coverage, formatting,
+and generated anchor checks.
+
 Assembly defaults to the `next` documentation channel and labels generated API
 pages as source previews. Build `stable` only from the exact released checkout:
 

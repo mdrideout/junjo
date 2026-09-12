@@ -8,6 +8,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -21,6 +22,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 WEBSITE_ROOT = REPOSITORY_ROOT / "apps/website"
 CONTENT_OUTPUT = WEBSITE_ROOT / "src/content/docs/generated"
 ASSET_OUTPUT = WEBSITE_ROOT / "public/docs-assets/generated/python"
+STUDIO_ASSET_OUTPUT = WEBSITE_ROOT / "public/docs-assets/generated/studio"
 MANIFEST_OUTPUT = WEBSITE_ROOT / "public/docs-manifests/generated/python"
 ASSEMBLY_RECORD = WEBSITE_ROOT / ".docs-assembly/manifest.json"
 LEGACY_SITE_OUTPUT = WEBSITE_ROOT / ".docs-assembly/python-api-site"
@@ -295,9 +297,25 @@ def documentation_route(path: Path, content: Path) -> str:
     return "/" + "/".join(parts) + "/"
 
 
+def pin_component_source_links(content: Path, *, python_revision: str, studio_revision: str) -> None:
+    """Keep published examples aligned with each selected component's source."""
+    revisions = {"sdks/python": python_revision, "apps/studio": studio_revision}
+    pattern = re.compile(
+        r"(https://github\.com/mdrideout/junjo/(?:blob|tree)/)master/(?P<component>sdks/python|apps/studio)(?=[/\s)#])"
+    )
+    for path in sorted(content.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        pinned = pattern.sub(
+            lambda match: f"{match[1]}{revisions[match['component']]}/{match['component']}", text
+        )
+        if pinned != text:
+            path.write_text(pinned, encoding="utf-8")
+
+
 def build_assembly(root: Path, sources: DocumentationSources | None = None) -> None:
     content = root / "content"
     assets = root / "assets"
+    studio_assets = root / "studio-assets"
     manifests = root / "manifests"
     record_path = root / "assembly-manifest.json"
     api_export = root / "python-api"
@@ -330,6 +348,11 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
         python_revision = sources.python.documentation_revision
 
     copy_tree_without_overwrite(studio_root / "apps/studio/docs/public", content)
+    pin_component_source_links(
+        content,
+        python_revision=python_revision,
+        studio_revision=sources.studio.documentation_revision if sources else python_revision,
+    )
     run_python_api_export(
         api_export,
         sdk_root=python_docs_root.parent,
@@ -338,6 +361,7 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
     )
     copy_tree_without_overwrite(api_export / "docs", content / "docs")
     copy_tree_without_overwrite(python_docs_root / "_static", assets)
+    copy_studio_assets(studio_root, studio_assets)
 
     manifests.mkdir(parents=True, exist_ok=True)
     shutil.copy2(api_export / "api-manifest.json", manifests / "api-manifest.json")
@@ -397,6 +421,7 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
     for category, directory in (
         ("content", content),
         ("asset", assets),
+        ("studio-asset", studio_assets),
         ("manifest", manifests),
     ):
         for path in sorted(directory.rglob("*")):
@@ -428,6 +453,14 @@ def build_assembly(root: Path, sources: DocumentationSources | None = None) -> N
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
 
 
+def copy_studio_assets(studio_root: Path, destination: Path) -> None:
+    """Publish screenshots from the selected Studio release, when it owns any."""
+    destination.mkdir(parents=True, exist_ok=True)
+    source = studio_root / "apps/studio/docs/assets"
+    if source.exists():
+        copy_tree_without_overwrite(source, destination)
+
+
 def replace_output(source: Path, destination: Path) -> None:
     if destination.exists():
         shutil.rmtree(destination)
@@ -438,6 +471,7 @@ def replace_output(source: Path, destination: Path) -> None:
 def write_assembly(temporary: Path) -> None:
     replace_output(temporary / "content", CONTENT_OUTPUT)
     replace_output(temporary / "assets", ASSET_OUTPUT)
+    replace_output(temporary / "studio-assets", STUDIO_ASSET_OUTPUT)
     replace_output(temporary / "manifests", MANIFEST_OUTPUT)
     ASSEMBLY_RECORD.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(temporary / "assembly-manifest.json", ASSEMBLY_RECORD)
@@ -475,6 +509,7 @@ def check_assembly(temporary: Path) -> int:
     failures = [
         *compare_directory(temporary / "content", CONTENT_OUTPUT, "content"),
         *compare_directory(temporary / "assets", ASSET_OUTPUT, "assets"),
+        *compare_directory(temporary / "studio-assets", STUDIO_ASSET_OUTPUT, "Studio assets"),
         *compare_directory(temporary / "manifests", MANIFEST_OUTPUT, "manifests"),
     ]
     expected_record = (temporary / "assembly-manifest.json").read_bytes()

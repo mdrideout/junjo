@@ -78,15 +78,25 @@ class GenerateCaseRequest:
     """Complete curated contract for one real-execution-generated Case."""
 
     dataset_id: str
+    """Studio identifier of the dataset containing the ordered cases."""
     case_key: str
+    """Application-owned case key, unique within its dataset and used for idempotent writes."""
     evaluation_name: str
+    """Human-readable evaluation label used to group and filter scenarios."""
     target_kind: TargetKind
+    """Execution boundary: a node, workflow, or agent."""
     target_key: str
+    """Stable dispatch key matching a target registered in the application harness."""
     input_version: int
+    """Version of the target input contract used to validate the stored case."""
     input_json: JsonValue
+    """Scenario input validated by the application target input schema before execution."""
     expectation_json: JsonValue | None
+    """Evaluator criteria, not an automatically accepted generated answer; validated by the evaluator schema."""
     evaluator_key: str
+    """Stable key of the evaluator registered in the application harness."""
     evaluator_version: int
+    """Evaluator contract version that interprets the stored expectations."""
 
 
 _RUNTIME_NOT_ENTERED = object()

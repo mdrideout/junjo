@@ -1,640 +1,342 @@
 ---
-title: "Junjo AI Studio Intro"
-description: "Debug Junjo Workflow graphs and dynamic Agent executions with Junjo AI Studio's interactive telemetry platform."
+title: "Junjo AI Studio: telemetry and evaluation evidence"
+description: "Let your coding agent and your team investigate the same datasets, outcomes, traces, and recorded state changes for recursive self improvement."
 ---
-<!-- migrated-from: sdks/python/docs/junjo_ai_studio.rst; source-hash: sha256:e17e6e7f057096780f2e503fd6bf28f33391c3271b70ab0b1ef73e80f740c9e5 -->
-<!-- migrated-keywords: junjo ai studio, workflow debugging, agent debugging, AI observability, LLM tracing, state machine debugging, workflow visualization, opentelemetry -->
 
 <a id="junjo-ai-studio"></a>
-Junjo AI Studio is a free, open-source telemetry visualization platform for
-debugging explicit Junjo Workflows and bounded Agents. It ingests OpenTelemetry
-traces and presents each execution model truthfully: declared Graph paths for
-Workflows and realized model/Tool operation timelines for Agents.
+Junjo AI Studio is the self-hosted telemetry and evaluation observation suite
+for Junjo. Your coding agent uses its API through the Junjo SDK and CLI to
+investigate failures and compare experiments. You use the Studio interface to
+inspect the same evidence and validate what changed.
+
+The [Python SDK](/docs/python/) lives in your application. Studio runs as
+separate containerized services and stores datasets, evaluation outcomes, and
+execution history. Your application executes the work; your coding agent
+orchestrates the [recursive self improvement cycle](/docs/recursive-self-improvement/).
 
 ## What is Junjo AI Studio?
 
-**Key Capabilities:**
+| What Studio records | What it helps you answer |
+| --- | --- |
+| Datasets and ordered evaluation cases | Which scenarios and evaluation criteria did we test? |
+| Runs, code revisions, and case outcomes | Did the change fix the failure or introduce a regression? |
+| Linked execution traces | What sequence of operations produced this result? |
+| Native Junjo Workflow, Agent, and Store evidence | Which path, model request, Tool call, or state update needs attention? |
 
-- **Interactive Graph Exploration:** Click through your workflow's execution path
-- **Dynamic Agent Diagnostics:** Inspect ordered model and Tool operations without a fabricated Graph
-- **State Machine Step Debugging:** See every single state change, in order
-- **Evidence Integrity:** Distinguish verified state, partial evidence, payload policy, and loss signals
-- **LLM Decision Tracking:** Understand which conditions evaluated true/false
-- **Trace Timeline:** Visualize concurrent execution and performance bottlenecks
-- **Multi-Execution Comparison:** Compare different runs to identify issues
+Studio provides one shared record for coding agents and people. Your coding
+agent owns changes and orchestration; your application owns source execution,
+model calls, and evaluators. Studio stores and serves their evidence.
 
-## Why Use Junjo AI Studio for AI Workflows?
+<a id="why-use-junjo-ai-studio-for-ai-workflows"></a>
+## Investigate a failure and demonstrate the improvement
 
-LLM-powered applications are inherently non-deterministic. Traditional debugging doesn't work well when:
+A customer-service agent incorrectly refuses a refund. Ask your coding agent
+to trace that outcome back to the recorded operations, turn the observed
+failure into an evaluation scenario, and test a targeted change.
 
-- You need to understand why an LLM chose path A over path B
-- State changes happen across multiple concurrent nodes
-- You're testing complex agentic behaviors
-- You need to verify eval-driven development results
+> Investigate this failed refund interaction: [Studio trace link]. Identify the operation
+> that produced the wrong outcome, add a scenario with the correct evaluation
+> criteria, and compare a targeted improvement against the baseline. Include
+> Studio links so I can inspect the evidence.
 
-Junjo AI Studio solves this by providing **complete execution transparency**.
+### 1. Find the execution that produced the outcome
 
-<img src="/docs-assets/generated/python/junjo-screenshot.png" alt="Junjo AI Studio interactive workflow visualization" style="max-width: 100%; width: 800px; display: block; margin-inline: auto" />
+In Studio, locate the failed interaction and give your coding agent its trace
+or execution link. The SDK reads production evidence by that known identity;
+the evaluation CLI discovers evaluation runs and inspects their attempts.
+See [the initial evidence handoff](/docs/recursive-self-improvement/#give-the-agent-the-starting-execution)
+for the concrete query and the distinction from production search.
+Open the corresponding trace, native Agent, or Workflow execution.
+Inspect the inputs, intermediate results, errors, and recorded state around
+the suspected failure.
 
-*Interactive workflow graph showing execution path and state changes*
+For example, determine whether the policy lookup omitted an exception, the
+model misread a retrieved policy, or the application lost a state update.
+These require different changes. Missing instrumentation is a reason to
+collect better evidence before choosing one.
+
+### 2. Add a scenario and establish a baseline
+
+Have the coding agent create a draft dataset or add cases to an existing
+draft. The new scenario can be based on the observed customer interaction;
+its evaluation criteria should state the expected behavior, not accept the
+failed output as a correct answer.
+
+Lock the dataset once its cases and criteria are ready. Your application then
+executes those cases locally through the SDK's evaluation harness. Studio
+records each attempt, its outcome and reason, and the exact execution link.
+If the previous dataset was already locked, create a new dataset containing
+the expanded test set and run both implementations against it.
+
+[![Studio dataset showing five locked refund scenarios and their baseline and candidate run history](/docs-assets/generated/studio/refund-dataset.png)](/docs-assets/generated/studio/refund-dataset.png)
+
+This walkthrough uses synthetic customer requests and real model calls. The
+damaged-item case was generated through application execution; its expected
+decision was supplied separately. The other cases preserve behavior that
+already worked.
+
+### 3. Rerun the same cases after the change
+
+The coding agent changes the relevant prompt or code, records the committed
+source revision, and runs the same locked dataset again. From **Evaluations**,
+open the dataset to see its cases and runs, then compare the baseline and
+candidate.
+
+Studio aligns outcomes by case. Inspect improvements, regressions, unchanged
+failures, and operational errors. Follow **View spans** for either attempt to
+check the execution behind its result. See [Evaluation datasets and runs](/docs/python/evaluation/)
+for the actual authoring, execution, and comparison commands.
+
+[![Studio comparison showing one failed refund scenario becoming passed while the other four scenarios remain passed](/docs-assets/generated/studio/refund-comparison.png)](/docs-assets/generated/studio/refund-comparison.png)
+
+In this recorded example, the baseline passed four of five cases. Applying the
+damaged-item policy raised that to five of five, with no regressions or errors
+in this dataset. These are results from the walkthrough, not a general model
+quality benchmark.
+
+### 4. Return a finding with evidence links
+
+A useful coding-agent report includes:
+
+- The failure and the recorded events supporting its diagnosis.
+- The prompt or code change and the two source revisions tested.
+- Which cases improved, regressed, failed, or errored.
+- Links to the comparison and the specific executions a person should inspect.
+
+You and your coding agent can look at the same data. The comparison establishes
+what happened on the tested scenarios; it does not establish correctness for
+every possible input.
+
+<a id="key-features-deep-dive"></a>
+## Read the evidence at the right level
+
+<a id="5-multi-execution-comparison"></a>
+### Datasets, runs, and comparisons
+
+The **Evaluations** view groups experiments around the datasets they share.
+A dataset records the ordered cases, their target, and their evaluation criteria.
+A run records the implementation revision and one attempt per case. The
+comparison view aligns two runs over the same locked dataset and can focus on
+a target, evaluation, transition, or candidate outcome.
+
+Pass rate counts judged cases only: `passed / (passed + failed)`. Review
+the SDK/CLI summary's coverage and Studio's operational errors as well. A run
+that judges fewer cases has not demonstrated an improvement just because its
+pass rate increased.
+
+The comparison is an outcome table with links into execution evidence. It is
+not an automatic visual diff of two entire workflow graphs or state histories.
+
+<a id="1-interactive-graph-visualization"></a>
+### Workflow paths and concurrent work
+
+Native Junjo Workflow pages connect the declared graph to its recorded
+execution. Select nodes and nested Subflows to inspect the path taken, timing,
+and associated state evidence. Concurrent branches remain visible so you can
+investigate which operation contributed to a result or to wall time.
+
+This is distinct from a [static workflow diagram](/docs/python/workflows/visualization/):
+the static diagram shows possible structure; Studio shows the execution
+evidence that arrived for a particular run.
+
+<a id="2-agent-execution-diagnostics"></a>
+### Agent operations
+
+Native Junjo Agent pages show the realized sequence of model and Tool
+operations. Inspect requests and responses, Tool arguments and results,
+termination reason, usage, timing, and nested Agent or Workflow executions.
+An Agent's dynamic operation timeline does not need a fabricated static graph.
+
+<a id="3-state-step-debugging"></a>
+### State changes
+
+For native Junjo Store telemetry, inspect recorded updates and JSON patch
+diffs in order. Compare the available before and after state to find where
+facts were introduced, overwritten, or used by a later operation.
+
+Studio distinguishes verified state from incomplete evidence. A missing,
+redacted, excluded, or referenced payload is not an empty value. When the
+evidence is incomplete, retain that qualification in the diagnosis.
+
+[![Studio workflow with SelectRefundPolicy selected and its chronological state diff setting policy_window_days to 90](/docs-assets/generated/studio/refund-state-diff.png)](/docs-assets/generated/studio/refund-state-diff.png)
+
+Here the model had already identified the item as damaged. The selected Store
+action records the corrected policy window before the final decision. The
+graph, update chronology, and diff explain why this execution approved the
+refund; the comparison shows whether the other scenarios still passed.
+
+<a id="4-trace-exploration"></a>
+### The complete received trace
+
+The trace view connects parent and child spans across instrumented operations.
+Inspect durations, errors, attributes, and available model or Tool payloads.
+It also provides the shared view for external framework spans and native Junjo
+executions nested inside them.
+
+The [OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/)
+can translate its source traces into this view while Junjo workflows or
+specialist agents run as its tools. External spans retain their own identity;
+they do not acquire native Junjo graph or Store semantics. Available payloads
+follow the application's instrumentation and privacy settings.
+
+## Link an investigation to Studio
+
+The SDK's evidence resolution returns paths such as `detail_path` and
+`trace_path`. Prefer those returned paths when producing a report. Combine
+them with the **Studio web UI origin**, which may differ from the backend API
+origin used by the CLI.
+
+For reports that link to datasets and runs directly, use these route templates
+with actual IDs from your Studio instance. URL-encode path segments and query
+values.
+
+| Evidence | Studio web route |
+| --- | --- |
+| Dataset and its runs | `/evaluation-runs/datasets/{datasetId}` |
+| One evaluation run | `/evaluation-runs/{runId}` |
+| Baseline and candidate comparison | `/evaluation-runs/compare?baseline_run_id={baselineId}&candidate_run_id={candidateId}` |
+| Exact trace and selected span | `/traces/{serviceName}/{traceId}/{spanId}` |
+| Native Agent execution | `/agents/{traceId}/{agentSpanId}` |
+| Native Workflow execution | `/workflows/{serviceName}/{traceId}/{workflowSpanId}` |
+
+Native execution evidence can also use Studio's `/resolve/executable` route
+with its returned semantic identity. The resolver opens the corresponding
+detail or trace view. Case evidence opens through the run's **View spans**
+links; individual state updates can be inspected inside an execution view.
+
+Recipients need access to the same Studio instance. A deep link identifies
+the evidence; it does not make private application data public.
 
 ## Installation & Setup
 
-Junjo AI Studio is composed of three Docker services that work together:
+Deploy Studio with the [supported Docker Compose distributions](/docs/studio/deployment/).
+The deployment guide covers local setup, a small VM with HTTPS, persistent
+storage, and connecting both the application and coding agent.
 
-1. **Backend**: FastAPI HTTP API + auth, DataFusion queries over Parquet, plus a SQLite metadata index (and SQLite for users / API keys)
-2. **Ingestion Service**: High-throughput OTLP receiver (Rust) with segmented Arrow IPC WAL → Parquet (cold), and on-demand hot snapshots for real-time queries
-3. **Frontend**: Web UI for visualization and debugging
+<a id="quick-start-options"></a>
+<a id="option-1-use-the-minimal-build-template-recommended"></a>
+<a id="option-2-create-your-own-docker-compose-file"></a>
+### Choose a deployment
 
-:::note
-**Version Compatibility:** Junjo SDK and Junjo AI Studio releases are
-paired around a shared telemetry contract. Raw spans may still arrive from
-a mismatched SDK, but Studio has no fallback semantic parser. Workflow
-graphs, Agent diagnostics, and verified Store reconstruction require the
-active contract. Upgrade the SDK and AI Studio together.
-:::
-
-### Quick Start Options
-
-#### Option 1: Use the Minimal Build Template (Recommended)
-
-The easiest way to get started is with the [Junjo AI Studio Minimal Build Template](https://github.com/mdrideout/junjo-ai-studio-minimal-build), a GitHub template repository with a ready-to-use Docker Compose configuration:
-
-```bash
-# Clone the template repository
-git clone https://github.com/mdrideout/junjo-ai-studio-minimal-build.git
-cd junjo-ai-studio-minimal-build
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your settings
-
-# Start services
-docker compose up -d
-
-# Access UI
-open http://localhost:26153
-```
-
-This template provides a minimal, flexible foundation you can customize for your needs. See [Deployment](/docs/studio/deployment/) for more details.
-
-#### Option 2: Create Your Own Docker Compose File
-
-If you prefer to integrate Junjo AI Studio into an existing project, here's a minimal Docker Compose example:
-
-```yaml title="docker-compose.yml"
-services:
-  backend:
-    image: mdrideout/junjo-ai-studio-backend:latest
-    ports:
-      - "26154:26154" # Local backend API
-    volumes:
-      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
-    env_file: .env
-    environment:
-      - INGESTION_HOST=ingestion
-      - INGESTION_PORT=50052  # Private backend-to-ingestion RPC; not an OTLP endpoint
-      - GRPC_PORT=50053  # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the auth RPC listener
-      - RUN_MIGRATIONS=true
-      - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
-      - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
-      - JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
-    networks:
-      - junjo-network
-
-  ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:latest
-    ports:
-      - "26155:26155" # Local OTLP ingestion
-    volumes:
-      - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
-    env_file: .env
-    environment:
-      - BACKEND_GRPC_HOST=backend
-      - BACKEND_GRPC_PORT=50053  # Private ingestion-to-backend auth RPC
-      - GRPC_PORT=26155  # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the OTLP listener
-      - INTERNAL_GRPC_PORT=50052  # Pinned backend-facing RPC listener
-      - WAL_DIR=/app/.dbdata/spans/wal
-      - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
-      - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
-    networks:
-      - junjo-network
-    depends_on:
-      - backend
-
-  frontend:
-    image: mdrideout/junjo-ai-studio-frontend:latest
-    ports:
-      - "26153:26153" # Production-build web UI
-    env_file: .env
-    networks:
-      - junjo-network
-    depends_on:
-      - backend
-      - ingestion
-
-networks:
-  junjo-network:
-    name: junjo_network
-    driver: bridge
-```
-
-**Create a .env file** next to your `docker-compose.yml`. The backend requires
-`JUNJO_SESSION_SECRET`, `JUNJO_SECURE_COOKIE_KEY`, and
-`JUNJO_INTERNAL_GRPC_TOKEN` (they have no defaults),
-and the prebuilt frontend container requires `JUNJO_ENV`:
-
-```bash title=".env"
-JUNJO_ENV=development
-
-# Generate each value with: openssl rand -base64 32
-# (JUNJO_SECURE_COOKIE_KEY must decode to exactly 32 bytes)
-JUNJO_SESSION_SECRET=<generated value>
-JUNJO_SECURE_COOKIE_KEY=<generated value>
-JUNJO_INTERNAL_GRPC_TOKEN=<generated value>
-
-# Optional: host path for database storage (defaults to ./.dbdata)
-# JUNJO_HOST_DB_DATA_PATH=./.dbdata
-```
-
-See [Docker Reference](/docs/studio/docker-reference/) for the full environment variable reference.
-
-:::caution
-The shared `.env` file is loaded by every service — do not set generic
-variables like `GRPC_PORT` or `PORT` in it. `GRPC_PORT` is read by
-both the backend and ingestion services with different expected values,
-and `PORT` misconfigures the backend's settings.
-:::
-
-**Start the services:**
-
-```bash
-# Start all services
-docker compose up -d
-
-# Access the UI
-open http://localhost:26153
-```
+Start with the [minimal distribution](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
+for local use or integration into your own Compose stack. Use the
+[VM/Caddy distribution](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
+for the full VM and HTTPS setup. Their versioned Compose files are the source
+for service configuration; this guide does not maintain another copy.
 
 ### Resource Requirements
 
-Junjo AI Studio is designed to run on minimal resources:
-
-- **CPU**: Single shared vCPU is sufficient
-- **RAM**: 1GB minimum
-- **Storage**: Uses SQLite + Parquet (cold storage) + Arrow IPC WAL segments (hot storage)
-
-This makes it affordable to deploy on small cloud VMs.
+Studio is designed for small hosts, including a 1GB RAM VM. Your application
+and model execution can run elsewhere. See [resource and storage guidance](/docs/studio/docker-reference/#resource-requirements)
+when choosing capacity for your telemetry volume and queries.
 
 ## Configuration
 
-### Step 1: Generate an API Key
+<a id="step-1-generate-an-api-key"></a>
+<a id="step-2-configure-opentelemetry-in-your-application"></a>
+<a id="step-3-initialize-telemetry-in-your-application"></a>
+Connect two distinct channels:
 
-1. Open the Junjo AI Studio UI exposed by your stack. With the prebuilt Docker images, the UI is served at <http://localhost:26153>; <http://localhost:26151> applies only when running the junjo-ai-studio source repository's development stack.
-2. Open the **API Keys** page from the sidebar
-3. Create a new API key
-4. Set the key in your application's environment as `JUNJO_AI_STUDIO_API_KEY`
+1. **Application telemetry:** an API key from Studio's **API Keys** page
+   authorizes OTLP trace export to ingestion.
+2. **Coding-agent evaluation and evidence access:** a developer token from
+   **Access Tokens** authorizes the SDK/CLI against the backend HTTP API.
 
-### Step 2: Configure OpenTelemetry in Your Application
-
-The required OpenTelemetry packages (`opentelemetry-sdk` and
-`opentelemetry-exporter-otlp-proto-grpc`) are runtime dependencies of
-`junjo` and install automatically with it — no separate install step is
-needed for Junjo users.
-
-Choose the endpoint based on where your application runs:
-
-- Application containers on the same Docker network as Junjo AI Studio use `ingestion:26155`.
-- Applications running directly on the local machine use `localhost:26155`.
-- Do not use `localhost` from an application container. It resolves to that
-  container, not to the Junjo AI Studio ingestion service.
-
-Create an OpenTelemetry configuration file:
-
-```python title="otel_config.py"
-import os
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.resources import Resource
-
-def init_telemetry(service_name: str):
-    """Configure OpenTelemetry for Junjo AI Studio."""
-
-    # Get API key from environment
-    api_key = os.getenv("JUNJO_AI_STUDIO_API_KEY")
-    if not api_key:
-        raise ValueError("JUNJO_AI_STUDIO_API_KEY environment variable not set. "
-                       "Generate a new API key in the Junjo AI Studio UI.")
-
-    # Create OpenTelemetry resource
-    resource = Resource.create({"service.name": service_name})
-
-    # Set up tracer provider
-    tracer_provider = TracerProvider(resource=resource)
-
-    studio_exporter = OTLPSpanExporter(
-        endpoint="ingestion:26155",  # The Studio ingestion service on your Docker network
-        headers=(("x-junjo-api-key", api_key),),
-        insecure=True,  # Use False in production with TLS
-        timeout=120,
-    )
-
-    tracer_provider.add_span_processor(BatchSpanProcessor(studio_exporter))
-    trace.set_tracer_provider(tracer_provider)
-
-    return tracer_provider
-```
-
-If your Junjo application runs in Docker, it only needs to be on the same Docker
-network as the Junjo AI Studio ingestion service:
-
-```yaml title="application docker-compose.yml"
-services:
-  app:
-    build: .
-    environment:
-      - JUNJO_AI_STUDIO_API_KEY=${JUNJO_AI_STUDIO_API_KEY}
-    networks:
-      - junjo-network
-
-networks:
-  junjo-network:
-    external: true
-    name: junjo_network
-```
-
-### Step 3: Initialize Telemetry in Your Application
-
-Call the initialization function before executing workflows:
-
-```python
-from otel_config import init_telemetry
-
-tracer_provider = init_telemetry(service_name="my-ai-workflow")
-
-try:
-    # Execute your workflow - telemetry is automatic!
-    await my_workflow.execute()
-finally:
-    tracer_provider.shutdown()
-```
+Follow [Connect your application and coding agent](/docs/studio/deployment/#connect-your-application-and-coding-agent)
+to verify both. Installing an exporter does not prove that a trace was stored;
+finish by locating the execution in Studio and reading an evaluation record.
 
 ## Normal Lifecycle vs Manual Flush
 
-Junjo AI Studio accepts OTLP traces and does not currently accept OTLP metrics.
-The configuration above therefore installs only a trace exporter and creates no
-periodic metric-export worker. Applications may independently configure a meter
-provider for another OpenTelemetry destination.
+Your application owns its OpenTelemetry provider and closes it at the end of
+its runtime. Short scripts can request a local queue drain with
+`TracerProvider.force_flush()`, but that result does not prove collector
+acceptance. Query Studio for the expected execution when remote delivery matters.
 
-In normal applications, shut down the owning `TracerProvider` when the process
-is terminating. That is the standard OpenTelemetry lifecycle and covers every
-span processor attached to that provider.
-
-`TracerProvider.force_flush()` can request a local queue drain in tests or very
-short-lived scripts, but OpenTelemetry does not propagate collector acceptance
-through that result. Query Studio when you need proof of remote delivery.
-
-## Key Features Deep Dive
-
-### 1. Interactive Graph Visualization
-
-Click on any node in the execution graph to:
-
-- See the exact state when that node executed
-- View state changes made while that node executed
-- Drill down into subflows
-- Explore concurrent execution branches
-
-The graph shows the actual path taken during execution, making it easy to understand which conditions were met and which branches were followed.
-
-<img src="/docs-assets/generated/python/junjo-screenshot.png" alt="Interactive workflow graph" style="max-width: 100%; width: 800px; display: block; margin-inline: auto" />
-
-### 2. Agent Execution Diagnostics
-
-An Agent detail page presents the realized execution sequence rather than a
-static diagram:
-
-- owner identity, outcome, termination reason, limits, counts, usage, and duration
-- normalized model requests, response candidates, and validated responses
-- requested and validated Tool arguments plus candidate and validated results
-- admitted-but-unstarted Tool calls without fabricated operation spans
-- semantic parent navigation and causally nested Workflow or Agent executions
-- evidence-integrity status and backend-verified Store transitions
-
-Nested Workflows retain their normal Graph view. Missing, redacted, excluded,
-referenced, and genuinely empty evidence remain visibly distinct. See
-[Opentelemetry](/docs/observability/opentelemetry/) for the producer-side Agent hierarchy and evidence model.
-
-### 3. State Step Debugging
-
-The state timeline shows every state update in chronological order:
-
-- Which node made each change
-- What the state looked like before/after
-- JSON patch diffs for precise changes
-- Filter by state fields
-
-This is **critical** for understanding:
-
-- Why certain conditions evaluated the way they did
-- How data flows through your workflow
-- Where unexpected state mutations occur
-- LLM decision-making patterns
-
-### 4. Trace Exploration
-
-Full OpenTelemetry trace view with:
-
-- Span durations (find performance bottlenecks)
-- Error tracking and stack traces
-- LLM call details (when using OpenInference)
-- Custom attributes from your code
-
-### 5. Multi-Execution Comparison
-
-Compare executions side-by-side:
-
-- Same workflow with different inputs
-- Before/after prompt changes
-- Successful vs failed runs
-- Different LLM models
+Studio accepts OTLP **traces**, not OTLP metrics. The application can export
+metrics to another destination independently.
 
 ## Using with OpenInference for LLM Tracing
 
-Junjo AI Studio automatically displays LLM-specific data when you instrument with OpenInference:
-
-```bash
-# Install OpenInference instrumentation for your LLM provider
-pip install openinference-instrumentation-google-genai
-```
-
-```python
-from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
-
-# After setting up OpenTelemetry tracer provider
-GoogleGenAIInstrumentor().instrument(tracer_provider=tracer_provider)
-```
-
-You'll see in Junjo AI Studio:
-
-- Full prompt text
-- LLM responses
-- Token usage
-- Model parameters
-- Latency metrics
+For direct model-client calls, use appropriate instrumentation in your
+application's trace pipeline. Model prompts, responses, usage, and parameters
+appear only when the source emits them. The [OpenTelemetry guide](/docs/observability/opentelemetry/)
+owns provider configuration and examples. Avoid adding a second model
+instrumentor over an already translated OpenAI Agents SDK operation.
 
 ## Junjo-Specific Telemetry Attributes
 
-Junjo automatically adds these attributes to OpenTelemetry spans:
+<a id="agent-spans"></a>
+<a id="workflow-spans"></a>
+<a id="node-spans"></a>
+<a id="subflow-spans"></a>
+<a id="ai-studio-identity-contract"></a>
+<a id="execution-graph-snapshot-contract"></a>
+<a id="graph-node-to-span-matching"></a>
+Native Junjo telemetry identifies reusable definitions, individual executions,
+graph structure, semantic parents, and Store evidence. Studio uses those
+identities to connect its specialized views to the physical trace tree.
 
-When an executable span fails, Junjo also emits the standard OpenTelemetry
-error fields alongside the Junjo-specific attributes below:
-
-- `error.type`: Exception class name for the failed operation
-- span status `Error`
-- the standard `exception` span event with exception details
-
-Ordinary cancellations stay classified as cancellations rather than errors.
-
-### Agent Spans
-
-An Agent owner span uses `junjo.span_type = "agent"`. Its model and Tool
-children are ordered operations identified by
-`junjo.agent.operation_type` and do not receive fake Graph identity. Studio
-uses the active telemetry contract to assemble normalized payloads, usage,
-limits, Store evidence, and nested executable references. The full public
-producer explanation lives in [Opentelemetry](/docs/observability/opentelemetry/); the language-independent
-contract under `contracts/telemetry` owns exact attribute and payload names.
-
-### Workflow Spans
-
-- `junjo.span_type`: "workflow" or "subflow"
-- `junjo.executable_definition_id`: Workflow or subflow definition ID
-- `junjo.executable_runtime_id`: Runtime ID for the current workflow or subflow execution
-- `junjo.executable_structural_id`: Stable structural ID for the current workflow or subflow executable
-- `junjo.enclosing_graph_structural_id`: Stable structural ID for the enclosing execution graph
-- `junjo.workflow.state.start`: Initial state JSON
-- `junjo.workflow.state.end`: Final state JSON
-- `junjo.workflow.execution_graph_snapshot`: Execution-scoped compiled graph snapshot, including runtime and structural node and edge identities
-- `junjo.workflow.node.count`: Number of nodes executed
-- `junjo.workflow.store.id`: Store instance ID
-
-### Node Spans
-
-- `junjo.span_type`: "node"
-- `junjo.executable_definition_id`: Node definition ID
-- `junjo.executable_runtime_id`: Runtime ID for the current node or concurrent executable
-- `junjo.executable_structural_id`: Stable structural ID for the current node or concurrent executable
-- `junjo.parent_executable_definition_id`: Parent workflow or subflow definition ID
-- `junjo.parent_executable_runtime_id`: Parent workflow, subflow, or concurrent executable runtime ID
-- `junjo.parent_executable_structural_id`: Parent workflow, subflow, or concurrent executable structural ID
-- `junjo.enclosing_graph_structural_id`: Stable structural ID for the enclosing execution graph
-
-### Subflow Spans
-
-- `junjo.parent_executable_definition_id`: Parent workflow or concurrent definition ID
-- `junjo.workflow.parent_store.id`: Parent store ID
-
-### AI Studio Identity Contract
-
-Junjo AI Studio uses explicit executable identities from spans and the
-execution graph snapshot to connect trace data back to workflow graph
-structure.
-
-The identity fields have distinct meanings across both execution models:
-
-- `junjo.executable_definition_id` identifies one reusable Workflow, Subflow,
-  Node, concurrent, or Agent definition object.
-- `junjo.executable_runtime_id` identifies the executable instance for one
-  execution.
-- `junjo.executable_structural_id` identifies deterministic structural
-  material: a Graph position for Graph executables or the declared Agent
-  behavior fingerprint for an Agent owner.
-- `junjo.enclosing_graph_structural_id` identifies the compiled Graph that
-  contains a Graph executable. Agents never fabricate this field.
-
-OpenTelemetry parent span relationships remain the source of truth for the
-physical trace tree. Junjo parent executable fields add a typed semantic owner
-reference for features that need to understand a Workflow, Subflow, Node,
-concurrent, or Agent execution boundary:
-
-- `junjo.parent_executable_definition_id`
-- `junjo.parent_executable_runtime_id`
-- `junjo.parent_executable_structural_id`
-- `junjo.parent_executable_type`
-
-The four fields are all present or all absent. A Tool operation can physically
-sit between an Agent and a nested Workflow while the Workflow's semantic parent
-remains the owning Agent.
-
-### Execution Graph Snapshot Contract
-
-Workflow and subflow spans include
-`junjo.workflow.execution_graph_snapshot`. This is an execution-scoped
-compiled graph snapshot with runtime and structural identities for graph
-visualization and span matching.
-
-Top-level graph fields:
-
-- `v`: graph snapshot schema version (currently `2`)
-- `graphStructuralId`: stable structural id for the compiled graph
-- `nodes`: graph node records
-- `edges`: graph edge records
-
-Every node record includes:
-
-- `nodeRuntimeId`
-- `nodeStructuralId`
-- `nodeType`
-- `nodeLabel`
-
-`RunConcurrent` node records also include:
-
-- `isConcurrentSubgraph`
-- `childNodeRuntimeIds`
-
-Subflow node records also include:
-
-- `isSubflow`
-- `subflowGraphStructuralId`
-- `subflowSourceNodeRuntimeId`
-- `subflowSourceNodeStructuralId`
-- `subflowSinkNodeRuntimeIds`
-- `subflowSinkNodeStructuralIds`
-
-Every edge record includes:
-
-- `edgeStructuralId`
-- `tailNodeRuntimeId`
-- `tailNodeStructuralId`
-- `headNodeRuntimeId`
-- `headNodeStructuralId`
-- `edgeConditionLabel`
-- `edgeScope`
-- `parentSubflowRuntimeId`
-
-### Graph Node To Span Matching
-
-Junjo AI Studio uses these matching rules:
-
-- For normal nodes and `RunConcurrent` executables,
-  `nodeRuntimeId` maps to the span's `junjo.executable_runtime_id`.
-- For a subflow execution span, `subflowGraphStructuralId` maps to the
-  subflow span's `junjo.executable_structural_id`.
-- For definition-level matching of a subflow container node in the parent
-  graph, the parent graph's `nodeRuntimeId` maps to the subflow span's
-  `junjo.executable_definition_id`.
-
-These fields power Junjo AI Studio's specialized workflow visualization,
-state-change timeline, and cross-run graph correlation features.
+The [OpenTelemetry guide](/docs/observability/opentelemetry/) owns the public
+attribute and payload explanation. Use compatible SDK and Studio releases
+for native semantic views; receiving generic spans alone does not prove that
+graph or state evidence meets the active contract.
 
 ## Complete Example
 
-See working examples in the repository:
-
-- [Base Example with Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/base)
-- [AI Chat Example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat)
+Follow the [recursive self improvement guide](/docs/recursive-self-improvement/)
+for the end-to-end development cycle and [evaluation datasets and runs](/docs/python/evaluation/)
+for application-local execution. Existing applications can start with the
+[OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/).
 
 ## Using Other OpenTelemetry Platforms
 
-**Important:** Junjo's telemetry works with **any** OpenTelemetry platform. All
-Junjo-specific span attributes are included when you use standard OTLP
-exporters.
-
-You can use Junjo AI Studio alongside other platforms:
-
-```python
-# Use both Junjo AI Studio AND Jaeger
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-# Junjo AI Studio traces
-studio_exporter = OTLPSpanExporter(
-    endpoint="ingestion:26155",
-    headers=(("x-junjo-api-key", api_key),),
-    insecure=True,
-    timeout=120,
-)
-tracer_provider.add_span_processor(BatchSpanProcessor(studio_exporter))
-
-# Also send to Jaeger
-jaeger_exporter = OTLPSpanExporter(endpoint="http://jaeger:4317")
-tracer_provider.add_span_processor(BatchSpanProcessor(jaeger_exporter))
-```
-
-Platforms like Jaeger, Grafana, Honeycomb, etc. will receive all Junjo spans with their custom attributes, though they won't have Junjo AI Studio's specialized workflow visualization.
+Junjo emits standard OpenTelemetry spans. Your application can send the same
+telemetry to Studio and another observability platform through its own
+provider configuration. Studio adds dataset/run evidence links and native
+Junjo execution views; adopting it does not require replacing your existing
+telemetry destination.
 
 ## Architecture Details
 
-Junjo AI Studio uses a three-service architecture for scalability and reliability.
-Developer-facing service ports use the same numbers on localhost and inside the
-same Docker Compose network. Only the hostname changes:
-
-```text
-Host machine application
-
-Junjo application -> localhost:26155 -> OTLP gRPC ingest
-Browser           -> localhost:26151 -> development frontend (source-repo dev stack only)
-Browser           -> localhost:26153 -> production-build frontend
-Frontend          -> localhost:26154 -> backend HTTP API
-
-Container on the same Compose network
-
-Junjo application -> ingestion:26155 -> OTLP gRPC ingest
-Frontend          -> backend:26154 -> backend HTTP API
-```
-
-**Port Reference:**
-
-- **26151**: Local host HTTP - Development web UI (available only in the junjo-ai-studio source repository's development stack)
-- **26153**: Local host HTTP - Production-build web UI
-- **26154**: Local host HTTP - Backend API
-- **26155**: Local host gRPC - OTLP ingestion endpoint
-
-Private service-to-service RPC ports also exist inside Junjo AI Studio, but they
-are not telemetry endpoints and are not used by Junjo library applications.
+The backend stores canonical evaluation and account records in SQLite and
+queries received telemetry. Ingestion receives OTLP traces and writes the
+shared WAL and Parquet storage. The frontend presents those records to people.
+See the [Docker reference](/docs/studio/docker-reference/) for service,
+credential, networking, and storage boundaries.
 
 ## Troubleshooting
 
 ### No data appearing in Junjo AI Studio
 
-- Verify API key is set correctly: `echo $JUNJO_AI_STUDIO_API_KEY`
-- Check services are running: `docker compose ps`
-- Ensure your local AI Studio ingestion endpoint is accessible on port 26155
-- Look for connection errors in your application logs
-- Check ingestion service logs: `docker compose logs ingestion`
+Verify the application's actual OTLP destination and API key configuration,
+inspect exporter and ingestion logs, and allow for export/ingestion delay.
+Query the expected trace after the application closes its telemetry provider.
+Do not print credentials into logs while checking them.
 
 ### Missing LLM data
 
-- Install OpenInference instrumentors: `pip install openinference-instrumentation-<provider>`
-- Call `.instrument()` after setting up the tracer provider
-- Verify the instrumentation is active in your application startup
+Verify the model/framework instrumentation and its payload policy. Missing
+prompts or responses may reflect intentional redaction rather than failed
+delivery. Generic spans cannot reconstruct unrecorded model content.
 
 ### Performance issues
 
-- Use sampling for high-volume workflows
-- The ingestion service uses a segmented Arrow IPC WAL and streams flushes to Parquet (constant memory)
-- Successful ingestion API-key validation uses a bounded, fixed 10-second
-  positive cache by default; invalid or unavailable results are never cached,
-  and cold validation work is bounded for small-host memory safety
-- The backend indexes new Parquet files asynchronously and queries cold + hot data with deduplication
-- See [Junjo AI Studio repository](https://github.com/mdrideout/junjo/tree/master/apps/studio) for tuning options
+Inspect resource usage and the active deployment profile before adjusting
+capacity. Sampling can remove the exact execution evidence an investigation
+needs, so check that policy when a targeted scenario is absent. See the
+[Docker reference](/docs/studio/docker-reference/#scaling-considerations).
 
 ### Docker Compose not starting
 
-- Do not pre-create `junjo_network` with `docker network create` — Docker
-  Compose creates and labels the network itself and errors on a pre-created
-  unlabeled network. Start the AI Studio stack first; application compose
-  projects that declare the network `external` can then attach.
-- Check environment variables are set in `.env`
-- View logs: `docker compose logs`
-- Try: `docker compose down -v && docker compose up --build`
+Check the selected distribution's setup, required secrets, service logs, and
+host port conflicts. Preserve the data directory during diagnosis. The
+[deployment guide](/docs/studio/deployment/) and [Docker troubleshooting](/docs/studio/docker-reference/#troubleshooting)
+provide the operator steps.
 
 ## Next Steps
 
-- Explore [Opentelemetry](/docs/observability/opentelemetry/) for general OpenTelemetry configuration
-- Learn about [Visualizing Workflows](/docs/python/workflows/visualization/) for static Graphviz diagrams
-- See [Eval Driven Dev](/docs/python/testing/eval-driven-development/) for testing workflows
-- Review [Concurrency](/docs/python/workflows/concurrency/) for understanding concurrent execution traces
+- [Run a recursive self improvement cycle](/docs/recursive-self-improvement/).
+- [Create datasets and compare local evaluation runs](/docs/python/evaluation/).
+- [Connect application telemetry](/docs/observability/opentelemetry/).
+- [Deploy Junjo AI Studio](/docs/studio/deployment/).
