@@ -1,0 +1,100 @@
+---
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const socialImage = new URL('/social/junjo-og-image-1.jpg', Astro.site);
+const socialImageAlt = 'Junjo: Add Recursive Self Improvement To Your AI App. Python SDK + AI Studio. The Junjo fish logo and a glowing workflow connected to telemetry spans.';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#070a12" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Junjo" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:image:alt" content={socialImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@junjo_ai" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="wordmark" href="/" aria-label="Junjo home">
+          <img src="/favicon.svg" width="24" height="31" alt="" />
+          <span>junjo<span class="wordmark-dot">.</span></span>
+        </a>
+        <nav aria-label="Main navigation">
+          <a href="/docs/">Docs</a>
+          <a href="https://github.com/mdrideout/junjo">GitHub <span aria-hidden="true">↗</span></a>
+          <a class="nav-start" href="/docs/#get-started">Get started <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+    <main id="main" data-pagefind-body><slot /></main>
+  </body>
+</html>
+
+<style is:global>
+  :root { color-scheme: dark; font-family: "Inter", "Helvetica Neue", Arial, sans-serif; color: #eff3fa; background: #070a12; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  a:focus-visible, button:focus-visible { outline: 2px solid #6082ff; outline-offset: 6px; }
+  p { line-height: 1.65; }
+  h1, p { margin-top: 0; }
+  [hidden] { display: none !important; }
+  ::selection { background: #2145ff; color: #ffffff; }
+  .container { width: min(1320px, calc(100% - 160px)); margin-inline: auto; }
+  .site-header { position: absolute; inset: 0 0 auto; width: 100%; z-index: 2; background: linear-gradient(to bottom, #000c 0%, #000c 60%, rgba(0,0,0,.64) 75%, #0000 100%); }
+  .header-inner { min-height: 90px; padding-inline: 42px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+  .wordmark { display: inline-flex; gap: 9px; align-items: center; font-size: 27px; font-weight: 600; letter-spacing: -1.4px; }
+  .wordmark img { filter: invert(1); }
+  .wordmark-dot { color: #3154ff; }
+  .header-inner nav { display: flex; gap: 32px; align-items: center; font-size: 12px; color: #aab4c6; }
+  .header-inner nav a:hover { color: white; }
+  .header-inner nav a { transition: color .2s; }
+  .nav-start { border: 1px solid #30394c; border-radius: 4px; padding: 12px 16px; color: #dce4f2; }
+  .nav-start span { margin-left: 20px; }
+  .button { display: inline-flex; justify-content: center; align-items: center; gap: 35px; min-height: 48px; padding: 13px 22px; font-size: 13px; font-weight: 500; border: 1px solid #2145ff; border-radius: 4px; color: #ffffff; background: #2145ff; transition: background .2s, box-shadow .2s; }
+  .button:hover { background: #3659ff; box-shadow: 0 0 30px #2145ff45; }
+  .text-link { display: inline-flex; gap: 22px; align-items: center; font-size: 13px; color: #b9c5db; padding-block: 12px; }
+  .text-link:hover { color: white; }
+  .skip-link { position: absolute; top: 12px; left: 16px; padding: 12px; background: #2145ff; color: #ffffff; z-index: 5; transform: translateY(-180%); }
+  .skip-link:focus { transform: translateY(0); }
+  @media (max-width: 1000px) { .container { width: calc(100% - 96px); } }
+  @media (max-width: 760px) {
+    .container { width: calc(100% - 48px); }
+    .header-inner { padding-inline: 24px; min-height: 80px; gap: 18px; }
+    .header-inner nav { gap: 20px; }
+    .nav-start { display: none; }
+  }
+  @media (max-width: 400px) {
+    .container { width: calc(100% - 40px); }
+    .header-inner { padding-inline: 20px; }
+    .header-inner nav { gap: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>

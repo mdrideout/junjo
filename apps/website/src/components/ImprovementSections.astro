@@ -1,0 +1,299 @@
+---
+import CodingAgentLoop from './CodingAgentLoop.astro';
+import SpanLoomBackground from './SpanLoomBackground.astro';
+import EvaluationDatasetFlow from './EvaluationDatasetFlow.astro';
+import EvalDrivenDevelopment from './EvalDrivenDevelopment.astro';
+import DiagnosisComparison from './DiagnosisComparison.astro';
+import AgentPrompt from './AgentPrompt.astro';
+import TaskDecomposition from './TaskDecomposition.astro';
+import SDKBuildingBlocks from './SDKBuildingBlocks.astro';
+import ModelFreedom from './ModelFreedom.astro';
+import FrameworkIntegrations from './FrameworkIntegrations.astro';
+import SDKComposition from './SDKComposition.astro';
+import AgentSetupModal from './AgentSetupModal.astro';
+import StudioInvestigation from './StudioInvestigation.astro';
+const codingAgents = [
+  { name: 'ChatGPT Codex', icon: 'codex.png' },
+  { name: 'Claude Code', icon: 'claude.png' },
+  { name: 'Pi Agent', icon: 'pi.svg' },
+  { name: 'OMP', icon: 'omp.svg' },
+  { name: 'OpenCode', icon: 'opencode.png' },
+  { name: 'Cursor', icon: 'cursor.svg' },
+  { name: 'Grok Build', icon: 'grok.png' },
+  { name: 'etc.', icon: null },
+];
+---
+
+<div class="improvement-sections">
+  <section class="benefit-section diagnosis" aria-labelledby="diagnosis-title">
+    <div class="section-inner diagnosis-layout">
+      <div class="section-heading">
+        <h2 id="diagnosis-title">Diagnose failures <em>without hallucination</em></h2>
+        <p class="lead">Connect application outcomes to the execution chronology that produced them. Your coding agent can replay events, inspect the sequence of operations, investigate intermediate results, and identify which step needs to change.</p>
+        <p class="support">This telemetry and diagnostic layer is the primary foundation of recursive self improving apps.</p>
+      </div>
+      <DiagnosisComparison />
+    </div>
+  </section>
+
+  <hr class="section-divider" />
+  <section class="benefit-section agent-control" aria-labelledby="coding-agents-title">
+    <div class="section-inner">
+      <div class="agent-overview">
+        <h2 id="coding-agents-title">Optimized for <em>coding agents.</em></h2>
+        <div class="coding-agents">
+          <ul aria-label="Coding agents">{codingAgents.map(agent => <li>{agent.icon && <img src={`/brands/${agent.icon}`} alt="" aria-hidden="true" width="18" height="18" loading="lazy" decoding="async" />}<span>{agent.name}</span></li>)}</ul>
+        </div>
+        <div class="agent-intro">
+          <h3>Your agent maintains control.</h3>
+          <p>Work through your favorite coding agent. Describe what you want to improve in natural language.</p>
+        </div>
+        <AgentPrompt />
+        <p class="agent-skills">Junjo includes skills so your coding agent knows exactly how to run a self-improvement cycle.</p>
+      </div>
+      <CodingAgentLoop />
+    </div>
+  </section>
+
+  <section class="benefit-section evaluation" aria-labelledby="evaluation-title">
+    <SpanLoomBackground />
+    <div class="section-inner">
+      <div class="section-heading">
+        <h2 id="evaluation-title">Build Targeted Datasets<br /><em>Rapidly test and eval changes.</em></h2>
+        <p class="lead">Make eval-driven development practical with repeatable scenarios for the application behavior you want to improve. Target an entire application, a workflow, an agent, or a single operation. Store the cases and evaluation criteria in Junjo, then run them against changes in your own application environment.</p>
+      </div>
+      <EvaluationDatasetFlow />
+      <div class="dataset-outcomes">
+        <p>Keep the test cases consistent while your implementation changes. Junjo connects each evaluation outcome to its execution chronology, so you and your coding agent can investigate differences throughout the flow.</p>
+      </div>
+      <div class="dataset-guide">
+        <button class="dataset-guide-toggle" type="button" aria-expanded="false" aria-controls="dataset-steps">How datasets work <span class="guide-toggle" aria-hidden="true">+</span></button>
+        <ol id="dataset-steps" class="dataset-details" aria-label="Build and use datasets with your coding agent">
+        <li>
+          <h3>Describe what you want to test.</h3>
+          <div><p>Ask your coding agent in natural language. Tell it which behavior matters and what a good outcome looks like. Your agent turns that request into a targeted dataset.</p><blockquote>“Create a refund evaluation dataset from our recent failed requests. Add scenarios for missing receipts, partial returns, and policy exceptions.”</blockquote></div>
+        </li>
+        <li>
+          <h3>Build on real usage. Explore new scenarios.</h3>
+          <p>Your coding agent can use available execution history and real-world examples to author cases, or create synthetic scenarios that explore behavior you have not encountered yet. Combine common requests, known failures, and edge cases in the same dataset.</p>
+        </li>
+        <li>
+          <h3>Define success and keep it consistent.</h3>
+          <p>Work with your coding agent to define the evaluation criteria. Generated answers are examples, not automatically the correct outcome. Have your agent lock the dataset in Junjo so later experiments use the same cases and criteria.</p>
+        </li>
+        <li>
+          <h3>Ask your agent to run the evaluation.</h3>
+          <p>Your coding agent retrieves the dataset and runs it through your application and evaluators in your own environment. Junjo stores the outcomes and linked execution evidence, keeping the results available for investigation and comparison.</p>
+        </li>
+        <li>
+          <h3>Make a change. Ask what improved.</h3>
+          <p>Ask your coding agent to test a code or prompt change against the same dataset. It can compare outcomes, investigate the traces behind regressions, and explain what the experiment revealed before choosing the next improvement.</p>
+        </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <EvalDrivenDevelopment />
+
+  <section class="benefit-section simplify" aria-labelledby="simplify-title">
+    <div class="section-inner">
+      <TaskDecomposition>
+      <div class="section-heading">
+        <h2 id="simplify-title">Find a simpler path to <em>better results.</em></h2>
+        <p class="lead">Execution evidence helps your coding agent identify requests that mix too many responsibilities. Junjo helps you strategically break down monolithic agent steps into simpler tasks that can be individually evaluated and iterated on.</p>
+      </div>
+      </TaskDecomposition>
+    </div>
+  </section>
+
+  <section class="benefit-section sdk" aria-labelledby="sdk-title">
+    <div class="section-inner">
+      <div class="sdk-intro">
+      <div class="section-heading sdk-heading">
+        <h2 id="sdk-title">Building blocks<br /><em>for improving AI apps</em></h2>
+        <p class="lead">Junjo’s Python SDK's building blocks include specialist agents, structured workflows, dynamically traversed graphs, and an application state management system. These are used by your coding agent to break down monolithic prompts into optimized flows, with granular control and observability.</p>
+      </div>
+      <SDKComposition />
+      </div>
+      <SDKBuildingBlocks />
+    </div>
+  </section>
+
+  <FrameworkIntegrations />
+  <ModelFreedom />
+
+  <StudioInvestigation />
+
+  <section class="benefit-section history" aria-labelledby="history-title">
+    <div class="section-inner history-layout">
+      <div class="section-heading">
+        <h2 id="history-title">Make every experiment useful <em>to the next one.</em></h2>
+        <p class="lead">Keep each dataset and its case outcomes connected to the application revisions and execution traces that produced them. Your coding agent can follow a case across previous runs, investigate recurring failures, and use that history to choose its next change.</p>
+        <p class="support">Each iteration adds evidence that helps guide the next experiment.</p>
+      </div>
+      <div class="history-visual" aria-label="Previous runs retain their revisions, results, and traces to inform the next experiment">
+        <div class="history-sheet oldest"><span>Earlier experiment</span><p>Revision · Results · Traces</p><div class="trace-marks" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <div class="history-sheet previous"><span>Previous experiment</span><p>Revision · Results · Traces</p><div class="trace-marks" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <div class="history-sheet latest"><span>Latest experiment</span><p>Revision · Results · Traces</p><div class="trace-marks" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <p class="next-experiment"><span aria-hidden="true">↳</span> Inform the next change</p>
+      </div>
+      <p class="history-note">The history remains available to both your coding agent and your team.</p>
+    </div>
+  </section>
+
+  <section class="benefit-section stack" aria-labelledby="stack-title">
+    <div class="section-inner">
+      <div class="section-heading">
+        <h2 id="stack-title">Keep your coding agent.<br /><em>Keep your application stack.</em></h2>
+        <p class="lead">Run experiments in your application codebase, with your existing agent framework and preferred coding agent. Junjo supplies the telemetry and evaluation building blocks that make the results auditable and comparable.</p>
+      </div>
+      <div class="stack-layers">
+        <article><span class="layer-number">01</span><div><h3>Your coding agent</h3><p>Investigates evidence, changes code, runs experiments, and proposes the next iteration.</p></div><span class="layer-role">Develop & improve</span></article>
+        <article><span class="layer-number">02</span><div><h3>Your application</h3><p>Executes its real workflows, tools, dependencies, and evaluators.</p></div><span class="layer-role">Execute & evaluate</span></article>
+        <article class="junjo-layer"><span class="layer-number">03</span><div><h3>Junjo</h3><p>Supplies telemetry, evaluation tooling, datasets, results, and queryable execution evidence.</p></div><span class="layer-role">Observe & measure</span></article>
+      </div>
+      <div class="stack-footer"><p>Use OpenTelemetry and a self-hostable Studio to keep execution evidence accessible to your agents and your team.</p><a class="section-link" href="/docs/observability/opentelemetry/">Explore OpenTelemetry integration <span aria-hidden="true">↗</span></a></div>
+      <div class="closing-cta">
+        <h3>Give your coding agent the evidence for its next improvement.</h3>
+        <div class="closing-actions">
+          <a class="button" href="/docs/#get-started">Get started <span aria-hidden="true">↗</span></a>
+          <AgentSetupModal id="closing-agent-setup" />
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+
+
+<script>
+  const datasetGuide = document.querySelector('.dataset-guide');
+  const datasetToggle = datasetGuide?.querySelector('.dataset-guide-toggle');
+  datasetToggle?.addEventListener('click', () => {
+    const expanded = datasetGuide!.classList.toggle('is-expanded');
+    datasetToggle.setAttribute('aria-expanded', String(expanded));
+  });
+</script>
+
+<style>
+  .improvement-sections { background: #070a12; }
+  .benefit-section { padding: clamp(80px,8vw,112px) 4vw; border-top: 1px solid #25324b66; overflow: clip; }
+  .diagnosis-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
+  .diagnosis .section-heading { margin-bottom: 0; }
+  .section-divider { margin: 0; border: 0; border-top: 1px solid #344767; }
+  .agent-control { border-top: 0; }
+  .section-inner { max-width: 1200px; margin-inline: auto; }
+  .agent-control .section-inner { max-width: 1600px; }
+  .agent-overview { max-width: 1200px; margin-inline: auto; text-align: center; }
+  .agent-control .coding-agents ul { justify-content: center; }
+  .agent-intro { margin: 56px 0 28px; }
+  .agent-intro h3 { font-size: clamp(24px,2.5vw,32px); line-height: 1.2; margin: 0 0 16px; }
+  .agent-intro p,.agent-skills { max-width: 800px; margin-inline: auto; color: #96abcf; font-size: 16px; line-height: 1.65; }
+  .agent-intro p { margin-block: 0; }
+  .agent-skills { margin-block: 40px 0; }
+  .section-heading { max-width: 890px; margin-bottom: 56px; }
+  h2 { font-size: clamp(34px,4.25vw,62px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; margin: 0 0 28px; text-wrap: balance; }
+  h2 em { font-style: normal; color: #83a5ff; }
+  h3 { font-weight: 500; letter-spacing: -.03em; }
+  .lead { max-width: 750px; font-size: clamp(17px,1.55vw,21px); line-height: 1.7; color: #c0cbdd; margin: 0; }
+  .diagnosis .lead + .lead { margin-top: 24px; }
+  .support { max-width: 735px; font-size: 16px; line-height: 1.75; color: #8695ae; margin: 18px 0 0; }
+  .example-label { font-size: 11px; color: #a4b5d6; letter-spacing: .05em; }
+  .coding-agents ul { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; list-style: none; }
+  .coding-agents li { display: flex; align-items: center; gap: 8px; padding: 9px 15px; border: 1px solid #344767; border-radius: 999px; color: #c8d7f1; background: #0d182c; font-size: 13px; white-space: nowrap; }
+  .coding-agents img { width: 18px; height: 18px; flex-shrink: 0; object-fit: contain; }
+  .evaluation { position: relative; isolation: isolate; background: radial-gradient(ellipse at 55% 36%,#132d603d,transparent 65%),#080e1a; }
+  .evaluation .section-heading { margin-bottom: 44px; }
+  .dataset-guide { margin-top: 40px; border-top: 1px solid #334a71; border-bottom: 1px solid #334a71; }
+  .dataset-guide-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 0; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: clamp(23px,2.3vw,30px); letter-spacing: -.03em; color: #dce7ff; transition: color .2s; }
+  .dataset-guide-toggle:is(:hover,:focus-visible) { color: #9ccaff; }
+  .dataset-guide-toggle:is(:hover,:focus-visible) .guide-toggle { color: #e0eeff; text-shadow: 0 0 12px #679dff99; }
+  .dataset-guide-toggle:focus-visible { outline: 2px solid #6082ff; outline-offset: 4px; }
+  .guide-toggle { color: #91b0ff; font-size: 28px; font-weight: 400; transition: color .2s, text-shadow .2s, transform .2s; }
+  .dataset-guide.is-expanded .guide-toggle { transform: rotate(45deg); }
+  .dataset-guide:not(.is-expanded) .dataset-details { max-height: 75px; overflow: hidden; mask-image: linear-gradient(to bottom,#000 0%,#000 45%,transparent 100%); }
+  .dataset-details { list-style: none; counter-reset: lifecycle; padding: 0; margin: 0 0 16px; }
+  .dataset-details li:last-child { border-bottom: 0; }
+  .dataset-details blockquote { margin: 18px 0 0; padding: 12px 18px; border-left: 2px solid #87aaff; color: #d1dfff; background: #10213a66; font-size: 16px; line-height: 1.7; }
+  .dataset-details li { counter-increment: lifecycle; display: grid; grid-template-columns: 28px minmax(180px,.65fr) 1.65fr; gap: 24px; padding: 26px 0; border-bottom: 1px solid #2c406155; }
+  .dataset-details li::before { content: counter(lifecycle,decimal-leading-zero); color: #ffbd86; font-size: 12px; padding-top: 5px; }
+  .dataset-details h3 { font-size: 23px; line-height: 1.25; color: #dce7ff; margin: 0 0 16px; }
+  .dataset-details p,.dataset-outcomes p { margin: 0; color: #9aaccb; font-size: 16px; line-height: 1.75; }
+  .dataset-outcomes { padding-top: 56px; }
+  .dataset-outcomes h3 { margin: 0 0 14px; font-size: clamp(24px,2.3vw,31px); line-height: 1.25; color: #a8c4ff; }
+  .dataset-outcomes p { max-width: none; font-size: clamp(20px,2vw,26px); line-height: 1.65; }
+  .dataset-outcomes p + p { margin-top: 18px; }
+  .simplify { background: linear-gradient(150deg,#0c1529,#080c16 70%); }
+  .simplify .section-heading { margin-bottom: 0; }
+  .sdk { background: radial-gradient(ellipse at 85% 38%,#17396830,transparent 58%),#080e1a; }
+  .sdk-intro { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); align-items: center; gap: 48px; margin-bottom: 64px; }
+  .sdk-intro .sdk-heading { max-width: none; margin-bottom: 0; }
+  .sdk-heading h2 { font-size: clamp(34px,3.3vw,54px); }
+  .sdk-heading .lead { font-size: clamp(18px,1.65vw,22px); }
+  .section-link { display: inline-flex; align-items: center; gap: 18px; color: #b6caff; font-size: 14px; line-height: 1.6; }
+  .section-link:hover { color: #fff; }
+  .history { background: radial-gradient(ellipse at 85% 50%,#11234b66,transparent 60%),#0a101e; }
+  .history-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px 90px; align-items: start; }
+  .history .section-heading { margin-bottom: 0; }
+  .history h2 { font-size: clamp(34px,3.5vw,50px); }
+  .history-visual { position: relative; height: 360px; }
+  .history-sheet { position: absolute; width: 85%; border: 1px solid #5779b8; border-radius: 8px; padding: 24px; background: #0f1a31; }
+  .history-sheet > span { font-size: 15px; color: #c3d5f8; }
+  .history-sheet p { color: #88a0c8; font-size: 11px; margin: 10px 0 22px; }
+  .oldest { top: 0; left: 15%; opacity: .25; }
+  .previous { top: 42px; left: 7.5%; opacity: .5; }
+  .latest { top: 84px; left: 0; box-shadow: 0 12px 50px #05091388; }
+  .trace-marks { display: grid; gap: 12px; }
+  .trace-marks i { display: block; height: 2px; background: repeating-linear-gradient(90deg,#ffbb83 0 3px,transparent 3px 7px,#699cff 7px 9px,transparent 9px 15px); }
+  .trace-marks i:nth-child(2) { margin-left: 24px; width: 75%; }
+  .trace-marks i:nth-child(3) { margin-left: 48px; width: 55%; }
+  .next-experiment { position: absolute; bottom: 0; left: 24px; color: #a9c0ec; font-size: 14px; margin: 0; }
+  .next-experiment span { color: #ffbb83; font-size: 22px; margin-right: 10px; }
+  .history-note { grid-column: 1 / -1; font-size: 15px; color: #91a5c7; margin: 0; }
+  .stack-layers { border-top: 1px solid #35425c; }
+  .stack-layers article { display: grid; grid-template-columns: 36px 1fr auto; gap: 28px; align-items: center; padding: 30px 20px; border-bottom: 1px solid #35425c; }
+  .layer-number { color: #7d90b3; font-size: 12px; align-self: start; padding-top: 5px; }
+  .stack-layers h3 { font-size: 26px; margin: 0 0 10px; }
+  .stack-layers p { color: #9badc9; font-size: 16px; margin: 0; max-width: 620px; }
+  .layer-role { font-size: 12px; color: #8199c5; }
+  .stack-layers .junjo-layer { background: linear-gradient(90deg,#142e66aa,transparent); }
+  .junjo-layer h3 { color: #8ab0ff; }
+  .junjo-layer .layer-role { color: #ffbd86; }
+  .stack-footer { display: flex; justify-content: space-between; align-items: baseline; gap: 36px; margin-top: 28px; }
+  .stack-footer p { color: #93a6c6; font-size: 15px; max-width: 600px; margin: 0; }
+  .stack-footer a { flex-shrink: 0; }
+  .closing-cta { display: flex; justify-content: space-between; align-items: center; gap: 40px; border-top: 1px solid #2a3b5b; margin-top: 56px; padding-top: 56px; }
+  .closing-cta h3 { font-size: clamp(25px,3vw,40px); max-width: 670px; line-height: 1.2; margin: 0; }
+  .closing-cta a { flex-shrink: 0; }
+  .closing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 24px; }
+  @media(max-width:1000px) {
+    .sdk-intro { grid-template-columns: 1fr; gap: 8px; }
+    .diagnosis-layout { grid-template-columns: 1fr; gap: 56px; }
+    .history-layout { gap: 28px; }
+    .stack-footer { flex-direction: column; gap: 18px; }
+    .layer-role { display: none; }
+    .stack-layers article { grid-template-columns: 30px 1fr; }
+  }
+  @media(max-width:760px) {
+    .diagnosis-layout { gap: 40px; }
+    .agent-overview { text-align: left; }
+    .agent-control .coding-agents ul { justify-content: flex-start; }
+    .agent-intro { margin-top: 40px; }
+    .dataset-outcomes { padding-top: 40px; }
+    .dataset-details { margin-top: 0; }
+    .dataset-details li { grid-template-columns: 24px 1fr; gap: 8px 16px; }
+    .dataset-details li > p,.dataset-details li > div { grid-column: 2; }
+    .dataset-details h3 { margin-bottom: 4px; }
+    .benefit-section { padding: 72px 24px; }
+    .section-heading { margin-bottom: 40px; }
+    h2 { font-size: clamp(32px,7.5vw,44px); }
+    .history-layout { grid-template-columns: 1fr; row-gap: 40px; }
+    .history-visual { max-width: 450px; width: 100%; height: 320px; }
+    .history-sheet { padding: 20px; }
+    .stack-layers article { padding: 25px 10px; gap: 10px; }
+    .stack-layers h3 { font-size: 23px; }
+    .stack-layers p { font-size: 15px; }
+    .closing-cta { flex-direction: column; align-items: flex-start; margin-top: 40px; padding-top: 40px; gap: 26px; }
+  }
+</style>

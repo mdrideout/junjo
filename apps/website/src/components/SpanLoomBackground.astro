@@ -1,0 +1,91 @@
+<span-loom-background aria-hidden="true"><canvas></canvas></span-loom-background>
+
+<script>
+  // Original study 01: the same particles gather from an execution cloud into
+  // nested span rows. Keep this production component independent of the gallery.
+  class SpanLoomBackground extends HTMLElement {
+    private cleanup?: () => void;
+
+    connectedCallback() {
+      const canvas = this.querySelector('canvas');
+      const context = canvas?.getContext('2d');
+      if (!canvas || !context) return;
+      const fract = (n: number) => n - Math.floor(n);
+      const random = (n: number) => fract(Math.sin(n * 127.1 + 7.7) * 43758.5453);
+      const mix = (a: number, b: number, p: number) => a + (b - a) * p;
+      const rows = Array.from({ length: 19 }, (_, row) => ({
+        start: 445 + [0, 32, 64, 64, 32, 64, 96][row % 7],
+        end: 945 - random(row + 19) * 170,
+        y: 12 + row / 18 * 626,
+      }));
+      const particles = rows.flatMap((row, index) => Array.from({ length: 62 }, (_, col) => {
+        const angle = random(col * 9 + index) * Math.PI * 2;
+        return { x: mix(row.start, row.end, col / 61), y: row.y,
+          cos: Math.cos(angle), sin: Math.sin(angle), rx: 70 + index * 4, ry: 70 + index * 5,
+          phase: random(index * 79 + col) * .92, bend: Math.sin(index) * 55,
+          radius: col % 13 === 0 ? 2 : 1.25, warm: col % 37 === 0 };
+      }));
+      const motion = matchMedia('(prefers-reduced-motion: reduce)');
+      let width = 0, height = 0, time = 2, previous = 0, frame = 0, visible = false;
+      const dot = (x: number, y: number, radius: number, alpha: number, warm = false) => {
+        context.fillStyle = warm ? `rgba(255,181,112,${alpha})` : `rgba(73,113,255,${alpha})`;
+        context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
+      };
+      const draw = () => {
+        if (!width || !height) return;
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        // Fill the section height and anchor the composition to its right edge.
+        const scale = height / 650;
+        context.setTransform(scale * canvas.width / width, 0, 0, scale * canvas.height / height,
+          (width - 1000 * scale) * canvas.width / width, 0);
+        context.strokeStyle = 'rgba(81,120,255,.10)'; context.lineWidth = 1;
+        for (const row of rows) {
+          context.beginPath(); context.moveTo(row.start, row.y); context.lineTo(row.end, row.y); context.stroke();
+          dot(row.start - 12, row.y, 2, .45);
+        }
+        const cos = Math.cos(time * .09), sin = Math.sin(time * .09);
+        for (const particle of particles) {
+          const p = fract(time * .07 + particle.phase), u = Math.min(p / .6, 1), gather = u * u * (3 - 2 * u);
+          const sourceX = 180 + (particle.cos * cos - particle.sin * sin) * particle.rx;
+          const sourceY = 325 + (particle.sin * cos + particle.cos * sin) * particle.ry;
+          const fade = Math.min(p * 12, 1) * Math.min((1 - p) * 10, 1);
+          dot(mix(sourceX, particle.x, gather), mix(sourceY, particle.y, gather) + Math.sin(gather * Math.PI) * particle.bend,
+            particle.radius, fade * (.3 + gather * .55), particle.warm);
+        }
+      };
+      const animate = (now: number) => {
+        if (previous) time += (now - previous) / 1000;
+        previous = now; draw(); frame = requestAnimationFrame(animate);
+      };
+      const update = () => {
+        cancelAnimationFrame(frame); previous = 0;
+        if (visible && !document.hidden && !motion.matches) frame = requestAnimationFrame(animate);
+        else draw();
+      };
+      const resize = new ResizeObserver(() => {
+        const bounds = this.getBoundingClientRect(); width = bounds.width; height = bounds.height;
+        canvas.width = Math.round(width * devicePixelRatio); canvas.height = Math.round(height * devicePixelRatio); draw();
+      });
+      resize.observe(this);
+      const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); });
+      intersection.observe(this);
+      motion.addEventListener('change', update);
+      document.addEventListener('visibilitychange', update);
+      this.cleanup = () => {
+        cancelAnimationFrame(frame); resize.disconnect(); intersection.disconnect();
+        motion.removeEventListener('change', update); document.removeEventListener('visibilitychange', update);
+      };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  customElements.define('span-loom-background', SpanLoomBackground);
+</script>
+
+<style>
+  span-loom-background { position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .22;
+    mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent); }
+  canvas { display: block; width: 100%; height: 100%;
+    mask-image: linear-gradient(to right, #0003, #0007 40%, #000 85%); }
+  @media(max-width:760px) { span-loom-background { opacity: .14; } }
+</style>

@@ -1,0 +1,309 @@
+---
+import ConcurrentStateFlow from './ConcurrentStateFlow.astro';
+interface Props { mode: string }
+const { mode } = Astro.props;
+// The same twisted ribbon used for coding agents elsewhere on the homepage.
+const mobiusLanes = (mode === 'tools' ? [0,3,6,9,12] : []).map(width => {
+  const turns = width === 0 ? 1 : 2;
+  const samples = turns*160;
+  return {turns,path:Array.from({length:samples+1},(_,index) => {
+    const angle=index/samples*Math.PI*2*turns;
+    const twist=width*Math.cos(angle/2);
+    const dx=-43*Math.sin(angle), dy=38*Math.cos(2*angle);
+    const length=Math.hypot(dx,dy);
+    return `${index ? 'L' : 'M'}${(65+43*Math.cos(angle)-twist*dy/length).toFixed(2)} ${(195+19*Math.sin(2*angle)+twist*dx/length).toFixed(2)}`;
+  }).join(' ')+' Z'};
+});
+// OpenAI knot geometry: @lobehub/icons-static-svg, icons/openai.svg (MIT).
+const openAIKnot = 'M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z';
+const specialists = [
+  { id: 'product', short: 'Product support', label: 'Product support agent', y: 90, prompt: 'Troubleshoot the product using its documentation.', tools: 'search_product_docs · get_product_specs', dataset: 'Product support dataset', cases: 'Setup issues · compatibility · damaged items' },
+  { id: 'exchange', short: 'Exchange request', label: 'Exchange request agent', y: 195, prompt: 'Apply exchange rules and find a suitable replacement.', tools: 'check_exchange_policy · find_replacement', dataset: 'Exchange request dataset', cases: 'Within policy · expired window · unavailable replacement' },
+  { id: 'status', short: 'Order status', label: 'Order status agent', y: 300, prompt: 'Explain fulfillment and delivery status from order records.', tools: 'get_order · track_shipment', dataset: 'Order status dataset', cases: 'Delayed delivery · split shipments · delivered orders' },
+];
+const branches = [
+  { id: 'details', label: 'Missing details', route: 'clarify', y: 85, result: 'Ask the customer', note: 'The intake LLM identifies missing information and records route = "clarify". The matching conditional edge leads to a clarification step.' },
+  { id: 'ready', label: 'Ready to assess', route: 'resolve', y: 195, result: 'Resolve the request', note: 'The intake LLM records route = "resolve" in application state. The matching edge continues to refund assessment.' },
+  { id: 'exception', label: 'Policy exception', route: 'review', y: 305, result: 'Specialist review', note: 'The intake LLM identifies an exception and records route = "review". The graph follows the edge to specialist review.' },
+];
+const revisions = [
+  { action: 'Initial state', source: 'Workflow started', field: '', before: '', after: '' },
+  { action: 'record_order', source: 'Order history node', field: 'order_summary', before: 'null', after: '"Delivered · damaged item"' },
+  { action: 'record_policy', source: 'Product policy node', field: 'policy_eligible', before: 'null', after: 'true' },
+  { action: 'record_payment', source: 'Payment ledger node', field: 'paid_amount', before: 'null', after: '79' },
+  { action: 'record_resolution', source: 'Synthesis node', field: 'resolution', before: 'null', after: '"Refund eligible"' },
+];
+const captions: Record<string,string> = {
+  graphs: 'Change the scenario to follow the LLM’s routing decision.',
+  concurrent: 'Concurrent execution. Shared state. Individually validated commits.', state: 'Step through state updates to inspect each diff and the state it produced.',
+  tools: 'Build with Junjo directly, or expose a capability to an existing framework.',
+};
+---
+
+<sdk-block-visual data-mode={mode} data-focus="product" data-route="ready" data-expanded="true" data-integration="native">
+  {mode !== 'state' && mode !== 'concurrent' && <div class="visual-stage">
+    <svg viewBox={mode === 'tools' ? '0 80 640 215' : '0 0 640 390'} role="img" aria-label={mode === 'graphs' ? 'An intake LLM writes a routing decision to state. Conditional edges select the next node.' : mode === 'tools' ? 'Compose a full Junjo application or integrate a workflow into an existing agent framework.' : mode === 'agents' ? 'Compare one monolithic support agent with an intake agent routing to product support, exchange request, and order status specialists.' : 'Three concurrent nodes write independent result fields into the same state store, with serialized commits.'}>
+      <defs><radialGradient id={`sdk-glow-${mode}`}><stop stop-color="#224b8e" stop-opacity=".32"/><stop offset="1" stop-color="#224b8e" stop-opacity="0"/></radialGradient></defs>
+      <ellipse cx="325" cy="195" rx="320" ry="188" fill={`url(#sdk-glow-${mode})`} />
+      {mode === 'agents' && <>
+        <text class="node-name" x="108" y="30">One support agent</text>
+        <text class="small-label" x="108" y="58">One prompt · All tools</text>
+        <g class="gold-ring">
+          {[-35,0,35].map(rotation => <g transform={`rotate(${rotation} 108 172)`}>{[0,1,2,3].map(i => <ellipse class="ring-line" cx="108" cy="172" rx={43+i*4} ry={17+i*3} pathLength="100" />)}</g>)}
+        </g>
+        <path d="M222 24V357" stroke="#31435e" />
+        <text class="node-name" x="425" y="30">Intake + specialists</text>
+        <ellipse class="blue-node" cx="297" cy="195" rx="31" ry="22" />
+        <text class="node-name" x="297" y="242">Intake agent</text>
+        {specialists.map(specialist => <g class="specialist-route" data-specialist={specialist.id}>
+          <path class="route-path" d={`M328 195C401 195 389 ${specialist.y} 487 ${specialist.y}`} />
+          <g class="gold-ring" transform={`translate(524 ${specialist.y}) rotate(-12)`}>
+            {[0,1,2,3].map(i => <ellipse class="ring-line" rx={27+i*3} ry={10+i*2} pathLength="100" />)}
+            <ellipse class="ring-light" rx="33" ry="14" pathLength="100" />
+          </g>
+          <text class="node-name" x="524" y={specialist.y + 41}>{specialist.label}</text>
+        </g>)}
+      </>}
+      {mode === 'graphs' && <>
+        <path class="route-path always-active" d="M87 195H242" />
+        <ellipse class="blue-node" cx="55" cy="195" rx="32" ry="21" />
+        <text class="node-name" x="55" y="240">Request</text>
+        <path class="decision-node" d="M276 166L312 195L276 224L240 195Z" />
+        <text class="node-name" x="276" y="253">Intake LLM</text>
+        <text class="small-label" x="276" y="278">Writes state.route</text>
+        {branches.map(branch => <g class="graph-branch" data-branch={branch.id}>
+          <path class="route-path" d={`M312 195C400 195 385 ${branch.y} 481 ${branch.y}`} />
+          <ellipse class="blue-node" cx="522" cy={branch.y} rx="40" ry="23" />
+          <circle class="node-center" cx="522" cy={branch.y} r="3" />
+          <text class="node-name" x="510" y={branch.y + 44}>{branch.result}</text>
+        </g>)}
+      </>}
+      {mode === 'tools' && <>
+        <g class="native-only" transform="rotate(-10 65 195)">
+          {mobiusLanes.map((lane,index) => <path class="mobius-dots" d={lane.path} pathLength={lane.turns*100} style={`opacity:${1-index*.12}`} />)}
+          <path class="mobius-dots mobius-sparks" d={mobiusLanes[3].path} pathLength="200" />
+        </g>
+        <g class="external-only" transform="translate(31 161) scale(2.833333)">
+          <path class="mobius-dots knot-dots" d={openAIKnot} pathLength="400" />
+          <path class="mobius-dots knot-dots knot-sparks" d={openAIKnot} pathLength="400" />
+        </g>
+        <text class="node-name native-only" x="65" y="244">Junjo agent</text>
+        <text class="node-name external-only" x="65" y="250">OpenAI</text>
+        <text class="node-name external-only" x="65" y="269">Agents SDK</text>
+        <path class="route-path always-active native-only" d="M119 195H183" />
+        <path class="route-path always-active external-only" d="M103 195H183" />
+        <path class="route-path always-active" d="M457 195H544" />
+        <rect class="tool-boundary" x="184" y="98" width="274" height="185" rx="24" />
+        <text class="tool-name native-only" x="320" y="124">Junjo workflow</text>
+        <text class="tool-name external-only" x="320" y="124">Junjo workflow · Tool call</text>
+        <g class="tool-open">
+          <path class="route-path always-active" d="M224 195C255 195 260 149 292 149H345C378 149 380 195 414 195M224 195H414M224 195C255 195 260 241 292 241H345C378 241 380 195 414 195" />
+          {[149,195,241].map(y => <ellipse class="mini-node" cx="320" cy={y} rx="27" ry="13" />)}
+          <circle class="node-center" cx="224" cy="195" r="4" /><circle class="node-center" cx="414" cy="195" r="4" />
+        </g>
+        <ellipse class="blue-node" cx="576" cy="195" rx="32" ry="21" />
+        <text class="node-name" x="576" y="244">Result</text>
+      </>}
+    </svg>
+  </div>}
+  {mode === 'concurrent' && <ConcurrentStateFlow />}
+  {mode !== 'agents' && <p class="interaction-hint">{captions[mode]}</p>}
+
+  {mode === 'agents' && <>
+    <div class="visual-choices specialist-choices" aria-label="Choose a specialist">{specialists.map(specialist => <button type="button" data-inspect-select={specialist.id} aria-pressed={specialist.id === 'product' ? 'true' : 'false'}>{specialist.label}</button>)}</div>
+    <div class="inspection">{specialists.map(specialist => <div data-inspect-panel={specialist.id} hidden={specialist.id !== 'product'}>
+      <table class="specialist-details" aria-label={`${specialist.label} configuration`}><tbody>
+        <tr><th scope="row">Domain prompt</th><td>{specialist.prompt}</td></tr>
+        <tr><th scope="row">Domain tools</th><td><code>{specialist.tools}</code></td></tr>
+        <tr><th scope="row">Evaluation dataset</th><td><strong>{specialist.dataset}</strong><span>{specialist.cases}</span></td></tr>
+      </tbody></table>
+    </div>)}</div>
+  </>}
+
+  {mode === 'graphs' && <>
+    <div class="visual-choices" aria-label="Choose a request scenario">{branches.map(branch => <button type="button" data-route-select={branch.id} aria-pressed={branch.id === 'ready' ? 'true' : 'false'}>{branch.label}</button>)}</div>
+    <div class="inspection">{branches.map(branch => <div data-route-panel={branch.id} hidden={branch.id !== 'ready'}><p class="inspection-title"><code>state.route = "{branch.route}"</code> <span aria-hidden="true">→</span> {branch.result}</p><p class="inspection-description">{branch.note}</p></div>)}</div>
+  </>}
+
+  {mode === 'state' && <>
+    <div class="chronology">
+      <ol class="revision-list" aria-label="State updates in execution order">{revisions.map((revision,index) => <li><button type="button" data-revision-select={index} aria-pressed={index===0 ? 'true' : 'false'}><span class="revision-marker"><span class="revision-dot" aria-hidden="true"></span><span class="revision-id">{index===0 ? 'Initial' : `Update ${index}`}</span></span><span><strong>{revision.action}{index>0 ? '()' : ''}</strong><small>{revision.source}</small></span></button></li>)}</ol>
+      <div class="revision-inspector">{revisions.map((revision,index) => <div data-revision-panel={index} hidden={index!==0}>
+        <p class="inspection-title">State diff</p>
+        <p class="revision-source">{index===0 ? 'Initial state' : `Update ${index}`} · {revision.source}{index>0 && <> → <code>{revision.action}()</code></>}</p>
+        {index>0 ? <div class="diff-lines" aria-label={`State diff for ${revision.field}`}><p class="diff-before"><span>−</span><code>"{revision.field}": {revision.before}</code></p><p class="diff-after"><span>+</span><code>"{revision.field}": {revision.after}</code></p></div> : <p class="inspection-description">The workflow starts with its own isolated state.</p>}
+        <p class="snapshot-title">{index===0 ? 'Initial application state' : `Application state after update ${index}`} </p>
+        <dl class="state-snapshot">{revisions.slice(1).map((field,fieldIndex) => <div class:list={{'changed-field':index===fieldIndex+1}}><dt>{field.field}</dt><dd>{index>fieldIndex ? field.after : 'null'}</dd></div>)}</dl>
+        <p class="evidence-link">State update · Store action · Originating operation</p>
+      </div>)}</div>
+    </div>
+  </>}
+
+  {mode === 'tools' && <>
+    <div class="visual-choices"><button type="button" data-integration-select="native" aria-pressed="true">Build with Junjo</button><button type="button" data-integration-select="external" aria-pressed="false">Extend your framework</button></div>
+    <div class="inspection"><div class="native-only"><p class="inspection-title">The ingredients for a complete agentic application.</p><p class="inspection-description">Compose agents, tools, workflows, concurrency, and state in your Python application. Trace and evaluate the resulting execution.</p><p class="tool-hierarchy">Junjo agent <span>→</span> Application tool <span>→</span> Junjo workflow</p></div><div class="external-only"><p class="inspection-title">A support layer for your existing agent framework.</p><p class="inspection-description">Expose a Junjo agent or workflow as an OpenAI Agents SDK function tool. The outer agent keeps its sessions and conversation; the nested execution keeps its state and evidence.</p><p class="tool-hierarchy">OpenAI Agents SDK <span>→</span> Tool call <span>→</span> Junjo workflow</p></div></div>
+  </>}
+</sdk-block-visual>
+
+<script>
+  class SDKBlockVisual extends HTMLElement {
+    private abort?: AbortController;
+    private observer?: IntersectionObserver;
+    private visible = false;
+    private stateTimer?: number;
+    connectedCallback() {
+      this.abort = new AbortController();
+      const signal = this.abort.signal;
+      const stateControls = [...this.querySelectorAll<HTMLButtonElement>('[data-revision-select]')];
+      let holdUntil = 0;
+      const selectState = (button: HTMLButtonElement) => {
+        for (const control of stateControls) control.setAttribute('aria-pressed',String(control===button));
+        for (const panel of this.querySelectorAll<HTMLElement>('[data-revision-panel]')) panel.hidden = panel.dataset.revisionPanel !== button.dataset.revisionSelect;
+        const list = this.querySelector<HTMLElement>('.revision-list')!;
+        const left = button.getBoundingClientRect().left-list.getBoundingClientRect().left+list.scrollLeft;
+        list.scrollTo({left:left-(list.clientWidth-button.clientWidth)/2,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+      };
+      const scheduleState = () => {
+        window.clearTimeout(this.stateTimer);
+        if (!stateControls.length || !this.visible || document.hidden) return;
+        this.stateTimer = window.setTimeout(() => {
+          const current = stateControls.findIndex(control=>control.getAttribute('aria-pressed')==='true');
+          selectState(stateControls[(current+1)%stateControls.length]);
+          scheduleState();
+        },Math.max(3000,holdUntil-Date.now()));
+      };
+      this.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) return;
+        const button = event.target.closest<HTMLButtonElement>('button');
+        if (!button) return;
+        if (button.dataset.inspectSelect) {
+          const selection = button.dataset.inspectSelect;
+          this.dataset.focus = selection;
+          for (const control of this.querySelectorAll('[data-inspect-select]')) control.setAttribute('aria-pressed', String(control === button));
+          for (const panel of this.querySelectorAll<HTMLElement>('[data-inspect-panel]')) panel.hidden = panel.dataset.inspectPanel !== selection;
+        } else if (button.dataset.routeSelect) {
+          const selection = button.dataset.routeSelect;
+          this.dataset.route = selection;
+          for (const control of this.querySelectorAll('[data-route-select]')) control.setAttribute('aria-pressed', String(control === button));
+          for (const panel of this.querySelectorAll<HTMLElement>('[data-route-panel]')) panel.hidden = panel.dataset.routePanel !== selection;
+        } else if (button.dataset.revisionSelect) {
+          selectState(button);
+          holdUntil = Date.now()+7000;
+          scheduleState();
+        } else if (button.dataset.integrationSelect) {
+          this.dataset.integration = button.dataset.integrationSelect;
+          for (const control of this.querySelectorAll('[data-integration-select]')) control.setAttribute('aria-pressed', String(control === button));
+
+        }
+      }, { signal });
+      const updateMotion = () => {
+        this.style.setProperty('--motion-state', this.visible && !document.hidden ? 'running' : 'paused');
+        scheduleState();
+      };
+      this.observer = new IntersectionObserver(([entry]) => { this.visible = entry.isIntersecting; updateMotion(); });
+      this.observer.observe(this);
+      document.addEventListener('visibilitychange', updateMotion, { signal });
+    }
+    disconnectedCallback() { this.abort?.abort(); this.observer?.disconnect(); window.clearTimeout(this.stateTimer); }
+  }
+  if (!customElements.get('sdk-block-visual')) customElements.define('sdk-block-visual', SDKBlockVisual);
+</script>
+
+<style>
+  sdk-block-visual { display: block; min-width: 0; --motion-state: paused; }
+  [hidden] { display: none !important; }
+  p,dl,dd { margin: 0; }
+  .visual-stage { margin-inline: -16px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font-family: inherit; text-anchor: middle; }
+  .node-name { font-size: 14px; fill: #b6c9e5; }
+  .small-label { font-size: 11px; fill: #91add2; }
+  .route-path { fill: none; stroke: #a8ceff; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 7; filter: drop-shadow(0 0 3px #6faeff55); animation: flow 12s linear infinite; }
+  .blue-node { fill: #0d1b3399; stroke: #8dbfff; stroke-width: 1.7; stroke-linecap: round; stroke-dasharray: .1 4; filter: drop-shadow(0 0 4px #5b9eff66); }
+  .node-center { fill: #ffcd8f; filter: drop-shadow(0 0 4px #ffc47c); }
+  .gold-ring { filter: drop-shadow(0 0 4px #e7b96b66); }
+  .ring-line { fill: none; stroke: #ffce88; stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: .01 1.99; animation: orbit 32s linear infinite; }
+  .ring-light { fill: none; stroke: #fff0cc; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: .01 49.99; filter: drop-shadow(0 0 4px #ffcc85); animation: orbit 16s linear infinite; }
+  .specialist-route { opacity: .28; transition: opacity .45s; }
+  [data-focus="product"] [data-specialist="product"], [data-focus="exchange"] [data-specialist="exchange"], [data-focus="status"] [data-specialist="status"] { opacity: 1; }
+  .specialist-details { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; }
+  .specialist-details th { width: 30%; font-size: 12px; font-weight: 400; line-height: 1.6; color: #8fa7c9; padding-right: 20px; }
+  .specialist-details td { color: #bdd0eb; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+  .specialist-details th,.specialist-details td { vertical-align: top; padding-block: 16px; }
+  .specialist-details tr + tr { border-top: 1px solid #304664; }
+  .specialist-details tr:first-child > * { padding-top: 0; }
+  .specialist-details tr:last-child > * { padding-bottom: 0; }
+  [data-mode="agents"] .visual-choices { margin-top: 20px; }
+  .specialist-details code { overflow-wrap: anywhere; }
+  .specialist-details strong { display: block; color: #c9d9ef; font-size: 14px; font-weight: 500; margin-bottom: 5px; }
+  .specialist-details td > span { color: #96aecf; }
+  .decision-node { fill: #162946; stroke: #ffca89; stroke-width: 1.5; stroke-dasharray: .1 4; stroke-linecap: round; }
+  .graph-branch { opacity: .18; transition: opacity .45s; }
+  [data-route="ready"] [data-branch="ready"], [data-route="details"] [data-branch="details"], [data-route="exception"] [data-branch="exception"] { opacity: 1; }
+  .always-active { opacity: .8; }
+  .tool-boundary { fill: #0d1d3370; stroke: #6f9ad3; stroke-width: 1; stroke-dasharray: 3 7; }
+  .tool-name { fill: #edcf9d; font: 14px ui-monospace,monospace; text-anchor: middle; }
+  .mobius-dots { fill: none; stroke: #b8d7ff; stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: .01 1.99; animation: orbit 80s linear infinite; }
+  .knot-dots { stroke-width: .5; filter: drop-shadow(0 0 1px #6faeff); }
+  .knot-sparks { stroke: #ffcd96; stroke-width: .75; stroke-dasharray: .01 39.99; }
+  .mobius-sparks { stroke: #ffcd96; stroke-width: 2; stroke-dasharray: .01 19.99; }
+  [data-mode="tools"] .visual-stage { margin-bottom: 12px; }
+  [data-mode="tools"] svg { overflow: hidden; }
+  [data-mode="tools"] .tool-name { font-size: 13px; }
+  [data-mode="tools"] .node-name { font-size: 14px; }
+  .mini-node { fill: #101e33; stroke: #ffcd8c; stroke-dasharray: .1 3; stroke-linecap: round; stroke-width: 1.5; }
+  .tool-open,.tool-closed { transition: opacity .5s,transform .5s; transform-origin: 320px 195px; }
+  .tool-open { opacity: 0; transform: scale(.75); }
+  [data-expanded="true"] .tool-open { opacity: 1; transform: scale(1); }
+  [data-expanded="true"] .tool-closed { opacity: 0; transform: scale(1.15); }
+  [data-integration="native"] .external-only,[data-integration="external"] .native-only { display: none; }
+  .interaction-hint { color: #8097b9; text-align: center; font-size: 12px; line-height: 1.6; margin-bottom: 16px; }
+  .visual-choices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  button { font: inherit; cursor: pointer; }
+  .visual-choices button { border: 1px solid #304b70; background: #0c182a; border-radius: 6px; padding: 9px 12px; font-size: 12px; color: #99b0d0; transition: color .2s,border-color .2s,background .2s; }
+  .visual-choices button:hover { color: #eff5ff; border-color: #6c94c8; }
+  .visual-choices button[aria-pressed="true"] { color: #d5e6ff; border-color: #6996d1; background: #18355966; }
+  button:focus-visible { outline: 2px solid #99c8ff; outline-offset: 4px; }
+  .inspection { margin-top: 24px; padding: 22px 24px; background: linear-gradient(140deg,#17335866,#0a142466); border: 1px solid #35507888; border-radius: 10px; }
+  .inspection-title { color: #d0def2; font-size: 14px; line-height: 1.7; }
+  .inspection-description { color: #95aed0; font-size: 14px; line-height: 1.7; margin-top: 10px; }
+  dt { color: #7f98bd; font: 11px/1.6 ui-monospace,monospace; margin-bottom: 7px; }
+  dd { font-size: 14px; line-height: 1.7; color: #bdd0eb; }
+  code { font-family: ui-monospace,monospace; font-size: .9em; }
+  .chronology { margin-top: 24px; }
+  .revision-list { display: flex; overflow-x: auto; list-style: none; padding: 4px 0 12px; margin: 0 0 24px; scrollbar-width: thin; scrollbar-color: #48678f transparent; scroll-snap-type: x proximity; }
+  .revision-list li { position: relative; flex: 1 0 164px; scroll-snap-align: start; }
+  .revision-list li:not(:last-child)::before { content: ''; position: absolute; left: 26px; right: -26px; top: 24px; height: 1px; background: #375174; }
+  .revision-list button { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; width: 100%; height: 100%; padding: 13px; border: 0; border-radius: 7px; background: none; color: #92a8c9; text-align: left; }
+  .revision-marker { display: flex; align-items: center; gap: 8px; background: #0a1526; padding-right: 8px; }
+  .revision-dot { flex-shrink: 0; width: 9px; height: 9px; background: #0c182b; border: 1px solid #779dc8; border-radius: 50%; }
+  .revision-id { font: 12px ui-monospace,monospace; color: #d4b386; }
+  .revision-list strong { font: 11px/1.5 ui-monospace,monospace; color: #b8cbe6; }
+  .revision-list small { display: block; font-size: 11px; margin-top: 6px; }
+  .revision-list button:hover { background: #1a355343; }
+  .revision-list button[aria-pressed="true"] { background: #20457650; }
+  .revision-list button[aria-pressed="true"] .revision-dot { background: #ffd091; border-color: #ffd091; box-shadow: 0 0 9px #ffd09166; }
+  .revision-inspector { padding: 24px; border-radius: 10px; border: 1px solid #36557d; background: #0c192ccc; }
+  .revision-source { color: #90a9ce; font-size: 12px; line-height: 1.7; margin-top: 10px; }
+  .diff-lines { margin: 20px -12px; }
+  .diff-lines p { display: flex; gap: 12px; padding: 9px 12px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+  .diff-lines code { min-width: 0; }
+  .diff-before { background: #773c462e; color: #efa2af; }
+  .diff-after { background: #2b77572b; color: #a2e3c1; }
+  .snapshot-title { margin: 22px 0 12px; color: #809cbe; font-size: 11px; }
+  .state-snapshot { font-family: ui-monospace,monospace; }
+  .state-snapshot > div { display: grid; grid-template-columns: 1fr 1.2fr; align-items: baseline; gap: 12px; padding: 8px 0; }
+  .state-snapshot dt { margin: 0; font-size: 11px; }
+  .state-snapshot dd { font-size: 11px; overflow-wrap: anywhere; }
+  .state-snapshot .changed-field dt,.state-snapshot .changed-field dd { color: #f1d39b; }
+  .evidence-link { margin-top: 18px; font-size: 11px; line-height: 1.7; color: #839dc2; }
+  .evidence-link span { color: #dda86d; margin-right: 7px; }
+  .tool-hierarchy { margin-top: 20px; color: #849fc3; font-size: 11px; line-height: 1.7; }
+  .tool-hierarchy span { color: #d4ab73; margin-inline: 6px; }
+  .route-path,.ring-line,.ring-light,.mobius-dots { animation-play-state: var(--motion-state); }
+  @keyframes flow { to { stroke-dashoffset: -85.2; } }
+  @keyframes orbit { to { stroke-dashoffset: -100; } }
+  @media(max-width:1000px) { .node-name { font-size: 15px; } .inspection { padding: 18px; } }
+  @media(max-width:760px) { .visual-stage { margin-inline: -8px; } .node-name { font-size: 20px; } [data-mode="agents"] .node-name { font-size: 17px; } .tool-name { font-size: 18px; } .small-label { font-size: 15px; } .revision-inspector { padding: 18px; } }
+  @media(prefers-reduced-motion:reduce) { .route-path,.ring-line,.ring-light,.mobius-dots { animation: none; } *,*::before,*::after { transition: none !important; } }
+</style>

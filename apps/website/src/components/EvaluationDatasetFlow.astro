@@ -1,0 +1,81 @@
+---
+const cases = ['Eligible refund', 'Missing receipt', 'Partial return', 'Policy exception'];
+const runs = ['Run 01', 'Run 02', 'Run 03'];
+---
+
+<figure class="dataset-flow" aria-label="Pull a shared dataset from Junjo, run the application and evaluators locally with your coding agent, and record each run's outcomes and traces back in Junjo.">
+  <div class="flow-stages">
+    <div class="stage">
+      <p class="location">Your Agent Creates and Stores Datasets</p>
+      <div class="dataset-art" aria-hidden="true">
+        {cases.map((name, index) => <div class="case"><span class="case-id">0{index + 1}</span><span>{name}</span><span class="case-marks">······</span></div>)}
+      </div>
+      <span class="transfer" aria-hidden="true">→</span>
+    </div>
+    <div class="stage local-stage">
+      <p class="location">Run the scenarios through your local code changes</p>
+      <div class="local-art" aria-hidden="true">
+        <svg viewBox="0 0 260 110">
+          <path class="route" d="M34 56H90C115 56 111 25 135 25H161C183 25 183 56 205 56H229M90 56C115 56 111 87 135 87H161C183 87 183 56 205 56" />
+          <path class="route dots" d="M34 56H90C115 56 111 25 135 25H161C183 25 183 56 205 56H229" />
+          {[[34,56],[90,56],[135,25],[161,25],[135,87],[161,87],[229,56]].map(([cx,cy]) => <ellipse class="node" cx={cx} cy={cy} rx="9" ry="6" />)}
+          <path class="code" d="M21 15 15 21l6 6M31 15l6 6-6 6M27 13l-4 16" />
+        </svg>
+        <span>Application code <span class="plus">+</span> Your evaluators</span>
+      </div>
+      <span class="transfer" aria-hidden="true">→</span>
+    </div>
+    <div class="stage">
+      <p class="location">Every run recorded for comparison</p>
+      <div class="runs-art" aria-hidden="true">
+        {runs.map((run, index) => <div class="run"><span>{run}</span><svg viewBox="0 0 170 36">
+          {[0,1,2].map(row => <g>
+            <path class="trace" d={`M${8 + row * 14} ${6 + row * 12}h${140 - row * 26 - index * 8}`} />
+            <circle class="trace-start" cx={8 + row * 14} cy={6 + row * 12} r="2" />
+          </g>)}
+        </svg></div>)}
+      </div>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .dataset-flow { margin: 0; padding: 8px 0 72px; }
+  .flow-stages { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 64px; }
+  .stage { position: relative; min-width: 0; display: grid; grid-template-rows: 1fr 148px; gap: 24px; }
+  .location { max-width: 290px; margin: 0 auto; color: #dce7ff; font-size: clamp(16px,1.5vw,20px); line-height: 1.4; letter-spacing: -.02em; text-align: center; text-wrap: balance; align-self: center; }
+  .dataset-art,.local-art,.runs-art { height: 148px; }
+  .dataset-art { display: flex; flex-direction: column; justify-content: center; padding: 12px 16px; border: 1px solid #436195; border-radius: 7px; background: #10224566; box-shadow: 8px -8px 0 -1px #0c182b,8px -8px 0 0 #2a4062; }
+  .case { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid #38527a66; color: #c1d3f3; font-size: 12px; }
+  .case:first-child { border-top: 0; }
+  .case-id { color: #ffc495; font-size: 10px; }
+  .case-marks { color: #7ba8ff; letter-spacing: 3px; margin-left: auto; }
+  .local-art { display: flex; flex-direction: column; justify-content: center; background: radial-gradient(ellipse,#183a6a66,transparent 72%); }
+  .local-art svg { width: 100%; height: 110px; }
+  .local-art > span { text-align: center; font-size: 12px; color: #b9ceef; }
+  .plus { color: #ffbd86; margin-inline: 8px; }
+  .route { fill: none; stroke: #608cdd; stroke-width: 1; opacity: .65; }
+  .dots { stroke: #c6ddff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: .1 5; opacity: 1; }
+  .node { fill: #0c1b31; stroke: #9dc5ff; stroke-width: 1.2; }
+  .code { fill: none; stroke: #ffc495; stroke-width: 1.4; stroke-linejoin: round; }
+  .runs-art { display: grid; align-content: center; gap: 12px; }
+  .run { display: flex; align-items: center; gap: 16px; }
+  .run > span { color: #9db3d9; font-size: 11px; white-space: nowrap; }
+  .run svg { width: 100%; min-width: 0; height: 36px; }
+  .trace { fill: none; stroke: #94baff; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 5; }
+  .trace-start { fill: #ffc495; }
+  .transfer { position: absolute; bottom: 74px; transform: translateY(50%); left: calc(100% + 10px); width: 44px; text-align: center; font-size: 24px; line-height: 1; color: #8eb4ff; }
+  @media(max-width:1000px) {
+    .flow-stages { gap: 36px; }
+    .transfer { left: calc(100% + 2px); width: 32px; }
+    .dataset-art { padding-inline: 10px; }
+    .case { gap: 8px; }
+    .case-marks { letter-spacing: 1px; }
+  }
+  @media(max-width:760px) {
+    .flow-stages { grid-template-columns: 1fr; gap: 52px; }
+    .stage { max-width: 360px; width: 100%; margin-inline: auto; gap: 20px; }
+    .location { font-size: 18px; }
+    .transfer { bottom: auto; top: calc(100% + 14px); left: calc(50% - 16px); transform: rotate(90deg); }
+  }
+</style>

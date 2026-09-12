@@ -1692,15 +1692,16 @@
   ],
   "repository_sources": [
     {
-      "source_path": "apps/website/src/content/docs/index.mdx",
-      "source_hash": "sha256:08015a69b0639d45716488e64f68def25bc1abf67788ab88338c9cd52f6efa17",
-      "source_lines": 41,
+      "source_path": "apps/website/src/pages/index.astro",
+      "source_hash": "sha256:d3826ddbe8ab749a2f659ed79925652a13417f9dd30a27dae954b919320f3da3",
+      "source_lines": 68,
       "owner": "website",
       "disposition": "retained",
       "target_route": "/",
       "corrections": [
         "Replaced obsolete junjo-server links with the canonical monorepo Studio path.",
-        "Replaced the separate Python-docs call to action with the unified /docs/ route."
+        "Replaced the separate Python-docs call to action with the unified /docs/ route.",
+        "Replaced apps/website/src/content/docs/index.mdx with the Astro marketing homepage at apps/website/src/pages/index.astro; the public root route remains /."
       ],
       "status": "accounted-for"
     },

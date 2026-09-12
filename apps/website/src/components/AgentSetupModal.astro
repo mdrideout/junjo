@@ -1,0 +1,96 @@
+---
+import instructions from '../data/agent-setup.md?raw';
+
+interface Props { id?: string; }
+const { id = 'agent-setup' } = Astro.props;
+---
+
+<agent-setup-modal>
+  <button class="agent-cta" type="button" aria-haspopup="dialog">Ask my agent to implement this <span aria-hidden="true">↗</span></button>
+  <dialog aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} data-pagefind-ignore>
+    <div class="modal-content">
+      <header>
+        <div>
+          <p class="eyebrow">Your application. Your coding agent.</p>
+          <h2 id={`${id}-title`}>Bring Junjo into your stack.</h2>
+        </div>
+        <button class="close" type="button" aria-label="Close setup instructions" autofocus>×</button>
+      </header>
+      <p id={`${id}-description`} class="setup-description">Copy these instructions into your coding agent. It will inspect your project, plan the integration, and prepare your first runtime analysis.</p>
+      <label for={`${id}-instructions`}>Markdown instructions</label>
+      <textarea id={`${id}-instructions`} readonly spellcheck="false">{instructions.trim()}</textarea>
+      <footer>
+        <p class="copy-status" role="status" aria-live="polite">Ready to paste into your agent.</p>
+        <button class="button copy" type="button">Copy instructions <span aria-hidden="true">⧉</span></button>
+      </footer>
+    </div>
+  </dialog>
+</agent-setup-modal>
+
+<script>
+  class AgentSetupModal extends HTMLElement {
+    connectedCallback() {
+      const dialog = this.querySelector('dialog')!;
+      const trigger = this.querySelector<HTMLButtonElement>('.agent-cta')!;
+      const close = this.querySelector<HTMLButtonElement>('.close')!;
+      const copy = this.querySelector<HTMLButtonElement>('.copy')!;
+      const instructions = this.querySelector('textarea')!;
+      const status = this.querySelector<HTMLElement>('.copy-status')!;
+      let previousOverflow = '';
+
+      trigger.addEventListener('click', () => {
+        previousOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+        status.textContent = 'Ready to paste into your agent.';
+        dialog.showModal();
+      });
+      close.addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+      dialog.addEventListener('close', () => {
+        document.documentElement.style.overflow = previousOverflow;
+        trigger.focus({ preventScroll: true });
+      });
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(instructions.value);
+          status.textContent = 'Copied. Paste into your coding agent.';
+        } catch {
+          instructions.focus();
+          instructions.select();
+          status.textContent = 'Press ⌘C or Ctrl+C to copy the selected instructions.';
+        }
+      });
+    }
+  }
+  if (!customElements.get('agent-setup-modal')) customElements.define('agent-setup-modal', AgentSetupModal);
+</script>
+
+<style>
+  agent-setup-modal { display: inline-flex; max-width: 100%; }
+  .agent-cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 16px 20px; border: 1px solid #5776b1; border-radius: 4px; color: #e6edff; background: #102044b3; font-size: 13px; cursor: pointer; transition: background .2s, border-color .2s; }
+  .agent-cta:hover { background: #1a3060; border-color: #8eafff; }
+  dialog { width: min(880px, calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid #344b75; border-radius: 16px; color: #eff3fa; background: #0a101e; box-shadow: 0 24px 100px #0009; }
+  dialog::backdrop { background: #02050dcc; backdrop-filter: blur(8px); }
+  .modal-content { display: flex; flex-direction: column; max-height: calc(100dvh - 34px); overflow: auto; padding: 32px; }
+  .modal-content > :not(textarea) { flex-shrink: 0; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .eyebrow { margin: 0 0 10px; color: #ffb36b; font-size: 13px; }
+  h2 { margin: 0; font-size: clamp(26px,3vw,36px); font-weight: 500; letter-spacing: -.04em; }
+  .close { flex-shrink: 0; width: 40px; height: 40px; border: 1px solid #34415b; border-radius: 8px; color: #c6d2e8; background: transparent; font-size: 26px; cursor: pointer; }
+  .close:hover { background: #1a2740; color: white; }
+  .setup-description { margin: 18px 0 24px; max-width: 660px; color: #adbcd3; font-size: 15px; }
+  label { display: block; margin-bottom: 10px; color: #c6d2e8; font-size: 12px; }
+  textarea { display: block; width: 100%; height: clamp(180px,40dvh,430px); min-height: 120px; resize: vertical; padding: 20px; border: 1px solid #293c5e; border-radius: 8px; color: #cbd7eb; background: #060b15; font: 13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace; }
+  textarea:focus-visible { outline: 2px solid #6082ff; outline-offset: 2px; }
+  footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; }
+  .copy-status { margin: 0; color: #a4b5d2; font-size: 13px; }
+  .copy { gap: 12px; flex-shrink: 0; cursor: pointer; }
+  @media (max-width: 600px) {
+    .modal-content { padding: 22px; }
+    footer { flex-direction: column-reverse; align-items: stretch; }
+    .copy-status { min-height: 2.5em; text-align: center; }
+    textarea { padding: 14px; font-size: 12px; }
+  }
+</style>
