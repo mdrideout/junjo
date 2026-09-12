@@ -1,22 +1,26 @@
 ---
-title: "Concurrency"
-description: "Explore Junjo's powerful asyncio-native concurrency model for building high-performance Python workflows. Learn about immutable state and RunConcurrent for concurrent task execution."
+title: "Parallel workflow steps with RunConcurrent"
+description: "Run independent AI workflow steps concurrently, commit distinct state fields safely, and compare latency and quality against the sequential baseline."
 ---
 <!-- migrated-from: sdks/python/docs/concurrency.rst; source-hash: sha256:4c735f32174f03a137694d8b18faae97dd767ac4d67d735fa1de8c32f877ead7 -->
 <!-- migrated-keywords: junjo, python, asyncio, concurrency, workflow execution, concurrent execution, immutable state -->
 
 <a id="concurrency"></a>
-Concurrency is key to fast and efficient execution of LLM powered AI workflows.
+`RunConcurrent` groups independent Nodes or Subflows into one graph step. A
+single incoming edge starts the group; the next edge is traversed after its
+children finish. For example, distill order history, product policy, and payment
+facts concurrently before a synthesis Node consumes all three results.
 
-Whether it's making several network API or LLM requests, processing independent data concurrently, or managing various I/O-bound operations. Junjo embraces concurrency as a core principle of workflow execution.
-
-Junjo is designed from the ground up to leverage the power of Python's `asyncio` library, enabling you to build highly concurrent and efficient workflows. This page delves into how Junjo handles concurrency, its immutable state management, and the `RunConcurrent` utility for concurrent task execution.
+This is a concrete optimization your coding agent can test during recursive
+self improvement. Measure the entire workflow against the same
+[evaluation dataset](/docs/python/evaluation/), including the synthesis step;
+parallel calls do not by themselves establish better quality or lower cost.
 
 ## Asyncio Native: The Core of Junjo's Performance
 
 Being "asyncio native" means Junjo is fundamentally built using Python's `async` and `await` syntax and leverages the `asyncio` event loop. This offers significant advantages:
 
-- **Non-Blocking Operations**: Asyncio allows Junjo to perform I/O-bound operations (like network requests or file system access) without blocking the main thread.
+- **Non-Blocking Operations**: Nodes can await asynchronous network clients without blocking the event loop. Synchronous file access or a blocking model client still blocks unless the application moves that work off the event loop.
 - **Efficient Resource Utilization**: By avoiding thread-based parallelism for I/O-bound tasks, Junjo can handle many concurrent operations with lower overhead compared to traditional multi-threaded approaches.
 - **Seamless Integration**: You can easily integrate other asyncio-compatible libraries within your Junjo workflows.
 
@@ -67,9 +71,17 @@ record_workout_activity_workflow = Workflow[RecordWorkoutActivityState, RecordWo
 )
 ```
 
-Example execution visualization:
+The declared structure groups both analysis Nodes into one executable step:
 
-<img src="/docs-assets/generated/python/concurrent-visual.png" alt="A screenshot of a Junjo workflow graph&#x27;s telemetry on Junjo AI Studio, featuring" style="max-width: 100%; width: 600px; display: block; margin-inline: auto" />
+```text
+RunConcurrent: Initial Analysis
+  ├─ CountActivitiesNode
+  └─ DetermineWhenNode
+       ↓ both complete
+  IsMultipleActivities?
+    yes → ActivityQuerySplitterNode → FinalNode
+    no  → FinalNode
+```
 
 This example demonstrates how `RunConcurrent` can be utilized to execute nodes concurrently. You can also execute entire `Subflow` instances concurrently.
 
@@ -136,11 +148,14 @@ class DecrementNode(Node[SampleStore]):
 
 The above nodes could be executed concurrently using `RunConcurrent`. Each
 committed `set_state()` call is validated and applied safely by the store.
-Inside a store action like `increment`, reading `self._state` directly to
-derive the next update is acceptable because actions run on the store and each
-`set_state()` commit is validated and applied against the locked current
-state; outside of store actions, always read state with
-`await store.get_state()`.
+The `increment` and `decrement` examples derive an update immediately before
+committing it. The lock covers `set_state()`, not arbitrary work inside an
+action. Do not add an `await` between reading a value and deriving its
+replacement and assume that the whole read/modify/write operation is atomic.
+When concurrent Nodes need independent results, patch distinct fields such as
+`order_summary`, `policy_eligible`, and `paid_amount`. Coordinate application
+operations explicitly when they depend on the same prior value. Outside Store
+actions, read state with `await store.get_state()`.
 
 This approach significantly simplifies reasoning about concurrent execution, as
 you don't have to manage locks around individual state commits. `get_state()`
@@ -163,9 +178,14 @@ When designing concurrent workflows with Junjo, consider the following:
 - **Identify Independent Tasks**: Look for parts of your workflow that don't depend on each other's immediate output. These are good candidates for `RunConcurrent`.
 - **Keep Nodes Focused**: Design nodes to perform specific, well-defined tasks. This makes it easier to reason about their concurrent behavior.
 - **Understand State Flow**: Be clear about what state each concurrent branch needs and what state it will produce. Junjo's immutable state helps, but clear design is still key.
-- **Handle Errors Gracefully**: In concurrent operations, individual tasks might fail. Ensure your workflow has appropriate error handling mechanisms for tasks running within `RunConcurrent`.
+- **Understand Failure Ownership**: If a child fails, `RunConcurrent` cancels pending siblings, drains them, and re-raises the original failure. Already completed side effects remain real; the application owns transactions and recovery.
 - **Profile and Optimize**: Use profiling tools to identify bottlenecks in your asynchronous workflows and optimize critical paths.
 
 ## Conclusion
 
-Junjo provides a powerful and Pythonic framework for building concurrent directed graph workflows. Its asyncio-native architecture, immutable state updates, and features like `RunConcurrent` empower developers to create high-performance, scalable, and reliable Python workflow execution systems. By understanding and leveraging these concurrency features, you can unlock the full potential of Junjo for your complex processing needs.
+Use `RunConcurrent` for independent work inside one application execution. Use
+separate [evaluation Runs](/docs/python/evaluation/#execute-resume-and-compare)
+when coding agents or worktrees are testing different implementations in
+parallel. These are separate kinds of concurrency: the evaluation executor
+runs cases sequentially, while an individual target may itself contain
+concurrent workflow steps.

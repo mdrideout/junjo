@@ -1,6 +1,6 @@
 ---
-title: "Tutorial: Building Your First Workflow"
-description: "A step-by-step tutorial on building your first Junjo workflow. Learn how to define state, create a store, build nodes, and assemble a graph."
+title: "Build your first Junjo workflow"
+description: "Build a Python workflow from typed state, nodes, and conditional edges, then connect its execution to Studio telemetry and targeted evaluations."
 ---
 <!-- migrated-from: sdks/python/docs/tutorial.rst; source-hash: sha256:b715d834046f0cca702ce82242af173865d9dfc0eea0dbf3147ef16a4f877658 -->
 <!-- migrated-keywords: junjo, python, workflow, tutorial, getting started, state management, node, graph -->
@@ -151,4 +151,23 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-Congratulations! You've built your first Junjo workflow. You can now run this file and see the output in your console.
+Running this file prints a final state with `count: 3` and takes the odd-items
+path. The graph declares the possible paths; state determines which path this
+execution takes.
+
+## Turn the workflow into an improvement target
+
+In an AI application, a Node might retrieve order history, distill a policy, or
+write a response. Keeping those responsibilities separate gives your coding
+agent a specific input, output, and execution record to investigate.
+
+Connect [telemetry](/docs/observability/opentelemetry/#complete-configuration-example)
+at the application entrypoint, then register a `WorkflowTarget` for the complete
+flow or a `NodeTarget` for one step. For this example, test that the final count
+matches the input length. For a model-backed step, supply explicit evaluation
+criteria and inspect the traces behind failures.
+
+Use [evaluation datasets and runs](/docs/python/evaluation/) to hold the cases
+constant while changing a Node, prompt, model, or graph. The
+[recursive self improvement guide](/docs/recursive-self-improvement/) connects
+that experiment to coding-agent diagnosis and human review of the evidence.

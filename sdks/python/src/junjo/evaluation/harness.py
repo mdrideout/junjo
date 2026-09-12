@@ -40,10 +40,15 @@ class TargetDescriptor:
     """Inspectable registered target identity and JSON input schema."""
 
     kind: TargetKind
+    """Node, workflow, or agent execution boundary registered by the application."""
     key: str
+    """Stable target dispatch key used by dataset cases."""
     name: str
+    """Human-readable name retained with this record."""
     input_version: int
+    """Version of the target input contract used to validate the stored case."""
     input_schema: Mapping[str, object]
+    """JSON Schema exposed to the coding agent for authoring valid scenario inputs."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,9 +56,13 @@ class EvaluatorDescriptor:
     """Inspectable evaluator identity, role, and expectation JSON schema."""
 
     key: str
+    """Stable evaluator key used by dataset cases."""
     version: int
+    """Version of the registered evaluator contract."""
     role: EvaluationRole
+    """Judge or verifier role for this evaluator and its telemetry."""
     expectation_schema: Mapping[str, object]
+    """JSON Schema for authoring the evaluator criteria stored with each case."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,10 +70,15 @@ class PreparedEvaluation:
     """One case after target input and evaluator expectation validation."""
 
     case: CaseRead
+    """The stored case, including input, evaluation criteria, and provenance."""
     target: EvaluationTarget
+    """Registered target selected after validating the case identity and input contract."""
     input_value: object
+    """Typed input produced by the target input validator."""
     evaluator: Evaluator
+    """Registered evaluator selected by the case key and evaluator version."""
     expectation: object
+    """Validated evaluation criteria passed to the evaluator."""
 
 
 class EvaluationHarness(Generic[ResourcesT]):

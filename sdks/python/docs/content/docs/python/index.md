@@ -1,5 +1,6 @@
 ---
-title: "Junjo Python SDK Documentation"
+title: "Junjo Python SDK: building blocks for AI applications"
+description: "Add workflows, specialist agents, state management, telemetry, and local evaluations to your Python application for recursive self improvement."
 ---
 <!-- migrated-from: sdks/python/docs/index.rst; source-hash: sha256:ec65754d16af245057495b2cd94631176509bd375a7d33ec8c3b389c6803d6da -->
 
@@ -7,16 +8,19 @@ title: "Junjo Python SDK Documentation"
 
 > 順序 (junjo): order, sequence, procedure
 
-Junjo is a modern Python library for designing, executing, testing, and
-debugging explicit graph Workflows and bounded, provider-neutral Agents.
+The Junjo Python SDK lives in your application. It gives your coding agent
+building blocks, telemetry instrumentation, and evaluation tools for
+[recursive self improvement](/docs/recursive-self-improvement/): investigating
+failures, changing the implementation, and measuring the result.
+
+[Junjo AI Studio](/docs/studio/overview/) is the separately deployed telemetry
+and evaluation observation service. It stores datasets, evaluation outcomes,
+and execution history so your coding agent and your team can inspect the same
+evidence. Your application executes the code, model calls, and evaluators.
 
 Use a Workflow when the application knows the possible procedure in advance,
 and an Agent when a model must choose among an explicit set of typed Tools at
 runtime. Both execution modes remain isolated, testable, and observable.
-
-<img src="/docs-assets/generated/python/junjo-screenshot.png" alt="A screenshot of a Junjo workflow graph&#x27;s telemetry on Junjo AI Studio" style="max-width: 100%; width: 800px; display: block; margin-inline: auto" />
-
-*A screenshot of Junjo AI Studio, Junjo's companion OpenTelemetry observability platform for debugging graph workflow state.*
 
 ## Benefits
 
@@ -26,20 +30,23 @@ runtime. Both execution modes remain isolated, testable, and observable.
 - ⚡️ Concurrency and type safety native with asyncio and pydantic
 - 🔗 Organize conditional chains of LLM calls into observable graph workflows
 - 🏎️ Easy patterns for directed graph loops, branching, and concurrency
-- 🧪 Eval-Driven Development focused
-    - Build massive eval sets by mocking node state
-    - Programmatically build and update eval sets with agentic code assistants
-    - Eval patterns are based on pytest, leveraging its testing framework and capabilities
-    - Rapidly iterate on your AI capabilities and avoid regressions
+- 🧪 Repeatable improvement experiments
+    - Ask your coding agent to create targeted datasets from observed failures or synthetic scenarios
+    - Execute Node, Workflow, and Agent targets locally against locked cases
+    - Compare pass/fail results, operational errors, and execution evidence in Studio
+    - Keep pytest for local correctness tests alongside the shared evaluation lifecycle
 - 🔭 OpenTelemetry native
     - Provides organized, structured traces to any OpenTelemetry provider
-    - Companion open source [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) enhances debugging and evaluation of production data
+    - [Junjo AI Studio](/docs/studio/overview/) makes received traces and evaluation evidence queryable by coding agents and inspectable by humans
 
 ## Junjo's Philosophy
 
 **🔍 Transparency**
 
-Junjo strives to be the opposite of a "black box". Transparency, observability, eval driven development, and production data debugging are requirements for AI applications handling mission critical data, that need repeatable and high accuracy chained LLM logic.
+Ground improvements in observed behavior. Execution chronology helps your
+coding agent locate a failing operation; evaluation datasets help establish
+whether a proposed change improves the tested cases. Available detail depends
+on the instrumentation and content capture your application configures.
 
 **⛓️‍💥 Decoupled**
 
@@ -47,7 +54,10 @@ Junjo doesn't change how you implement LLM providers or make calls to their serv
 
 Continue using [google-genai](https://github.com/googleapis/python-genai), [openai-python](https://github.com/openai/openai-python), [grok / xai sdk](https://github.com/xai-org/xai-sdk-python), [anthropic-sdk-python](https://github.com/anthropics/anthropic-sdk-python), [LiteLLM](https://github.com/BerriAI/litellm) or even REST API requests to any provider.
 
-Junjo remains decoupled from LLM providers. There are no proprietary implementations, no hijacking of python docstrings, no confusing or obfuscating decorators, and no middleman proxies.
+Model calls inside Workflow Nodes use your chosen clients directly. Native
+Junjo Agents use an application-owned `ModelDriver` to translate between that
+client and Junjo's typed request/response contract. Credentials and provider
+configuration stay in your application.
 
 Junjo helps organize Python functions—whether they perform logic, model calls,
 retrieval, or application I/O—into predictable, testable, and observable
@@ -67,9 +77,7 @@ typed Tools. Agent is a sibling to `Workflow`: it does not fabricate a Graph,
 share mutable run state, or delegate Junjo's limits and lifecycle to a model
 provider.
 
-Junjo uses conventional Pythonic architecture. Rather than obfuscating,
-proprietary decorators or runtime scripts that hijack execution, Workflows use
-explicit Python Graph primitives and Agents use ordinary typed definitions,
+Workflows use explicit Python Graph primitives and Agents use typed definitions,
 bindings, and Tools. Pydantic owns the declared data boundaries.
 
 State is modeled after the conventional [Elm Architecture](https://guide.elm-lang.org/architecture/), and inspired by [Redux](https://redux.js.org/) for clean separation of concerns, concurrency safety, and debuggability.
@@ -105,6 +113,10 @@ See the [Getting Started](/docs/python/get-started/) page for installation and b
 
 See the [Api](/docs/python/api/) page for the full API reference.
 
-## Eval-Driven Development
+<a id="eval-driven-development"></a>
+## Recursive self improvement
 
-See the [Eval Driven Dev](/docs/python/testing/eval-driven-development/) page for more information on how to use Junjo for eval-driven development.
+Start with the [recursive self improvement guide](/docs/recursive-self-improvement/)
+for the end-to-end development cycle. Use [evaluation datasets and runs](/docs/python/evaluation/)
+for the exact SDK and CLI lifecycle, and [eval-driven development](/docs/python/testing/eval-driven-development/)
+for designing useful checks and local tests.

@@ -1,12 +1,20 @@
 ---
 title: "State Management"
-description: "A deep dive into Junjo's Redux-inspired, immutable state management. Learn how to use BaseState and BaseStore to build predictable and concurrency-safe Python workflows."
+description: "Manage typed application state with explicit actions and atomic patches. Inspect chronological state diffs to diagnose and evaluate AI workflow changes."
 ---
 <!-- migrated-from: sdks/python/docs/state_management.rst; source-hash: sha256:61e738adc3fa58ce2f2b616edb27647a7758bf66b8b46915fadfc7a10e11347f -->
 <!-- migrated-keywords: junjo, python, state management, redux, immutable state, pydantic, workflow, BaseStore, BaseState -->
 
 <a id="state-management"></a>
-Junjo's state management is designed to be predictable, traceable, and safe for concurrent operations. It is heavily inspired by the principles of Redux, a popular state management library in the JavaScript ecosystem. This page provides a deep dive into how to effectively manage state in your Junjo workflows.
+Junjo's state system gives each workflow explicit, typed inputs and state
+transitions. Inspired by Redux and the Elm architecture, it separates work in
+Nodes from updates in Store actions. This lets you and your coding agent inspect
+which operation changed a value and use that evidence to diagnose an unexpected
+outcome.
+
+The application Store is live runtime state. Junjo AI Studio reconstructs its
+recorded state history from telemetry; Studio does not execute the workflow or
+hold the application's active Store.
 
 ## The Core Principles
 
@@ -81,7 +89,13 @@ class ChatWorkflowStore(BaseStore[ChatWorkflowState]):
         await self.set_state({"error_message": error})
 ```
 
-Inside a store action like `add_message`, reading `self._state` directly to derive the next update is acceptable because actions run on the store and each `set_state` commit is validated and applied against the locked current state; outside of store actions, always read state with `await store.get_state()`.
+Inside a Store action, `self._state` can be used to derive an update; outside
+Store actions, use `await store.get_state()` for a detached snapshot. The Store
+lock protects each `set_state` commit, not the entire action method. Do not read
+a value, await external work, then assume that value is still current. If
+concurrent actions replace the same field, the last committed replacement wins.
+Prefer separate output fields for independent concurrent work, or explicitly
+coordinate updates that depend on the same prior value.
 
 ### The `set_state` Method
 
@@ -90,8 +104,9 @@ The `set_state` method is the **only** way to update the state in the store. It 
 **Key Behaviors of \`set_state\`:**
 
 - **Immutable Updates:** `set_state` merges the patch with runtime fields and creates one owned deep copy before validation. It does not mutate the original state object. This is crucial for preventing side effects and ensuring predictable state transitions.
-- **Concurrency-Safe:** All calls to `set_state` are protected by an `asyncio.Lock`, so you can safely call actions from multiple concurrent nodes without worrying about race conditions.
+- **Atomic Commit:** Each `set_state` call is protected by an `asyncio.Lock`. Validation and commit see the latest locked state; code before that call is not automatically locked.
 - **Validation:** Before applying the update, `set_state` validates the new state against your Pydantic model. If the update is invalid, it will raise a `ValueError`.
+- **Top-Level Patches:** Only supplied fields are replaced. Nested objects are replaced as complete field values, not recursively merged. Patching different output fields preserves the other concurrent results.
 - **Runtime State Semantics:** `set_state` merges updates with runtime field values, not serialized state dumps. Serialization choices such as `Field(exclude=True)` and `field_serializer` are respected by telemetry output without changing live state.
 
 ## Using the Store in a Node
@@ -162,3 +177,16 @@ retain their own assignment behavior, but freezing a model alone does not make
 nested lists immutable. `store._state` is private live state; direct mutation
 bypasses the supported API and has no guaranteed exception. Store actions must
 also construct replacements rather than mutate private state in place.
+
+## Diagnose the state transition that changed the outcome
+
+With [telemetry configured](/docs/observability/opentelemetry/), Studio can show
+the ordered state updates received for a native execution. Trace a wrong refund
+decision back to the policy value or eligibility update, then create a
+[Node or Workflow evaluation target](/docs/python/evaluation/#declare-one-harness)
+for that boundary. Compare the candidate's outcome and state chronology against
+the baseline.
+
+A missing transition or excluded field limits what can be reconstructed; inspect
+Studio's evidence-integrity diagnostics before treating absent data as proof
+that the application never produced it.

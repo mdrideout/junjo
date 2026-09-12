@@ -1,6 +1,6 @@
 ---
 title: "OpenAI Agents SDK Integration"
-description: "Use Junjo Workflows, Agents, telemetry, and evaluation inside an OpenAI Agents SDK application."
+description: "Add Junjo telemetry, evaluation datasets, and workflow tools to an existing OpenAI Agents SDK Python application for recursive self improvement."
 ---
 
 Junjo's OpenAI Agents SDK integration is additive. The OpenAI Agents SDK keeps
@@ -9,6 +9,13 @@ state. Junjo supplies its native stateful Workflows and bounded Agents as
 explicit function tools, sends both runtimes through one application-owned
 OpenTelemetry pipeline, and lets the same application expose any useful
 boundary to Junjo Evaluation.
+
+Start with the existing outer Agent, observe a real failure, and improve a
+selected capability as a native Junjo workflow or specialist tool. Your coding
+agent can evaluate that capability independently and then rerun the outer
+Agent to verify the user-facing outcome. This integration supports Python;
+other framework integrations advertised as coming soon are not interchangeable
+with this adapter.
 
 Install the optional integration without adding OpenAI dependencies to
 applications that do not need them:
@@ -44,6 +51,28 @@ and exporters in the application's ordinary process-lifetime telemetry
 bootstrap. Pass that same provider to `instrument_openai_agents`, retain the
 returned integration handle, and close the handle before shutting down the
 provider.
+
+With the provider already configured by your application's
+[telemetry bootstrap](/docs/observability/opentelemetry/#complete-configuration-example),
+the bridge's lifetime is explicit:
+
+```python
+from agents import Runner
+from junjo.plugins.openai_agents import instrument_openai_agents
+
+# coordinator is your existing OpenAI Agent; tracer_provider is application-owned.
+integration = instrument_openai_agents(tracer_provider=tracer_provider)
+try:
+    result = await Runner.run(coordinator, "Check the status of my order.")
+finally:
+    integration.close()
+    tracer_provider.shutdown()
+```
+
+In a server, acquire these resources at startup and close them at shutdown,
+not once per request. The canonical example's
+[`telemetry.py`](https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/base_openai_agents/src/base_openai_agents/telemetry.py)
+shows the complete setup.
 
 The helper wraps the OpenAI Agents SDK's active first-party tracing provider
 and mirrors each source Trace and Span into the supplied OpenTelemetry
@@ -91,6 +120,28 @@ An OpenAI Agent may call both a Junjo Workflow and a Junjo Agent. Junjo Agent
 remains the native opinionated Agent option for applications that do not need
 an external outer runtime.
 
+For a concrete adapter, this fragment uses the typed input and workflow factory
+from the runnable `base_openai_agents` example:
+
+```python
+from base_openai_agents.application import LocalPlaceInput, build_workflow
+from junjo.plugins.openai_agents import WorkflowToolInvocation, workflow_as_tool
+
+workflow_tool = workflow_as_tool(
+    name="run_local_place_workflow",
+    description="Run the local-place workflow.",
+    input_type=LocalPlaceInput,
+    workflow_factory=lambda input_value: WorkflowToolInvocation(
+        workflow=build_workflow(input_value),
+    ),
+    output_projector=lambda result, input_value: result.state.response,
+)
+```
+
+Include `workflow_tool` in your OpenAI Agent's `tools`. In your application,
+substitute its own input model, workflow factory, and output projection. The
+adapter does not modify the outer Agent's prompts or decide when the tool runs.
+
 ## Evaluate the outer Agent or the native boundaries
 
 The optional `OpenAIAgentTarget` runs a real outer OpenAI Agent through the
@@ -120,6 +171,23 @@ optional integration skill is discoverable without a Junjo source checkout:
 ```bash
 junjo eval skill path --name junjo-openai-agents
 ```
+
+## Use the integration in an improvement cycle
+
+1. Capture an outer Agent execution and inspect its tool selection, arguments,
+   model output, and nested Junjo evidence in the same trace.
+2. Add the failure as an evaluation scenario for the outer Agent. Add a native
+   target when you also need to isolate a workflow, specialist, or Node.
+3. Let your coding agent change the failing capability, commit the candidate,
+   and run the same locked dataset through the application's real environment.
+4. Compare the affected cases and inspect both exact evidence references. Check
+   that the outer Agent uses the improved capability correctly, not just that
+   the capability passes in isolation.
+
+Use [evaluation datasets and runs](/docs/python/evaluation/) for the shared
+lifecycle and [recursive self improvement](/docs/recursive-self-improvement/)
+for the complete agent-to-human review process. Captured detail follows the
+source tracing policy; the bridge cannot reconstruct redacted content.
 
 ## Current telemetry coverage
 

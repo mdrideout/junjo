@@ -31,3 +31,10 @@ dd2608cf2d0d42915144291c9ba5e80fa1395481:.github/workflows/studio-rest-api-contr
 804b4e6f8c5a6c6233eb9dcb6d5cf8b08644b441:apps/studio/frontend/src/features/api-keys/ApiKeysPage.test.tsx:generic-api-key:52
 804b4e6f8c5a6c6233eb9dcb6d5cf8b08644b441:apps/studio/frontend/src/features/api-keys/ApiKeysPage.test.tsx:generic-api-key:81
 2887061f11300282cc8e420b389d0883616ec403:apps/studio/frontend/src/features/api-keys/ApiKeysPage.test.tsx:generic-api-key:87
+
+# The synthetic refund walkthrough dataset's human-readable key is
+# "refund-policy-docs-20260911-rsi", not an authentication credential.
+# It appears in dataset metadata repeated in the two evidence summaries.
+e444a5e7084ce34625256ae8c8ec23c6aac6d7e8:apps/website/documentation-review/refund-walkthrough.json:generic-api-key:35
+e444a5e7084ce34625256ae8c8ec23c6aac6d7e8:apps/website/documentation-review/refund-walkthrough.json:generic-api-key:431
+e444a5e7084ce34625256ae8c8ec23c6aac6d7e8:apps/website/documentation-review/refund-walkthrough.json:generic-api-key:734
