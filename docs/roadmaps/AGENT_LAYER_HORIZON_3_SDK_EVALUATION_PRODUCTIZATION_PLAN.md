@@ -1,6 +1,6 @@
 # Horizon 3 SDK Evaluation Productization Plan
 
-- Status: Implemented and validated
+- Status: Released in Python SDK 0.67.0 and Junjo AI Studio 0.83.0
 - Date: 2026-07-27
 - Owners: Junjo Python SDK, Junjo AI Studio, and AI Chat
 - Product requirements:
@@ -554,8 +554,11 @@ Exit gate:
 
 ### Next
 
-- Review and commit the coordinated SDK, Studio, AI Chat, and documentation
-  changes before starting the release workflow.
+- Staged evidence reads and evaluator calibration are implemented. Continue
+  the measured post-MVP sequence recorded in the
+  [Lean Evaluation MVP](AGENT_LAYER_HORIZON_3_LEAN_EVALUATION_MVP.md) with the
+  bounded application-local factual-verifier experiment. Reconsider MCP only
+  if the improved JSON-first workflow still demonstrates material friction.
 
 ### Deferred
 
@@ -615,6 +618,7 @@ This productization plan is complete when:
 - no new ingestion hot-path work or unbounded evidence hydration exists;
 - a standalone application proves the package boundary;
 - full cross-component and low-resource validation passes; and
-- the coordinated SDK and Studio release is ready to publish.
+- the coordinated SDK and Studio release is published with its compatibility
+  statements updated.
 
 MCP and the other deferred capabilities are not part of this completion gate.

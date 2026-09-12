@@ -5,6 +5,25 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
+from base_openai_agents.evals import ContainsExpectation, _contains
+
+
+def test_contains_text_evaluator_has_known_pass_and_fail_cases() -> None:
+    expectation = ContainsExpectation(text="  Brooklyn  ")
+
+    assert expectation.text == "Brooklyn"
+    assert _contains("A realistic Brooklyn recommendation.", expectation)
+    assert not _contains("A recommendation in Queens.", expectation)
+
+
+@pytest.mark.parametrize("text", ["", " ", "\t\n"])
+def test_contains_text_evaluator_rejects_blank_expectations(text: str) -> None:
+    with pytest.raises(ValidationError):
+        ContainsExpectation(text=text)
+
 
 def test_mixed_runtime_trace_and_evaluation_declarations() -> None:
     probe = Path(__file__).with_name("validation_probe.py")

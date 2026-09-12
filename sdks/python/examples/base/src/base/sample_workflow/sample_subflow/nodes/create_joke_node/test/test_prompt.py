@@ -1,5 +1,3 @@
-
-
 def test_evaluate_joke_prompt(joke: str, items: list[str]) -> str:
     """Prompt to create a user joke based on personality traits."""
 
@@ -23,6 +21,6 @@ Requirements:
 Items:
 {", ".join(items)}
 
-Be harsh in your evaluation. If the joke is not funny enough, or does not incorporate all of the items, or is not a joke
-then it fails to pass the requirements.
+Apply these requirements consistently. Set passed to false when the joke does not
+meet them, and make the reason identify the requirement that decided the result.
 """.strip()

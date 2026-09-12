@@ -72,6 +72,20 @@ Its versioned JSON response contains the absolute skill directory and
 `SKILL.md` path. Point the coding agent's normal skill installer at that
 directory once.
 
+The installed CLI also explains its own current interface:
+
+```bash
+junjo eval explain
+junjo eval explain --format json
+```
+
+The Markdown form is the concise command, configuration, authentication, and
+evidence-level reference for a developer or coding agent. The JSON form uses
+the CLI's normal versioned envelope for tooling. Both are generated from the
+same command definitions used by `--help` and capability discovery, so the
+explainer is not a second handwritten command manual. The skill owns workflow
+judgment; the explainer owns exact CLI mechanics.
+
 Installing the Python package does not silently activate a coding-agent skill.
 The explicit installation keeps agent configuration under the application
 developer's control while the versioned skill, SDK, CLI, and documentation
@@ -219,6 +233,18 @@ Built-in evaluators intentionally stay small:
 Applications can define domain meaning without owning Attempt transitions or
 Studio writes.
 
+One evaluator should decide one understandable product claim with explicit,
+observable binary conditions. Calibrate it against known-good, known-bad, and
+boundary examples before trusting its result. Use deterministic checks for
+deterministic facts and for current facts that can be verified from a
+trustworthy current source; an LLM judge should not be expected to remember
+whether a venue exists, is open, or is correctly located.
+
+The evaluator's reason should identify the observation that determined pass or
+fail. Deeper trace and source diagnosis belongs to the coding agent, which can
+combine that reason with exact execution evidence without turning one judge
+call into an open-ended investigation.
+
 ## Generate a case through real execution
 
 Dataset generation runs the same declared Node, Workflow, or Agent and records
@@ -297,18 +323,39 @@ exact execution links.
 
 ## Query exact evidence
 
-Control reads return bounded summaries. Complete trace evidence is hydrated
-only when requested:
+Evidence reads are intentionally staged so an agent can diagnose a result
+without downloading every full trace:
+
+1. read the Run and Attempt summaries;
+2. read a manifest for a failed, errored, surprising, or representative
+   Attempt;
+3. request the exact failed or otherwise relevant span IDs exposed by that
+   manifest; and
+4. request full evidence only when the whole trace is needed for relationship,
+   state-reconstruction, or integrity analysis.
 
 ```bash
 junjo eval run get --run-id RUN_ID
 junjo eval attempt get --attempt-id ATTEMPT_ID
-junjo eval attempt evidence --attempt-id ATTEMPT_ID
+junjo eval attempt evidence manifest --attempt-id ATTEMPT_ID
+junjo eval attempt evidence spans \
+  --attempt-id ATTEMPT_ID \
+  --span-id SPAN_ID
+junjo eval attempt evidence full --attempt-id ATTEMPT_ID
 junjo eval evidence membership \
   --kind junjo_execution \
   --executable-type workflow \
   --runtime-id WORKFLOW_RUN_ID
 ```
+
+The manifest includes the evaluated subject, trace shape, failed spans,
+executable and operation summaries, Store integrity, relationships, and
+diagnostics. Operation summaries recognize native Junjo operations plus the
+OpenInference and GenAI model and Tool conventions Studio already uses; an
+external operation can be present without a Junjo executable owner.
+Selected-span reads return complete normalized records for the explicit IDs.
+Full evidence remains lossless. Use `junjo eval explain` and the individual
+command help for the current flags and response contracts.
 
 Normal ingestion/indexing delay has a distinct pending-evidence error. An
 ambiguous semantic execution identity is a conflict, not an arbitrary first

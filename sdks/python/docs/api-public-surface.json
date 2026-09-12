@@ -2266,6 +2266,71 @@
     },
     {
       "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceDiagnostic",
+      "anchor": "junjo.studio.AttemptEvidenceDiagnostic"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceExecutableSummary",
+      "anchor": "junjo.studio.AttemptEvidenceExecutableSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceFailureSummary",
+      "anchor": "junjo.studio.AttemptEvidenceFailureSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceManifest",
+      "anchor": "junjo.studio.AttemptEvidenceManifest"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceOperationSummary",
+      "anchor": "junjo.studio.AttemptEvidenceOperationSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceRelationships",
+      "anchor": "junjo.studio.AttemptEvidenceRelationships"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceSpanItem",
+      "anchor": "junjo.studio.AttemptEvidenceSpanItem"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceSpanRequest",
+      "anchor": "junjo.studio.AttemptEvidenceSpanRequest"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceSpans",
+      "anchor": "junjo.studio.AttemptEvidenceSpans"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceSpanSummary",
+      "anchor": "junjo.studio.AttemptEvidenceSpanSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceStoreSummary",
+      "anchor": "junjo.studio.AttemptEvidenceStoreSummary"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceSubject",
+      "anchor": "junjo.studio.AttemptEvidenceSubject"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.AttemptEvidenceTraceSummary",
+      "anchor": "junjo.studio.AttemptEvidenceTraceSummary"
+    },
+    {
+      "kind": "class",
       "public_name": "junjo.studio.AttemptRead",
       "anchor": "junjo.studio.AttemptRead"
     },
@@ -2623,6 +2688,16 @@
       "kind": "method",
       "public_name": "junjo.studio.StudioClient.get_attempt_evidence",
       "anchor": "junjo.studio.StudioClient.get_attempt_evidence"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_attempt_evidence_manifest",
+      "anchor": "junjo.studio.StudioClient.get_attempt_evidence_manifest"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_attempt_evidence_spans",
+      "anchor": "junjo.studio.StudioClient.get_attempt_evidence_spans"
     },
     {
       "kind": "method",

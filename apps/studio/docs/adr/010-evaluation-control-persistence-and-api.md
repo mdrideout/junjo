@@ -145,7 +145,7 @@ score, mean score, confidence, or score delta.
 
 ### The HTTP surface is authenticated and bounded
 
-The MVP API provides only:
+The MVP control API provides:
 
 - create, list, and get Dataset;
 - add Case and lock Dataset;
@@ -155,18 +155,42 @@ The MVP API provides only:
 - record Attempt result; and
 - exact reverse evidence-membership lookup.
 
+Evidence reads use four explicit levels instead of one ambiguous hydration
+operation:
+
+1. the existing Attempt read returns the bounded control summary and evidence
+   reference;
+2. an Attempt evidence manifest returns the evaluated subject plus a compact
+   trace shape, executable hierarchy, operation summaries, Store integrity,
+   propagation relationships, diagnostics, and selectable span IDs;
+3. a selected-span read accepts an explicit list of span IDs and returns each
+   complete normalized span with directly owned semantic annotations and any
+   requested IDs that were not present; and
+4. the existing trace-evidence read remains the explicit, lossless full
+   evidence operation.
+
+The manifest includes every failed span so an agent can locate failures without
+first transferring the full trace to the caller. Each failure projection
+identifies the span and parent, name and semantic role, status and timing,
+exception type and message,
+whether a stack trace is available, and its semantic owner where known.
+Operation summaries cover native Junjo Agent operations and the OpenInference
+or GenAI model and Tool conventions Studio already recognizes. A third-party
+operation remains selectable even when it has no Junjo executable owner.
+
 The SDK client and JSON-first CLI are the primary programmatic consumers. List
 routes use cursor pagination and explicit maximum page sizes. Text and
 JSON inputs have declared byte limits. There is no update, delete, clone,
-cancel, lease, retry, bulk import, arbitrary query DSL, or automatic evidence
-hydration in this decision.
+cancel, lease, retry, bulk import, arbitrary evidence include/exclude language,
+arbitrary query DSL, or automatic evidence hydration in this decision.
 
-All routes require an authenticated Studio user. Evaluation control is a
-deployment-shared resource in the MVP: any authenticated user may add or lock
-Cases, start Runs, and bind or finalize Attempts. `created_by_user_id` is audit
-provenance, not an object-level access-control boundary. This matches Studio's
-current shared-resource model and must be revisited with the separately scoped
-remote automation credential rather than implied by creator ownership.
+All routes require an authenticated Studio browser session or a developer
+access token carrying the required evaluation or evidence scope. Evaluation
+control is a deployment-shared resource in the MVP: any authenticated user
+with the required operation scope may add or lock Cases, start Runs, and bind
+or finalize Attempts. `created_by_user_id` is audit provenance, not an
+object-level access-control boundary. This matches Studio's current
+shared-resource model rather than implying creator ownership.
 
 Human users manage developer access tokens through an ordinary encrypted
 Studio browser session. The management surface returns each stored bearer
@@ -198,7 +222,10 @@ four tables or ingestion hot path.
 
 A coding agent uses the SDK client or CLI to list/get datasets and runs,
 compare two runs over one dataset, resolve exact evidence membership, and
-request evidence for selected attempts. Comparison is a deterministic
+request evidence for selected attempts. It reads summaries first, then a
+manifest for the attempts that merit investigation, then exact selected spans.
+It requests full evidence only when relationships, state reconstruction, or an
+explicit integrity audit require the whole trace. Comparison is a deterministic
 projection over run detail, not new persisted state. The API does not add an
 arbitrary query DSL or eagerly hydrate evidence. MCP may later wrap the same
 SDK client; it is not a second Studio contract.

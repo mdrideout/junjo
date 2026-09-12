@@ -351,13 +351,24 @@ Acceptance criteria:
   terminal results with bounded pagination.
 - An attempt query returns its exact semantic execution reference and evidence
   readiness or integrity status.
-- Evidence queries can return the complete received trace plus Studio's
-  normalized Workflow, Agent, Node, Tool, model-operation, Store, relationship,
-  and loss annotations where present.
+- Evidence queries expose an explicit progression from a bounded Attempt
+  summary, to an evidence manifest, to requested exact spans, to the complete
+  received trace.
+- The manifest identifies the evaluated subject, compact executable hierarchy,
+  operations, Store integrity, relationships, diagnostics, selectable span
+  IDs, and every failed span with its exception summary and semantic owner.
+- A selected-span query accepts exact span IDs and returns the complete
+  normalized spans plus their directly owned semantic annotations and missing
+  IDs, without transferring the complete trace to the caller.
+- Full evidence can return the complete received trace plus Studio's normalized
+  Workflow, Agent, Node, Tool, model-operation, Store, relationship, and loss
+  annotations where present.
 - Exact IDs and machine-readable next-page tokens are returned without relying
   on timestamps as identity.
-- The agent can request concise summaries first and explicitly hydrate larger
-  evidence, avoiding a fanout query for every row.
+- The agent can inspect summaries for all Attempts, manifests for the Attempts
+  worth investigating, selected spans for focused diagnosis, and full evidence
+  only when the whole trace is justified, avoiding a fanout query for every
+  row.
 - Studio UI deep links and programmatic query results resolve the same
   execution.
 
@@ -459,8 +470,14 @@ Acceptance criteria:
   process listings or output.
 - A capability command reports CLI, SDK, Studio API, and evaluation contract
   versions.
-- `--help` includes complete examples and the SDK publishes the corresponding
-  request and response schemas.
+- `junjo eval explain` describes commands, configuration, authentication
+  boundaries, evidence levels, and the output contract in Markdown for an
+  agent or human and in the normal versioned JSON envelope for tooling. Its
+  content is generated from the same canonical CLI definitions used by parser
+  help and capability discovery.
+- Command `--help` is the exact syntax reference, the installed coding-agent
+  skill owns workflow and judgment guidance, and the SDK publishes the
+  corresponding request and response schemas.
 - Logs and progress go to standard error when structured results go to standard
   output.
 - The coding-agent skill invokes these supported commands and does not

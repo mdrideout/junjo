@@ -24,8 +24,10 @@ async def judge_text(
 
     return await language.generate_structured(
         prompt=f"""
-Evaluate the supplied subject against the rubric. Be strict and judge only the
-evidence present. Return a binary passed decision and a concise reason.
+Evaluate the supplied subject against the rubric. Judge only the evidence
+present; do not assume current facts that are not supplied. Return a binary
+passed decision and a concise reason that names the deciding rubric condition
+and the exact observation that satisfied or violated it.
 
 RUBRIC:
 {rubric}

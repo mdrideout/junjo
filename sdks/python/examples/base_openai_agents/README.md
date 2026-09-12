@@ -74,12 +74,22 @@ uv run --env-file .env junjo eval evaluators list
 
 A developer can then ask their coding agent:
 
-> Build a small evaluation dataset for realistic local-place responses, run a
-> baseline, and summarize the failures with links to the exact spans.
+> Build a small evaluation dataset that checks the scripted response for an
+> expected locality marker, run a baseline, and summarize the failures with
+> links to the exact spans.
 
 The installed skill owns target discovery, dataset construction, execution,
 and evidence querying. The developer does not need to manually construct REST
 requests or copy telemetry into Studio.
+
+This example's `contains_text` evaluator is deliberately small and
+deterministic. It proves that an explicit expected string can pass (for
+example, `{"text": "Brooklyn"}` against the scripted Brooklyn response) and
+that an absent string can fail (for example, `{"text": "Queens"}`). This is a
+contract and locality-marker check for the evaluation plumbing; it does not
+prove that a recommendation is factually real, current, or high quality. A
+real application should use a separately calibrated domain evaluator for that
+claim.
 
 ## Privacy
 

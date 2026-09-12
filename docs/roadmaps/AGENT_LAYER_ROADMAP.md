@@ -13,10 +13,11 @@ diagnostics, persistence, both composition directions, the restored live
 AI-powered application, provider evals, and exact Studio evidence resolution
 have all passed their ownership-specific gates.
 
-The remaining application work is governed by the
+The application restoration and independently versioned production cutover
+are complete. Their implementation record remains in the
 [AI Chat Product Restoration And Eval-Driven Development Plan](AI_CHAT_PRODUCT_RESTORATION_AND_EVAL_DRIVEN_DEVELOPMENT.md).
-The independently versioned production cutover remains separate from the
-runtime-design and product-restoration gates.
+The active product work is Horizon 3's released Lean Evaluation MVP and its
+measured post-MVP improvements.
 
 The completed Horizon 0 decision and sequencing record lives in
 [AGENT_LAYER_PHASE_0.md](AGENT_LAYER_PHASE_0.md).
@@ -407,7 +408,7 @@ Junjo execution concepts.
 ### Horizon 1: Deterministic Agent Kernel And Evidence Path
 
 Status: Complete as of 2026-07-14. The independently versioned production
-cutover remains pending.
+cutover subsequently shipped in Python SDK 0.67.0 and Studio 0.83.0.
 
 #### Objective
 
@@ -468,9 +469,9 @@ normal Junjo platform capabilities.
 
 #### Production cutover gate
 
-- [ ] Publish Python SDK `0.65.0`, then Studio `0.82.0` or newer with the
-  canonical VM/Caddy SDK pin and both deployment compatibility statements
-  updated to `0.65.0`; publish generated mirrors in that Studio release.
+- [x] Published Python SDK `0.67.0`, then Studio `0.83.0`, with the canonical
+  deployment SDK pins, compatibility statements, and generated release mirrors
+  updated together.
 
 ### Horizon 2: AI Chat Hybrid Execution Proof
 
@@ -513,6 +514,10 @@ SDK's deterministic Agent/Workflow failure, limit, cancellation, and
 concurrency matrices. AI Chat does not duplicate those kernel tests.
 
 ### Horizon 3: Studio Eval Measurement And Comparison
+
+Status: Lean MVP released in Python SDK 0.67.0 and Studio 0.83.0. Broader
+Horizon 3 work is evidence-led; staged evidence reads and evaluator calibration
+are the immediate post-MVP slice.
 
 Horizon 2 restores application-owned live evals as a core AI Chat development
 practice. Horizon 3 builds platform-level measurement and comparison on top of
