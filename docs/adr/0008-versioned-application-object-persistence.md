@@ -3,7 +3,7 @@
 - Status: Amended; bounded AI Chat Turn accepted, generalized object/schema
   substrate withdrawn
 - Date: 2026-07-14
-- Amended: 2026-08-30 (generalized substrate withdrawn and Horizon 5 cancelled)
+- Amended: 2026-08-30 (generalized substrate withdrawn)
 - Owners: Junjo platform
 
 ## 2026-08-30 amendment
@@ -162,4 +162,3 @@ boundary; it did not prove the generalized substrate.
 - [ADR 0003: Agent execution model](0003-agent-execution-model.md)
 - [ADR 0005: Agent and Workflow composition](0005-agent-workflow-composition.md)
 - [ADR 0007: Application execution correlation and Studio resolution](0007-execution-correlation-and-studio-resolution.md)
-- [Agent layer roadmap](../roadmaps/AGENT_LAYER_ROADMAP.md)
