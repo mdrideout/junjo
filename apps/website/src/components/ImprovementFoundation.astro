@@ -1,0 +1,33 @@
+---
+import FoundationBackground from './FoundationBackground.astro';
+---
+
+<section class="improvement-foundation" aria-labelledby="foundation-title">
+  <FoundationBackground />
+  <div class="text-shade" aria-hidden="true"></div>
+  <div class="section-inner">
+    <h2 id="foundation-title">A foundation for <br /><em>recursive self-improvement.</em></h2>
+    <div class="description">
+      <p>Junjo enables your coding agent to recursively improve your AI application by methodically exploring and evaluating architectures and approaches that deliver value to improve speed, quality, and cost.</p>
+      <p>Keep your coding agent, application runtime, and observation layers separate. Stop reinventing telemetry and evaluation infrastructure on every project. Junjo was designed to support this layer for virtually any AI application.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .improvement-foundation { position: relative; isolation: isolate; overflow: hidden; padding: clamp(72px,7vw,96px) 4vw; border-bottom: 1px solid #25324b66; background: radial-gradient(ellipse at 85% 60%,#132d552e,transparent 65%),#070a12; }
+  .text-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(90deg,#070a12e6 0%,#070a12ac 45%,#070a1238 78%,#070a1210 100%);
+    mask-image: linear-gradient(to bottom,#000 78%,transparent 98%); }
+  .section-inner { max-width: 1200px; margin-inline: auto; }
+  h2 { font-size: clamp(34px,4.25vw,62px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; margin: 0 0 32px; text-wrap: balance; }
+  em { font-style: normal; color: #83a5ff; }
+  .description { max-width: calc(100% * 2 / 3); }
+  .description p { margin: 0; color: #c0cbdd; font-size: clamp(18px,1.6vw,22px); line-height: 1.75; text-shadow: 0 1px 7px #070a12; }
+  .description p + p { margin-top: 24px; }
+  @media(max-width: 760px) {
+    .description { max-width: 100%; }
+    .improvement-foundation { padding: 72px 24px; }
+    h2 { font-size: clamp(32px,7.5vw,44px); margin-bottom: 28px; }
+  }
+</style>

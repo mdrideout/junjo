@@ -5,7 +5,7 @@ const stages = ['Harvest', 'Run', 'Evaluate', 'Improve'];
 const tasks = ['feature_a', 'feature_b', 'failure_mode_1', 'failure_mode_2'];
 ---
 <improvement-cycle-motion class:list={{ parallel }}>
-  <div class="visual-scroll" role="region" aria-label={parallel ? 'Four parallel recursive self improvement cycles' : 'Scheduled recursive self improvement cycle'}>
+  <div class="visual-scroll" role="region" aria-label={parallel ? 'Four parallel recursive self-improvement cycles' : 'Scheduled recursive self-improvement cycle'}>
     {parallel ? <><svg class="parallel-wide" viewBox="0 0 1040 555" role="img" aria-label="feature_a, feature_b, failure_mode_1, and failure_mode_2 each run their own harvest, run, evaluate, and improve loop with shared datasets and telemetry in Junjo AI Studio.">
       <g class="stage-label">{stages.map((stage, i) => <text x={250 + i * 130} y="26">{stage}</text>)}</g>
       {tasks.map((task, row) => <g transform={`translate(0 ${85 + row * 120})`} class="parallel-row" data-row={row}>
