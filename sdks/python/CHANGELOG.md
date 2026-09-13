@@ -4,6 +4,35 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+## 0.68.0 - 2026-09-13
+
+### Breaking Changes
+
+- The evaluation CLI now requires an explicit evidence subcommand: `manifest`,
+  `spans`, or `full`. Update scripts that used the previous attempt-evidence
+  command to choose the intended level of detail. Use Studio 0.84.0 for the
+  corresponding evidence endpoints.
+
+### Library
+
+- Added staged evaluation-evidence queries to the Studio client and CLI: inspect
+  an attempt's evidence manifest, retrieve selected spans, or explicitly request
+  complete trace evidence.
+- Added discoverable CLI interface metadata and expanded command guidance so
+  coding agents can select the appropriate evidence query before loading payloads.
+- Store commits now own mutable values received from patches and prospective
+  state. Mutating a caller-owned object after a commit cannot silently change
+  stored state or its recorded execution history.
+- Fixed Agent and Tool boundary-schema traversal to inspect actual child schemas
+  without interpreting application defaults, literals, or metadata as schemas.
+
+### Docs and Examples
+
+- Expanded public API documentation and coding-agent evaluation guidance for
+  investigating failures, comparing approaches, and inspecting evaluator evidence.
+- Clarified application ownership of model adapters, external side effects,
+  artifact storage, capture policies, and evaluation-run recovery.
+
 ## 0.67.0 - 2026-08-23
 
 ### Breaking Changes

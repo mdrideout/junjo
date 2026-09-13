@@ -1,16 +1,16 @@
 {
   "version": 1,
   "python": {
-    "version": "0.67.0",
-    "release_tag": "sdk-python-v0.67.0",
-    "documentation_ref": "sdk-python-v0.67.0",
+    "version": "0.68.0",
+    "release_tag": "sdk-python-v0.68.0",
+    "documentation_ref": "sdk-python-v0.68.0",
     "content_format": "owned-markdown",
     "migration_snapshot": false
   },
   "studio": {
-    "version": "0.83.0",
-    "release_tag": "studio-v0.83.0",
-    "documentation_ref": "studio-v0.83.0",
+    "version": "0.84.0",
+    "release_tag": "studio-v0.84.0",
+    "documentation_ref": "studio-v0.84.0",
     "content_format": "owned-markdown",
     "migration_snapshot": false
   }
