@@ -240,6 +240,10 @@ service names, and do not use its own `localhost` as the Studio destination.
 
 ## Scaling Considerations
 
+See [performance and deployment sizing](/docs/studio/performance-and-deployment/)
+for measured throughput by resource allocation, workload sizing, and the
+requirements for separating services across machines.
+
 ### Vertical Scaling
 
 Keep backend and ingestion together on the supported shared-storage host.

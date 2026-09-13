@@ -50,6 +50,10 @@ inference and evaluation execution remain in your application environment.
 Size persistent storage for your actual trace volume and retained history;
 the VM size is a practical starting point, not a throughput benchmark.
 
+See [performance and deployment sizing](/docs/studio/performance-and-deployment/)
+for measured spans per second under explicit CPU and memory limits, the storage
+pipeline, and guidance on growing beyond the initial host profile.
+
 Use the distribution's setup and Caddy configuration together. In production,
 the frontend and backend must share a registrable domain for Studio's browser
 session cookies. The canonical source lives in

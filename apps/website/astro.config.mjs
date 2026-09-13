@@ -120,6 +120,7 @@ export default defineConfig({
           items: [
             { label: "Overview", slug: "docs/studio/overview" },
             { label: "Deployment", slug: "docs/studio/deployment" },
+            { label: "Performance & Deployment Sizing", slug: "docs/studio/performance-and-deployment" },
             { label: "Docker Reference", slug: "docs/studio/docker-reference" },
           ],
         },

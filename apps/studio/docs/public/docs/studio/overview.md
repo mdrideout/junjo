@@ -230,6 +230,11 @@ Studio is designed for small hosts, including a 1GB RAM VM. Your application
 and model execution can run elsewhere. See [resource and storage guidance](/docs/studio/docker-reference/#resource-requirements)
 when choosing capacity for your telemetry volume and queries.
 
+[Performance and deployment sizing](/docs/studio/performance-and-deployment/)
+shows absolute throughput, latency, and completed indexing under recorded
+resource limits, and explains Studio's composable services and shared-storage
+boundaries.
+
 ## Configuration
 
 <a id="step-1-generate-an-api-key"></a>
