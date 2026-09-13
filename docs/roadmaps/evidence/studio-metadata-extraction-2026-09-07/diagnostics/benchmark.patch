@@ -1,0 +1,141 @@
+--- a/auth_path_benchmark.py
++++ b/auth_path_benchmark.py
+@@ -265,6 +265,10 @@
+                 end_time_unix_nano=now_ns + 1_000,
+             )
+         )
++    for i, span in enumerate(spans):
++        attributes = [{"junjo.span_type": "workflow"}, {"junjo.span_type": "agent"}, {"openinference.span.kind": "LLM"}, {"gen_ai.provider.name": "xai"}, {"gen_ai.operation.name": "chat"}, {"junjo.span_type": "node"}][i % 6]
++        for key, value in {**attributes, "input": "Synthetic request: 日本語", "model": "synthetic"}.items():
++            span.attributes.append(common_pb2.KeyValue(key=key, value=common_pb2.AnyValue(string_value=value)))
+     return trace_service_pb2.ExportTraceServiceRequest(
+         resource_spans=[
+             trace_pb2.ResourceSpans(
+@@ -272,7 +276,7 @@
+                     attributes=[
+                         common_pb2.KeyValue(
+                             key="service.name",
+-                            value=common_pb2.AnyValue(string_value="auth-benchmark"),
++                            value=common_pb2.AnyValue(string_value="metadata-benchmark-" + str(exporter_id % 3)),
+                         )
+                     ]
+                 ),
+@@ -432,6 +436,9 @@
+         for service in ("backend", "ingestion")
+     }
+     while not stop.is_set():
++        if os.environ.get("JUNJO_DIAGNOSTIC_NO_SAMPLER")=="1":
++            await stop.wait()
++            return
+         command = [
+             "docker",
+             "stats",
+@@ -797,6 +804,7 @@
+             run(["docker", "inspect", container_id], env=environment).stdout
+         )[0]
+         item = {
++            "mounts": [{"source": m["Source"], "destination": m["Destination"], "type": m["Type"]} for m in info["Mounts"]],
+             "image_id": info["Image"],
+             "state": info["State"]["Status"],
+             "exit_code": info["State"]["ExitCode"],
+@@ -830,6 +838,9 @@
+                 / 1_000_000
+             )
+             item["peak_cgroup_memory_bytes"] = int(lines[-1])
++            item["cpu_stat"] = {line.split()[0]:int(line.split()[1]) for line in lines[:-1]}
++            extra=run(["docker","exec",container_id,"sh","-c","cat /sys/fs/cgroup/cpu.max; cat /sys/fs/cgroup/memory.events; cat /proc/1/io"],env=environment).stdout
++            item["diagnostic_counters"] = extra
+         metrics[service] = item
+     return metrics
+ 
+@@ -917,6 +928,19 @@
+         start.set()
+         await asyncio.gather(*exporters)
+         workload_seconds = time.perf_counter() - workload_started
++        ingestion_resources_after = container_metrics(environment, config.use_auth_proxy)
++        ingestion_queries = {"result_codes": dict(query_codes), **latency_summary(query_latencies)}
++        phase={"offered_spans":config.exporters * config.exports_per_exporter * config.spans_per_export,"acknowledged_spans":sum(acknowledged.values()),"final_codes":dict(export_final_codes),"attempt_codes":dict(export_attempt_codes),"workload_seconds":workload_seconds,"containers":ingestion_resources_after}
++        Path("/tmp/junjo-metadata-20260907/results",config.implementation_label+".ingestion-phase.json").write_text(json.dumps(phase,indent=2)+"\n")
++        if phase["acknowledged_spans"] == phase["offered_spans"]:
++            completed = await asyncio.to_thread(
++                run, compose_command(False, "exec", "-T", "backend", "python", "/metadata-benchmark/finish_indexing.py", str(phase["offered_spans"])), env=environment
++            )
++            indexing = json.loads(completed.stdout.strip().splitlines()[-1])
++        else:
++            # Failed exports already fail acceptance; do not wait for rows never accepted.
++            indexing={"status":"skipped_after_failed_exports","indexed_rows":None}
++        completed_work_seconds = time.perf_counter() - workload_started
+         query_stop.set()
+         await asyncio.gather(*query_tasks)
+         resources_after = container_metrics(environment, config.use_auth_proxy)
+@@ -1041,6 +1065,7 @@
+         }
+ 
+     acceptance = {
++        "all_offered_spans_indexed": indexing["indexed_rows"] == config.exporters * config.exports_per_exporter * config.spans_per_export,
+         "all_exports_succeeded": successful_exports == total_exports,
+         "all_queries_succeeded": set(query_codes) <= {"200"},
+         "no_oom_or_restarts": all(
+@@ -1065,6 +1090,10 @@
+         acceptance["revocation_acceptance_bound_met"] = revocation_bound_met
+ 
+     return {
++        "indexing": indexing,
++        "completed_work_seconds": completed_work_seconds,
++        "container_after_ingestion": ingestion_resources_after,
++        "queries_during_ingestion": ingestion_queries,
+         "container_before": resources_before,
+         "container_after": resources_after,
+         "container_after_recovery": resources_recovered,
+@@ -1276,6 +1305,11 @@
+                 raise RuntimeError(
+                     f"benchmark composition failed to start:\n{startup.stdout}"
+                 )
++            source_output = run(compose_command(False, "exec", "-T", "backend", "sha256sum", "/app/app/features/parquet_indexer/parquet_reader.py", "/app/app/db_sqlite/metadata/indexer.py"), env=environment).stdout
++            actual_sources = {line.split()[1]: line.split()[0] for line in source_output.strip().splitlines()}
++            expected_sources = json.loads(environment["JUNJO_METADATA_EXPECTED_SOURCE_SHA256"])
++            if actual_sources != expected_sources:
++                raise RuntimeError(f"Backend source mismatch: {actual_sources} != {expected_sources}")
+             result = asyncio.run(
+                 execute_benchmark(
+                     config,
+@@ -1286,6 +1320,7 @@
+                     data_path,
+                 )
+             )
++            result["backend_source_sha256"] = actual_sources
+             if config.verify_delivery:
+                 from delivery import verify_delivery
+ 
+@@ -1319,6 +1354,18 @@
+                 result["acceptance"]["all_acknowledged_spans_persisted"] = result[
+                     "delivery"
+                 ]["all_acknowledged_spans_persisted"]
++                if os.environ.get("JUNJO_DIAGNOSTIC_KEEP_PARQUET"):
++                    import shutil
++                    fixture_dir=Path(os.environ["JUNJO_DIAGNOSTIC_KEEP_PARQUET"])
++                    fixture_dir.mkdir(parents=True,exist_ok=True)
++                    first=next(iter(sorted((data_path/"spans/parquet").rglob("*.parquet"))),None)
++                    if first is not None:
++                        shutil.copy2(first,fixture_dir/(config.implementation_label+".parquet"))
++        except Exception as exc:
++            if args.output:
++                failure={"implementation_label":config.implementation_label,"error":str(exc),"source_sha256":locals().get("actual_sources"),"containers":container_metrics(environment,config.use_auth_proxy)}
++                args.output.with_suffix(".failure.json").write_text(json.dumps(failure,indent=2)+"\n")
++            raise
+         finally:
+             if args.output:
+                 service_logs = run(
+@@ -1349,6 +1396,12 @@
+                 check=False,
+             )
+ 
++    result["diagnostic_environment"] = {key:os.environ.get(key, "") for key in ["JUNJO_BENCHMARK_COMPOSE_OVERLAY", "JUNJO_DIAGNOSTIC_CPROFILE", "JUNJO_DIAGNOSTIC_NO_SAMPLER"]}
++    if all(item["nano_cpus"] == 0 and item["cpuset_cpus"] == "0" for item in result["container_after"].values()):
++        result["constraints"]["backend_cpus"] = None
++        result["constraints"]["ingestion_cpus"] = None
++        result["constraints"]["aggregate_cpuset_cpus"] = 1
++        result["constraints"]["allocation_model"] = "one shared virtual CPU; no individual quotas"
+     result["recorded_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+     rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
+     if args.output:

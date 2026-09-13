@@ -1,0 +1,15 @@
+{
+  "mounts": {
+    "junjo-ai-studio-backend": [
+      "/tmp/junjo-robustness-20260906/new-data-minimal"
+    ],
+    "junjo-ai-studio-ingestion": [
+      "/tmp/junjo-robustness-20260906/new-data-minimal"
+    ]
+  },
+  "services": [
+    "junjo-ai-studio-backend",
+    "junjo-ai-studio-frontend",
+    "junjo-ai-studio-ingestion"
+  ]
+}

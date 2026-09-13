@@ -1,0 +1,119 @@
+{
+  "offered_spans": 960000,
+  "acknowledged_spans": 956544,
+  "final_codes": {
+    "OK": 29892,
+    "UNAVAILABLE": 108
+  },
+  "attempt_codes": {
+    "UNAVAILABLE": 1523,
+    "OK": 29892
+  },
+  "workload_seconds": 66.21863808308262,
+  "containers": {
+    "backend": {
+      "mounts": [
+        {
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "type": "bind"
+        },
+        {
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-nk314eaw/data",
+          "destination": "/app/.dbdata",
+          "type": "bind"
+        }
+      ],
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 0,
+      "nano_cpus": 500000000,
+      "cpuset_cpus": "",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "cpu_usage_seconds": 29.917129,
+      "peak_cgroup_memory_bytes": 471859200,
+      "cpu_stat": {
+        "usage_usec": 29917129,
+        "user_usec": 13955102,
+        "system_usec": 15962027,
+        "nice_usec": 0,
+        "nr_periods": 729,
+        "nr_throttled": 440,
+        "throttled_usec": 29626381,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 252182\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 91172\nwchar: 6614\nsyscr: 47\nsyscw: 7\nread_bytes: 221184\nwrite_bytes: 0\ncancelled_write_bytes: 0\n"
+    },
+    "ingestion": {
+      "mounts": [
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "destination": "/app/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "destination": "/app/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "destination": "/app/build.rs",
+          "type": "bind"
+        },
+        {
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "destination": "/usr/local/cargo/registry",
+          "type": "volume"
+        },
+        {
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "destination": "/app/target",
+          "type": "volume"
+        },
+        {
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-nk314eaw/data",
+          "destination": "/app/.dbdata",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "destination": "/app/src",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "destination": "/proto",
+          "type": "bind"
+        }
+      ],
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 0,
+      "nano_cpus": 500000000,
+      "cpuset_cpus": "",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "cpu_usage_seconds": 6.074252,
+      "peak_cgroup_memory_bytes": 74514432,
+      "cpu_stat": {
+        "usage_usec": 6074252,
+        "user_usec": 3557575,
+        "system_usec": 2516677,
+        "nice_usec": 0,
+        "nr_periods": 664,
+        "nr_throttled": 28,
+        "throttled_usec": 1251821,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 92987\nwchar: 6614\nsyscr: 43\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 16384\ncancelled_write_bytes: 0\n"
+    }
+  }
+}

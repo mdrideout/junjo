@@ -47,6 +47,32 @@ Studio never executes uploaded source code. Complete telemetry still enters
 Studio through authenticated OTLP; evaluation REST operations store only
 bounded control records and exact evidence references.
 
+Junjo can support your application's outer orchestration, model–Tool execution
+loop, and application state, or be adopted selectively alongside an existing
+runtime. A native Junjo Agent owns the model–Tool loop; Workflows, Nodes, and
+Stores structure application execution and state changes.
+
+These components are purposefully designed to produce detailed execution
+evidence. When orchestration and state updates flow through Junjo, you can
+follow which operation changed a value, when it changed, and how that change
+contributed to the final outcome. Using Junjo for outer orchestration and
+application state extends this visibility across the application's execution.
+
+For applications handling many concurrent LLM calls, Junjo also provides a
+state-management foundation you do not have to build yourself. Workflow and
+Agent executions isolate their run state; Store reads return detached
+snapshots, and each state update is validated and committed atomically against
+the current state under the Store lock. Your application defines its domain
+actions and validation rules while Junjo supplies the update mechanics and
+recorded change history. See [state management](/docs/python/workflows/state/)
+for the supported update model and
+[Studio's state history](/docs/studio/overview/#3-state-step-debugging) for
+investigating those changes.
+
+Developers can adopt these capabilities together or incrementally. Telemetry
+and evaluation remain available when an existing server, agent framework, or
+job system continues to own the outer runtime.
+
 The lifecycle is **draft cases → lock dataset → execute baseline → commit a
 change → rerun the same dataset → compare and inspect evidence**. Setup happens
 once per application: connect telemetry, configure a developer access token,
@@ -320,6 +346,13 @@ judgment, and writes one terminal result.
 Resume skips terminal Attempts. A queued Attempt with an already bound subject
 is not executed again; it is finalized as interrupted, and a new Run is the
 explicit subject-retry boundary.
+
+A queued Attempt without bound subject evidence is eligible for execution on
+resume. If the previous process stopped after application work began but before
+evidence binding completed, that work may execute again. Resume does not
+guarantee exactly-once external execution. Application-owned operations retain
+responsibility for idempotency and recovery from uncertain outcomes. Resume
+also requires the same clean source revision recorded by the Run.
 
 After a committed prompt or implementation change, execute the same locked
 Dataset with a new request key, then compare exact Case IDs:

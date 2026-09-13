@@ -1,0 +1,76 @@
+{
+  "base_commit": "318201a856f72eb61a6a2fce86afc0b15b21432d",
+  "platform": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "docker_resources": "12 42060505088 aarch64 7.0.14-orbstack-00380-ga7e0a2dc9535",
+  "source_sha256": {
+    "apps/studio/ingestion/src/server/trace_service.rs": "6f4c45c00c1f58adf5f6a753db2fe06832287fbfef01d64e0b1447570a4871dd",
+    "apps/studio/ingestion/src/wal/arrow_wal.rs": "4b09bce0313bad14155101e29214dd98cc98217ce02485b84619b4458a7ef046",
+    "apps/studio/ingestion/src/flusher/mod.rs": "6a7343b0dd452ed5768d87c227a51d84c252d03dd59eb7f056c1149c0e769a42",
+    "apps/studio/ingestion/src/config.rs": "79ebe9bc3c9f262d95b1a150b06063f4c6f7c097954a7f3119ab68b5db9f9faf",
+    "apps/studio/ingestion/Cargo.lock": "f2036e802e88b8498d88c5790152f60278784f38fcc2767b015721eaff41833b",
+    "apps/studio/ingestion/benchmarks/auth_path_benchmark.py": "d07dd4e6e407289dc364366210874ec80d098895be24dbcd5e002465d81e10b9",
+    "apps/studio/ingestion/benchmarks/delivery.py": "d3cf7dfb7d3e8ef4367e9c53a962a4027fafd11a9adfde08d52ac031ac2f119a",
+    "sdks/python/src/junjo/store.py": "2289b7da5da7d2d30308bcab19aa1bf0ba05292b2178aea63f641c87bf0920d8",
+    "sdks/python/benchmarks/store_ownership.py": "080a74bcd144daca312934cc393238d2c79bc599bf18a555e7244928159ceb3a",
+    "sdks/python/uv.lock": "0a2b87d8a7b4a7e83988d23ce283973a1492cc030d2806b2a9a6f406c786ea11",
+    "apps/studio/ingestion/benchmarks/compare_results.py": "3fb65db4c96f8a040f31421a1e6c83fb4b382fad409323fc6cc8bbf3566ebf79",
+    "apps/studio/ingestion/benchmarks/compose.auth-benchmark.yaml": "716e91e68077fd50eae2c2a2c3b62af174bd3a236beb6896e98c650cffc3fcab"
+  },
+  "images": {
+    "junjo-durability-baseline:local": {
+      "id": "sha256:caee27c19686e358bc6492e59ca77ffb991eb1093f9d4b0c461420190642bfa6",
+      "architecture": "arm64",
+      "created": "2026-09-05T13:36:03.673609473-04:00"
+    },
+    "junjo-durability-backend:local": {
+      "id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "architecture": "arm64",
+      "created": "2026-09-05T13:33:55.166171042-04:00"
+    },
+    "junjo-robustness-ingestion:local": {
+      "id": "sha256:c8060a079505362a685e94f1b9e1e67c0bde24f793eee0ac41aae9e0a5c025e1",
+      "architecture": "arm64",
+      "created": "2026-09-06T18:58:42.030550293-04:00"
+    },
+    "junjo-robustness-try-send:local": {
+      "id": "sha256:06a82c635880f04c49a313dd22aa6b90f911b1ceb9f152ba8712f97ca32968c0",
+      "architecture": "arm64",
+      "created": "2026-09-06T19:12:34.127517179-04:00"
+    },
+    "junjo-robustness-baseline-rebuilt:local": {
+      "id": "sha256:29ea89fbab12b20128ce5136b6ee50a734763b4911bac738cae5bf3176a57e8d",
+      "architecture": "arm64",
+      "created": "2026-09-06T19:39:44.030303303-04:00"
+    },
+    "junjo-robustness-baseline-exact:local": {
+      "id": "sha256:3ff1e14c90c4b27667d465ae27998cd45adeee3b47e222404ea579f6157b6c12",
+      "architecture": "arm64",
+      "created": "2026-09-05T13:36:03.673609473-04:00"
+    },
+    "junjo-robustness-explicit-drop:local": {
+      "id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "architecture": "arm64",
+      "created": "2026-09-06T19:39:52.818083105-04:00"
+    },
+    "junjo-robustness-sdk:local": {
+      "id": "sha256:07ba1d278698e2c2024ac5f32135a779bfead1246ed3e5dc6e6b46cacc905989",
+      "architecture": "arm64",
+      "created": "2026-09-06T18:55:09.142183655-04:00"
+    }
+  },
+  "excluded_from_acceptance": [
+    "ingestion-final-*-r1.json: overlapping full Studio validation; retained as diagnostics",
+    "control-tests-sustained-r1.json: 50 final INTERNAL exports; failed acceptance",
+    "affinity-old-sustained-r1.json: 17 final INTERNAL exports; failed acceptance"
+  ],
+  "sdk_confirmation": "five alternating pairs; actual final SDK source; 0.5 CPU, 350 MiB, no swap",
+  "source_hash_scope": "Final worktree only; result prefixes distinguish earlier runtime candidates and measurement phases. Do not attribute final harness hashes to earlier phases.",
+  "final_candidate": "junjo-robustness-explicit-drop:local; source diff in final-notification.diff",
+  "binary_sha256": {
+    "old": "cfd03bffb438a9dfaad9a27cff0b52fbf6fe72f6a497d1f864c4b142f5795b18",
+    "rebuilt_with_tests": "15d5dc7d9a95fb1aaad50feba72094aa02db91e578c1b70915eb308b52d744cb",
+    "explicit_drop": "805e67ffd68e05884864c3484787c5c2df2d52015598c9d389953feb8789a0ad",
+    "rebuilt_exact": "cfd03bffb438a9dfaad9a27cff0b52fbf6fe72f6a497d1f864c4b142f5795b18"
+  },
+  "ingestion_release_disposition": "Maintainer explicitly accepted the current changes and possible measured cost on 2026-09-07. Historical numeric gates remain failed; further mechanical profiling requested. No release was performed."
+}

@@ -1,0 +1,19 @@
+{
+  "completed": 3000,
+  "wall_seconds": 1.8939195179846138,
+  "operations_per_second": 1584.0166234689873,
+  "cpu_seconds": 0.9425026240000001,
+  "cpu_us_per_operation": 314.16754133333336,
+  "p95_ms": 0.4085439722985029,
+  "p99_ms": 0.5385050317272544,
+  "peak_rss_mib": 41.07421875,
+  "before_rss_mib": 38.921875,
+  "after_work_rss_mib": 41.25,
+  "after_release_rss_mib": 41.25,
+  "label": "sdk-merged-replace-32-r1",
+  "case": "replace",
+  "iterations": 3000,
+  "size": 32,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "734938a306be055d0954742079215493f172b269f06f2481de357fab717732c4"
+}

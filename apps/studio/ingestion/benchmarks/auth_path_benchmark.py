@@ -41,10 +41,12 @@ from opentelemetry.proto.resource.v1 import resource_pb2
 from opentelemetry.proto.trace.v1 import trace_pb2
 
 DEFAULT_STUDIO_ROOT = Path(__file__).resolve().parents[2]
-STUDIO_ROOT = Path(os.environ.get("JUNJO_BENCHMARK_COMPOSE_ROOT", DEFAULT_STUDIO_ROOT)).resolve()
+STUDIO_ROOT = Path(
+    os.environ.get("JUNJO_BENCHMARK_COMPOSE_ROOT", DEFAULT_STUDIO_ROOT)
+).resolve()
 BASE_COMPOSE = STUDIO_ROOT / "compose.yaml"
 BENCHMARK_COMPOSE = Path(__file__).with_name("compose.auth-benchmark.yaml")
-PROJECT_NAME = "junjo-auth-benchmark"
+PROJECT_NAME = os.environ.get("JUNJO_BENCHMARK_PROJECT_NAME", "junjo-auth-benchmark")
 SYNTHETIC_EMAIL = "auth-benchmark@example.com"
 SYNTHETIC_PASSWORD = "benchmark-password-123"
 REVOCATION_ACCEPTANCE_TOLERANCE_SECONDS = 1.0
@@ -75,6 +77,8 @@ class BenchmarkConfig:
     workload_auth_delay_ms: int
     run_failure_probes: bool
     restart_count: int
+    verify_delivery: bool = False
+    recovery_seconds: float = 0
 
 
 def percentile(values: list[float], percentile_value: float) -> float:
@@ -108,7 +112,9 @@ def require_free_port(port: int) -> None:
         try:
             probe.bind(("127.0.0.1", port))
         except OSError as error:
-            raise RuntimeError(f"benchmark requires free localhost port {port}") from error
+            raise RuntimeError(
+                f"benchmark requires free localhost port {port}"
+            ) from error
 
 
 def compose_command(use_auth_proxy: bool, *arguments: str) -> list[str]:
@@ -126,9 +132,12 @@ def compose_command(use_auth_proxy: bool, *arguments: str) -> list[str]:
             str(BASE_COMPOSE),
             "--file",
             str(BENCHMARK_COMPOSE),
-            *arguments,
         ]
     )
+    image_overlay = os.environ.get("JUNJO_BENCHMARK_COMPOSE_OVERLAY")
+    if image_overlay:
+        command.extend(["--file", str(Path(image_overlay).resolve())])
+    command.extend(arguments)
     return command
 
 
@@ -160,16 +169,26 @@ def benchmark_environment(
             "JUNJO_HOST_DB_DATA_PATH": str(data_path),
             "JUNJO_API_KEY_CACHE_TTL_SECONDS": str(config.cache_ttl_seconds),
             "JUNJO_API_KEY_CACHE_MAX_ENTRIES": str(config.cache_max_entries),
-            "JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY": str(config.validation_max_concurrency),
+            "JUNJO_API_KEY_VALIDATION_MAX_CONCURRENCY": str(
+                config.validation_max_concurrency
+            ),
             "JUNJO_API_KEY_VALIDATION_MAX_PENDING": str(config.validation_max_pending),
             "JUNJO_API_KEY_VALIDATION_TIMEOUT_MS": str(config.validation_timeout_ms),
             "JUNJO_BENCHMARK_BACKEND_PORT": str(backend_port),
             "JUNJO_BENCHMARK_INGESTION_PORT": str(ingestion_port),
             "JUNJO_BENCHMARK_PROXY_PORT": str(proxy_port),
-            "JUNJO_BENCHMARK_AUTH_HOST": ("auth-proxy" if config.use_auth_proxy else "backend"),
-            "JUNJO_BENCHMARK_AUTH_PORT": ("50054" if config.use_auth_proxy else "50053"),
-            "JUNJO_BENCHMARK_BACKEND_CPUS": ("0.45" if config.use_auth_proxy else "0.50"),
-            "JUNJO_BENCHMARK_INGESTION_CPUS": ("0.45" if config.use_auth_proxy else "0.50"),
+            "JUNJO_BENCHMARK_AUTH_HOST": (
+                "auth-proxy" if config.use_auth_proxy else "backend"
+            ),
+            "JUNJO_BENCHMARK_AUTH_PORT": (
+                "50054" if config.use_auth_proxy else "50053"
+            ),
+            "JUNJO_BENCHMARK_BACKEND_CPUS": (
+                "0.45" if config.use_auth_proxy else "0.50"
+            ),
+            "JUNJO_BENCHMARK_INGESTION_CPUS": (
+                "0.45" if config.use_auth_proxy else "0.50"
+            ),
         }
     )
     return environment
@@ -292,6 +311,7 @@ async def export_worker(
     attempt_codes: Counter[str],
     final_codes: Counter[str],
     round_barrier: asyncio.Barrier | None,
+    acknowledged: dict[str, int] | None = None,
 ) -> None:
     request = make_export_request(config.spans_per_export, exporter_id)
     async with grpc.aio.insecure_channel(ingestion_target) as channel:
@@ -309,27 +329,53 @@ async def export_worker(
                 if export_index > 0:
                     await asyncio.sleep(interval_seconds)
                 elif config.timing == "staggered":
-                    await asyncio.sleep((exporter_id / config.exporters) * interval_seconds)
+                    await asyncio.sleep(
+                        (exporter_id / config.exporters) * interval_seconds
+                    )
+            if acknowledged is not None:
+                from delivery import workload_trace_id
+
+                trace_id = workload_trace_id(exporter_id, export_index)
+                for index, span in enumerate(
+                    request.resource_spans[0].scope_spans[0].spans
+                ):
+                    span.trace_id = trace_id
+                    span.span_id = (index + 1).to_bytes(8, "big")
             started = time.perf_counter()
             for attempt in range(config.max_retries + 1):
                 try:
-                    await stub.Export(
+                    response = await stub.Export(
                         request,
                         metadata=(("x-junjo-api-key", api_key),),
                         timeout=10,
                     )
+                    if (
+                        response.HasField("partial_success")
+                        and response.partial_success.rejected_spans
+                    ):
+                        attempt_codes["PARTIAL_SUCCESS"] += 1
+                        final_codes["PARTIAL_SUCCESS"] += 1
+                        break
+                    if acknowledged is not None:
+                        acknowledged[trace_id.hex()] = config.spans_per_export
                     attempt_codes["OK"] += 1
                     final_codes["OK"] += 1
                     break
                 except grpc.aio.AioRpcError as error:
                     code = error.code().name
                     attempt_codes[code] += 1
-                    if error.code() != grpc.StatusCode.UNAVAILABLE or attempt == config.max_retries:
+                    if (
+                        error.code() != grpc.StatusCode.UNAVAILABLE
+                        or attempt == config.max_retries
+                    ):
                         final_codes[code] += 1
                         break
                     await asyncio.sleep(retry_delay_seconds(exporter_id, attempt))
             latencies_ms.append((time.perf_counter() - started) * 1000)
-            if round_barrier is not None and export_index + 1 < config.exports_per_exporter:
+            if (
+                round_barrier is not None
+                and export_index + 1 < config.exports_per_exporter
+            ):
                 await round_barrier.wait()
             if config.cadence_mode == "start-to-start":
                 next_start += interval_seconds
@@ -575,7 +621,8 @@ async def measure_wal_durability(
         "durable_file_mtime_ms": durable_mtime_ms,
         "durable_before_acknowledgement": (
             durable_mtime_ms is not None
-            and durable_mtime_ms <= acknowledgement_ms + WAL_MTIME_COMPARISON_TOLERANCE_MS
+            and durable_mtime_ms
+            <= acknowledgement_ms + WAL_MTIME_COMPARISON_TOLERANCE_MS
         ),
         "mtime_comparison_tolerance_ms": WAL_MTIME_COMPARISON_TOLERANCE_MS,
     }
@@ -647,7 +694,9 @@ async def run_failure_probes(
         if config.cache_ttl_seconds > 0:
             warm_code, _warm_latency = await export_once(stub, request, keys[2])
             await proxy_mode(proxy_client, unavailable=True)
-            cached_outage_code, cached_outage_latency_ms = await export_once(stub, request, keys[2])
+            cached_outage_code, cached_outage_latency_ms = await export_once(
+                stub, request, keys[2]
+            )
             await asyncio.sleep(config.cache_ttl_seconds + 0.1)
             expired_outage_code, expired_outage_latency_ms = await export_once(
                 stub,
@@ -656,7 +705,9 @@ async def run_failure_probes(
                 timeout_seconds=(config.validation_timeout_ms / 1000) + 5,
             )
             await proxy_mode(proxy_client)
-            recovered_code, recovered_latency_ms = await export_once(stub, request, keys[2])
+            recovered_code, recovered_latency_ms = await export_once(
+                stub, request, keys[2]
+            )
             results["outage"] = {
                 "warm_result": warm_code,
                 "cached_during_outage_result": cached_outage_code,
@@ -726,9 +777,61 @@ async def run_failure_probes(
     }
     results["proxy_stats"] = await proxy_stats(proxy_client)
     results["passed"] = all(
-        value["passed"] for key, value in results.items() if key not in {"proxy_stats", "passed"}
+        value["passed"]
+        for key, value in results.items()
+        if key not in {"proxy_stats", "passed"}
     )
     return results
+
+
+def container_metrics(
+    environment: dict[str, str], use_auth_proxy: bool, *, stopped: bool = False
+) -> dict:
+    metrics = {}
+    for service in ("backend", "ingestion"):
+        container_id = run(
+            compose_command(use_auth_proxy, "ps", "--all", "--quiet", service),
+            env=environment,
+        ).stdout.strip()
+        info = json.loads(
+            run(["docker", "inspect", container_id], env=environment).stdout
+        )[0]
+        item = {
+            "image_id": info["Image"],
+            "state": info["State"]["Status"],
+            "exit_code": info["State"]["ExitCode"],
+            "oom_killed": info["State"]["OOMKilled"],
+            "restart_count": info["RestartCount"],
+            "nano_cpus": info["HostConfig"]["NanoCpus"],
+            "cpuset_cpus": info["HostConfig"]["CpusetCpus"],
+            "memory_limit_bytes": info["HostConfig"]["Memory"],
+            "memory_swap_bytes": info["HostConfig"]["MemorySwap"],
+        }
+        if not stopped:
+            lines = run(
+                [
+                    "docker",
+                    "exec",
+                    container_id,
+                    "cat",
+                    "/sys/fs/cgroup/cpu.stat",
+                    "/sys/fs/cgroup/memory.peak",
+                ],
+                env=environment,
+            ).stdout.splitlines()
+            item["cpu_usage_seconds"] = (
+                int(
+                    next(
+                        line.split()[1]
+                        for line in lines
+                        if line.startswith("usage_usec ")
+                    )
+                )
+                / 1_000_000
+            )
+            item["peak_cgroup_memory_bytes"] = int(lines[-1])
+        metrics[service] = item
+    return metrics
 
 
 async def execute_benchmark(
@@ -756,6 +859,7 @@ async def execute_benchmark(
         identities = await create_benchmark_identities(client, key_count)
         api_keys = [api_key for _, api_key in identities]
 
+        acknowledged: dict[str, int] | None = {} if config.verify_delivery else None
         export_latencies: list[float] = []
         export_attempt_codes: Counter[str] = Counter()
         export_final_codes: Counter[str] = Counter()
@@ -779,19 +883,24 @@ async def execute_benchmark(
                 export_worker(
                     exporter_id,
                     config,
-                    api_keys[0] if config.key_topology == "shared" else api_keys[exporter_id],
+                    api_keys[0]
+                    if config.key_topology == "shared"
+                    else api_keys[exporter_id],
                     ingestion_target,
                     start,
                     export_latencies,
                     export_attempt_codes,
                     export_final_codes,
                     round_barrier,
+                    acknowledged,
                 )
             )
             for exporter_id in range(config.exporters)
         ]
         query_tasks = [
-            asyncio.create_task(query_worker(client, query_stop, query_latencies, query_codes))
+            asyncio.create_task(
+                query_worker(client, query_stop, query_latencies, query_codes)
+            )
             for _ in range(config.query_workers)
         ]
         stats_task = asyncio.create_task(
@@ -803,12 +912,14 @@ async def execute_benchmark(
             )
         )
 
+        resources_before = container_metrics(environment, config.use_auth_proxy)
         workload_started = time.perf_counter()
         start.set()
         await asyncio.gather(*exporters)
         workload_seconds = time.perf_counter() - workload_started
         query_stop.set()
         await asyncio.gather(*query_tasks)
+        resources_after = container_metrics(environment, config.use_auth_proxy)
         workload_authorization_stats = (
             await proxy_stats(proxy_client)
             if config.use_auth_proxy
@@ -816,6 +927,18 @@ async def execute_benchmark(
         )
         post_workload_resources = {
             service: dict(samples[-1]) if samples else {}
+            for service, samples in resource_samples.items()
+        }
+
+        recovery_start = {
+            service: len(samples) for service, samples in resource_samples.items()
+        }
+        if config.recovery_seconds:
+            # Benchmark observation time only; never changes runtime flush settings.
+            await asyncio.sleep(config.recovery_seconds)
+        resources_recovered = container_metrics(environment, config.use_auth_proxy)
+        recovery_samples = {
+            service: list(samples[recovery_start[service] :])
             for service, samples in resource_samples.items()
         }
 
@@ -860,13 +983,21 @@ async def execute_benchmark(
     resource_summary: dict[str, dict[str, float]] = {}
     for service, samples in resource_samples.items():
         resource_summary[service] = {
-            "max_cpu_percent": max((sample["cpu_percent"] for sample in samples), default=0),
+            "max_cpu_percent": max(
+                (sample["cpu_percent"] for sample in samples), default=0
+            ),
             "first_memory_mib": samples[0]["memory_mib"] if samples else 0,
             "last_memory_mib": samples[-1]["memory_mib"] if samples else 0,
-            "max_memory_mib": max((sample["memory_mib"] for sample in samples), default=0),
+            "max_memory_mib": max(
+                (sample["memory_mib"] for sample in samples), default=0
+            ),
             "max_pids": max((sample["pids"] for sample in samples), default=0),
-            "first_file_descriptors": (samples[0]["file_descriptors"] if samples else 0),
-            "last_file_descriptors": (samples[-1]["file_descriptors"] if samples else 0),
+            "first_file_descriptors": (
+                samples[0]["file_descriptors"] if samples else 0
+            ),
+            "last_file_descriptors": (
+                samples[-1]["file_descriptors"] if samples else 0
+            ),
             "max_file_descriptors": max(
                 (sample["file_descriptors"] for sample in samples), default=0
             ),
@@ -875,7 +1006,9 @@ async def execute_benchmark(
             "max_threads": max((sample["threads"] for sample in samples), default=0),
             "first_tcp_sockets": samples[0]["tcp_sockets"] if samples else 0,
             "last_tcp_sockets": samples[-1]["tcp_sockets"] if samples else 0,
-            "max_tcp_sockets": max((sample["tcp_sockets"] for sample in samples), default=0),
+            "max_tcp_sockets": max(
+                (sample["tcp_sockets"] for sample in samples), default=0
+            ),
             "first_established_tcp_sockets": (
                 samples[0]["established_tcp_sockets"] if samples else 0
             ),
@@ -885,25 +1018,35 @@ async def execute_benchmark(
             "max_established_tcp_sockets": max(
                 (sample["established_tcp_sockets"] for sample in samples), default=0
             ),
-            "first_time_wait_tcp_sockets": (samples[0]["time_wait_tcp_sockets"] if samples else 0),
-            "last_time_wait_tcp_sockets": (samples[-1]["time_wait_tcp_sockets"] if samples else 0),
+            "first_time_wait_tcp_sockets": (
+                samples[0]["time_wait_tcp_sockets"] if samples else 0
+            ),
+            "last_time_wait_tcp_sockets": (
+                samples[-1]["time_wait_tcp_sockets"] if samples else 0
+            ),
             "max_time_wait_tcp_sockets": max(
                 (sample["time_wait_tcp_sockets"] for sample in samples), default=0
             ),
-            "post_workload_memory_mib": post_workload_resources[service].get("memory_mib", 0),
+            "post_workload_memory_mib": post_workload_resources[service].get(
+                "memory_mib", 0
+            ),
             "post_workload_file_descriptors": post_workload_resources[service].get(
                 "file_descriptors", 0
             ),
             "post_workload_threads": post_workload_resources[service].get("threads", 0),
-            "post_workload_established_tcp_sockets": post_workload_resources[service].get(
-                "established_tcp_sockets", 0
-            ),
+            "post_workload_established_tcp_sockets": post_workload_resources[
+                service
+            ].get("established_tcp_sockets", 0),
             "sample_count": len(samples),
         }
 
     acceptance = {
         "all_exports_succeeded": successful_exports == total_exports,
         "all_queries_succeeded": set(query_codes) <= {"200"},
+        "no_oom_or_restarts": all(
+            not item["oom_killed"] and item["restart_count"] == 0
+            for item in resources_after.values()
+        ),
     }
     if config.wal_probe_spans > 0:
         acceptance["wal_durable_before_acknowledgement"] = bool(
@@ -922,6 +1065,12 @@ async def execute_benchmark(
         acceptance["revocation_acceptance_bound_met"] = revocation_bound_met
 
     return {
+        "container_before": resources_before,
+        "container_after": resources_after,
+        "container_after_recovery": resources_recovered,
+        "recovery_resource_samples": recovery_samples,
+        "acknowledged_workload": acknowledged,
+        "raw_resource_samples": resource_samples,
         "config": asdict(config),
         "constraints": {
             "backend_cpus": 0.45 if config.use_auth_proxy else 0.5,
@@ -934,6 +1083,8 @@ async def execute_benchmark(
         "exports": {
             "requested": total_exports,
             "successful": successful_exports,
+            "offered_spans": total_exports * config.spans_per_export,
+            "acknowledged_spans": successful_spans,
             "attempt_codes": dict(export_attempt_codes),
             "final_codes": dict(export_final_codes),
             "workload_seconds": workload_seconds,
@@ -952,7 +1103,9 @@ async def execute_benchmark(
         "revocation": revocation,
         "acceptance": acceptance,
         "acceptance_limits": {
-            "revocation_acceptance_tolerance_seconds": (REVOCATION_ACCEPTANCE_TOLERANCE_SECONDS),
+            "revocation_acceptance_tolerance_seconds": (
+                REVOCATION_ACCEPTANCE_TOLERANCE_SECONDS
+            ),
             "wal_mtime_comparison_tolerance_ms": WAL_MTIME_COMPARISON_TOLERANCE_MS,
         },
     }
@@ -961,7 +1114,9 @@ async def execute_benchmark(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--implementation-label", default="bounded-current")
-    parser.add_argument("--cache-ttl-seconds", type=int, default=10, choices=range(0, 601))
+    parser.add_argument(
+        "--cache-ttl-seconds", type=int, default=10, choices=range(0, 601)
+    )
     parser.add_argument("--cache-max-entries", type=int, default=1024)
     parser.add_argument("--validation-max-concurrency", type=int, default=8)
     parser.add_argument("--validation-max-pending", type=int, default=32)
@@ -976,8 +1131,12 @@ def parse_args() -> argparse.Namespace:
         choices=("start-to-start", "after-completion"),
         default="start-to-start",
     )
-    parser.add_argument("--key-topology", choices=("shared", "distinct"), default="shared")
-    parser.add_argument("--timing", choices=("synchronized", "staggered"), default="synchronized")
+    parser.add_argument(
+        "--key-topology", choices=("shared", "distinct"), default="shared"
+    )
+    parser.add_argument(
+        "--timing", choices=("synchronized", "staggered"), default="synchronized"
+    )
     parser.add_argument(
         "--round-barrier",
         action="store_true",
@@ -1017,6 +1176,18 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="auth-proxy restarts performed by failure probes",
     )
+    parser.add_argument(
+        "--verify-delivery",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="use distinct export identities and verify canonical storage after orderly shutdown",
+    )
+    parser.add_argument(
+        "--recovery-seconds",
+        type=float,
+        default=0,
+        help="idle observation period after measured work; does not configure production timers",
+    )
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--backend-port", type=int, default=27154)
     parser.add_argument("--ingestion-port", type=int, default=27155)
@@ -1050,6 +1221,8 @@ def main() -> int:
         workload_auth_delay_ms=args.workload_auth_delay_ms,
         run_failure_probes=args.run_failure_probes,
         restart_count=args.restart_count,
+        verify_delivery=args.verify_delivery,
+        recovery_seconds=args.recovery_seconds,
     )
     if config.run_failure_probes and not config.use_auth_proxy:
         raise ValueError("--run-failure-probes requires --use-auth-proxy")
@@ -1057,7 +1230,10 @@ def main() -> int:
         raise ValueError("--workload-auth-delay-ms requires --use-auth-proxy")
     if config.restart_count > 0 and not config.run_failure_probes:
         raise ValueError("--restart-count requires --run-failure-probes")
-    if config.cache_ttl_seconds > 30 and config.implementation_label == "bounded-current":
+    if (
+        config.cache_ttl_seconds > 30
+        and config.implementation_label == "bounded-current"
+    ):
         raise ValueError(
             "the active implementation rejects TTLs above 30 seconds; "
             "use an explicit historical implementation label only with a pinned baseline"
@@ -1067,7 +1243,9 @@ def main() -> int:
     if config.use_auth_proxy:
         require_free_port(args.proxy_port)
 
-    with tempfile.TemporaryDirectory(prefix="junjo-auth-benchmark-") as temporary_directory:
+    with tempfile.TemporaryDirectory(
+        prefix="junjo-auth-benchmark-"
+    ) as temporary_directory:
         data_path = Path(temporary_directory) / "data"
         data_path.mkdir()
         environment = benchmark_environment(
@@ -1095,7 +1273,9 @@ def main() -> int:
                 check=False,
             )
             if startup.returncode != 0:
-                raise RuntimeError(f"benchmark composition failed to start:\n{startup.stdout}")
+                raise RuntimeError(
+                    f"benchmark composition failed to start:\n{startup.stdout}"
+                )
             result = asyncio.run(
                 execute_benchmark(
                     config,
@@ -1106,7 +1286,56 @@ def main() -> int:
                     data_path,
                 )
             )
+            if config.verify_delivery:
+                from delivery import verify_delivery
+
+                # Both services must be stopped before host-side canonical reads.
+                run(
+                    compose_command(
+                        config.use_auth_proxy, "stop", "ingestion", "backend"
+                    ),
+                    env=environment,
+                )
+                stopped = container_metrics(
+                    environment, config.use_auth_proxy, stopped=True
+                )
+                orderly = all(
+                    item["state"] == "exited"
+                    and item["exit_code"]
+                    in ({0} if service == "ingestion" else {0, 143})
+                    and not item["oom_killed"]
+                    and item["restart_count"] == 0
+                    for service, item in stopped.items()
+                )
+                result["shutdown"] = stopped
+                result["acceptance"]["orderly_shutdown"] = orderly
+                if any(item["state"] != "exited" for item in stopped.values()):
+                    raise RuntimeError(
+                        "refusing canonical reads unless both services have exited"
+                    )
+                result["delivery"] = verify_delivery(
+                    data_path, result.pop("acknowledged_workload")
+                )
+                result["acceptance"]["all_acknowledged_spans_persisted"] = result[
+                    "delivery"
+                ]["all_acknowledged_spans_persisted"]
         finally:
+            if args.output:
+                service_logs = run(
+                    compose_command(
+                        config.use_auth_proxy,
+                        "logs",
+                        "--no-color",
+                        "backend",
+                        "ingestion",
+                    ),
+                    env=environment,
+                    check=False,
+                )
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.with_suffix(".services.log").write_text(
+                    service_logs.stdout, encoding="utf-8"
+                )
             run(
                 compose_command(
                     config.use_auth_proxy,

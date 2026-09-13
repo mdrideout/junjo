@@ -1,0 +1,118 @@
+{
+  "offered_spans": 1280000,
+  "acknowledged_spans": 1280000,
+  "final_codes": {
+    "OK": 40000
+  },
+  "attempt_codes": {
+    "UNAVAILABLE": 18,
+    "OK": 40000
+  },
+  "workload_seconds": 9.08654954098165,
+  "containers": {
+    "backend": {
+      "mounts": [
+        {
+          "source": "/tmp/junjo-metadata-20260907/finish_indexing.py",
+          "destination": "/metadata-benchmark/finish_indexing.py",
+          "type": "bind"
+        },
+        {
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "destination": "/app/.dbdata",
+          "type": "bind"
+        }
+      ],
+      "image_id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 0,
+      "nano_cpus": 500000000,
+      "cpuset_cpus": "",
+      "memory_limit_bytes": 471859200,
+      "memory_swap_bytes": 471859200,
+      "cpu_usage_seconds": 3.631888,
+      "peak_cgroup_memory_bytes": 273915904,
+      "cpu_stat": {
+        "usage_usec": 3631888,
+        "user_usec": 3226327,
+        "system_usec": 405560,
+        "nice_usec": 0,
+        "nr_periods": 106,
+        "nr_throttled": 70,
+        "throttled_usec": 3480236,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77151\nwchar: 6614\nsyscr: 43\nsyscw: 7\nread_bytes: 81920\nwrite_bytes: 0\ncancelled_write_bytes: 0\n"
+    },
+    "ingestion": {
+      "mounts": [
+        {
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-cargo-cache/_data",
+          "destination": "/usr/local/cargo/registry",
+          "type": "volume"
+        },
+        {
+          "source": "/var/lib/docker/volumes/junjo-metadata-benchmark_ingestion-target-cache/_data",
+          "destination": "/app/target",
+          "type": "volume"
+        },
+        {
+          "source": "/var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-auth-benchmark-ru75hd81/data",
+          "destination": "/app/.dbdata",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/src",
+          "destination": "/app/src",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/proto",
+          "destination": "/proto",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.toml",
+          "destination": "/app/Cargo.toml",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/Cargo.lock",
+          "destination": "/app/Cargo.lock",
+          "type": "bind"
+        },
+        {
+          "source": "/Users/matt/repos/junjo/apps/studio/ingestion/build.rs",
+          "destination": "/app/build.rs",
+          "type": "bind"
+        }
+      ],
+      "image_id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 0,
+      "nano_cpus": 500000000,
+      "cpuset_cpus": "",
+      "memory_limit_bytes": 367001600,
+      "memory_swap_bytes": 367001600,
+      "cpu_usage_seconds": 4.496545,
+      "peak_cgroup_memory_bytes": 60010496,
+      "cpu_stat": {
+        "usage_usec": 4496545,
+        "user_usec": 2336244,
+        "system_usec": 2160301,
+        "nice_usec": 0,
+        "nr_periods": 105,
+        "nr_throttled": 88,
+        "throttled_usec": 4731127,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "diagnostic_counters": "50000 100000\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\nrchar: 77985\nwchar: 6614\nsyscr: 39\nsyscw: 7\nread_bytes: 0\nwrite_bytes: 16384\ncancelled_write_bytes: 0\n"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"indexed": [502400, 6], "failures": 0, "cpu_stat": "usage_usec 132796844\nuser_usec 25185366\nsystem_usec 107611478\nnice_usec 0\nnr_periods 2858\nnr_throttled 2312\nthrottled_usec 502706534\nnr_bursts 0\nburst_usec 0\n", "memory_events": "low 0\nhigh 0\nmax 1837859\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\n"}

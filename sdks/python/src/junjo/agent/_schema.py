@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import cast
 
 import rfc8785
@@ -35,6 +35,32 @@ _SCHEMA_SINGLE_KEYWORDS = frozenset(
     }
 )
 _SCHEMA_KEYWORD_UNHANDLED = object()
+
+# Pydantic CoreSchema child locations, including field and serializer schemas.
+# Other members (defaults, literal values, metadata, config) are not schemas.
+_CORE_SCHEMA_CHILD_KEYS = frozenset(
+    {
+        "arguments_schema",
+        "computed_fields",
+        "definitions",
+        "extras_keys_schema",
+        "extras_schema",
+        "items_schema",
+        "json_schema",
+        "json_schema_input_schema",
+        "keys_schema",
+        "lax_schema",
+        "python_schema",
+        "return_schema",
+        "schema",
+        "serialization",
+        "steps",
+        "strict_schema",
+        "values_schema",
+        "var_args_schema",
+        "var_kwargs_schema",
+    }
+)
 
 
 def schema_for(adapter: TypeAdapter) -> Mapping[str, FrozenJsonValue]:
@@ -175,9 +201,23 @@ def _require_lossless_core_schema(schema: object, seen: set[int] | None = None) 
                 key_schema = schema_mapping.get("keys_schema")
                 if isinstance(key_schema, Mapping) and cast(Mapping[str, object], key_schema).get("type") != "str":
                     raise JsonBoundaryError("Typed JSON object names must map directly to Python str keys.")
-            pending.extend(schema_mapping.values())
+            pending.extend(_core_schema_children(schema_mapping))
         elif isinstance(current, Sequence) and not isinstance(current, str | bytes):
             pending.extend(current)
+
+
+def _core_schema_children(schema: Mapping[str, object]) -> Iterator[object]:
+    for key, value in schema.items():
+        if key in {"fields", "choices"}:
+            # Models/TypedDicts and tagged unions use name-to-schema maps;
+            # dataclass fields and ordinary union choices use sequences.
+            # A name such as "type" in these maps is application data.
+            if isinstance(value, Mapping):
+                yield from value.values()
+            else:
+                yield value
+        elif key in _CORE_SCHEMA_CHILD_KEYS:
+            yield value
 
 
 def _normalize_schema_set_keyword(key: str, value: object) -> object:

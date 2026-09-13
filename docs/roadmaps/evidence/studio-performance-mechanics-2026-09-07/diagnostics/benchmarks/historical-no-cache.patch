@@ -1,0 +1,20 @@
+diff --git a/apps/studio/ingestion/src/server/auth.rs b/apps/studio/ingestion/src/server/auth.rs
+index 9e34e5c..bccfb3d 100644
+--- a/apps/studio/ingestion/src/server/auth.rs
++++ b/apps/studio/ingestion/src/server/auth.rs
+@@ -33,6 +33 @@ impl ApiKeyInterceptor {
+-        // Check cache first - only valid keys are cached
+-        if self.cache.contains_key(api_key) {
+-            return Ok(true);
+-        }
+-
+         // Cache miss - validate with backend
+@@ -60,8 +55 @@ impl ApiKeyInterceptor {
+-        // Only cache valid keys (invalid keys always hit backend)
+-        // This allows newly activated keys to work immediately
+-        if is_valid {
+-            self.cache.insert(api_key.to_string(), ()).await;
+-            debug!("API key cached after successful validation");
+-        }
+-
+         Ok(is_valid)

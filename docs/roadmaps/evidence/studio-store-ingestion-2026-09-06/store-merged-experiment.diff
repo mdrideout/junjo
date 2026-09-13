@@ -1,0 +1,48 @@
+--- a/sdks/python/src/junjo/store.py
++++ b/sdks/python/src/junjo/store.py
+@@ -1,6 +1,7 @@
+ import abc
+ import asyncio
+ import inspect
++from copy import deepcopy
+ from types import NoneType
+ from typing import Generic, TypeVar
+ 
+@@ -122,7 +123,7 @@
+         """Attach internal lifecycle dispatch context for this execution."""
+         self._lifecycle_context = context
+ 
+-    def _current_runtime_state_data(self) -> dict[str, object]:
++    def _owned_candidate_state_data(self, update: dict) -> dict[str, object]:
+         """
+         Return current state field values for runtime state transitions.
+ 
+@@ -131,8 +132,8 @@
+         ``field_serializer`` are telemetry-facing concerns, not live state
+         transition mechanics.
+         """
+-        state_snapshot = self._state.model_copy(deep=True)
+-        return {field_name: getattr(state_snapshot, field_name) for field_name in type(state_snapshot).model_fields}
++        current = {field_name: getattr(self._state, field_name) for field_name in type(self._state).model_fields}
++        return deepcopy({**current, **update})
+ 
+     async def _get_store_owner_evidence(self) -> StoreOwnerEvidence:
+         """Return verified terminal evidence under the Store lock."""
+@@ -212,7 +213,7 @@
+         async with self._lock:
+             validate_json_nesting(update)
+             try:
+-                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **update})
++                new_state = type(self._state).model_validate(self._owned_candidate_state_data(update))
+             except ValidationError as e:
+                 raise ValueError(
+                     f"Invalid state update from caller {store_name} -> {caller_function_name}.\n"
+@@ -311,7 +312,7 @@
+         async with self._lock:
+             validate_json_nesting(update)
+             try:
+-                new_state = type(self._state).model_validate({**self._current_runtime_state_data(), **update})
++                new_state = type(self._state).model_validate(self._owned_candidate_state_data(update))
+             except ValidationError as exc:
+                 raise ValueError("Invalid prospective state update.") from exc
+             state_json_before = normalize_json(self._state.model_dump(mode="json"))

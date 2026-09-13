@@ -96,6 +96,9 @@ claim.
 OpenAI Agents SDK `RunConfig.trace_include_sensitive_data` owns source-content
 capture. Its upstream default is enabled, which makes this example's prompts,
 responses, and tool payloads inspectable in Studio. Those spans can contain
-user data or secrets; set that option to `False` when adapting the example to
-a deployment that must not export the content. Junjo never serializes the
-OpenAI tracing API key.
+user data or secrets; set that option to `False` to omit source fields
+controlled by this option from OpenAI Agents SDK tracing. It does not suppress
+the nested native Junjo Workflow or Agent telemetry, other instrumentation, or
+requests sent to model providers. Follow the
+[capture guidance](https://junjo.ai/docs/observability/opentelemetry/#state-serialization-and-telemetry)
+for each execution type. Junjo never serializes the OpenAI tracing API key.

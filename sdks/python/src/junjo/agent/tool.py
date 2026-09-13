@@ -83,7 +83,8 @@ class Tool(Generic[ToolInputT, ToolOutputT, DependenciesT]):
         :param factory: Synchronous factory invoked once per admitted Agent
             run, lazily before the Tool's first service call.
         :raises ToolConfigurationError: If schemas, identity, or service
-            ownership are invalid.
+            ownership are invalid. Schema errors identify ``input_type`` or
+            ``output_type`` and include the underlying reason.
         """
         if not isinstance(name, str) or TOOL_NAME_PATTERN.fullmatch(name) is None:
             raise ToolConfigurationError("Tool name must match ^[A-Za-z_][A-Za-z0-9_-]{0,63}$.")
@@ -100,14 +101,14 @@ class Tool(Generic[ToolInputT, ToolOutputT, DependenciesT]):
 
         try:
             input_adapter = TypeAdapter(input_type)
-            output_adapter = TypeAdapter(output_type)
             input_schema = schema_for(input_adapter)
+        except Exception as exc:
+            raise ToolConfigurationError(f"Tool input_type: {exc}") from exc
+        try:
+            output_adapter = TypeAdapter(output_type)
             output_schema = schema_for(output_adapter)
         except Exception as exc:
-            raise ToolConfigurationError(
-                "Tool boundary types must be schema-capable and have identical "
-                "normalized validation and serialization schemas."
-            ) from exc
+            raise ToolConfigurationError(f"Tool output_type: {exc}") from exc
         if not isinstance(input_schema, Mapping) or not schema_proves_object_root(input_schema):
             raise ToolConfigurationError("Tool input_type must produce an object-root JSON Schema.")
 

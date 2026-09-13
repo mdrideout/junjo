@@ -1,0 +1,170 @@
+{
+  "scalar": {
+    "pairs": 5,
+    "completed_each_run": 30000,
+    "metrics": {
+      "operations_per_second": {
+        "baseline_median": 7772.793375195192,
+        "candidate_median": 8058.260927909804,
+        "change_percent": 3.6726507310178347,
+        "baseline_range": [
+          7139.463381942632,
+          8029.433952164345
+        ],
+        "candidate_range": [
+          7771.078266822009,
+          8231.289046208052
+        ]
+      },
+      "cpu_us_per_operation": {
+        "baseline_median": 63.69847623333333,
+        "candidate_median": 62.31832893333333,
+        "change_percent": -2.1666880930469867,
+        "baseline_range": [
+          62.84344143333333,
+          70.23159706666668
+        ],
+        "candidate_range": [
+          61.33920526666666,
+          63.714603833333335
+        ]
+      },
+      "p95_ms": {
+        "baseline_median": 0.07458298932760954,
+        "candidate_median": 0.07420906331390142,
+        "change_percent": -0.5013556269052533,
+        "baseline_range": [
+          0.073749921284616,
+          0.09708397556096315
+        ],
+        "candidate_range": [
+          0.07266702596098185,
+          0.07733399979770184
+        ]
+      },
+      "p99_ms": {
+        "baseline_median": 0.16770896036177874,
+        "candidate_median": 0.1667930046096444,
+        "change_percent": -0.5461579096062819,
+        "baseline_range": [
+          0.1388340024277568,
+          0.26771100237965584
+        ],
+        "candidate_range": [
+          0.13637600932270288,
+          0.18587696831673384
+        ]
+      },
+      "peak_rss_mib": {
+        "baseline_median": 53.25,
+        "candidate_median": 53.0546875,
+        "change_percent": -0.36678403755868727,
+        "baseline_range": [
+          53.1484375,
+          53.26171875
+        ],
+        "candidate_range": [
+          52.9375,
+          53.171875
+        ]
+      },
+      "after_release_rss_mib": {
+        "baseline_median": 53.26953125,
+        "candidate_median": 53.1875,
+        "change_percent": -0.15399281366869078,
+        "baseline_range": [
+          53.265625,
+          53.2890625
+        ],
+        "candidate_range": [
+          52.9453125,
+          53.19921875
+        ]
+      }
+    }
+  },
+  "workflow": {
+    "pairs": 5,
+    "completed_each_run": 600,
+    "metrics": {
+      "operations_per_second": {
+        "baseline_median": 97.33517029588579,
+        "candidate_median": 96.60690546099913,
+        "change_percent": -0.7482031753505258,
+        "baseline_range": [
+          95.23109605488102,
+          98.30842112257656
+        ],
+        "candidate_range": [
+          95.50627228806859,
+          97.2082495336776
+        ]
+      },
+      "cpu_us_per_operation": {
+        "baseline_median": 5129.177553333334,
+        "candidate_median": 5187.151223333333,
+        "change_percent": 1.1302722395001519,
+        "baseline_range": [
+          5086.019695000001,
+          5255.414081666668
+        ],
+        "candidate_range": [
+          5122.030203333334,
+          5216.314433333334
+        ]
+      },
+      "p95_ms": {
+        "baseline_median": 55.256442981772125,
+        "candidate_median": 55.35127699840814,
+        "change_percent": 0.1716252648895633,
+        "baseline_range": [
+          54.96243806555867,
+          55.29981502331793
+        ],
+        "candidate_range": [
+          55.275981896556914,
+          55.56910298764706
+        ]
+      },
+      "p99_ms": {
+        "baseline_median": 57.92175594251603,
+        "candidate_median": 57.98325699288398,
+        "change_percent": 0.10617953369540523,
+        "baseline_range": [
+          57.37787298858166,
+          58.92218102235347
+        ],
+        "candidate_range": [
+          57.305457070469856,
+          58.108539087697864
+        ]
+      },
+      "peak_rss_mib": {
+        "baseline_median": 39.5,
+        "candidate_median": 39.41015625,
+        "change_percent": -0.22745253164556667,
+        "baseline_range": [
+          39.234375,
+          39.52734375
+        ],
+        "candidate_range": [
+          39.3046875,
+          39.421875
+        ]
+      },
+      "after_release_rss_mib": {
+        "baseline_median": 39.55859375,
+        "candidate_median": 39.484375,
+        "change_percent": -0.18761726078799779,
+        "baseline_range": [
+          39.4375,
+          39.609375
+        ],
+        "candidate_range": [
+          39.359375,
+          39.49609375
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+--- a/apps/studio/ingestion/src/server/trace_service.rs
++++ b/apps/studio/ingestion/src/server/trace_service.rs
+@@ -82,11 +82,11 @@
+         let mut span_count = 0;
+ 
+         for resource_spans in &inner.resource_spans {
+-            let resource = resource_spans.resource.as_ref();
++            let resource = SpanRecord::prepare_resource(resource_spans.resource.as_ref());
+ 
+             for scope_spans in &resource_spans.scope_spans {
+                 for span in &scope_spans.spans {
+-                    let record = SpanRecord::from_otlp(span, resource);
++                    let record = SpanRecord::from_otlp_prepared(span, &resource);
+                     records.push(record);
+                     span_count += 1;
+                 }
+--- a/apps/studio/ingestion/src/wal/span_record.rs
++++ b/apps/studio/ingestion/src/wal/span_record.rs
+@@ -32,6 +32,21 @@
+ impl SpanRecord {
+     /// Convert an OTLP span and resource to a SpanRecord.
+     pub fn from_otlp(span: &Span, resource: Option<&Resource>) -> Self {
++        Self::from_otlp_prepared(span, &Self::prepare_resource(resource))
++    }
++
++    pub(crate) fn prepare_resource(resource: Option<&Resource>) -> (String, String, u32) {
++        let service_name = resource
++            .and_then(|r| r.attributes.iter().find(|kv| kv.key == "service.name"))
++            .and_then(|kv| kv.value.as_ref())
++            .and_then(extract_string_value)
++            .unwrap_or_default();
++        let attributes = resource.map(|r| serialize_attributes(&r.attributes))
++            .unwrap_or_else(|| "{}".to_string());
++        (service_name, attributes, resource.map(|r| r.dropped_attributes_count).unwrap_or(0))
++    }
++
++    pub(crate) fn from_otlp_prepared(span: &Span, resource: &(String, String, u32)) -> Self {
+         let span_id = hex::encode(&span.span_id);
+         let trace_id = hex::encode(&span.trace_id);
+         let parent_span_id = if span.parent_span_id.is_empty() {
+@@ -40,11 +55,7 @@
+             Some(hex::encode(&span.parent_span_id))
+         };
+ 
+-        let service_name = resource
+-            .and_then(|r| r.attributes.iter().find(|kv| kv.key == "service.name"))
+-            .and_then(|kv| kv.value.as_ref())
+-            .and_then(extract_string_value)
+-            .unwrap_or_default();
++        let service_name = resource.0.clone();
+ 
+         let span_kind = span.kind as i8;
+         let start_time_ns = span.start_time_unix_nano as i64;
+@@ -69,11 +80,8 @@
+         let attributes = serialize_attributes(&span.attributes);
+         let events = serialize_events(&span.events);
+         let links = serialize_links(&span.links);
+-        let resource_attributes = resource
+-            .map(|r| serialize_attributes(&r.attributes))
+-            .unwrap_or_else(|| "{}".to_string());
+-        let resource_dropped_attributes_count =
+-            resource.map(|r| r.dropped_attributes_count).unwrap_or(0);
++        let resource_attributes = resource.1.clone();
++        let resource_dropped_attributes_count = resource.2;
+ 
+         SpanRecord {
+             span_id,

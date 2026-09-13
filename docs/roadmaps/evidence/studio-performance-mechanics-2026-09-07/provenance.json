@@ -1,0 +1,55 @@
+{
+  "base_commit": "318201a856f72eb61a6a2fce86afc0b15b21432d",
+  "recorded_date": "2026-09-07",
+  "runtime_changes_applied_this_investigation": false,
+  "images": {
+    "junjo-durability-backend:local": {
+      "id": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+      "architecture": "arm64",
+      "created": "2026-09-05T13:33:55.166171042-04:00"
+    },
+    "junjo-robustness-explicit-drop:local": {
+      "id": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a",
+      "architecture": "arm64",
+      "created": "2026-09-06T19:39:52.818083105-04:00"
+    },
+    "junjo-mechanics-old:local": {
+      "id": "sha256:88b5f268f1f49e0ee37670ff5e1624ba5ecacf0f4d417ffe866037fbd3f27f2d",
+      "architecture": "arm64",
+      "created": "2026-09-07T16:02:14.517336112-04:00"
+    },
+    "junjo-mechanics-drop:local": {
+      "id": "sha256:0942cb83fe0d616ebe72ca68536b88c3f787468c7ab1b47a68cfce58e41e68f0",
+      "architecture": "arm64",
+      "created": "2026-09-07T16:02:22.699613177-04:00"
+    },
+    "junjo-mechanics-buffered:local": {
+      "id": "sha256:43e7c826165628c6b43126bcc6142b9d92dca889e240163e081f78f0450181e4",
+      "architecture": "arm64",
+      "created": "2026-09-07T16:02:30.501200026-04:00"
+    },
+    "junjo-mechanics-buffered-plain:local": {
+      "id": "sha256:dccdb7e346cc7acae976044a449e6f13006771ae76c8855bb6293b22b2bb6f57",
+      "architecture": "arm64",
+      "created": "2026-09-07T16:11:27.046059073-04:00"
+    },
+    "junjo-mechanics-resource-plain:local": {
+      "id": "sha256:cd549672b913c32555ca8f67444627084540751a4f6e4c4e65b3adbc955f96e7",
+      "architecture": "arm64",
+      "created": "2026-09-07T16:11:34.038511996-04:00"
+    }
+  },
+  "actual_script_root": "/tmp/junjo-mechanics-20260907",
+  "host": "Apple Silicon macOS + Docker Desktop Linux VM; unrelated host workloads remained active",
+  "profile_limitations": [
+    "Rust aggregate timing adds overhead; do not treat instrumented throughput as production capacity.",
+    "Whole-lifetime phase totals include shutdown and idle; cgroup work deltas use before/after export/query workload. Nested phase timers must not be summed.",
+    "Backend thread CPU excludes DataFusion/PyArrow worker-thread CPU. Live cProfile mixed stacks include unrelated callbacks and are not used for exclusive attribution; offline cProfile replaces them.",
+    "Long split/shared CPU diagnostics use the same single vCPU affinity and 450+350 MiB, no swap. They are separately labelled allocation diagnostics, not historical acceptance gate comparisons."
+  ],
+  "source_sha256": {
+    "apps/studio/ingestion/src/server/trace_service.rs": "6f4c45c00c1f58adf5f6a753db2fe06832287fbfef01d64e0b1447570a4871dd",
+    "apps/studio/backend/app/features/parquet_indexer/parquet_reader.py": "1f8ab8efdd3fa5e9e44e63f8c7e903c56d16c91682d6c6c766c597fb9a0e34d8",
+    "apps/studio/backend/app/features/otel_spans/repository.py": "1ff98b40faed1f3c8ff9930c3e080d51d6b0b169347f8417d16421c8d9fc89bf"
+  }
+}

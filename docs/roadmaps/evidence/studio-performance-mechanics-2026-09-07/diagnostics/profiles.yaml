@@ -1,0 +1,14 @@
+services:
+  backend:
+    image: junjo-durability-backend:local
+    environment:
+      JUNJO_DIAGNOSTIC_CPROFILE: "${JUNJO_DIAGNOSTIC_CPROFILE:-0}"
+    volumes:
+      - /tmp/junjo-mechanics-20260907/backend/main.py:/app/app/main.py:ro
+      - /tmp/junjo-mechanics-20260907/backend/perf_diagnostic.py:/app/app/perf_diagnostic.py:ro
+      - /tmp/junjo-mechanics-20260907/backend/features/otel_spans/repository.py:/app/app/features/otel_spans/repository.py:ro
+      - /tmp/junjo-mechanics-20260907/backend/features/otel_spans/datafusion_query.py:/app/app/features/otel_spans/datafusion_query.py:ro
+      - /tmp/junjo-mechanics-20260907/backend/features/parquet_indexer/parquet_reader.py:/app/app/features/parquet_indexer/parquet_reader.py:ro
+      - /tmp/junjo-mechanics-20260907/backend/db_sqlite/metadata/indexer.py:/app/app/db_sqlite/metadata/indexer.py:ro
+  ingestion:
+    image: ${JUNJO_BENCHMARK_IMAGE}

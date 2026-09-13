@@ -23,6 +23,17 @@ orchestrates the [recursive self improvement cycle](/docs/recursive-self-improve
 | Linked execution traces | What sequence of operations produced this result? |
 | Native Junjo Workflow, Agent, and Store evidence | Which path, model request, Tool call, or state update needs attention? |
 
+Junjo AI Studio acts like a "VCR" for recorded application state. Move backward
+and forward through captured state changes, inspect the values before and
+after an update, and connect that update to the recorded operation that
+produced it. This helps you and your coding agent locate where an unexpected
+value entered the application and follow how later operations used it.
+
+Workflows expose the execution path, Agents expose model and Tool operations,
+and Stores expose state transitions. Together, they provide a detailed history
+for investigating behavior and evaluating improvements. See
+[State changes](#3-state-step-debugging) for the recorded chronology and diffs.
+
 Studio provides one shared record for coding agents and people. Your coding
 agent owns changes and orchestration; your application owns source execution,
 model calls, and evaluators. Studio stores and serves their evidence.
@@ -153,6 +164,9 @@ An Agent's dynamic operation timeline does not need a fabricated static graph.
 For native Junjo Store telemetry, inspect recorded updates and JSON patch
 diffs in order. Compare the available before and after state to find where
 facts were introduced, overwritten, or used by a later operation.
+
+Playback inspects recorded execution history. It does not restart application
+processes or repeat external side effects.
 
 Studio distinguishes verified state from incomplete evidence. A missing,
 redacted, excluded, or referenced payload is not an empty value. When the

@@ -613,7 +613,7 @@ def test_tool_rejects_invalid_name_scalar_input_and_lone_surrogate() -> None:
 
 
 def test_boundary_declarations_reject_asymmetric_schemas_and_lossy_collections() -> None:
-    with pytest.raises(AgentConfigurationError, match="identical normalized"):
+    with pytest.raises(AgentConfigurationError, match="Agent input_type:.*identical after normalization"):
         Agent(
             key="asymmetric",
             name="Asymmetric",
@@ -623,7 +623,7 @@ def test_boundary_declarations_reject_asymmetric_schemas_and_lossy_collections()
             tools=(),
             output_type=ObjectOutput,
         )
-    with pytest.raises(ToolConfigurationError, match="identical normalized"):
+    with pytest.raises(ToolConfigurationError, match="Tool output_type:.*identical after normalization"):
         Tool(
             name="asymmetric",
             description="Asymmetric boundary.",
@@ -631,7 +631,7 @@ def test_boundary_declarations_reject_asymmetric_schemas_and_lossy_collections()
             output_type=AsymmetricBoundary,
             shared_service=noop_service,
         )
-    with pytest.raises(AgentConfigurationError, match="identical normalized"):
+    with pytest.raises(AgentConfigurationError, match="Agent output_type:.*one-shot iterable"):
         Agent(
             key="set_output",
             name="Set output",
@@ -641,7 +641,7 @@ def test_boundary_declarations_reject_asymmetric_schemas_and_lossy_collections()
             tools=(),
             output_type=set[int],
         )
-    with pytest.raises(AgentConfigurationError, match="identical normalized"):
+    with pytest.raises(AgentConfigurationError, match="Agent output_type:.*Python str keys"):
         Agent(
             key="integer_keys",
             name="Integer keys",

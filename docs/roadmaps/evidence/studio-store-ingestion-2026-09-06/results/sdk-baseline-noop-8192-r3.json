@@ -1,0 +1,19 @@
+{
+  "completed": 300,
+  "wall_seconds": 10.89053590898402,
+  "operations_per_second": 27.5468537551507,
+  "cpu_seconds": 5.440391933,
+  "cpu_us_per_operation": 18134.639776666667,
+  "p95_ms": 71.28901698160917,
+  "p99_ms": 73.89770401641726,
+  "peak_rss_mib": 39.84375,
+  "before_rss_mib": 39.7421875,
+  "after_work_rss_mib": 40.0703125,
+  "after_release_rss_mib": 40.0703125,
+  "label": "sdk-baseline-noop-8192-r3",
+  "case": "noop",
+  "iterations": 300,
+  "size": 8192,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "0dcdad1dcf36bca806a958188c50b4ce518ffe0386db4e4eaafe5892deb901d7"
+}

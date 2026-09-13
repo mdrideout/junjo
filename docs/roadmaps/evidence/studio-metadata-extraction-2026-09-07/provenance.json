@@ -1,0 +1,43 @@
+{
+  "base_commit": "318201a856f72eb61a6a2fce86afc0b15b21432d",
+  "date": "2026-09-07",
+  "host": "Apple Silicon macOS / Docker Desktop; unrelated existing workloads left running",
+  "images": {
+    "junjo-durability-backend:local": "sha256:2cc71765898e1e61c148e53b32cec3d11c28bfd8480af92f3d6eecca1fe37c59",
+    "junjo-metadata-candidate:local": "sha256:105905b4765b727c8ec71ad856787d94f00a9b5ee01ab66be4dbdede17d78443",
+    "junjo-robustness-explicit-drop:local": "sha256:997fc3700b554bd964bdb5c3048ed10786d7192fc1a5be9ad17ffa1e44a75d5a"
+  },
+  "excluded_e2e_runs": "Six initial source-mounted runs loaded the changed working tree for both image labels. Excluded from all comparisons; preserved under diagnostic-source-mount.",
+  "runtime_files": [
+    "apps/studio/backend/app/features/parquet_indexer/parquet_reader.py",
+    "apps/studio/backend/app/db_sqlite/metadata/indexer.py"
+  ],
+  "runtime_source_sha256": {
+    "apps/studio/backend/app/features/parquet_indexer/parquet_reader.py": "28a822c85de22c7984cb56b1e6daac2257ddc8edabedb658505202f0c0344182",
+    "apps/studio/backend/app/db_sqlite/metadata/indexer.py": "d90b6888bae9a3055f2c9af0258920fae40fbea8377a5d5370df1efc68b1ad4b"
+  },
+  "fixture_sha256": {
+    "unique-traces.parquet": "8274718c421b6718e5f00ab1044ba7cc9a023317e0c3d5fd6bb91e0b182ff731",
+    "agents.parquet": "cdc317f72ff8f58bb4d3c80381fee55ee9ab3b972615b898d875af3872009295",
+    "compact-unique-traces.parquet": "0fe52d6dc484ba03df4fbe715dcb5d16796b08ecd1245706e79f31e0eff01107",
+    "compact-agents.parquet": "92152a70bc768635bad933fba47218ddae45366bcaeb534a200190d2c15a14ba",
+    "observed.parquet": "27623af02690ca4ebdd70ee954d410e5683d272b1dd285da1601711c4c8ad476"
+  },
+  "performance_configuration": {
+    "backend_cpus": 0.5,
+    "backend_memory_mib": 450,
+    "ingestion_cpus": 0.5,
+    "ingestion_memory_mib": 350,
+    "swap": false
+  },
+  "benchmark_notes": [
+    "Offline measurements include actual committed SQLite indexing, not extraction alone. Full SQLite semantic contents hashed excluding nondeterministic indexed_at/failed_at.",
+    "E2E completion uses one final FlushWAL after offered exports, then observes the ordinary background indexer until every offered row is indexed. No poll/batch/cadence setting changed.",
+    "A small observer runs inside the disposable backend during catch-up; its resource use is included in cgroup totals for both builds. Queries remain active through catch-up.",
+    "Verified runs override development Compose volumes to use image source, assert both runtime source hashes inside each container before offering work, and record effective mounts. Candidate image copies only the two runtime files over the pinned baseline image.",
+    "No builds or test suites overlapped performance measurements.",
+    "An initial large-payload baseline exited 137. It is retained separately, excluded from paired successful-run medians, and not represented as a completed zero-throughput run.",
+    "Catch-up now skips and fails acceptance when exports fail, preserving the offered/acknowledged distinction. The fully accounted larger baseline failed 108 logical exports and four queries; all acknowledged spans persisted. Earlier index-only diagnostics cannot establish that missing offered rows were acknowledged."
+  ],
+  "memory_stress_disposition": "Named large-payload baseline was operator-stopped after sustained memory reclaim (exit 137, OOMKilled false). Candidate completed the same file. These are separate stress diagnostics, excluded from successful paired medians."
+}

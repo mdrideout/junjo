@@ -105,6 +105,8 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         :param limits: Positive per-execution limits; defaults are explicit.
         :param hooks: Optional lifecycle observers. Hooks do not own execution.
         :raises AgentConfigurationError: If any declaration is invalid.
+            Schema errors identify ``input_type`` or ``output_type`` and include
+            the underlying reason.
         """
         _validate_identity(key=key, name=name, instructions=instructions)
         _validate_model_and_hooks(model=model, hooks=hooks)
@@ -285,12 +287,12 @@ def _boundary_contracts(
 ]:
     try:
         input_adapter = TypeAdapter(input_type)
-        output_adapter = TypeAdapter(output_type)
         input_schema = schema_for(input_adapter)
+    except Exception as exc:
+        raise AgentConfigurationError(f"Agent input_type: {exc}") from exc
+    try:
+        output_adapter = TypeAdapter(output_type)
         output_schema = schema_for(output_adapter)
     except Exception as exc:
-        raise AgentConfigurationError(
-            "Agent boundary types must be schema-capable and have identical "
-            "normalized validation and serialization schemas."
-        ) from exc
+        raise AgentConfigurationError(f"Agent output_type: {exc}") from exc
     return input_adapter, output_adapter, input_schema, output_schema

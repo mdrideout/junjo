@@ -91,10 +91,14 @@ and Studio never reads or copies data from the OpenAI trace dashboard.
 The bridge preserves the source tracing payload. OpenAI Agents SDK
 `RunConfig.trace_include_sensitive_data` therefore owns whether model inputs,
 outputs, function arguments, and results are available to copy into Studio.
-The upstream default is `True`; set it to `False` when those values should not
-leave the application process. Captured values may contain user data, source
-code, credentials, or other sensitive content, so Studio access and retention
-must follow the same policy as the application data.
+The upstream default is `True`; set it to `False` to omit source fields
+controlled by this option from OpenAI Agents SDK tracing. It does not suppress
+telemetry from nested native Junjo Workflows or Agents, other application
+instrumentation, or requests sent to model providers. Captured values may
+contain user data, source code, credentials, or other sensitive content, so
+Studio access and retention must follow the same policy as the application
+data. See [capture controls and self-hosted storage](/docs/observability/opentelemetry/#state-serialization-and-telemetry)
+for the controls belonging to each execution type.
 
 Junjo never serializes the OpenAI tracing API key. It records only whether one
 was configured.

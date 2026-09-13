@@ -1,0 +1,7 @@
+services:
+  backend:
+    image: junjo-durability-backend:local
+    cpuset: "0"
+  ingestion:
+    image: ${JUNJO_BENCHMARK_IMAGE}
+    cpuset: "0"

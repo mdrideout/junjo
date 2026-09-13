@@ -38,3 +38,8 @@ dd2608cf2d0d42915144291c9ba5e80fa1395481:.github/workflows/studio-rest-api-contr
 e444a5e7084ce34625256ae8c8ec23c6aac6d7e8:apps/website/documentation-review/refund-walkthrough.json:generic-api-key:35
 e444a5e7084ce34625256ae8c8ec23c6aac6d7e8:apps/website/documentation-review/refund-walkthrough.json:generic-api-key:431
 e444a5e7084ce34625256ae8c8ec23c6aac6d7e8:apps/website/documentation-review/refund-walkthrough.json:generic-api-key:734
+
+# Benchmark provenance contains SHA-256 source-file digests, not API keys.
+# Restrict these exceptions to the two exact historical digest findings.
+ff8718fb0fe915ffe929c11603e7bd4a638d029c:docs/roadmaps/evidence/studio-store-ingestion-2026-09-06/provenance.json:generic-api-key:11
+ff8718fb0fe915ffe929c11603e7bd4a638d029c:docs/roadmaps/evidence/studio-store-ingestion-2026-09-06/provenance.json:generic-api-key:17
