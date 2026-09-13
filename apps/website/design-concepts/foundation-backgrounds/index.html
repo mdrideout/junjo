@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Junjo — Foundation background studies</title>
+  <link rel="icon" href="../../public/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="review-header">
+    <a class="brand" href="./"><img src="../../public/favicon.svg" width="26" height="32" alt=""><span>junjo<span class="brand-dot">.</span></span></a>
+    <span class="review-label">Foundation / motion studies</span>
+    <a class="homepage-link" href="http://127.0.0.1:4323/#foundation-title">Homepage ↗</a>
+  </header>
+
+  <main id="gallery">
+    <div class="gallery-intro">
+      <p class="eyebrow">FOUNDATION / GROWTH STUDIES</p>
+      <h1>Grounded at the bottom.<br><em>Growing into possibility.</em></h1>
+      <p>The newest study lifts one continuous, full-width foundation into a twisting canopy, with smaller, scattered mesh changes in four staggered cycles.</p>
+    </div>
+    <a class="concept-card featured-concept" href="?concept=sweep">
+      <div class="thumbnail"><canvas data-concept="sweep" aria-hidden="true"></canvas><span class="pick">New · 08</span></div>
+      <div class="card-description"><span class="number">08</span><div><h2>Sweeping foundation</h2><p>A horizontal lattice curls upward as one continuous surface. Small irregular clusters prune and reconnect in four staggered cycles.</p></div><span aria-hidden="true">↗</span></div>
+    </a>
+    <h2 class="archive-title">Earlier growth studies</h2>
+    <div class="concept-grid growth-grid">
+      <a class="concept-card" href="?concept=braid">
+        <div class="thumbnail"><canvas data-concept="braid" aria-hidden="true"></canvas><span class="pick">New · 05</span></div>
+        <div class="card-description"><span class="number">05</span><div><h2>Braided lattice</h2><p>Twisting towers rise from a shared foundation and form bridges between them.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+      <a class="concept-card" href="?concept=arbor">
+        <div class="thumbnail"><canvas data-concept="arbor" aria-hidden="true"></canvas><span class="pick">New · 06</span></div>
+        <div class="card-description"><span class="number">06</span><div><h2>Branching lattice</h2><p>One rooted structure branches, twists, and reconnects into a living network.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+      <a class="concept-card" href="?concept=canopy">
+        <div class="thumbnail"><canvas data-concept="canopy" aria-hidden="true"></canvas><span class="pick">Updated · 07</span></div>
+        <div class="card-description"><span class="number">07</span><div><h2>Woven canopy · living mesh</h2><p>One connected foundation grows into an evolving canopy, developing new connections and pruning older mesh.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+    </div>
+    <h2 class="archive-title">Previous studies</h2>
+    <div class="concept-grid">
+      <a class="concept-card" href="?concept=canopy-original">
+        <div class="thumbnail"><canvas data-concept="canopy-original" aria-hidden="true"></canvas></div>
+        <div class="card-description"><span class="number">07a</span><div><h2>Woven canopy · original</h2><p>The previous canopy, saved for comparison with the connected, continually developing mesh.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+      <a class="concept-card" href="?concept=strata">
+        <div class="thumbnail"><canvas data-concept="strata" aria-hidden="true"></canvas></div>
+        <div class="card-description"><span class="number">01</span><div><h2>Evidence strata</h2><p>Preserved execution histories build a quiet foundation in depth.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+      <a class="concept-card" href="?concept=currents">
+        <div class="thumbnail"><canvas data-concept="currents" aria-hidden="true"></canvas></div>
+        <div class="card-description"><span class="number">02</span><div><h2>Branching currents</h2><p>Different paths carry the same signal toward an observable outcome.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+      <a class="concept-card" href="?concept=planes">
+        <div class="thumbnail"><canvas data-concept="planes" aria-hidden="true"></canvas></div>
+        <div class="card-description"><span class="number">03</span><div><h2>Independent planes</h2><p>Three distinct layers exchange evidence while keeping their own structure.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+      <a class="concept-card" href="?concept=weave">
+        <div class="thumbnail"><canvas data-concept="weave" aria-hidden="true"></canvas></div>
+        <div class="card-description"><span class="number">04</span><div><h2>Evidence weave</h2><p>A continuous fabric of signals, with a few bright threads moving through it.</p></div><span aria-hidden="true">↗</span></div>
+      </a>
+    </div>
+    <p class="gallery-note">Open a study to see the actual section copy. These are saved prototypes; the homepage is unchanged.</p>
+  </main>
+
+  <main id="detail" hidden>
+    <div class="toolbar">
+      <a href="./">← All concepts</a>
+      <label class="picker">Study <select id="concept-picker">
+        <optgroup label="Growing lattices">
+        <option value="sweep">08 / Sweeping foundation</option>
+        <option value="braid">05 / Braided lattice</option>
+        <option value="arbor">06 / Branching lattice</option>
+        <option value="canopy">07 / Woven canopy · living mesh</option>
+        </optgroup>
+        <optgroup label="Previous studies">
+        <option value="canopy-original">07a / Woven canopy · original</option>
+        <option value="strata">01 / Evidence strata</option>
+        <option value="currents">02 / Branching currents</option>
+        <option value="planes">03 / Independent planes</option>
+        <option value="weave">04 / Evidence weave</option>
+        </optgroup>
+      </select></label>
+      <div class="controls"><button id="grow-again" type="button" hidden>Grow again ↻</button><label><input type="checkbox" id="copy-toggle" checked> Section copy</label><label class="strength">Strength <input type="range" id="strength" min="30" max="150" value="100"><output id="strength-value" for="strength">100%</output></label></div>
+    </div>
+    <section class="stage" aria-labelledby="foundation-title">
+      <div class="motion-field" aria-hidden="true"><canvas id="detail-canvas"></canvas></div>
+      <div class="text-shade" aria-hidden="true"></div>
+      <div class="section-inner">
+        <h1 id="foundation-title">A foundation for <br><em>recursive self-improvement.</em></h1>
+        <div class="description">
+          <p>Junjo enables your coding agent to recursively improve your AI application by methodically exploring and evaluating architectures and approaches that deliver value to improve speed, quality, and cost.</p>
+          <p>Keep your coding agent, application runtime, and observation layers separate. Stop reinventing telemetry and evaluation infrastructure on every project. Junjo was designed to support this layer for virtually any AI application.</p>
+        </div>
+      </div>
+    </section>
+    <div class="study-notes"><span id="study-number"></span><div><h2 id="study-title"></h2><p id="study-description"></p></div><p id="study-tempo"></p></div>
+    <div class="next-section"><p>NEXT SECTION</p><h2>Optimized for <em>coding agents.</em></h2></div>
+  </main>
+  <script type="module" src="studies.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 780" role="img" aria-labelledby="title desc">
+  <title id="title">Junjo AI Studio deployment and data flow</title>
+  <desc id="desc">Applications send OTLP traces to ingestion. Coding agents use the backend API. On one Studio host, ingestion writes shared telemetry files, the backend reads them and owns SQLite records, and the web UI uses the backend.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 8 5 1 9" fill="none" stroke="#a5c5ff" stroke-width="1.4"/></marker>
+  </defs>
+  <rect width="640" height="780" rx="16" fill="#080e1a"/>
+  <g font-family="system-ui,sans-serif" text-anchor="middle">
+    <g fill="#101e34" stroke="#46638d">
+      <rect x="30" y="24" width="270" height="94" rx="12"/>
+      <rect x="340" y="24" width="270" height="94" rx="12"/>
+    </g>
+    <g fill="#e1eaff" font-size="23">
+      <text x="165" y="60">Your application</text>
+      <text x="475" y="60">Your coding agent</text>
+    </g>
+    <g fill="#a7bad8" font-size="17">
+      <text x="165" y="90">Models · Tools · Evaluators</text>
+      <text x="475" y="90">Experiments · Investigation</text>
+    </g>
+    <rect x="18" y="183" width="604" height="575" rx="16" fill="#0d1729" stroke="#5275a8" stroke-dasharray="4 6"/>
+    <text x="320" y="218" fill="#ffce99" font-size="22">One Studio host</text>
+    <g stroke="#a5c5ff" stroke-width="1.6" fill="none" marker-end="url(#arrow)">
+      <path d="M165 118V249"/>
+      <path d="M475 118V249"/>
+      <path d="M165 330V392"/>
+      <path d="M475 392V330"/>
+      <path d="M475 330H596V530H559"/>
+      <path d="M198 565V590H580V297H565"/>
+    </g>
+    <g fill="#080e1a">
+      <rect x="106" y="130" width="118" height="32"/>
+      <rect x="405" y="130" width="140" height="32"/>
+    </g>
+    <g fill="#0d1729">
+      <rect x="109" y="344" width="112" height="30"/>
+      <rect x="422" y="344" width="106" height="30"/>
+    </g>
+    <g fill="#a7bad8" font-size="17">
+      <text x="165" y="152">OTLP traces</text>
+      <text x="475" y="152">Backend API</text>
+      <text x="165" y="366">Write files</text>
+      <text x="475" y="366">Read files</text>
+    </g>
+    <g fill="#14243c" stroke="#6b91c7">
+      <rect x="57" y="252" width="216" height="78" rx="10"/>
+      <rect x="367" y="252" width="198" height="78" rx="10"/>
+    </g>
+    <g fill="#e1eaff" font-size="24">
+      <text x="165" y="284">Ingestion</text>
+      <text x="466" y="284">Backend</text>
+    </g>
+    <g fill="#a7bad8" font-size="17">
+      <text x="165" y="310">Rust · Batching</text>
+      <text x="466" y="310">API · DataFusion</text>
+    </g>
+    <rect x="57" y="396" width="508" height="80" rx="10" fill="#112535" stroke="#6b91c7"/>
+    <text x="311" y="428" fill="#e1eaff" font-size="23">Shared telemetry storage</text>
+    <text x="311" y="456" fill="#a7bad8" font-size="18">WAL · Hot snapshot · Cold Parquet</text>
+    <g fill="#14243c" stroke="#6b91c7">
+      <rect x="80" y="504" width="233" height="62" rx="10"/>
+      <rect x="348" y="504" width="211" height="62" rx="10"/>
+    </g>
+    <text x="197" y="543" fill="#e1eaff" font-size="23">Studio web UI</text>
+    <text x="454" y="530" fill="#e1eaff" font-size="20">Backend-owned</text>
+    <text x="454" y="554" fill="#a7bad8" font-size="18">SQLite databases</text>
+    <g fill="#a7bad8" font-size="18">
+      <text x="320" y="645">RPC also connects ingestion and backend</text>
+      <text x="320" y="675">for authorization and snapshot preparation.</text>
+      <text x="320" y="719">Applications and coding agents can run elsewhere.</text>
+    </g>
+  </g>
+</svg>

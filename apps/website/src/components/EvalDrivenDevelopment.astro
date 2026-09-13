@@ -16,11 +16,11 @@ const prompt = 'Use Junjo to investigate recent customer service agent failures,
 ---
 <section class="eval-development" aria-labelledby="eval-development-title">
   <div class="section-inner">
-    <h2 id="eval-development-title">One-shot <em>Recursive Self Improvement</em></h2>
+    <h2 id="eval-development-title">One-shot <em>Recursive Self-Improvement</em></h2>
     <div class="eval-intro">
       <div class="section-heading">
-        <p class="lead">Recursive self improvement starts with a single prompt. Junjo’s evaluation datasets, evaluator telemetry, and coding-agent skills let your agent target failure modes, generate scenarios, build evaluator judges, and run experiments.</p>
-        <p class="support">Your coding agent owns and runs the code. Junjo AI Studio coordinates the experiment data and telemetry as a single source of truth across multiple agents, work trees, and team members. Scale up and run unlimited fan-out recursive self improvement cycles in parallel.</p>
+        <p class="lead">Recursive self-improvement starts with a single prompt. Junjo’s evaluation datasets, evaluator telemetry, and coding-agent skills let your agent target failure modes, generate scenarios, build evaluator judges, and run experiments.</p>
+        <p class="support">Your coding agent owns and runs the code. Junjo AI Studio coordinates the experiment data and telemetry as a single source of truth across multiple agents, worktrees, and team members. Scale up and run unlimited fan-out recursive self-improvement cycles in parallel.</p>
       </div>
       <AgentPrompt prompt={prompt} footer="" />
     </div>
@@ -45,7 +45,7 @@ const prompt = 'Use Junjo to investigate recent customer service agent failures,
 
     <div class="improvement-cycle">
       <div class="cycle-heading">
-        <h3>The engine of<br /><em>recursive self improvement.</em></h3>
+        <h3>The engine of<br /><em>recursive self-improvement.</em></h3>
         <p>Each experiment gives your coding agent evidence for the next one. It can harvest failure modes from application telemetry, turn them into targeted datasets and evals, and test prompt or code changes against a baseline.</p>
       </div>
       <ol class="cycle-steps">
@@ -62,13 +62,13 @@ const prompt = 'Use Junjo to investigate recent customer service agent failures,
         <p class="strategy-detail">Your coding agent orchestrates the work; your application runs it; Junjo preserves the data for the next cycle.</p>
       </article>
       <article class="strategy-card parallel-strategy">
-        <h3>Large Scale <em>Parallel Improvements</em></h3>
+        <h3>Large-Scale <em>Parallel Improvements</em></h3>
         <ImprovementCycleVisual parallel />
-        <p>Unleash recursive self improvement with fan-out strategies to test multiple architectures and approaches at once, or to handle several failure modes in parallel.</p>
-        <p class="strategy-detail">Run independent recursive self improvement cycles for feature_a, feature_b, failure_mode_1, and failure_mode_2. Each coding agent works in its own work tree, harvesting failures, running experiments, evaluating outcomes, and improving its target with Junjo. Junjo AI Studio brings their results and telemetry together so you can compare improvements and direct the next round of work.</p>
+        <p>Run recursive self-improvement cycles for different features and failure modes in parallel. Give each coding agent a focused target and its own evaluation criteria.</p>
+        <p class="strategy-detail">Run independent recursive self-improvement cycles for feature_a, feature_b, failure_mode_1, and failure_mode_2. Each coding agent works in its own worktree, harvesting failures, running experiments, evaluating outcomes, and improving its target with Junjo. Junjo AI Studio brings their results and telemetry together so you can compare improvements and direct the next round of work.</p>
       </article>
     </div>
-    <a class="section-link" href="/docs/recursive-self-improvement/">Start a recursive self improvement cycle <span aria-hidden="true">↗</span></a>
+    <a class="section-link" href="/docs/recursive-self-improvement/">Start a recursive self-improvement cycle <span aria-hidden="true">↗</span></a>
   </div>
 </section>
 

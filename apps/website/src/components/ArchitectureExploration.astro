@@ -1,0 +1,42 @@
+---
+import AgentPrompt from './AgentPrompt.astro';
+import ArchitectureComparison from './ArchitectureComparison.astro';
+
+const prompt = 'Use Junjo to test different architectures for this task in separate worktrees. Find which produces the required result most reliably and efficiently.';
+---
+
+<section class="architecture-exploration" aria-labelledby="architecture-title">
+  <div class="section-inner">
+    <h2 id="architecture-title">Explore different approaches.<br /><em>Discover what works.</em></h2>
+    <div class="architecture-intro">
+      <div class="description">
+        <p>Test major changes to your AI application’s architecture. Compare autonomous agents, specialists, workflows that use tools, and combinations that approach the same task differently.</p>
+        <p>Define the result you need, then ask your coding agent to build and evaluate alternative implementations with Junjo. Compare their reliability, quality, speed, and cost, and inspect the execution evidence to decide which architecture to develop next.</p>
+      </div>
+      <AgentPrompt prompt={prompt} footer="" />
+    </div>
+    <ArchitectureComparison />
+    <div class="evaluation-methods">
+      <p>Verify outcomes with deterministic code, retrieval and source validation, A/B comparisons, or a high-capability LLM judge.</p>
+      <a href="/docs/architecture-exploration/">Explore and compare architectures <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .architecture-exploration { padding: clamp(80px,8vw,112px) 4vw; border-top: 1px solid #25324b66; background: radial-gradient(ellipse at 50% 70%,#12326944,transparent 65%),#080e1a; }
+  .section-inner { max-width: 1200px; margin-inline: auto; }
+  h2 { font-size: clamp(34px,4.25vw,62px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; margin: 0 0 32px; text-wrap: balance; }
+  em { font-style: normal; color: #83a5ff; }
+  .architecture-intro { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 56px; align-items: center; }
+  .description p { margin: 0; color: #c0cbdd; font-size: clamp(17px,1.55vw,21px); line-height: 1.7; }
+  .description p + p { margin-top: 20px; }
+  .architecture-intro > :global(agent-prompt) { width: 100%; --prompt-font-size: 18px; }
+  .evaluation-methods { display: flex; align-items: center; justify-content: space-between; gap: 40px; margin-top: 32px; }
+  .evaluation-methods p { color: #b2c4df; font-size: 17px; line-height: 1.75; max-width: 740px; margin: 0; }
+  .evaluation-methods a { color: #9dc3ff; font-size: 15px; line-height: 1.6; flex-shrink: 0; text-decoration: none; }
+  .evaluation-methods a:hover { color: #e0edff; }
+  .evaluation-methods a:focus-visible { outline: 2px solid #9dc6ff; outline-offset: 5px; }
+  @media(max-width: 900px) { .architecture-intro { grid-template-columns: 1fr; gap: 32px; } .evaluation-methods { flex-direction: column; align-items: flex-start; gap: 20px; } }
+  @media(max-width: 760px) { .architecture-exploration { padding: 72px 24px; } h2 { font-size: clamp(32px,7.5vw,44px); } .architecture-intro > :global(agent-prompt) { --prompt-font-size: 17px; } }
+</style>

@@ -27,14 +27,14 @@ const blocks = [
     id: 'state', label: 'State & actions',
     title: 'Follow every state change through execution.',
     description: 'Inspired by Redux and the Elm Pattern, Junjo combines typed state, detached read snapshots, and explicit store actions for safe updates in high-concurrency LLM applications. Each committed change records a chronological state diff and the operation that produced it.',
-    benefit: 'Inspect the application state at successive updates: what changed, in which order, and through which action. Give your coding agent the detailed execution history it needs to explain a decision and diagnose the step behind a failure.',
+    benefit: 'Follow recorded state changes backward and forward to see where a value changed and how later operations used it. Give your coding agent the detailed execution history it needs to explain a decision and diagnose the step behind a failure.',
     href: '/docs/python/workflows/state/', link: 'Explore state management',
   },
   {
     id: 'tools', label: 'Build or integrate',
     title: 'Build the application. Or extend the one you have.',
     description: 'Junjo supplies the ingredients for a complete agentic application: agents, tools, structured workflows, graphs, concurrency, state management, telemetry, and evaluation.',
-    benefit: 'These same building blocks can act as tools and support layers for your existing agent framework. For example, expose a Junjo workflow or agent as an OpenAI Agents SDK tool, while the outer framework keeps its conversation, sessions, and agent loop.',
+    benefit: 'Use Junjo to structure your application’s execution and state, or adopt individual capabilities within your existing framework. For example, expose a Junjo workflow or agent as an OpenAI Agents SDK tool, while the outer framework keeps its conversation, sessions, and agent loop.',
     href: '/docs/python/integrations/openai-agents/', link: 'Explore the OpenAI Agents SDK integration',
   },
 ];
@@ -75,8 +75,16 @@ const blocks = [
         for (const tab of tabs) { tab.setAttribute('aria-selected', String(tab === selected)); tab.tabIndex = tab === selected ? 0 : -1; }
         for (const panel of panels) panel.hidden = panel.id !== selected.getAttribute('aria-controls');
       };
+      const syncFromUrl = () => select(tabs.find(tab => `#${tab.id}` === location.hash) ?? tabs[0]);
+      const activate = (tab: HTMLButtonElement) => {
+        select(tab);
+        const hash = `#${tab.id}`;
+        if (location.hash !== hash) history.pushState(history.state, '', hash);
+      };
+      syncFromUrl();
+      window.addEventListener('hashchange', syncFromUrl, { signal: this.abort.signal });
       for (const [index, tab] of tabs.entries()) {
-        tab.addEventListener('click', () => select(tab), { signal: this.abort.signal });
+        tab.addEventListener('click', () => activate(tab), { signal: this.abort.signal });
         tab.addEventListener('keydown', (event) => {
           let next: number;
           if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
@@ -84,7 +92,7 @@ const blocks = [
           else if (event.key === 'Home') next = 0;
           else if (event.key === 'End') next = tabs.length - 1;
           else return;
-          event.preventDefault(); select(tabs[next]); tabs[next].focus();
+          event.preventDefault(); activate(tabs[next]); tabs[next].focus();
         }, { signal: this.abort.signal });
       }
     }
@@ -97,6 +105,7 @@ const blocks = [
   sdk-building-blocks { display: block; }
   h3,p { margin: 0; }
   .block-tabs { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); border-bottom: 1px solid #334563; margin-bottom: 48px; }
+  .block-tabs button { scroll-margin-top: 100px; }
   .block-tabs button { display: flex; align-items: center; justify-content: center; gap: 10px; appearance: none; border: 0; border-bottom: 2px solid transparent; background: none; padding: 20px 10px; color: #97a9c8; font: inherit; font-size: 15px; cursor: pointer; transition: color .2s, background .2s, border-color .2s; }
   .tab-icon { width: 23px; height: 23px; flex-shrink: 0; }
   .block-tabs button:hover { color: #e3edff; background: #1c33552b; }
