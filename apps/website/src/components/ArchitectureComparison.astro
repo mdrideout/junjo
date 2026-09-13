@@ -1,0 +1,140 @@
+---
+const approaches = [
+  {
+    name: 'Autonomous agent',
+    detail: 'Choose tools and next actions.',
+    kind: 'autonomous',
+    edges: ['M120 0V95', 'M120 95C72 60 32 70 32 102C32 146 72 153 120 95', 'M120 95C168 60 208 70 208 102C208 146 168 153 120 95', 'M120 95V210'],
+    nodes: [{ x: 32, y: 102, r: 10 }, { x: 208, y: 102, r: 10 }],
+    agents: [{ x: 120, y: 95 }],
+    route: 'M120 0V95C72 60 32 70 32 102C32 146 72 153 120 95C168 60 208 70 208 102C208 146 168 153 120 95V210',
+  },
+  {
+    name: 'Structured workflow',
+    detail: 'Route through explicit operations.',
+    kind: 'workflow',
+    edges: ['M120 0V37', 'M120 37C120 68 62 68 62 98', 'M120 37C120 68 178 68 178 98', 'M62 98C62 136 120 136 120 170', 'M178 98C178 136 120 136 120 170', 'M120 170V210'],
+    nodes: [{ x: 120, y: 37, r: 13 }, { x: 62, y: 98, r: 13 }, { x: 178, y: 98, r: 13 }, { x: 120, y: 170, r: 13 }],
+    agents: [],
+    route: 'M120 0V37C120 68 62 68 62 98C62 136 120 136 120 170V210',
+  },
+  {
+    name: 'Specialist agents',
+    detail: 'Delegate to focused specialists.',
+    kind: 'specialists',
+    edges: ['M120 0V36', 'M120 36C120 72 40 64 40 106', 'M120 36V106', 'M120 36C120 72 200 64 200 106', 'M40 106C40 156 120 140 120 177', 'M120 106V210', 'M200 106C200 156 120 140 120 177'],
+    nodes: [{ x: 120, y: 36, r: 13 }, { x: 120, y: 177, r: 8 }],
+    agents: [{ x: 40, y: 106 }, { x: 120, y: 106 }, { x: 200, y: 106 }],
+    route: 'M120 0V36C120 72 200 64 200 106C200 156 120 140 120 177V210',
+  },
+  {
+    name: 'Combined approach',
+    detail: 'Use workflows and specialists as tools.',
+    kind: 'combined',
+    edges: ['M120 0V40', 'M120 40C120 66 72 62 72 90V142C72 174 120 160 120 184', 'M120 40C120 80 194 67 194 112C194 162 120 157 120 184', 'M120 184V210'],
+    nodes: [{ x: 72, y: 90, r: 10 }, { x: 72, y: 142, r: 10 }, { x: 120, y: 184, r: 7 }],
+    agents: [{ x: 120, y: 40 }, { x: 194, y: 112 }],
+    route: 'M120 0V40C120 66 72 62 72 90V142C72 174 120 160 120 184V210',
+  },
+];
+const ribbon = 'M-27 0C-27-27 4-29 18-9C36 18 16 34-5 16C-26-2-4-32 16-18C37-4 22 22 3 9C-10 0-19-12-27 0Z';
+---
+
+<architecture-comparison>
+  <figure aria-label="Four alternative architectures solve one shared task in separate worktrees and are evaluated against the same scenarios and criteria.">
+    <div class="shared-task"><span class="task-dot" aria-hidden="true"></span><h3>One shared task</h3><p>Same inputs. Same required outcome.</p></div>
+    <div class="architecture-lanes">
+      {approaches.map(approach => <div class="approach">
+        <svg viewBox="0 0 240 210" aria-hidden="true">
+          {approach.kind === 'combined' && <rect class="workflow-boundary" x="43" y="69" width="58" height="96" rx="20" />}
+          <g class="connections">{approach.edges.map(d => <path d={d} />)}</g>
+          {approach.nodes.map(node => <g transform={`translate(${node.x} ${node.y})`}>
+            <circle class="node-halo" r={node.r + 3} /><circle class="node" r={node.r} />
+          </g>)}
+          {approach.agents.map(agent => <g transform={`translate(${agent.x} ${agent.y})`}>
+            <circle class="agent-backdrop" r="29" />
+            <path class="agent-halo" d={ribbon} />
+            <path class="agent-ribbon" d={ribbon} />
+          </g>)}
+          <g class="traveler" style={`offset-path: path('${approach.route}')`}>
+            <circle class="job-halo" r="8" /><circle class="job-dot" r="3" />
+          </g>
+        </svg>
+        <h4>{approach.name}</h4>
+        <p>{approach.detail}</p>
+      </div>)}
+    </div>
+    <div class="shared-evaluation">
+      <div class="evaluation-heading"><span class="evidence-dot" aria-hidden="true"></span><h3>Shared scenarios. Consistent evaluation criteria.</h3></div>
+      <p>Compare outcomes. Inspect the execution behind each result.</p>
+      <div class="evidence-traces" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+    <figcaption>Different architectures in separate worktrees. Evidence together in Junjo AI Studio.</figcaption>
+  </figure>
+</architecture-comparison>
+
+<script>
+  class ArchitectureComparison extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      const abort = new AbortController();
+      let visible = false;
+      const update = () => this.style.setProperty('--motion-state', visible && !document.hidden ? 'running' : 'paused');
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); });
+      observer.observe(this);
+      document.addEventListener('visibilitychange', update, { signal: abort.signal });
+      this.cleanup = () => { observer.disconnect(); abort.abort(); };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('architecture-comparison')) customElements.define('architecture-comparison', ArchitectureComparison);
+</script>
+
+<style>
+  architecture-comparison { --motion-state: paused; display: block; margin-top: 64px; }
+  figure { margin: 0; }
+  h3,h4,p { margin: 0; }
+  .shared-task { text-align: center; padding-bottom: 32px; position: relative; }
+  .task-dot,.evidence-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ffcc92; box-shadow: 0 0 16px #ffba6faa; }
+  .shared-task h3 { font-size: 25px; font-weight: 500; letter-spacing: -.03em; margin-top: 12px; }
+  .shared-task p { color: #9cb4d8; font-size: 15px; line-height: 1.6; margin-top: 8px; }
+  .shared-task::after { content: ''; position: absolute; height: 20px; bottom: 0; left: 50%; border-left: 2px dotted #6688bc; }
+  .architecture-lanes { position: relative; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px; padding: 0 0 28px; }
+  .architecture-lanes::before { content: ''; position: absolute; top: 0; left: calc((100% - 72px) / 8); right: calc((100% - 72px) / 8); border-top: 2px dotted #6688bc; }
+  .approach { min-width: 0; text-align: center; }
+  svg { display: block; width: 100%; height: auto; aspect-ratio: 240 / 210; }
+  .connections { fill: none; stroke: #739acd; stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: .1 6; }
+  .node { fill: #0c172b; stroke: #a9ceff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: .1 4; }
+  .node-halo { fill: none; stroke: #85b5ff; stroke-width: 6; opacity: .1; }
+  .workflow-boundary { fill: #152b4855; stroke: #738ba9; stroke-width: 1; stroke-dasharray: 2 5; }
+  .agent-backdrop { fill: #0b1426; }
+  .agent-halo { fill: none; stroke: #ffc789; stroke-width: 8; opacity: .1; }
+  .agent-ribbon { fill: none; stroke: #ffd29b; stroke-width: 2; stroke-dasharray: .1 4; stroke-linecap: round; }
+  .traveler { offset-rotate: 0deg; animation: traverse 5.5s linear infinite; animation-play-state: var(--motion-state); }
+  .job-halo { fill: #ffce9340; }
+  .job-dot { fill: #fff4d7; }
+  .approach h4 { font-size: clamp(17px,1.65vw,22px); line-height: 1.3; font-weight: 500; letter-spacing: -.03em; color: #d9e6fa; margin-top: 14px; }
+  .approach p { font-size: 14px; line-height: 1.55; color: #9bb3d5; margin: 9px auto 0; max-width: 230px; }
+  .shared-evaluation { padding: 24px; text-align: center; border: 1px solid #3d568166; border-radius: 16px; background: radial-gradient(ellipse at 50% 100%,#193e6c66,transparent 75%),#0a142555; }
+  .evaluation-heading { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .evidence-dot { background: #acd6ff; box-shadow: 0 0 14px #649dff; flex-shrink: 0; }
+  .shared-evaluation h3 { font-size: clamp(20px,2vw,25px); font-weight: 500; letter-spacing: -.03em; line-height: 1.3; }
+  .shared-evaluation p { font-size: 15px; line-height: 1.6; color: #a8c0e1; margin-top: 10px; }
+  .evidence-traces { display: grid; gap: 8px; width: 130px; margin: 18px auto 0; }
+  .evidence-traces i { position: relative; height: 2px; background: repeating-linear-gradient(90deg,#94c4ff 0 2px,transparent 2px 7px); }
+  .evidence-traces i::before { content: ''; position: absolute; left: 0; top: -1px; width: 4px; height: 4px; border-radius: 50%; background: #ffcc92; }
+  .evidence-traces i:nth-child(2) { margin-left: 18px; width: 80%; }
+  .evidence-traces i:nth-child(3) { margin-left: 36px; width: 60%; }
+  figcaption { text-align: center; color: #95aacc; font-size: 14px; line-height: 1.65; margin-top: 20px; }
+  @keyframes traverse { 0% { offset-distance: 0%; opacity: 0; } 5% { opacity: 1; } 85% { offset-distance: 100%; opacity: 1; } 90%,100% { offset-distance: 100%; opacity: 0; } }
+  @media(max-width: 760px) {
+    architecture-comparison { margin-top: 44px; }
+    .architecture-lanes { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px 20px; padding: 20px 0 28px; border-top: 1px dotted #6688bc; }
+    .architecture-lanes::before { display: none; }
+    .approach svg { max-width: 220px; margin-inline: auto; }
+    .approach h4 { margin-top: 8px; }
+    .approach p { font-size: 13px; }
+    .shared-evaluation { padding: 24px 18px; }
+  }
+  @media(prefers-reduced-motion: reduce) { .traveler { display: none; animation: none; } }
+</style>

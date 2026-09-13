@@ -15,8 +15,7 @@ execution history. Your coding agent implements and runs the alternatives,
 investigates their tradeoffs, and explains which direction the evidence
 supports. You can inspect the same records in Studio.
 
-> Use Junjo to compare different architectures for this capability and
-> recommend which approach to develop next.
+> Use Junjo to test different architectures for this task in separate worktrees. Find which produces the required result most reliably and efficiently.
 
 You can start with a new capability, an uncertain design decision, or a known
 limitation. A production failure is one useful input, but exploration does not
@@ -52,6 +51,46 @@ Define what success means for the complete task: a correct result, supporting
 evidence, required actions, and any application-specific constraints. Decide
 how quality, response time, and execution cost affect the choice. A faster
 candidate that omits required work has answered a different question.
+
+## Choose how to evaluate the outcome
+
+Evaluate outcomes against clear criteria, using the method that fits the task.
+Success might mean exact correctness, a conclusion supported by evidence, or
+one response being preferable to another under an explicit quality rubric.
+The task does not need one predetermined answer to be meaningfully evaluated.
+
+- **Deterministic checks:** schemas, expected values, tests, constraints, and
+  state transitions.
+- **Retrieval and source validation:** check claims and extracted values
+  against authoritative evidence.
+- **A/B comparisons:** judge competing outputs for the same input using
+  explicit preference criteria.
+- **LLM judges:** use a capable model to assess domain-specific requirements
+  and explain its judgment.
+- **Combined evaluation:** check structure with code, verify supporting
+  evidence, and judge response quality separately.
+
+For example, a document-processing task can check the output schema with code,
+verify extracted values against the source documents, and use a model judge to
+assess whether an explanation handles conflicting evidence. A research task
+can test whether its recommendation meets the stated requirements, whether its
+claims are supported, and whether it addresses contradictory findings.
+
+Your application supplies the domain checks, retrieval logic, or model judge.
+Junjo provides the evaluator contracts and records the outcomes and execution
+evidence. Use the [built-in evaluators or an application
+callback](/docs/python/evaluation/#author-a-dataset) to implement
+the chosen method. Each evaluator returns a pass/fail judgment and a reason;
+Studio records operational errors separately. For a pairwise preference check,
+make the reference output and preference rule explicit in the case and
+evaluator, including what counts as passing. Studio's baseline/candidate run
+comparison compares the recorded outcomes; it does not choose a preference
+judge for your application.
+
+Keep the scenarios, reference evidence, criteria, and evaluator implementation
+consistent across the candidates. Internal architectures can differ
+substantially while still being assessed against the same definition of
+success.
 
 ## Propose competing architectures
 
@@ -175,6 +214,37 @@ Different architectures do not need matching internal steps. Compare their
 task outcomes, then investigate each trace on its own terms. A tool-using agent
 might gather evidence iteratively while a workflow gathers it in parallel.
 The important question is how that difference affected the requested result.
+
+### Investigate the judgment itself
+
+A surprising evaluation result is also something to investigate. Junjo's
+[evaluation telemetry](/docs/python/evaluation/#telemetry-classification)
+distinguishes the application subject from the judge and any explicitly
+instrumented verifier work. Your coding agent can follow the attempt's
+execution evidence and inspect the recorded evaluator activity alongside the
+application behavior.
+
+Check the case criteria, evaluator reason, the output the evaluator received,
+and the available source evidence. Where model and tool calls are instrumented,
+inspect those calls to understand what information the judge used. Separate
+three possibilities:
+
+- **An application failure:** the result violates a requirement or makes a
+  claim contradicted by the evidence.
+- **Missing evidence:** the evaluator cannot establish the result because a
+  source is unavailable or its coverage is incomplete. Absence from a limited
+  source set is not automatically proof that a claim is wrong.
+- **A questionable evaluation:** the judge misapplies the rubric, overlooks
+  relevant information, or prefers an output for reasons unrelated to the
+  task's criteria.
+
+Calibrate judges against known-good, known-bad, and boundary examples. If an
+evaluator cannot make a supported judgment, surface the evaluation problem
+rather than disguising it as an application failure. If the evaluator needs to
+change, document that change and rerun the competing architectures under the
+same revised evaluator. Changed case criteria belong in a new dataset. This
+keeps a correction to the evaluation from being mistaken for an improvement
+to the application.
 
 ## Choose what to develop next
 

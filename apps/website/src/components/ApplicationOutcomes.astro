@@ -1,0 +1,54 @@
+---
+const applications = [
+  { title: 'Classify content', description: 'Apply domain-specific categories, identify ambiguity, and route content correctly.', icon: 'M4 5h7M4 10h7M4 15h7M15 10h5M20 10V4h7M20 10v10h7' },
+  { title: 'Extract and validate data', description: 'Turn inconsistent documents into structured records grounded in source evidence.', icon: 'M5 3h12l5 5v8M17 3v6h5M5 3v23h10M9 14h7M9 19h4M19 23l3 3 7-9' },
+  { title: 'Execute domain workflows', description: 'Retrieve context, validate decisions, and make the correct application state changes.', icon: 'M3 13h5M12 9l4-5 5 5M12 17l4 5 5-5M24 13h5M8 9h4v8H8zM21 9h4v8h-4z' },
+  { title: 'Make software changes', description: 'Implement requested behavior and verify it through tests and execution evidence.', icon: 'M10 7l-7 7 7 7M22 7l7 7-7 7M19 3l-6 24' },
+  { title: 'Create from instructions', description: 'Generate artifacts that satisfy functional requirements, user instructions, and quality criteria.', icon: 'M3 6h10M3 12h7M3 18h4M19 9l10 5v11l-10 5-10-5V14zM9 14l10 5 10-5M19 19v11' },
+  { title: 'Deliver grounded responses', description: 'Evaluate correctness, completeness, supporting evidence, and response quality.', icon: 'M3 4h25v17H13l-7 6v-6H3zM8 10h15M8 15h9' },
+  { title: 'Research and validate', description: 'Investigate questions, retrieve supporting and conflicting evidence, and produce conclusions that withstand source checks and evaluation.', icon: 'M19 18l10 11M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0M7 12l3 3 6-7' },
+];
+---
+
+<section class="application-outcomes" aria-labelledby="application-outcomes-title">
+  <div class="section-inner">
+    <div class="section-heading">
+      <h2 id="application-outcomes-title">Build AI that <em>gets the task right.</em></h2>
+      <p>Junjo helps your coding agent build, explore, and refine AI applications around outcomes you can evaluate. Define success for your domain, test different approaches, and use the evidence to improve them.</p>
+    </div>
+    <div class="application-grid">
+      {applications.map((application, index) => <article class:list={['application-card', { research: index === 6 }]}>
+        <div class="card-content">
+          <svg viewBox="0 0 32 34" width="32" height="34" aria-hidden="true"><path d={application.icon} /></svg>
+          <h3>{application.title}</h3>
+          <p>{application.description}</p>
+        </div>
+        {index === 6 && <div class="research-example">
+          <span class="example-label">From investigation to validation</span>
+          <p>Determine whether a proposed technical approach satisfies a set of requirements. Gather evidence, test assumptions, identify contradictions, and return a supported recommendation.</p>
+        </div>}
+      </article>)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .application-outcomes { padding: clamp(80px,8vw,112px) 4vw; border-top: 1px solid #25324b66; background: #070c16; }
+  .section-inner { max-width: 1200px; margin-inline: auto; }
+  .section-heading { max-width: 890px; margin-bottom: 48px; }
+  h2 { font-size: clamp(34px,4.25vw,62px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; margin: 0 0 28px; text-wrap: balance; }
+  em { font-style: normal; color: #83a5ff; }
+  .section-heading p { font-size: clamp(17px,1.55vw,21px); line-height: 1.7; color: #c0cbdd; max-width: 800px; margin: 0; }
+  .application-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
+  .application-card { min-width: 0; border: 1px solid #2e446455; border-radius: 16px; padding: 28px; background: linear-gradient(145deg,#101e344d,transparent); }
+  .card-content svg { display: block; margin-bottom: 24px; fill: none; stroke: #9fc6ff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .application-card h3 { font-size: 23px; line-height: 1.25; letter-spacing: -.03em; font-weight: 500; color: #dce7f8; margin: 0 0 14px; }
+  .application-card p { font-size: 16px; line-height: 1.7; color: #a7b9d4; margin: 0; }
+  .research { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; background: radial-gradient(ellipse at 80% 50%,#1a375737,transparent 75%),#0b1422; }
+  .research-example { padding-left: 28px; border-left: 2px dotted #7592bf; }
+  .example-label { display: block; color: #ffd09b; font-size: 14px; margin-bottom: 16px; }
+  .research-example p { color: #c0cee4; }
+  @media(max-width: 1000px) { .application-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .research { gap: 32px; } }
+  @media(max-width: 760px) { .application-outcomes { padding: 72px 24px; } h2 { font-size: clamp(32px,7.5vw,44px); } .section-heading { margin-bottom: 36px; } .research { grid-template-columns: 1fr; } }
+  @media(max-width: 560px) { .application-grid { grid-template-columns: 1fr; gap: 16px; } .application-card { padding: 24px; } .card-content svg { margin-bottom: 20px; } .research-example { padding-left: 20px; } }
+</style>
