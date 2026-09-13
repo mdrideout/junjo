@@ -1,0 +1,201 @@
+---
+title: Explore and compare AI application architectures
+description: Use Junjo to test alternative AI architectures, compare agents and workflows against shared scenarios, and guide recursive self improvement with execution evidence.
+---
+
+Recursive self improvement includes exploring entirely different ways to solve
+a problem. Your coding agent can test substantial architecture changes:
+autonomous agents that choose their own next action, specialist agents with
+focused responsibilities, tool use workflows with explicit routing, and
+combinations of these approaches.
+
+Junjo's Python SDK supplies building blocks and local evaluation tooling.
+Junjo AI Studio connects the scenarios, application revisions, outcomes, and
+execution history. Your coding agent implements and runs the alternatives,
+investigates their tradeoffs, and explains which direction the evidence
+supports. You can inspect the same records in Studio.
+
+> Use Junjo to compare different architectures for this capability and
+> recommend which approach to develop next.
+
+You can start with a new capability, an uncertain design decision, or a known
+limitation. A production failure is one useful input, but exploration does not
+require waiting for one.
+
+## Connect the application and coding agent
+
+If this is your first Junjo experiment, follow
+[Connect once](/docs/recursive-self-improvement/#connect-once) to configure
+Studio, application telemetry, the evaluation harness, and the coding-agent
+skill. The application owns its model calls, tools, dependencies, and
+evaluators. Your coding agent owns the development work. Studio stores the
+experiment records and received telemetry.
+
+This guide focuses on how to structure an architecture study. The
+[evaluation guide](/docs/python/evaluation/) owns the dataset, harness, and
+CLI setup instructions.
+
+## Frame the design question
+
+Describe the capability and the decisions you want evidence for. For example:
+
+- Should an autonomous agent choose its own investigation steps, or should a
+  workflow enforce the order in which evidence is collected and checked?
+- Would specialists with different tools find information that a single agent
+  misses, or would handoffs introduce more errors?
+- Which operations can run independently, and which benefit from seeing an
+  earlier result before choosing what to do?
+- Could explicit application logic replace some model decisions while an
+  agent handles the ambiguous parts?
+
+Define what success means for the complete task: a correct result, supporting
+evidence, required actions, and any application-specific constraints. Decide
+how quality, response time, and execution cost affect the choice. A faster
+candidate that omits required work has answered a different question.
+
+## Propose competing architectures
+
+Ask the coding agent to describe each candidate's structure and hypothesis
+before implementing it. The alternatives should differ in how they approach
+the work, not only in the wording of a prompt.
+
+| Candidate | Approach | What the experiment should investigate |
+| --- | --- | --- |
+| Autonomous agent | One agent selects tools and decides its next action from the evidence it receives. | Whether adaptive investigation handles unfamiliar cases without unnecessary calls or missed checks. |
+| Structured workflow | Explicit stages gather evidence, apply rules, and produce a result, with conditional edges where the path can vary. | Whether predictable sequencing improves completeness and response time while retaining enough flexibility. |
+| Specialist agents | A coordinating agent routes work to specialists with their own instructions and tools. | Whether specialization improves difficult cases enough to justify coordination and handoffs. |
+| Combined approach | An autonomous agent invokes a structured workflow as a tool and consults specialists when needed. | Whether a reliable routine path and flexible investigation work well together. |
+
+These are hypotheses, not a ranking. The existing implementation can be the
+baseline; for a new capability, establish one working approach as the initial
+reference. There is no assumption that adding agents or stages improves it.
+
+## Keep the task consistent while the implementation changes
+
+Build representative scenarios before comparing the candidates. Include
+ordinary inputs, difficult combinations, incomplete or conflicting evidence,
+and situations where the application should request clarification. Define the
+expected behavior independently of any candidate's generated answer.
+
+Store the cases and evaluation criteria in Junjo and lock the dataset. Run the
+alternatives against the same locked cases. Keep the evaluator implementation
+and relevant fixtures consistent during the architecture comparison so a
+change in judgment or external data does not masquerade as an architecture
+improvement.
+
+The shared boundary is the **application task**, not its internal graph.
+Keep its application key, target kind and key, input version, input schema,
+and evaluator-facing output contract consistent across candidates. The
+operations behind that boundary can change substantially.
+
+For example, a stable outer Workflow target can invoke an autonomous agent in
+one implementation and a graph of specialist calls in another. Both return the
+same task result to the evaluator. The dataset keeps dispatching the same
+target while the committed application code determines the implementation.
+
+Do not replace a dataset's Agent target with a Workflow target and assume they
+are interchangeable. If the task or input contract changes, create an
+appropriate dataset and evaluate the relevant implementations against that
+shared contract. Runs over different datasets remain inspectable, but they
+are not a case-for-case comparison.
+
+Target-specific datasets can help improve a specialist or intermediate
+operation. Keep the shared end-to-end dataset as the basis for choosing
+between complete architectures.
+
+## Build and run the alternatives
+
+Your coding agent uses the application's existing code and Junjo's building
+blocks to construct each candidate:
+
+- [Agents](/docs/python/agents/) for dynamic model and tool decisions or focused
+  specialists.
+- [Structured workflows](/docs/python/concepts/) for explicit operations and
+  conditional execution paths.
+- [RunConcurrent](/docs/python/workflows/concurrency/) for independent work
+  inside an application execution.
+- [State and actions](/docs/python/workflows/state/) for explicit updates and
+  observable state history.
+- [Agent and workflow composition](/docs/python/agents/composition/) for
+  combinations of these approaches.
+
+An existing outer framework can remain in place. The
+[OpenAI Agents SDK integration for Python](/docs/python/integrations/openai-agents/)
+can expose Junjo workflows or agents as tools and connect their mixed execution
+evidence through OpenTelemetry. Use the integration actually supported by your
+installed SDK; a shared telemetry destination alone does not create native
+Junjo graph or state semantics for external operations.
+
+Run each candidate from a clean committed checkout, with a distinct run request
+key and a meaningful label such as `autonomous-agent`, `structured-workflow`,
+or `specialists`. Start a fresh application process when switching to another
+implementation so the run executes the code revision it records. Follow
+[execute, resume, and compare](/docs/python/evaluation/#execute-resume-and-compare)
+for the supported commands.
+
+Candidates can run sequentially or in separate worktrees at the same time.
+These are two different uses of parallel work:
+
+| Parallel improvement work | Parallel architecture exploration |
+| --- | --- |
+| Different agents address different features or failure modes. | Different agents implement competing solutions to the same task. |
+| Each task may need its own dataset and acceptance criteria. | The study uses shared cases and criteria to compare the alternatives. |
+| Evaluate the combined changes after integration. | Compare the candidates, then evaluate any selected or combined approach. |
+
+Your coding agent, CI, or development environment coordinates the processes,
+provider capacity, and test dependencies. Studio records their data; it does
+not create worktrees or execute application jobs. Each standard
+`EvaluationExecutor` processes its cases sequentially. Separate candidate runs
+can overlap without turning one run into a distributed worker queue.
+
+## Compare outcomes, then investigate the execution
+
+Junjo's current comparison pairs a baseline run with a candidate run over the
+same locked dataset. Have the coding agent compare each architecture against
+the reference and assemble a report from the actual results.
+
+| Question | Evidence to examine |
+| --- | --- |
+| Which scenarios improved or regressed? | Aligned case outcomes, evaluator reasons, and links to both executions. |
+| Did the candidate complete the work? | Passed and failed cases, operational errors, queued attempts, and coverage. |
+| What made a difficult case succeed or fail? | The recorded tool choices, intermediate results, routing decisions, and state updates. |
+| Where did time go? | Recorded attempt durations and the timing of model calls, tools, sequential stages, and concurrent work. |
+| What changed the cost? | Available model usage and billable tool activity, interpreted with the applicable provider pricing. |
+
+Pass rate counts judged cases only: `passed / (passed + failed)`. Review errors
+and coverage alongside it. An unchanged pass/fail status can still hide
+different outputs, execution paths, or durations.
+
+Use emitted usage data when discussing cost and identify any calculation or
+estimate. Missing usage is not zero cost. Model and tool behavior can also vary
+between runs; repeat a comparison when that variation leaves a material
+question unresolved, keeping the tested conditions explicit.
+
+Different architectures do not need matching internal steps. Compare their
+task outcomes, then investigate each trace on its own terms. A tool-using agent
+might gather evidence iteratively while a workflow gathers it in parallel.
+The important question is how that difference affected the requested result.
+
+## Choose what to develop next
+
+Ask the coding agent to connect its recommendation to the evidence:
+
+- Which approach best meets the task's criteria, and on which scenarios?
+- What tradeoffs remain in quality, execution time, cost, or complexity?
+- Which traces explain the result, and what remains uncertain?
+- What should the next experiment change or investigate?
+
+Include each candidate's source revision, run identity, comparison links, and
+the specific Studio executions a person should inspect. Preserve unsuccessful
+experiments too: a failed handoff or unnecessary tool loop may explain what
+to avoid in the next design.
+
+You may select an approach, combine useful parts, or test a new hypothesis.
+Evaluate a combined implementation as a new candidate; its components' results
+do not establish that their combination works. As new scenarios are discovered,
+create an expanded dataset and rerun the relevant contenders against it.
+
+Architecture exploration gives recursive self improvement new directions to
+test. [Focused improvement cycles](/docs/recursive-self-improvement/) then help
+develop the promising approaches, while their execution history can motivate
+another architectural experiment.

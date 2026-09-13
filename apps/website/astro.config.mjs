@@ -55,6 +55,7 @@ export default defineConfig({
           items: [
             { label: "Junjo in your stack", slug: "docs" },
             { label: "Recursive self improvement", slug: "docs/recursive-self-improvement" },
+            { label: "Explore alternative architectures", slug: "docs/architecture-exploration" },
             { label: "Datasets and evaluation runs", slug: "docs/python/evaluation" },
           ],
         },
