@@ -132,6 +132,11 @@ canonical accounts, credentials, datasets, runs, and results as well as trace
 storage and the telemetry index. Preserve the whole data directory and the
 deployment configuration when moving or replacing containers.
 
+The storage backing this directory is under your control. Choose and operate
+it according to the same data-protection requirements as your production
+application, including storage encryption, access restrictions, and backup
+handling.
+
 Before an upgrade, read the chosen release's compatibility and migration
 instructions and take a consistent backup. Some greenfield releases require
 an explicit data reset. Treat that as a release-specific destructive step,

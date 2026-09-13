@@ -111,6 +111,14 @@ per run. A per-run binding does not transfer client cleanup to Junjo; arrange
 resource cleanup in your application. Keep credentials and live clients out
 of the descriptor, which is recorded as evidence.
 
+The application adapter owns provider-specific request encoding, response
+decoding, identifiers, continuation state, and observation associations. Where
+a protocol requires mutable state between requests, use an appropriately
+isolated driver lifetime. Validate that the adapter preserves the provider's
+required sequence and information across complete exchanges. Junjo owns the
+normalized Agent execution contract; compatibility with a particular provider
+protocol must be demonstrated by the adapter.
+
 ## Evaluate a provider or adapter change
 
 Keep the same Agent target and locked dataset while changing the model binding

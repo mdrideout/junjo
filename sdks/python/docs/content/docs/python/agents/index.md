@@ -142,9 +142,14 @@ shared service or synchronous per-run service factory. The asynchronous service
 receives validated input plus a read-only `AgentRunContext`. Dependencies are
 opaque application services and never enter the ModelRequest automatically.
 
-Tool batches are fully preflighted in model order before any factory or service
-side effect. Calls then run sequentially and each validated result is committed
-before the next call begins.
+Before invoking any Tool factory or service in a returned batch, Junjo checks
+whole-batch Tool-call admission and validates every call's declared arguments
+in model order. Calls then run sequentially and each validated result is
+committed before the next call begins.
+
+Tool-call limits count Tool invocations; application operations performed inside
+a Tool retain their own quotas and admission policies. Earlier external side
+effects are not rolled back when a later call fails.
 
 ## Limits and errors
 
@@ -159,6 +164,12 @@ it is never mislabeled as a provider or Tool failure.
 
 History is optional, provider-neutral, immutable, and must contain complete
 prior exchanges. Junjo does not create persistent conversation memory.
+
+A Junjo execution trace and state snapshot describe an execution; they are not
+durable checkpoints for restarting application resources. Persisted job state,
+remote acknowledgments, replay decisions, compensation, and resource cleanup
+belong to the application and its chosen job system. Cancellation propagation
+does not prove that an external operation was undone.
 
 ## Portable boundaries and deterministic identity
 

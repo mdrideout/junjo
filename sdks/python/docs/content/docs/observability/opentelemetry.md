@@ -481,6 +481,25 @@ Junjo intentionally records rich workflow state in telemetry by default. This
 is a debugging-oriented design choice: many AI workflows need full prompts,
 tool inputs, tool outputs, and intermediate state to be visible in traces.
 
+Detailed execution evidence can be valuable production data. Self-hosting
+Junjo AI Studio lets you choose the infrastructure and storage backing its
+persistent data directory, and apply encryption, network isolation, access
+controls, and backup practices consistent with your production environment.
+You can protect captured evidence to the same security standard as the
+application data it describes. The
+[deployment guide](/docs/studio/deployment/#preserve-the-experiment-history)
+explains the persistent storage arrangement.
+
+Choose what to capture alongside where and how that evidence will be stored
+and accessed. Capture controls differ between execution types:
+
+| Execution surface | Capture control |
+| --- | --- |
+| Workflow state | State-model serialization controls the captured state representation, as described below. |
+| Native Junjo Agent | Instrumentation records full normalized payloads. The current public Agent API does not expose a selective capture policy; Workflow serialization guidance is not a general Agent redaction API. |
+| OpenAI Agents integration | Source tracing settings govern what the bridge receives; they do not suppress nested native Junjo telemetry. See the [integration's capture guidance](/docs/python/integrations/openai-agents/#treat-content-capture-as-a-privacy-choice). |
+| Other application spans | Capture is governed by the application's instrumentation and exporters. |
+
 Workflow state telemetry is derived from your state model's normal Pydantic
 serialization:
 
@@ -550,6 +569,16 @@ Hook event state payloads are separate from OpenTelemetry serialization.
 
 So excluding or truncating a field for telemetry serialization does **not**
 automatically remove it from `event.state` inside hook callbacks.
+
+### Application-owned artifact references
+
+An application-owned artifact reference can replace embedded content in
+observable input, output, or state. For example, a typed reference can carry an
+artifact ID, content digest, and media type while the application retains the
+bytes in its artifact storage. The application owns artifact storage,
+authorization, retrieval, and retention. The reference remains ordinary
+application data; it does not automatically select a telemetry capture mode or
+cause Studio to retrieve the artifact.
 
 ### Workflow/Subflow Span Attributes
 
