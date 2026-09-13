@@ -10,11 +10,11 @@
 
 A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github.com/mdrideout/junjo/tree/master/apps/studio) containing only the essential services. This minimal foundation provides the three core services needed to run Junjo AI Studio, with zero opinions about reverse proxies, networking, or infrastructure choices.
 
-This template pins Junjo AI Studio `0.84.0`. Applications that emit Junjo workflow telemetry should use Junjo `0.68.0`.
+This template pins Junjo AI Studio `0.84.1`. Applications that emit Junjo workflow telemetry should use Junjo `0.68.0`.
 
 > **Upgrading from before 0.83.0:** Studio 0.83.0 replaced the database
 > migration baseline. Databases from earlier releases are incompatible.
-> Upgrading from 0.83.0 to 0.84.0 does not introduce another migration reset.
+> Upgrading from 0.83.0 to 0.84.1 does not introduce another migration reset.
 > Follow the [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md)
 > to initialize a fresh data directory while retaining the old installation for
 > rollback. `docker compose down --volumes` does not reset Junjo's host-mounted
@@ -274,9 +274,9 @@ Modern cloud platforms (Render, Railway) can host Junjo AI Studio's three servic
 
 **Deployment Approach:**
 - Create 3 separate "Web Services" from the Docker images:
-  - `mdrideout/junjo-ai-studio-backend:0.84.0`
-  - `mdrideout/junjo-ai-studio-ingestion:0.84.0`
-  - `mdrideout/junjo-ai-studio-frontend:0.84.0`
+  - `mdrideout/junjo-ai-studio-backend:0.84.1`
+  - `mdrideout/junjo-ai-studio-ingestion:0.84.1`
+  - `mdrideout/junjo-ai-studio-frontend:0.84.1`
 - Add persistent disks for data volumes
 
 **Volume Configuration:**
@@ -330,17 +330,17 @@ JUNJO_INTERNAL_GRPC_TOKEN=<generated-secret>
 ```
 Services to Deploy:
 1. junjo-backend
-   - Image: mdrideout/junjo-ai-studio-backend:0.84.0
+   - Image: mdrideout/junjo-ai-studio-backend:0.84.1
    - Port: 26154
    - Volume: /app/.dbdata
 
 2. junjo-ingestion
-   - Image: mdrideout/junjo-ai-studio-ingestion:0.84.0
+   - Image: mdrideout/junjo-ai-studio-ingestion:0.84.1
    - Port: 26155
    - Volume: /app/.dbdata
 
 3. junjo-frontend
-   - Image: mdrideout/junjo-ai-studio-frontend:0.84.0
+   - Image: mdrideout/junjo-ai-studio-frontend:0.84.1
    - Port: 26153
 ```
 

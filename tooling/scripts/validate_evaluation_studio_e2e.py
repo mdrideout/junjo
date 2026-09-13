@@ -342,7 +342,7 @@ def poll_attempt_evidence(
             junjo,
             application_root,
             environment,
-            ["attempt", "evidence", "--attempt-id", attempt_id],
+            ["attempt", "evidence", "full", "--attempt-id", attempt_id],
             accepted_exit_codes=frozenset({0, 7}),
         )
         if exit_code == 0:
