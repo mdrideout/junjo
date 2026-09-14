@@ -49,9 +49,9 @@ const codingAgents = [
   <section class="benefit-section diagnosis" aria-labelledby="diagnosis-title">
     <div class="section-inner diagnosis-layout">
       <div class="section-heading">
-        <h2 id="diagnosis-title">Diagnose failures <em>without hallucination</em></h2>
-        <p class="lead">Connect application outcomes to the execution chronology that produced them. Your coding agent can inspect recorded events, follow state changes, investigate intermediate results, and identify which step needs to change.</p>
-        <p class="support">This telemetry and diagnostic layer is the primary foundation of recursively self-improving apps.</p>
+        <h2 id="diagnosis-title">Diagnose failures <em>with execution evidence</em></h2>
+        <p class="lead">Without execution data, an LLM can hallucinate the events that led to a failure. Junjo connects application outcomes to recorded events, state changes, and intermediate results, giving your coding agent evidence to investigate what happened.</p>
+        <p class="support">Your coding agent can still misinterpret the evidence. Check its diagnosis against the recorded execution, then test proposed fixes against repeatable scenarios.</p>
       </div>
       <DiagnosisComparison />
     </div>
