@@ -10,7 +10,7 @@ All notable changes to Junjo will be documented in this file.
 
 - The evaluation CLI now requires an explicit evidence subcommand: `manifest`,
   `spans`, or `full`. Update scripts that used the previous attempt-evidence
-  command to choose the intended level of detail. Use Studio 0.84.0 for the
+  command to choose the intended level of detail. Use Studio 0.84.1 for the
   corresponding evidence endpoints.
 
 ### Library
