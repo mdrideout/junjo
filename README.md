@@ -15,6 +15,8 @@ components:
 - [`apps/studio`](apps/studio) — Junjo AI Studio's backend, frontend, ingestion
   service, canonical deployment distributions, and service documentation.
 - [`apps/website`](apps/website) — the Junjo product and documentation website.
+- [`apps/coding-agents`](apps/coding-agents) — the first-pass Codex plugin,
+  native-agent workflow handoff, and scoped telemetry bridge.
 - [`apps/studio/deployments`](apps/studio/deployments) — canonical source for
   the minimal and VM/Caddy Studio distributions. Their standalone GitHub
   repositories are generated one-way release mirrors, not separate sources of
@@ -92,6 +94,7 @@ and deployment distributions are licensed under the Apache License 2.0. See
 the root [`LICENSE`](LICENSE) and the license copies shipped with independently
 packaged components, including the [Python SDK](sdks/python/LICENSE),
 [Studio](apps/studio/LICENSE), [website](apps/website/LICENSE),
+[coding-agent bridge](apps/coding-agents/LICENSE),
 [minimal deployment](apps/studio/deployments/minimal/LICENSE), and
 [VM/Caddy deployment](apps/studio/deployments/vm-caddy/LICENSE).
 

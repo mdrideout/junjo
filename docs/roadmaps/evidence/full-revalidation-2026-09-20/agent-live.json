@@ -1,0 +1,15 @@
+{
+  "agent_name": "Horizon 1 Studio E2E Agent",
+  "agent_run_id": "dlo0B9OGxFvNNka0AyaI1",
+  "agent_span_id": "e1bef84aac8d3f9b",
+  "nested_workflow_name": "Horizon 1 Normalization Workflow",
+  "nested_workflow_span_id": "9f059f5f455cfbcb",
+  "schema_version": 1,
+  "service_name": "junjo-agent-h1-e2e-bc30e5d36eca7818",
+  "service_namespace": "junjo.e2e",
+  "service_version": "horizon-1",
+  "tool_name": "run_normalization_workflow",
+  "tool_operation_sequence": 2,
+  "tool_span_id": "c9393a1259832ff7",
+  "trace_id": "df047a91dca08f34df51fae387b9d84d"
+}

@@ -1,0 +1,23 @@
+{
+  "trace_id": "b4f3f12167adba6027c9f45e68b27ac0",
+  "views": {
+    "ReturnEligibilityWorkflow": {
+      "store_id": "BIu6oRRuzdfMqZ70yH48Q",
+      "sequence_start": 1,
+      "sequence_end": 3,
+      "reconstruction_status": "verified"
+    },
+    "Order support": {
+      "store_id": "BIu6oRRuzdfMqZ70yH48Q",
+      "sequence_start": 0,
+      "sequence_end": 3,
+      "reconstruction_status": "verified"
+    },
+    "Support caller review": {
+      "store_id": "BIu6oRRuzdfMqZ70yH48Q",
+      "sequence_start": 0,
+      "sequence_end": 4,
+      "reconstruction_status": "verified"
+    }
+  }
+}

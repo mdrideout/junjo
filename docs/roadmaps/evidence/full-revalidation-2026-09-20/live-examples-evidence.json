@@ -1,0 +1,92 @@
+[
+  {
+    "service": "Junjo Base Example",
+    "trace_id": "527a056b68f8c053da13eae9a729af9c",
+    "span_count": 13,
+    "executables": [
+      {
+        "type": "subflow",
+        "id": "3200e10b8a7fd4d8",
+        "stores": {
+          "application": {
+            "store_id": "b8XipKnZNObZnillxvi1M",
+            "sequence_start": 0,
+            "sequence_end": 3,
+            "reconstruction_status": "verified"
+          }
+        }
+      },
+      {
+        "type": "workflow",
+        "id": "4b16d85cfac965e4",
+        "stores": {
+          "application": {
+            "store_id": "2ZuOOvC4EQohueyYOkJ9E",
+            "sequence_start": 0,
+            "sequence_end": 6,
+            "reconstruction_status": "verified"
+          }
+        }
+      }
+    ],
+    "diagnostics": []
+  },
+  {
+    "service": "base-openai-agents",
+    "trace_id": "6a3b0b0080ad11c583deed5c95fb43dd",
+    "span_count": 27,
+    "executables": [
+      {
+        "type": "agent",
+        "id": "05ca0ce6ccd18150",
+        "stores": {
+          "runtime": {
+            "store_id": "MQPHLm5K1hqjGNx9ZKUeu",
+            "sequence_start": 0,
+            "sequence_end": 3,
+            "reconstruction_status": "verified"
+          },
+          "application": {
+            "store_id": null,
+            "sequence_start": null,
+            "sequence_end": null,
+            "reconstruction_status": "not_applicable"
+          }
+        }
+      },
+      {
+        "type": "workflow",
+        "id": "47767a6da53353ab",
+        "stores": {
+          "application": {
+            "store_id": "KNdI5ZyzCICxTgWwxVcTz",
+            "sequence_start": 0,
+            "sequence_end": 1,
+            "reconstruction_status": "verified"
+          }
+        }
+      }
+    ],
+    "diagnostics": []
+  },
+  {
+    "service": "ai-chat",
+    "trace_id": "9eac72ee6c67a706f74e005856c635b9",
+    "span_count": 6,
+    "executables": [
+      {
+        "type": "workflow",
+        "id": "694cd7712e9cdb80",
+        "stores": {
+          "application": {
+            "store_id": "uhXSWNtyKmjYuAOn0DuzQ",
+            "sequence_start": 0,
+            "sequence_end": 2,
+            "reconstruction_status": "verified"
+          }
+        }
+      }
+    ],
+    "diagnostics": []
+  }
+]

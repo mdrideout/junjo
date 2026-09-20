@@ -8,8 +8,8 @@
 
 ## Required Release Checks
 
-Junjo requires Python 3.11 or newer. Python 3.13 is the repository-owned
-development, documentation, and release-build version. Every release must pass
+Junjo supports Python 3.11.9+, 3.12.3+, and 3.13 or newer. Python 3.13 is the
+repository-owned development, documentation, and release-build version. Every release must pass
 the Python SDK primary library-health checks from `sdks/python` on Python 3.13:
 
 - `uv sync --frozen --package junjo --extra dev --extra openai-agents`
@@ -39,13 +39,17 @@ python3 tooling/docs/validate_release_manifest.py \
 The website stable-release workflow runs the same command. A mismatched
 manifest blocks publication even when the SDK build itself is green.
 
-Compatibility jobs also run `uv run pytest -q` on Python 3.11, 3.12, and
-3.14. PyPI publication waits for the primary health job, the complete supported
-Python compatibility matrix, and a single Python 3.13 distribution build.
+Compatibility jobs also run `uv run pytest -q` on Python 3.11.9 and 3.12.3
+(the minimum supported patches), the latest 3.11 and 3.12 patches, and 3.14.
+PyPI publication waits for the primary health job, the complete supported Python
+compatibility matrix, and a single Python 3.13 distribution build.
 
-Keep `requires-python = ">=3.11"` and Ruff's `target-version = "py311"` aligned
-with the minimum supported version. The development default must not allow
-syntax that prevents installation on a declared compatible Python version.
+Keep `requires-python = ">=3.11.9,!=3.12.0,!=3.12.1,!=3.12.2"` and Ruff's
+`target-version = "py311"` aligned with the minimum supported versions. The patch
+requirements exclude Python releases whose typing machinery rejects frozen,
+slotted generic constructors; the upstream fix first shipped in 3.11.9 and
+3.12.3. The development default must not allow syntax that prevents installation
+on a declared compatible Python version.
 Reassess the minimum when Python 3.11 reaches end of life in October 2027.
 
 These checks define the required support contract for the `junjo` Python

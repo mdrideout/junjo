@@ -1,0 +1,47 @@
+{
+  "resolution": {
+    "service_namespace": "junjo.examples",
+    "service_name": "ai-chat",
+    "executable_type": "workflow",
+    "runtime_id": "W5nTyi0yLwT13vN98tA3W",
+    "trace_id": "1426828b9dbc571fe4deb5b6cd0f15ba",
+    "span_id": "7f8d13e705c0777d",
+    "detail_path": "/workflows/ai-chat/1426828b9dbc571fe4deb5b6cd0f15ba/7f8d13e705c0777d",
+    "failure_path": "/workflows/ai-chat/1426828b9dbc571fe4deb5b6cd0f15ba/7f8d13e705c0777d",
+    "trace_path": "/traces/ai-chat/1426828b9dbc571fe4deb5b6cd0f15ba/7f8d13e705c0777d"
+  },
+  "first_name": "Olivia",
+  "last_name": "Bennett",
+  "bio": "Hi, I'm Elena, a 22-year-old who moved from Santa Cruz to Monterey two years ago for the coastal life. I work as an Environmental Educator at the Monterey Bay Aquarium, creating programs that teach visitors about marine conservation while staying organized and detail-focused behind the scenes. My close-knit family, including my parents and younger brother, gave me a steady foundation that keeps me grounded and open to new experiences. Outside work, I kayak in the bay, hike Big Sur, photograph tide pools, and cook simple meals from local farmers' markets. I value quiet reflection through occasional church visits and meditation, and I'm single, hoping to meet someone kind for shared adventures and honest talks about life and travel.",
+  "store_verified": true,
+  "writers": [
+    {
+      "action": "set_age",
+      "span_id": "51f2ef15b4277b8d"
+    },
+    {
+      "action": "set_personality",
+      "span_id": "a1f668713da157fc"
+    },
+    {
+      "action": "set_location",
+      "span_id": "7efb105b369a7483"
+    },
+    {
+      "action": "set_bio",
+      "span_id": "f3d3468d413dbfb4"
+    },
+    {
+      "action": "set_name",
+      "span_id": "129d5e5e2c4a7f2c"
+    },
+    {
+      "action": "set_avatar",
+      "span_id": "7f844916d667b02f"
+    },
+    {
+      "action": "set_result",
+      "span_id": "4718312488982470"
+    }
+  ]
+}

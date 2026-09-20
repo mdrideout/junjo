@@ -21,7 +21,9 @@ You can add observability and evaluation without replacing the outer framework.
 
 ## Installation
 
-Junjo Python Library Installation:
+Use Python 3.11.9+, 3.12.3+, or 3.13 and newer. Earlier 3.11 and 3.12
+patches have a Python typing bug affecting explicitly parameterized Agent and
+Tool constructors and are excluded by the package requirements.
 
 ```bash
 # With pip

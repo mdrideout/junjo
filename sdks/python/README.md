@@ -19,9 +19,11 @@ runtime. Both execution modes remain isolated, testable, and observable.
 
 #### Python support
 
-Junjo requires Python 3.11 or newer. Development and documentation use Python
-3.13, while CI currently verifies compatibility across Python 3.11 through
-3.14.
+Junjo supports Python 3.11.9+, 3.12.3+, and 3.13 or newer. Earlier 3.11 and
+3.12 patches have a Python typing bug that prevents explicitly parameterized
+`Agent[...]()` and `Tool[...]()` construction. Development and documentation use
+Python 3.13; CI tests the minimum supported 3.11 and 3.12 patches, their latest
+patches, and Python 3.14.
 
 #### Benefits:
 

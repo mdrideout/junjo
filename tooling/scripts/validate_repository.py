@@ -526,8 +526,8 @@ def validate_python_support_policy() -> None:
     pyproject = tomllib.loads((sdk_root / "pyproject.toml").read_text(encoding="utf-8"))
     project = pyproject["project"]
     require(
-        project["requires-python"] == ">=3.11",
-        "the Python SDK compatibility floor must remain Python 3.11",
+        project["requires-python"] == ">=3.11.9,!=3.12.0,!=3.12.1,!=3.12.2",
+        "the Python SDK must exclude patches affected by the frozen generic typing bug",
     )
     expected_classifiers = {
         f"Programming Language :: Python :: 3.{minor}" for minor in range(11, 15)
@@ -546,7 +546,7 @@ def validate_python_support_policy() -> None:
     require(
         "name: Primary health (Python 3.13)" in python_ci
         and 'python-version: "3.13"' in python_ci
-        and 'python-version: ["3.11", "3.12", "3.14"]' in python_ci
+        and 'python-version: ["3.11.9", "3.11", "3.12.3", "3.12", "3.14"]' in python_ci
         and "UV_PYTHON: ${{ matrix.python-version }}" in python_ci,
         "Python CI must pair the 3.13 primary job with the supported compatibility matrix",
     )

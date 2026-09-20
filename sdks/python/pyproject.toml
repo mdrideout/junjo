@@ -7,7 +7,7 @@ name = "junjo"
 version = "0.68.0"
 description = "AI graph workflow and state machine framework for building debuggable AI Agents."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11.9,!=3.12.0,!=3.12.1,!=3.12.2"
 authors = [{ name = "Matthew Rideout", email = "boon4376@gmail.com" }]
 license = "Apache-2.0"
 license-files = ["LICENSE"]

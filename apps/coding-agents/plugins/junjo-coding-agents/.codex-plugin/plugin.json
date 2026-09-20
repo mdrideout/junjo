@@ -1,0 +1,19 @@
+{
+  "name": "junjo-coding-agents",
+  "version": "0.1.0",
+  "description": "Execute Junjo workflows using Codex reasoning with optional scoped OpenTelemetry diagnostics.",
+  "author": {
+    "name": "Junjo"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Junjo Coding Agents",
+    "shortDescription": "Use Junjo Coding Agents in Codex.",
+    "longDescription": "Execute Junjo workflows using Codex reasoning with optional scoped OpenTelemetry diagnostics.",
+    "developerName": "Junjo",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Run the Junjo function review example with two subagents and diagnostic capture."
+  },
+  "mcpServers": "./.mcp.json"
+}

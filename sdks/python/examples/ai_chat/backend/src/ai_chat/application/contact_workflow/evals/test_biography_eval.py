@@ -24,6 +24,8 @@ async def test_biography_quality(case: dict[str, object], live_telemetry: object
             contact_id=f"eval-{case['id']}",
             conversation_id=f"eval-{case['id']}",
             sex=sex,
+            first_name=str(case["first_name"]),
+            last_name=str(case["last_name"]),
             age=int(str(case["age"])),
             latitude=0,
             longitude=0,

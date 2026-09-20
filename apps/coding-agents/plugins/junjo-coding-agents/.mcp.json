@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "junjo_coding_agents": {
+      "url": "http://127.0.0.1:26156/mcp"
+    }
+  }
+}

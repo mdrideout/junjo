@@ -1,0 +1,194 @@
+[
+  {
+    "trace_id": "9c4a0e687f860e9393369a2c04b08b59",
+    "workflow_span_id": "981a75cda12899fd",
+    "span_count": 16,
+    "name": "Isabella Martinez",
+    "bio": "Isabella Martinez is a 23-year-old data analyst at the Val Verde County Planning Department in Del Rio, Texas, where she reviews local infrastructure reports and helps coordinate community projects. Raised in the area by her parents and two younger brothers, she stays close to family and often spends weekends at their home or attending local events. She enjoys hiking along the Rio Grande, reading historical fiction, cooking traditional Mexican dishes, and volunteering a few hours each month at the public library. Single and seeking a steady connection, Isabella values calm conversations, shared routines, and someone who appreciates both quiet evenings at home and occasional trips to nearby towns.",
+    "name_sequence": 4,
+    "bio_sequence": 5,
+    "biography_input_has_canonical_name": true,
+    "persisted_profile_matches_state": true,
+    "all_parents_present": true,
+    "stores_verified": true,
+    "avatar_subflow_remains_isolated": true,
+    "spans": [
+      {
+        "name": "PersistContactNode",
+        "span_id": "7ff5a4a715923e8a",
+        "parent_span_id": "981a75cda12899fd"
+      },
+      {
+        "name": "image.sample grok-imagine-image-quality",
+        "span_id": "2ddb33410e548d7c",
+        "parent_span_id": "3ba27c4d2d2132aa"
+      },
+      {
+        "name": "CreateAvatarNode",
+        "span_id": "3ba27c4d2d2132aa",
+        "parent_span_id": "290a6bb1b92e9274"
+      },
+      {
+        "name": "chat.sample grok-4.3",
+        "span_id": "5b90829e37270384",
+        "parent_span_id": "ce84d22863eb1f9b"
+      },
+      {
+        "name": "CreateAvatarInspirationNode",
+        "span_id": "ce84d22863eb1f9b",
+        "parent_span_id": "290a6bb1b92e9274"
+      },
+      {
+        "name": "Create Contact Avatar Subflow",
+        "span_id": "290a6bb1b92e9274",
+        "parent_span_id": "981a75cda12899fd"
+      },
+      {
+        "name": "chat.sample grok-4.3",
+        "span_id": "c53c700d3f8e4d7a",
+        "parent_span_id": "f7f0a8493f746d6f"
+      },
+      {
+        "name": "CreateBioNode",
+        "span_id": "f7f0a8493f746d6f",
+        "parent_span_id": "981a75cda12899fd"
+      },
+      {
+        "name": "chat.parse grok-4.3",
+        "span_id": "afea6c00c2938949",
+        "parent_span_id": "7a41d3a0bae618c8"
+      },
+      {
+        "name": "CreateNameNode",
+        "span_id": "7a41d3a0bae618c8",
+        "parent_span_id": "981a75cda12899fd"
+      },
+      {
+        "name": "CreatePersonalityNode",
+        "span_id": "74cde53fb01c5f6a",
+        "parent_span_id": "31a09d5b3f3f23b6"
+      },
+      {
+        "name": "chat.parse grok-4.3",
+        "span_id": "c8c90bb79daee2e1",
+        "parent_span_id": "64450d2cef8f3edc"
+      },
+      {
+        "name": "SelectLocationNode",
+        "span_id": "64450d2cef8f3edc",
+        "parent_span_id": "31a09d5b3f3f23b6"
+      },
+      {
+        "name": "SelectAgeNode",
+        "span_id": "f7b61c7f672c3410",
+        "parent_span_id": "31a09d5b3f3f23b6"
+      },
+      {
+        "name": "Create Initial Contact Data",
+        "span_id": "31a09d5b3f3f23b6",
+        "parent_span_id": "981a75cda12899fd"
+      },
+      {
+        "name": "Create Contact Workflow",
+        "span_id": "981a75cda12899fd",
+        "parent_span_id": null
+      }
+    ]
+  },
+  {
+    "trace_id": "2207bcc48670624965eed664d8887fcd",
+    "workflow_span_id": "23c13e5f4cc606c0",
+    "span_count": 16,
+    "name": "Kylie Dvorak",
+    "bio": "Hey! I\u2019m Kylie, 25, born and raised right here in Wilson. I work as the Front Desk and Event Host at the historic Midland Railroad Hotel, which is honestly the perfect job for me because I love meeting new people and making everyone feel at home.\n\nI am definitely an extrovert through and through. Life is too short to stay inside, so I am always on the go, even if I am usually running five minutes late with an iced coffee in hand. Growing up with a big, close-knit Czech family taught me to appreciate good food, community, and weekend get-togethers. When I am not working, you can almost always find me soaking up the sun out on Wilson Lake with my friends, line dancing on Friday nights, singing along to 90s country music, or hosting a backyard bonfire.\n\nI keep life simple, drama-free, and fun. I am single and looking for a genuine, upbeat guy who doesn't take himself too seriously, loves to laugh, and is ready for spontaneous adventures. If you can keep up with my energy and love lake days as much as I do, send me a message!",
+    "name_sequence": 4,
+    "bio_sequence": 5,
+    "biography_input_has_canonical_name": true,
+    "persisted_profile_matches_state": true,
+    "all_parents_present": true,
+    "stores_verified": true,
+    "avatar_subflow_remains_isolated": true,
+    "spans": [
+      {
+        "name": "PersistContactNode",
+        "span_id": "6787bacdc0ddadb4",
+        "parent_span_id": "23c13e5f4cc606c0"
+      },
+      {
+        "name": "AsyncGenerateContent",
+        "span_id": "597184cad233b335",
+        "parent_span_id": "7725fe95e1bf032e"
+      },
+      {
+        "name": "CreateAvatarNode",
+        "span_id": "7725fe95e1bf032e",
+        "parent_span_id": "029674fb53b8b916"
+      },
+      {
+        "name": "AsyncGenerateContent",
+        "span_id": "60992a743ec1945a",
+        "parent_span_id": "e864e801de012495"
+      },
+      {
+        "name": "CreateAvatarInspirationNode",
+        "span_id": "e864e801de012495",
+        "parent_span_id": "029674fb53b8b916"
+      },
+      {
+        "name": "Create Contact Avatar Subflow",
+        "span_id": "029674fb53b8b916",
+        "parent_span_id": "23c13e5f4cc606c0"
+      },
+      {
+        "name": "AsyncGenerateContent",
+        "span_id": "768d6dc287b640d9",
+        "parent_span_id": "3db1e4d69d4a0259"
+      },
+      {
+        "name": "CreateBioNode",
+        "span_id": "3db1e4d69d4a0259",
+        "parent_span_id": "23c13e5f4cc606c0"
+      },
+      {
+        "name": "AsyncGenerateContent",
+        "span_id": "f10d60d3837e41d4",
+        "parent_span_id": "84c18f6fbf0bd58e"
+      },
+      {
+        "name": "CreateNameNode",
+        "span_id": "84c18f6fbf0bd58e",
+        "parent_span_id": "23c13e5f4cc606c0"
+      },
+      {
+        "name": "CreatePersonalityNode",
+        "span_id": "78b8aba0e9a3e4e5",
+        "parent_span_id": "2d3f1140f8308c1c"
+      },
+      {
+        "name": "AsyncGenerateContent",
+        "span_id": "0adc7b41f3725915",
+        "parent_span_id": "5240c60d758055a3"
+      },
+      {
+        "name": "SelectLocationNode",
+        "span_id": "5240c60d758055a3",
+        "parent_span_id": "2d3f1140f8308c1c"
+      },
+      {
+        "name": "SelectAgeNode",
+        "span_id": "e9bc180e5a43c61a",
+        "parent_span_id": "2d3f1140f8308c1c"
+      },
+      {
+        "name": "Create Initial Contact Data",
+        "span_id": "2d3f1140f8308c1c",
+        "parent_span_id": "23c13e5f4cc606c0"
+      },
+      {
+        "name": "Create Contact Workflow",
+        "span_id": "23c13e5f4cc606c0",
+        "parent_span_id": null
+      }
+    ]
+  }
+]

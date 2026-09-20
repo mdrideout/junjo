@@ -77,6 +77,8 @@ Examples of bad, unauthorized scope increases due to bad implementation judgemen
   It keeps its own JavaScript dependency lock; the production artifact is
   assembled from source-owned documentation exports. Follow
   `apps/website/AGENTS.md`.
+- `apps/coding-agents`: local MCP workflow handoff, coding-host telemetry
+  adapters, and installable plugins. Follow `apps/coding-agents/AGENTS.md`.
 - `contracts/telemetry`: language-independent schemas, versions, and fixtures.
 - `docs/adr`: cross-platform architectural decisions.
 - `docs/roadmaps`: cross-platform strategy and implementation roadmaps.
